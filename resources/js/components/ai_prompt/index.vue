@@ -1,0 +1,107 @@
+<template>
+  <v-app>
+    <v-main class="d-flex flex-column">
+      
+      <!-- Chat Messages Area -->
+      <v-container class="flex-grow-1 overflow-auto rounded-xl" style="background-color: #f5f5f5;">
+        <v-row dense>
+          <v-col
+            v-for="(msg, index) in ai_prompt.messages"
+            :key="index"
+            cols="12"
+            :class="msg.sender !== 'AI' ? 'text-right' : 'text-left'"
+          >
+            <template v-if="msg.sender !== 'AI'">
+              <v-chip
+                :color="msg.sender !== 'AI' ? 'blue lighten-3' : 'grey lighten-2'"
+                class="ma-2"
+              >
+              {{ msg.text }}
+              </v-chip>
+            </template>
+            <template v-else>
+              <div :id="`_ai_message_`+index"></div>
+            </template>
+          </v-col>
+        </v-row>
+      </v-container>
+
+      <!-- Input Area -->
+      <v-container class="py-2" style="background-color: #ffffff;">
+        <v-row no-gutters align="center">
+          <v-col cols="12">
+            <v-text-field
+                v-model="newMessage"
+                label="Type your message..."
+                outlined
+                dense
+                variant="solo-filled"
+                rounded
+                hide-details
+                @keyup.enter="sendMessage"
+                :disabled="loading"
+            >
+              <template #append-inner>
+                <v-btn
+                  v-if="loading"
+                  :loading="loading"
+                  icon="mdi-send"
+                  variant="tonal"
+                  readonly
+                  color="primary" 
+                >
+                </v-btn>
+                <v-btn 
+                  v-else
+                  @click="sendMessage" 
+                  color="primary" 
+                  icon="mdi-send" 
+                  variant="tonal" 
+                  size="small"
+                ></v-btn>
+              </template>
+            </v-text-field>
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-main>
+  </v-app>
+</template>
+
+<script>
+import {useAIPrompt} from "@/stores/AIPrompt";
+import { loadExternalContent } from '@/helpers/dynamic-loader';
+
+export default {
+  data : function() {
+    return {
+      newMessage: "",
+      DynamicComponent: null,
+      loading:false
+    };
+  },
+  computed: {
+    ai_prompt : function(){
+      return useAIPrompt();
+    },
+  },
+  methods: {
+    sendMessage : async function() {
+        if (!this.newMessage.trim()) return;
+        this.loading = true;
+        let message = this.newMessage;
+        this.newMessage = "";
+        await this.ai_prompt.sendMessage(message)
+        .then(res=>{
+            // Clear input
+            try {
+                loadExternalContent(res.answer,`_ai_message_${this.ai_prompt.messages.length-1}`);
+            } catch (e) {
+                this.ai_prompt.error()
+            }
+            this.loading = false;
+        });
+    },
+  },
+};
+</script>
