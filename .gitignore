@@ -3,6 +3,7 @@
 /public/build
 /public/hot
 /storage/pail
+/storage/*.key
 /vendor
 .phpactor.json
 .phpunit.result.cache
