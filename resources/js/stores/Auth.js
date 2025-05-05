@@ -1,9 +1,5 @@
 import axios from "axios";
 import { defineStore } from "pinia";
-import { useDashboardWaiter } from "@/stores/DashboardWaiter";
-import { useClient } from "./Client";
-import { useItem } from "./Item";
-import { useCommand } from "./Command";
 export const useAuth = defineStore("Auth", {
   state: () => {
     return {
@@ -17,10 +13,6 @@ export const useAuth = defineStore("Auth", {
         confirmPassword: null
       },
       user: null,
-      dashboard_waiter: useDashboardWaiter(),
-      client: useClient(),
-      item: useItem(),
-      command: useCommand(),
       token: null
     };
   },
@@ -29,8 +21,7 @@ export const useAuth = defineStore("Auth", {
       axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem("token")}`;
       return axios.get("/api/me").then(async response => {
         this.user = response.data.user;
-        this.setData(response.data.clients, response.data.items , response.data.bills);
-        return await this.dashboard_waiter.getData().then(res => res);
+        //get data
       })
     },
     login: async function () {
@@ -42,8 +33,7 @@ export const useAuth = defineStore("Auth", {
         this.token = response.data.token;
         localStorage.setItem('token', this.token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
-        this.setData(response.data.clients, response.data.items , response.data.bills);
-        await this.dashboard_waiter.getData();
+        //get data
         return response.data;
       });
     },
@@ -55,7 +45,6 @@ export const useAuth = defineStore("Auth", {
       return axios.post("/api/logout",).then(response => {
         this.user = null;
         this.token = null;
-        this.setData([], [] , []);
         localStorage.setItem('token', null);
         return response.data;
       });
@@ -69,11 +58,6 @@ export const useAuth = defineStore("Auth", {
     update: async function () {
 
     },
-    setData: function (clients, items , bills) {
-      this.client.list = clients;
-      this.item.list = items;
-      this.command.bills = bills;
-    }
   },
   getters: {
     getAuth: (state) => {

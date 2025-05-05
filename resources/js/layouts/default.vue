@@ -16,13 +16,6 @@
     </v-container>
     <!-- main end -->
 
-    <!-- bnotom navigation start -->
-    <BottomNavigation v-if="auth.is_auth"/>
-    <!-- bnotom navigation end -->
-
-    <!-- command navigation start -->
-    <NavigationDrawerCommand v-if="auth.is_auth"/>
-    <!-- command navigation end -->
   </v-app>
 </template>
 
@@ -30,16 +23,12 @@
   import SnackBar from "@/components/schema/SnackBar.vue" ;
   import NavigationDrawer from "@/components/schema/NavigationDrawer.vue" ;
   import SystemBar from "@/components/schema/SystemBar.vue" ;
-  import BottomNavigation from "@/components/schema/BottomNavigation.vue" ;
-  import NavigationDrawerCommand from "@/components/schema/NavigationDrawerCommand.vue" ;
   import  { useAuth } from "@/stores/Auth";
 export default {
       components: {
         SnackBar,
         NavigationDrawer,
-        SystemBar,
-        BottomNavigation,
-        NavigationDrawerCommand
+        SystemBar
       },
       computed:{
         auth: function () {

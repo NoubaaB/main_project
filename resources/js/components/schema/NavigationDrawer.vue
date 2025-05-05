@@ -133,30 +133,12 @@
               ['mdi-human-male-board-poll', this.$t("general"),null,"index"],
               ['mdi-robot', this.$t("AI Prompt"),null,"ai_prompt"],
               ['mdi-food-fork-drink', this.$t('commands'),[
-                ['mdi-pencil-plus', this.$t("main"),"command.list"],
+                ['mdi-pencil-plus', this.$t("main"),"index"],
                 ['mdi-pencil-plus', this.$t("create_command"),"index"],
                 ['mdi-view-list', this.$t("list_command"),"index"],
                 ['mdi-playlist-remove', this.$t("cancelled_command"),"index"],
                 ['mdi-poll', this.$t("statistics_command"),"index"],
               ]],
-              ['mdi-file-document-edit-outline', this.$t('invoices'),[
-                ['mdi-view-list', this.$t("list_invoices"),"index"],
-                ['mdi-playlist-remove', this.$t("cancelled_invoices"),"index"],
-                ['mdi-poll', this.$t("statistics_invoices"),"index"],
-              ]],
-              ['mdi-silverware-fork-knife', this.$t('menus'),[
-                ['mdi-pencil-plus', this.$t("create_menu"),"index"],
-                ['mdi-view-list', this.$t("list_menu"),"index"],
-                ['mdi-playlist-remove', this.$t("cancelled_menu"),"index"],
-                ['mdi-poll', this.$t("statistics_menu"),"index"],
-              ]],
-              ['mdi-silverware-clean', this.$t('packshots'),[
-                ['mdi-pencil-plus', this.$t("create_packshot"),"index"],
-                ['mdi-view-list', this.$t("list_packshot"),"index"],
-                ['mdi-playlist-remove', this.$t("cancelled_packshot"),"index"],
-                ['mdi-poll', this.$t("statistics_packshot"),"index"],
-              ]],
-              ['mdi-poll', this.$t('statistics'),null,"index"],
             ]}
         },
         methods:{
