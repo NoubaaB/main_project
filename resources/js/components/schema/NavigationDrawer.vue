@@ -124,11 +124,11 @@
               ['mdi-human-male-board-poll', this.$t("general"),null,"index"],
               ['mdi-robot', this.$t("AI Prompt"),null,"ai_prompt"],
               ['mdi-food-fork-drink', this.$t('commands'),[
-                ['mdi-pencil-plus', this.$t("main"),"index"],
-                ['mdi-pencil-plus', this.$t("create_command"),"index"],
-                ['mdi-view-list', this.$t("list_command"),"index"],
-                ['mdi-playlist-remove', this.$t("cancelled_command"),"index"],
-                ['mdi-poll', this.$t("statistics_command"),"index"],
+                ['mdi-pencil-plus', this.$t("main"),"error404"],
+                ['mdi-pencil-plus', this.$t("create_command"),"error404"],
+                ['mdi-view-list', this.$t("list_command"),"error404"],
+                ['mdi-playlist-remove', this.$t("cancelled_command"),"error404"],
+                ['mdi-poll', this.$t("statistics_command"),"error404"],
               ]],
             ]}
         },

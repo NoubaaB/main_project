@@ -41,6 +41,7 @@ const routes = [
                     {
                         path: "/ai_prompt",
                         name: "ai_prompt",
+                        component: () => import("@/components/ai_prompt/index.vue")
                     },
                     {
                         path: "/command",

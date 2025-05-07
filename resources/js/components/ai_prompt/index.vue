@@ -3,7 +3,7 @@
     <v-main class="d-flex flex-column">
       
       <!-- Chat Messages Area -->
-      <v-container class="flex-grow-1 overflow-auto rounded-xl" style="background-color: #f5f5f5;">
+      <v-container class="flex-grow-1 overflow-auto rounded-xl" :style="{ backgroundColor: main.is_dark ? '#010101' : '#f5f5f5' }">
         <v-row dense>
           <v-col
             v-for="(msg, index) in ai_prompt.messages"
@@ -27,7 +27,7 @@
       </v-container>
 
       <!-- Input Area -->
-      <v-container class="py-2" style="background-color: #ffffff;">
+      <v-container class="py-2 px-0">
         <v-row no-gutters align="center">
           <v-col cols="12">
             <v-text-field
@@ -70,6 +70,7 @@
 
 <script>
 import {useAIPrompt} from "@/stores/AIPrompt";
+import {useMain} from "@/stores/Main";
 import { loadExternalContent } from '@/helpers/dynamic-loader';
 
 export default {
@@ -83,6 +84,9 @@ export default {
   computed: {
     ai_prompt : function(){
       return useAIPrompt();
+    },
+    main:function(){
+      return useMain();
     },
   },
   methods: {
