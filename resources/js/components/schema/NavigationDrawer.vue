@@ -64,15 +64,6 @@
         <v-divider></v-divider>
 
         <v-list density="compact" nav class="px-0">
-            <!-- <v-list-item
-                prepend-icon="mdi-power"
-                :title="$t('logout')"
-                @click.prevent="logout()"
-                rounded="xl"
-                color="blue"
-                :exact="true"
-            >
-            </v-list-item> -->
           <v-sheet
             :class="main.is_dark ? 'bg-grey-darken-3':'bg-blue-lighten-5'"
             class="mx-auto my-auto rounded-lg px-2 py-2"
