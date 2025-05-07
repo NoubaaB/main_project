@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\PrimaryFishProduct;
 use Illuminate\Console\Command;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\File;
@@ -28,22 +29,23 @@ class ImportExcelToModel extends Command
      */
     public function handle()
     {
-        $path = storage_path('C:/Users/pc/Downloads/listes_Frais.xlsx'); // adjust your path
+        $path = 'C:\\Users\\pc\\Downloads\\listes_Frais.xlsx';
 
         if (!File::exists($path)) {
             $this->error("Excel file not found at: $path");
             return Command::FAILURE;
         }
+        echo Excel::toArray(null, $path);
+        // $rows = Excel::toCollection(null, $path)->first();
 
-        $rows = Excel::toCollection(null, $path)->first(); // Assuming first sheet
-
-        foreach ($rows as $row) {
-            Congele::create([
-                'column1' => $row['column1'], // adjust column names
-                'column2' => $row['column2'],
-                // Add all necessary fields
-            ]);
-        }
+        // foreach ($rows as $row) {
+        //     echo $row['Date BR']; // adjust column names
+        //     // PrimaryFishProduct::create([
+        //     //     'column1' => $row['column1'], // adjust column names
+        //     //     'column2' => $row['column2'],
+        //     //     // Add all necessary fields
+        //     // ]);
+        // }
 
         $this->info('> The data imported successfully!');
         return Command::SUCCESS;
