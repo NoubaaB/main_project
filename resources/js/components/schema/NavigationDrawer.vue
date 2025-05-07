@@ -75,7 +75,7 @@
             </v-list-item> -->
           <v-sheet
             :class="main.is_dark ? 'bg-grey-darken-3':'bg-blue-lighten-5'"
-            class="mx-auto my-auto rounded-lg px-4 py-3"
+            class="mx-auto my-auto rounded-lg px-2 py-2"
           >
           <div class="d-flex align-center hide-menu">
             <v-avatar
