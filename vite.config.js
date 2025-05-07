@@ -36,5 +36,13 @@ export default defineConfig({
             '.vue',
         ],
     },
-    build: { chunkSizeWarningLimit: 11600, }
+    build: { chunkSizeWarningLimit: 11600, },
+    css: {
+        preprocessorOptions: {
+            scss: {
+                api: 'modern-compiler' // or "modern"
+            }
+        }
+    }
+
 });

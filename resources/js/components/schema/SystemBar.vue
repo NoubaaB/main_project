@@ -21,18 +21,7 @@
                 </v-toolbar-title>
                 
                 <div class="d-flex">
-                    <v-switch
-                        v-model="main.is_dark"
-                        true-icon="mdi-white-balance-sunny"
-                        false-icon="mdi-weather-night"
-                        hide-details
-                        color="light-blue-darken-3"
-                        class="text-white mx-1"
-                        base-color="blue"
-                        inset
-                    >
-                    </v-switch>
-                    <v-menu transition="scroll-y-transition" class="mx-1">
+                    <v-menu transition="scroll-y-transition">
                         <template v-slot:activator="{ props }">
                             <v-btn
                                 color="blue"
@@ -48,7 +37,7 @@
                             :key="lang.id"
                             @click="changeLanguage(lang)"
                             variant="tonal"
-                            class="my-2 mx-3"
+                            class="my-2 mx-2"
                             style="overflow: hidden"
                             icon
                             size="40"
@@ -60,6 +49,17 @@
                             </span>
                         </v-btn>
                     </v-menu>
+                    <v-switch
+                        v-model="main.is_dark"
+                        true-icon="mdi-white-balance-sunny"
+                        false-icon="mdi-weather-night"
+                        hide-details
+                        color="light-blue-darken-3"
+                        class="text-white mx-1"
+                        base-color="blue"
+                        inset
+                    >
+                    </v-switch>
                 </div>
             </v-toolbar>
             <v-divider></v-divider>

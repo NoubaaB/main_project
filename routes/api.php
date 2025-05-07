@@ -4,6 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
+#region AI routes
+Route::post('/ask-db', [App\Http\Controllers\AIQueryController::class, 'ask']);
+#endregion
 
 #region non-authentication routes
 Route::controller(AuthController::class)->group(function () {
