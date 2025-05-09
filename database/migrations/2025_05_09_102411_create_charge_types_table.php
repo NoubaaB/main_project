@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('fisheries', function (Blueprint $table) {
+        Schema::create('charge_types', function (Blueprint $table) {
             $table->id();
-            $table->string("name");
-            $table->enum("proccess",['HGT', 'ENTIER'])->default('HGT');
+            $table->string("name")->unique();
+            $table->string("description")->nullable();
 
             $table->timestamps();
             $table->softDeletes();
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('fisheries');
+        Schema::dropIfExists('charge_types');
     }
 };

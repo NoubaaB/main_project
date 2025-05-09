@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProductionFishProduct;
+use App\Models\Origin;
 use Illuminate\Http\Request;
 
-class ProductionFishProductController extends Controller
+class OriginController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class ProductionFishProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ProductionFishProduct $productionFishProduct)
+    public function show(Origin $origin)
     {
         //
     }
@@ -42,7 +42,7 @@ class ProductionFishProductController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(ProductionFishProduct $productionFishProduct)
+    public function edit(Origin $origin)
     {
         //
     }
@@ -50,7 +50,7 @@ class ProductionFishProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ProductionFishProduct $productionFishProduct)
+    public function update(Request $request, Origin $origin)
     {
         //
     }
@@ -58,7 +58,7 @@ class ProductionFishProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ProductionFishProduct $productionFishProduct)
+    public function destroy(Origin $origin)
     {
         //
     }

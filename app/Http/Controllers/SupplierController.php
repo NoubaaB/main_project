@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PrimaryFishProduct;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 
-class PrimaryFishProductController extends Controller
+class SupplierController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class PrimaryFishProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PrimaryFishProduct $primaryFishProduct)
+    public function show(Supplier $supplier)
     {
         //
     }
@@ -42,7 +42,7 @@ class PrimaryFishProductController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(PrimaryFishProduct $primaryFishProduct)
+    public function edit(Supplier $supplier)
     {
         //
     }
@@ -50,7 +50,7 @@ class PrimaryFishProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, PrimaryFishProduct $primaryFishProduct)
+    public function update(Request $request, Supplier $supplier)
     {
         //
     }
@@ -58,7 +58,7 @@ class PrimaryFishProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(PrimaryFishProduct $primaryFishProduct)
+    public function destroy(Supplier $supplier)
     {
         //
     }

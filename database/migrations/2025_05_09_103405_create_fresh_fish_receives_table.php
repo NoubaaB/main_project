@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('primary_fish_products', function (Blueprint $table) {
+        Schema::create('fresh_fish_receives', function (Blueprint $table) {
             $table->id();
             $table->date("date");
-            $table->array("tracker_numbers");
+            $table->json("tracking_numbers")->nullable();
             $table->double("total_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->boolean("is_stockable")->default(false);
 
-            $table->foreignId('fishery_id')->nullable()->index();
             $table->foreignId('primary_fish_detail_id')->nullable()->index();
-            $table->foreignId('production_fish_product_id')->nullable()->index();
+            $table->foreignId('freeze_fish_process_id')->nullable()->index();
+            $table->foreignId('fishery_id')->nullable()->index();
+            $table->foreignId('origin_id')->nullable()->index();
+            $table->foreignId('charge_type_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();
@@ -33,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('primary_fish_products');
+        Schema::dropIfExists('fresh_fish_receives');
     }
 };

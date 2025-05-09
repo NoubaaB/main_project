@@ -14,10 +14,12 @@ return new class extends Migration
         Schema::create('primary_fish_details', function (Blueprint $table) {
             $table->id();
             $table->double("weight")->default(0.00);
-            $table->double("unit_price")->default(0.00);
             $table->double("price")->default(0.00);
+            $table->double("unit_price")->default(0.00);
+            $table->double("packag_count")->default(0.00);
 
             $table->foreignId('fish_type_id')->nullable()->index();
+            $table->foreignId('package_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();

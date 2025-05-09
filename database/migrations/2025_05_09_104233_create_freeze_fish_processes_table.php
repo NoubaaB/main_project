@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('production_fish_products', function (Blueprint $table) {
+        Schema::create('freeze_fish_processes', function (Blueprint $table) {
             $table->id();
             $table->date("date");
-            $table->array("tracker_numbers");
+            $table->json("tracking_numbers")->nullable();
             $table->double("total_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
+            $table->double("total_price_service")->default(0.00); // Service congelation charges
             $table->boolean("is_stockable")->default(true);
+            $table->boolean("production_locally")->default(true);
 
             $table->foreignId('production_fish_detail_id')->nullable()->index();
 
@@ -31,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('production_fish_products');
+        Schema::dropIfExists('freeze_fish_processes');
     }
 };

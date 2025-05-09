@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('production_fish_details', function (Blueprint $table) {
+        Schema::create('packages', function (Blueprint $table) {
             $table->id();
-            $table->double("weight")->default(0.00);
-            $table->double("unit_price")->default(0.00);
-            $table->double("price")->default(0.00);
-
-            $table->foreignId('fish_type_id')->nullable()->index();
+            $table->string("name")->unique();
+            $table->integer("size");
+            $table->string("description")->nullable();
+            $table->string("type_emballage")->nullable();
+            
 
             $table->timestamps();
             $table->softDeletes();
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('production_fish_details');
+        Schema::dropIfExists('packages');
     }
 };
