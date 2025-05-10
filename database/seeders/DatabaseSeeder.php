@@ -2,9 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\ChargeType;
+use App\Models\Fishery;
 use App\Models\FishFamilly;
 use App\Models\FishType;
+use App\Models\Origin;
+use App\Models\Package;
 use App\Models\Role;
+use App\Models\Supplier;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -181,5 +186,83 @@ class DatabaseSeeder extends Seeder
                 "fish_familly_id" => $fish_familly->id
             ]);
         }
+
+        Package::factory()->create([
+            "name" => "20 KG",
+            "size" => 20,
+            "description" => "20 KG"
+        ]);
+        Package::factory()->create([
+            "name" => "24 KG",
+            "size" => 24,
+            "description" => "24 KG"
+        ]);
+        Package::factory()->create([
+            "name" => "22 KG",
+            "size" => 22,
+            "description" => "22 KG"
+        ]);
+        Package::factory()->create([
+            "name" => "21 KG",
+            "size" => 21,
+            "description" => "21 KG"
+        ]);
+        Package::factory()->create([
+            "name" => "12 KG",
+            "size" => 12,
+            "description" => "12 KG"
+        ]);
+        Package::factory()->create([
+            "name" => "10 KG",
+            "size" => 10,
+            "description" => "10 KG"
+        ]);
+
+        Supplier::factory(10)->create();
+        Origin::factory(10)->create();
+
+        Fishery::factory()->create([
+            "name" => "Cotiere",
+            "name_en" => "Cotiere",
+            "name_fr" => "Cotiere",
+            "name_es" => "Cotiere",
+        ]);
+        Fishery::factory()->create([
+            "name" => "purse seining and mid-water trawling",
+            "name_en" => "RSW",
+            "name_fr" => "RSW",
+            "name_es" => "RSW",
+        ]);
+
+        ChargeType::factory()->create([
+            "description" => "Cotiere",
+            "name_en" => "Cotiere",
+            "name_fr" => "Cotiere",
+            "name_es" => "Cotiere",
+        ]);
+        ChargeType::factory()->create([
+            "description" => "purse seining and mid-water trawling",
+            "name_en" => "RSW",
+            "name_fr" => "RSW",
+            "name_es" => "RSW",
+        ]);
+        ChargeType::factory()->create([
+            "description" => "frozen",
+            "name_en" => "Frozen",
+            "name_fr" => "Congelé",
+            "name_es" => "Congelado",
+        ]);
+        ChargeType::factory()->create([
+            "description" => "Freezing service",
+            "name_en" => "Freezing service",
+            "name_fr" => "Service de congélation",
+            "name_es" => "Servicio de congelación",
+        ]);
+        ChargeType::factory()->create([
+            "description" => "buy and sell fresh fish",
+            "name_en" => "Buy and sell fresh fish",
+            "name_fr" => "Acheter et vendre du poisson frais",
+            "name_es" => "Comprar y vender pescado fresco",
+        ]);
     }
 }

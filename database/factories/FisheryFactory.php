@@ -18,6 +18,8 @@ class FisheryFactory extends Factory
     {
         return [
             //
+            "name" => $this->faker->unique()->company,
+            "process" => $this->faker->randomElement(['HGT', 'ENTIER']),
         ];
     }
 }

@@ -18,6 +18,8 @@ class OriginFactory extends Factory
     {
         return [
             //
+            "name"=> $this->faker->unique()->country,
+            "description"=> $this->faker->text(200)
         ];
     }
 }
