@@ -18,6 +18,11 @@ class FreshFishReceiveFactory extends Factory
     {
         return [
             //
+            "date" => $this->faker->dateTimeBetween('-1 month', 'now'),
+            "tracking_numbers" => json_encode($this->faker->randomElements(['123456789', '987654321', '456789123'], 2)),
+            "total_price" => $this->faker->randomFloat(2, 100, 1000),
+            "total_weight" => $this->faker->randomFloat(2, 10, 100),
+            "is_stockable" => $this->faker->boolean,
         ];
     }
 }

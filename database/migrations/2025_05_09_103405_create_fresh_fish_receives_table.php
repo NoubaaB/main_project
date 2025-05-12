@@ -19,11 +19,10 @@ return new class extends Migration
             $table->double("total_weight")->default(0.00);
             $table->boolean("is_stockable")->default(false);
 
-            $table->foreignId('primary_fish_detail_id')->nullable()->index();
-            $table->foreignId('freeze_fish_process_id')->nullable()->index();
             $table->foreignId('fishery_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();
             $table->foreignId('charge_type_id')->nullable()->index();
+            $table->foreignId('supplier_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();

@@ -111,6 +111,8 @@ class AIQueryController extends Controller
                 const { createApp } = Vue;
                 const vuetify = Vuetify.createVuetify();
             </script>
+            * remove from script any Instance Of Vue or createApp or Vuetify Or Vuetify.createVuetify() 
+            * use index as key when use v-for in vue js
             *do not instace vuetify again in your code
             *do not instace vue js again in your code
             *do not use any other library or framework
@@ -119,9 +121,9 @@ class AIQueryController extends Controller
             *then start code like this:
             <div id='ai_$id'><v-containter class='bg-white rounded-xl'> /* write vuetify and vue js code here */ </v-container></div>
             <script> createApp({ //write vue code here; })use(vuetify).mount('#ai_$id') </script>
-            - make sure that vue data properties match with what render in template vue
-            - make sure to make any number has relation with moneytize to be like this example '100.00'
-            - Use Moroccan Dirham (MAD) for any money values and format any nymber like this example '3 000.00' .
+            * make sure that vue data properties match with what render in template vue
+            * make sure to make any number has relation with moneytize to be like this example '100.00'
+            * Use Moroccan Dirham (MAD) for any money values and format any nymber like this example '3 000.00' .
             Give me only the body content of an HTML file using Vue 3 and Vuetify 3 via CDN — no <html>, <head>, or styles — just the <div id='app'>, the CDN <script> tags, the Vue template in <script type='text / x - template'>, and the JavaScript to mount the app.             
             and finally make sure if code work properly without any error
             ";

@@ -18,6 +18,11 @@ class PrimaryFishDetailFactory extends Factory
     {
         return [
             //
+            "weight"=> $this->faker->randomFloat(2, 0.1, 100),
+            "price"=> $this->faker->randomFloat(2, 1, 100),
+            "unit_price"=> $this->faker->randomFloat(2, 1, 100),
+            "price"=> $this->faker->randomFloat(2, 1, 100),
+            "packag_count"=> $this->faker->randomNumber(2),
         ];
     }
 }

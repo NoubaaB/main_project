@@ -19,6 +19,8 @@ return new class extends Migration
             $table->double("packag_count")->default(0.00);
 
             $table->foreignId('fish_type_id')->nullable()->index();
+            $table->foreignId('fresh_fish_receive_id')->nullable()->index();
+            $table->foreignId('freeze_fish_process_id')->nullable()->index();
             $table->foreignId('package_id')->nullable()->index();
 
             $table->timestamps();

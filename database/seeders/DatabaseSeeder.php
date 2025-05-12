@@ -6,8 +6,10 @@ use App\Models\ChargeType;
 use App\Models\Fishery;
 use App\Models\FishFamilly;
 use App\Models\FishType;
+use App\Models\FreshFishReceive;
 use App\Models\Origin;
 use App\Models\Package;
+use App\Models\PrimaryFishDetail;
 use App\Models\Role;
 use App\Models\Supplier;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -28,7 +30,7 @@ class DatabaseSeeder extends Seeder
 
         User::factory()->create([
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'email' => 'test@test.com',
             "role_id" => 1
         ]);
 
@@ -264,5 +266,27 @@ class DatabaseSeeder extends Seeder
             "name_fr" => "Acheter et vendre du poisson frais",
             "name_es" => "Comprar y vender pescado fresco",
         ]);
+
+        $charge_types = ChargeType::all();
+        foreach ($charge_types as $charge_type) {
+            $fresh_fishes_receives = FreshFishReceive::factory(10)->create([
+                "charge_type_id" => $charge_type->id,
+                "fishery_id" => Fishery::all()->random()->id,
+                "origin_id" => Origin::all()->random()->id,
+                "supplier_id" => Supplier::all()->random()->id,
+            ]);
+            foreach ($fresh_fishes_receives as $fresh_fishes_receive) {
+                if($fresh_fishes_receive->charge_type_id == 1){
+                    PrimaryFishDetail::factory(10)->create([
+                        "fish_type_id" => FishType::all()->random()->id,
+                        "fresh_fish_receive_id" => $fresh_fishes_receive->id,
+                        "package_id" => Package::all()->random()->id,
+                    ]);
+
+                }
+            }
+
+        }
+
     }
 }

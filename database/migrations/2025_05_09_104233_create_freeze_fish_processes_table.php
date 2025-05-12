@@ -21,8 +21,6 @@ return new class extends Migration
             $table->boolean("is_stockable")->default(true);
             $table->boolean("production_locally")->default(true);
 
-            $table->foreignId('production_fish_detail_id')->nullable()->index();
-
             $table->timestamps();
             $table->softDeletes();
         });
