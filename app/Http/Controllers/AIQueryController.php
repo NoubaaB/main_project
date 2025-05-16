@@ -100,19 +100,44 @@ class AIQueryController extends Controller
             Answer the question: '$question'.
 
             Instructions:
-            * consider that already import those liberary in my html file:
+            * consider that already html file:
+            <!DOCTYPE html>
+            <html lang='en'>
+            <head>
                 <link href='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css' rel='stylesheet'>
                 <link href='https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' rel='stylesheet'>
-                <script src='https://unpkg.com/vue@3.4.32/dist/vue.global.js'></script>
+                <script src='https://unpkg.com/vue@3/dist/vue.global.js'></script>
                 <script src='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js'></script>
                 <script src='https://cdn.jsdelivr.net/npm/apexcharts'></script>
-            *consider also that I already instance vue js and vuetify in my html file like this:
-            <script>
-                const { createApp } = Vue;
-                const vuetify = Vuetify.createVuetify();
-            </script>
-            * remove from script any Instance Of Vue or createApp or Vuetify Or Vuetify.createVuetify() 
-            * use index as key when use v-for in vue js
+                <script type='importmap'>
+                    {
+                        'imports': {
+                            'vue': 'https://cdn.jsdelivr.net/npm/vue@latest/dist/vue.esm-browser.js',
+                            'vuetify': 'https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.esm.js'
+                        }
+                    }
+                </script>
+
+            </head>
+
+            <body>
+                <div id='app'></div>
+                @vite(['resources/js/app.js'])
+
+                <script>
+                    const {
+                        createApp
+                    } = Vue
+                    const {
+                        createVuetify
+                    } = Vuetify
+
+                    const vuetify = createVuetify();
+                </script>
+            </body>
+
+            </html>
+            * please prevent use v-table in vue js code this is most important
             *do not instace vuetify again in your code
             *do not instace vue js again in your code
             *do not use any other library or framework
