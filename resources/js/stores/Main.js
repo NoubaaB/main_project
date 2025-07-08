@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { useCommand } from "./Command";
+import { useReceipt } from "./Receipt";
 import annyang from "annyang";
 
 export const useMain = defineStore("main", {
@@ -35,14 +35,8 @@ export const useMain = defineStore("main", {
     },
     actions: {
         initData: function () {
-            let commands = localStorage.getItem("commands") || '[]';
-            useCommand().commands = JSON.parse(commands);
-            let deleted_commands = localStorage.getItem("deleted_commands") || '[]';
-            useCommand().deleted_commands = JSON.parse(deleted_commands);
-            let commands_serving = localStorage.getItem("commands_serving") || '[]';
-            useCommand().commands_serving = JSON.parse(commands_serving);
-            let commands_completed = localStorage.getItem("commands_completed") || '[]';
-            useCommand().commands_completed = JSON.parse(commands_completed);
+            let receipt = localStorage.getItem("receipt") || '{}';
+            Object.assign(useReceipt().receipt, JSON.parse(receipt))
             let language = localStorage.getItem("language");
             let lang = null;
             if (language) {

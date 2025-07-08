@@ -48,6 +48,17 @@ const routes = [
                         name: "command",
                         redirect: { name: "command.list" },
                     },
+                    {
+                        path: "/charges",
+                        name: "charges",
+                        children: [
+                            {
+                                path: "add_fresh_fish_recives",
+                                name: "add_fresh_fish_recives",
+                                component: () => import("@/components/charges/AddFreshFishReceipt/index.vue")
+                            },
+                        ]
+                    },
                 ]
             },
             {

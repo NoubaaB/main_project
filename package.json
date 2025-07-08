@@ -30,6 +30,7 @@
     },
     "dependencies": {
         "@mdi/font": "7.0.96",
+        "@popperjs/core": "^2.11.8",
         "@takuma-ru/vue-swipe-modal": "^5.0.0",
         "@vitejs/plugin-vue": "^5.0.5",
         "@vue/compiler-dom": "^3.5.13",
