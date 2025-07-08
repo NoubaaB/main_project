@@ -37,6 +37,7 @@ export const useMain = defineStore("main", {
         initData: function () {
             let receipt = localStorage.getItem("receipt") || '{}';
             Object.assign(useReceipt().receipt, JSON.parse(receipt))
+            useReceipt().selectedCharge = localStorage.getItem("selectedCharge") || null;
             let language = localStorage.getItem("language");
             let lang = null;
             if (language) {

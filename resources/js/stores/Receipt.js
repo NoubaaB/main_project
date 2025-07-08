@@ -8,6 +8,8 @@ import { useWebWorkerFn } from '@vueuse/core';
 export const useReceipt = defineStore("receipt", {
     state: () => {
         return {
+            selectedCharge:null,
+            type_charges: ['Frais','RSW','Congele','Frais Revendu','Congelation','Glace','Emballage','Transport','Comission','Autre Charge'],
             receipt: {
                 date: new Date(), // Default to today
                 trackingNumbersInput: "",
@@ -29,11 +31,12 @@ export const useReceipt = defineStore("receipt", {
         add: function () {
             
         },
-        UpdateReceipt: function (receipt) {
+        UpdateReceipt: function (receipt, selectedCharge) {
             useReceipt().receipt = receipt;
             localStorage.setItem("receipt", JSON.stringify(receipt));
+            localStorage.setItem("selectedCharge", selectedCharge);
             console.log("Receipt updated:", receipt);
-        }
+        },
     },
     getters: {
 

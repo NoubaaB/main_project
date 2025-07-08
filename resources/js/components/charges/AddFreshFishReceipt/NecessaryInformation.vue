@@ -31,8 +31,8 @@
           <v-row class="text-center">
             <v-col>
               <v-autocomplete
-                v-model="selectedCharge"
-                :items="type_charges"
+                v-model="_receipt.selectedCharge"
+                :items="_receipt.type_charges"
                 label="Type Of Charge"
                 chips
                 density="compact"
@@ -315,7 +315,6 @@ export default {
     return {
       showAdditionalInfo: false,
       searchInputTrackingNumbers: '',
-      type_charges : ['California', 'Colorado', 'Florida', 'Georgia', 'Texas', 'Wyoming'],
       // Example options - replace with API data
       freezeFishProductions: [
         { title: 'Production A', value: 1 },
@@ -369,7 +368,7 @@ export default {
     receipt: {
       handler(newValue) {
         // Save receipt to localStorage whenever it changes
-        this._receipt.UpdateReceipt(newValue);
+        this._receipt.UpdateReceipt(newValue,this._receipt.selectedCharge);
       },
       deep: true,
       immediate: true
