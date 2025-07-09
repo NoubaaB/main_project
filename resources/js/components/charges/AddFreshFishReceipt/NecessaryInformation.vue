@@ -97,10 +97,10 @@
               variant="tonal"
               color="info"
               rounded
-              @click="showAdditionalInfo = !showAdditionalInfo"
+              @click="_receipt.showAdditionalInfo = !_receipt.showAdditionalInfo"
               >
               <v-icon>
-                {{ showAdditionalInfo ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ _receipt.showAdditionalInfo ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
               </v-icon>
               expand
               </v-btn>
@@ -108,7 +108,7 @@
           </v-row>
 
           <v-expand-transition>
-            <v-row v-show="showAdditionalInfo" class="pt-2">
+            <v-row v-show="_receipt.showAdditionalInfo" class="pt-2">
               <!-- Tracking Numbers -->
 
               <v-col cols="12" md="6">
@@ -139,7 +139,6 @@
                       </v-chip>
                     </template>
                   </v-autocomplete>
-                  {{ selectedCharge }}
               </v-col>
   
               <!-- Total Price -->
@@ -313,7 +312,6 @@ export default {
   },
   data: function () {
     return {
-      showAdditionalInfo: false,
       searchInputTrackingNumbers: '',
       // Example options - replace with API data
       freezeFishProductions: [
@@ -361,18 +359,27 @@ export default {
       event.target.value = '';
     },
     removeCharge(item) {
-      this.receipt.trackingNumbersInput = this.receipt.trackingNumbersInput.filter(i => i !== item)
+      this._receipt.selectedCharge = null;
+    },
+    update: function(){
+      this._receipt.UpdateReceipt(this._receipt.receipt , this._receipt.selectedCharge , this._receipt.showAdditionalInfo);
     }
   },
   watch: {
     receipt: {
-      handler(newValue) {
+      handler(_) {
         // Save receipt to localStorage whenever it changes
-        this._receipt.UpdateReceipt(newValue,this._receipt.selectedCharge);
+        this.update();
       },
       deep: true,
       immediate: true
-    }
+    },
+    '_receipt.showAdditionalInfo': function (_) {
+      this.update();
+    },
+    '_receipt.selectedCharge': function (_) {
+      this.update();
+    },
   }
 }
 </script>
