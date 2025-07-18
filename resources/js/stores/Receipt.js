@@ -90,7 +90,7 @@ export const useReceipt = defineStore("receipt", {
         },
         deleteMany: function (selected) {
             this.receipts = this.receipts.filter(receipt =>
-                selected.some(_selected => _selected.id === receipt.id)
+                selected.some(_selected => _selected !== receipt.id)
             );
 
         },

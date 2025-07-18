@@ -53,7 +53,6 @@
                             width="100%"
                         >
                             <h2 class="text-h5 mb-6">Receipts Archivied</h2>
-                            {{ selected }}
                             <v-data-table
                                 v-model="selected"
                                 :headers="headers"
@@ -72,33 +71,38 @@
                                     </div>
                                 </template>
                             </v-data-table>
+                            <v-row>
+                                <v-col>
+                                    <div class="text-center">
+                                        <v-btn
+                                            class="text-none"
+                                            color="info"
+                                            variant="tonal"
+                                            width="90"
+                                            rounded
+                                            block
+                                        >
+                                            Submit
+                                        </v-btn>
+                                    </div>
+                                </v-col>
+                                <v-col>
+                                    <div class="text-center">
+                                        <v-btn
+                                            class="text-none"
+                                            color="red"
+                                            variant="outlined"
+                                            width="90"
+                                            rounded
+                                            block
+                                            @click="deleteReceipts"
+                                        >
+                                            Delete
+                                        </v-btn>
+                                    </div>
+                                </v-col>
+                            </v-row>
 
-                            <div class="text-end">
-                                <v-btn
-                                    class="text-none"
-                                    color="success"
-                                    variant="flat"
-                                    width="90"
-                                    rounded
-                                >
-                                    Submit
-                                </v-btn>
-                            </div>
-
-                            <v-divider class="mb-4"></v-divider>
-
-                            <div class="text-end">
-                                <v-btn
-                                    class="text-none"
-                                    color="success"
-                                    variant="flat"
-                                    width="90"
-                                    rounded
-                                    @click="deleteReceipts"
-                                >
-                                    Delete
-                                </v-btn>
-                            </div>
                         </v-sheet>
                     </v-menu>                    
                     <v-menu transition="scroll-y-transition">
