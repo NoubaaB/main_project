@@ -14,7 +14,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon class="text-blue">mdi-numeric-4-circle-outline</v-icon>
+                    <v-icon color="yellow" class="text-blue">mdi-lightbulb-alert</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">

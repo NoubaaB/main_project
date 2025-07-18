@@ -1,5 +1,7 @@
 import axios from "axios";
 import { defineStore } from "pinia";
+import { useProvider } from "./Provider";
+import { useFishType } from "./FishType";
 export const useAuth = defineStore("Auth", {
   state: () => {
     return {
@@ -13,7 +15,9 @@ export const useAuth = defineStore("Auth", {
         confirmPassword: null
       },
       user: null,
-      token: null
+      token: null,
+      provider : useProvider(),
+      fish_type : useFishType(),
     };
   },
   actions: {
@@ -21,7 +25,8 @@ export const useAuth = defineStore("Auth", {
       axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem("token")}`;
       return axios.get("/api/me").then(async response => {
         this.user = response.data.user;
-        //get data
+        //init local store
+        this.init_local_store(response);
       })
     },
     login: async function () {
@@ -30,12 +35,18 @@ export const useAuth = defineStore("Auth", {
         password: this.model.password,
       }).then(async response => {
         this.user = response.data.user;
+        //init local store
+        this.init_local_store(response);
         this.token = response.data.token;
         localStorage.setItem('token', this.token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
         //get data
         return response.data;
       });
+    },
+    init_local_store: function (response) {
+      this.provider.list = response.data.providers;
+      this.fish_type.list = response.data.fish_types;
     },
     set_user: function (user) {
       this.user = user;

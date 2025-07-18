@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('production_fish_details', function (Blueprint $table) {
+        Schema::create('freeze_fish_process_details', function (Blueprint $table) {
             $table->id();
             $table->double("weight")->default(0.00);
             $table->double("price")->default(0.00);
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('production_fish_details');
+        Schema::dropIfExists('freeze_fish_process_details');
     }
 };

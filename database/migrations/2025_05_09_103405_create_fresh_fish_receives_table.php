@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->date("date");
             $table->json("tracking_numbers")->nullable();
+            $table->string("note",500)->nullable();
             $table->double("total_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->boolean("is_stockable")->default(false);

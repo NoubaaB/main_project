@@ -31,14 +31,18 @@
           <v-row class="text-center">
             <v-col>
               <v-autocomplete
-                v-model="_receipt.selectedCharge"
+                v-model="_receipt.input_tracking_number"
                 :items="_receipt.type_charges"
+                item-value="name"
+                item-title="name"
+                key="name"
                 label="Type Of Charge"
                 chips
                 density="compact"
                 variant="outlined"
                 rounded
                 color="info"
+                hide-details
                 >
                   <!-- Custom Chips Slot -->
                   <template #chip="{ item, index }">
@@ -48,12 +52,48 @@
                       color="info accent-4"
                       closable
                       variant="tonal"
-                      @click:close="removeCharge(item)"
+                      @click:close="removeTrackingNumber(item)"
                     >
                       {{ item.title }}
                     </v-chip>
                   </template>
                 </v-autocomplete>
+            </v-col>
+          </v-row>
+          
+          <v-row class="text-center">
+            <!-- Select Detail -->
+            <v-col class="py-0">
+              <v-switch
+                density="compact"
+                color="info"
+                hide-details
+                variant="outlined"
+                rounded
+                v-model="_receipt.add_fresh_fish_receive_details"
+                label="Fish Receive"
+                inset
+              ></v-switch>
+            </v-col>
+            <v-col class="py-0">
+              <v-switch
+                density="compact"
+                color="info"
+                hide-details
+                variant="outlined"
+                rounded
+                v-model="_receipt.add_freeze_fish_process_details"
+                label="Freeze Process"
+                inset
+              ></v-switch>
+            </v-col>
+            <v-col cols="2" class="py-0">
+              <v-btn
+                variant="tonal"
+                color="info"
+                icon="mdi-notebook-plus-outline"
+                @click="_receipt.showAdditionalInfo = !_receipt.showAdditionalInfo">
+              </v-btn>
             </v-col>
           </v-row>
           <v-row class="text-center">
@@ -63,7 +103,7 @@
                 :is-dark="is_dark"
                 expanded
                 :max-date="new Date()"
-                v-model="receipt.date"
+                v-model="_receipt.receipt.date"
                 mode="date"
               />
             </v-col>
@@ -113,8 +153,8 @@
 
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="receipt.tracking_numbers"
-                  :items="receipt.tracking_numbers"
+                  v-model="_receipt.receipt.tracking_numbers"
+                  :items="_receipt.receipt.tracking_numbers"
                   label="Tracking Numbers (comma separated)"
                   multiple
                   chips
@@ -122,7 +162,8 @@
                   variant="outlined"
                   rounded
                   clearable
-                  @keydown.enter.prevent="addNewCharge"
+                  hide-details
+                  @keydown.enter.prevent="addNewTrackingNumber"
                   color="info"
                   >
                     <!-- Custom Chips Slot -->
@@ -133,7 +174,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="removeCharge(item)"
+                        @click:close="removeTrackingNumber(item)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -141,64 +182,73 @@
                   </v-autocomplete>
               </v-col>
   
-              <!-- Total Price -->
+              <!-- Tracking ONP Numbers -->
+
               <v-col cols="12" md="6">
-                <v-text-field
+                <v-autocomplete
+                  v-model="_receipt.receipt.tracking_onp_numbers"
+                  :items="_receipt.receipt.tracking_onp_numbers"
+                  label="Tracking Onp Numbers (comma separated)"
+                  multiple
+                  chips
                   density="compact"
-                  color="info"
-                  hide-details
                   variant="outlined"
                   rounded
-                  v-model="receipt.total_price"
-                  label="Total Price"
-                  type="number"
-                ></v-text-field>
+                  hide-details
+                  clearable
+                  @keydown.enter.prevent="addNewOnpTrackingNumber"
+                  color="info"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="removeOnpTrackingNumber(item)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                  </v-autocomplete>
               </v-col>
-      
-              <!-- Total Weight -->
+  
+              <!-- Provider -->
+
               <v-col cols="12" md="6">
-                <v-text-field
+                <v-autocomplete
+                  v-model="_receipt.receipt.provider_ids"
+                  :items="_provider.list"
+                  item-value="id"
+                  item-title="name"
+                  key="id"
+                  label="Providers"
+                  multiple
+                  chips
                   density="compact"
-                  color="info"
-                  hide-details
                   variant="outlined"
                   rounded
-                  v-model="receipt.total_weight"
-                  label="Total Weight"
-                  type="number"
-                ></v-text-field>
-              </v-col>
-      
-              <!-- Freeze Fish Production -->
-              <v-col cols="12" md="6">
-                <v-select
-                  density="compact"
-                  color="info"
                   hide-details
-                  variant="outlined"
-                  rounded
-                  v-model="receipt.freeze_fish_production_id"
-                  :items="freezeFishProductions"
-                  label="Freeze Fish Production"
-                  item-title="title"
-                  item-value="value"
-                ></v-select>
-              </v-col>
-      
-              <!-- Primary Fish Detail -->
-              <v-col cols="12" md="6">
-                <v-select
-                  density="compact"
+                  clearable
+                  @keydown.enter.prevent="addNewOnpTrackingNumber"
                   color="info"
-                  hide-details
-                  variant="outlined"
-                  rounded
-                  v-model="receipt.primary_fish_detail_id"
-                  :items="primaryFishDetails"
-                  label="Primary Fish Detail"
-                  item-title="title"
-                  item-value="value"
-                ></v-select>
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="removeOnpTrackingNumber(item)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                  </v-autocomplete>
               </v-col>
       
               <!-- Fishery -->
@@ -209,7 +259,7 @@
                   hide-details
                   variant="outlined"
                   rounded
-                  v-model="receipt.fishery_id"
+                  v-model="_receipt.receipt.fishery_id"
                   :items="fisheries"
                   label="Fishery"
                   item-title="title"
@@ -225,46 +275,14 @@
                   hide-details
                   variant="outlined"
                   rounded
-                  v-model="receipt.origin_id"
+                  v-model="_receipt.receipt.origin_id"
                   :items="origins"
                   label="Origin"
                   item-title="title"
                   item-value="value"
                 ></v-select>
               </v-col>
-      
-              <!-- Charge Type -->
-              <v-col cols="12" md="6">
-                <v-select
-                  density="compact"
-                  color="info"
-                  hide-details
-                  variant="outlined"
-                  rounded
-                  v-model="receipt.charge_type_id"
-                  :items="chargeTypes"
-                  label="Charge Type"
-                  item-title="title"
-                  item-value="value"
-                ></v-select>
-              </v-col>
-      
-              <!-- Daily Charge -->
-              <v-col cols="12" md="6">
-                <v-select
-                  density="compact"
-                  color="info"
-                  hide-details
-                  variant="outlined"
-                  rounded
-                  v-model="receipt.daily_charge_id"
-                  :items="dailyCharges"
-                  label="Daily Charge"
-                  item-title="title"
-                  item-value="value"
-                ></v-select>
-              </v-col>
-      
+
               <!-- Is Stockable -->
               <v-col cols="12" md="6">
                 <v-switch
@@ -273,7 +291,7 @@
                   hide-details
                   variant="outlined"
                   rounded
-                  v-model="receipt.is_stockable"
+                  v-model="_receipt.receipt.is_stockable"
                   label="Is Stockable?"
                   inset
                 ></v-switch>
@@ -291,8 +309,11 @@
               <v-btn block variant="tonal" rounded color="info">Submit</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
-            <v-col>
-              <v-btn block variant="outlined" rounded color="orange">Cancel</v-btn>
+            <v-col class="pr-1">
+              <v-btn block variant="tonal" rounded color="green" class="rounded-e-lg" @click="archive">Archive</v-btn>
+            </v-col>
+            <v-col class="pl-1">
+              <v-btn block variant="outlined" rounded color="orange" class="rounded-s-lg" @click="reset">Cancel</v-btn>
             </v-col>
           </v-row>
         </v-card-actions>
@@ -302,6 +323,7 @@
 <script>
 import { useMain } from '@/stores/Main';
 import { useReceipt } from '@/stores/Receipt';
+import { useProvider } from '@/stores/Provider';
 
 export default {
   props: {
@@ -346,24 +368,45 @@ export default {
     },
     _receipt() {
       return useReceipt();
-    }
+    },
+    _provider() {
+      return useProvider();
+    },
   },
   methods: {
-    addNewCharge(event) {
-      const inputValue = event.target.value.trim()
-      if (inputValue && !this.receipt.tracking_numbers.includes(inputValue)) {
-        this.receipt.tracking_numbers.push(inputValue)
+    addNewTrackingNumber(event) {
+      let inputValue = event.target.value.trim()
+      if (inputValue && !this._receipt.receipt.tracking_numbers.includes(inputValue)) {
+        this._receipt.receipt.tracking_numbers.push(inputValue)
       }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';
     },
-    removeCharge(item) {
-      this._receipt.selectedCharge = null;
+    removeTrackingNumber(item) {
+      this._receipt.input_tracking_number = null;
+    },
+    addNewOnpTrackingNumber(event) {
+      let inputValue = event.target.value.trim()
+      if (inputValue && !this._receipt.receipt.tracking_onp_numbers.includes(inputValue)) {
+        this._receipt.receipt.tracking_onp_numbers.push(inputValue)
+      }
+      this.searchInputTrackingNumbers = "";
+      inputValue = "";
+      event.target.value = '';
+    },
+    removeOnpTrackingNumber(item) {
+      this._receipt.tracking_onp_numbers = this._receipt.tracking_onp_numbers.filter(num => num !== item);
     },
     update: function(){
-      this._receipt.UpdateReceipt(this._receipt.receipt , this._receipt.selectedCharge , this._receipt.showAdditionalInfo);
-    }
+      this._receipt.UpdateReceipt();
+    },
+    archive: function () {
+      this._receipt.archive();
+    },
+    reset: function () {
+      this._receipt.reset();
+    },
   },
   watch: {
     receipt: {
@@ -377,7 +420,13 @@ export default {
     '_receipt.showAdditionalInfo': function (_) {
       this.update();
     },
-    '_receipt.selectedCharge': function (_) {
+    '_receipt.input_tracking_number': function (_) {
+      this.update();
+    },
+    '_receipt.add_fresh_fish_receive_details': function (_) {
+      this.update();
+    },
+    '_receipt.add_freeze_fish_process_details': function (_) {
       this.update();
     },
   }

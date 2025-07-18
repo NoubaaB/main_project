@@ -21,6 +21,86 @@
                 </v-toolbar-title>
                 
                 <div class="d-flex">
+                    <v-menu transition="scroll-y-transition"       
+                    :close-on-content-click="false"
+                    >
+                        <template v-slot:activator="{ props }">
+                            <v-btn
+                                color="green"
+                                variant="tonal"
+                                v-bind="props"
+                                icon
+                                class="mt-1 mx-3"
+                            >
+                                <v-badge
+                                v-if="receipt.receipts.length > 0"
+                                color="yellow" 
+                                :content="receipt.receipts.length"
+                                location="bottom end"
+                                >
+                                    <v-icon>
+                                        mdi-file-document-multiple
+                                    </v-icon>
+                                </v-badge>
+                                <v-icon v-else>mdi-file-document-multiple-outline</v-icon>
+                            </v-btn>
+                        </template>
+                        <v-sheet
+                            class="pa-4 mt-4 text-center mx-auto"
+                            elevation="12"
+                            max-width="600"
+                            rounded="lg"
+                            width="100%"
+                        >
+                            <h2 class="text-h5 mb-6">Receipts Archivied</h2>
+                            {{ selected }}
+                            <v-data-table
+                                v-model="selected"
+                                :headers="headers"
+                                :items="receipt.receipts"
+                                tabindex="0"
+                                item-value="id"
+                                show-select
+                                density="compact"
+                                item-key="id"
+                                hide-default-footer
+                            >
+                                <template v-slot:no-data>
+                                    <div class="text-orange">
+                                        <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2"></v-icon>
+                                        <span>No data available</span>
+                                    </div>
+                                </template>
+                            </v-data-table>
+
+                            <div class="text-end">
+                                <v-btn
+                                    class="text-none"
+                                    color="success"
+                                    variant="flat"
+                                    width="90"
+                                    rounded
+                                >
+                                    Submit
+                                </v-btn>
+                            </div>
+
+                            <v-divider class="mb-4"></v-divider>
+
+                            <div class="text-end">
+                                <v-btn
+                                    class="text-none"
+                                    color="success"
+                                    variant="flat"
+                                    width="90"
+                                    rounded
+                                    @click="deleteReceipts"
+                                >
+                                    Delete
+                                </v-btn>
+                            </div>
+                        </v-sheet>
+                    </v-menu>                    
                     <v-menu transition="scroll-y-transition">
                         <template v-slot:activator="{ props }">
                             <v-btn
@@ -71,9 +151,15 @@
     import { useDashboardWaiter } from "@/stores/DashboardWaiter"; 
     import { useMain } from "@/stores/Main"; 
     import { useAuth } from "@/stores/Auth";
+    import { useReceipt } from "@/stores/Receipt";
     import annyang from "annyang";
 
     export default {
+        data:function(){
+          return {
+            selected: [],
+          }  
+        },
         computed:{
             dashboard_waiter: function () {
                 return useDashboardWaiter();
@@ -83,6 +169,17 @@
             },
             auth: function () {
                 return useAuth();
+            },
+            receipt: function () {
+                return useReceipt();
+            },
+            headers: function () {
+                return [
+                    { title: this.$t("receipt.date"), value: "date" },
+                    { title: this.$t("receipt.supplier_name"), value: "supplier_name" },
+                    { title: this.$t("receipt.total_amount"), value: "total_amount" },
+                    { title: this.$t("receipt.actions"), value: "actions", align: 'end', sortable: false }
+                ];
             }
         },
         methods:{
@@ -95,6 +192,9 @@
                 annyang.setLanguage(lang.annyang);
                 
             },
+            deleteReceipts: function () {
+                this.receipt.deleteMany(this.selected);
+            }
         }
     }
 </script>

@@ -7,9 +7,11 @@ use App\Models\User;
 use App\Models\Daily;
 use App\Models\Client;
 use App\Models\Command;
+use App\Models\FishType;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PasswordReset;
+use App\Models\Provider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -188,23 +190,11 @@ class AuthController extends Controller implements HasMiddleware
 
     function getData(): array
     {
-        // $clients = Client::all();
-        // $items = Item::all();
-        // $daily = Daily::where([
-        //     ["date", "=", date_format(now(), "Y-m-d")],
-        //     ["user_id", "=", auth()->id()]
-        // ])->first();
-
-        // $bills = [];
-
-        // if (isset($daily->commands)) {
-        //     $bills = $daily->commands;
-        // }
-        // return [
-        //     "clients" => $clients,
-        //     "items" => $items,
-        //     "bills" => $bills
-        // ];
-        return [];
+        $providers = Provider::all();
+        $fish_types=FishType::all();
+        return [
+            "providers" => $providers,
+            "fish_types" => $fish_types,
+        ];
     }
 }

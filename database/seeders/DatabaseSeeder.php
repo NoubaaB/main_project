@@ -9,7 +9,8 @@ use App\Models\FishType;
 use App\Models\FreshFishReceive;
 use App\Models\Origin;
 use App\Models\Package;
-use App\Models\PrimaryFishDetail;
+use App\Models\FreshFishReceiveDetail;
+use App\Models\Provider;
 use App\Models\Role;
 use App\Models\Supplier;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -33,6 +34,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@test.com',
             "role_id" => 1
         ]);
+
+        Provider::factory(10)->create();
 
         $fish_famillies = [
             "MAQUERAUX",
@@ -277,7 +280,7 @@ class DatabaseSeeder extends Seeder
             ]);
             foreach ($fresh_fishes_receives as $fresh_fishes_receive) {
                 if($fresh_fishes_receive->charge_type_id == 1){
-                    PrimaryFishDetail::factory(10)->create([
+                    FreshFishReceiveDetail::factory(10)->create([
                         "fish_type_id" => FishType::all()->random()->id,
                         "fresh_fish_receive_id" => $fresh_fishes_receive->id,
                         "package_id" => Package::all()->random()->id,
