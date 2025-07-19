@@ -174,7 +174,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="removeTrackingNumber(item)"
+                        @click:close="_receipt.receipt.tracking_numbers = _receipt.receipt.tracking_numbers.filter(num => num !== item)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -207,7 +207,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="removeOnpTrackingNumber(item)"
+                        @click:close="_receipt.receipt.tracking_onp_numbers = _receipt.receipt.tracking_onp_numbers.filter(num => num !== item)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -243,7 +243,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="removeOnpTrackingNumber(item)"
+                        @click:close="_receipt.receipt.provider_ids = _receipt.receipt.provider_ids.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -253,34 +253,60 @@
       
               <!-- Fishery -->
               <v-col cols="12" md="6">
-                <v-select
+                <v-autocomplete
                   density="compact"
                   color="info"
                   hide-details
                   variant="outlined"
                   rounded
+                  chips
                   v-model="_receipt.receipt.fishery_id"
                   :items="fisheries"
                   label="Fishery"
                   item-title="title"
                   item-value="value"
-                ></v-select>
+                >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        variant="tonal"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
               </v-col>
       
               <!-- Origin -->
               <v-col cols="12" md="6">
-                <v-select
+                <v-autocomplete
                   density="compact"
                   color="info"
                   hide-details
                   variant="outlined"
                   rounded
+                  chips
                   v-model="_receipt.receipt.origin_id"
                   :items="origins"
                   label="Origin"
                   item-title="title"
                   item-value="value"
-                ></v-select>
+                >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        variant="tonal"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>              
+                </v-autocomplete>
               </v-col>
 
               <!-- Is Stockable -->

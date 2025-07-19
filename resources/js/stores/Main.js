@@ -39,30 +39,27 @@ export const useMain = defineStore("main", {
             let receipt = localStorage.getItem("receipt") || '{}';
             Object.assign(useReceipt().receipt, JSON.parse(receipt));
 
+            //initialize the receipt store with data from localStorage
+            let fresh_fish_receive_detail = localStorage.getItem("fresh_fish_receive_detail") || '{}';
+            Object.assign(useReceipt().fresh_fish_receive_detail, JSON.parse(fresh_fish_receive_detail));
+
             //initialize the receipts store with data from localStorage
             let receipts = localStorage.getItem("receipts") || '[]';
             useReceipt().receipts = JSON.parse(receipts);
 
 
             //initialize the add_fresh_fish_receive_details store with data from localStorage
-            let add_fresh_fish_receive_details = "true"==localStorage.getItem("add_fresh_fish_receive_details");
+            let add_fresh_fish_receive_details = localStorage.getItem("add_fresh_fish_receive_details") == "true";
             useReceipt().add_fresh_fish_receive_details = add_fresh_fish_receive_details;
 
 
             //initialize the add_freeze_fish_process_details store with data from localStorage
-            let add_freeze_fish_process_details = "true"==localStorage.getItem("add_freeze_fish_process_details");
+            let add_freeze_fish_process_details = localStorage.getItem("add_freeze_fish_process_details") == "true";
             useReceipt().add_freeze_fish_process_details = add_freeze_fish_process_details;
-
-            //initialize the fresh_fish_receive_details store with data from localStorage
-            let fresh_fish_receive_details = localStorage.getItem("fresh_fish_receive_details") || '[]';
-            useReceipt().fresh_fish_receive_details = JSON.parse(fresh_fish_receive_details);
-
-            //initialize the freeze_fish_process_details store with data from localStorage
-            let freeze_fish_process_details = localStorage.getItem("freeze_fish_process_details") || '[]';
-            useReceipt().freeze_fish_process_details = JSON.parse(freeze_fish_process_details);
 
             useReceipt().input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
             useReceipt().showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
+
             let language = localStorage.getItem("language");
             let lang = null;
             if (language) {
