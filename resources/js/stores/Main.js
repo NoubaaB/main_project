@@ -69,7 +69,11 @@ export const useMain = defineStore("main", {
             }
             annyang.setLanguage(lang.annyang);
             this.lang = lang;
+        },
+        formatNumber:function(num) {
+            return parseFloat(parseFloat(num).toFixed(2))
         }
+
     },
     getters: {
         color_theme: (state) => {

@@ -42,8 +42,10 @@
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   @keydown.enter.prevent="submit"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.fish_type_id.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.fish_type_id.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.fish_type_id.$touch()"
                   color="info"
                   >
                     <!-- Custom Chips Slot -->
@@ -54,6 +56,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
+                        @click:close="_receipt.fresh_fish_receive_detail.fish_type_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -61,37 +64,6 @@
                 </v-autocomplete>
               </v-col>
 
-              <!-- select package type -->
-
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-model="_receipt.fresh_fish_receive_detail.package_id"
-                  :items="_receipt.getTypeCharge"
-                  item-value="id"
-                  item-title="name"
-                  label="Package Type"
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  hide-details
-                  @keydown.enter.prevent="submit"
-                  color="info"
-                  >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
 
               <!-- select stock -->
 
@@ -106,9 +78,11 @@
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   @keydown.enter.prevent="submit"
                   color="info"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.stock_id.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.stock_id.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.stock_id.$touch()"                  
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -118,6 +92,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
+                        @click:close="_receipt.fresh_fish_receive_detail.stock_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -134,9 +109,11 @@
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   @keydown.enter.prevent="submit"
                   color="info"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.weight.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.weight.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.weight.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -148,9 +125,11 @@
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   @keydown.enter.prevent="submit"
                   color="info"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.unit_price.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.unit_price.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.unit_price.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -160,13 +139,14 @@
                   label="Weight Bill (Kg)"
                   type="number"
                   min="0"
-                  readonly
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   @keydown.enter.prevent="submit"
                   color="info"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.weight_bill.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.weight_bill.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.weight_bill.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -179,12 +159,50 @@
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   @keydown.enter.prevent="submit"
                   color="info"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.price.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.price.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.price.$touch()"
                   >
                 </v-text-field>
               </v-col>
+
+              <!-- select package type -->
+
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-model="_receipt.fresh_fish_receive_detail.package_id"
+                  :items="_receipt.getTypeCharge"
+                  item-value="id"
+                  item-title="name"
+                  label="Package Type"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  color="info"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.package_id.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.package_id.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.package_id.$touch()"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="_receipt.fresh_fish_receive_detail.package_id = null"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </v-col>
+
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.packag_count"
@@ -194,9 +212,11 @@
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   @keydown.enter.prevent="submit"
                   color="info"
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.packag_count.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.packag_count.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.packag_count.$touch()"                  
                   >
                 </v-text-field>
               </v-col>
@@ -264,26 +284,82 @@
 
 <script>
     import { useReceipt } from '@/stores/Receipt';
+    import { useMain } from '@/stores/Main';
+    import useVuelidate from '@vuelidate/core'
+    import { required, numeric , minLength  } from '@vuelidate/validators'
     export default {
       data: function () {
         return {
           selected: [],
+            v$: useVuelidate(),
+
         };    
+      },
+      validations: {
+        _receipt: {
+          fresh_fish_receive_detail: {
+              fish_type_id: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              },
+              stock_id: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              },
+              weight: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              },
+              unit_price: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              },
+              weight_bill: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              },
+              price: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              },
+              package_id: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              },
+              packag_count: {
+                required,
+                numeric,
+                minLength: minLength(1)
+              }
+          }
+        }
       },
       computed: {
         headers: function () {
           return [
-            { title: 'Fish Type', value: 'fish_type.name' },
-            { title: 'Package Type', value: 'package.name' },
-            { title: 'Weight (KG)', value: 'weight' },
+            { title: 'Fish Type', value: 'fish_type_id' },
+            { title: 'Weight (Kg)', value: 'weight' },
+            { title: 'Weight Bill (KG)', value: 'weight' },
             { title: 'PU (Dh)', value: 'unit_price' },
             { title: 'Total Price (Dh)', value: 'price' },
+            { title: 'Type Package', value: 'package_id' },
             { title: 'NBR Caisses', value: 'packag_count' },
+            { title: 'Stock Name', value: 'stock_id' },
             { title: 'Actions', value: 'actions', align: 'end', sortable: false },
           ];
         },
         _receipt() {
           return useReceipt();
+        },
+        main() {
+          return useMain();
         }
       },
       methods:{
@@ -300,12 +376,19 @@
           this._receipt.reset_fresh_fish_receive_detail();
         }
       },
-      watches: {
+      watch: {
         '_receipt.fresh_fish_receive_detail': {
           handler: function () {
             this._receipt.UpdateReceipt();
           },
           deep: true
+        },
+        "_receipt.fresh_fish_receive_detail.unit_price": function () {
+          this._receipt.fresh_fish_receive_detail.price = this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price;
+        },
+        "_receipt.fresh_fish_receive_detail.weight": function () {
+          this._receipt.fresh_fish_receive_detail.weight_bill = this._receipt.fresh_fish_receive_detail.weight;
+          this._receipt.fresh_fish_receive_detail.price = this.main.formatNumber(this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price);
         }
       },
     }
