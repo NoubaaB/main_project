@@ -75,6 +75,8 @@ export const useReceipt = defineStore("receipt", {
             localStorage.setItem("add_freeze_fish_process_details", this.add_freeze_fish_process_details);
             localStorage.setItem("input_tracking_number", this.input_tracking_number);
             localStorage.setItem("showAdditionalInfo", this.showAdditionalInfo);
+            this.receipt.total_weight = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + detail.weight_bill, 0);
+            this.receipt.total_price = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + detail.price, 0);
         },
         archive: function () {
             this.receipts.push(this.receipt);
@@ -115,10 +117,7 @@ export const useReceipt = defineStore("receipt", {
             };
         },        
         deleteMany: function (selected) {
-            this.receipts = this.receipts.filter(receipt =>
-                selected.some(_selected => _selected !== receipt.id)
-            );
-
+            this.receipts = this.receipts.filter(obj => !selected.includes(obj.id))
         },
     },
     getters: {

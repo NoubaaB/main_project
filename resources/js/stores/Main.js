@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { useReceipt } from "./Receipt";
 import annyang from "annyang";
+import moment from "moment";
 
 export const useMain = defineStore("main", {
     state: () => {
@@ -72,7 +73,20 @@ export const useMain = defineStore("main", {
         },
         formatNumber:function(num) {
             return parseFloat(parseFloat(num).toFixed(2))
-        }
+        },
+        formateDate: function (date) {
+            return moment(date).format("YYYY-MM-DD");
+        },
+        formatDisplayNumber : function (num) {
+            // Ensure num is a float
+            num = parseFloat(num)
+
+            // Format using Intl.NumberFormat with French locale
+            return new Intl.NumberFormat('fr-FR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(num)
+        },
 
     },
     getters: {

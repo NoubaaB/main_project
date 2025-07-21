@@ -54,13 +54,13 @@
               </template>
         
               <template v-slot:text>
-                <div class="text-h4 font-weight-black">$ 9,232,215</div>
+                <div class="text-h4 font-weight-black">{{_main.formatDisplayNumber(_receipt.receipt.total_price)}} MAD</div>
         
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
                   <div>
                     <span class="text-green">
                       <v-avatar icon="mdi-arrow-up" size="small" variant="tonal"></v-avatar>
-                      + $ 3,295
+                      + {{ _main.formatDisplayNumber(_receipt.receipt.total_price) }} MAD
                     </span>
         
                     in the last week
@@ -101,7 +101,7 @@
               </template>
         
               <template v-slot:text>
-                <div class="text-h4 font-weight-black">Kg 9,232</div>
+                <div class="text-h4 font-weight-black"> {{ _main.formatDisplayNumber(_receipt.receipt.total_weight) }} Kg</div>
         
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
 
@@ -123,9 +123,18 @@
 </template>
 
 <script>
+    import { useReceipt } from '@/stores/Receipt';
+    import { useMain } from '@/stores/Main';
     export default {
-        
-    }
+        computed: {
+            _receipt() {
+                return useReceipt();
+            },
+            _main() {
+                return useMain();
+            }
+          },
+      }
 </script>
 
 <style scoped>

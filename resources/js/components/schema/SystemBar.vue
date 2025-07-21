@@ -70,6 +70,14 @@
                                         <span>No data available</span>
                                     </div>
                                 </template>
+                                <template v-slot:[`item.tracking_numbers`]="{ item }">
+                                    <v-chip color="secondary" v-for="tracking_number in item.tracking_numbers" :key="tracking_number" class="mx-1">
+                                        {{ tracking_number }}
+                                    </v-chip>
+                                </template>
+                                <template v-slot:[`item.date`]="{ item }">
+                                    {{ main.formateDate(item.date) }}
+                                </template>
                             </v-data-table>
                             <v-row>
                                 <v-col>
@@ -180,8 +188,10 @@
             headers: function () {
                 return [
                     { title: this.$t("receipt.date"), value: "date" },
-                    { title: this.$t("receipt.supplier_name"), value: "supplier_name" },
-                    { title: this.$t("receipt.total_amount"), value: "total_amount" },
+                    { title: this.$t("receipt.tracking_numbers"), value: "tracking_numbers" },
+                    { title: this.$t("receipt.total_price"), value: "total_price" },
+                    { title: this.$t("receipt.total_weight"), value: "total_weight" },
+                    { title: this.$t("receipt.total_weight"), value: "total_weight" },
                     { title: this.$t("receipt.actions"), value: "actions", align: 'end', sortable: false }
                 ];
             }
@@ -197,6 +207,7 @@
                 
             },
             deleteReceipts: function () {
+                console.log(this.selected);
                 this.receipt.deleteMany(this.selected);
             }
         }
