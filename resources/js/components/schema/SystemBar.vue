@@ -33,9 +33,9 @@
                                 class="mt-1 mx-3"
                             >
                                 <v-badge
-                                v-if="receipt.receipts.length > 0"
+                                v-if="_receipt.receipts.length > 0"
                                 color="yellow" 
-                                :content="receipt.receipts.length"
+                                :content="_receipt.receipts.length"
                                 location="bottom end"
                                 >
                                     <v-icon>
@@ -56,7 +56,7 @@
                             <v-data-table
                                 v-model="selected"
                                 :headers="headers"
-                                :items="receipt.receipts"
+                                :items="_receipt.receipts"
                                 tabindex="0"
                                 item-value="id"
                                 show-select
@@ -77,6 +77,13 @@
                                 </template>
                                 <template v-slot:[`item.date`]="{ item }">
                                     {{ main.formateDate(item.date) }}
+                                </template>
+                                <template v-slot:[`item.actions`]="{ item }">
+                                <div class="d-flex ga-2 justify-end">
+                                    <v-icon color="amber" icon="mdi-pencil" size="small" @click="edit(item.id)"></v-icon>
+
+                                    <v-icon color="red" icon="mdi-delete" size="small" @click="remove(item.id)"></v-icon>
+                                </div>
                                 </template>
                             </v-data-table>
                             <v-row>
@@ -182,7 +189,7 @@
             auth: function () {
                 return useAuth();
             },
-            receipt: function () {
+            _receipt: function () {
                 return useReceipt();
             },
             headers: function () {
@@ -190,7 +197,6 @@
                     { title: this.$t("receipt.date"), value: "date" },
                     { title: this.$t("receipt.tracking_numbers"), value: "tracking_numbers" },
                     { title: this.$t("receipt.total_price"), value: "total_price" },
-                    { title: this.$t("receipt.total_weight"), value: "total_weight" },
                     { title: this.$t("receipt.total_weight"), value: "total_weight" },
                     { title: this.$t("receipt.actions"), value: "actions", align: 'end', sortable: false }
                 ];
@@ -206,9 +212,16 @@
                 annyang.setLanguage(lang.annyang);
                 
             },
+            edit: function (item_id) {
+              this._receipt.receipt =  this._receipt.receipts.find(item => item.id === item_id); 
+            },
+            remove: function (item_id) {
+                this.selected = [item_id];
+                this.deleteReceipts();
+            },
             deleteReceipts: function () {
                 console.log(this.selected);
-                this.receipt.deleteMany(this.selected);
+                this._receipt.deleteMany(this.selected);
             }
         }
     }

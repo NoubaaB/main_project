@@ -34,11 +34,11 @@ export const useReceipt = defineStore("receipt", {
             },
             fresh_fish_receive_detail: {
                 id: uuidv4(),
-                weight:0.00, 
-                weight_bill:0.00, 
-                unit_price:0.00, 
-                price:0.00, 
-                packag_count:0.00, 
+                weight:null, 
+                weight_bill:null, 
+                unit_price:null, 
+                price:null, 
+                packag_count:null, 
                 fish_type_id:null, 
                 stock_id:null, 
                 package_id:null, 
@@ -56,11 +56,11 @@ export const useReceipt = defineStore("receipt", {
             });
             this.fresh_fish_receive_detail = {
                 id: uuidv4(),
-                weight: 0.00,
-                weight_bill: 0.00,
-                unit_price: 0.00,
-                price: 0.00,
-                packag_count: 0.00,
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                packag_count: null,
                 fish_type_id: null,
             };
         },
@@ -102,15 +102,24 @@ export const useReceipt = defineStore("receipt", {
                 charge_type_id: null,
                 daily_charge_id: null,
             };
+            this.fresh_fish_receive_detail = {
+                id: uuidv4(),
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                packag_count: null,
+                fish_type_id: null,
+            };
         },
         reset_fresh_fish_receive_detail: function () {
             this.fresh_fish_receive_detail = {
                 id: uuidv4(),
-                weight: 0.00,
-                weight_bill: 0.00,
-                unit_price: 0.00,
-                price: 0.00,
-                packag_count: 0.00,
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                packag_count: null,
                 fish_type_id: null,
                 stock_id: null,
                 package_id: null,
@@ -118,6 +127,16 @@ export const useReceipt = defineStore("receipt", {
         },        
         deleteMany: function (selected) {
             this.receipts = this.receipts.filter(obj => !selected.includes(obj.id))
+        },
+        edit_fresh_fish_receive_detail: function (id) {
+            this.fresh_fish_receive_detail = this.receipt.fresh_fish_receive_details.find(detail => detail.id === id);
+        },
+        update_fresh_fish_receive_detail: function () {
+            const index = this.receipt.fresh_fish_receive_details.findIndex(detail => detail.id === this.fresh_fish_receive_detail.id);
+            if (index !== -1) {
+                this.receipt.fresh_fish_receive_details[index] = { ...this.fresh_fish_receive_detail };
+            }
+            this.reset_fresh_fish_receive_detail();
         },
     },
     getters: {

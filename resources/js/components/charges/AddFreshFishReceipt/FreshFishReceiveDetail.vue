@@ -67,7 +67,7 @@
 
               <!-- select stock -->
 
-              <v-col cols="12" md="6">
+              <v-col cols="12" md="6" v-if="_receipt.receipt.is_stockable">
                 <v-autocomplete
                   v-model="_receipt.fresh_fish_receive_detail.stock_id"
                   :items="_receipt.getTypeCharge"
@@ -227,7 +227,10 @@
             <!-- Submit Button -->
             <v-card-actions cols="12">
               <v-row class="text-center py-3">
-                <v-col>
+                <v-col v-if="is_editing">
+                  <v-btn block variant="tonal" rounded color="indigo" @click="update">Edit</v-btn>
+                </v-col>
+                <v-col v-else>
                   <v-btn block variant="tonal" rounded color="info" @click="submit">Submit</v-btn>
                 </v-col>
                 <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
@@ -292,7 +295,7 @@
         return {
           selected: [],
             v$: useVuelidate(),
-
+            is_editing: false,
         };    
       },
       validations: {
@@ -366,8 +369,13 @@
         submit: function () {
           this._receipt.add_fresh_fish_receive_detail();
         },
+        update: function () {
+          this._receipt.update_fresh_fish_receive_detail();
+          this.is_editing = false;
+        },
         edit: function (id) {
-          this._receipt.edit(id);
+          this.is_editing = true;
+          this._receipt.edit_fresh_fish_receive_detail(id);
         },
         remove: function (id) {
           this._receipt.remove_fresh_fish_receive_detail(id);
