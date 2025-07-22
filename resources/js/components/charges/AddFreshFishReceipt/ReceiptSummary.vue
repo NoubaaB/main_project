@@ -54,24 +54,17 @@
               </template>
         
               <template v-slot:text>
-                <div class="text-h4 font-weight-black">{{_main.formatDisplayNumber(_receipt.receipt.total_price)}} MAD</div>
+                <div class="text-h5 font-weight-black">{{_main.formatDisplayNumber(_receipt.receipt.total_price)}} MAD</div>
         
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
                   <div>
                     <span class="text-green">
-                      <v-avatar icon="mdi-arrow-up" size="small" variant="tonal"></v-avatar>
+                      <v-avatar icon="mdi-arrow-up" size="x-small" variant="tonal"></v-avatar>
                       + {{ _main.formatDisplayNumber(_receipt.receipt.total_price) }} MAD
                     </span>
         
                     in the last week
                   </div>
-        
-                  <v-btn
-                    icon="mdi-arrow-right"
-                    size="x-small"
-                    variant="text"
-                    border
-                  ></v-btn>
                 </small>
               </template>
               </v-card>            
@@ -101,18 +94,22 @@
               </template>
         
               <template v-slot:text>
-                <div class="text-h4 font-weight-black"> {{ _main.formatDisplayNumber(_receipt.receipt.total_weight) }} Kg</div>
-        
+                <div class="text-h6 font-weight-black d-inline">
+                  <small>
+                    <v-btn
+                      icon="mdi-weight-kilogram"
+                      size="x-small"
+                      variant="text"
+                      color="info"
+                      border="info sm"
+                    ></v-btn>
+                  </small>
+                   {{ _main.formatDisplayNumber(_receipt.receipt.total_weight) }} Kg
+                </div>
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
-
-        
-                  <v-btn
-                    icon="mdi-truck-check"
-                    size="x-small"
-                    variant="text"
-                    color="info"
-                    border="info sm"
-                  ></v-btn>
+                  <div>
+                    Total weight of all items's Weight Bill
+                  </div>
                 </small>
               </template>
               </v-card>    
