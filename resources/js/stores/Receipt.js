@@ -138,6 +138,20 @@ export const useReceipt = defineStore("receipt", {
             }
             this.reset_fresh_fish_receive_detail();
         },
+        getFishTypeName: function (fish_type_id) {
+            const fishType = this.fish_type.getList.find(type => type.id === fish_type_id);
+            return fishType ? fishType.name : 'Unknown';
+        },
+        getStockName: function (stock_id) {
+            return "";
+            const stock = this.fish_type.getStocks.find(stock => stock.id === stock_id);
+            return stock ? stock.name : 'Unknown';
+        },
+        getPackageName: function (package_id) {
+            return "";
+            const packageItem = this.fish_type.getPackages.find(pkg => pkg.id === package_id);
+            return packageItem ? packageItem.name : 'Unknown';
+        },
     },
     getters: {
         getTypeCharge: (state) => { 

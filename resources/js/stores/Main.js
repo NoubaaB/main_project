@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { useReceipt } from "./Receipt";
 import annyang from "annyang";
 import moment from "moment";
+import { isNumber } from "lodash";
 
 export const useMain = defineStore("main", {
     state: () => {
@@ -71,13 +72,23 @@ export const useMain = defineStore("main", {
             annyang.setLanguage(lang.annyang);
             this.lang = lang;
         },
-        formatNumber:function(num) {
+        formatNumber: function (num) {
+            if (isNaN(num) || num === null || num === undefined) {
+                return 0.00;
+            }
             return parseFloat(parseFloat(num).toFixed(2))
         },
         formateDate: function (date) {
+            if (isNaN(num) || num === null || num === undefined) {
+                return 0.00;
+            }
             return moment(date).format("YYYY-MM-DD");
         },
-        formatDisplayNumber : function (num) {
+        formatDisplayNumber: function (num) {
+            console.log("formatDisplayNumber", num);
+            if (isNaN(num) || num === null || num === undefined) {
+                return 0.00;
+            }
             // Ensure num is a float
             num = parseFloat(num)
 

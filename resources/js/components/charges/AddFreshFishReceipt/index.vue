@@ -1,12 +1,12 @@
 <template>
     <v-form ref="form" @submit.prevent="submitForm">
       <v-row>
-        <v-col cols="12" md="6">
+        <v-col cols="12" md="5">
            <!-- Necessary Receipt information -->
           <NecessaryInformation :receipt="_receipt"/>
         </v-col>
         <v-divider vertical ></v-divider>
-        <v-col cols="12" md="6">
+        <v-col cols="12" md="7">
           <!-- Fresh Fish Receive Details -->
           <FreshFishReceiveDetail v-if="_receipt.add_fresh_fish_receive_details" :receipt="_receipt.receipt" />
           <v-divider vertical ></v-divider>

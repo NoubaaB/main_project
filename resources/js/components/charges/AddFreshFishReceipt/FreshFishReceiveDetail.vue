@@ -273,6 +273,46 @@
                   </div>
                 </template>
 
+                <template v-slot:[`item.fish_type_id`]="{ item }">
+                  <v-chip color="secondary">
+                    {{ _receipt.getFishTypeName(item.fish_type_id) }}
+                  </v-chip>
+                </template>
+                <template v-slot:[`item.weight`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.weight) }} Kg
+                  </div>
+                </template>
+                <template v-slot:[`item.weight_bill`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.weight_bill) }} Kg
+                  </div>
+                </template>
+                <template v-slot:[`item.unit_price`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.unit_price) }} MAD
+                  </div>
+                </template>
+                <template v-slot:[`item.price`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.price) }} MAD
+                  </div>
+                </template>
+                <template v-slot:[`item.package_id`]="{ item }">
+                  <v-chip color="secondary">
+                    {{ _receipt.getPackageName(item.package_id) }}
+                  </v-chip>
+                </template>
+                <template v-slot:[`item.packag_count`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{item.packag_count}}
+                  </div>
+                </template>
+                <template v-slot:[`item.stock_id`]="{ item }">
+                  <v-chip color="secondary">
+                    {{ _receipt.getStockName(item.stock_id) }}
+                  </v-chip>
+                </template>
                 <template v-slot:no-data>
                   <div class="text-orange">
                     <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2"></v-icon>
@@ -361,7 +401,7 @@
         _receipt() {
           return useReceipt();
         },
-        main() {
+        _main() {
           return useMain();
         }
       },
@@ -396,7 +436,7 @@
         },
         "_receipt.fresh_fish_receive_detail.weight": function () {
           this._receipt.fresh_fish_receive_detail.weight_bill = this._receipt.fresh_fish_receive_detail.weight;
-          this._receipt.fresh_fish_receive_detail.price = this.main.formatNumber(this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price);
+          this._receipt.fresh_fish_receive_detail.price = this._main.formatNumber(this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price);
         }
       },
     }
