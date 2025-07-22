@@ -346,26 +346,42 @@
       </v-card>
       <v-dialog
         v-model="dialog_note"
-        max-width="600"
+        width="400"
       >
-        <v-sheet
-          rounded="lg"
-          width="100%"
-          class="pa-9"
+        <v-card
+          rounded="xl"
+          class="pa-1"
         >
-          <h3 class="py-2">Add Receipt Note</h3>
-          <v-divider class="py-2"></v-divider>
-          <v-textarea
-            v-model="_receipt.receipt.note"
-            label="Receipt Note"
-            density="compact"
-            variant="outlined"
-            rounded
-            counter
-            color="info"
+          <v-card-title>
+            <v-icon class="mx-2" color="info">mdi-update</v-icon>
+            <span class="text-h6 font-weight-bold">Receipt Note</span>
+          </v-card-title>
+          <v-divider class="border-opacity-25" color="info"></v-divider>
+          <v-card-text>
+            <v-textarea
+              v-model="_receipt.receipt.note"
+              label="Receipt Note"
+              density="compact"
+              variant="outlined"
+              rounded
+              counter
+              color="info"
+              >
+              </v-textarea>
+          </v-card-text>
+          <v-divider class="border-opacity-25" color="info"></v-divider>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              variant="tonal"
+              color="info"
+              rounded
+              @click="dialog_note = false"
             >
-            </v-textarea>
-        </v-sheet>
+              Close
+            </v-btn>
+          </v-card-actions>
+        </v-card>
       </v-dialog>
 </template>
 
