@@ -92,7 +92,7 @@
                 variant="tonal"
                 color="info"
                 icon="mdi-notebook-plus-outline"
-                @click="_receipt.showAdditionalInfo = !_receipt.showAdditionalInfo">
+                @click="dialog_note = !dialog_note">
               </v-btn>
             </v-col>
           </v-row>
@@ -344,6 +344,29 @@
           </v-row>
         </v-card-actions>
       </v-card>
+      <v-dialog
+        v-model="dialog_note"
+        max-width="600"
+      >
+        <v-sheet
+          rounded="lg"
+          width="100%"
+          class="pa-9"
+        >
+          <h3 class="py-2">Add Receipt Note</h3>
+          <v-divider class="py-2"></v-divider>
+          <v-textarea
+            v-model="_receipt.receipt.note"
+            label="Receipt Note"
+            density="compact"
+            variant="outlined"
+            rounded
+            counter
+            color="info"
+            >
+            </v-textarea>
+        </v-sheet>
+      </v-dialog>
 </template>
 
 <script>
@@ -355,11 +378,12 @@ export default {
   props: {
     receipt: {
       type: Object,
-      required: true
+      required: true,
     }
   },
   data: function () {
     return {
+      dialog_note:false,
       searchInputTrackingNumbers: '',
       // Example options - replace with API data
       freezeFishProductions: [
