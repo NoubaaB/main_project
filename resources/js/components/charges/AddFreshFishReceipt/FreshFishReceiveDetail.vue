@@ -251,8 +251,55 @@
                 show-select
                 density="compact"
                 item-key="id"
+                hover
                 hide-default-footer
               >
+                <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+                  <tr>
+                    <template v-for="column in columns" :key="column.key">
+                      <th>
+                        <div class="d-flex align-center">
+                          <span
+                            class="me-2 cursor-pointer"
+                            @click="toggleSort(column)"
+                            v-text="column.title"
+                          ></span>
+
+                          <v-icon
+                            v-if="isSorted(column)"
+                            :icon="getSortIcon(column)"
+                            color="medium-emphasis"
+                          ></v-icon>
+
+                          <v-icon
+                            v-if="column.removable"
+                            color="medium-emphasis"
+                            icon="$close"
+                            @click="remove_header(column.key)"
+                          ></v-icon>
+                        </div>
+                      </th>
+                    </template>
+                  </tr>
+                </template>
+
+                <template v-slot:top>
+                  <v-expand-transition>
+                    <div class="my-3" v-if="headers.length < 9">
+                      <v-btn
+                        rounded="lg"
+                        size="small"
+                        text="Reset"
+                        variant="tonal"
+                        block
+                        color="info"
+                        @click="onClickReset"
+                      ></v-btn>
+
+                      <v-divider></v-divider>
+                    </div>
+                  </v-expand-transition>
+                </template>
                 <!-- Custom select-all checkbox slot -->
                 <template v-slot:[`header.data-table-select`]="{ allSelected, selectAll }">
                   <v-checkbox
@@ -326,6 +373,20 @@
 </template>
 
 <script>
+    function DEFAULT_HEADERS () {
+      return [
+        { title: 'Fish Type', value: 'fish_type_id', removable: true },
+        { title: 'Weight (Kg)', value: 'weight', removable: true },
+        { title: 'Weight Bill (KG)', value: 'weight_bill', removable: true },
+        { title: 'PU (Dh)', value: 'unit_price', removable: true },
+        { title: 'Total Price (Dh)', value: 'price', removable: true },
+        { title: 'Type Package', value: 'package_id', removable: true },
+        { title: 'NBR Caisses', value: 'packag_count', removable: true },
+        { title: 'Stock Name', value: 'stock_id', removable: true },
+        { title: 'Actions', value: 'actions', align: 'end', sortable: false, removable: false }
+      ]
+    };
+
     import { useReceipt } from '@/stores/Receipt';
     import { useMain } from '@/stores/Main';
     import useVuelidate from '@vuelidate/core'
@@ -333,6 +394,7 @@
     export default {
       data: function () {
         return {
+          headers: DEFAULT_HEADERS(),
           selected: [],
             v$: useVuelidate(),
             is_editing: false,
@@ -385,19 +447,6 @@
         }
       },
       computed: {
-        headers: function () {
-          return [
-            { title: 'Fish Type', value: 'fish_type_id' },
-            { title: 'Weight (Kg)', value: 'weight' },
-            { title: 'Weight Bill (KG)', value: 'weight' },
-            { title: 'PU (Dh)', value: 'unit_price' },
-            { title: 'Total Price (Dh)', value: 'price' },
-            { title: 'Type Package', value: 'package_id' },
-            { title: 'NBR Caisses', value: 'packag_count' },
-            { title: 'Stock Name', value: 'stock_id' },
-            { title: 'Actions', value: 'actions', align: 'end', sortable: false },
-          ];
-        },
         _receipt() {
           return useReceipt();
         },
@@ -422,7 +471,14 @@
         },
         reset_fresh_fish_receive_detail: function () {
           this._receipt.reset_fresh_fish_receive_detail();
-        }
+        },
+        onClickReset : function() {
+          this.headers = DEFAULT_HEADERS()
+        },
+        remove_header: function (key) {
+          this.headers = this.headers.filter(header => header.value !== key);
+        },
+
       },
       watch: {
         '_receipt.fresh_fish_receive_detail': {

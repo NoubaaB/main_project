@@ -85,7 +85,6 @@ export const useMain = defineStore("main", {
             return moment(date).format("YYYY-MM-DD");
         },
         formatDisplayNumber: function (num) {
-            console.log("formatDisplayNumber", num);
             if (isNaN(num) || num === null || num === undefined) {
                 return 0.00;
             }
