@@ -79,9 +79,6 @@ export const useMain = defineStore("main", {
             return parseFloat(parseFloat(num).toFixed(2))
         },
         formateDate: function (date) {
-            if (isNaN(num) || num === null || num === undefined) {
-                return 0.00;
-            }
             return moment(date).format("YYYY-MM-DD");
         },
         formatDisplayNumber: function (num) {

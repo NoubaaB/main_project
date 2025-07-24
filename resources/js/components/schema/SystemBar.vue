@@ -78,6 +78,12 @@
                                 <template v-slot:[`item.date`]="{ item }">
                                     {{ main.formateDate(item.date) }}
                                 </template>
+                                <template v-slot:[`item.total_weight`]="{ item }">
+                                    {{ main.formatDisplayNumber(item.total_weight) }}
+                                </template>
+                                <template v-slot:[`item.total_price`]="{ item }">
+                                    {{ main.formatDisplayNumber(item.total_price) }}
+                                </template>
                                 <template v-slot:[`item.actions`]="{ item }">
                                 <div class="d-flex ga-2 justify-end">
                                     <v-icon color="amber" icon="mdi-pencil" size="small" @click="edit(item.id)"></v-icon>

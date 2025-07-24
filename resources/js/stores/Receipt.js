@@ -43,6 +43,17 @@ export const useReceipt = defineStore("receipt", {
                 stock_id:null, 
                 package_id:null, 
             },
+            freeze_fish_process_detail: {
+                id: uuidv4(),
+                weight:null, 
+                weight_bill:null, 
+                unit_price:null, 
+                price:null, 
+                packag_count:null, 
+                fish_type_id:null, 
+                stock_id:null, 
+                package_id:null, 
+            },
             receipts:[],
             add_fresh_fish_receive_details: true,
             add_freeze_fish_process_details: false,
@@ -64,8 +75,25 @@ export const useReceipt = defineStore("receipt", {
                 fish_type_id: null,
             };
         },
+        add_freeze_fish_process_detail: function () {
+            this.receipt.freeze_fish_process_details.push({
+                ...this.freeze_fish_process_detail,
+            });
+            this.freeze_fish_process_detail = {
+                id: uuidv4(),
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                packag_count: null,
+                fish_type_id: null,
+            };
+        },
         remove_fresh_fish_receive_detail: function (id) {
             this.receipt.fresh_fish_receive_details = this.receipt.fresh_fish_receive_details.filter(detail => detail.id !== id);
+        },
+        remove_freeze_fish_process_detail: function (id) {
+            this.receipt.freeze_fish_process_details = this.receipt.freeze_fish_process_details.filter(detail => detail.id !== id);
         },
         UpdateReceipt: function () {
             localStorage.setItem("receipt", JSON.stringify(this.receipt));
@@ -111,6 +139,15 @@ export const useReceipt = defineStore("receipt", {
                 packag_count: null,
                 fish_type_id: null,
             };
+            this.freeze_fish_process_detail = {
+                id: uuidv4(),
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                packag_count: null,
+                fish_type_id: null,
+            };
         },
         reset_fresh_fish_receive_detail: function () {
             this.fresh_fish_receive_detail = {
@@ -124,12 +161,28 @@ export const useReceipt = defineStore("receipt", {
                 stock_id: null,
                 package_id: null,
             };
-        },        
+        },
+        reset_freeze_fish_process_detail: function () {
+            this.freeze_fish_process_detail = {
+                id: uuidv4(),
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                packag_count: null,
+                fish_type_id: null,
+                stock_id: null,
+                package_id: null,
+            };
+        },
         deleteMany: function (selected) {
             this.receipts = this.receipts.filter(obj => !selected.includes(obj.id))
         },
         edit_fresh_fish_receive_detail: function (id) {
             this.fresh_fish_receive_detail = this.receipt.fresh_fish_receive_details.find(detail => detail.id === id);
+        },
+        edit_freeze_fish_process_detail: function (id) {
+            this.freeze_fish_process_detail = this.receipt.freeze_fish_process_details.find(detail => detail.id === id);
         },
         update_fresh_fish_receive_detail: function () {
             const index = this.receipt.fresh_fish_receive_details.findIndex(detail => detail.id === this.fresh_fish_receive_detail.id);
@@ -137,6 +190,13 @@ export const useReceipt = defineStore("receipt", {
                 this.receipt.fresh_fish_receive_details[index] = { ...this.fresh_fish_receive_detail };
             }
             this.reset_fresh_fish_receive_detail();
+        },
+        update_freeze_fish_process_detail: function () {
+            const index = this.receipt.freeze_fish_process_details.findIndex(detail => detail.id === this.freeze_fish_process_detail.id);
+            if (index !== -1) {
+                this.receipt.freeze_fish_process_details[index] = { ...this.freeze_fish_process_detail };
+            }
+            this.reset_freeze_fish_process_detail();
         },
         getFishTypeName: function (fish_type_id) {
             const fishType = this.fish_type.getList.find(type => type.id === fish_type_id);
