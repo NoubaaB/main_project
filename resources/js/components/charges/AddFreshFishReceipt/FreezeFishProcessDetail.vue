@@ -173,7 +173,7 @@
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.freeze_fish_process_detail.package_id"
-                  :items="_receipt.getTypeCharge"
+                  :items="_receipt.getPackages"
                   item-value="id"
                   item-title="name"
                   label="Package Type"
@@ -243,12 +243,10 @@
 
             <v-row>
               <v-data-table
-                v-model="selected"
                 :headers="headers"
                 :items="_receipt.receipt.freeze_fish_process_details"
                 tabindex="0"
                 item-value="id"
-                show-select
                 density="compact"
                 item-key="id"
                 hover
@@ -327,22 +325,22 @@
                 </template>
                 <template v-slot:[`item.weight`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.weight) }} Kg
+                    {{ _main.formatDisplayNumber(item.weight) }}
                   </div>
                 </template>
                 <template v-slot:[`item.weight_bill`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.weight_bill) }} Kg
+                    {{ _main.formatDisplayNumber(item.weight_bill) }}
                   </div>
                 </template>
                 <template v-slot:[`item.unit_price`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.unit_price) }} MAD
+                    {{ _main.formatDisplayNumber(item.unit_price) }}
                   </div>
                 </template>
                 <template v-slot:[`item.price`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.price) }} MAD
+                    {{ _main.formatDisplayNumber(item.price) }}
                   </div>
                 </template>
                 <template v-slot:[`item.package_id`]="{ item }">

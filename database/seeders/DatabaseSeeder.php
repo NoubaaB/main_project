@@ -2,20 +2,21 @@
 
 namespace Database\Seeders;
 
-use App\Models\ChargeType;
-use App\Models\Fishery;
-use App\Models\FishFamilly;
-use App\Models\FishType;
-use App\Models\FreshFishReceive;
-use App\Models\Origin;
-use App\Models\Package;
-use App\Models\FreshFishReceiveDetail;
-use App\Models\Provider;
 use App\Models\Role;
-use App\Models\Supplier;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
+use App\Models\Stock;
+use App\Models\Origin;
+use App\Models\Fishery;
+use App\Models\Package;
+use App\Models\FishType;
+use App\Models\Provider;
+use App\Models\Supplier;
+use App\Models\ChargeType;
+use App\Models\FishFamilly;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\FreshFishReceive;
+use App\Models\FreshFishReceiveDetail;
 
 class DatabaseSeeder extends Seeder
 {
@@ -36,6 +37,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         Provider::factory(10)->create();
+
+        Stock::factory(10)->create();
 
         $fish_famillies = [
             "MAQUERAUX",

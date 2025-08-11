@@ -16,7 +16,7 @@ return new class extends Migration
             $table->double("weight")->default(0.00);
             $table->double("price")->default(0.00);
             $table->double("unit_price")->default(0.00);
-            $table->double("packag_count")->default(0.00);
+            $table->double("package_count")->default(0.00);
 
             $table->foreignId('fish_type_id')->nullable()->index();
             $table->foreignId('stock_id')->nullable()->index();

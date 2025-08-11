@@ -70,7 +70,7 @@
               <v-col cols="12" md="6" v-if="_receipt.receipt.is_stockable">
                 <v-autocomplete
                   v-model="_receipt.fresh_fish_receive_detail.stock_id"
-                  :items="_receipt.getTypeCharge"
+                  :items="_receipt.getStocks"
                   item-value="id"
                   item-title="name"
                   label="Stock Name"
@@ -173,7 +173,7 @@
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.fresh_fish_receive_detail.package_id"
-                  :items="_receipt.getTypeCharge"
+                  :items="_receipt.getPackages"
                   item-value="id"
                   item-title="name"
                   label="Package Type"
@@ -205,7 +205,7 @@
 
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_receipt.fresh_fish_receive_detail.packag_count"
+                  v-model="_receipt.fresh_fish_receive_detail.package_count"
                   label="NBR Caisses"
                   type="number"
                   readonly
@@ -214,9 +214,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.packag_count.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.packag_count.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.packag_count.$touch()"                  
+                  :hide-details="v$._receipt.fresh_fish_receive_detail.package_count.$errors.length==0"
+                  :error-messages="v$._receipt.fresh_fish_receive_detail.package_count.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.fresh_fish_receive_detail.package_count.$touch()"                  
                   >
                 </v-text-field>
               </v-col>
@@ -243,12 +243,10 @@
 
             <v-row>
               <v-data-table
-                v-model="selected"
                 :headers="headers"
                 :items="_receipt.receipt.fresh_fish_receive_details"
                 tabindex="0"
                 item-value="id"
-                show-select
                 density="compact"
                 item-key="id"
                 hover
@@ -321,28 +319,28 @@
                 </template>
 
                 <template v-slot:[`item.fish_type_id`]="{ item }">
-                  <v-chip color="secondary">
+                  <v-chip color="info">
                     {{ _receipt.getFishTypeName(item.fish_type_id) }}
                   </v-chip>
                 </template>
                 <template v-slot:[`item.weight`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.weight) }} Kg
+                    {{ _main.formatDisplayNumber(item.weight) }}
                   </div>
                 </template>
                 <template v-slot:[`item.weight_bill`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.weight_bill) }} Kg
+                    {{ _main.formatDisplayNumber(item.weight_bill) }}
                   </div>
                 </template>
                 <template v-slot:[`item.unit_price`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.unit_price) }} MAD
+                    {{ _main.formatDisplayNumber(item.unit_price) }}
                   </div>
                 </template>
                 <template v-slot:[`item.price`]="{ item }">
                   <div class="font-weight-medium">
-                    {{ _main.formatDisplayNumber(item.price) }} MAD
+                    {{ _main.formatDisplayNumber(item.price) }}
                   </div>
                 </template>
                 <template v-slot:[`item.package_id`]="{ item }">
@@ -350,13 +348,13 @@
                     {{ _receipt.getPackageName(item.package_id) }}
                   </v-chip>
                 </template>
-                <template v-slot:[`item.packag_count`]="{ item }">
+                <template v-slot:[`item.package_count`]="{ item }">
                   <div class="font-weight-medium">
-                    {{item.packag_count}}
+                    {{item.package_count}}
                   </div>
                 </template>
                 <template v-slot:[`item.stock_id`]="{ item }">
-                  <v-chip color="secondary">
+                  <v-chip color="indigo">
                     {{ _receipt.getStockName(item.stock_id) }}
                   </v-chip>
                 </template>
@@ -381,7 +379,7 @@
         { title: 'PU (Dh)', value: 'unit_price', removable: true },
         { title: 'Total Price (Dh)', value: 'price', removable: true },
         { title: 'Type Package', value: 'package_id', removable: true },
-        { title: 'NBR Caisses', value: 'packag_count', removable: true },
+        { title: 'NBR Caisses', value: 'package_count', removable: true },
         { title: 'Stock Name', value: 'stock_id', removable: true },
         { title: 'Actions', value: 'actions', align: 'end', sortable: false, removable: false }
       ]
@@ -438,7 +436,7 @@
                 numeric,
                 minLength: minLength(1)
               },
-              packag_count: {
+              package_count: {
                 required,
                 numeric,
                 minLength: minLength(1)
@@ -490,9 +488,23 @@
         "_receipt.fresh_fish_receive_detail.unit_price": function () {
           this._receipt.fresh_fish_receive_detail.price = this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price;
         },
-        "_receipt.fresh_fish_receive_detail.weight": function () {
-          this._receipt.fresh_fish_receive_detail.weight_bill = this._receipt.fresh_fish_receive_detail.weight;
+        "_receipt.fresh_fish_receive_detail.weight": function (value) {
+          this._receipt.fresh_fish_receive_detail.weight_bill = value;
           this._receipt.fresh_fish_receive_detail.price = this._main.formatNumber(this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price);
+        },
+        "_receipt.fresh_fish_receive_detail.weight_bill": function (value) {
+          if (this._receipt.fresh_fish_receive_detail.package_id && value > 0) {
+            this._receipt.fresh_fish_receive_detail.package_count = +(value / this._receipt.getPackageSize(this._receipt.fresh_fish_receive_detail.package_id,value)).toFixed(1);
+          } else {
+            this._receipt.fresh_fish_receive_detail.package_count = 0;  
+          }
+        },
+        "_receipt.fresh_fish_receive_detail.package_id": function (value) {
+          if (this._receipt.fresh_fish_receive_detail.package_id && value > 0) {
+            this._receipt.fresh_fish_receive_detail.package_count = +(this._receipt.fresh_fish_receive_detail.weight_bill / this._receipt.getPackageSize(value,this._receipt.fresh_fish_receive_detail.weight_bill)).toFixed(1);
+          } else {
+            this._receipt.fresh_fish_receive_detail.package_count = 0;  
+          }
         }
       },
     }

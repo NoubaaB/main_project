@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useWebWorkerFn } from '@vueuse/core';
 
 import { useFishType } from "./FishType";
+import { usePackage } from "./Package";
+import { useStock } from "./Stock";
 import { id } from "date-fns/locale";
 
 export const useReceipt = defineStore("receipt", {
@@ -13,6 +15,8 @@ export const useReceipt = defineStore("receipt", {
             showAdditionalInfo:false,
             input_tracking_number: null,
             fish_type: useFishType(),
+            package: usePackage(),
+            stock: useStock(),
             receipt: {
                 id: uuidv4(),
                 date: new Date(), // Default to today
@@ -38,7 +42,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill:null, 
                 unit_price:null, 
                 price:null, 
-                packag_count:null, 
+                package_count:null, 
                 fish_type_id:null, 
                 stock_id:null, 
                 package_id:null, 
@@ -49,7 +53,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill:null, 
                 unit_price:null, 
                 price:null, 
-                packag_count:null, 
+                package_count:null, 
                 fish_type_id:null, 
                 stock_id:null, 
                 package_id:null, 
@@ -71,7 +75,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill: null,
                 unit_price: null,
                 price: null,
-                packag_count: null,
+                package_count: null,
                 fish_type_id: null,
             };
         },
@@ -85,7 +89,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill: null,
                 unit_price: null,
                 price: null,
-                packag_count: null,
+                package_count: null,
                 fish_type_id: null,
             };
         },
@@ -103,8 +107,8 @@ export const useReceipt = defineStore("receipt", {
             localStorage.setItem("add_freeze_fish_process_details", this.add_freeze_fish_process_details);
             localStorage.setItem("input_tracking_number", this.input_tracking_number);
             localStorage.setItem("showAdditionalInfo", this.showAdditionalInfo);
-            this.receipt.total_weight = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + detail.weight_bill, 0);
-            this.receipt.total_price = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + detail.price, 0);
+            this.receipt.total_weight = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + +detail.weight_bill, 0);
+            this.receipt.total_price = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + +detail.price, 0);
         },
         archive: function () {
             this.receipts.push(this.receipt);
@@ -136,7 +140,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill: null,
                 unit_price: null,
                 price: null,
-                packag_count: null,
+                package_count: null,
                 fish_type_id: null,
             };
             this.freeze_fish_process_detail = {
@@ -145,7 +149,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill: null,
                 unit_price: null,
                 price: null,
-                packag_count: null,
+                package_count: null,
                 fish_type_id: null,
             };
         },
@@ -156,7 +160,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill: null,
                 unit_price: null,
                 price: null,
-                packag_count: null,
+                package_count: null,
                 fish_type_id: null,
                 stock_id: null,
                 package_id: null,
@@ -169,7 +173,7 @@ export const useReceipt = defineStore("receipt", {
                 weight_bill: null,
                 unit_price: null,
                 price: null,
-                packag_count: null,
+                package_count: null,
                 fish_type_id: null,
                 stock_id: null,
                 package_id: null,
@@ -203,15 +207,17 @@ export const useReceipt = defineStore("receipt", {
             return fishType ? fishType.name : 'Unknown';
         },
         getStockName: function (stock_id) {
-            return "";
-            const stock = this.fish_type.getStocks.find(stock => stock.id === stock_id);
+            const stock = this.getStocks.find(stock => stock.id === stock_id);
             return stock ? stock.name : 'Unknown';
         },
         getPackageName: function (package_id) {
-            return "";
-            const packageItem = this.fish_type.getPackages.find(pkg => pkg.id === package_id);
+            const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
             return packageItem ? packageItem.name : 'Unknown';
         },
+        getPackageSize: function (package_id,wieght) {
+            const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
+            return packageItem ? packageItem.size : wieght;
+        }
     },
     getters: {
         getTypeCharge: (state) => { 
@@ -219,6 +225,12 @@ export const useReceipt = defineStore("receipt", {
                 return null;
             }
             return state.type_charges?.find(e => e.name == state.input_tracking_number)?.list_type_details ?? [];
+        },
+        getPackages: (state) => {
+            return state.package.getList;
+        },
+        getStocks: (state) => {
+            return state.stock.getList;
         },
         type_charges: (state) => {
             return [

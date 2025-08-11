@@ -18,6 +18,10 @@ class PackageFactory extends Factory
     {
         return [
             //
+            "name" => $this->faker->unique()->word(),
+            "size" => $this->faker->numberBetween(20, 24),
+            "description" => $this->faker->optional()->sentence(),
+            "type_emballage" => $this->faker->optional()->word(),
         ];
     }
 }
