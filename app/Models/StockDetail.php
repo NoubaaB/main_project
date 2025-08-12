@@ -16,4 +16,9 @@ class StockDetail extends Model
     function stock() : BelongsTo {
         return $this->belongsTo(Stock::class);
     }
+
+    public function detailable()
+    {
+        return $this->morphTo();
+    }
 }

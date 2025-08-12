@@ -18,6 +18,8 @@ return new class extends Migration
             $table->double("price")->default(0.00);
 
             $table->foreignId('stock_id')->nullable()->index();
+            $table->unsignedBigInteger('detailable_id');
+            $table->string('detailable_type');
             $table->foreignId('package_id')->nullable();
 
             $table->timestamps();

@@ -116,6 +116,22 @@
             </v-col>
           </v-row>
         </v-card-text>
+        <v-divider class="border-opacity-25" color="info"></v-divider>
+        <!-- Submit Button -->
+        <v-card-actions>
+          <v-row class="text-center py-3">
+            <v-col v-if="is_editing">
+              <v-btn block variant="tonal" rounded color="indigo" @click="update">Edit</v-btn>
+            </v-col>
+            <v-col v-else>
+              <v-btn block variant="tonal"  rounded color="info" @click="submit">Submit</v-btn>
+            </v-col>
+            <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
+            <v-col class="pr-1">
+              <v-btn block variant="outlined" rounded color="amber" @click="reset_fresh_fish_receive_detail">Cancel</v-btn>
+            </v-col>
+          </v-row>
+        </v-card-actions>
       </v-card>
 </template>
 
@@ -124,13 +140,21 @@
     import { useMain } from '@/stores/Main';
     export default {
         computed: {
-            _receipt() {
-                return useReceipt();
-            },
-            _main() {
-                return useMain();
-            }
+          _receipt() {
+              return useReceipt();
           },
+          _main() {
+              return useMain();
+          }
+        },
+        methods:{
+          submit: function () {
+            this._receipt.add_fresh_fish_receive_detail();
+          },
+          reset_fresh_fish_receive_detail: function () {
+            this._receipt.reset_fresh_fish_receive_detail();
+          }
+        }
       }
 </script>
 
