@@ -232,7 +232,7 @@
                   block
                   @click="submit"
                 >
-                  Submit
+                  Add Article
                 </v-btn>
               </v-col>
             </v-row>
