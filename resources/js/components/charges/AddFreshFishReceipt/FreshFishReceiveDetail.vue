@@ -30,7 +30,6 @@
           </v-row>
           <v-row class="pt-2">
               <!-- select fish type -->
-
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.fresh_fish_receive_detail.fish_type_id"
@@ -64,9 +63,7 @@
                 </v-autocomplete>
               </v-col>
 
-
               <!-- select stock -->
-
               <v-col cols="12" md="6" v-if="_receipt.receipt.is_stockable">
                 <v-autocomplete
                   v-model="_receipt.fresh_fish_receive_detail.stock_id"
@@ -117,6 +114,8 @@
                   >
                 </v-text-field>
               </v-col>
+
+              <!-- unit price -->
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.unit_price"
@@ -133,6 +132,8 @@
                   >
                 </v-text-field>
               </v-col>
+
+              <!-- weight bill -->
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.weight_bill"
@@ -150,6 +151,8 @@
                   >
                 </v-text-field>
               </v-col>
+
+              <!-- total price -->
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.price"
@@ -169,7 +172,6 @@
               </v-col>
 
               <!-- select package type -->
-
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.fresh_fish_receive_detail.package_id"
@@ -203,6 +205,7 @@
                 </v-autocomplete>
               </v-col>
 
+              <!-- package count -->
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.package_count"
@@ -220,11 +223,20 @@
                   >
                 </v-text-field>
               </v-col>
-              <v-col cols="12" md="6">
-
+              <!-- submit button -->
+              <v-col>
+                <v-btn
+                  color="info"
+                  variant="tonal"
+                  rounded="pill"
+                  block
+                  @click="submit"
+                >
+                  Submit
+                </v-btn>
               </v-col>
+
             </v-row>
-            <v-divider class="border-opacity-25 pb-3" color="info"></v-divider>
 
             <v-row>
               <v-data-table

@@ -31,7 +31,7 @@
           <v-row class="text-center">
             <v-col>
               <v-autocomplete
-                v-model="_receipt.input_tracking_number"
+                v-model="_receipt.receipt.charge_type_id"
                 :items="_receipt.type_charges"
                 item-value="name"
                 item-title="name"
@@ -332,7 +332,7 @@
         <v-card-actions cols="12">
           <v-row class="text-center pt-1">
             <v-col>
-              <v-btn block variant="tonal" rounded color="info">Submit</v-btn>
+              <v-btn block variant="tonal" rounded color="info" @click="submit">Submit</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
             <v-col class="pr-1">
@@ -440,6 +440,9 @@ export default {
     },
   },
   methods: {
+    submit: function () {
+      this._receipt.submitReceipt();
+    },
     addNewTrackingNumber(event) {
       let inputValue = event.target.value.trim()
       if (inputValue && !this._receipt.receipt.tracking_numbers.includes(inputValue)) {
@@ -450,7 +453,7 @@ export default {
       event.target.value = '';
     },
     removeTrackingNumber(item) {
-      this._receipt.input_tracking_number = null;
+      this._receipt.receipt.charge_type_id = null;
     },
     addNewOnpTrackingNumber(event) {
       let inputValue = event.target.value.trim()
@@ -486,7 +489,7 @@ export default {
     '_receipt.showAdditionalInfo': function (_) {
       this.update();
     },
-    '_receipt.input_tracking_number': function (_) {
+    '_receipt.receipt.charge_type_id': function (_) {
       this.update();
     },
     '_receipt.add_fresh_fish_receive_details': function (_) {

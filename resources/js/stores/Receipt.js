@@ -13,7 +13,6 @@ export const useReceipt = defineStore("receipt", {
     state: () => {
         return {
             showAdditionalInfo:false,
-            input_tracking_number: null,
             fish_type: useFishType(),
             package: usePackage(),
             stock: useStock(),
@@ -65,6 +64,15 @@ export const useReceipt = defineStore("receipt", {
         };
     },
     actions: {
+        submitReceipt: function () { 
+            axios.post("/api/receipt", this.receipt)
+                .then(response => {
+                    console.log("Receipt submitted successfully:", response.data);
+                })
+                .catch(error => {
+                    console.error("Error submitting receipt:", error);
+                });
+        },
         add_fresh_fish_receive_detail: function () {
             this.receipt.fresh_fish_receive_details.push({
                 ...this.fresh_fish_receive_detail,
@@ -105,7 +113,6 @@ export const useReceipt = defineStore("receipt", {
             localStorage.setItem("receipts", JSON.stringify(this.receipts));
             localStorage.setItem("add_fresh_fish_receive_details", this.add_fresh_fish_receive_details);
             localStorage.setItem("add_freeze_fish_process_details", this.add_freeze_fish_process_details);
-            localStorage.setItem("input_tracking_number", this.input_tracking_number);
             localStorage.setItem("showAdditionalInfo", this.showAdditionalInfo);
             this.receipt.total_weight = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + +detail.weight_bill, 0);
             this.receipt.total_price = this.receipt.fresh_fish_receive_details.reduce((acc, detail) => acc + +detail.price, 0);
@@ -221,10 +228,10 @@ export const useReceipt = defineStore("receipt", {
     },
     getters: {
         getTypeCharge: (state) => { 
-            if (state.input_tracking_number == null) {
+            if (state.receipt.charge_type_id == null) {
                 return null;
             }
-            return state.type_charges?.find(e => e.name == state.input_tracking_number)?.list_type_details ?? [];
+            return state.type_charges?.find(e => e.name == state.receipt.charge_type_id)?.list_type_details ?? [];
         },
         getPackages: (state) => {
             return state.package.getList;
