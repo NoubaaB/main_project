@@ -216,7 +216,7 @@
                 this.$i18n.locale = lang.code;
                 console.log(lang)
                 annyang.setLanguage(lang.annyang);
-                
+                this.main.lang = lang;
             },
             edit: function (item_id) {
               this._receipt.receipt =  this._receipt.receipts.find(item => item.id === item_id); 

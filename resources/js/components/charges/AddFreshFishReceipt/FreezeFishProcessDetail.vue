@@ -33,7 +33,7 @@
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.freeze_fish_process_detail.fish_type_id"
-                  :items="_receipt.getTypeCharge"
+                  :items="_receipt.type_detail"
                   item-value="id"
                   item-title="name"
                   label="Fish Type"
@@ -68,7 +68,7 @@
               <v-col cols="12" md="6" v-if="_receipt.receipt.is_stockable">
                 <v-autocomplete
                   v-model="_receipt.freeze_fish_process_detail.stock_id"
-                  :items="_receipt.getTypeCharge"
+                  :items="_receipt.type_detail"
                   item-value="id"
                   item-title="name"
                   label="Stock Name"

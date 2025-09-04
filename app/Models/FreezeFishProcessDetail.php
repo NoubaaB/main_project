@@ -12,6 +12,8 @@ class FreezeFishProcessDetail extends Model
     /** @use HasFactory<\Database\Factories\FreezeFishProcessDetailFactory> */
     use HasFactory ,SoftDeletes;
 
+    protected $guarded = [];
+
     public function stockDetail()
     {
         return $this->morphOne(StockDetail::class, 'detailable');

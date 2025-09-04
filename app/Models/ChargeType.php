@@ -10,4 +10,6 @@ class ChargeType extends Model
 {
     /** @use HasFactory<\Database\Factories\ChargeTypeFactory> */
     use HasFactory , SoftDeletes;
+    
+    protected $guarded = [];
 }

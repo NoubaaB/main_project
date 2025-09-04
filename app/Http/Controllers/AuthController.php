@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChargeType;
 use App\Models\Item;
 use App\Models\User;
 use App\Models\Daily;
@@ -196,11 +197,13 @@ class AuthController extends Controller implements HasMiddleware
         $fish_types = FishType::all();
         $packages = Package::all();
         $stocks = Stock::all();
+        $charge_types = ChargeType::all();
         return [
             "providers" => $providers,
             "fish_types" => $fish_types,
             "packages" => $packages,
             "stocks" => $stocks,
+            "charge_types" => $charge_types,
         ];
     }
 }

@@ -10,4 +10,7 @@ class MergedProvider extends Model
 {
     /** @use HasFactory<\Database\Factories\MergedProviderFactory> */
     use HasFactory ,SoftDeletes;
+
+    protected $guarded = [];
+    
 }

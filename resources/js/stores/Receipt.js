@@ -7,6 +7,7 @@ import { useWebWorkerFn } from '@vueuse/core';
 import { useFishType } from "./FishType";
 import { usePackage } from "./Package";
 import { useStock } from "./Stock";
+import { useChargeType } from "./ChargeType";
 import { id } from "date-fns/locale";
 
 export const useReceipt = defineStore("receipt", {
@@ -16,6 +17,7 @@ export const useReceipt = defineStore("receipt", {
             fish_type: useFishType(),
             package: usePackage(),
             stock: useStock(),
+            charge_type: useChargeType(),
             receipt: {
                 id: uuidv4(),
                 date: new Date(), // Default to today
@@ -32,7 +34,7 @@ export const useReceipt = defineStore("receipt", {
                 fresh_fish_receive_details: [],
                 freeze_fish_process_details: [],
                 origin_id: null,
-                charge_type_id: null,
+                charge_type_id: 1,
                 daily_charge_id: null,
             },
             fresh_fish_receive_detail: {
@@ -138,7 +140,7 @@ export const useReceipt = defineStore("receipt", {
                 origin_id: null,
                 fresh_fish_receive_details: [],
                 freeze_fish_process_details: [],
-                charge_type_id: null,
+                charge_type_id: 1,
                 daily_charge_id: null,
             };
             this.fresh_fish_receive_detail = {
@@ -239,79 +241,18 @@ export const useReceipt = defineStore("receipt", {
         getStocks: (state) => {
             return state.stock.getList;
         },
-        type_charges: (state) => {
-            return [
-                {
-                    name: 'Frais',
-                    allow_fresh_fish_receive_details: true,
-                    allow_freeze_fish_process_details: false,
-                    add_wieght: true,
-                    list_type_details: state.fish_type.getList,
-                },
-                {
-                    name: 'RSW',
-                    allow_fresh_fish_receive_details: false,
-                    allow_freeze_fish_process_details: true,
-                    add_wieght: false,
-                    list_type_details: []
-                },
-                {
-                    name: 'Congele',
-                    allow_fresh_fish_receive_details: false,
-                    allow_freeze_fish_process_details: true,
-                    add_wieght: false,
-                    list_type_details: []
-                },
-                {
-                    name: 'Frais Revendu',
-                    allow_fresh_fish_receive_details: true,
-                    allow_freeze_fish_process_details: false,
-                    add_wieght: true,
-                    list_type_details: []
-                },
-                {
-                    name: 'Congelation',
-                    allow_fresh_fish_receive_details: false,
-                    allow_freeze_fish_process_details: true,
-                    add_wieght: false,
-                    list_type_details: []
-                },
-                {
-                    name: 'Emballage',
-                    allow_fresh_fish_receive_details: true,
-                    allow_freeze_fish_process_details: false,
-                    add_wieght: true,
-                    list_type_details: []
-                },
-                {
-                    name: 'Glace',
-                    allow_fresh_fish_receive_details: true,
-                    allow_freeze_fish_process_details: false,
-                    add_wieght: true,
-                    list_type_details: null
-                },
-                {
-                    name: 'Transport',
-                    allow_fresh_fish_receive_details: true,
-                    allow_freeze_fish_process_details: false,
-                    add_wieght: true,
-                    list_type_details: null
-                },
-                {
-                    name: 'Comission',
-                    allow_fresh_fish_receive_details: true,
-                    allow_freeze_fish_process_details: false,
-                    add_wieght: true,
-                    list_type_details: null
-                },
-                {
-                    name: 'Autre Charge',
-                    allow_fresh_fish_receive_details: true,
-                    allow_freeze_fish_process_details: false,
-                    add_wieght: true,
-                    list_type_details: null
-                }
-            ];
+        charge_types: (state) => {
+            return state.charge_type.getList;
+        },
+        type_detail: (state) => {
+            switch (state.receipt.charge_type_id) {
+                case 0:
+                    return [];
+                case 1:
+                    return state.fish_type.getList;
+                default:
+                    return "";
+            }
         }
     },
 });

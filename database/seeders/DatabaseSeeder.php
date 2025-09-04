@@ -247,30 +247,109 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Cotiere",
             "name_fr" => "Cotiere",
             "name_es" => "Cotiere",
+            "allow_fresh_fish_receive_details" => true,
+            "allow_freeze_fish_process_details" => true,
+            "add_wieght" => true,
+            "list_type_details" => 1,
         ]);
+
         ChargeType::factory()->create([
             "description" => "purse seining and mid-water trawling",
             "name_en" => "RSW",
             "name_fr" => "RSW",
             "name_es" => "RSW",
+            "allow_fresh_fish_receive_details" => true,
+            "allow_freeze_fish_process_details" => true,
+            "add_wieght" => true,
+            "list_type_details" => 1,
         ]);
+
         ChargeType::factory()->create([
             "description" => "frozen",
             "name_en" => "Frozen",
             "name_fr" => "Congelé",
             "name_es" => "Congelado",
+            "allow_fresh_fish_receive_details" => true,
+            "allow_freeze_fish_process_details" => false,
+            "add_wieght" => true,
+            "list_type_details" => 1,
         ]);
+
         ChargeType::factory()->create([
             "description" => "Freezing service",
             "name_en" => "Freezing service",
             "name_fr" => "Service de congélation",
             "name_es" => "Servicio de congelación",
+            "allow_fresh_fish_receive_details" => true,
+            "allow_freeze_fish_process_details" => true,
+            "add_wieght" => true,
+            "list_type_details" => 1,
         ]);
+
         ChargeType::factory()->create([
             "description" => "buy and sell fresh fish",
             "name_en" => "Buy and sell fresh fish",
             "name_fr" => "Acheter et vendre du poisson frais",
             "name_es" => "Comprar y vender pescado fresco",
+            "allow_fresh_fish_receive_details" => true,
+            "allow_freeze_fish_process_details" => true,
+            "add_wieght" => true,
+            "list_type_details" => 1,
+        ]);
+
+        ChargeType::factory()->create([
+            "description" => "Emballage",
+            "name_en" => "Packaging",
+            "name_fr" => "Emballage",
+            "name_es" => "Embalaje",
+            "allow_fresh_fish_receive_details" => false,
+            "allow_freeze_fish_process_details" => false,
+            "add_wieght" => false,
+            "list_type_details" => 0,
+        ]);
+
+        ChargeType::factory()->create([
+            "description" => "Transport",
+            "name_en" => "Transport",
+            "name_fr" => "Transport",
+            "name_es" => "Transporte",
+            "allow_fresh_fish_receive_details" => false,
+            "allow_freeze_fish_process_details" => false,
+            "add_wieght" => false,
+            "list_type_details" => 0,
+        ]);
+
+        ChargeType::factory()->create([
+            "description" => "Autre Charge",
+            "name_en" => "Other Charge",
+            "name_fr" => "Autre Charge",
+            "name_es" => "Otro Cargo",
+            "allow_fresh_fish_receive_details" => false,
+            "allow_freeze_fish_process_details" => false,
+            "add_wieght" => false,
+            "list_type_details" => 0,
+        ]);
+
+        ChargeType::factory()->create([
+            "description" => "Glace",
+            "name_en" => "Ice",
+            "name_fr" => "Glace",
+            "name_es" => "Hielo",
+            "allow_fresh_fish_receive_details" => false,
+            "allow_freeze_fish_process_details" => false,
+            "add_wieght" => false,
+            "list_type_details" => 0,
+        ]);
+
+        ChargeType::factory()->create([
+            "description" => "Comission",
+            "name_en" => "Commission",
+            "name_fr" => "Comission",
+            "name_es" => "Comisión",
+            "allow_fresh_fish_receive_details" => false,
+            "allow_freeze_fish_process_details" => false,
+            "add_wieght" => false,
+            "list_type_details" => 0,
         ]);
 
         $charge_types = ChargeType::all();

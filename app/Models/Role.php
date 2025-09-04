@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Role extends Model
 {
     use HasFactory, SoftDeletes;
+    
     protected $guarded = [];
 
     function users(): HasMany

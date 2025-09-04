@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('fresh_fish_receives', function (Blueprint $table) {
             $table->id();
-            $table->date("date");
+            $table->date("date")->nullable();
             $table->json("tracking_numbers")->nullable();
             $table->string("note",500)->nullable();
             $table->double("total_price")->default(0.00);

@@ -32,10 +32,10 @@
             <v-col>
               <v-autocomplete
                 v-model="_receipt.receipt.charge_type_id"
-                :items="_receipt.type_charges"
-                item-value="name"
-                item-title="name"
-                key="name"
+                :items="_receipt.charge_types"
+                item-value="id"
+                :item-title="`name_${main.lang.short}`"
+                key="id"
                 label="Type Of Charge"
                 chips
                 density="compact"
@@ -50,9 +50,7 @@
                       :key="index"
                       class="text-white"
                       color="info accent-4"
-                      closable
                       variant="tonal"
-                      @click:close="removeTrackingNumber(item)"
                     >
                       {{ item.title }}
                     </v-chip>
@@ -389,6 +387,7 @@
 import { useMain } from '@/stores/Main';
 import { useReceipt } from '@/stores/Receipt';
 import { useProvider } from '@/stores/Provider';
+import { useChargeType } from '@/stores/ChargeType';
 
 export default {
   props: {
@@ -429,6 +428,12 @@ export default {
     }
   },
   computed: {
+    main() {
+      return useMain();
+    },
+    charge_type() {
+      return useChargeType();
+    },
     is_dark() {
       return useMain().is_dark;
     },

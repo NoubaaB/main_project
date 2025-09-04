@@ -10,4 +10,6 @@ class FishType extends Model
 {
     /** @use HasFactory<\Database\Factories\FishTypeFactory> */
     use HasFactory , SoftDeletes;
+
+    protected $guarded = [];
 }

@@ -10,4 +10,7 @@ class Package extends Model
 {
     /** @use HasFactory<\Database\Factories\PackageFactory> */
     use HasFactory , SoftDeletes;
+
+    protected $guarded = [];
+    
 }

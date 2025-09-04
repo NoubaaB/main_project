@@ -12,6 +12,8 @@ class FreshFishReceive extends Model
     /** @use HasFactory<\Database\Factories\FreshFishReceiveFactory> */
     use HasFactory , SoftDeletes;
 
+    protected $guarded = [];
+    
     function provider() : BelongsTo
     {
         return $this->belongsTo(Provider::class); 

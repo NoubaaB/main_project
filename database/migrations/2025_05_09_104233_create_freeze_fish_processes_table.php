@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('freeze_fish_processes', function (Blueprint $table) {
             $table->id();
-            $table->date("date");
+            $table->date("date")->nullable();
             $table->json("tracking_numbers")->nullable();
             $table->double("total_price")->default(0.00);
             $table->double("total_weight")->default(0.00);

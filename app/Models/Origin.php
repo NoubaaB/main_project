@@ -10,4 +10,7 @@ class Origin extends Model
 {
     /** @use HasFactory<\Database\Factories\OriginFactory> */
     use HasFactory , SoftDeletes;
+
+    protected $guarded = [];
+    
 }

@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Models\FreshFishReceive;
+use App\Models\FreshFishReceiveDetail;
 
 class ReceiptController extends Controller
 {
@@ -10,14 +13,14 @@ class ReceiptController extends Controller
     public function receipt(Request $request)
     {
         $data  = $request->validate([
-            'date' => 'required|date|format:Y-m-d',
+            'date' => 'required|date',
             'tracking_numbers' => 'required|array',
             'tracking_numbers.*' => 'string|max:50',
             'note' => 'string|max:500|nullable',
             'is_stockable' => 'required|boolean',
             'fishery_id' => 'required|exists:fisheries,id',
             'origin_id' => 'required|exists:origins,id',
-            'charge_type_id' => 'required|string|max:50',
+            'charge_type_id' => 'required|exists:charge_types,id',
             'supplier_id' => 'sometimes|array',
             'supplier_id.*' => 'exists:suppliers,id',
             'fresh_fish_receive_details.*' => 'array',
@@ -29,6 +32,24 @@ class ReceiptController extends Controller
             'fresh_fish_receive_details.*.stock_id' => 'nullable|exists:stocks,id',
             'fresh_fish_receive_details.*.package_id' => 'nullable|exists:packages,id',
         ]);
-        dd($data);
+        // ✅ 1. Create parent record
+        $freshFishReceive = FreshFishReceive::create([
+            'date' => Carbon::parse($data['date'])->format('Y-m-d'),
+            'note' => $data['note'],
+            'is_stockable' => $data['is_stockable'],
+            'fishery_id' => $data['fishery_id'],
+            'origin_id' => $data['origin_id'],
+            'charge_type_id' => $data['charge_type_id'],
+        ]);
+
+        // ✅ 2. Create children (details)
+        foreach ($data['fresh_fish_receive_details'] as $detail) {
+            $freshFishReceive->freshFishReceiveDetails()->create($detail);
+        }
+
+        return response()->json([
+            'message' => 'Fresh Fish Receive created successfully',
+            'data' => $freshFishReceive->load('freshFishReceiveDetails'),
+        ]);
     }
 }

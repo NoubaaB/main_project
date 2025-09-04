@@ -9,4 +9,7 @@ class PasswordReset extends Model
 {
     /** @use HasFactory<\Database\Factories\PasswordResetFactory> */
     use HasFactory;
+
+    protected $guarded = [];
+    
 }

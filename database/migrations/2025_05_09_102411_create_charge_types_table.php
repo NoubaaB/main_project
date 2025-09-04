@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string("name_fr")->nullable();
             $table->string("name_en")->nullable();
             $table->string("name_es")->nullable();
+            $table->boolean("allow_fresh_fish_receive_details")->default(false);
+            $table->boolean("allow_freeze_fish_process_details")->default(false);
+            $table->boolean("add_wieght")->default(true);
+            $table->integer("list_type_details",)->default(0);
             $table->string("process")->nullable();
 
             $table->timestamps();

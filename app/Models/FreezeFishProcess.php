@@ -10,4 +10,7 @@ class FreezeFishProcess extends Model
 {
     /** @use HasFactory<\Database\Factories\FreezeFishProcessFactory> */
     use HasFactory , SoftDeletes;
+
+    protected $guarded = [];
+    
 }

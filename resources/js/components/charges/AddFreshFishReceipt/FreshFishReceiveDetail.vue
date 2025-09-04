@@ -33,7 +33,7 @@
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.fresh_fish_receive_detail.fish_type_id"
-                  :items="_receipt.getTypeCharge"
+                  :items="_receipt.type_detail"
                   item-value="id"
                   item-title="name"
                   label="Fish Type"

@@ -149,7 +149,7 @@
         },
         methods:{
           submit: function () {
-            this._receipt.add_fresh_fish_receive_detail();
+            this._receipt.submitReceipt();
           },
           reset_fresh_fish_receive_detail: function () {
             this._receipt.reset_fresh_fish_receive_detail();

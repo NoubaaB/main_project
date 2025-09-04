@@ -13,6 +13,8 @@ class StockDetail extends Model
     /** @use HasFactory<\Database\Factories\StockDetailFactory> */
     use HasFactory ,SoftDeletes;
 
+    protected $guarded = [];
+
     function stock() : BelongsTo {
         return $this->belongsTo(Stock::class);
     }
