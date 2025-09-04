@@ -29,14 +29,14 @@
             </v-col>
           </v-row>
           <v-row class="pt-2">
-              <!-- select fish type -->
+              <!-- select Type Article -->
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.freeze_fish_process_detail.fish_type_id"
                   :items="_receipt.type_detail"
                   item-value="id"
                   item-title="name"
-                  label="Fish Type"
+                  label="Type Article"
                   chips
                   density="compact"
                   variant="outlined"
@@ -369,7 +369,7 @@
 <script>
     function DEFAULT_HEADERS () {
       return [
-        { title: 'Fish Type', value: 'fish_type_id', removable: true },
+        { title: 'Type Article', value: 'fish_type_id', removable: true },
         { title: 'Weight (Kg)', value: 'weight', removable: true },
         { title: 'Weight Bill (KG)', value: 'weight_bill', removable: true },
         { title: 'PU (Dh)', value: 'unit_price', removable: true },
