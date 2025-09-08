@@ -140,5 +140,10 @@
     "total_non_paid": "Totap Not Paid",
     "add_fresh_fish_recives": "Add Fresh Fish Recives",
     "noDataText": "No data available",
+    "input.appendAction": "test",
+    "open": "Open",
+    "clear": "Clear",
+    "input.clear": "Input Clear",
+    "badge": "Badge",
     "item_name": "Item Name"
 }

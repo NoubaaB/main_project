@@ -226,14 +226,25 @@
               <!-- submit button -->
               <v-col>
                 <v-btn
-                  color="info"
+                v-if="is_editing"
+                color="amber"
                   variant="tonal"
                   rounded="pill"
                   block
-                  @click="submit"
+                  @click="update"
                 >
-                  Add Article
-                </v-btn>
+                Update Article
+              </v-btn>
+              <v-btn
+                v-else
+                color="info"
+                variant="tonal"
+                rounded="pill"
+                block
+                @click="submit"
+              >
+                Add Article
+              </v-btn>
               </v-col>
 
             </v-row>
@@ -306,14 +317,6 @@
                     hide-details
                   ></v-checkbox>
                 </template>
-                <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
-                  <v-checkbox-btn
-                    :model-value="isSelected(internalItem)"
-                    color="primary"
-                    @update:model-value="toggleSelect(internalItem)"
-                  ></v-checkbox-btn>
-                </template>
-
 
                 <template v-slot:[`item.actions`]="{ item }">
                   <div class="d-flex ga-2 justify-end">
@@ -399,8 +402,8 @@
         return {
           headers: DEFAULT_HEADERS(),
           selected: [],
-            v$: useVuelidate(),
-            is_editing: false,
+          v$: useVuelidate(),
+          is_editing: false,
         };    
       },
       validations: {

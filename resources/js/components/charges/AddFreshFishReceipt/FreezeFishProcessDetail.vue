@@ -14,7 +14,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon class="text-blue">{{_receipt.add_fresh_fish_receive_details ? 'mdi-numeric-4-circle-outline' : 'mdi-numeric-3-circle-outline'}}</v-icon>
+                    <v-icon class="text-blue">{{_receipt.freeze_fish_process_detail ? 'mdi-numeric-4-circle-outline' : 'mdi-numeric-3-circle-outline'}}</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">
@@ -68,7 +68,7 @@
               <v-col cols="12" md="6" v-if="_receipt.receipt.is_stockable">
                 <v-autocomplete
                   v-model="_receipt.freeze_fish_process_detail.stock_id"
-                  :items="_receipt.type_detail"
+                  :items="_receipt.getStocks"
                   item-value="id"
                   item-title="name"
                   label="Stock Name"
@@ -209,7 +209,7 @@
               <!-- number of packages -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_receipt.freeze_fish_process_detail.packag_count"
+                  v-model="_receipt.freeze_fish_process_detail.package_count"
                   label="NBR Caisses"
                   type="number"
                   readonly
@@ -218,9 +218,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.freeze_fish_process_detail.packag_count.$errors.length==0"
-                  :error-messages="v$._receipt.freeze_fish_process_detail.packag_count.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.freeze_fish_process_detail.packag_count.$touch()"                  
+                  :hide-details="v$._receipt.freeze_fish_process_detail.package_count.$errors.length==0"
+                  :error-messages="v$._receipt.freeze_fish_process_detail.package_count.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.freeze_fish_process_detail.package_count.$touch()"                  
                   >
                 </v-text-field>
               </v-col>
@@ -344,9 +344,9 @@
                     {{ _receipt.getPackageName(item.package_id) }}
                   </v-chip>
                 </template>
-                <template v-slot:[`item.packag_count`]="{ item }">
+                <template v-slot:[`item.package_count`]="{ item }">
                   <div class="font-weight-medium">
-                    {{item.packag_count}}
+                    {{item.package_count}}
                   </div>
                 </template>
                 <template v-slot:[`item.stock_id`]="{ item }">
@@ -375,7 +375,7 @@
         { title: 'PU (Dh)', value: 'unit_price', removable: true },
         { title: 'Total Price (Dh)', value: 'price', removable: true },
         { title: 'Type Package', value: 'package_id', removable: true },
-        { title: 'NBR Caisses', value: 'packag_count', removable: true },
+        { title: 'NBR Caisses', value: 'package_count', removable: true },
         { title: 'Stock Name', value: 'stock_id', removable: true },
         { title: 'Actions', value: 'actions', align: 'end', sortable: false, removable: false }
       ]
@@ -432,7 +432,7 @@
                 numeric,
                 minLength: minLength(1)
               },
-              packag_count: {
+              package_count: {
                 required,
                 numeric,
                 minLength: minLength(1)
@@ -454,7 +454,7 @@
           this.is_editing = false;
         },
         submit: function () {
-          this._receipt.add_fresh_fish_receive_detail();
+          this._receipt.add_freeze_fish_process_detail();
         },
         edit: function (id) {
           this.is_editing = true;
@@ -463,16 +463,12 @@
         remove: function (id) {
           this._receipt.remove_freeze_fish_process_detail(id);
         },
-        reset_freeze_fish_process_detail: function () {
-          this._receipt.reset_freeze_fish_process_detail();
-        },
         onClickReset : function() {
           this.headers = DEFAULT_HEADERS()
         },
         remove_header: function (key) {
           this.headers = this.headers.filter(header => header.value !== key);
         },
-
       },
       watch: {
         '_receipt.freeze_fish_process_detail': {
@@ -484,9 +480,23 @@
         "_receipt.freeze_fish_process_detail.unit_price": function () {
           this._receipt.freeze_fish_process_detail.price = this._receipt.freeze_fish_process_detail.weight * this._receipt.freeze_fish_process_detail.unit_price;
         },
-        "_receipt.freeze_fish_process_detail.weight": function () {
-          this._receipt.freeze_fish_process_detail.weight_bill = this._receipt.freeze_fish_process_detail.weight;
+        "_receipt.freeze_fish_process_detail.weight": function (value) {
+          this._receipt.freeze_fish_process_detail.weight_bill = value;
           this._receipt.freeze_fish_process_detail.price = this._main.formatNumber(this._receipt.freeze_fish_process_detail.weight * this._receipt.freeze_fish_process_detail.unit_price);
+        },
+        "_receipt.freeze_fish_process_detail.weight_bill": function (value) {
+          if (this._receipt.freeze_fish_process_detail.package_id && value > 0) {
+            this._receipt.freeze_fish_process_detail.package_count = +(value / this._receipt.getPackageSize(this._receipt.freeze_fish_process_detail.package_id,value)).toFixed(1);
+          } else {
+            this._receipt.freeze_fish_process_detail.package_count = 0;  
+          }
+        },
+        "_receipt.freeze_fish_process_detail.package_id": function (value) {
+          if (this._receipt.freeze_fish_process_detail.package_id && value > 0) {
+            this._receipt.freeze_fish_process_detail.package_count = +(this._receipt.freeze_fish_process_detail.weight_bill / this._receipt.getPackageSize(value,this._receipt.freeze_fish_process_detail.weight_bill)).toFixed(1);
+          } else {
+            this._receipt.freeze_fish_process_detail.package_count = 0;  
+          }
         }
       },
     }

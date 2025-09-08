@@ -120,10 +120,7 @@
         <!-- Submit Button -->
         <v-card-actions>
           <v-row class="text-center py-3">
-            <v-col v-if="is_editing">
-              <v-btn block variant="tonal" rounded color="indigo" @click="update">Edit</v-btn>
-            </v-col>
-            <v-col v-else>
+            <v-col>
               <v-btn block variant="tonal"  rounded color="info" @click="submit">Submit</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>

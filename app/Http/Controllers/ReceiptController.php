@@ -31,6 +31,14 @@ class ReceiptController extends Controller
             'fresh_fish_receive_details.*.fish_type_id' => 'sometimes|exists:fish_types,id',
             'fresh_fish_receive_details.*.stock_id' => 'nullable|exists:stocks,id',
             'fresh_fish_receive_details.*.package_id' => 'nullable|exists:packages,id',
+            'freeze_fish_process_details.*' => 'array',
+            'freeze_fish_process_details.*.weight' => 'sometimes|numeric|min:0',
+            'freeze_fish_process_details.*.price' => 'sometimes|numeric|min:0',
+            'freeze_fish_process_details.*.unit_price' => 'sometimes|numeric|min:0',
+            'freeze_fish_process_details.*.package_count' => 'sometimes|numeric|min:0',
+            'freeze_fish_process_details.*.fish_type_id' => 'sometimes|exists:fish_types,id',
+            'freeze_fish_process_details.*.stock_id' => 'nullable|exists:stocks,id',
+            'freeze_fish_process_details.*.package_id' => 'nullable|exists:packages,id',
         ]);
         // ✅ 1. Create parent record
         $freshFishReceive = FreshFishReceive::create([
@@ -42,14 +50,19 @@ class ReceiptController extends Controller
             'charge_type_id' => $data['charge_type_id'],
         ]);
 
-        // ✅ 2. Create children (details)
+        // ✅ 2. Create fresh_fish_receive_details children (details)
         foreach ($data['fresh_fish_receive_details'] as $detail) {
             $freshFishReceive->freshFishReceiveDetails()->create($detail);
         }
 
+        // ✅ 3. Create freeze_fish_process_details children (details)
+        foreach ($data['freeze_fish_process_details'] as $detail) {
+            $freshFishReceive->freezeFishProcessDetails()->create($detail);
+        }
+
         return response()->json([
             'message' => 'Fresh Fish Receive created successfully',
-            'data' => $freshFishReceive->load('freshFishReceiveDetails'),
+            'data' => $freshFishReceive->load(['freshFishReceiveDetails', 'freezeFishProcessDetails']),
         ]);
     }
 }

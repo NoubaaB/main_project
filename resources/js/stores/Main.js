@@ -45,15 +45,17 @@ export const useMain = defineStore("main", {
             let fresh_fish_receive_detail = localStorage.getItem("fresh_fish_receive_detail") || '{}';
             Object.assign(useReceipt().fresh_fish_receive_detail, JSON.parse(fresh_fish_receive_detail));
 
+            //initialize the receipt store with data from localStorage
+            let freeze_fish_process_detail = localStorage.getItem("freeze_fish_process_detail") || '{}';
+            Object.assign(useReceipt().freeze_fish_process_detail, JSON.parse(freeze_fish_process_detail));
+
             //initialize the receipts store with data from localStorage
             let receipts = localStorage.getItem("receipts") || '[]';
             useReceipt().receipts = JSON.parse(receipts);
 
-
             //initialize the add_fresh_fish_receive_details store with data from localStorage
             let add_fresh_fish_receive_details = localStorage.getItem("add_fresh_fish_receive_details") == "true";
             useReceipt().add_fresh_fish_receive_details = add_fresh_fish_receive_details;
-
 
             //initialize the add_freeze_fish_process_details store with data from localStorage
             let add_freeze_fish_process_details = localStorage.getItem("add_freeze_fish_process_details") == "true";

@@ -112,6 +112,7 @@ export const useReceipt = defineStore("receipt", {
         UpdateReceipt: function () {
             localStorage.setItem("receipt", JSON.stringify(this.receipt));
             localStorage.setItem("fresh_fish_receive_detail", JSON.stringify(this.fresh_fish_receive_detail));
+            localStorage.setItem("freeze_fish_process_detail", JSON.stringify(this.freeze_fish_process_detail));
             localStorage.setItem("receipts", JSON.stringify(this.receipts));
             localStorage.setItem("add_fresh_fish_receive_details", this.add_fresh_fish_receive_details);
             localStorage.setItem("add_freeze_fish_process_details", this.add_freeze_fish_process_details);
@@ -213,15 +214,15 @@ export const useReceipt = defineStore("receipt", {
         },
         getFishTypeName: function (fish_type_id) {
             const fishType = this.fish_type.getList.find(type => type.id === fish_type_id);
-            return fishType ? fishType.name : 'Unknown';
+            return fishType ? fishType.name : 'N/A';
         },
         getStockName: function (stock_id) {
             const stock = this.getStocks.find(stock => stock.id === stock_id);
-            return stock ? stock.name : 'Unknown';
+            return stock ? stock.name : 'N/A';
         },
         getPackageName: function (package_id) {
             const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
-            return packageItem ? packageItem.name : 'Unknown';
+            return packageItem ? packageItem.name : 'N/A';
         },
         getPackageSize: function (package_id,wieght) {
             const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
