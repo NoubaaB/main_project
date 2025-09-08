@@ -64,6 +64,23 @@
                                 item-key="id"
                                 hide-default-footer
                             >
+                                <template v-slot:[`header.data-table-select`]="{ allSelected, selectAll }">
+                                <v-checkbox
+                                    :model-value="allSelected"
+                                    @update:model-value="selectAll"
+                                    :indeterminate="selected.length > 0 && !allSelected"
+                                    color="info"
+                                    class="px-0"
+                                    hide-details
+                                ></v-checkbox>
+                                </template>
+                                <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
+                                <v-checkbox-btn
+                                    :model-value="isSelected(internalItem)"
+                                    color="info"
+                                    @update:model-value="toggleSelect(internalItem)"
+                                ></v-checkbox-btn>
+                                </template>
                                 <template v-slot:no-data>
                                     <div class="text-orange">
                                         <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2"></v-icon>

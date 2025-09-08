@@ -7,7 +7,8 @@
 // Styles
 import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
-
+import en from "@/locales/en/app.json";
+import fr from "@/locales/fr/app.json";
 // Composables
 
 import { createVuetify } from "vuetify";
@@ -38,7 +39,6 @@ if (!localStorage.getItem("theme")) {
     localStorage.setItem("theme", window.matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light")
 }
 const theme = localStorage.getItem("theme");
-
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export function crerate() {
     return createVuetify({
@@ -48,7 +48,8 @@ export function crerate() {
         components,
         directives,
         locale: {
-            adapter: createVueI18nAdapter({ i18n, useI18n }),
+            messages: { en, fr },
+            // adapter: createVueI18nAdapter({ i18n, useI18n }),
         },
     })
 };
