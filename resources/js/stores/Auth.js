@@ -4,6 +4,8 @@ import { useProvider } from "./Provider";
 import { useFishType } from "./FishType";
 import { usePackage } from "./Package";
 import { useStock } from "./Stock";
+import { useFishery } from "./Fishery";
+import { useOrigin } from "./Origin";
 import { useChargeType } from "./ChargeType";
 export const useAuth = defineStore("Auth", {
   state: () => {
@@ -19,10 +21,12 @@ export const useAuth = defineStore("Auth", {
       },
       user: null,
       token: null,
-      provider : useProvider(),
+      provider: useProvider(),
       fish_type: useFishType(),
       package: usePackage(),
       stock: useStock(),
+      fishery: useFishery(),
+      origin: useOrigin(),
       charge_type: useChargeType(),
     };
   },
@@ -56,6 +60,8 @@ export const useAuth = defineStore("Auth", {
       this.package.list = response.data.packages;
       this.stock.list = response.data.stocks;
       this.charge_type.list = response.data.charge_types;
+      this.fishery.list = response.data.fisheries;
+      this.origin.list = response.data.origins;
     },
     set_user: function (user) {
       this.user = user;

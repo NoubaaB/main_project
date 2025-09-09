@@ -2,7 +2,7 @@
     <v-card class="ma-auto rounded-lg">
         <v-card-title>
           <span>
-            Add Fresh Fish Receive
+            {{ $t("add_fresh_fish_receive") }}
           </span>
         </v-card-title>
         <v-card-text>
@@ -19,7 +19,7 @@
                 </v-row>
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <span>Add Details</span>
+                    <span>{{$t("add_details")}}</span>
                   </v-col>
                 </v-row>
               </div>
@@ -36,7 +36,7 @@
                   :items="_receipt.type_detail"
                   item-value="id"
                   item-title="name"
-                  label="Type Article"
+                  :label="$t('type_article')"
                   chips
                   density="compact"
                   variant="outlined"
@@ -63,6 +63,7 @@
                 </v-autocomplete>
               </v-col>
 
+
               <!-- select stock -->
               <v-col cols="12" md="6" v-if="_receipt.receipt.is_stockable">
                 <v-autocomplete
@@ -70,7 +71,7 @@
                   :items="_receipt.getStocks"
                   item-value="id"
                   item-title="name"
-                  label="Stock Name"
+                  :label="$t('stock_name')"
                   chips
                   density="compact"
                   variant="outlined"
@@ -101,7 +102,7 @@
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.weight"
-                  label="Weight (KG)"
+                  :label="$t('weight') + ' (Kg)'"
                   type="number" 
                   density="compact"
                   variant="outlined"
@@ -119,7 +120,7 @@
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.unit_price"
-                  label="PU (Dh)"
+                  :label="$t('pu') + ' (Dh)'"
                   type="number"
                   density="compact"
                   variant="outlined"
@@ -137,7 +138,7 @@
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.weight_bill"
-                  label="Weight Bill (Kg)"
+                  :label="$t('weight_bill') + ' (Kg)'"
                   type="number"
                   min="0"
                   density="compact"
@@ -156,7 +157,7 @@
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.price"
-                  label="Total Price (Dh)"
+                  :label="$t('total_price') + ' (Dh)'"
                   type="number"
                   readonly
                   density="compact"
@@ -178,7 +179,7 @@
                   :items="_receipt.getPackages"
                   item-value="id"
                   item-title="name"
-                  label="Package Type"
+                  :label="$t('type_package')"
                   chips
                   density="compact"
                   variant="outlined"
@@ -205,11 +206,11 @@
                 </v-autocomplete>
               </v-col>
 
-              <!-- package count -->
+              <!-- number of packages -->
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="_receipt.fresh_fish_receive_detail.package_count"
-                  label="NBR Caisses"
+                  :label="$t('nbr_boxes')"
                   type="number"
                   readonly
                   density="compact"
@@ -223,31 +224,18 @@
                   >
                 </v-text-field>
               </v-col>
-              <!-- submit button -->
               <v-col>
                 <v-btn
-                v-if="is_editing"
-                color="amber"
+                  color="info"
                   variant="tonal"
                   rounded="pill"
                   block
-                  @click="update"
+                  @click="submit"
                 >
-                Update Article
-              </v-btn>
-              <v-btn
-                v-else
-                color="info"
-                variant="tonal"
-                rounded="pill"
-                block
-                @click="submit"
-              >
-                Add Article
-              </v-btn>
+                  {{ $t("add_article") }}
+                </v-btn>
               </v-col>
-
-            </v-row>
+          </v-row>
 
             <v-row>
               <v-data-table
@@ -379,20 +367,6 @@
 </template>
 
 <script>
-    function DEFAULT_HEADERS () {
-      return [
-        { title: 'Type Article', value: 'fish_type_id', removable: true },
-        { title: 'Weight (Kg)', value: 'weight', removable: true },
-        { title: 'Weight Bill (KG)', value: 'weight_bill', removable: true },
-        { title: 'PU (Dh)', value: 'unit_price', removable: true },
-        { title: 'Total Price (Dh)', value: 'price', removable: true },
-        { title: 'Type Package', value: 'package_id', removable: true },
-        { title: 'NBR Caisses', value: 'package_count', removable: true },
-        { title: 'Stock Name', value: 'stock_id', removable: true },
-        { title: 'Actions', value: 'actions', align: 'end', sortable: false, removable: false }
-      ]
-    };
-
     import { useReceipt } from '@/stores/Receipt';
     import { useMain } from '@/stores/Main';
     import useVuelidate from '@vuelidate/core'
@@ -400,7 +374,7 @@
     export default {
       data: function () {
         return {
-          headers: DEFAULT_HEADERS(),
+          headers: [],
           selected: [],
           v$: useVuelidate(),
           is_editing: false,
@@ -452,6 +426,9 @@
           }
         }
       },
+      mounted() {
+        this.headers = this.DEFAULT_HEADERS();
+      },
       computed: {
         _receipt() {
           return useReceipt();
@@ -461,6 +438,19 @@
         }
       },
       methods:{
+        DEFAULT_HEADERS () {
+          return [
+            { title: this.$t("type_article"), value: 'fish_type_id', removable: true },
+            { title: this.$t("weight_(KG)"), value: 'weight', removable: true },
+            { title: this.$t("weight_bill_(KG)"), value: 'weight_bill', removable: true },
+            { title: this.$t("pu_(DH)"), value: 'unit_price', removable: true },
+            { title: this.$t("total_price_(DH)"), value: 'price', removable: true },
+            { title: this.$t("type_package"), value: 'package_id', removable: true },
+            { title: this.$t("nbr_caisses"), value: 'package_count', removable: true },
+            { title: this.$t("stock_name"), value: 'stock_id', removable: true },
+            { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false }
+          ]
+        },
         update: function () {
           this._receipt.update_fresh_fish_receive_detail();
           this.is_editing = false;
@@ -476,7 +466,7 @@
           this._receipt.remove_fresh_fish_receive_detail(id);
         },
         onClickReset : function() {
-          this.headers = DEFAULT_HEADERS()
+          this.headers = this.DEFAULT_HEADERS()
         },
         remove_header: function (key) {
           this.headers = this.headers.filter(header => header.value !== key);

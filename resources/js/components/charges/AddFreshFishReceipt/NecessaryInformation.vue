@@ -19,7 +19,7 @@
                 </v-row>
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <span>Necessary Information</span>
+                    <span>{{$t("necessary_information")}}</span>
                   </v-col>
                 </v-row>
               </div>
@@ -36,7 +36,7 @@
                 item-value="id"
                 :item-title="`name_${main.lang.short}`"
                 key="id"
-                label="Type Of Charge"
+                :label="$t('charge_type')"
                 chips
                 density="compact"
                 variant="outlined"
@@ -69,7 +69,7 @@
                 variant="outlined"
                 rounded
                 v-model="_receipt.add_fresh_fish_receive_details"
-                label="Fish Receive"
+                :label="$t('fish_receive')"
                 inset
               ></v-switch>
             </v-col>
@@ -81,7 +81,7 @@
                 variant="outlined"
                 rounded
                 v-model="_receipt.add_freeze_fish_process_details"
-                label="Freeze Process"
+                :label="$t('freeze_process')"
                 inset
               ></v-switch>
             </v-col>
@@ -119,7 +119,7 @@
                 </v-row>
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <span>Addtional Information</span>
+                    <span>{{$t("addtional_information")}}</span>
                   </v-col>
                 </v-row>
               </div>
@@ -140,7 +140,7 @@
               <v-icon>
                 {{ _receipt.showAdditionalInfo ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
               </v-icon>
-              expand
+              {{ $t("expand") }}
               </v-btn>
             </v-col>
           </v-row>
@@ -153,7 +153,7 @@
                 <v-autocomplete
                   v-model="_receipt.receipt.tracking_numbers"
                   :items="_receipt.receipt.tracking_numbers"
-                  label="Tracking Numbers (comma separated)"
+                  :label="$t('tracking_numbers')"
                   multiple
                   chips
                   density="compact"
@@ -186,7 +186,7 @@
                 <v-autocomplete
                   v-model="_receipt.receipt.tracking_onp_numbers"
                   :items="_receipt.receipt.tracking_onp_numbers"
-                  label="Tracking Onp Numbers (comma separated)"
+                  :label="$t('tracking_onp_numbers')"
                   multiple
                   chips
                   density="compact"
@@ -222,7 +222,7 @@
                   item-value="id"
                   item-title="name"
                   key="id"
-                  label="Providers"
+                  :label="$t('providers')"
                   multiple
                   chips
                   density="compact"
@@ -259,10 +259,10 @@
                   rounded
                   chips
                   v-model="_receipt.receipt.fishery_id"
-                  :items="fisheries"
-                  label="Fishery"
-                  item-title="title"
-                  item-value="value"
+                  :items="_fishery.getList"
+                  :label="$t('fishery')"
+                  :item-title="`name_${main.lang.short}`"
+                  item-value="id"
                 >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -288,10 +288,10 @@
                   rounded
                   chips
                   v-model="_receipt.receipt.origin_id"
-                  :items="origins"
-                  label="Origin"
-                  item-title="title"
-                  item-value="value"
+                  :items="_origin.getList"
+                  :label="$t('origin')"
+                  item-title="name"
+                  item-value="id"
                 >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -316,7 +316,7 @@
                   variant="outlined"
                   rounded
                   v-model="_receipt.receipt.is_stockable"
-                  label="Is Stockable?"
+                  :label="$t('is_stockable?')"
                   inset
                 ></v-switch>
             
@@ -330,14 +330,14 @@
         <v-card-actions cols="12">
           <v-row class="text-center pt-1">
             <v-col>
-              <v-btn block variant="tonal" rounded color="info" @click="submit">Submit</v-btn>
+              <v-btn block variant="tonal" rounded color="info" @click="submit">{{$t('submit')}}</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
             <v-col class="pr-1">
-              <v-btn block variant="tonal" rounded color="green" class="rounded-e-lg" @click="archive">Archive</v-btn>
+              <v-btn block variant="tonal" rounded color="green" class="rounded-e-lg" @click="archive">{{$t('archive')}}</v-btn>
             </v-col>
             <v-col class="pl-1">
-              <v-btn block variant="outlined" rounded color="orange" class="rounded-s-lg" @click="reset">Cancel</v-btn>
+              <v-btn block variant="outlined" rounded color="orange" class="rounded-s-lg" @click="reset">{{$t('cancel')}}</v-btn>
             </v-col>
           </v-row>
         </v-card-actions>
@@ -376,7 +376,7 @@
               rounded
               @click="dialog_note = false"
             >
-              Close
+              {{ $t("close") }}
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -387,6 +387,8 @@
 import { useMain } from '@/stores/Main';
 import { useReceipt } from '@/stores/Receipt';
 import { useProvider } from '@/stores/Provider';
+import { useFishery } from '@/stores/Fishery';
+import { useOrigin } from '@/stores/Origin';
 import { useChargeType } from '@/stores/ChargeType';
 
 export default {
@@ -400,31 +402,6 @@ export default {
     return {
       dialog_note:false,
       searchInputTrackingNumbers: '',
-      // Example options - replace with API data
-      freezeFishProductions: [
-        { title: 'Production A', value: 1 },
-        { title: 'Production B', value: 2 },
-      ],
-      primaryFishDetails: [
-        { title: 'Sardine Detail', value: 1 },
-        { title: 'Mackerel Detail', value: 2 },
-      ],
-      fisheries: [
-        { title: 'Fishery One', value: 1 },
-        { title: 'Fishery Two', value: 2 },
-      ],
-      origins: [
-        { title: 'Local Origin', value: 1 },
-        { title: 'Imported Origin', value: 2 },
-      ],
-      chargeTypes: [
-        { title: 'Charge Type 1', value: 1 },
-        { title: 'Charge Type 2', value: 2 },
-      ],
-      dailyCharges: [
-        { title: '2025-06-30', value: 1 },
-        { title: '2025-07-01', value: 2 },
-      ],
     }
   },
   computed: {
@@ -440,8 +417,14 @@ export default {
     _receipt() {
       return useReceipt();
     },
+    _fishery() {
+      return useFishery();
+    },
     _provider() {
       return useProvider();
+    },
+    _origin() {
+      return useOrigin();
     },
   },
   methods: {

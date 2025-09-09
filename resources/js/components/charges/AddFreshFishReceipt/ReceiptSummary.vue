@@ -2,7 +2,7 @@
     <v-card class="ma-auto rounded-lg">
         <v-card-title>
           <span>
-            Receipt Summary 
+            {{ $t("receipt_summary") }}
           </span>
         </v-card-title>
         <v-card-text>
@@ -19,7 +19,7 @@
                 </v-row>
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <span>Summary</span>
+                    <span>{{$t("summary")}}</span>
                   </v-col>
                 </v-row>
               </div>
@@ -39,7 +39,7 @@
               variant="text"
             >
               <template v-slot:title>
-                <div class="text-caption font-weight-bold">Total Price</div>
+                <div class="text-caption font-weight-bold">{{$t("total_price")}}</div>
               </template>
         
               <template v-slot:append>
@@ -79,7 +79,7 @@
               variant="text"
             >
               <template v-slot:title>
-                <div class="text-caption font-weight-bold">Total Weight</div>
+                <div class="text-caption font-weight-bold">{{$t("total_weight")}}</div>
               </template>
         
               <template v-slot:append>
@@ -108,7 +108,7 @@
                 </div>
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
                   <div>
-                    Total weight of all items's Weight Bill
+                    {{ $t("total_weight_of_all_items_s_Weight_bill") }}
                   </div>
                 </small>
               </template>
@@ -121,11 +121,11 @@
         <v-card-actions>
           <v-row class="text-center py-3">
             <v-col>
-              <v-btn block variant="tonal"  rounded color="info" @click="submit">Submit</v-btn>
+              <v-btn block variant="tonal"  rounded color="info" @click="submit">{{$t("submit")}}</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
             <v-col class="pr-1">
-              <v-btn block variant="outlined" rounded color="amber" @click="reset_fresh_fish_receive_detail">Cancel</v-btn>
+              <v-btn block variant="outlined" rounded color="amber" @click="reset_fresh_fish_receive_detail">{{$t(('cancel'))}}</v-btn>
             </v-col>
           </v-row>
         </v-card-actions>

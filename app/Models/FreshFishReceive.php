@@ -13,20 +13,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class FreshFishReceive extends Model
 {
     /** @use HasFactory<\Database\Factories\FreshFishReceiveFactory> */
-    use HasFactory , SoftDeletes;
+    use HasFactory, SoftDeletes;
+
+    protected $with = ['freshFishReceiveDetails', 'freezeFishProcessDetails'];
 
     protected $guarded = [];
-    
-    function provider() : BelongsTo
+
+    function provider(): BelongsTo
     {
-        return $this->belongsTo(Provider::class); 
-        
+        return $this->belongsTo(Provider::class);
     }
 
-    function freshFishReceiveDetails() : HasMany
+    function freshFishReceiveDetails(): HasMany
     {
         return $this->hasMany(FreshFishReceiveDetail::class);
-        
     }
 
     function freezeFishProcessDetails(): HasMany
