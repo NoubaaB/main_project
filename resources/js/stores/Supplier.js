@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-export const useProvider = defineStore("provider", {
+export const useSupplier = defineStore("supplier", {
     state: () => {
         return {
             list: [],
@@ -17,14 +17,14 @@ export const useProvider = defineStore("provider", {
         };
     },
     actions: {
-        addProvider: function (provider) {
-            this.list.push(provider);
+        addSupplier: function (supplier) {
+            this.list.push(supplier);
         },
-        deleteProvider: function (provider) {
-            this.list = this.list.filter(e => e.id != provider.id);
+        deleteSupplier: function (supplier) {
+            this.list = this.list.filter(e => e.id != supplier.id);
         },
-        updateProvider: function (provider) {
-            console.log("provider", provider)
+        updateSupplier: function (supplier) {
+            console.log("supplier", supplier)
         },
     },
     getters: {

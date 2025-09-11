@@ -8,12 +8,11 @@ import { useFishType } from "./FishType";
 import { usePackage } from "./Package";
 import { useStock } from "./Stock";
 import { useChargeType } from "./ChargeType";
-import { id } from "date-fns/locale";
 
 export const useReceipt = defineStore("receipt", {
     state: () => {
         return {
-            showAdditionalInfo:false,
+            showAdditionalInfo: false,
             fish_type: useFishType(),
             package: usePackage(),
             stock: useStock(),
@@ -23,7 +22,7 @@ export const useReceipt = defineStore("receipt", {
                 date: new Date(), // Default to today
                 trackingNumbersInput: "",
                 tracking_numbers: [],
-                note:null,
+                note: null,
                 tracking_onp_numbers: [],
                 total_price: null,
                 total_weight: null,
@@ -34,39 +33,40 @@ export const useReceipt = defineStore("receipt", {
                 fresh_fish_receive_details: [],
                 freeze_fish_process_details: [],
                 origin_id: null,
+                supplier_ids: [],
                 charge_type_id: 1,
                 daily_charge_id: null,
             },
             fresh_fish_receive_detail: {
                 id: uuidv4(),
-                weight:null, 
-                weight_bill:null, 
-                unit_price:null, 
-                price:null, 
-                package_count:null, 
-                fish_type_id:null, 
-                stock_id:null, 
-                package_id:null, 
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                package_count: null,
+                fish_type_id: null,
+                stock_id: null,
+                package_id: null,
             },
             freeze_fish_process_detail: {
                 id: uuidv4(),
-                weight:null, 
-                weight_bill:null, 
-                unit_price:null, 
-                price:null, 
-                package_count:null, 
-                fish_type_id:null, 
-                stock_id:null, 
-                package_id:null, 
+                weight: null,
+                weight_bill: null,
+                unit_price: null,
+                price: null,
+                package_count: null,
+                fish_type_id: null,
+                stock_id: null,
+                package_id: null,
             },
-            receipts:[],
+            receipts: [],
             add_fresh_fish_receive_details: true,
             add_freeze_fish_process_details: false,
-    
+
         };
     },
     actions: {
-        submitReceipt: function () { 
+        submitReceipt: function () {
             axios.post("/api/receipt", this.receipt)
                 .then(response => {
                     console.log("Receipt submitted successfully:", response.data);
@@ -139,6 +139,7 @@ export const useReceipt = defineStore("receipt", {
                 primary_fish_detail_id: null,
                 fishery_id: null,
                 origin_id: null,
+                supplier_ids: [],
                 fresh_fish_receive_details: [],
                 freeze_fish_process_details: [],
                 charge_type_id: 1,
@@ -224,13 +225,13 @@ export const useReceipt = defineStore("receipt", {
             const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
             return packageItem ? packageItem.name : 'N/A';
         },
-        getPackageSize: function (package_id,wieght) {
+        getPackageSize: function (package_id, wieght) {
             const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
             return packageItem ? packageItem.size : wieght;
         }
     },
     getters: {
-        getTypeCharge: (state) => { 
+        getTypeCharge: (state) => {
             if (state.receipt.charge_type_id == null) {
                 return null;
             }

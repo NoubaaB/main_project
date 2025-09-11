@@ -9,7 +9,6 @@ use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\Package;
 use App\Models\FishType;
-use App\Models\Provider;
 use App\Models\Supplier;
 use App\Models\ChargeType;
 use App\Models\FishFamilly;
@@ -36,7 +35,7 @@ class DatabaseSeeder extends Seeder
             "role_id" => 1
         ]);
 
-        Provider::factory(10)->create();
+        Supplier::factory(10)->create();
 
         Stock::factory(10)->create();
 
@@ -358,7 +357,6 @@ class DatabaseSeeder extends Seeder
                 "charge_type_id" => $charge_type->id,
                 "fishery_id" => Fishery::all()->random()->id,
                 "origin_id" => Origin::all()->random()->id,
-                "supplier_id" => Supplier::all()->random()->id,
             ]);
             foreach ($fresh_fishes_receives as $fresh_fishes_receive) {
                 if($fresh_fishes_receive->charge_type_id == 1){

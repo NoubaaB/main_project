@@ -1,6 +1,6 @@
 import axios from "axios";
 import { defineStore } from "pinia";
-import { useProvider } from "./Provider";
+import { useSupplier } from "./Supplier";
 import { useFishType } from "./FishType";
 import { usePackage } from "./Package";
 import { useStock } from "./Stock";
@@ -21,7 +21,7 @@ export const useAuth = defineStore("Auth", {
       },
       user: null,
       token: null,
-      provider: useProvider(),
+      supplier: useSupplier(),
       fish_type: useFishType(),
       package: usePackage(),
       stock: useStock(),
@@ -55,7 +55,7 @@ export const useAuth = defineStore("Auth", {
       });
     },
     init_local_store: function (response) {
-      this.provider.list = response.data.providers;
+      this.supplier.list = response.data.suppliers;
       this.fish_type.list = response.data.fish_types;
       this.package.list = response.data.packages;
       this.stock.list = response.data.stocks;

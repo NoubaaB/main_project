@@ -19,10 +19,10 @@ class FreshFishReceive extends Model
 
     protected $guarded = [];
 
-    function provider(): BelongsTo
-    {
-        return $this->belongsTo(Provider::class);
-    }
+    // function provider(): BelongsTo
+    // {
+    //     return $this->belongsTo(Provider::class);
+    // }
 
     function freshFishReceiveDetails(): HasMany
     {

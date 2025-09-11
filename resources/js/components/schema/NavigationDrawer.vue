@@ -122,8 +122,8 @@
           links: function () {
            return [
               ['mdi-human-male-board-poll', this.$t("general"),null,"index"],
-              ['mdi-robot', this.$t("AI Prompt"),null,"ai_prompt"],
-              ['mdi-warehouse', this.$t('Charges'),[
+              ['mdi-robot', this.$t("ai_prompt"),null,"ai_prompt"],
+              ['mdi-warehouse', this.$t('charges'),[
                 ['mdi-sticker-plus-outline', this.$t("add_fresh_fish_recives"),"add_fresh_fish_recives"],
               ]],
               ['mdi-food-fork-drink', this.$t('commands'),[

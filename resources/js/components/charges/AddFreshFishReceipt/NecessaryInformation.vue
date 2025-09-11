@@ -55,10 +55,9 @@
                       {{ item.title }}
                     </v-chip>
                   </template>
-                </v-autocomplete>
+              </v-autocomplete>
             </v-col>
           </v-row>
-          
           <v-row class="text-center">
             <!-- Select Detail -->
             <v-col class="py-0">
@@ -148,7 +147,6 @@
           <v-expand-transition>
             <v-row v-show="_receipt.showAdditionalInfo" class="pt-2">
               <!-- Tracking Numbers -->
-
               <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="_receipt.receipt.tracking_numbers"
@@ -172,14 +170,13 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.receipt.tracking_numbers = _receipt.receipt.tracking_numbers.filter(num => num !== item)"
+                        @click:close="_receipt.receipt.tracking_numbers = _receipt.receipt.tracking_numbers.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
                     </template>
-                  </v-autocomplete>
+                </v-autocomplete>
               </v-col>
-  
               <!-- Tracking ONP Numbers -->
 
               <v-col cols="12" md="6">
@@ -205,32 +202,30 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.receipt.tracking_onp_numbers = _receipt.receipt.tracking_onp_numbers.filter(num => num !== item)"
+                        @click:close="_receipt.receipt.tracking_onp_numbers = _receipt.receipt.tracking_onp_numbers.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
                     </template>
-                  </v-autocomplete>
+                </v-autocomplete>
               </v-col>
   
-              <!-- Provider -->
-
+              <!-- Supplier -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_receipt.receipt.provider_ids"
-                  :items="_provider.list"
+                  v-model="_receipt.receipt.supplier_ids"
+                  :items="_supplier.list"
                   item-value="id"
                   item-title="name"
-                  key="id"
-                  :label="$t('providers')"
                   multiple
+                  key="id"
+                  :label="$t('suppliers')"
                   chips
                   density="compact"
                   variant="outlined"
                   rounded
                   hide-details
                   clearable
-                  @keydown.enter.prevent="addNewOnpTrackingNumber"
                   color="info"
                   >
                     <!-- Custom Chips Slot -->
@@ -241,12 +236,12 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.receipt.provider_ids = _receipt.receipt.provider_ids.filter(num => num !== item.value)"
+                        @click:close="_receipt.receipt.supplier_ids = _receipt.receipt.supplier_ids.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
                     </template>
-                  </v-autocomplete>
+                </v-autocomplete>
               </v-col>
       
               <!-- Fishery -->
@@ -330,7 +325,7 @@
         <v-card-actions cols="12">
           <v-row class="text-center pt-1">
             <v-col>
-              <v-btn block variant="tonal" rounded color="info" @click="submit">{{$t('submit')}}</v-btn>
+              <v-btn :disabled="v$.$invalid" block variant="tonal" rounded color="info" @click="submit">{{$t('submit')}}</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
             <v-col class="pr-1">
@@ -386,10 +381,12 @@
 <script>
 import { useMain } from '@/stores/Main';
 import { useReceipt } from '@/stores/Receipt';
-import { useProvider } from '@/stores/Provider';
+import { useSupplier } from '@/stores/Supplier';
 import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
 import { useChargeType } from '@/stores/ChargeType';
+import { useVuelidate } from '@vuelidate/core';
+import { required , minValue } from '@vuelidate/validators';
 
 export default {
   props: {
@@ -400,8 +397,26 @@ export default {
   },
   data: function () {
     return {
+      v$ : useVuelidate(),
       dialog_note:false,
       searchInputTrackingNumbers: '',
+    }
+  },
+  validations() {
+    return {
+      _receipt: {
+        receipt: {
+          charge_type_id: { required },
+          date: { required },
+          tracking_numbers: { required },
+          supplier_ids: { required },
+          fishery_id: { required },
+          origin_id: { required },
+          total_price: { required , maxValueValue : minValue(1) },
+          total_weight: { required , maxValueValue : minValue(1) },
+          is_stockable: { required }
+        }
+      }
     }
   },
   computed: {
@@ -420,8 +435,8 @@ export default {
     _fishery() {
       return useFishery();
     },
-    _provider() {
-      return useProvider();
+    _supplier() {
+      return useSupplier();
     },
     _origin() {
       return useOrigin();

@@ -137,6 +137,9 @@
     "total_paid": "Total Paid",
     "total_tips": "Total Tips",
     "ai_prompt": "AI Prompt",
+    "addtional_information": "Addtional Information",
+    "charges": "Charges",
+    "nbr_caisses": "Nbr Caisses",
     "total_non_paid": "Totap Not Paid",
     "add_fresh_fish_recives": "Add Fresh Fish Recives",
     "noDataText": "No data available",
@@ -176,6 +179,9 @@
     "receipt_summary": "Receipt Summary",
     "summary": "Summary",
     "total_weight": "Total Weight",
+    "suppliers": "Suppliers",
+    "supplier": "Supplier",
+    "stock_name": "Stock Name",
     "total_weight_of_all_items_s_Weight_bill": "Total Weight of all items's Weight bill",
     "item_name": "Item Name"
 }

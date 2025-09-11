@@ -121,7 +121,7 @@
         <v-card-actions>
           <v-row class="text-center py-3">
             <v-col>
-              <v-btn block variant="tonal"  rounded color="info" @click="submit">{{$t("submit")}}</v-btn>
+              <v-btn :disabled="v$.$invalid" block variant="tonal"  rounded color="info" @click="submit">{{$t("submit")}}</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
             <v-col class="pr-1">
@@ -135,13 +135,38 @@
 <script>
     import { useReceipt } from '@/stores/Receipt';
     import { useMain } from '@/stores/Main';
-    export default {
+    import { useVuelidate } from '@vuelidate/core';
+    import { required , minValue } from '@vuelidate/validators';
+
+export default {
+        data: function () {
+          return {
+            v$: useVuelidate()
+          }
+        },
         computed: {
           _receipt() {
               return useReceipt();
           },
           _main() {
               return useMain();
+          }
+        },
+        validations() {
+          return {
+            _receipt: {
+              receipt: {
+                charge_type_id: { required },
+                date: { required },
+                tracking_numbers: { required },
+                supplier_ids: { required },
+                fishery_id: { required },
+                origin_id: { required },
+                total_price: { required , maxValueValue : minValue(1) },
+                total_weight: { required , maxValueValue : minValue(1) },
+                is_stockable: { required }
+              }
+            }
           }
         },
         methods:{

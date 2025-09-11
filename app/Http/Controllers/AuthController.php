@@ -2,21 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Item;
 use App\Models\User;
-use App\Models\Daily;
 use App\Models\Stock;
-use App\Models\Client;
 use App\Models\Origin;
-use App\Models\Command;
 use App\Models\Fishery;
 use App\Models\Package;
 use App\Models\FishType;
-use App\Models\Provider;
 use App\Models\ChargeType;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PasswordReset;
+use App\Models\Supplier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -195,7 +191,7 @@ class AuthController extends Controller implements HasMiddleware
 
     function getData(): array
     {
-        $providers = Provider::all();
+        $suppliers = Supplier::all();
         $fish_types = FishType::all();
         $packages = Package::all();
         $stocks = Stock::all();
@@ -203,7 +199,7 @@ class AuthController extends Controller implements HasMiddleware
         $origins = Origin::all();
         $charge_types = ChargeType::all();
         return [
-            "providers" => $providers,
+            "suppliers" => $suppliers,
             "fish_types" => $fish_types,
             "packages" => $packages,
             "stocks" => $stocks,
