@@ -226,6 +226,7 @@
               </v-col>
               <v-col>
                 <v-btn
+                  :disabled="v$.$invalid"
                   color="info"
                   variant="tonal"
                   rounded="pill"
@@ -386,42 +387,34 @@
               fish_type_id: {
                 required,
                 numeric,
-                minLength: minLength(1)
               },
               stock_id: {
                 required,
                 numeric,
-                minLength: minLength(1)
               },
               weight: {
                 required,
                 numeric,
-                minLength: minLength(1)
               },
               unit_price: {
                 required,
                 numeric,
-                minLength: minLength(1)
               },
               weight_bill: {
                 required,
                 numeric,
-                minLength: minLength(1)
               },
               price: {
                 required,
                 numeric,
-                minLength: minLength(1)
               },
               package_id: {
                 required,
                 numeric,
-                minLength: minLength(1)
               },
               package_count: {
                 required,
                 numeric,
-                minLength: minLength(1)
               }
           }
         }

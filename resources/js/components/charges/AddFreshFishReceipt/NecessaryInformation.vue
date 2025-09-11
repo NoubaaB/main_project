@@ -34,6 +34,10 @@
                 v-model="_receipt.receipt.charge_type_id"
                 :items="_receipt.charge_types"
                 item-value="id"
+                :rules="[!v$._receipt.receipt.charge_type_id.$invalid ]"
+                :hide-details="v$._receipt.receipt.charge_type_id.$errors.length==0"
+                :error-messages="v$._receipt.receipt.charge_type_id.$errors.map(e => e.$message)"
+                @blur="v$._receipt.receipt.charge_type_id.$touch()"
                 :item-title="`name_${main.lang.short}`"
                 key="id"
                 :label="$t('charge_type')"
@@ -42,7 +46,6 @@
                 variant="outlined"
                 rounded
                 color="info"
-                hide-details
                 >
                   <!-- Custom Chips Slot -->
                   <template #chip="{ item, index }">
@@ -151,6 +154,10 @@
                 <v-autocomplete
                   v-model="_receipt.receipt.tracking_numbers"
                   :items="_receipt.receipt.tracking_numbers"
+                  :rules="[!v$._receipt.receipt.tracking_numbers.$invalid ]"
+                  :hide-details="v$._receipt.receipt.tracking_numbers.$errors.length==0"
+                  :error-messages="v$._receipt.receipt.tracking_numbers.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.receipt.tracking_numbers.$touch()"
                   :label="$t('tracking_numbers')"
                   multiple
                   chips
@@ -158,7 +165,6 @@
                   variant="outlined"
                   rounded
                   clearable
-                  hide-details
                   @keydown.enter.prevent="addNewTrackingNumber"
                   color="info"
                   >
@@ -215,6 +221,10 @@
                 <v-autocomplete
                   v-model="_receipt.receipt.supplier_ids"
                   :items="_supplier.list"
+                  :rules="[!v$._receipt.receipt.supplier_ids.$invalid ]"
+                  :hide-details="v$._receipt.receipt.supplier_ids.$errors.length==0"
+                  :error-messages="v$._receipt.receipt.supplier_ids.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.receipt.supplier_ids.$touch()"
                   item-value="id"
                   item-title="name"
                   multiple
@@ -224,7 +234,6 @@
                   density="compact"
                   variant="outlined"
                   rounded
-                  hide-details
                   clearable
                   color="info"
                   >
@@ -247,9 +256,12 @@
               <!-- Fishery -->
               <v-col cols="12" md="6">
                 <v-autocomplete
+                  :rules="[!v$._receipt.receipt.fishery_id.$invalid ]"
+                  :hide-details="v$._receipt.receipt.fishery_id.$errors.length==0"
+                  :error-messages="v$._receipt.receipt.fishery_id.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.receipt.fishery_id.$touch()"
                   density="compact"
                   color="info"
-                  hide-details
                   variant="outlined"
                   rounded
                   chips
@@ -276,9 +288,12 @@
               <!-- Origin -->
               <v-col cols="12" md="6">
                 <v-autocomplete
+                  :rules="[!v$._receipt.receipt.origin_id.$invalid ]"
+                  :hide-details="v$._receipt.receipt.origin_id.$errors.length==0"
+                  :error-messages="v$._receipt.receipt.origin_id.$errors.map(e => e.$message)"
+                  @blur="v$._receipt.receipt.origin_id.$touch()"
                   density="compact"
                   color="info"
-                  hide-details
                   variant="outlined"
                   rounded
                   chips
@@ -412,8 +427,8 @@ export default {
           supplier_ids: { required },
           fishery_id: { required },
           origin_id: { required },
-          total_price: { required , maxValueValue : minValue(1) },
-          total_weight: { required , maxValueValue : minValue(1) },
+          total_price: { required , minValue : minValue(1) },
+          total_weight: { required , minValue : minValue(1) },
           is_stockable: { required }
         }
       }
