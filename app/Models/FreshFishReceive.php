@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Supplier;
 use App\Models\FreshFishReceiveDetail;
 use App\Models\FreezeFishProcessDetail;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FreshFishReceive extends Model
 {
@@ -32,5 +34,10 @@ class FreshFishReceive extends Model
     function freezeFishProcessDetails(): HasMany
     {
         return $this->hasMany(FreezeFishProcessDetail::class);
+    }
+
+    function suppliers() : BelongsToMany 
+    {
+        return $this->belongsToMany(Supplier::class, "fresh_fish_receive_suppliers", "fresh_fish_receive_id", "supplier_id");
     }
 }

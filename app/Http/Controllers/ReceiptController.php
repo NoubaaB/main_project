@@ -21,8 +21,8 @@ class ReceiptController extends Controller
             'fishery_id' => 'required|exists:fisheries,id',
             'origin_id' => 'required|exists:origins,id',
             'charge_type_id' => 'required|exists:charge_types,id',
-            'supplier_id' => 'sometimes|array',
-            'supplier_id.*' => 'exists:suppliers,id',
+            'supplier_ids' => 'required|array',
+            'supplier_ids.*' => 'exists:suppliers,id',
             'fresh_fish_receive_details.*' => 'array',
             'fresh_fish_receive_details.*.weight' => 'sometimes|numeric|min:0',
             'fresh_fish_receive_details.*.price' => 'sometimes|numeric|min:0',
@@ -60,9 +60,11 @@ class ReceiptController extends Controller
             $freshFishReceive->freezeFishProcessDetails()->create($detail);
         }
 
+        $freshFishReceive->suppliers()->attach($data['supplier_ids']);
+
         return response()->json([
             'message' => 'Fresh Fish Receive created successfully',
-            'data' => $freshFishReceive->load(['freshFishReceiveDetails', 'freezeFishProcessDetails']),
+            'data' => $freshFishReceive->load(['suppliers', 'freshFishReceiveDetails', 'freezeFishProcessDetails']),
         ]);
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\FreshFishReceive;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Supplier extends Model
 {
@@ -12,5 +14,10 @@ class Supplier extends Model
     use HasFactory , SoftDeletes;
 
     protected $guarded = [];
+
+    function freshFishReceives(): BelongsToMany
+    {
+        return $this->belongsToMany(FreshFishReceive::class, "fresh_fish_receive_suppliers", "supplier_id", "fresh_fish_receive_id");
+    }
     
 }
