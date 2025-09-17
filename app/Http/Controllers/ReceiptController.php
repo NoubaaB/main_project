@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\FreshFishReceive;
-use App\Models\FreshFishReceiveDetail;
+use Illuminate\Http\JsonResponse;
 
 class ReceiptController extends Controller
 {
@@ -65,6 +65,17 @@ class ReceiptController extends Controller
         return response()->json([
             'message' => 'Fresh Fish Receive created successfully',
             'data' => $freshFishReceive->load(['suppliers', 'freshFishReceiveDetails', 'freezeFishProcessDetails']),
-        ]);
+        ],200);
+    }
+
+    public function get_receipts() : JsonResponse
+    {
+        $date_start = request()->query('date_start');
+        $date_end = request()->query('date_end');
+        $receipts = FreshFishReceive::whereBetween('date', [$date_start, $date_end])
+            ->with(['suppliers', 'freshFishReceiveDetails', 'freezeFishProcessDetails'])
+            ->get();
+        return response()->json(["receipts"=> $receipts],200);
+        
     }
 }

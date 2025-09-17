@@ -57,6 +57,11 @@ const routes = [
                                 name: "add_fresh_fish_recives",
                                 component: () => import("@/components/charges/AddFreshFishReceipt/index.vue")
                             },
+                            {
+                                path: "list_fresh_fish_recives",
+                                name: "list_fresh_fish_recives",
+                                component: () => import("@/components/charges/ListFreshFishReceipt/index.vue")
+                            },
                         ]
                     },
                 ]

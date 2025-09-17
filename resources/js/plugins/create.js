@@ -10,7 +10,7 @@ import "vue3-snackbar/styles";
 import methods from "@/plugins/methods.js";
 import { useAuth } from '@/stores/Auth';
 import { useMain } from '@/stores/Main';
-import VCalendar from 'v-calendar';
+import VDatePicker from 'v-calendar';
 import 'v-calendar/style.css';
 
 import pinia from "@/stores";
@@ -19,12 +19,11 @@ export async function registerPlugins(app) {
     app
         .use(crerate())
         .use(pinia)
-        .use(VCalendar, {})
+        .use(VDatePicker, {})
         .use(i18n)
         .use(VueApexCharts)
         .use(SnackbarService)
         .component("vue3-snackbar", Vue3Snackbar)
-        .component("VueDatePicker", VueDatePicker)
         .mixin(
             {
                 methods,

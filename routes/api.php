@@ -27,6 +27,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
         Route::post("receipt", [ReceiptController::class, "receipt"]);
+        Route::get("get_receipts", [ReceiptController::class, "get_receipts"]);
     #endregion
     });
 #endregion
