@@ -57,7 +57,7 @@ class AIQueryController extends Controller
     {
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
-        $response = $this->client->post("models/gemini-2.0-flash:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],
@@ -151,6 +151,12 @@ class AIQueryController extends Controller
             * Use Moroccan Dirham (MAD) for any money values and format any nymber like this example '3 000.00' .
             Give me only the body content of an HTML file using Vue 3 and Vuetify 3 via CDN — no <html>, <head>, or styles — just the <div id='app'>, the CDN <script> tags, the Vue template in <script type='text / x - template'>, and the JavaScript to mount the app.             
             and finally make sure if code work properly without any error
+            *do not instance vue js again in your code
+            *do not instance vuetify again in your code like createApp or use(vuetify).mount()
+            *do not use any other library or framework
+            *do not use v-table use v-data-table instead
+            *do not use <body> tag
+            *do not use v-chart use ApexCharts v5.3.5 instead
             ";
         if ($data == null) {
             $text = "
@@ -179,7 +185,7 @@ class AIQueryController extends Controller
             and finally make sure if code work properly without any error
             ";
         }
-        $response = $this->client->post("models/gemini-2.0-flash:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],

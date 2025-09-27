@@ -13,7 +13,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
     <title>{{config('app.name')}} App</title>
     @vite(['resources/css/app.css'])
-    <!-- <link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js"></script>
@@ -25,7 +25,7 @@
                 "vuetify": "https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.esm.js"
             }
         }
-    </script> -->
+    </script>
 
 </head>
 

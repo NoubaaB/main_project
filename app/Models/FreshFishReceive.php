@@ -21,6 +21,16 @@ class FreshFishReceive extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'date' => 'date:Y-m-d',
+        'tracking_numbers' => 'array',
+        'tracking_onp_numbers' => 'array',
+        'is_stockable' => 'boolean',
+        'note' => 'string',
+        'total_price' => 'double',
+        'total_weight' => 'double'
+    ];
+
     // function provider(): BelongsTo
     // {
     //     return $this->belongsTo(Provider::class);
