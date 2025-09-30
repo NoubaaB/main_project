@@ -365,7 +365,7 @@ class DatabaseSeeder extends Seeder
                         "fresh_fish_receive_id" => $fresh_fishes_receive->id,
                         "package_id" => Package::all()->random()->id,
                     ]);
-
+                    $fresh_fishes_receive->calc();
                 }
             }
 

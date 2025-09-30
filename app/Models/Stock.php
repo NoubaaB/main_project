@@ -15,7 +15,7 @@ class Stock extends Model
 
     protected $guarded = [];
 
-    function stockDetails() : HasMany {
+    function stock_details() : HasMany {
         return $this->hasMany(StockDetail::class);
     }
 }

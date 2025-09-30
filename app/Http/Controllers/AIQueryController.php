@@ -57,7 +57,7 @@ class AIQueryController extends Controller
     {
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
-        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],
@@ -66,8 +66,12 @@ class AIQueryController extends Controller
                     [
                         'role' => 'user',
                         'parts' => [
-                            ['text' => "Generate a **valid MySQL query** only (no markdown, no explanation).
-                        Use only these descripted tables: [$existingTables]. Question: '$question'"]
+                            ['text' => "
+                                You are a expert and professional SQL data generator and analyst.
+                                the application you are analyzing is a fish management system.
+                                the project is based on laravel 12 framework and mysql database.
+                                Based on the tables and their relationships: [$existingTables],
+                                please generate a **valid MySQL query** only (no markdown, no explanation) to search in database for this Question: '$question'"]
                         ]
                     ]
                 ]
@@ -146,7 +150,7 @@ class AIQueryController extends Controller
             *then start code like this:
             <div id='ai_$id'><v-containter class='bg-white rounded-xl'> /* write vuetify and vue js code here */ </v-container></div>
             <script> createApp({ //write vue code here; })use(vuetify).mount('#ai_$id') </script>
-            * make sure that vue data properties match with what render in template vue
+            * make sure that vue data properties match with what render in template vue in option API
             * make sure to make any number has relation with moneytize to be like this example '100.00'
             * Use Moroccan Dirham (MAD) for any money values and format any nymber like this example '3 000.00' .
             Give me only the body content of an HTML file using Vue 3 and Vuetify 3 via CDN — no <html>, <head>, or styles — just the <div id='app'>, the CDN <script> tags, the Vue template in <script type='text / x - template'>, and the JavaScript to mount the app.             

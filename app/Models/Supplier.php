@@ -15,7 +15,7 @@ class Supplier extends Model
 
     protected $guarded = [];
 
-    function freshFishReceives(): BelongsToMany
+    function fresh_fish_receives(): BelongsToMany
     {
         return $this->belongsToMany(FreshFishReceive::class, "fresh_fish_receive_suppliers", "supplier_id", "fresh_fish_receive_id");
     }
