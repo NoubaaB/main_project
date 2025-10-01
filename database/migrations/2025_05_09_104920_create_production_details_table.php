@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('fresh_fish_receive_details', function (Blueprint $table) {
+        Schema::create('production_details', function (Blueprint $table) {
             $table->id();
             $table->double("weight")->default(0.00);
             $table->double("price")->default(0.00);
@@ -20,7 +20,7 @@ return new class extends Migration
 
             $table->foreignId('fish_type_id')->nullable()->index();
             $table->foreignId('stock_id')->nullable()->index();
-            $table->foreignId('fresh_fish_receive_id')->nullable()->index();
+            $table->foreignId('charge_id')->nullable()->index();
             $table->foreignId('package_id')->nullable()->index();
 
             $table->timestamps();
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('fresh_fish_receive_details');
+        Schema::dropIfExists('production_details');
     }
 };

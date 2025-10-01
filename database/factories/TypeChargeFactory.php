@@ -5,9 +5,9 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\FreezeFishProcessDetail>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\TypeCharge>
  */
-class FreezeFishProcessDetailFactory extends Factory
+class TypeChargeFactory extends Factory
 {
     /**
      * Define the model's default state.

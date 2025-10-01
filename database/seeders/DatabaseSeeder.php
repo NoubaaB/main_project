@@ -10,12 +10,12 @@ use App\Models\Fishery;
 use App\Models\Package;
 use App\Models\FishType;
 use App\Models\Supplier;
-use App\Models\ChargeType;
+use App\Models\TypeCharge;
 use App\Models\FishFamilly;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\FreshFishReceive;
-use App\Models\FreshFishReceiveDetail;
+use App\Models\Charge;
+use App\Models\ChargeDetail;
 
 class DatabaseSeeder extends Seeder
 {
@@ -241,131 +241,131 @@ class DatabaseSeeder extends Seeder
             "name_es" => "RSW",
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "Cotiere",
             "name_en" => "Cotiere",
             "name_fr" => "Cotiere",
             "name_es" => "Cotiere",
-            "allow_fresh_fish_receive_details" => true,
-            "allow_freeze_fish_process_details" => true,
+            "allow_charge_details" => true,
+            "allow_production_details" => true,
             "add_wieght" => true,
             "list_type_details" => 1,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "purse seining and mid-water trawling",
             "name_en" => "RSW",
             "name_fr" => "RSW",
             "name_es" => "RSW",
-            "allow_fresh_fish_receive_details" => true,
-            "allow_freeze_fish_process_details" => true,
+            "allow_charge_details" => true,
+            "allow_production_details" => true,
             "add_wieght" => true,
             "list_type_details" => 1,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "frozen",
             "name_en" => "Frozen",
             "name_fr" => "Congelé",
             "name_es" => "Congelado",
-            "allow_fresh_fish_receive_details" => true,
-            "allow_freeze_fish_process_details" => false,
+            "allow_charge_details" => true,
+            "allow_production_details" => false,
             "add_wieght" => true,
             "list_type_details" => 1,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "Freezing service",
             "name_en" => "Freezing service",
             "name_fr" => "Service de congélation",
             "name_es" => "Servicio de congelación",
-            "allow_fresh_fish_receive_details" => true,
-            "allow_freeze_fish_process_details" => true,
+            "allow_charge_details" => true,
+            "allow_production_details" => true,
             "add_wieght" => true,
             "list_type_details" => 1,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "buy and sell fresh fish",
             "name_en" => "Buy and sell fresh fish",
             "name_fr" => "Acheter et vendre du poisson frais",
             "name_es" => "Comprar y vender pescado fresco",
-            "allow_fresh_fish_receive_details" => true,
-            "allow_freeze_fish_process_details" => true,
+            "allow_charge_details" => true,
+            "allow_production_details" => true,
             "add_wieght" => true,
             "list_type_details" => 1,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "Emballage",
             "name_en" => "Packaging",
             "name_fr" => "Emballage",
             "name_es" => "Embalaje",
-            "allow_fresh_fish_receive_details" => false,
-            "allow_freeze_fish_process_details" => false,
+            "allow_charge_details" => false,
+            "allow_production_details" => false,
             "add_wieght" => false,
             "list_type_details" => 0,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "Transport",
             "name_en" => "Transport",
             "name_fr" => "Transport",
             "name_es" => "Transporte",
-            "allow_fresh_fish_receive_details" => false,
-            "allow_freeze_fish_process_details" => false,
+            "allow_charge_details" => false,
+            "allow_production_details" => false,
             "add_wieght" => false,
             "list_type_details" => 0,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "Autre Charge",
             "name_en" => "Other Charge",
             "name_fr" => "Autre Charge",
             "name_es" => "Otro Cargo",
-            "allow_fresh_fish_receive_details" => false,
-            "allow_freeze_fish_process_details" => false,
+            "allow_charge_details" => false,
+            "allow_production_details" => false,
             "add_wieght" => false,
             "list_type_details" => 0,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "Glace",
             "name_en" => "Ice",
             "name_fr" => "Glace",
             "name_es" => "Hielo",
-            "allow_fresh_fish_receive_details" => false,
-            "allow_freeze_fish_process_details" => false,
+            "allow_charge_details" => false,
+            "allow_production_details" => false,
             "add_wieght" => false,
             "list_type_details" => 0,
         ]);
 
-        ChargeType::factory()->create([
+        TypeCharge::factory()->create([
             "description" => "Comission",
             "name_en" => "Commission",
             "name_fr" => "Comission",
             "name_es" => "Comisión",
-            "allow_fresh_fish_receive_details" => false,
-            "allow_freeze_fish_process_details" => false,
+            "allow_charge_details" => false,
+            "allow_production_details" => false,
             "add_wieght" => false,
             "list_type_details" => 0,
         ]);
 
-        $charge_types = ChargeType::all();
+        $charge_types = TypeCharge::all();
         foreach ($charge_types as $charge_type) {
-            $fresh_fishes_receives = FreshFishReceive::factory(10)->create([
+            $charges = Charge::factory(10)->create([
                 "charge_type_id" => $charge_type->id,
                 "fishery_id" => Fishery::all()->random()->id,
                 "origin_id" => Origin::all()->random()->id,
             ]);
-            foreach ($fresh_fishes_receives as $fresh_fishes_receive) {
-                if($fresh_fishes_receive->charge_type_id == 1){
-                    FreshFishReceiveDetail::factory(10)->create([
+            foreach ($charges as $charge) {
+                if($charge->charge_type_id == 1){
+                    ChargeDetail::factory(10)->create([
                         "fish_type_id" => FishType::all()->random()->id,
-                        "fresh_fish_receive_id" => $fresh_fishes_receive->id,
+                        "charge_id" => $charge->id,
                         "package_id" => Package::all()->random()->id,
                     ]);
-                    $fresh_fishes_receive->calc();
+                    $charge->calc();
                 }
             }
 

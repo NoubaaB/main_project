@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Supplier;
-use App\Models\FreshFishReceiveDetail;
-use App\Models\FreezeFishProcessDetail;
+use App\Models\ChargeDetail;
+use App\Models\ProductionDetail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,12 +12,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class FreshFishReceive extends Model
+class Charge extends Model
 {
-    /** @use HasFactory<\Database\Factories\FreshFishReceiveFactory> */
+    /** @use HasFactory<\Database\Factories\ChargeFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $with = ['fresh_fish_receive_details', 'freeze_fish_process_details'];
+    protected $with = ['charge_details', 'production_details'];
 
     protected $guarded = [];
 
@@ -46,19 +46,19 @@ class FreshFishReceive extends Model
         });
     }
 
-    function fresh_fish_receive_details(): HasMany
+    function charge_details(): HasMany
     {
-        return $this->hasMany(FreshFishReceiveDetail::class);
+        return $this->hasMany(ChargeDetail::class);
     }
 
-    function freeze_fish_process_details(): HasMany
+    function production_details(): HasMany
     {
-        return $this->hasMany(FreezeFishProcessDetail::class);
+        return $this->hasMany(ProductionDetail::class);
     }
 
     function suppliers() : BelongsToMany 
     {
-        return $this->belongsToMany(Supplier::class, "fresh_fish_receive_suppliers", "fresh_fish_receive_id", "supplier_id");
+        return $this->belongsToMany(Supplier::class, "charge_suppliers", "charge_id", "supplier_id");
     }
 
     //private functions
@@ -67,12 +67,12 @@ class FreshFishReceive extends Model
     {
         $total_price = 0;
         $total_weight = 0;
-        foreach ($this->fresh_fish_receive_details as $detail) {
+        foreach ($this->charge_details as $detail) {
             $total_price += $detail->price;
             $total_weight += $detail->weight;
         }
-        $this->total_price = $total_price;
-        $this->total_weight = $total_weight;
+        $this->charge_details_total_price = $total_price;
+        $this->charge_details_total_weight = $total_weight;
         $this->save();
     }
 }

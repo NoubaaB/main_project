@@ -67,11 +67,19 @@ class AIQueryController extends Controller
                         'role' => 'user',
                         'parts' => [
                             ['text' => "
-                                You are a expert and professional SQL data generator and analyst.
-                                the application you are analyzing is a fish management system.
-                                the project is based on laravel 12 framework and mysql database.
-                                Based on the tables and their relationships: [$existingTables],
-                                please generate a **valid MySQL query** only (no markdown, no explanation) to search in database for this Question: '$question'"]
+                                You are an expert SQL data generator and analyst.
+                                The application is a fish management system built with Laravel and MySQL.
+                                You are provided with the database schema and table relationships: {$existingTables}
+
+                                Your task:
+                                - Internally analyze the schema and relationships step by step.
+                                - Do not show your reasoning.
+                                - Generate only one final output: a valid MySQL query that answers the user’s request.
+                                - Do not include markdown, explanations, or extra text — only return the raw SQL query.
+
+                                User question: {$question}
+                                "
+                            ]
                         ]
                     ]
                 ]
@@ -99,9 +107,8 @@ class AIQueryController extends Controller
 
             Based on:
             - the local data: [$data],
-            - and the tables and schema: [$schema],
 
-            Answer the question: '$question'.
+            Answer the question: ['$question'].
 
             Instructions:
             * consider that already html file:
@@ -156,7 +163,7 @@ class AIQueryController extends Controller
             Give me only the body content of an HTML file using Vue 3 and Vuetify 3 via CDN — no <html>, <head>, or styles — just the <div id='app'>, the CDN <script> tags, the Vue template in <script type='text / x - template'>, and the JavaScript to mount the app.             
             and finally make sure if code work properly without any error
             *do not instance vue js again in your code
-            *do not instance vuetify again in your code like createApp or use(vuetify).mount()
+            *do not instance vuetify again in your code like createApp or createVuetify
             *do not use any other library or framework
             *do not use v-table use v-data-table instead
             *do not use <body> tag

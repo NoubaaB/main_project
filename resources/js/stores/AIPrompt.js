@@ -19,19 +19,19 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 sender: this.auth.user.name
             });
             let id = this.messages.length;
-            return await axios.post(`/api/ask-db`,{
+            return await axios.post(`/api/ask-db`, {
                 message,
                 id
-            }).then(response=>{
+            }).then(response => {
                 this.messages.push({
                     text: response.data.answer,
                     sender: "AI"
                 });
                 return {
                     answer: response.data.answer,
-                    id : id
+                    id: id
                 };
-            })
+            }).catch(error => { this.error() });
         },
         error: function () {
             console.log("inside error")

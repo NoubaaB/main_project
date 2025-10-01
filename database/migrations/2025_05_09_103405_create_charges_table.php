@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('fresh_fish_receives', function (Blueprint $table) {
+        Schema::create('charges', function (Blueprint $table) {
             $table->id();
             $table->date("date")->nullable();
             $table->json("tracking_numbers")->nullable();
             $table->json("tracking_onp_numbers")->nullable();
             $table->string("note",500)->nullable();
-            $table->double("total_price")->default(0.00);
-            $table->double("total_weight")->default(0.00);
+            $table->double("charge_details_total_price")->default(0.00);
+            $table->double("charge_details_total_weight")->default(0.00);
             $table->boolean("is_stockable")->default(false);
 
             $table->foreignId('fishery_id')->nullable()->index();
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('fresh_fish_receives');
+        Schema::dropIfExists('charges');
     }
 };

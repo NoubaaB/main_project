@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Models\FreshFishReceive;
+use App\Models\charge;
 use Illuminate\Http\JsonResponse;
 
 class ReceiptController extends Controller
@@ -23,25 +23,25 @@ class ReceiptController extends Controller
             'charge_type_id' => 'required|exists:charge_types,id',
             'supplier_ids' => 'required|array',
             'supplier_ids.*' => 'exists:suppliers,id',
-            'fresh_fish_receive_details.*' => 'array',
-            'fresh_fish_receive_details.*.weight' => 'sometimes|numeric|min:0',
-            'fresh_fish_receive_details.*.price' => 'sometimes|numeric|min:0',
-            'fresh_fish_receive_details.*.unit_price' => 'sometimes|numeric|min:0',
-            'fresh_fish_receive_details.*.package_count' => 'sometimes|numeric|min:0',
-            'fresh_fish_receive_details.*.fish_type_id' => 'sometimes|exists:fish_types,id',
-            'fresh_fish_receive_details.*.stock_id' => 'nullable|exists:stocks,id',
-            'fresh_fish_receive_details.*.package_id' => 'nullable|exists:packages,id',
-            'freeze_fish_process_details.*' => 'array',
-            'freeze_fish_process_details.*.weight' => 'sometimes|numeric|min:0',
-            'freeze_fish_process_details.*.price' => 'sometimes|numeric|min:0',
-            'freeze_fish_process_details.*.unit_price' => 'sometimes|numeric|min:0',
-            'freeze_fish_process_details.*.package_count' => 'sometimes|numeric|min:0',
-            'freeze_fish_process_details.*.fish_type_id' => 'sometimes|exists:fish_types,id',
-            'freeze_fish_process_details.*.stock_id' => 'nullable|exists:stocks,id',
-            'freeze_fish_process_details.*.package_id' => 'nullable|exists:packages,id',
+            'charge_details.*' => 'array',
+            'charge_details.*.weight' => 'sometimes|numeric|min:0',
+            'charge_details.*.price' => 'sometimes|numeric|min:0',
+            'charge_details.*.unit_price' => 'sometimes|numeric|min:0',
+            'charge_details.*.package_count' => 'sometimes|numeric|min:0',
+            'charge_details.*.fish_type_id' => 'sometimes|exists:fish_types,id',
+            'charge_details.*.stock_id' => 'nullable|exists:stocks,id',
+            'charge_details.*.package_id' => 'nullable|exists:packages,id',
+            'production_details.*' => 'array',
+            'production_details.*.weight' => 'sometimes|numeric|min:0',
+            'production_details.*.price' => 'sometimes|numeric|min:0',
+            'production_details.*.unit_price' => 'sometimes|numeric|min:0',
+            'production_details.*.package_count' => 'sometimes|numeric|min:0',
+            'production_details.*.fish_type_id' => 'sometimes|exists:fish_types,id',
+            'production_details.*.stock_id' => 'nullable|exists:stocks,id',
+            'production_details.*.package_id' => 'nullable|exists:packages,id',
         ]);
         // ✅ 1. Create parent record
-        $freshFishReceive = FreshFishReceive::create([
+        $charge = Charge::create([
             'date' => Carbon::parse($data['date'])->format('Y-m-d'),
             'note' => $data['note'],
             'is_stockable' => $data['is_stockable'],
@@ -50,21 +50,21 @@ class ReceiptController extends Controller
             'charge_type_id' => $data['charge_type_id'],
         ]);
 
-        // ✅ 2. Create fresh_fish_receive_details children (details)
-        foreach ($data['fresh_fish_receive_details'] as $detail) {
-            $freshFishReceive->freshFishReceiveDetails()->create($detail);
+        // ✅ 2. Create charge_details children (details)
+        foreach ($data['charge_details'] as $detail) {
+            $charge->charge_details()->create($detail);
         }
 
-        // ✅ 3. Create freeze_fish_process_details children (details)
-        foreach ($data['freeze_fish_process_details'] as $detail) {
-            $freshFishReceive->freezeFishProcessDetails()->create($detail);
+        // ✅ 3. Create production_details children (details)
+        foreach ($data['production_details'] as $detail) {
+            $charge->production_details()->create($detail);
         }
 
-        $freshFishReceive->suppliers()->attach($data['supplier_ids']);
+        $charge->suppliers()->attach($data['supplier_ids']);
 
         return response()->json([
             'message' => 'Fresh Fish Receive created successfully',
-            'data' => $freshFishReceive->load(['suppliers', 'freshFishReceiveDetails', 'freezeFishProcessDetails']),
+            'data' => $charge->load(['suppliers', 'chargeDetails', 'productionDetails']),
         ],200);
     }
 
@@ -72,8 +72,8 @@ class ReceiptController extends Controller
     {
         $date_start = request()->query('date_start');
         $date_end = request()->query('date_end');
-        $receipts = FreshFishReceive::whereBetween('date', [$date_start, $date_end])
-            ->with(['suppliers', 'freshFishReceiveDetails', 'freezeFishProcessDetails'])
+        $receipts = Charge::whereBetween('date', [$date_start, $date_end])
+            ->with(['suppliers', 'chargeDetails', 'productionDetails'])
             ->get();
         return response()->json(["receipts"=> $receipts],200);
         

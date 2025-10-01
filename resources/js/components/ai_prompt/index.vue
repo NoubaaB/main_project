@@ -98,10 +98,8 @@ export default {
         await this.ai_prompt.sendMessage(message)
         .then(res=>{
             // Clear input
-            try {
-                loadExternalContent(res.answer,`_ai_message_${this.ai_prompt.messages.length-1}`);
-            } catch (e) {
-                this.ai_prompt.error()
+            if(res?.answer){
+              loadExternalContent(res.answer,`_ai_message_${this.ai_prompt.messages.length-1}`);
             }
             this.loading = false;
         });

@@ -8,20 +8,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
-class FreezeFishProcessDetail extends Model
+class ProductionDetail extends Model
 {
-    /** @use HasFactory<\Database\Factories\FreezeFishProcessDetailFactory> */
+    /** @use HasFactory<\Database\Factories\ProductionDetailFactory> */
     use HasFactory ,SoftDeletes;
 
     protected $guarded = [];
 
-    public function stock_detail()
+    public function stock_detail() : MorphOne
     {
         return $this->morphOne(StockDetail::class, 'detailable');
     }
     
-    function fishType(): BelongsTo
+    function fish_type(): BelongsTo
     {
         return $this->belongsTo(FishType::class, 'fish_type_id');
     }

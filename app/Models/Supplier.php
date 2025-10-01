@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\FreshFishReceive;
+use App\Models\Charge;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,9 +15,9 @@ class Supplier extends Model
 
     protected $guarded = [];
 
-    function fresh_fish_receives(): BelongsToMany
+    function charges(): BelongsToMany
     {
-        return $this->belongsToMany(FreshFishReceive::class, "fresh_fish_receive_suppliers", "supplier_id", "fresh_fish_receive_id");
+        return $this->belongsToMany(Charge::class, "charge_suppliers", "supplier_id", "charge_id");
     }
     
 }

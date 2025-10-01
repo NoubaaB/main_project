@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProductionFishDetail;
+use App\Models\TypeCharge;
 use Illuminate\Http\Request;
 
-class ProductionFishDetailController extends Controller
+class TypeChargeController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class ProductionFishDetailController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ProductionFishDetail $productionFishDetail)
+    public function show(TypeCharge $typeCharge)
     {
         //
     }
@@ -42,7 +42,7 @@ class ProductionFishDetailController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(ProductionFishDetail $productionFishDetail)
+    public function edit(TypeCharge $typeCharge)
     {
         //
     }
@@ -50,7 +50,7 @@ class ProductionFishDetailController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ProductionFishDetail $productionFishDetail)
+    public function update(Request $request, TypeCharge $typeCharge)
     {
         //
     }
@@ -58,7 +58,7 @@ class ProductionFishDetailController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ProductionFishDetail $productionFishDetail)
+    public function destroy(TypeCharge $typeCharge)
     {
         //
     }

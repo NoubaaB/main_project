@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PrimaryFishDetail;
+use App\Models\ChargeSupplier;
 use Illuminate\Http\Request;
 
-class PrimaryFishDetailController extends Controller
+class Chargentroller extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class PrimaryFishDetailController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PrimaryFishDetail $primaryFishDetail)
+    public function show(ChargeSupplier $chargeSupplier)
     {
         //
     }
@@ -42,7 +42,7 @@ class PrimaryFishDetailController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(PrimaryFishDetail $primaryFishDetail)
+    public function edit(ChargeSupplier $chargeSupplier)
     {
         //
     }
@@ -50,7 +50,7 @@ class PrimaryFishDetailController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, PrimaryFishDetail $primaryFishDetail)
+    public function update(Request $request, ChargeSupplier $chargeSupplier)
     {
         //
     }
@@ -58,7 +58,7 @@ class PrimaryFishDetailController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(PrimaryFishDetail $primaryFishDetail)
+    public function destroy(ChargeSupplier $chargeSupplier)
     {
         //
     }

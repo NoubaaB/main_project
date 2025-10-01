@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('charge_types', function (Blueprint $table) {
+        Schema::create('type_charges', function (Blueprint $table) {
             $table->id();
             $table->string("description")->nullable();
             $table->string("name_fr")->nullable();
             $table->string("name_en")->nullable();
             $table->string("name_es")->nullable();
-            $table->boolean("allow_fresh_fish_receive_details")->default(false);
-            $table->boolean("allow_freeze_fish_process_details")->default(false);
+            $table->boolean("allow_charge_details")->default(false);
+            $table->boolean("allow_production_details")->default(false);
             $table->boolean("add_wieght")->default(true);
             $table->integer("list_type_details",)->default(0);
             $table->string("process")->nullable();
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('charge_types');
+        Schema::dropIfExists('type_charges');
     }
 };

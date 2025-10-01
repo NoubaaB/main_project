@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FreshFishReceiveSupplier;
+use App\Models\Charge;
 use Illuminate\Http\Request;
 
-class FreshFishReceiveSupplierController extends Controller
+class ChargeController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class FreshFishReceiveSupplierController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(FreshFishReceiveSupplier $freshFishReceiveSupplier)
+    public function show(Charge $charge)
     {
         //
     }
@@ -42,7 +42,7 @@ class FreshFishReceiveSupplierController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(FreshFishReceiveSupplier $freshFishReceiveSupplier)
+    public function edit(Charge $charge)
     {
         //
     }
@@ -50,7 +50,7 @@ class FreshFishReceiveSupplierController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, FreshFishReceiveSupplier $freshFishReceiveSupplier)
+    public function update(Request $request, Charge $charge)
     {
         //
     }
@@ -58,7 +58,7 @@ class FreshFishReceiveSupplierController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(FreshFishReceiveSupplier $freshFishReceiveSupplier)
+    public function destroy(Charge $charge)
     {
         //
     }
