@@ -17,6 +17,7 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+            $table->comment("This fish_famillies table store fish familly's names and have one to many relationship with users table");
         });
     }
 

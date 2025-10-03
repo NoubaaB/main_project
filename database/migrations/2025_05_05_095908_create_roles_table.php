@@ -17,6 +17,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This rolres table have one to many relationship with users table');
         });
     }
 

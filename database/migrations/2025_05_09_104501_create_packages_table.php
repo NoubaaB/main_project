@@ -21,6 +21,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This packages table describe purchase packages of fish_type its like emballage that contain fish and have relationship with production_details table as has many of production_detail records' );
         });
     }
 

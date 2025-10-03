@@ -24,6 +24,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This stock_details table describe each line in stocks table and have relationship with stocks table as belong to one stock record, packages table as belong to one package record, and its polymorphic relationship with production_details table or charge_details table as detailable' );
         });
     }
 

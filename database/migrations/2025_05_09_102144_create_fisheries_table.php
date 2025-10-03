@@ -21,6 +21,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This fisheries table has relationship with charges table as has many of charge records');
         });
     }
 

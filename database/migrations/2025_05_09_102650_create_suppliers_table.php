@@ -28,6 +28,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This suppliers table describe the provider that supply fish or other type of chargers and have relationship with charge table as has many of charges records');
         });
     }
 

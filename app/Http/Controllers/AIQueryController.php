@@ -31,9 +31,11 @@ class AIQueryController extends Controller
         $data = $request->validate([
             'message' => 'required|string',
             'id' => 'required|numeric',
+            'theme' => 'required|string',
         ]);
         $question = $data['message'];
         $id = $data['id'];
+        $theme = $data['theme'];
         $sqlQuery = $this->generateSqlQuery($question);
         if (!$sqlQuery) {
             return response()->json(['error' => 'Failed to generate SQL query'], 400);
@@ -43,9 +45,9 @@ class AIQueryController extends Controller
         $answer = "";
         try {
             $result = DB::select($sqlQuery);
-            $answer = $this->generateProperAnswer($question, $id, response()->json($result, 200, [], JSON_PRETTY_PRINT));
+            $answer = $this->generateProperAnswer($question, $id, $theme , response()->json($result, 200, [], JSON_PRETTY_PRINT));
         } catch (\Exception $_e) {
-            $answer = $this->generateProperAnswer($question, $id);
+            $answer = $this->generateProperAnswer($question, $id, $theme);
         }
         // return view('ai')->with([
         //     'answer' => $answer
@@ -53,11 +55,22 @@ class AIQueryController extends Controller
         return response()->json(['answer' => $answer], 200);
     }
 
+    function getTableComments() {
+        $database = DB::getDatabaseName();
+        $tablesWithComments = DB::table('information_schema.tables')
+            ->select('table_name', 'table_comment')
+            ->where('table_schema', $database)
+            ->get();
+        return $tablesWithComments;
+    }
+
     private function generateSqlQuery($question)
     {
+
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
-        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
+        $table_comments = $this->getTableComments();
+        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],
@@ -70,6 +83,7 @@ class AIQueryController extends Controller
                                 You are an expert SQL data generator and analyst.
                                 The application is a fish management system built with Laravel and MySQL.
                                 You are provided with the database schema and table relationships: {$existingTables}
+                                and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
 
                                 Your task:
                                 - Internally analyze the schema and relationships step by step.
@@ -98,15 +112,18 @@ class AIQueryController extends Controller
         return $cleanedQuery;
     }
 
-    private function generateProperAnswer($question, $id, $data = null)
+    private function generateProperAnswer($question, $id, $theme, $data = null)
     {
         // Get all table names from DB
         $schema = $this->getDatabaseSchema()->getContent(); // This gives JSON of schema
+        $table_comments = $this->getTableComments();
         $text = "
             You are a professional SQL data analyst and frontend developer.
-
+            don't fake data if you don't have it , id data is empty or NULL just write 'no data Availabel'.
+            You are provided with the database schema and table relationships: {$schema}
             Based on:
-            - the local data: [$data],
+            - the local data: [$data]
+            - and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
 
             Answer the question: ['$question'].
 
@@ -168,6 +185,7 @@ class AIQueryController extends Controller
             *do not use v-table use v-data-table instead
             *do not use <body> tag
             *do not use v-chart use ApexCharts v5.3.5 instead
+            *implement theme $theme mode
             ";
         if ($data == null) {
             $text = "
@@ -196,7 +214,7 @@ class AIQueryController extends Controller
             and finally make sure if code work properly without any error
             ";
         }
-        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],

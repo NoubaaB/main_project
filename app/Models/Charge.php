@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Supplier;
+use App\Models\TypeCharge;
 use App\Models\ChargeDetail;
 use App\Models\ProductionDetail;
 use Illuminate\Database\Eloquent\Model;
@@ -44,6 +45,10 @@ class Charge extends Model
 
         static::deleted(function ($model) {
         });
+    }
+
+    function type_charge() : BelongsTo {
+        return $this->belongsTo(TypeCharge::class, 'type_charge_id'); 
     }
 
     function charge_details(): HasMany

@@ -25,6 +25,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This type_charge table describe the category of charge and have relationship with charges table as has many of charge records');
         });
     }
 

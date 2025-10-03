@@ -21,6 +21,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This stocks table describe the stock of fish after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail' );
         });
     }
 

@@ -25,6 +25,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This charge_details table describe each line in charge table and have relationship with fish_types table as belong to one fish_type record, packages table as belong to one package record, stocks table as belong to one stock record, charges table as belong to one charge record , and its source of charges.total_weight , charges.total_price total calculation' );
         });
     }
 

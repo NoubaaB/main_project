@@ -23,10 +23,12 @@ return new class extends Migration
 
             $table->foreignId('fishery_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();
-            $table->foreignId('charge_type_id')->nullable()->index();
+            $table->foreignId('type_charge_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This charges table describe purchase fish or other type of charges and caclulate total of price and quantity in chrage_details.price , chrage_details.weight and have relationship with suppliers table as belong to one supplier record, fisheries table as belong to one fishery record, origins table as belong to one origin record, type_charges table as belong to one type_charge record, charge_details table as has many of charge_detail records' );
         });
     }
 

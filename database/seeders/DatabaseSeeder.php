@@ -225,7 +225,6 @@ class DatabaseSeeder extends Seeder
             "description" => "10 KG"
         ]);
 
-        Supplier::factory(10)->create();
         Origin::factory(10)->create();
 
         Fishery::factory()->create([
@@ -351,20 +350,21 @@ class DatabaseSeeder extends Seeder
             "list_type_details" => 0,
         ]);
 
-        $charge_types = TypeCharge::all();
-        foreach ($charge_types as $charge_type) {
+        $type_charges = TypeCharge::all();
+        foreach ($type_charges as $type_charge) {
             $charges = Charge::factory(10)->create([
-                "charge_type_id" => $charge_type->id,
+                "type_charge_id" => $type_charge->id,
                 "fishery_id" => Fishery::all()->random()->id,
                 "origin_id" => Origin::all()->random()->id,
             ]);
             foreach ($charges as $charge) {
-                if($charge->charge_type_id == 1){
+                if($charge->type_charge_id == 1){
                     ChargeDetail::factory(10)->create([
                         "fish_type_id" => FishType::all()->random()->id,
                         "charge_id" => $charge->id,
                         "package_id" => Package::all()->random()->id,
                     ]);
+                    $charge->suppliers()->attach(Supplier::all()->random()->id);
                     $charge->calc();
                 }
             }

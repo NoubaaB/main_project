@@ -19,9 +19,11 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 sender: this.auth.user.name
             });
             let id = this.messages.length;
+            let theme = localStorage.getItem("theme");
             return await axios.post(`/api/ask-db`, {
                 message,
-                id
+                id,
+                theme
             }).then(response => {
                 this.messages.push({
                     text: response.data.answer,

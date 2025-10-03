@@ -15,6 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('charge_id')->nullable();
             $table->foreignId('supplier_id')->nullable();
+
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->comment('This charge_suppliers table describe the many to many relationship between charges and suppliers tables' );
         });
     }
 

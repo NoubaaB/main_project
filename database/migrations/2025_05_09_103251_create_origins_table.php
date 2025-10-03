@@ -18,6 +18,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This origins table describe the origin of charge and where it come from and have relationship with charges table as has many of charge records');
         });
     }
 
