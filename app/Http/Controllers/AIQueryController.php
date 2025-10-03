@@ -45,7 +45,7 @@ class AIQueryController extends Controller
         $answer = "";
         try {
             $result = DB::select($sqlQuery);
-            $answer = $this->generateProperAnswer($question, $id, $theme , response()->json($result, 200, [], JSON_PRETTY_PRINT));
+            $answer = $this->generateProperAnswer($question, $id, $theme, response()->json($result, 200, [], JSON_PRETTY_PRINT));
         } catch (\Exception $_e) {
             $answer = $this->generateProperAnswer($question, $id, $theme);
         }
@@ -55,7 +55,8 @@ class AIQueryController extends Controller
         return response()->json(['answer' => $answer], 200);
     }
 
-    function getTableComments() {
+    function getTableComments()
+    {
         $database = DB::getDatabaseName();
         $tablesWithComments = DB::table('information_schema.tables')
             ->select('table_name', 'table_comment')
@@ -70,7 +71,7 @@ class AIQueryController extends Controller
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
         $table_comments = $this->getTableComments();
-        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],
@@ -79,7 +80,8 @@ class AIQueryController extends Controller
                     [
                         'role' => 'user',
                         'parts' => [
-                            ['text' => "
+                            [
+                                'text' => "
                                 You are an expert SQL data generator and analyst.
                                 The application is a fish management system built with Laravel and MySQL.
                                 You are provided with the database schema and table relationships: {$existingTables}
@@ -214,7 +216,7 @@ class AIQueryController extends Controller
             and finally make sure if code work properly without any error
             ";
         }
-        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],
