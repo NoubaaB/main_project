@@ -33,9 +33,9 @@
                                 class="mt-1 mx-3"
                             >
                                 <v-badge
-                                v-if="_receipt.receipts.length > 0"
+                                v-if="_charge.charges.length > 0"
                                 color="yellow" 
-                                :content="_receipt.receipts.length"
+                                :content="_charge.charges.length"
                                 location="bottom end"
                                 >
                                     <v-icon>
@@ -52,11 +52,11 @@
                             rounded="lg"
                             width="100%"
                         >
-                            <h2 class="text-h5 mb-6">Receipts Archivied</h2>
+                            <h2 class="text-h5 mb-6">Charges Archivied</h2>
                             <v-data-table
                                 v-model="selected"
                                 :headers="headers"
-                                :items="_receipt.receipts"
+                                :items="_charge.charges"
                                 tabindex="0"
                                 item-value="id"
                                 show-select
@@ -133,7 +133,7 @@
                                             width="90"
                                             rounded
                                             block
-                                            @click="deleteReceipts"
+                                            @click="deleteCharges"
                                         >
                                             Delete
                                         </v-btn>
@@ -193,7 +193,7 @@
     import { useDashboardWaiter } from "@/stores/DashboardWaiter"; 
     import { useMain } from "@/stores/Main"; 
     import { useAuth } from "@/stores/Auth";
-    import { useReceipt } from "@/stores/Receipt";
+    import { useCharge } from "@/stores/Charge";
     import annyang from "annyang";
 
     export default {
@@ -212,16 +212,16 @@
             auth: function () {
                 return useAuth();
             },
-            _receipt: function () {
-                return useReceipt();
+            _charge: function () {
+                return useCharge();
             },
             headers: function () {
                 return [
-                    { title: this.$t("receipt.date"), value: "date" },
-                    { title: this.$t("receipt.tracking_numbers"), value: "tracking_numbers" },
-                    { title: this.$t("receipt.total_price"), value: "total_price" },
-                    { title: this.$t("receipt.total_weight"), value: "total_weight" },
-                    { title: this.$t("receipt.actions"), value: "actions", align: 'end', sortable: false }
+                    { title: this.$t("charge.date"), value: "date" },
+                    { title: this.$t("charge.tracking_numbers"), value: "tracking_numbers" },
+                    { title: this.$t("charge.total_price"), value: "total_price" },
+                    { title: this.$t("charge.total_weight"), value: "total_weight" },
+                    { title: this.$t("charge.actions"), value: "actions", align: 'end', sortable: false }
                 ];
             }
         },
@@ -236,15 +236,15 @@
                 this.main.lang = lang;
             },
             edit: function (item_id) {
-              this._receipt.receipt =  this._receipt.receipts.find(item => item.id === item_id); 
+              this._charge.charge =  this._charge.charges.find(item => item.id === item_id); 
             },
             remove: function (item_id) {
                 this.selected = [item_id];
-                this.deleteReceipts();
+                this.deleteCharges();
             },
-            deleteReceipts: function () {
+            deleteCharges: function () {
                 console.log(this.selected);
-                this._receipt.deleteMany(this.selected);
+                this._charge.deleteMany(this.selected);
             }
         }
     }

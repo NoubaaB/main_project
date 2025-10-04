@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { useReceipt } from "./Receipt";
+import { useCharge } from "./Charge";
 import annyang from "annyang";
 import moment from "moment";
 import { isNumber } from "lodash";
@@ -37,32 +37,32 @@ export const useMain = defineStore("main", {
     },
     actions: {
         initData: function () {
-            //initialize the receipt store with data from localStorage
-            let receipt = localStorage.getItem("receipt") || '{}';
-            Object.assign(useReceipt().receipt, JSON.parse(receipt));
+            //initialize the charge store with data from localStorage
+            let charge = localStorage.getItem("charge") || '{}';
+            Object.assign(useCharge().charge, JSON.parse(charge));
 
-            //initialize the receipt store with data from localStorage
-            let fresh_fish_receive_detail = localStorage.getItem("fresh_fish_receive_detail") || '{}';
-            Object.assign(useReceipt().fresh_fish_receive_detail, JSON.parse(fresh_fish_receive_detail));
+            //initialize the charge store with data from localStorage
+            let charge_detail = localStorage.getItem("charge_detail") || '{}';
+            Object.assign(useCharge().charge_detail, JSON.parse(charge_detail));
 
-            //initialize the receipt store with data from localStorage
-            let freeze_fish_process_detail = localStorage.getItem("freeze_fish_process_detail") || '{}';
-            Object.assign(useReceipt().freeze_fish_process_detail, JSON.parse(freeze_fish_process_detail));
+            //initialize the charge store with data from localStorage
+            let production_detail = localStorage.getItem("production_detail") || '{}';
+            Object.assign(useCharge().production_detail, JSON.parse(production_detail));
 
-            //initialize the receipts store with data from localStorage
-            let receipts = localStorage.getItem("receipts") || '[]';
-            useReceipt().receipts = JSON.parse(receipts);
+            //initialize the charges store with data from localStorage
+            let charges = localStorage.getItem("charges") || '[]';
+            useCharge().charges = JSON.parse(charges);
 
-            //initialize the add_fresh_fish_receive_details store with data from localStorage
-            let add_fresh_fish_receive_details = localStorage.getItem("add_fresh_fish_receive_details") == "true";
-            useReceipt().add_fresh_fish_receive_details = add_fresh_fish_receive_details;
+            //initialize the add_charge_details store with data from localStorage
+            let add_charge_details = localStorage.getItem("add_charge_details") == "true";
+            useCharge().add_charge_details = add_charge_details;
 
-            //initialize the add_freeze_fish_process_details store with data from localStorage
-            let add_freeze_fish_process_details = localStorage.getItem("add_freeze_fish_process_details") == "true";
-            useReceipt().add_freeze_fish_process_details = add_freeze_fish_process_details;
+            //initialize the add_production_details store with data from localStorage
+            let add_production_details = localStorage.getItem("add_production_details") == "true";
+            useCharge().add_production_details = add_production_details;
 
-            useReceipt().input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
-            useReceipt().showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
+            useCharge().input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
+            useCharge().showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
 
             let language = localStorage.getItem("language");
             let lang = null;

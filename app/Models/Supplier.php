@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Supplier extends Model
 {
@@ -17,7 +18,8 @@ class Supplier extends Model
 
     function charges(): BelongsToMany
     {
-        return $this->belongsToMany(Charge::class, "charge_suppliers", "supplier_id", "charge_id");
+        return $this->belongsToMany(Charge::class, "charge_suppliers", "supplier_id", "charge_id")
+                ->withPivot('charge_id', 'supplier_id');
     }
     
 }

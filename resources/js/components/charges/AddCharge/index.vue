@@ -2,36 +2,36 @@
     <v-form ref="form" @submit.prevent="submitForm">
       <v-row>
         <v-col cols="12" md="5">
-           <!-- Necessary Receipt information -->
-          <NecessaryInformation :receipt="_receipt"/>
+           <!-- Necessary Charge information -->
+          <NecessaryInformation :charge="_charge"/>
         </v-col>
         <v-divider vertical ></v-divider>
         <v-col cols="12" md="7">
           <!-- Fresh Fish Receive Details -->
-          <FreshFishReceiveDetail v-if="_receipt.add_fresh_fish_receive_details" :receipt="_receipt.receipt" />
+          <ChargeDetail v-if="_charge.add_charge_details" :charge="_charge.charge" />
           <v-divider vertical ></v-divider>
           <!-- Freeze Fish Process Details -->
-          <FreezeFishProcessDetail v-if="_receipt.add_freeze_fish_process_details" :receipt="_receipt.receipt" />
+          <ProductionDetail v-if="_charge.add_production_details" :charge="_charge.charge" />
           <v-divider vertical ></v-divider>
-          <!-- Receipt Summary -->
-          <ReceiptSummary :receipt="_receipt.receipt" />
+          <!-- Charge Summary -->
+          <ChargeSummary :charge="_charge.charge" />
         </v-col>
       </v-row>
     </v-form>
   </template>
   
   <script>
-    import { useReceipt } from '@/stores/Receipt';
+    import { useCharge } from '@/stores/Charge';
     import NecessaryInformation from './NecessaryInformation.vue';
-    import FreshFishReceiveDetail from './FreshFishReceiveDetail.vue';
-    import FreezeFishProcessDetail from './FreezeFishProcessDetail.vue';
-    import ReceiptSummary from './ReceiptSummary.vue';
+    import ChargeDetail from './ChargeDetail.vue';
+    import ProductionDetail from './ProductionDetail.vue';
+    import ChargeSummary from './ChargeSummary.vue';
     export default {
       components: {
         NecessaryInformation,
-        FreshFishReceiveDetail,
-        FreezeFishProcessDetail,
-        ReceiptSummary
+        ChargeDetail,
+        ProductionDetail,
+        ChargeSummary
       },
       data: function() {
         return {
@@ -39,8 +39,8 @@
         }
       },
       computed: {
-        _receipt: function () {
-          return useReceipt();
+        _charge: function () {
+          return useCharge();
         }
       },
       methods: {

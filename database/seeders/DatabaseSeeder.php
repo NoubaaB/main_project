@@ -364,7 +364,11 @@ class DatabaseSeeder extends Seeder
                         "charge_id" => $charge->id,
                         "package_id" => Package::all()->random()->id,
                     ]);
-                    $charge->suppliers()->attach(Supplier::all()->random()->id);
+                    $charge->suppliers()->sync(collect(range(1, 10))
+                                            ->shuffle()
+                                            ->take(rand(1, 5))
+                                            ->values()
+                                            ->toArray());
                     $charge->calc();
                 }
             }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Origin;
 use App\Models\Supplier;
 use App\Models\TypeCharge;
 use App\Models\ChargeDetail;
@@ -63,7 +64,12 @@ class Charge extends Model
 
     function suppliers() : BelongsToMany 
     {
-        return $this->belongsToMany(Supplier::class, "charge_suppliers", "charge_id", "supplier_id");
+        return $this->belongsToMany(Supplier::class, "charge_suppliers", "charge_id", "supplier_id")
+                ->withPivot('charge_id', 'supplier_id');
+    }
+
+    function origin() : BelongsTo {
+        return $this->belongsTo(Origin::class, 'origin_id'); 
     }
 
     //private functions

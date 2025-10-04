@@ -124,8 +124,8 @@
               ['mdi-human-male-board-poll', this.$t("general"),null,"index"],
               ['mdi-robot', this.$t("ai_prompt"),null,"ai_prompt"],
               ['mdi-warehouse', this.$t('charges'),[
-                ['mdi-sticker-plus-outline', this.$t("add_fresh_fish_recives"),"add_fresh_fish_recives"],
-                ['mdi-view-list-outline', this.$t("list_fresh_fish_recives"),"list_fresh_fish_recives"],
+                ['mdi-sticker-plus-outline', this.$t("add_charge"),"add_charge"],
+                ['mdi-view-list-outline', this.$t("list_charge"),"list_charge"],
               ]],
               ['mdi-food-fork-drink', this.$t('commands'),[
                 ['mdi-pencil-plus', this.$t("main"),"error404"],

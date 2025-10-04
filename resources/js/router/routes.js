@@ -53,14 +53,14 @@ const routes = [
                         name: "charges",
                         children: [
                             {
-                                path: "add_fresh_fish_recives",
-                                name: "add_fresh_fish_recives",
-                                component: () => import("@/components/charges/AddFreshFishReceipt/index.vue")
+                                path: "add_charge",
+                                name: "add_charge",
+                                component: () => import("@/components/charges/AddCharge/index.vue")
                             },
                             {
-                                path: "list_fresh_fish_recives",
-                                name: "list_fresh_fish_recives",
-                                component: () => import("@/components/charges/ListFreshFishReceipt/index.vue")
+                                path: "list_charge",
+                                name: "list_charge",
+                                component: () => import("@/components/charges/ListCharge/index.vue")
                             },
                         ]
                     },

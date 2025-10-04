@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\ReceiptController;
 
 #region AI routes
@@ -26,8 +27,8 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("me", [AuthController::class, "me"]); //get auth user with
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
-        Route::post("receipt", [ReceiptController::class, "receipt"]);
-        Route::get("get_receipts", [ReceiptController::class, "get_receipts"]);
+        Route::post("charge", [ChargeController::class, "charge"]);
+        Route::get("get_charges", [ChargeController::class, "get_charges"]);
     #endregion
     });
 #endregion

@@ -27,7 +27,7 @@ export const useAuth = defineStore("Auth", {
       stock: useStock(),
       fishery: useFishery(),
       origin: useOrigin(),
-      charge_type: useChargeType(),
+      type_charge: useChargeType(),
     };
   },
   actions: {
@@ -59,7 +59,7 @@ export const useAuth = defineStore("Auth", {
       this.fish_type.list = response.data.fish_types;
       this.package.list = response.data.packages;
       this.stock.list = response.data.stocks;
-      this.charge_type.list = response.data.charge_types;
+      this.type_charge.list = response.data.type_charges;
       this.fishery.list = response.data.fisheries;
       this.origin.list = response.data.origins;
     },

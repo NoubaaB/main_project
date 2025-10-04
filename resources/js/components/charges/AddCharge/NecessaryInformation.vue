@@ -31,16 +31,16 @@
           <v-row class="text-center">
             <v-col>
               <v-autocomplete
-                v-model="_receipt.receipt.charge_type_id"
-                :items="_receipt.charge_types"
+                v-model="_charge.charge.type_charge_id"
+                :items="_charge.type_charges"
                 item-value="id"
-                :rules="[!v$._receipt.receipt.charge_type_id.$invalid ]"
-                :hide-details="v$._receipt.receipt.charge_type_id.$errors.length==0"
-                :error-messages="v$._receipt.receipt.charge_type_id.$errors.map(e => e.$message)"
-                @blur="v$._receipt.receipt.charge_type_id.$touch()"
+                :rules="[!v$._charge.charge.type_charge_id.$invalid ]"
+                :hide-details="v$._charge.charge.type_charge_id.$errors.length==0"
+                :error-messages="v$._charge.charge.type_charge_id.$errors.map(e => e.$message)"
+                @blur="v$._charge.charge.type_charge_id.$touch()"
                 :item-title="`name_${main.lang.short}`"
                 key="id"
-                :label="$t('charge_type')"
+                :label="$t('type_charge')"
                 chips
                 density="compact"
                 variant="outlined"
@@ -70,8 +70,8 @@
                 hide-details
                 variant="outlined"
                 rounded
-                v-model="_receipt.add_fresh_fish_receive_details"
-                :label="$t('fish_receive')"
+                v-model="_charge.add_charge_details"
+                :label="$t('primary_matters')"
                 inset
               ></v-switch>
             </v-col>
@@ -82,8 +82,8 @@
                 hide-details
                 variant="outlined"
                 rounded
-                v-model="_receipt.add_freeze_fish_process_details"
-                :label="$t('freeze_process')"
+                v-model="_charge.add_production_details"
+                :label="$t('production_matters')"
                 inset
               ></v-switch>
             </v-col>
@@ -103,7 +103,7 @@
                 :is-dark="is_dark"
                 expanded
                 :max-date="new Date()"
-                v-model="_receipt.receipt.date"
+                v-model="_charge.charge.date"
                 mode="date"
               />
             </v-col>
@@ -137,10 +137,10 @@
               variant="tonal"
               color="info"
               rounded
-              @click="_receipt.showAdditionalInfo = !_receipt.showAdditionalInfo"
+              @click="_charge.showAdditionalInfo = !_charge.showAdditionalInfo"
               >
               <v-icon>
-                {{ _receipt.showAdditionalInfo ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ _charge.showAdditionalInfo ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
               </v-icon>
               {{ $t("expand") }}
               </v-btn>
@@ -148,16 +148,16 @@
           </v-row>
 
           <v-expand-transition>
-            <v-row v-show="_receipt.showAdditionalInfo" class="pt-2">
+            <v-row v-show="_charge.showAdditionalInfo" class="pt-2">
               <!-- Tracking Numbers -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_receipt.receipt.tracking_numbers"
-                  :items="_receipt.receipt.tracking_numbers"
-                  :rules="[!v$._receipt.receipt.tracking_numbers.$invalid ]"
-                  :hide-details="v$._receipt.receipt.tracking_numbers.$errors.length==0"
-                  :error-messages="v$._receipt.receipt.tracking_numbers.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.receipt.tracking_numbers.$touch()"
+                  v-model="_charge.charge.tracking_numbers"
+                  :items="_charge.charge.tracking_numbers"
+                  :rules="[!v$._charge.charge.tracking_numbers.$invalid ]"
+                  :hide-details="v$._charge.charge.tracking_numbers.$errors.length==0"
+                  :error-messages="v$._charge.charge.tracking_numbers.$errors.map(e => e.$message)"
+                  @blur="v$._charge.charge.tracking_numbers.$touch()"
                   :label="$t('tracking_numbers')"
                   multiple
                   chips
@@ -176,7 +176,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.receipt.tracking_numbers = _receipt.receipt.tracking_numbers.filter(num => num !== item.value)"
+                        @click:close="_charge.charge.tracking_numbers = _charge.charge.tracking_numbers.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -187,8 +187,8 @@
 
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_receipt.receipt.tracking_onp_numbers"
-                  :items="_receipt.receipt.tracking_onp_numbers"
+                  v-model="_charge.charge.tracking_onp_numbers"
+                  :items="_charge.charge.tracking_onp_numbers"
                   :label="$t('tracking_onp_numbers')"
                   multiple
                   chips
@@ -208,7 +208,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.receipt.tracking_onp_numbers = _receipt.receipt.tracking_onp_numbers.filter(num => num !== item.value)"
+                        @click:close="_charge.charge.tracking_onp_numbers = _charge.charge.tracking_onp_numbers.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -219,12 +219,12 @@
               <!-- Supplier -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_receipt.receipt.supplier_ids"
+                  v-model="_charge.charge.supplier_ids"
                   :items="_supplier.list"
-                  :rules="[!v$._receipt.receipt.supplier_ids.$invalid ]"
-                  :hide-details="v$._receipt.receipt.supplier_ids.$errors.length==0"
-                  :error-messages="v$._receipt.receipt.supplier_ids.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.receipt.supplier_ids.$touch()"
+                  :rules="[!v$._charge.charge.supplier_ids.$invalid ]"
+                  :hide-details="v$._charge.charge.supplier_ids.$errors.length==0"
+                  :error-messages="v$._charge.charge.supplier_ids.$errors.map(e => e.$message)"
+                  @blur="v$._charge.charge.supplier_ids.$touch()"
                   item-value="id"
                   item-title="name"
                   multiple
@@ -245,7 +245,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.receipt.supplier_ids = _receipt.receipt.supplier_ids.filter(num => num !== item.value)"
+                        @click:close="_charge.charge.supplier_ids = _charge.charge.supplier_ids.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -256,16 +256,16 @@
               <!-- Fishery -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  :rules="[!v$._receipt.receipt.fishery_id.$invalid ]"
-                  :hide-details="v$._receipt.receipt.fishery_id.$errors.length==0"
-                  :error-messages="v$._receipt.receipt.fishery_id.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.receipt.fishery_id.$touch()"
+                  :rules="[!v$._charge.charge.fishery_id.$invalid ]"
+                  :hide-details="v$._charge.charge.fishery_id.$errors.length==0"
+                  :error-messages="v$._charge.charge.fishery_id.$errors.map(e => e.$message)"
+                  @blur="v$._charge.charge.fishery_id.$touch()"
                   density="compact"
                   color="info"
                   variant="outlined"
                   rounded
                   chips
-                  v-model="_receipt.receipt.fishery_id"
+                  v-model="_charge.charge.fishery_id"
                   :items="_fishery.getList"
                   :label="$t('fishery')"
                   :item-title="`name_${main.lang.short}`"
@@ -288,16 +288,16 @@
               <!-- Origin -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  :rules="[!v$._receipt.receipt.origin_id.$invalid ]"
-                  :hide-details="v$._receipt.receipt.origin_id.$errors.length==0"
-                  :error-messages="v$._receipt.receipt.origin_id.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.receipt.origin_id.$touch()"
+                  :rules="[!v$._charge.charge.origin_id.$invalid ]"
+                  :hide-details="v$._charge.charge.origin_id.$errors.length==0"
+                  :error-messages="v$._charge.charge.origin_id.$errors.map(e => e.$message)"
+                  @blur="v$._charge.charge.origin_id.$touch()"
                   density="compact"
                   color="info"
                   variant="outlined"
                   rounded
                   chips
-                  v-model="_receipt.receipt.origin_id"
+                  v-model="_charge.charge.origin_id"
                   :items="_origin.getList"
                   :label="$t('origin')"
                   item-title="name"
@@ -325,7 +325,7 @@
                   hide-details
                   variant="outlined"
                   rounded
-                  v-model="_receipt.receipt.is_stockable"
+                  v-model="_charge.charge.is_stockable"
                   :label="$t('is_stockable?')"
                   inset
                 ></v-switch>
@@ -362,13 +362,13 @@
         >
           <v-card-title>
             <v-icon class="mx-2" color="info">mdi-update</v-icon>
-            <span class="text-h6 font-weight-bold">Receipt Note</span>
+            <span class="text-h6 font-weight-bold">Charge Note</span>
           </v-card-title>
           <v-divider class="border-opacity-25" color="info"></v-divider>
           <v-card-text>
             <v-textarea
-              v-model="_receipt.receipt.note"
-              label="Receipt Note"
+              v-model="_charge.charge.note"
+              label="Charge Note"
               density="compact"
               variant="outlined"
               rounded
@@ -395,7 +395,7 @@
 
 <script>
 import { useMain } from '@/stores/Main';
-import { useReceipt } from '@/stores/Receipt';
+import { useCharge } from '@/stores/Charge';
 import { useSupplier } from '@/stores/Supplier';
 import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
@@ -405,7 +405,7 @@ import { required , minValue } from '@vuelidate/validators';
 
 export default {
   props: {
-    receipt: {
+    charge: {
       type: Object,
       required: true,
     }
@@ -419,16 +419,16 @@ export default {
   },
   validations() {
     return {
-      _receipt: {
-        receipt: {
-          charge_type_id: { required },
+      _charge: {
+        charge: {
+          type_charge_id: { required },
           date: { required },
           tracking_numbers: { required },
           supplier_ids: { required },
           fishery_id: { required },
           origin_id: { required },
-          total_price: { required , minValue : minValue(1) },
-          total_weight: { required , minValue : minValue(1) },
+          charge_details_total_price: { required , minValue : minValue(1) },
+          charge_details_total_weight: { required , minValue : minValue(1) },
           is_stockable: { required }
         }
       }
@@ -438,14 +438,14 @@ export default {
     main() {
       return useMain();
     },
-    charge_type() {
+    type_charge() {
       return useChargeType();
     },
     is_dark() {
       return useMain().is_dark;
     },
-    _receipt() {
-      return useReceipt();
+    _charge() {
+      return useCharge();
     },
     _fishery() {
       return useFishery();
@@ -459,61 +459,61 @@ export default {
   },
   methods: {
     submit: function () {
-      this._receipt.submitReceipt();
+      this._charge.submitCharge();
     },
     addNewTrackingNumber(event) {
       let inputValue = event.target.value.trim()
-      if (inputValue && !this._receipt.receipt.tracking_numbers.includes(inputValue)) {
-        this._receipt.receipt.tracking_numbers.push(inputValue)
+      if (inputValue && !this._charge.charge.tracking_numbers.includes(inputValue)) {
+        this._charge.charge.tracking_numbers.push(inputValue)
       }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';
     },
     removeTrackingNumber(item) {
-      this._receipt.receipt.charge_type_id = null;
+      this._charge.charge.type_charge_id = null;
     },
     addNewOnpTrackingNumber(event) {
       let inputValue = event.target.value.trim()
-      if (inputValue && !this._receipt.receipt.tracking_onp_numbers.includes(inputValue)) {
-        this._receipt.receipt.tracking_onp_numbers.push(inputValue)
+      if (inputValue && !this._charge.charge.tracking_onp_numbers.includes(inputValue)) {
+        this._charge.charge.tracking_onp_numbers.push(inputValue)
       }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';
     },
     removeOnpTrackingNumber(item) {
-      this._receipt.tracking_onp_numbers = this._receipt.tracking_onp_numbers.filter(num => num !== item);
+      this._charge.tracking_onp_numbers = this._charge.tracking_onp_numbers.filter(num => num !== item);
     },
     update: function(){
-      this._receipt.UpdateReceipt();
+      this._charge.UpdateCharge();
     },
     archive: function () {
-      this._receipt.archive();
+      this._charge.archive();
     },
     reset: function () {
-      this._receipt.reset();
+      this._charge.reset();
     },
   },
   watch: {
-    receipt: {
+    charge: {
       handler(_) {
-        // Save receipt to localStorage whenever it changes
+        // Save charge to localStorage whenever it changes
         this.update();
       },
       deep: true,
       immediate: true
     },
-    '_receipt.showAdditionalInfo': function (_) {
+    '_charge.showAdditionalInfo': function (_) {
       this.update();
     },
-    '_receipt.receipt.charge_type_id': function (_) {
+    '_charge.charge.type_charge_id': function (_) {
       this.update();
     },
-    '_receipt.add_fresh_fish_receive_details': function (_) {
+    '_charge.add_charges': function (_) {
       this.update();
     },
-    '_receipt.add_freeze_fish_process_details': function (_) {
+    '_charge.add_productions': function (_) {
       this.update();
     },
   }

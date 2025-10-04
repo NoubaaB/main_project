@@ -2,7 +2,7 @@
     <v-card class="ma-auto rounded-lg">
         <v-card-title>
           <span>
-            {{ $t("add_fresh_fish_receive") }}
+            {{ $t("add_production") }}
           </span>
         </v-card-title>
         <v-card-text>
@@ -14,7 +14,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon class="text-blue">mdi-numeric-3-circle-outline</v-icon>
+                    <v-icon class="text-blue">{{_charge.production ? 'mdi-numeric-4-circle-outline' : 'mdi-numeric-3-circle-outline'}}</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">
@@ -32,8 +32,8 @@
               <!-- select Type Article -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_receipt.fresh_fish_receive_detail.fish_type_id"
-                  :items="_receipt.type_detail"
+                  v-model="_charge.production_detail.fish_type_id"
+                  :items="_charge.type_detail"
                   item-value="id"
                   item-title="name"
                   :label="$t('type_article')"
@@ -42,9 +42,9 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.fish_type_id.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.fish_type_id.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.fish_type_id.$touch()"
+                  :hide-details="v$._charge.production_detail.fish_type_id.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.fish_type_id.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.fish_type_id.$touch()"
                   color="info"
                   >
                     <!-- Custom Chips Slot -->
@@ -55,7 +55,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.fresh_fish_receive_detail.fish_type_id = null"
+                        @click:close="_charge.production_detail.fish_type_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -65,10 +65,10 @@
 
 
               <!-- select stock -->
-              <v-col cols="12" md="6" v-if="_receipt.receipt.is_stockable">
+              <v-col cols="12" md="6" v-if="_charge.charge.is_stockable">
                 <v-autocomplete
-                  v-model="_receipt.fresh_fish_receive_detail.stock_id"
-                  :items="_receipt.getStocks"
+                  v-model="_charge.production_detail.stock_id"
+                  :items="_charge.getStocks"
                   item-value="id"
                   item-title="name"
                   :label="$t('stock_name')"
@@ -78,9 +78,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.stock_id.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.stock_id.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.stock_id.$touch()"                  
+                  :hide-details="v$._charge.production_detail.stock_id.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.stock_id.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.stock_id.$touch()"                  
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -90,7 +90,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.fresh_fish_receive_detail.stock_id = null"
+                        @click:close="_charge.production_detail.stock_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -101,7 +101,7 @@
               <!-- weight -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_receipt.fresh_fish_receive_detail.weight"
+                  v-model="_charge.production_detail.weight"
                   :label="$t('weight') + ' (Kg)'"
                   type="number" 
                   density="compact"
@@ -109,9 +109,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.weight.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.weight.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.weight.$touch()"
+                  :hide-details="v$._charge.production_detail.weight.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.weight.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.weight.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -119,7 +119,7 @@
               <!-- unit price -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_receipt.fresh_fish_receive_detail.unit_price"
+                  v-model="_charge.production_detail.unit_price"
                   :label="$t('pu') + ' (Dh)'"
                   type="number"
                   density="compact"
@@ -127,9 +127,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.unit_price.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.unit_price.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.unit_price.$touch()"
+                  :hide-details="v$._charge.production_detail.unit_price.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.unit_price.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.unit_price.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -137,7 +137,7 @@
               <!-- weight bill -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_receipt.fresh_fish_receive_detail.weight_bill"
+                  v-model="_charge.production_detail.weight_bill"
                   :label="$t('weight_bill') + ' (Kg)'"
                   type="number"
                   min="0"
@@ -146,9 +146,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.weight_bill.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.weight_bill.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.weight_bill.$touch()"
+                  :hide-details="v$._charge.production_detail.weight_bill.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.weight_bill.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.weight_bill.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -156,7 +156,7 @@
               <!-- total price -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_receipt.fresh_fish_receive_detail.price"
+                  v-model="_charge.production_detail.price"
                   :label="$t('total_price') + ' (Dh)'"
                   type="number"
                   readonly
@@ -165,9 +165,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.price.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.price.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.price.$touch()"
+                  :hide-details="v$._charge.production_detail.price.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.price.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.price.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -175,8 +175,8 @@
               <!-- select package type -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_receipt.fresh_fish_receive_detail.package_id"
-                  :items="_receipt.getPackages"
+                  v-model="_charge.production_detail.package_id"
+                  :items="_charge.getPackages"
                   item-value="id"
                   item-title="name"
                   :label="$t('type_package')"
@@ -186,9 +186,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.package_id.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.package_id.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.package_id.$touch()"
+                  :hide-details="v$._charge.production_detail.package_id.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.package_id.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.package_id.$touch()"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -198,7 +198,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_receipt.fresh_fish_receive_detail.package_id = null"
+                        @click:close="_charge.production_detail.package_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -209,7 +209,7 @@
               <!-- number of packages -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_receipt.fresh_fish_receive_detail.package_count"
+                  v-model="_charge.production_detail.package_count"
                   :label="$t('nbr_boxes')"
                   type="number"
                   readonly
@@ -218,9 +218,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._receipt.fresh_fish_receive_detail.package_count.$errors.length==0"
-                  :error-messages="v$._receipt.fresh_fish_receive_detail.package_count.$errors.map(e => e.$message)"
-                  @blur="v$._receipt.fresh_fish_receive_detail.package_count.$touch()"                  
+                  :hide-details="v$._charge.production_detail.package_count.$errors.length==0"
+                  :error-messages="v$._charge.production_detail.package_count.$errors.map(e => e.$message)"
+                  @blur="v$._charge.production_detail.package_count.$touch()"                  
                   >
                 </v-text-field>
               </v-col>
@@ -241,7 +241,7 @@
             <v-row>
               <v-data-table
                 :headers="headers"
-                :items="_receipt.receipt.fresh_fish_receive_details"
+                :items="_charge.charge.production_details"
                 tabindex="0"
                 item-value="id"
                 density="compact"
@@ -316,8 +316,8 @@
                 </template>
 
                 <template v-slot:[`item.fish_type_id`]="{ item }">
-                  <v-chip color="info">
-                    {{ _receipt.getFishTypeName(item.fish_type_id) }}
+                  <v-chip color="secondary">
+                    {{ _charge.getFishTypeName(item.fish_type_id) }}
                   </v-chip>
                 </template>
                 <template v-slot:[`item.weight`]="{ item }">
@@ -342,7 +342,7 @@
                 </template>
                 <template v-slot:[`item.package_id`]="{ item }">
                   <v-chip color="secondary">
-                    {{ _receipt.getPackageName(item.package_id) }}
+                    {{ _charge.getPackageName(item.package_id) }}
                   </v-chip>
                 </template>
                 <template v-slot:[`item.package_count`]="{ item }">
@@ -351,14 +351,14 @@
                   </div>
                 </template>
                 <template v-slot:[`item.stock_id`]="{ item }">
-                  <v-chip color="indigo">
-                    {{ _receipt.getStockName(item.stock_id) }}
+                  <v-chip color="secondary">
+                    {{ _charge.getStockName(item.stock_id) }}
                   </v-chip>
                 </template>
                 <template v-slot:no-data>
                   <div class="text-orange">
                     <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2"></v-icon>
-                    <span>No data available</span>
+                    <span>{{$t("no_data_available")}}</span>
                   </div>
                 </template>
               </v-data-table>
@@ -368,54 +368,56 @@
 </template>
 
 <script>
-    import { useReceipt } from '@/stores/Receipt';
+    import { useCharge } from '@/stores/Charge';
     import { useMain } from '@/stores/Main';
     import useVuelidate from '@vuelidate/core'
-    import { required, numeric , minLength  } from '@vuelidate/validators'
+    import { required, numeric , requiredIf  } from '@vuelidate/validators'
     export default {
       data: function () {
         return {
           headers: [],
           selected: [],
-          v$: useVuelidate(),
-          is_editing: false,
+            v$: useVuelidate(),
+            is_editing: false,
         };    
       },
-      validations: {
-        _receipt: {
-          fresh_fish_receive_detail: {
-              fish_type_id: {
-                required,
-                numeric,
-              },
-              stock_id: {
-                required,
-                numeric,
-              },
-              weight: {
-                required,
-                numeric,
-              },
-              unit_price: {
-                required,
-                numeric,
-              },
-              weight_bill: {
-                required,
-                numeric,
-              },
-              price: {
-                required,
-                numeric,
-              },
-              package_id: {
-                required,
-                numeric,
-              },
-              package_count: {
-                required,
-                numeric,
-              }
+      validations: function () {
+        return {
+          _charge: {
+            production_detail: {
+                fish_type_id: {
+                  required,
+                  numeric,
+                },
+                stock_id: {
+                  requiredIf: requiredIf(()=>this._charge.charge.is_stockable) ,
+                  numeric,
+                },
+                weight: {
+                  required,
+                  numeric,
+                },
+                unit_price: {
+                  required,
+                  numeric,
+                },
+                weight_bill: {
+                  required,
+                  numeric,
+                },
+                price: {
+                  required,
+                  numeric,
+                },
+                package_id: {
+                  required,
+                  numeric,
+                },
+                package_count: {
+                  required,
+                  numeric,
+                }
+            }
           }
         }
       },
@@ -423,12 +425,12 @@
         this.headers = this.DEFAULT_HEADERS();
       },
       computed: {
-        _receipt() {
-          return useReceipt();
+        _charge() {
+          return useCharge();
         },
         _main() {
           return useMain();
-        }
+        },
       },
       methods:{
         DEFAULT_HEADERS () {
@@ -445,18 +447,18 @@
           ]
         },
         update: function () {
-          this._receipt.update_fresh_fish_receive_detail();
+          this._charge.update_production_detail();
           this.is_editing = false;
         },
         submit: function () {
-          this._receipt.add_fresh_fish_receive_detail();
+          this._charge.add_production_detail();
         },
         edit: function (id) {
           this.is_editing = true;
-          this._receipt.edit_fresh_fish_receive_detail(id);
+          this._charge.edit_production_detail(id);
         },
         remove: function (id) {
-          this._receipt.remove_fresh_fish_receive_detail(id);
+          this._charge.remove_production_detail(id);
         },
         onClickReset : function() {
           this.headers = this.DEFAULT_HEADERS()
@@ -464,34 +466,33 @@
         remove_header: function (key) {
           this.headers = this.headers.filter(header => header.value !== key);
         },
-
       },
       watch: {
-        '_receipt.fresh_fish_receive_detail': {
+        '_charge.production_detail': {
           handler: function () {
-            this._receipt.UpdateReceipt();
+            this._charge.UpdateCharge();
           },
           deep: true
         },
-        "_receipt.fresh_fish_receive_detail.unit_price": function () {
-          this._receipt.fresh_fish_receive_detail.price = this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price;
+        "_charge.production_detail.unit_price": function () {
+          this._charge.production_detail.price = this._charge.production_detail.weight * this._charge.production_detail.unit_price;
         },
-        "_receipt.fresh_fish_receive_detail.weight": function (value) {
-          this._receipt.fresh_fish_receive_detail.weight_bill = value;
-          this._receipt.fresh_fish_receive_detail.price = this._main.formatNumber(this._receipt.fresh_fish_receive_detail.weight * this._receipt.fresh_fish_receive_detail.unit_price);
+        "_charge.production_detail.weight": function (value) {
+          this._charge.production_detail.weight_bill = value;
+          this._charge.production_detail.price = this._main.formatNumber(this._charge.production_detail.weight * this._charge.production_detail.unit_price);
         },
-        "_receipt.fresh_fish_receive_detail.weight_bill": function (value) {
-          if (this._receipt.fresh_fish_receive_detail.package_id && value > 0) {
-            this._receipt.fresh_fish_receive_detail.package_count = +(value / this._receipt.getPackageSize(this._receipt.fresh_fish_receive_detail.package_id,value)).toFixed(1);
+        "_charge.production_detail.weight_bill": function (value) {
+          if (this._charge.production_detail.package_id && value > 0) {
+            this._charge.production_detail.package_count = +(value / this._charge.getPackageSize(this._charge.production_detail.package_id,value)).toFixed(1);
           } else {
-            this._receipt.fresh_fish_receive_detail.package_count = 0;  
+            this._charge.production_detail.package_count = 0;  
           }
         },
-        "_receipt.fresh_fish_receive_detail.package_id": function (value) {
-          if (this._receipt.fresh_fish_receive_detail.package_id && value > 0) {
-            this._receipt.fresh_fish_receive_detail.package_count = +(this._receipt.fresh_fish_receive_detail.weight_bill / this._receipt.getPackageSize(value,this._receipt.fresh_fish_receive_detail.weight_bill)).toFixed(1);
+        "_charge.production_detail.package_id": function (value) {
+          if (this._charge.production_detail.package_id && value > 0) {
+            this._charge.production_detail.package_count = +(this._charge.production_detail.weight_bill / this._charge.getPackageSize(value,this._charge.production_detail.weight_bill)).toFixed(1);
           } else {
-            this._receipt.fresh_fish_receive_detail.package_count = 0;  
+            this._charge.production_detail.package_count = 0;  
           }
         }
       },

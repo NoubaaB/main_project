@@ -59,15 +59,15 @@
         fetchData: async function () {
           try {
             this.loading = true;
-            const response = await axios.get("/api/get_receipts", {
+            const response = await axios.get("/api/get_charges", {
               params: {
                 date_start: moment(this.date.start).format("YYYY-MM-DD"),
                 date_end: moment(this.date.end).format("YYYY-MM-DD"),
               },
             });
-            this.data_row = response.data.receipts;
+            this.data_row = response.data.charges;
           } catch (error) {
-            console.error("Error fetching receipts:", error);
+            console.error("Error fetching charges:", error);
           } finally {
             this.loading = false;
           }

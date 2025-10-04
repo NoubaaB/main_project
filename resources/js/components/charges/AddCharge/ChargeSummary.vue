@@ -2,7 +2,7 @@
     <v-card class="ma-auto rounded-lg">
         <v-card-title>
           <span>
-            {{ $t("receipt_summary") }}
+            {{ $t("charge_summary") }}
           </span>
         </v-card-title>
         <v-card-text>
@@ -54,13 +54,13 @@
               </template>
         
               <template v-slot:text>
-                <div class="text-h5 font-weight-black">{{_main.formatDisplayNumber(_receipt.receipt.total_price)}} MAD</div>
+                <div class="text-h5 font-weight-black">{{_main.formatDisplayNumber(_charge.charge.total_price)}} MAD</div>
         
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
                   <div>
                     <span class="text-green">
                       <v-avatar icon="mdi-arrow-up" size="x-small" variant="tonal"></v-avatar>
-                      + {{ _main.formatDisplayNumber(_receipt.receipt.total_price) }} MAD
+                      + {{ _main.formatDisplayNumber(_charge.charge.total_price) }} MAD
                     </span>
         
                     in the last week
@@ -104,7 +104,7 @@
                       border="info sm"
                     ></v-btn>
                   </small>
-                   {{ _main.formatDisplayNumber(_receipt.receipt.total_weight) }} Kg
+                   {{ _main.formatDisplayNumber(_charge.charge.total_weight) }} Kg
                 </div>
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
                   <div>
@@ -125,7 +125,7 @@
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
             <v-col class="pr-1">
-              <v-btn block variant="outlined" rounded color="amber" @click="reset_fresh_fish_receive_detail">{{$t(('cancel'))}}</v-btn>
+              <v-btn block variant="outlined" rounded color="amber" @click="reset_charge_detail">{{$t(('cancel'))}}</v-btn>
             </v-col>
           </v-row>
         </v-card-actions>
@@ -133,7 +133,7 @@
 </template>
 
 <script>
-    import { useReceipt } from '@/stores/Receipt';
+    import { useCharge } from '@/stores/Charge';
     import { useMain } from '@/stores/Main';
     import { useVuelidate } from '@vuelidate/core';
     import { required , minValue } from '@vuelidate/validators';
@@ -145,8 +145,8 @@ export default {
           }
         },
         computed: {
-          _receipt() {
-              return useReceipt();
+          _charge() {
+              return useCharge();
           },
           _main() {
               return useMain();
@@ -154,8 +154,8 @@ export default {
         },
         validations() {
           return {
-            _receipt: {
-              receipt: {
+            _charge: {
+              charge: {
                 charge_type_id: { required },
                 date: { required },
                 tracking_numbers: { required },
@@ -171,10 +171,10 @@ export default {
         },
         methods:{
           submit: function () {
-            this._receipt.submitReceipt();
+            this._charge.submitCharge();
           },
-          reset_fresh_fish_receive_detail: function () {
-            this._receipt.reset_fresh_fish_receive_detail();
+          reset_charge_detail: function () {
+            this._charge.reset_charge_detail();
           }
         }
       }

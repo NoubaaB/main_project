@@ -1,7 +1,7 @@
 <template>
     <v-snackbar
         class="absolute_index"
-        v-model="receipt.snackbar_action_command"
+        v-model="charge.snackbar_action_command"
         location="top"
         :color="main.color_theme_reverse"
         :timeout="2000"
@@ -9,19 +9,19 @@
     >
         <v-row>
             <v-col cols="2">
-                <v-icon :color="receipt.snackbar_action_command_icon_color">
-                    {{ receipt.snackbar_action_command_icon  }}
+                <v-icon :color="charge.snackbar_action_command_icon_color">
+                    {{ charge.snackbar_action_command_icon  }}
                 </v-icon>
             </v-col>
             <v-col>
-                {{ receipt.snackbar_action_command_text }}
+                {{ charge.snackbar_action_command_text }}
             </v-col>
         </v-row>
         <template v-slot:actions>
         <v-btn
             color="blue"
             variant="text"
-            @click="receipt.snackbar_action_command = false"
+            @click="charge.snackbar_action_command = false"
         >
             {{ $t("close") }}
         </v-btn>
@@ -29,12 +29,12 @@
     </v-snackbar>
 </template>
 <script>
-import { useReceipt } from '@/stores/Receipt';
+import { useCharge } from '@/stores/Charge';
 import { useMain } from '@/stores/Main';
 export default {
     computed: {
-        receipt: function () {
-            return useReceipt();
+        charge: function () {
+            return useCharge();
         },
         main: function () {
             return useMain();
