@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string("name",50)->unique();
             $table->string("description",250)->nullable();
+            $table->double("unit_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
@@ -22,7 +23,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This stocks table describe the stock of fish after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail' );
+            $table->comment('This stocks table describe the stock of fish store after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail' );
         });
     }
 

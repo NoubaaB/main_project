@@ -13,19 +13,17 @@ return new class extends Migration
     {
         Schema::create('stock_details', function (Blueprint $table) {
             $table->id();
-            $table->double("weight")->default(0.00);
-            $table->double("pu")->default(0.00);
-            $table->double("price")->default(0.00);
+            $table->double("unit_price")->default(0.00);
+            $table->double("total_weight")->default(0.00);
+            $table->double("total_price")->default(0.00);
 
             $table->foreignId('stock_id')->nullable()->index();
-            $table->unsignedBigInteger('detailable_id');
-            $table->string('detailable_type');
-            $table->foreignId('package_id')->nullable();
+            $table->foreignId('fish_type_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This stock_details table describe each line in stocks table and have relationship with stocks table as belong to one stock record, packages table as belong to one package record, and its polymorphic relationship with production_details table or charge_details table as detailable' );
+            $table->comment('This stock_details table describe the details of each stock such as total weight , total price and pu of each fish type in each stock');
         });
     }
 

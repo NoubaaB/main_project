@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Models\FishType;
-use App\Models\StockDetail;
+use App\Models\StockFishDetail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class ChargeDetail extends Model
 {
@@ -17,9 +17,9 @@ class ChargeDetail extends Model
 
     protected $guarded = [];
 
-    public function stock_detail() : MorphOne
+    public function stock_fish_detail() : MorphOne
     {
-        return $this->morphOne(StockDetail::class, 'detailable');
+        return $this->morphOne(StockFishDetail::class, 'detailable');
     }
 
     function fish_type(): BelongsTo

@@ -16,6 +16,9 @@ use App\Models\FishFamilly;
 use Illuminate\Database\Seeder;
 use App\Models\Charge;
 use App\Models\ChargeDetail;
+use App\Models\StockDetail;
+use App\Models\StockDetailOperation;
+use App\Models\StockFishDetail;
 
 class DatabaseSeeder extends Seeder
 {
@@ -37,7 +40,6 @@ class DatabaseSeeder extends Seeder
 
         Supplier::factory(10)->create();
 
-        Stock::factory(10)->create();
 
         $fish_famillies = [
             "MAQUERAUX",
@@ -193,7 +195,7 @@ class DatabaseSeeder extends Seeder
                 "fish_familly_id" => $fish_familly->id
             ]);
         }
-
+        #region Packages Factory
         Package::factory()->create([
             "name" => "20 KG",
             "size" => 20,
@@ -224,7 +226,8 @@ class DatabaseSeeder extends Seeder
             "size" => 10,
             "description" => "10 KG"
         ]);
-
+        #endregion
+        
         Origin::factory(10)->create();
 
         Fishery::factory()->create([
@@ -240,6 +243,7 @@ class DatabaseSeeder extends Seeder
             "name_es" => "RSW",
         ]);
 
+        #region Type Charges Factory
         TypeCharge::factory()->create([
             "description" => "Cotiere",
             "name_en" => "Cotiere",
@@ -349,6 +353,22 @@ class DatabaseSeeder extends Seeder
             "add_wieght" => false,
             "list_type_details" => 0,
         ]);
+        #endregion
+
+
+        $stocks = Stock::factory(10)->create();
+
+        foreach ($stocks as $stock) {
+            foreach (FishType::all() as $fish_type) {
+                $stock->stock_details()->create([
+                    "unit_price" => 0.00,
+                    "total_weight" => 0.00,
+                    "total_price" => 0.00,
+                    "stock_id" => $stock->id,
+                    "fish_type_id" => $fish_type->id
+                ]);
+            }
+        }
 
         $type_charges = TypeCharge::all();
         foreach ($type_charges as $type_charge) {
@@ -359,11 +379,23 @@ class DatabaseSeeder extends Seeder
             ]);
             foreach ($charges as $charge) {
                 if($charge->type_charge_id == 1){
-                    ChargeDetail::factory(10)->create([
+                    $charge_details = ChargeDetail::factory(10)->create([
                         "fish_type_id" => FishType::all()->random()->id,
                         "charge_id" => $charge->id,
                         "package_id" => Package::all()->random()->id,
+                        "stock_id" => Stock::all()->random()->id,
                     ]);
+
+                    foreach ($charge_details as $charge_detail) {
+                        $stock_detail = StockDetail::where([
+                            "stock_id"=> $charge_detail->stock_id,
+                            "fish_type_id"=> $charge_detail->fish_type_id
+                        ])->first();
+
+                        $charge_detail->stock_fish_detail()->create(['stock_detail_id'=>$stock_detail->id]);
+                        //detailable()->save($charge_detail)
+                    }
+                    
                     $charge->suppliers()->sync(collect(range(1, 10))
                                             ->shuffle()
                                             ->take(rand(1, 5))
@@ -372,7 +404,9 @@ class DatabaseSeeder extends Seeder
                     $charge->calc();
                 }
             }
-
+        }
+        foreach ($stocks as $stock) {
+            $stock->calc();
         }
 
     }
