@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockDetailOperation;
+use App\Models\StockFishTrackingNumberOperation;
 use Illuminate\Http\Request;
 
-class StockDetailOperationController extends Controller
+class StockFishTrackingNumberOperationController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class StockDetailOperationController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(StockDetailOperation $stockDetailOperation)
+    public function show(StockFishTrackingNumberOperation $stockFishTrackingNumberOperation)
     {
         //
     }
@@ -42,7 +42,7 @@ class StockDetailOperationController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(StockDetailOperation $stockDetailOperation)
+    public function edit(StockFishTrackingNumberOperation $stockFishTrackingNumberOperation)
     {
         //
     }
@@ -50,7 +50,7 @@ class StockDetailOperationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, StockDetailOperation $stockDetailOperation)
+    public function update(Request $request, StockFishTrackingNumberOperation $stockFishTrackingNumberOperation)
     {
         //
     }
@@ -58,7 +58,7 @@ class StockDetailOperationController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(StockDetailOperation $stockDetailOperation)
+    public function destroy(StockFishTrackingNumberOperation $stockFishTrackingNumberOperation)
     {
         //
     }

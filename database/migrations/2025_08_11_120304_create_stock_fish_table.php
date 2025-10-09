@@ -11,19 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stock_details', function (Blueprint $table) {
+        Schema::create('stock_fish', function (Blueprint $table) {
             $table->id();
+
             $table->double("unit_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->double("total_price")->default(0.00);
+            $table->double("total_package_count")->default(0.00);
 
             $table->foreignId('stock_id')->nullable()->index();
             $table->foreignId('fish_type_id')->nullable()->index();
 
-            $table->timestamps();
+            $table->timestamps();    
             $table->softDeletes();
 
-            $table->comment('This stock_details table describe the details of each stock such as total weight , total price and pu of each fish type in each stock');
+            $table->comment('This stock_fish table describe the fish types in stock table and have relationship with stocks table as belong to one stock record and its source of stocks.total_weight , stocks.total_price , stocks.total_package_count total calculation' );
         });
     }
 
@@ -32,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('stock_details');
+        Schema::dropIfExists('stock_fish');
     }
 };

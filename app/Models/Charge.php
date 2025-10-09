@@ -5,12 +5,11 @@ namespace App\Models;
 use App\Models\Origin;
 use App\Models\Supplier;
 use App\Models\TypeCharge;
-use App\Models\ChargeDetail;
-use App\Models\ProductionDetail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\StockFishTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -29,8 +28,8 @@ class Charge extends Model
         'tracking_onp_numbers' => 'array',
         'is_stockable' => 'boolean',
         'note' => 'string',
-        'total_price' => 'double',
-        'total_weight' => 'double'
+        'charge_details_total_price' => 'double',
+        'charge_details_total_weight' => 'double'
     ];
 
     protected static function boot()
@@ -52,14 +51,8 @@ class Charge extends Model
         return $this->belongsTo(TypeCharge::class, 'type_charge_id'); 
     }
 
-    function charge_details(): HasMany
-    {
-        return $this->hasMany(ChargeDetail::class);
-    }
-
-    function production_details(): HasMany
-    {
-        return $this->hasMany(ProductionDetail::class);
+    function stock_fish_tracking_number_operations() : MorphMany {
+        return $this->morphMany(StockFishTrackingNumberOperation::class, 'operationable');
     }
 
     function suppliers() : BelongsToMany 
@@ -74,16 +67,22 @@ class Charge extends Model
 
     //private functions
 
-    public function calc()
-    {
-        $total_price = 0;
-        $total_weight = 0;
-        foreach ($this->charge_details as $detail) {
-            $total_price += $detail->price;
-            $total_weight += $detail->weight;
+    function calc() : void {
+        $temp_arr = [];
+        foreach ($this->stock_fish_tracking_number_operations as $stock_fish_tracking_number_operation) {
+            $total = $stock_fish_tracking_number_operation->calc();
+            
+            $temp_arr[] = [
+                "total_weight" => $total["total_weight"],
+                "total_price" => $total["total_price"],
+                "unit_price" => $total["unit_price"],
+                "total_package_count" => $total["total_package_count"]
+            ];
         }
-        $this->charge_details_total_price = $total_price;
-        $this->charge_details_total_weight = $total_weight;
-        $this->save();
+
+        $this->update([
+            "total_price" => collect($temp_arr)->sum('total_weight'),
+            "total_weight" => collect($temp_arr)->sum('total_price'),
+        ]);
     }
 }

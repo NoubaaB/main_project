@@ -71,7 +71,7 @@ class AIQueryController extends Controller
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
         $table_comments = $this->getTableComments();
-        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],
@@ -121,7 +121,7 @@ class AIQueryController extends Controller
         $table_comments = $this->getTableComments();
         $text = "
             You are a professional SQL data analyst and frontend developer.
-            don't fake data if you don't have it , id data is empty or NULL just write 'no data Availabel'.
+            don't fake data if local data is empty , id data is empty or NULL just write 'no data Availabel'.
             You are provided with the database schema and table relationships: {$schema}
             Based on:
             - the local data: [$data]
@@ -216,7 +216,7 @@ class AIQueryController extends Controller
             and finally make sure if code work properly without any error
             ";
         }
-        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],

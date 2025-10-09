@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockDetail;
+use App\Models\SellClient;
 use Illuminate\Http\Request;
 
-class StockDetailController extends Controller
+class SellClientController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class StockDetailController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(StockDetail $stockDetail)
+    public function show(SellClient $sellClient)
     {
         //
     }
@@ -42,7 +42,7 @@ class StockDetailController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(StockDetail $stockDetail)
+    public function edit(SellClient $sellClient)
     {
         //
     }
@@ -50,7 +50,7 @@ class StockDetailController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, StockDetail $stockDetail)
+    public function update(Request $request, SellClient $sellClient)
     {
         //
     }
@@ -58,7 +58,7 @@ class StockDetailController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(StockDetail $stockDetail)
+    public function destroy(SellClient $sellClient)
     {
         //
     }

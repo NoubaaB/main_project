@@ -13,7 +13,19 @@ return new class extends Migration
     {
         Schema::create('sells', function (Blueprint $table) {
             $table->id();
+            $table->date("date")->nullable();
+            $table->json("tracking_numbers")->nullable();
+
+            $table->double("total_price")->default(0.00);
+            $table->double("total_weight")->default(0.00);
+
+            $table->foreignId('type_sell_id')->nullable()->index();
+            $table->foreignId('origin_id')->nullable()->index();
+
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->comment('This sells table describe the sell of fish store and have relationship with sell_details table as has many of sell_detail records' );
         });
     }
 

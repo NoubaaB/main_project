@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockFishDetail;
+use App\Models\TypeSell;
 use Illuminate\Http\Request;
 
-class StockFishDetailController extends Controller
+class TypeSellController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class StockFishDetailController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(StockFishDetail $stockFishDetail)
+    public function show(TypeSell $typeSell)
     {
         //
     }
@@ -42,7 +42,7 @@ class StockFishDetailController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(StockFishDetail $stockFishDetail)
+    public function edit(TypeSell $typeSell)
     {
         //
     }
@@ -50,7 +50,7 @@ class StockFishDetailController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, StockFishDetail $stockFishDetail)
+    public function update(Request $request, TypeSell $typeSell)
     {
         //
     }
@@ -58,7 +58,7 @@ class StockFishDetailController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(StockFishDetail $stockFishDetail)
+    public function destroy(TypeSell $typeSell)
     {
         //
     }

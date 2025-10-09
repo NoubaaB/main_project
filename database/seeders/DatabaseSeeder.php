@@ -3,22 +3,24 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Models\Sell;
 use App\Models\User;
 use App\Models\Stock;
+use App\Models\Charge;
+use App\Models\Client;
 use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\Package;
 use App\Models\FishType;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Supplier;
+use App\Models\TypeSell;
+use App\Models\SellDetail;
 use App\Models\TypeCharge;
 use App\Models\FishFamilly;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Charge;
 use App\Models\ChargeDetail;
-use App\Models\StockDetail;
-use App\Models\StockDetailOperation;
-use App\Models\StockFishDetail;
+use App\Models\StockFishTrackingNumberOperation;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -356,14 +358,16 @@ class DatabaseSeeder extends Seeder
         #endregion
 
 
+        #region Charges Factory
         $stocks = Stock::factory(10)->create();
 
         foreach ($stocks as $stock) {
             foreach (FishType::all() as $fish_type) {
-                $stock->stock_details()->create([
+                $stock->stock_fishes()->create([
                     "unit_price" => 0.00,
                     "total_weight" => 0.00,
                     "total_price" => 0.00,
+                    "total_package_count" => 0.00,
                     "stock_id" => $stock->id,
                     "fish_type_id" => $fish_type->id
                 ]);
@@ -372,39 +376,115 @@ class DatabaseSeeder extends Seeder
 
         $type_charges = TypeCharge::all();
         foreach ($type_charges as $type_charge) {
-            $charges = Charge::factory(10)->create([
+            $charges = Charge::factory(150)->create([
                 "type_charge_id" => $type_charge->id,
                 "fishery_id" => Fishery::all()->random()->id,
                 "origin_id" => Origin::all()->random()->id,
             ]);
             foreach ($charges as $charge) {
                 if($charge->type_charge_id == 1){
-                    $charge_details = ChargeDetail::factory(10)->create([
-                        "fish_type_id" => FishType::all()->random()->id,
-                        "charge_id" => $charge->id,
-                        "package_id" => Package::all()->random()->id,
-                        "stock_id" => Stock::all()->random()->id,
-                    ]);
-
-                    foreach ($charge_details as $charge_detail) {
-                        $stock_detail = StockDetail::where([
-                            "stock_id"=> $charge_detail->stock_id,
-                            "fish_type_id"=> $charge_detail->fish_type_id
-                        ])->first();
-
-                        $charge_detail->stock_fish_detail()->create(['stock_detail_id'=>$stock_detail->id]);
-                        //detailable()->save($charge_detail)
+                    for ($i=0; $i < rand(1,18); $i++) { 
+                        $unit_price = (mt_rand(100, 999) / 100);
+                        $total_weight = rand(500, 10000);
+                        $total_price = $unit_price * $total_weight;
+                        $package = Package::all()->random()->first();
+                        $total_package_count = ceil($total_weight / $package->size);
+    
+                        $stock = $stocks->random()->first();
+                        $fish_type_id = FishType::all()->random()->id;
+                        $stock_fish = $stock->stock_fishes()->create([
+                            "unit_price" => 0.00,
+                            "total_weight" => 0.00,
+                            "total_price" => 0.00,
+                            "total_package_count" => 0.00,
+                            "stock_id" => $stock->id,
+                            "fish_type_id" => $fish_type_id
+                        ]);
+    
+                        $stock_fish_tracking_number = $stock_fish->stock_fish_tracking_numbers()->create([
+                            "tracking_numbers" => $charge->tracking_numbers,
+                            "unit_price" => 0.00 ,
+                            "total_weight" => 0.00,
+                            "total_price" => 0.00,
+                            "total_package_count" => 0.00,
+                            "stock_fish_id" => $stock_fish->id,
+                            "fish_type_id" => $fish_type_id
+                        ]);
+    
+                        $stock_fish_tracking_number->stock_fish_tracking_number_operations()->create([
+                            "type_operation" => "in",
+                            "unit_price" => $unit_price ,
+                            "total_weight" => $total_weight,
+                            "total_price" => $total_price,
+                            "total_package_count" => $total_package_count,
+                            "fish_type_id" => $fish_type_id,
+                            "package_id" => $package->id,
+                        ]);
+    
+                        $stock->calc();
+                        
+                        $charge->suppliers()->sync(collect(range(1, 10))
+                                                ->shuffle()
+                                                ->take(rand(1, 5))
+                                                ->values()
+                                                ->toArray());
                     }
-                    
-                    $charge->suppliers()->sync(collect(range(1, 10))
-                                            ->shuffle()
-                                            ->take(rand(1, 5))
-                                            ->values()
-                                            ->toArray());
                     $charge->calc();
                 }
             }
         }
+
+        #endregion Charges Factory
+
+        #region Type Sells Factory
+        Client::factory(10)->create();
+
+
+        TypeSell::factory()->create([
+            "description" => "Congele",
+            "name_en" => "Congele",
+            "name_fr" => "Congele",
+            "name_es" => "Congele",
+        ]);
+
+        $type_sells = TypeSell::all();
+        foreach ($type_sells as $type_sell) {
+            $sells = Sell::factory(10)->create([
+                "type_sell_id" => $type_sell->id,
+                "origin_id" => Origin::all()->random()->id,
+            ]);
+            foreach ($sells as $sell) {
+                $s_f_t_n_o = StockFishTrackingNumberOperation::where("type_operation","in")
+                ->get()->random()->first();
+
+                $total_weight = rand(100, $s_f_t_n_o->total_weight - 100);
+                $unit_price = (mt_rand(100, 999) / 100);
+                $total_price = $unit_price * $total_weight;
+                $total_package_count = ceil($total_weight / $s_f_t_n_o->package->size);
+                if($total_weight>0){
+                    $sell->stock_fish_tracking_number_operations()->create([
+                        "type_operation" => "out",
+                        "unit_price" => $unit_price ,
+                        "total_weight" => $total_weight,
+                        "total_price" => $total_price,
+                        "total_package_count" => $total_package_count,
+                        "stock_fish_tracking_number_id" => $s_f_t_n_o->stock_fish_tracking_number_id,
+                        "package_id" => $s_f_t_n_o->package_id,
+                        "fish_type_id" => $s_f_t_n_o->fish_type_id,
+                    ]);
+                }
+                
+                $sell->clients()->sync(collect(range(1, 10))
+                    ->shuffle()
+                    ->take(rand(1, 5))
+                    ->values()
+                    ->toArray());
+                $sell->calc();
+            }
+        }
+
+        #endregion
+
         foreach ($stocks as $stock) {
             $stock->calc();
         }
