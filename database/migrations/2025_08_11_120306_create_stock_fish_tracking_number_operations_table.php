@@ -17,6 +17,8 @@ return new class extends Migration
             $table->enum("type_operation", ["in", "out"])->nullable()
                 ->comment('this column describe the operation movement of stock_fish_tracking_numbers table\'s');
 
+            $table->date("date")->nullable();
+
             $table->double("unit_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->double("total_price")->default(0.00);

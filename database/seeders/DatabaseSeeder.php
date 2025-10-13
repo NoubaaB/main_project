@@ -20,6 +20,7 @@ use App\Models\TypeCharge;
 use App\Models\FishFamilly;
 use App\Models\ChargeDetail;
 use App\Models\StockFishTrackingNumberOperation;
+use App\Models\TypeStock;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -359,6 +360,7 @@ class DatabaseSeeder extends Seeder
 
 
         #region Charges Factory
+        TypeStock::factory(3)->create();
         $stocks = Stock::factory(10)->create();
 
         foreach ($stocks as $stock) {
@@ -387,10 +389,10 @@ class DatabaseSeeder extends Seeder
                         $unit_price = (mt_rand(100, 999) / 100);
                         $total_weight = rand(500, 10000);
                         $total_price = $unit_price * $total_weight;
-                        $package = Package::all()->random()->first();
+                        $package = Package::all()->random();
                         $total_package_count = ceil($total_weight / $package->size);
     
-                        $stock = $stocks->random()->first();
+                        $stock = $stocks->random();
                         $fish_type_id = FishType::all()->random()->id;
                         $stock_fish = $stock->stock_fishes()->create([
                             "unit_price" => 0.00,
@@ -411,7 +413,7 @@ class DatabaseSeeder extends Seeder
                             "fish_type_id" => $fish_type_id
                         ]);
     
-                        $stock_fish_tracking_number->stock_fish_tracking_number_operations()->create([
+                        $s_f_t_n_o=$stock_fish_tracking_number->stock_fish_tracking_number_operations()->create([
                             "type_operation" => "in",
                             "unit_price" => $unit_price ,
                             "total_weight" => $total_weight,
@@ -420,7 +422,7 @@ class DatabaseSeeder extends Seeder
                             "fish_type_id" => $fish_type_id,
                             "package_id" => $package->id,
                         ]);
-    
+                        $charge->stock_fish_tracking_number_operations()->save($s_f_t_n_o);
                         $stock->calc();
                         
                         $charge->suppliers()->sync(collect(range(1, 10))
@@ -449,13 +451,13 @@ class DatabaseSeeder extends Seeder
 
         $type_sells = TypeSell::all();
         foreach ($type_sells as $type_sell) {
-            $sells = Sell::factory(10)->create([
+            $sells = Sell::factory(100)->create([
                 "type_sell_id" => $type_sell->id,
                 "origin_id" => Origin::all()->random()->id,
             ]);
+            $s_f_t_n_os = StockFishTrackingNumberOperation::where("type_operation","in")->get();
             foreach ($sells as $sell) {
-                $s_f_t_n_o = StockFishTrackingNumberOperation::where("type_operation","in")
-                ->get()->random()->first();
+                $s_f_t_n_o = $s_f_t_n_os->random();
 
                 $total_weight = rand(100, $s_f_t_n_o->total_weight - 100);
                 $unit_price = (mt_rand(100, 999) / 100);

@@ -60,21 +60,20 @@ class Sell extends Model
 
     function calc(): void
     {
-        $temp_arr = [];
+        $total_weight = 0.00;
+        $total_price = 0.00;
+        $total_package_count = 0.00;
         foreach ($this->stock_fish_tracking_number_operations as $stock_fish_tracking_number_operation) {
-            $total = $stock_fish_tracking_number_operation->calc();
-
-            $temp_arr[] = [
-                "total_weight" => $total["total_weight"],
-                "total_price" => $total["total_price"],
-                "unit_price" => $total["unit_price"],
-                "total_package_count" => $total["total_package_count"]
-            ];
+            $total_weight += $stock_fish_tracking_number_operation->total_weight;
+            $total_price += $stock_fish_tracking_number_operation->total_price;
+            $total_package_count += $stock_fish_tracking_number_operation->total_package_count;
         }
 
-        $this->update([
-            "total_price" => collect($temp_arr)->sum('total_weight'),
-            "total_weight" => collect($temp_arr)->sum('total_price'),
-        ]);
+        $t = [
+            "total_weight" => ceil($total_weight),
+            "total_price" => ceil($total_price),
+            "total_package_count" => ceil($total_package_count),
+        ];
+        $this->update($t);
     }
 }

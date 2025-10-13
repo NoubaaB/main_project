@@ -20,10 +20,12 @@ return new class extends Migration
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 
+            $table->foreignId('type_stock_id')->nullable()->index();
+
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This stocks table describe the stock of fish store after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail' );
+            $table->comment('This stocks table describe the stock of fish store after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail , and have relationship with type_stocks_table each stocks table have one type_stocks that indicate type of stock' );
         });
     }
 

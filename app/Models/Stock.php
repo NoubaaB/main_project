@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Models\StockFish;
+use App\Models\TypeStock;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Stock extends Model
@@ -17,6 +19,10 @@ class Stock extends Model
 
     function stock_fishes() : HasMany {
         return $this->hasMany(StockFish::class);
+    }
+
+    function type_stock() : BelongsTo {
+        return $this->belongsTo(TypeStock::class);
     }
 
     function calc() : array {

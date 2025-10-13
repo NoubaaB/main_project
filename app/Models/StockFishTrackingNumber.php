@@ -17,6 +17,19 @@ class StockFishTrackingNumber extends Model
 
     protected $guarded = [];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saved(function ($model) {
+            // $model->calc();
+        });
+
+        static::saving(function ($model) {});
+
+        static::deleted(function ($model) {});
+    }
+
     function stock_fish() : BelongsTo {
         return $this->belongsTo(StockFish::class);
     }
@@ -52,7 +65,6 @@ class StockFishTrackingNumber extends Model
             "total_price" => ceil($total_price),
             "total_package_count" => ceil($total_package_count),
             "unit_price" => ceil($unit_price / ($count == 0? 1 : $count)),
-            "out_of_stock" => $total_weight > 0 ? false : true,
         ];
         $this->update($t);
 

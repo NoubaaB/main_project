@@ -18,6 +18,7 @@ return new class extends Migration
 
             $table->double("total_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
+            $table->double("total_package_count")->default(0.00);
 
             $table->foreignId('type_sell_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();

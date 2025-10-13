@@ -20,6 +20,7 @@ class StockFactory extends Factory
             //
             "name" => $this->faker->unique()->word(),
             "description" => $this->faker->optional()->sentence(),
+            "type_stock_id"=> rand(1,3),
         ];
     }
 }

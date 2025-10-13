@@ -9,6 +9,16 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class SellFactory extends Factory
 {
+    function tracking_numbers() : array {
+        $length = rand(1, 5); // number of elements between 1 and 5
+
+        $numbers = [];
+        for ($i = 0; $i < $length; $i++) {
+            $numbers[] = (string) rand(1000, 9999999); // random number then cast to string
+        }
+        
+        return $numbers;
+    }
     /**
      * Define the model's default state.
      *
@@ -18,6 +28,8 @@ class SellFactory extends Factory
     {
         return [
             //
+            "date" => $this->faker->dateTimeBetween('-2 month', 'now'),
+            "tracking_numbers" => json_encode($this->tracking_numbers()),
         ];
     }
 }

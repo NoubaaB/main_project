@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use ReflectionClass;
 use GuzzleHttp\Client;
-use App\Models\Command;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -36,95 +35,48 @@ class AIQueryController extends Controller
         $question = $data['message'];
         $id = $data['id'];
         $theme = $data['theme'];
-        $sqlQuery = $this->generateSqlQuery($question);
-        if (!$sqlQuery) {
-            return response()->json(['error' => 'Failed to generate SQL query'], 400);
-        }
-
-        // Execute the SQL query safely
-        $answer = "";
-        try {
-            $result = DB::select($sqlQuery);
-            $answer = $this->generateProperAnswer($question, $id, $theme, response()->json($result, 200, [], JSON_PRETTY_PRINT));
-        } catch (\Exception $_e) {
-            $answer = $this->generateProperAnswer($question, $id, $theme);
-        }
-        // return view('ai')->with([
-        //     'answer' => $answer
-        // ]);  
-        return response()->json(['answer' => $answer], 200);
-    }
-
-    function getTableComments()
-    {
-        $database = DB::getDatabaseName();
-        $tablesWithComments = DB::table('information_schema.tables')
-            ->select('table_name', 'table_comment')
-            ->where('table_schema', $database)
-            ->get();
-        return $tablesWithComments;
-    }
-
-    private function generateSqlQuery($question)
-    {
 
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
         $table_comments = $this->getTableComments();
-        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
-            'query' => [
-                'key' => $this->geminiApiKey
-            ],
-            'json' => [
-                'contents' => [
-                    [
-                        'role' => 'user',
-                        'parts' => [
-                            [
-                                'text' => "
-                                You are an expert SQL data generator and analyst.
-                                The application is a fish management system built with Laravel and MySQL.
-                                You are provided with the database schema and table relationships: {$existingTables}
-                                and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
-
-                                Your task:
-                                - Internally analyze the schema and relationships step by step.
-                                - Do not show your reasoning.
-                                - Generate only one final output: a valid MySQL query that answers the user’s request.
-                                - Do not include markdown, explanations, or extra text — only return the raw SQL query.
-
-                                User question: {$question}
-                                "
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ]);
-
-        $body = json_decode($response->getBody(), true);
-        $rawQuery = $body['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-        if (!$rawQuery) {
-            return null;
-        }
-
-        // Remove markdown ```sql and ```
-        $cleanedQuery = preg_replace('/```sql|```/', '', trim($rawQuery));
-        return $cleanedQuery;
-    }
-
-    private function generateProperAnswer($question, $id, $theme, $data = null)
-    {
-        // Get all table names from DB
         $schema = $this->getDatabaseSchema()->getContent(); // This gives JSON of schema
-        $table_comments = $this->getTableComments();
+        // Generate SQL Query
+        $text = "
+            You are an expert SQL data generator and analyst.
+            The application is a fish management system built with Laravel and MySQL.
+            You are provided with the database schema and table relationships: {$existingTables}
+            and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
+
+            Your task:
+            - Internally analyze the schema and relationships step by step.
+            - Do not show your reasoning.
+            - Generate only one final output: a valid MySQL query that answers the user’s request.
+            - Do not include markdown, explanations, or extra text — only return the raw SQL query.
+
+            User question: {$question}
+        ";
+
+        $sqlQuery = $this->ask_ai($text);
+
+        if (!$sqlQuery) {
+            return response()->json(['error' => 'Failed to generate SQL query'], 500);
+        }
+        // Execute the SQL query safely
+        $answer = null;
+        try{
+            $result = DB::select($sqlQuery);
+            $result = response()->json($result, 200, [], JSON_PRETTY_PRINT);
+        }catch(\Exception $e){
+            
+        }
+        // Get all table names from DB
+    
         $text = "
             You are a professional SQL data analyst and frontend developer.
             don't fake data if local data is empty , id data is empty or NULL just write 'no data Availabel'.
             You are provided with the database schema and table relationships: {$schema}
             Based on:
-            - the local data: [$data]
+            - the local data: [$result]
             - and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
 
             Answer the question: ['$question'].
@@ -188,35 +140,45 @@ class AIQueryController extends Controller
             *do not use <body> tag
             *do not use v-chart use ApexCharts v5.3.5 instead
             *implement theme $theme mode
-            ";
-        if ($data == null) {
+        ";
+        if ($result == null) {
             $text = "
-            be free to Answer the question: '$question'.
+                be free to Answer the question: '$question'.
 
-            Instructions:
-            * consider that already import those liberary in my html file:
-                <link href='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css' rel='stylesheet'>
-                <link href='https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' rel='stylesheet'>
-                <script src='https://unpkg.com/vue@3.4.32/dist/vue.global.js'></script>
-                <script src='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js'></script>
-            *consider also that I already instance vue js and vuetify in my html file like this:
-            <script>
-                const { createApp } = Vue;
-                const vuetify = Vuetify.createVuetify();
-            </script>
-            *do not instace vuetify again in your code
-            *do not instace vue js again in your code
-            *do not use any other library or framework
-            *do not use any HTTP clients or HTTP request libraries like fetch or axios or call any URL
-            *then start code like this:
-            <div id='ai_$id'><v-containter class='bg-white rounded-xl'> /* write vuetify and vue js code here */ </v-container></div>
-            <script> createApp({ //write vue code here; })use(vuetify).mount('#ai_$id') </script>
-            - make sure that vue data properties match with what render in template vue
-            - make sure to make any number has relation with moneytize to be like this example '100.00'
-            and finally make sure if code work properly without any error
+                Instructions:
+                * consider that already import those liberary in my html file:
+                    <link href='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css' rel='stylesheet'>
+                    <link href='https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' rel='stylesheet'>
+                    <script src='https://unpkg.com/vue@3.4.32/dist/vue.global.js'></script>
+                    <script src='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js'></script>
+                *consider also that I already instance vue js and vuetify in my html file like this:
+                <script>
+                    const { createApp } = Vue;
+                    const vuetify = Vuetify.createVuetify();
+                </script>
+                *do not instace vuetify again in your code
+                *do not instace vue js again in your code
+                *do not use any other library or framework
+                *do not use any HTTP clients or HTTP request libraries like fetch or axios or call any URL
+                *then start code like this:
+                <div id='ai_$id'><v-containter class='bg-white rounded-xl'> /* write vuetify and vue js code here */ </v-container></div>
+                <script> createApp({ //write vue code here; })use(vuetify).mount('#ai_$id') </script>
+                - make sure that vue data properties match with what render in template vue
+                - make sure to make any number has relation with moneytize to be like this example '100.00'
+                and finally make sure if code work properly without any error
             ";
         }
-        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
+
+        //get final answer from ai
+        $answer = $this->ask_ai($text);
+
+        return response()->json(['answer' => $answer], 200);
+    }
+
+
+    function ask_ai($prompt_question) {
+
+        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],
@@ -225,7 +187,7 @@ class AIQueryController extends Controller
                     [
                         'role' => 'user',
                         'parts' => [
-                            ['text' => $text]
+                            ['text' => $prompt_question]
                         ]
                     ]
                 ]
@@ -239,8 +201,8 @@ class AIQueryController extends Controller
         }
 
         // Remove markdown ```sql and ```
-        $cleanedQuery = preg_replace('/```sql|```/', '', trim($rawQuery));
-        return $cleanedQuery;
+        $answer = preg_replace('/```sql|```/', '', trim($rawQuery));
+        return $answer;
     }
 
     public function getDatabaseSchema()
@@ -310,5 +272,15 @@ class AIQueryController extends Controller
         }
 
         return $relationships;
+    }
+
+    function getTableComments()
+    {
+        $database = DB::getDatabaseName();
+        $tablesWithComments = DB::table('information_schema.tables')
+            ->select('table_name', 'table_comment')
+            ->where('table_schema', $database)
+            ->get();
+        return $tablesWithComments;
     }
 }

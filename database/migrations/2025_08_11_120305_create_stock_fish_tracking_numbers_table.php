@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
 
             $table->json("tracking_numbers")->nullable();
-            $table->boolean("out_of_stock")->default(false);
+
+            $table->date("date_in_stock")->nullable();
+            $table->date("date_out_of_stock")->nullable();
+
 
             $table->double("unit_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
