@@ -63,6 +63,7 @@ class AIQueryController extends Controller
         }
         // Execute the SQL query safely
         $answer = null;
+        $result = null;
         try{
             $result = DB::select($sqlQuery);
             $result = response()->json($result, 200, [], JSON_PRETTY_PRINT);
@@ -72,7 +73,7 @@ class AIQueryController extends Controller
         // Get all table names from DB
     
         $text = "
-            You are a professional SQL data analyst and frontend developer.
+            You are a Moroccan chartered accountant and a professional SQL data analyst and a frontend developer.
             don't fake data if local data is empty , id data is empty or NULL just write 'no data Availabel'.
             You are provided with the database schema and table relationships: {$schema}
             Based on:
@@ -190,6 +191,9 @@ class AIQueryController extends Controller
                             ['text' => $prompt_question]
                         ]
                     ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.2, // lower temp => faster + more deterministic
                 ]
             ]
         ]);

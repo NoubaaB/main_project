@@ -3,8 +3,6 @@
 namespace App\Models;
 
 use App\Models\FishFamilly;
-use App\Models\ChargeDetail;
-use App\Models\ProductionDetail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,14 +16,14 @@ class FishType extends Model
 
     protected $guarded = [];
 
-    function charge_details() : HasMany
+    function non_warehouse_charge_items() : HasMany
     {
-        return $this->hasMany(ChargeDetail::class, 'fish_type_id');    
+        return $this->hasMany(NonWarehouseChargeItem::class, 'fish_type_id');    
     }
 
-    function production_details() : HasMany
+    function warehouse_fish_tracking_number_operations() : HasMany
     {
-        return $this->hasMany(ProductionDetail::class, 'fish_type_id');    
+        return $this->hasMany(WarehouseFishTrackingNumberOperation::class, 'fish_type_id');    
     }
 
     function fish_familly() : BelongsTo {

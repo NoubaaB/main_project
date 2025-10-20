@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PasswordReset;
 use App\Models\Supplier;
+use App\Models\Warehouse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -194,7 +195,7 @@ class AuthController extends Controller implements HasMiddleware
         $suppliers = Supplier::all();
         $fish_types = FishType::all();
         $packages = Package::all();
-        $stocks = Stock::all();
+        $warehouse = Warehouse::all();
         $fisheries = Fishery::all();
         $origins = Origin::all();
         $type_charges = TypeCharge::all();
@@ -202,7 +203,7 @@ class AuthController extends Controller implements HasMiddleware
             "suppliers" => $suppliers,
             "fish_types" => $fish_types,
             "packages" => $packages,
-            "stocks" => $stocks,
+            "warehouse" => $warehouse,
             "type_charges" => $type_charges,
             "fisheries" => $fisheries,
             "origins" => $origins,

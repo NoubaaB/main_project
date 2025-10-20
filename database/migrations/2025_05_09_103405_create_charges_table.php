@@ -20,9 +20,10 @@ return new class extends Migration
             $table->double("total_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->double("total_package_count")->default(0.00);
-            $table->boolean("is_stockable")->default(false);
+            // $table->boolean("is_stockable")->default(false);
 
             $table->foreignId('fishery_id')->nullable()->index();
+            $table->foreignId('ship_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();
             $table->foreignId('type_charge_id')->nullable()->index();
 

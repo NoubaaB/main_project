@@ -8,16 +8,17 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Cloudstudio\Ollama\Facades\Ollama;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Support\Facades\Http;
 
 class DeepSeekController extends Controller
 {
-    //
-
     public function ask(Request $request)
     {
+        // $question = "give me data table and column chart me commands and date and tips and total in the last 30 days format numbers to readable format";
+        // $question = "get all commands and analyse it and tell me what is the month that I lose the money and what is the month that i gain the money and what is the month that i have a lot of commands and what is the month that i have few commands";
+        // $question = "give me Chart with Column with Data Labels of all days total commands and total tips and total globally in the last 15 days in MAD and format numbers to must be readable";
         $data = $request->validate([
             'message' => 'required|string',
             'id' => 'required|numeric',
@@ -26,181 +27,160 @@ class DeepSeekController extends Controller
         $question = $data['message'];
         $id = $data['id'];
         $theme = $data['theme'];
-        $sqlQuery = $this->generateSqlQuery($question);
-        if (!$sqlQuery) {
-            return response()->json(['error' => 'Failed to generate SQL query'], 400);
-        }
-
-        // Execute the SQL query safely
-        $answer = "";
-        try {
-            $result = DB::select($sqlQuery);
-            $answer = $this->generateProperAnswer($question, $id, $theme, response()->json($result, 200, [], JSON_PRETTY_PRINT));
-        } catch (\Exception $_e) {
-            $answer = $this->generateProperAnswer($question, $id, $theme);
-        }
-        // return view('ai')->with([
-        //     'answer' => $answer
-        // ]);  
-        return response()->json(['answer' => $answer], 200);
-    }
-
-
-    private function generateSqlQuery($question)
-    {
 
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
         $table_comments = $this->getTableComments();
-        $message = "
-                                You are an expert SQL data generator and analyst.
-                                The application is a fish management system built with Laravel and MySQL.
-                                You are provided with the database schema and table relationships: {$existingTables}
-                                and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
-
-                                Your task:
-                                - Internally analyze the schema and relationships step by step.
-                                - Do not show your reasoning.
-                                - Generate only one final output: a valid MySQL query that answers the user’s request.
-                                - Do not include markdown, explanations, or extra text — only return the raw SQL query.
-
-                                User question: {$question}
-                                ";
-
-        $rawQuery = $this->ai($message);
-
-        // Extract SQL query from the response
-
-        if (!$rawQuery) {
-            return null;
-        }
-
-        // Remove markdown ```sql and ```
-        $cleanedQuery = preg_replace('/```sql|```/', '', trim($rawQuery));
-        return $cleanedQuery;
-    }
-
-    private function generateProperAnswer($question, $id, $theme, $data = null)
-    {
-        // Get all table names from DB
         $schema = $this->getDatabaseSchema()->getContent(); // This gives JSON of schema
-        $table_comments = $this->getTableComments();
+        // Generate SQL Query
         $text = "
-            You are a professional SQL data analyst and frontend developer.
-            don't fake data if local data is empty , id data is empty or NULL just write 'no data Availabel'.
-            You are provided with the database schema and table relationships: {$schema}
-            Based on:
-            - the local data: [$data]
-            - and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
+            You are an expert SQL data generator and analyst.
+            The application is a fish management system built with Laravel and MySQL.
+            You are provided with the database schema and table relationships: {$existingTables}
+            and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
 
-            Answer the question: ['$question'].
+            Your task:
+            - Internally analyze the schema and relationships step by step.
+            - Do not show your reasoning.
+            - Generate only one final output: a valid MySQL query that answers the user’s request.
+            - Do not include markdown, explanations, or extra text — only return the raw SQL query.
+            - Ensure the SQL query is syntactically correct and executable.
+            - Use table and column names exactly as they appear in the schema.
+            - give me only one SQL query that is the most efficient to get the data ( pure sql without any comments or markdown).
+            User question: {$question}
+        ";
 
-            Instructions:
-            * consider that already html file:
-            <!DOCTYPE html>
-            <html lang='en'>
-            <head>
-                <link href='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css' rel='stylesheet'>
-                <link href='https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' rel='stylesheet'>
-                <script src='https://unpkg.com/vue@3/dist/vue.global.js'></script>
-                <script src='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js'></script>
-                <script src='https://cdn.jsdelivr.net/npm/apexcharts'></script>
-                <script type='importmap'>
-                    {
-                        'imports': {
-                            'vue': 'https://cdn.jsdelivr.net/npm/vue@latest/dist/vue.esm-browser.js',
-                            'vuetify': 'https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.esm.js'
-                        }
-                    }
-                </script>
+        $sqlQuery = $this->ask_ai($text);
 
-            </head>
+        if (!$sqlQuery) {
+            return response()->json(['error' => 'Failed to generate SQL query'], 500);
+        }
+        // Execute the SQL query safely
+        $answer = null;
+        $result = null;
+        try {
+            $result = DB::select($sqlQuery);
+            $result = response()->json($result, 200, [], JSON_PRETTY_PRINT) ?? null;
+        } catch (\Exception $e) {
+        }
+        // Get all table names from DB
+        $text = "
+                You are a professional SQL data analyst and frontend developer.
 
-            <body>
-                <div id='app'></div>
-                @vite(['resources/js/app.js'])
+                Context variables (will be provided by the caller):
+                - $schema          => the database schema and table relationships (string).
+                - $result          => the local data rows (JSON array or object) retrieved from the database.
+                - $table_comments  => comments/descriptions for each table to explain relation and purpose (string).
+                - $question        => the user's natural language question (string).
+                - $id              => a short unique id (alphanumeric) that must be used to namespace DOM ids.
 
-                <script>
-                    const {
-                        createApp
-                    } = Vue
-                    const {
-                        createVuetify
-                    } = Vuetify
+                Primary goal:
+                Produce a single HTML *body fragment* only (no <html>, <head>, or <body> tags). The output must be pure HTML + inline <script> needed to mount a Vue 3 (Option API) component that uses the existing Vuetify instance on the page. The fragment will be injected into an existing HTML file that already includes Vue 3 and Vuetify and already defines `const vuetify = createVuetify();` and exposes `Vue` globals.
 
-                    const vuetify = createVuetify();
-                </script>
-            </body>
+                High-level rules (strict — follow them exactly):
+                1. OUTPUT: Return **only** the body fragment: a top-level `<div id='ai_$id'>...</div>` followed by a single `<script>` that mounts the component. No extra text, no markdown, no explanations.
+                2. START exactly like this (replace $id with provided id):  
+                `<div id='ai_$id'><v-container class='bg-white rounded-xl'> ... </v-container></div>`  
+                `<script> createApp({ /* Option API */ }).use(vuetify).mount('#ai_$id') </script>`
+                - You may use `createApp` here, but **do not** call `createVuetify()` or re-import Vue or Vuetify. Use the existing global `vuetify`.
+                3. Do **not** include CDN `<script>` or `<link>` tags — the host page already provides them.
+                4. Use **Vue 3 Option API** (data, computed, methods, mounted). Template must bind exactly to data properties.
+                5. Do **not** instantiate Vue or Vuetify globally beyond the final `createApp(...).use(vuetify).mount(...)` call.
+                6. Do **not** use any HTTP calls, fetch/axios, or call any URL.
+                7. Do **not** use any other library or framework.
+                8. Do **not** use `<apexchart/>` or any 3rd-party Vue chart wrapper. If you need a chart, render a plain `<div id='aichart_$id'></div>` and initialize ApexCharts inside `mounted()` by selecting that id. Use ApexCharts v5 style JS initialization.
+                9. Do **not** use `v-table`. Use `v-data-table` if a table is required.
+                10. When presenting any numeric values that represent money, format them in Moroccan Dirham (MAD) and format numbers with a space as thousands separator and two decimals, for example: `3 000.00 MAD`. All other numbers should follow the same thousands-space and two-decimal format (e.g., `1 234.50`).
+                11. If any required field is `null`, missing, or empty, do **not** invent values — render the exact text: `no data available`.
+                12. Ensure all DOM ids are namespaced using `$id` (e.g., `ai_$id`, `aichart_$id`) so the fragment is safe to inject multiple times.
+                13. Use only Vuetify components available in the page. Keep markup semantically clean and accessible.
+                14. Make sure the template's bindings exactly match the `data()` structure (no undeclared reactive props).
+                15. Ensure the generated JS has no syntax errors and would run in a browser environment where Vue 3 and Vuetify are already loaded and a global `vuetify` variable exists.
 
-            </html>
-            * please prevent use v-table in vue js code this is most important
-            *do not instace vuetify again in your code
-            *do not instace vue js again in your code
-            *do not use any other library or framework
-            *do not use any HTTP clients or HTTP request libraries like fetch or axios or call any URL
-            * when use Apexchart use it as <div id='aichart_$id'></div> with id *do not use <apexchart/> component*, use random id to identifier 
-            *then start code like this:
-            <div id='ai_$id'><v-containter class='bg-white rounded-xl'> /* write vuetify and vue js code here */ </v-container></div>
-            <script> createApp({ //write vue code here; })use(vuetify).mount('#ai_$id') </script>
-            * make sure that vue data properties match with what render in template vue in option API
-            * make sure to make any number has relation with moneytize to be like this example '100.00'
-            * Use Moroccan Dirham (MAD) for any money values and format any nymber like this example '3 000.00' .
-            Give me only the body content of an HTML file using Vue 3 and Vuetify 3 via CDN — no <html>, <head>, or styles — just the <div id='app'>, the CDN <script> tags, the Vue template in <script type='text / x - template'>, and the JavaScript to mount the app.             
-            and finally make sure if code work properly without any error
-            *do not instance vue js again in your code
-            *do not instance vuetify again in your code like createApp or createVuetify
-            *do not use any other library or framework
-            *do not use v-table use v-data-table instead
-            *do not use <body> tag
-            *do not use v-chart use ApexCharts v5.3.5 instead
-            *implement theme $theme mode
-            ";
-        if ($data == null) {
+                Behavioral requirements (how to interpret inputs and produce output):
+                - Read `$schema` and `$table_comments` to understand relationships and field meanings. Use them to pick the best fields from `$result`.
+                - Answer `$question` by producing HTML that answers it visually (cards, lists, v-data-table, or charts). Focus on clarity and brevity.
+                - If `$result` is empty or contains no rows relevant to the question, render a simple informative card with the text `no data available`.
+                - All textual content is plain HTML; do not include any analytics, remote logging, or inline event handlers that call external URLs.
+                - If showing currency or totals, compute them from provided `$result` and format as specified (MAD with thousands-space and two decimals). Do not fabricate totals — compute them only from the provided `$result`.
+                - If you produce a chart, the chart must be initialized in `mounted()` using ApexCharts by selecting the `#aichart_$id` element and calling `new ApexCharts(...).render()`. The options must be basic and inline; do not call external resources.
+
+                Template & JS structure required (exact pattern):
+                - Top-level wrapper: `<div id='ai_$id'><v-container class='bg-white rounded-xl pa-4'> ... </v-container></div>`
+                - After wrapper, a single `<script>` that contains:
+                - `createApp({`  
+                    `  data(){ return { /* reactive properties used by template */ } },`  
+                    `  computed: { ... },`  
+                    `  methods: { ... },`  
+                    `  mounted(){ /* apexcharts init if needed */ }`  
+                    `}).use(vuetify).mount('#ai_$id')`
+                - Keep the script compact and only include code required to render the UI for the question.
+
+                Small examples of correct patterns (the model should follow these patterns, not print them literally in the answer):
+                - Chart container id: `<div id='aichart_$id'></div>` and then inside mounted: `const chart = new ApexCharts(document.querySelector('#aichart_$id'), options); chart.render();`
+                - Money example rendered as: `<div>{{ formatMoney(row.total) }}</div>` where `formatMoney` produces `'3 000.00 MAD'`.
+
+                Edge cases:
+                - If `$result` contains nested relationships, flatten only what is necessary to answer `$question`. If a relation field is missing, show `no data available` for that cell.
+                - If `$question` asks for SQL, return only the UI HTML fragment that displays the SQL and results (do not execute SQL).
+                - If more than one visualization might answer the question, prefer a simple set of Vuetify cards + a small table; add a chart only if it adds real value.
+
+                Final strict output instruction:
+                - Produce **only** the HTML fragment described above (wrapper + script). Nothing else. No commentary, no debug logs, no extra whitespace outside the fragment.
+
+                Now: using the variables provided ($schema, $result, $table_comments, $question, $id), generate the body fragment that answers $question and follows all rules above.
+        ";
+        if ($result == null) {
             $text = "
-            be free to Answer the question: '$question'.
+                be free to Answer the question: '$question'.
 
-            Instructions:
-            * consider that already import those liberary in my html file:
-                <link href='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css' rel='stylesheet'>
-                <link href='https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' rel='stylesheet'>
-                <script src='https://unpkg.com/vue@3.4.32/dist/vue.global.js'></script>
-                <script src='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js'></script>
-            *consider also that I already instance vue js and vuetify in my html file like this:
-            <script>
-                const { createApp } = Vue;
-                const vuetify = Vuetify.createVuetify();
-            </script>
-            *do not instace vuetify again in your code
-            *do not instace vue js again in your code
-            *do not use any other library or framework
-            *do not use any HTTP clients or HTTP request libraries like fetch or axios or call any URL
-            *then start code like this:
-            <div id='ai_$id'><v-containter class='bg-white rounded-xl'> /* write vuetify and vue js code here */ </v-container></div>
-            <script> createApp({ //write vue code here; })use(vuetify).mount('#ai_$id') </script>
-            - make sure that vue data properties match with what render in template vue
-            - make sure to make any number has relation with moneytize to be like this example '100.00'
-            and finally make sure if code work properly without any error
+                Instructions:
+                * consider that code is already exist in html file:'
+                    <link href='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css' rel='stylesheet'>
+                    <link href='https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' rel='stylesheet'>
+                    <script src='https://unpkg.com/vue@3.4.32/dist/vue.global.js'></script>
+                    <script src='https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js'></script>
+                    <script>
+                        const { createApp } = Vue;
+                        const vuetify = Vuetify.createVuetify();
+                    </script>'
+
+                *do not instace vuetify again in your code
+                *do not instace vue js again in your code
+                *do not use any other library or framework
+                *do not use any HTTP clients or HTTP request libraries like fetch or axios or call any URL
+                *then start code like this:
+                <div id='ai_$id'><v-containter class='bg-white rounded-xl'> /* write vuetify and vue js code here */ </v-container></div>
+                <script> createApp({ //write vue code here; })use(vuetify).mount('#ai_$id') </script>
+                - make sure that vue data properties match with what render in template vue
+                - make sure to make any number has relation with moneytize to be like this example '100.00'
+                and finally make sure if code work properly without any error
             ";
         }
-        $answer = $this->ai($text);
-        return $answer;
+
+        //get final answer from ai
+        $answer = $this->ask_ai($text);
+
+        return response()->json(['answer' => $answer], 200);
     }
 
-    function ai($question)
+
+    function ask_ai($prompt_question)
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('OPENROUTER_API_KEY'),
-            'HTTP-Referer'  => url('/'),  // Required by OpenRouter
-            'X-Title'       => 'My Laravel AI App',  // Optional
-        ])->post(env('OPENROUTER_API_URL'), [
-            'model' => 'deepseek/deepseek-chat',
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are a helpful assistant.'],
-                ['role' => 'user', 'content' => $question],
-            ],
-        ]);
-        dd($response->json());
-        return $response->json()["choices"][0]["message"]['content'];
+        $response = Ollama::agent('You are an AI assistant connected to a Laravel app database. answer the question without any hallucinations or explaining give just clean code')
+            ->prompt($prompt_question)
+            ->model('deepseek-v3.1:671b-cloud')
+            ->options([
+                'temperature' => 0.8,  // More creative
+                'top_p' => 0.9,
+                'max_tokens' => 5000000
+            ])
+            ->ask();
+        try {
+            return  $response['response'];
+        } catch (\Exception $e) {
+            return dd($response);
+        }
     }
 
     public function getDatabaseSchema()

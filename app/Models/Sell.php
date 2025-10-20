@@ -3,11 +3,9 @@
 namespace App\Models;
 
 use App\Models\Client;
-use App\Models\SellDetail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\StockFishTrackingNumberOperation;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\WarehouseFishTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -18,7 +16,7 @@ class Sell extends Model
     /** @use HasFactory<\Database\Factories\SellFactory> */
     use HasFactory , SoftDeletes;
 
-    protected $with = ['sell_details'];
+    protected $with = ['warehouse_fish_tracking_number_operations', 'clients'];
 
     protected $guarded = [];
 
@@ -26,25 +24,20 @@ class Sell extends Model
         'date' => 'date:Y-m-d',
         'tracking_numbers' => 'array',
         'tracking_onp_numbers' => 'array',
-        'is_stockable' => 'boolean',
+        'is_warehouseable' => 'boolean',
         'note' => 'string',
         'sell_details_total_price' => 'double',
         'sell_details_total_weight' => 'double'
     ];
 
-    function stock_fish_tracking_number_operations(): MorphMany
+    function warehouse_fish_tracking_number_operations(): MorphMany
     {
-        return $this->morphMany(StockFishTrackingNumberOperation::class, 'operationable');
+        return $this->morphMany(WarehouseFishTrackingNumberOperation::class, 'operationable');
     }
 
     function type_sell(): BelongsTo
     {
         return $this->belongsTo(TypeSell::class, 'type_sell_id');
-    }
-
-    function sell_details(): HasMany
-    {
-        return $this->hasMany(SellDetail::class);
     }
 
     function clients(): BelongsToMany
@@ -63,10 +56,10 @@ class Sell extends Model
         $total_weight = 0.00;
         $total_price = 0.00;
         $total_package_count = 0.00;
-        foreach ($this->stock_fish_tracking_number_operations as $stock_fish_tracking_number_operation) {
-            $total_weight += $stock_fish_tracking_number_operation->total_weight;
-            $total_price += $stock_fish_tracking_number_operation->total_price;
-            $total_package_count += $stock_fish_tracking_number_operation->total_package_count;
+        foreach ($this->warehouse_fish_tracking_number_operations as $warehouse_fish_tracking_number_operation) {
+            $total_weight += $warehouse_fish_tracking_number_operation->total_weight;
+            $total_price += $warehouse_fish_tracking_number_operation->total_price;
+            $total_package_count += $warehouse_fish_tracking_number_operation->total_package_count;
         }
 
         $t = [
