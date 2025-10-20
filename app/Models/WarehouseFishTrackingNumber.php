@@ -17,6 +17,10 @@ class WarehouseFishTrackingNumber extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        "tracking_numbers" => "array"
+    ];
+
     protected static function boot()
     {
         parent::boot();

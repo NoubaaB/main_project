@@ -21,6 +21,7 @@ use App\Models\TypeCharge;
 use App\Support\CsvReader;
 use App\Models\FishFamilly;
 use App\Models\TypeWarehouse;
+use App\Models\WarehouseFish;
 use Illuminate\Database\Seeder;
 use App\Models\WarehouseFishTrackingNumberOperation;
 
@@ -70,7 +71,7 @@ class DatabaseSeeder extends Seeder
 
         $path = 'storage/csv/chambres.csv';
         $typeWarehouse = TypeWarehouse::create([
-            "name"=>"congele"
+            "name" => "congele"
         ]);
         $rows = CsvReader::read($path);
 
@@ -123,7 +124,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $path =('storage/csv/types.csv');
+        $path = ('storage/csv/types.csv');
 
         $rows = CsvReader::read($path);
 
@@ -188,7 +189,6 @@ class DatabaseSeeder extends Seeder
 
         $rows = CsvReader::read($path);
         foreach ($rows as $data) {
-            // dd(json_decode($data["types_reception"]));
             $charge = Charge::create([
                 "date" => $data["date_reception"],
                 "tracking_numbers" => $data["num_bon_receptions"],
@@ -213,5 +213,62 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        $path = ('storage/csv/congeles.csv');
+
+        $rows = CsvReader::read($path);
+
+        foreach ($rows as $data) {
+            $charge = Charge::create([
+                "date" => $data["date_reception"],
+                "tracking_numbers" => $data["num_bon_receptions"],
+                "origin_id" => $data["origin_id"],
+                "fishery_id" => $data["place_id"],
+                "type_charge_id" => $type_charge->id,
+                "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
+            ]);
+
+            $suppliers = Supplier::find(collect(json_decode($data["providers"]))->pluck('id')->toArray());
+            $charge->suppliers()->attach($suppliers);
+            foreach (json_decode($data["types_production"]) as $item) {
+                $warehouse = Warehouse::find($item->chambre_id);
+                $warehouse_fish = null;
+                if ($warehouse->warehouse_fishes()->where("fish_type_id", $item->type_id)->count() != 1) {
+                    $warehouse_fish = $warehouse->warehouse_fishes()->where("fish_type_id", $item->type_id)->first();
+                }
+                $warehouse_fish = $warehouse->warehouse_fishes()->create([
+                    "unit_price" => 0.00,
+                    "total_weight" => 0.00,
+                    "total_price" => 0.00,
+                    "total_package_count" => 0.00,
+                    "warehouse_id" => $warehouse->id,
+                    "fish_type_id" => $item->type_id
+                ]);
+                $warehouse_fish_tracking_number = null;
+                if ($warehouse_fish->warehouse_fish_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception)->count() != 1) {
+                    $warehouse_fish_tracking_number = $warehouse_fish->warehouse_fish_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception);
+                }
+                $warehouse_fish_tracking_number = $warehouse_fish->warehouse_fish_tracking_numbers()->create([
+                    "tracking_numbers" => [(string)$item->num_bon_reception],
+                    "unit_price" => 0.00,
+                    "total_weight" => 0.00,
+                    "total_price" => 0.00,
+                    "total_package_count" => 0.00,
+                    "warehouse_fish_id" => $warehouse_fish->id,
+                    "fish_type_id" => $item->type_id
+                ]);
+
+                $s_f_t_n_o = $warehouse_fish_tracking_number->warehouse_fish_tracking_number_operations()->create([
+                    "type_operation" => "in",
+                    "date" => $charge->date,
+                    "unit_price" => $item->pu,
+                    "total_weight" => $item->total_weight_container,
+                    "total_price" => $item->total_weight_container * $item->pu,
+                    "total_package_count" => round($item->total_weight_container / Package::find($item->container_id)->size, 2),
+                    "fish_type_id" => $item->type_id,
+                    "package_id" => $item->container_id,
+                ]);
+                $charge->warehouse_fish_tracking_number_operations()->save($s_f_t_n_o);
+            }
+        }
     }
 }

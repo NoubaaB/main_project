@@ -33,7 +33,6 @@ class ChargeFactory extends Factory
             "tracking_numbers" => json_encode($this->tracking_numbers()),
             // "total_price" => $this->faker->randomFloat(2, 100, 1000),
             // "total_weight" => $this->faker->randomFloat(2, 10, 100),
-            "is_stockable" => $this->faker->boolean,
         ];
     }
 }
