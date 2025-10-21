@@ -8,6 +8,6 @@ class ChargeShip extends Model
 {
     //
     protected $guarded = [];
-    protected $table = 'ship_charges';
+    protected $table = 'charge_ships';
     public $timestamps = false;
 }

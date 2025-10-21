@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Sell;
 use App\Models\Charge;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -19,5 +20,11 @@ class Ship extends Model
     {
         return $this->belongsToMany(Charge::class, "charge_ships", "ship_id", "charge_id")
             ->withPivot('charge_id', 'ship_id');
+    }
+
+    function sells(): BelongsToMany
+    {
+        return $this->belongsToMany(Sell::class, "sell_ships", "ship_id", "sell_id")
+            ->withPivot('sell_id', 'ship_id');
     }
 }

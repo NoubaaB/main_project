@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Truck;
 use App\Models\Client;
+use App\Models\Origin;
+use App\Models\Fishery;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\WarehouseFishTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Sell extends Model
 {
@@ -44,6 +47,22 @@ class Sell extends Model
     {
         return $this->belongsToMany(Client::class, "sell_clients", "sell_id", "client_id")
             ->withPivot('sell_id', 'client_id');
+    }
+
+    function fishery(): BelongsTo
+    {
+        return $this->belongsTo(Fishery::class);
+    }
+
+    function ships(): BelongsToMany
+    {
+        return $this->belongsToMany(Ship::class, "sell_ships", "sell_id", "ship_id")
+            ->withPivot('sell_id', 'ship_id');
+    }
+
+    function truck(): BelongsTo
+    {
+        return $this->belongsTo(Truck::class);
     }
 
     function origin(): BelongsTo

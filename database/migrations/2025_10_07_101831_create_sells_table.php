@@ -15,13 +15,16 @@ return new class extends Migration
             $table->id();
             $table->date("date")->nullable();
             $table->json("tracking_numbers")->nullable();
+            $table->string("note", 500)->nullable();
 
             $table->double("total_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 
-            $table->foreignId('type_sell_id')->nullable()->index();
+            $table->foreignId('fishery_id')->nullable()->index();
+            $table->foreignId('ship_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();
+            $table->foreignId('type_sell_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Ship;
 use App\Models\Truck;
 use App\Models\Origin;
+use App\Models\Fishery;
 use App\Models\Supplier;
 use App\Models\TypeCharge;
 use App\Models\NonWarehouseChargeItem;
@@ -67,6 +68,10 @@ class Charge extends Model
     {
         return $this->belongsToMany(Supplier::class, "charge_suppliers", "charge_id", "supplier_id")
                 ->withPivot('charge_id', 'supplier_id');
+    }
+
+    function fishery() : BelongsTo {
+        return $this->belongsTo(Fishery::class);
     }
 
     function ships(): BelongsToMany
