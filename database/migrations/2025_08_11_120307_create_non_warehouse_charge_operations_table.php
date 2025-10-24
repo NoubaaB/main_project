@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('non_warehouse_charge_items', function (Blueprint $table) {
+        Schema::create('non_warehouse_charge_operations', function (Blueprint $table) {
             $table->id();
 
 
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment("This non_warehouse_charge_items table is describe all charges detail items that are not regularly kept in a company's warehouse or inventory , its can be fishs or services or other fish production charges");
+            $table->comment("This non_warehouse_charge_operations table is describe all charges detail items that are not regularly kept in a company's warehouse or inventory , its can be fishs or services or other fish production charges");
         });
     }
 
@@ -37,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('non_warehouse_charge_items');
+        Schema::dropIfExists('non_warehouse_charge_operations');
     }
 };

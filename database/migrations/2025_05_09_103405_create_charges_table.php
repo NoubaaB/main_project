@@ -31,7 +31,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This charges table describe purchase fish or other type of charges and caclulate total of price and quantity in stock_fish_tracking_number_operations.total_price , stock_fish_tracking_number_operations.total_weight and have relationship with suppliers table as belong to one supplier record, fisheries table as belong to one fishery record, origins table as belong to one origin record, type_charges table as belong to one type_charge record, stock_fish_tracking_number_operations table as has many of stock_fish_tracking_number_operations records' );
+            $table->comment('This table records fish purchases. It calculates total price and weight in both tables stock_fish_tracking_number_operations and non_warehouse_charge_operations. It belongs to one supplier, one fishery, one origin, and one type_charge, and has many related with stock_fish_tracking_number_operations records and non_warehouse_charge_operations as well.');
         });
     }
 

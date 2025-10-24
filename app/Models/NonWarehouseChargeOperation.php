@@ -9,9 +9,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class NonWarehouseChargeItem extends Model
+class NonWarehouseChargeOperation extends Model
 {
-    /** @use HasFactory<\Database\Factories\NonWarehouseChargeItemFactory> */
+    /** @use HasFactory<\Database\Factories\NonWarehouseChargeOperationFactory> */
     use HasFactory , SoftDeletes;
 
     protected $guarded = [];

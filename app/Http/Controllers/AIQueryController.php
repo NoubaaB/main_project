@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use ReflectionClass;
-use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Services\GeminiService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Model;
@@ -13,15 +13,12 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AIQueryController extends Controller
 {
-    private $geminiApiKey;
-    private $client;
+    private $gemini = null;
 
-    public function __construct()
-    {
-        $this->geminiApiKey = env('GEMINI_API_KEY'); // Set in .env file
-        $this->client = new Client(['base_uri' => 'https://generativelanguage.googleapis.com/v1/']);
+    public function __construct() {
+        $this->gemini = new GeminiService();
     }
-
+    
     public function ask(Request $request)
     {
         // $question = "give me data table and column chart me commands and date and tips and total in the last 30 days format numbers to readable format";
@@ -56,19 +53,17 @@ class AIQueryController extends Controller
             User question: {$question}
         ";
 
-        $sqlQuery = $this->ask_ai($text);
-
+        $sqlQuery = $this->gemini->generate($text);
         if (!$sqlQuery) {
-            return response()->json(['error' => 'Failed to generate SQL query'], 500);
+            return $sqlQuery;
         }
         // Execute the SQL query safely
         $answer = null;
         $result = null;
         try{
             $result = DB::select($sqlQuery);
-            $result = response()->json($result, 200, [], JSON_PRETTY_PRINT);
+            $result = json_encode($result);
         }catch(\Exception $e){
-            
         }
         // Get all table names from DB
     
@@ -171,43 +166,11 @@ class AIQueryController extends Controller
         }
 
         //get final answer from ai
-        $answer = $this->ask_ai($text);
+        $answer = $this->gemini->generate($text);
 
         return response()->json(['answer' => $answer], 200);
     }
 
-
-    function ask_ai($prompt_question) {
-
-        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
-            'query' => [
-                'key' => $this->geminiApiKey
-            ],
-            'json' => [
-                'contents' => [
-                    [
-                        'role' => 'user',
-                        'parts' => [
-                            ['text' => $prompt_question]
-                        ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.2, // lower temp => faster + more deterministic
-                ]
-            ]
-        ]);
-        $body = json_decode($response->getBody(), true);
-        $rawQuery = $body['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-        if (!$rawQuery) {
-            return null;
-        }
-
-        // Remove markdown ```sql and ```
-        $answer = preg_replace('/```sql|```/', '', trim($rawQuery));
-        return $answer;
-    }
 
     public function getDatabaseSchema()
     {

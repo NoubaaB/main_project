@@ -60,7 +60,7 @@ class DeepSeekController extends Controller
         $result = null;
         try {
             $result = DB::select($sqlQuery);
-            $result = response()->json($result, 200, [], JSON_PRETTY_PRINT) ?? null;
+            $result = json_encode($result);
         } catch (\Exception $e) {
         }
         // Get all table names from DB
@@ -169,17 +169,12 @@ class DeepSeekController extends Controller
     {
         $response = Ollama::agent('You are an AI assistant connected to a Laravel app database. answer the question without any hallucinations or explaining give just clean code')
             ->prompt($prompt_question)
-            ->model('deepseek-v3.1:671b-cloud')
-            ->options([
-                'temperature' => 0.8,  // More creative
-                'top_p' => 0.9,
-                'max_tokens' => 5000000
-            ])
+            ->model('gpt-oss:120b-cloud')
             ->ask();
         try {
             return  $response['response'];
         } catch (\Exception $e) {
-            return dd($response);
+            return dd($response, $e);
         }
     }
 

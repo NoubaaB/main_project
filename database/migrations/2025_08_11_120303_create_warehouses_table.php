@@ -20,10 +20,7 @@ return new class extends Migration
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 
-            $table->enum("type_wirehouse",["local", "foreign","client"])->nullable()
-            ->comment("This type_wirehouse's Column describe type of wirehouse. local means every fish in the company store here , foreign means that fish that company store in other companies , client means fish that client store in our local warehouses");
-
-            $table->foreignId('type_wirehouse_id')->nullable()->index();
+            $table->foreignId('type_warehouse_id')->nullable()->index()->comment("This type_warehouse_id's Column is one to many relationship with warehouses table its describe type of wirehouse. local means every fish in the company store here , foreign means that fish that company store in other companies , client means fish that client store in our local warehouses");
 
             $table->timestamps();
             $table->softDeletes();

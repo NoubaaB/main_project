@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\NonWarehouseChargeItem;
+use App\Models\NonWarehouseChargeOperation;
 use Illuminate\Http\Request;
 
-class NonWarehouseChargeItemController extends Controller
+class NonWarehouseChargeOperationController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class NonWarehouseChargeItemController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(NonWarehouseChargeItem $nonWarehouseChargeItem)
+    public function show(NonWarehouseChargeOperation $nonWarehouseChargeOperation)
     {
         //
     }
@@ -42,7 +42,7 @@ class NonWarehouseChargeItemController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(NonWarehouseChargeItem $nonWarehouseChargeItem)
+    public function edit(NonWarehouseChargeOperation $nonWarehouseChargeOperation)
     {
         //
     }
@@ -50,7 +50,7 @@ class NonWarehouseChargeItemController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, NonWarehouseChargeItem $nonWarehouseChargeItem)
+    public function update(Request $request, NonWarehouseChargeOperation $nonWarehouseChargeOperation)
     {
         //
     }
@@ -58,7 +58,7 @@ class NonWarehouseChargeItemController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(NonWarehouseChargeItem $nonWarehouseChargeItem)
+    public function destroy(NonWarehouseChargeOperation $nonWarehouseChargeOperation)
     {
         //
     }

@@ -8,7 +8,7 @@ use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\Supplier;
 use App\Models\TypeCharge;
-use App\Models\NonWarehouseChargeItem;
+use App\Models\NonWarehouseChargeOperation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,7 +23,7 @@ class Charge extends Model
     /** @use HasFactory<\Database\Factories\ChargeFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $with = ['warehouse_fish_tracking_number_operations', 'suppliers'];
+    protected $with = ['warehouse_fish_tracking_number_operations', 'non_warehouse_charge_operations' , 'suppliers'];
 
     protected $guarded = [];
 
@@ -52,8 +52,8 @@ class Charge extends Model
         });
     }
 
-    function non_warehouse_charge_items() : HasMany {
-        return $this->hasMany(NonWarehouseChargeItem::class);
+    function non_warehouse_charge_operations() : HasMany {
+        return $this->hasMany(NonWarehouseChargeOperation::class);
     }
 
     function type_charge() : BelongsTo {
@@ -98,6 +98,12 @@ class Charge extends Model
             $total_weight += $warehouse_fish_tracking_number_operation->total_weight;
             $total_price += $warehouse_fish_tracking_number_operation->total_price;
             $total_package_count += $warehouse_fish_tracking_number_operation->total_package_count;
+        }
+
+        foreach ($this->non_warehouse_charge_operations as $non_warehouse_charge_operation) {
+            $total_weight += $non_warehouse_charge_operation->total_weight;
+            $total_price += $non_warehouse_charge_operation->total_price;
+            $total_package_count += $non_warehouse_charge_operation->total_package_count;
         }
 
         $t = [
