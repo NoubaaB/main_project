@@ -88,6 +88,10 @@ class Charge extends Model
         return $this->belongsTo(Origin::class, 'origin_id'); 
     }
 
+    function supplier_process() : BelongsTo {
+        return $this->belongsTo(Supplier::class, 'supplier_process_id'); 
+    }
+
     //private functions
 
     function calc() : void {

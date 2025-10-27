@@ -26,6 +26,8 @@ return new class extends Migration
             $table->foreignId('fishery_id')->nullable()->index();
             $table->foreignId('ship_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();
+            $table->foreignId('supplier_process_id')->nullable()->index()
+            ->comment('References the suppliers table to identify the local that merchandise treated in.');
             $table->foreignId('type_charge_id')->nullable()->index();
 
             $table->timestamps();

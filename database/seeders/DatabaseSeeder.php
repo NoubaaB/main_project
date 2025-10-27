@@ -197,11 +197,11 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $type_charge =  TypeCharge::factory()->create([
-            "description" => "Congele",
-            "name_en" => "Congele",
-            "name_fr" => "Congele",
-            "name_es" => "Congele",
+        $type_charge_frais =  TypeCharge::factory()->create([
+            "description" => "Frais",
+            "name_en" => "Frais",
+            "name_fr" => "Frais",
+            "name_es" => "Frais",
             "allow_charge_details" => true,
             "allow_production_details" => true,
             "add_wieght" => true,
@@ -218,7 +218,7 @@ class DatabaseSeeder extends Seeder
                 "tracking_numbers" => $data["num_bon_receptions"],
                 "origin_id" => $data["origin_id"],
                 "fishery_id" => $data["place_id"],
-                "type_charge_id" => $type_charge->id,
+                "type_charge_id" => $type_charge_frais->id,
                 "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
             ]);
 
@@ -242,13 +242,24 @@ class DatabaseSeeder extends Seeder
 
         $rows = CsvReader::read($path);
 
+        $type_charge_congele =  TypeCharge::factory()->create([
+            "description" => "Congele",
+            "name_en" => "Congele",
+            "name_fr" => "Congele",
+            "name_es" => "Congele",
+            "allow_charge_details" => true,
+            "allow_production_details" => true,
+            "add_wieght" => true,
+            "list_type_details" => 1,
+        ]);
+
         foreach ($rows as $data) {
             $charge = Charge::create([
                 "date" => $data["date_reception"],
                 "tracking_numbers" => $data["num_bon_receptions"],
                 "origin_id" => $data["origin_id"],
                 "fishery_id" => $data["place_id"],
-                "type_charge_id" => $type_charge->id,
+                "type_charge_id" => $type_charge_congele->id,
                 "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
             ]);
 
@@ -367,11 +378,11 @@ class DatabaseSeeder extends Seeder
 
         $path = ('storage/csv/stock_exits.csv');
 
-        $type_sell_congele =  TypeSell::factory()->create([
-            "description" => "Vente Produit Congele",
-            "name_en" => "Vente Produit Congele",
-            "name_fr" => "Vente Produit Congele",
-            "name_es" => "Vente Produit Congele",
+        $type_sell_sortie_client =  TypeSell::factory()->create([
+            "description" => "Sortie Stock Client",
+            "name_en" => "Sortie Stock Client",
+            "name_fr" => "Sortie Stock Client",
+            "name_es" => "Sortie Stock Client",
             "list_type_details" => 1,
         ]);
 
@@ -383,7 +394,7 @@ class DatabaseSeeder extends Seeder
                 "tracking_numbers" => $data["num_bon_sorties"],
                 "origin_id" => $data["origin_id"]??1,
                 "fishery_id" => $data["place_id"]??1,
-                "type_sell_id" => $type_sell_congele->id,
+                "type_sell_id" => $type_sell_sortie_client->id,
                 "ship_id" => null,
             ]);
 

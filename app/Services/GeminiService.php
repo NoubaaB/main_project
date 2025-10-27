@@ -19,7 +19,7 @@ class GeminiService
     {
         $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
             'query' => [
-                'X-goog-api-key' => $this->geminiApiKey
+                'key' => $this->geminiApiKey
             ],
             'json' => [
                 'contents' => [
