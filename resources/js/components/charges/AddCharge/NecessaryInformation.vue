@@ -31,16 +31,16 @@
           <v-row class="text-center">
             <v-col>
               <v-autocomplete
-                v-model="_charge.charge.type_charge_id"
-                :items="_charge.type_charges"
+                v-model="_charge.charge.charge_category_id"
+                :items="_charge.charge_categories"
                 item-value="id"
-                :rules="[!v$._charge.charge.type_charge_id.$invalid ]"
-                :hide-details="v$._charge.charge.type_charge_id.$errors.length==0"
-                :error-messages="v$._charge.charge.type_charge_id.$errors.map(e => e.$message)"
-                @blur="v$._charge.charge.type_charge_id.$touch()"
+                :rules="[!v$._charge.charge.charge_category_id.$invalid ]"
+                :hide-details="v$._charge.charge.charge_category_id.$errors.length==0"
+                :error-messages="v$._charge.charge.charge_category_id.$errors.map(e => e.$message)"
+                @blur="v$._charge.charge.charge_category_id.$touch()"
                 :item-title="`name_${main.lang.short}`"
                 key="id"
-                :label="$t('type_charge')"
+                :label="$t('charge_category')"
                 chips
                 density="compact"
                 variant="outlined"
@@ -399,7 +399,7 @@ import { useCharge } from '@/stores/Charge';
 import { useSupplier } from '@/stores/Supplier';
 import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
-import { useChargeType } from '@/stores/ChargeType';
+import { useChargeCategory } from '@/stores/ChargeCategory';
 import { useVuelidate } from '@vuelidate/core';
 import { required , minValue } from '@vuelidate/validators';
 
@@ -421,7 +421,7 @@ export default {
     return {
       _charge: {
         charge: {
-          type_charge_id: { required },
+          charge_category_id: { required },
           date: { required },
           tracking_numbers: { required },
           supplier_ids: { required },
@@ -438,8 +438,8 @@ export default {
     main() {
       return useMain();
     },
-    type_charge() {
-      return useChargeType();
+    charge_category() {
+      return useChargeCategory();
     },
     is_dark() {
       return useMain().is_dark;
@@ -471,7 +471,7 @@ export default {
       event.target.value = '';
     },
     removeTrackingNumber(item) {
-      this._charge.charge.type_charge_id = null;
+      this._charge.charge.charge_category_id = null;
     },
     addNewOnpTrackingNumber(event) {
       let inputValue = event.target.value.trim()
@@ -507,7 +507,7 @@ export default {
     '_charge.showAdditionalInfo': function (_) {
       this.update();
     },
-    '_charge.charge.type_charge_id': function (_) {
+    '_charge.charge.charge_category_id': function (_) {
       this.update();
     },
     '_charge.add_charges': function (_) {

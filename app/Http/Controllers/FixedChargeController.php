@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TypeSell;
+use App\Models\FixedCharge;
 use Illuminate\Http\Request;
 
-class TypeSellController extends Controller
+class FixedChargeController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class TypeSellController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(TypeSell $typeSell)
+    public function show(FixedCharge $fixedCharge)
     {
         //
     }
@@ -42,7 +42,7 @@ class TypeSellController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(TypeSell $typeSell)
+    public function edit(FixedCharge $fixedCharge)
     {
         //
     }
@@ -50,7 +50,7 @@ class TypeSellController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, TypeSell $typeSell)
+    public function update(Request $request, FixedCharge $fixedCharge)
     {
         //
     }
@@ -58,7 +58,7 @@ class TypeSellController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(TypeSell $typeSell)
+    public function destroy(FixedCharge $fixedCharge)
     {
         //
     }

@@ -6,8 +6,8 @@ import { useWebWorkerFn } from '@vueuse/core';
 
 import { useFishType } from "./FishType";
 import { usePackage } from "./Package";
-import { useStock } from "./Stock";
-import { useChargeType } from "./ChargeType";
+import { useWarehouse } from "./Warehouse";
+import { useChargeCategory } from "./ChargeCategory";
 
 export const useCharge = defineStore("charge", {
     state: () => {
@@ -15,8 +15,8 @@ export const useCharge = defineStore("charge", {
             showAdditionalInfo: false,
             fish_type: useFishType(),
             package: usePackage(),
-            stock: useStock(),
-            type_charge: useChargeType(),
+            warehouse: useWarehouse(),
+            charge_category: useChargeCategory(),
             charge: {
                 id: uuidv4(),
                 date: new Date(), // Default to today
@@ -32,7 +32,7 @@ export const useCharge = defineStore("charge", {
                 origin_id: null,
                 fishery_id: null,
                 supplier_ids: [],
-                type_charge_id: 1,
+                charge_category_id: 1,
                 daily_charge_id: null,
             },
             charge_detail: {
@@ -43,7 +43,7 @@ export const useCharge = defineStore("charge", {
                 price: null,
                 package_count: null,
                 fish_type_id: null,
-                stock_id: null,
+                warehouse_id: null,
                 package_id: null,
             },
             production_detail: {
@@ -54,7 +54,7 @@ export const useCharge = defineStore("charge", {
                 price: null,
                 package_count: null,
                 fish_type_id: null,
-                stock_id: null,
+                warehouse_id: null,
                 package_id: null,
             },
             charges: [],
@@ -138,7 +138,7 @@ export const useCharge = defineStore("charge", {
                 origin_id: null,
                 fishery_id: null,
                 supplier_ids: [],
-                type_charge_id: 1,
+                charge_category_id: 1,
                 daily_charge_id: null,
             };
             this.charge_detail = {
@@ -169,7 +169,7 @@ export const useCharge = defineStore("charge", {
                 price: null,
                 package_count: null,
                 fish_type_id: null,
-                stock_id: null,
+                warehouse_id: null,
                 package_id: null,
             };
         },
@@ -182,7 +182,7 @@ export const useCharge = defineStore("charge", {
                 price: null,
                 package_count: null,
                 fish_type_id: null,
-                stock_id: null,
+                warehouse_id: null,
                 package_id: null,
             };
         },
@@ -213,9 +213,9 @@ export const useCharge = defineStore("charge", {
             const fishType = this.fish_type.getList.find(type => type.id === fish_type_id);
             return fishType ? fishType.name : 'N/A';
         },
-        getStockName: function (stock_id) {
-            const stock = this.getStocks.find(stock => stock.id === stock_id);
-            return stock ? stock.name : 'N/A';
+        getWarehouseName: function (warehouse_id) {
+            const warehouse = this.getWarehouses.find(warehouse => warehouse.id === warehouse_id);
+            return warehouse ? warehouse.name : 'N/A';
         },
         getPackageName: function (package_id) {
             const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
@@ -228,22 +228,22 @@ export const useCharge = defineStore("charge", {
     },
     getters: {
         getTypeCharge: (state) => {
-            if (state.charge.type_charge_id == null) {
+            if (state.charge.charge_category_id == null) {
                 return null;
             }
-            return state.type_charges?.find(e => e.name == state.charge.type_charge_id)?.list_type_details ?? [];
+            return state.charge_categories?.find(e => e.name == state.charge.charge_category_id)?.list_type_details ?? [];
         },
         getPackages: (state) => {
             return state.package.getList;
         },
-        getStocks: (state) => {
-            return state.stock.getList;
+        getWarehouses: (state) => {
+            return state.warehouse.getList;
         },
-        type_charges: (state) => {
-            return state.type_charge.getList;
+        charge_categories: (state) => {
+            return state.charge_category.getList;
         },
         type_detail: (state) => {
-            switch (state.charge.type_charge_id) {
+            switch (state.charge.charge_category_id) {
                 case 0:
                     return [];
                 case 1:

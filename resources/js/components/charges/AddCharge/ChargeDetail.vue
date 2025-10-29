@@ -64,23 +64,23 @@
               </v-col>
 
 
-              <!-- select stock -->
+              <!-- select warehouse -->
               <v-col cols="12" md="6" v-if="_charge.charge.is_stockable">
                 <v-autocomplete
-                  v-model="_charge.charge_detail.stock_id"
-                  :items="_charge.getStocks"
+                  v-model="_charge.charge_detail.warehouse_id"
+                  :items="_charge.getWarehouses"
                   item-value="id"
                   item-title="name"
-                  :label="$t('stock_name')"
+                  :label="$t('warehouse_name')"
                   chips
                   density="compact"
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.charge_detail.stock_id.$errors.length==0"
-                  :error-messages="v$._charge.charge_detail.stock_id.$errors.map(e => e.$message)"
-                  @blur="v$._charge.charge_detail.stock_id.$touch()"                  
+                  :hide-details="v$._charge.charge_detail.warehouse_id.$errors.length==0"
+                  :error-messages="v$._charge.charge_detail.warehouse_id.$errors.map(e => e.$message)"
+                  @blur="v$._charge.charge_detail.warehouse_id.$touch()"                  
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -90,7 +90,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_charge.charge_detail.stock_id = null"
+                        @click:close="_charge.charge_detail.warehouse_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -350,9 +350,9 @@
                     {{item.package_count}}
                   </div>
                 </template>
-                <template v-slot:[`item.stock_id`]="{ item }">
+                <template v-slot:[`item.warehouse_id`]="{ item }">
                   <v-chip color="indigo">
-                    {{ _charge.getStockName(item.stock_id) }}
+                    {{ _charge.getWarehouseName(item.warehouse_id) }}
                   </v-chip>
                 </template>
                 <template v-slot:no-data>
@@ -389,8 +389,8 @@
                   required,
                   numeric,
                 },
-                stock_id: {
-                  requiredIf: requiredIf(() =>this._charge.charge.is_stockabl),
+                warehouse_id: {
+                  requiredIf: requiredIf(() =>this._charge.charge.is_warehouseabl),
                   numeric,
                 },
                 weight: {
@@ -442,7 +442,7 @@
             { title: this.$t("total_price_(DH)"), value: 'price', removable: true },
             { title: this.$t("type_package"), value: 'package_id', removable: true },
             { title: this.$t("nbr_caisses"), value: 'package_count', removable: true },
-            { title: this.$t("stock_name"), value: 'stock_id', removable: true },
+            { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true },
             { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false }
           ]
         },

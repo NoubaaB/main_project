@@ -169,7 +169,7 @@
     "add_charge": "Add Charge",
     "add_article": "Add Article",
     "necessary_information": "Necessary Information",
-    "type_charge": "Type Of Charge",
+    "charge_category": "Charge Category",
     "primary_matters": "Primary Matters",
     "production_matters": "Production Matters",
     "first_charge": "First Charge",
@@ -186,7 +186,7 @@
     "total_weight": "Total Weight",
     "suppliers": "Suppliers",
     "supplier": "Supplier",
-    "stock_name": "Stock Name",
+    "warehouse_name": "Warehouse Name",
     "total_weight_of_all_items_s_Weight_bill": "Total Weight of all items's Weight bill",
     "item_name": "Item Name"
 }

@@ -3,10 +3,10 @@ import { defineStore } from "pinia";
 import { useSupplier } from "./Supplier";
 import { useFishType } from "./FishType";
 import { usePackage } from "./Package";
-import { useStock } from "./Stock";
+import { useWarehouse } from "./Warehouse";
 import { useFishery } from "./Fishery";
 import { useOrigin } from "./Origin";
-import { useChargeType } from "./ChargeType";
+import { useChargeCategory } from "./ChargeCategory";
 export const useAuth = defineStore("Auth", {
   state: () => {
     return {
@@ -24,10 +24,10 @@ export const useAuth = defineStore("Auth", {
       supplier: useSupplier(),
       fish_type: useFishType(),
       package: usePackage(),
-      stock: useStock(),
+      warehouse: useWarehouse(),
       fishery: useFishery(),
       origin: useOrigin(),
-      type_charge: useChargeType(),
+      charge_category: useChargeCategory(),
     };
   },
   actions: {
@@ -58,8 +58,8 @@ export const useAuth = defineStore("Auth", {
       this.supplier.list = response.data.suppliers;
       this.fish_type.list = response.data.fish_types;
       this.package.list = response.data.packages;
-      this.stock.list = response.data.stocks;
-      this.type_charge.list = response.data.type_charges;
+      this.warehouse.list = response.data.warehouses;
+      this.charge_category.list = response.data.charge_categories;
       this.fishery.list = response.data.fisheries;
       this.origin.list = response.data.origins;
     },

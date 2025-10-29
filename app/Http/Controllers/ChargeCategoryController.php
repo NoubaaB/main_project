@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TypeCharge;
+use App\Models\ChargeCategory;
 use Illuminate\Http\Request;
 
-class TypeChargeController extends Controller
+class ChargeCategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class TypeChargeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(TypeCharge $typeCharge)
+    public function show(ChargeCategory $chargeCategory)
     {
         //
     }
@@ -42,7 +42,7 @@ class TypeChargeController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(TypeCharge $typeCharge)
+    public function edit(ChargeCategory $chargeCategory)
     {
         //
     }
@@ -50,7 +50,7 @@ class TypeChargeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, TypeCharge $typeCharge)
+    public function update(Request $request, ChargeCategory $chargeCategory)
     {
         //
     }
@@ -58,7 +58,7 @@ class TypeChargeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(TypeCharge $typeCharge)
+    public function destroy(ChargeCategory $chargeCategory)
     {
         //
     }

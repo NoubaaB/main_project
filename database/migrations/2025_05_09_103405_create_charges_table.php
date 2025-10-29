@@ -28,12 +28,12 @@ return new class extends Migration
             $table->foreignId('origin_id')->nullable()->index();
             $table->foreignId('supplier_process_id')->nullable()->index()
             ->comment('References the suppliers table to identify the local that merchandise treated in.');
-            $table->foreignId('type_charge_id')->nullable()->index();
+            $table->foreignId('charge_category_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This table records fish purchases. It calculates total price and weight in both tables stock_fish_tracking_number_operations and non_warehouse_charge_operations. It belongs to one supplier, one fishery, one origin, and one type_charge, and has many related with stock_fish_tracking_number_operations records and non_warehouse_charge_operations as well.');
+            $table->comment('This table records fish purchases. It calculates total price and weight in both tables stock_fish_tracking_number_operations and non_warehouse_charge_operations. It belongs to one supplier, one fishery, one origin, and one charge_category, and has many related with stock_fish_tracking_number_operations records and non_warehouse_charge_operations as well.');
         });
     }
 

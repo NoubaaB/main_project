@@ -8,7 +8,7 @@ use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\Package;
 use App\Models\FishType;
-use App\Models\TypeCharge;
+use App\Models\ChargeCategory;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PasswordReset;
@@ -195,16 +195,16 @@ class AuthController extends Controller implements HasMiddleware
         $suppliers = Supplier::all();
         $fish_types = FishType::all();
         $packages = Package::all();
-        $warehouse = Warehouse::all();
+        $warehouses = Warehouse::all();
         $fisheries = Fishery::all();
         $origins = Origin::all();
-        $type_charges = TypeCharge::all();
+        $charge_categories = ChargeCategory::all();
         return [
             "suppliers" => $suppliers,
             "fish_types" => $fish_types,
             "packages" => $packages,
-            "warehouse" => $warehouse,
-            "type_charges" => $type_charges,
+            "warehouses" => $warehouses,
+            "charge_categories" => $charge_categories,
             "fisheries" => $fisheries,
             "origins" => $origins,
         ];

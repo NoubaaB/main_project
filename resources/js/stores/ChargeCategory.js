@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-export const useChargeType = defineStore("charge_type", {
+export const useChargeCategory = defineStore("charge_category", {
     state: () => {
         return {
             list: [],
@@ -15,14 +15,14 @@ export const useChargeType = defineStore("charge_type", {
         };
     },
     actions: {
-        addCharge: function (charge) {
-            this.list.push(charge);
+        addChargeCategory: function (charge_catgeory) {
+            this.list.push(charge_catgeory);
         },
-        deleteCharge: function (charge) {
-            this.list = this.list.filter(e => e.id != charge.id);
+        deleteChargeCategory: function (charge_catgeory) {
+            this.list = this.list.filter(e => e.id != charge_catgeory.id);
         },
-        updateCharge: function (charge) {
-            console.log("charge", charge)
+        updateChargeCategory: function (charge_catgeory) {
+            console.log("charge_catgeory", charge_catgeory)
         },
     },
     getters: {

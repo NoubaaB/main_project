@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-export const useStock = defineStore("Stock", {
+export const useWarehouse = defineStore("Warehouse", {
     state: () => {
         return {
             list: [],
@@ -14,14 +14,14 @@ export const useStock = defineStore("Stock", {
         };
     },
     actions: {
-        addStock: function (stock) {
-            this.list.push(stock);
+        addWarehouse: function (warehouse) {
+            this.list.push(warehouse);
         },
-        deleteStock: function (stock) {
-            this.list = this.list.filter(e => e.id != stock.id);
+        deleteWarehouse: function (warehouse) {
+            this.list = this.list.filter(e => e.id != warehouse.id);
         },
-        updateStock: function (stock) {
-            console.log("stock", stock)
+        updateWarehouse: function (warehouse) {
+            console.log("warehouse", warehouse)
         },
     },
     getters: {

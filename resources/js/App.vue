@@ -16,7 +16,8 @@ export default {
     watch: {
       "main.is_dark": function (value) {
           const theme = value ? "dark" : "light";
-          this.$vuetify.theme.global.name = theme;
+          // this.$vuetify.theme.global.name = theme;
+          this.$vuetify.theme.change(theme)
           localStorage.setItem("theme", theme);
           // document.documentElement.style.setProperty(
           //     "--theme",

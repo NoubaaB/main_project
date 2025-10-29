@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('type_sells', function (Blueprint $table) {
+        Schema::create('sell_categories', function (Blueprint $table) {
             $table->id();
             $table->string("description")->nullable();
             $table->string("name_fr")->nullable();
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This type_sells table describe the category of sell and have relationship with sells table as has many of sell records');
+            $table->comment('This sell_categories table describe the category of sell and have relationship with sells table as has many of sell records');
         });
     }
 
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('type_sells');
+        Schema::dropIfExists('sell_categories');
     }
 };

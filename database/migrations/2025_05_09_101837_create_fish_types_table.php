@@ -14,16 +14,19 @@ return new class extends Migration
         Schema::create('fish_types', function (Blueprint $table) {
             $table->id();
             $table->string("name")->unique();
+            $table->string("name_in_invoice")->unique();
             $table->string("scientific_name")->nullable();
             $table->string("image")->nullable();
             $table->string("description")->nullable();
+            $table->string("process")->nullable();
 
             $table->foreignId('fish_familly_id')->nullable()->index();
+            $table->foreignId('fish_process_type_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();
             
-            $table->comment('This fish_types table has belong to one fish_familly record in table fish_fammilies , and have reltionship with charge_details table as has many of charge_detail records and production_details table as has many of production_detail records' );
+            $table->comment('This fish_types table has belong to one fish_familly record in table fish_fammilies also has belong to one fish_process_type record in table fish_process_types , and have reltionship with charge_details table as has many of charge_detail records and production_details table as has many of production_detail records' );
         });
     }
 

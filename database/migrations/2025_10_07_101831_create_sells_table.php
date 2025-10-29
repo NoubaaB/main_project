@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('fishery_id')->nullable()->index();
             $table->foreignId('ship_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();
-            $table->foreignId('type_sell_id')->nullable()->index();
+            $table->foreignId('sell_category_id')->nullable()->index();
 
             $table->timestamps();
             $table->softDeletes();

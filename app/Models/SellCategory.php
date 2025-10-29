@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class TypeSell extends Model
+class SellCategory extends Model
 {
-    /** @use HasFactory<\Database\Factories\TypeSellFactory> */
+    /** @use HasFactory<\Database\Factories\SellCategoryFactory> */
     use HasFactory, SoftDeletes;
 
     protected $guarded = [];

@@ -164,7 +164,7 @@ export default {
                 origin_id: { required },
                 total_price: { required , maxValueValue : minValue(1) },
                 total_weight: { required , maxValueValue : minValue(1) },
-                is_stockable: { required }
+                is_warehouseable: { required }
               }
             }
           }
