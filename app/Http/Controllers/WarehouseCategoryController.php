@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\WarehouseFish;
+use App\Models\WarehouseCategory;
 use Illuminate\Http\Request;
 
-class WarehouseFishController extends Controller
+class WarehouseCategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class WarehouseFishController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(WarehouseFish $warehouseFish)
+    public function show(WarehouseCategory $warehouseCategory)
     {
         //
     }
@@ -42,7 +42,7 @@ class WarehouseFishController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(WarehouseFish $warehouseFish)
+    public function edit(WarehouseCategory $warehouseCategory)
     {
         //
     }
@@ -50,7 +50,7 @@ class WarehouseFishController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, WarehouseFish $warehouseFish)
+    public function update(Request $request, WarehouseCategory $warehouseCategory)
     {
         //
     }
@@ -58,7 +58,7 @@ class WarehouseFishController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(WarehouseFish $warehouseFish)
+    public function destroy(WarehouseCategory $warehouseCategory)
     {
         //
     }

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TypeWarehouse;
+use App\Models\NonWarehouseStockableOperation;
 use Illuminate\Http\Request;
 
-class TypeWarehouseController extends Controller
+class NonWarehouseStockableOperationController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class TypeWarehouseController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(TypeWarehouse $typeWarehouse)
+    public function show(NonWarehouseStockableOperation $nonWarehouseStockableOperation)
     {
         //
     }
@@ -42,7 +42,7 @@ class TypeWarehouseController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(TypeWarehouse $typeWarehouse)
+    public function edit(NonWarehouseStockableOperation $nonWarehouseStockableOperation)
     {
         //
     }
@@ -50,7 +50,7 @@ class TypeWarehouseController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, TypeWarehouse $typeWarehouse)
+    public function update(Request $request, NonWarehouseStockableOperation $nonWarehouseStockableOperation)
     {
         //
     }
@@ -58,7 +58,7 @@ class TypeWarehouseController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(TypeWarehouse $typeWarehouse)
+    public function destroy(NonWarehouseStockableOperation $nonWarehouseStockableOperation)
     {
         //
     }

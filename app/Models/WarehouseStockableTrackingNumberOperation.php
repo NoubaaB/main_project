@@ -3,17 +3,16 @@
 namespace App\Models;
 
 use App\Models\Package;
-use App\Models\FishType;
-use App\Models\WarehouseFishTrackingNumber;
+use App\Models\WarehouseStockableTrackingNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class WarehouseFishTrackingNumberOperation extends Model
+class WarehouseStockableTrackingNumberOperation extends Model
 {
-    /** @use HasFactory<\Database\Factories\WarehouseFishTrackingNumberOperationFactory> */
+    /** @use HasFactory<\Database\Factories\WarehouseStockableTrackingNumberOperationFactory> */
     use HasFactory, SoftDeletes;
 
     protected $guarded = [];
@@ -39,8 +38,8 @@ class WarehouseFishTrackingNumberOperation extends Model
         });
     }
 
-    function warehouse_fish_tracking_number() : BelongsTo {
-        return $this->belongsTo(WarehouseFishTrackingNumber::class);
+    function warehouse_stockable_tracking_number() : BelongsTo {
+        return $this->belongsTo(WarehouseStockableTrackingNumber::class);
     }
 
     function operationable() : MorphTo {
@@ -51,19 +50,19 @@ class WarehouseFishTrackingNumberOperation extends Model
         return $this->belongsTo(Package::class);
     }
 
-    function fish_type() : BelongsTo {
-        return $this->belongsTo(FishType::class);
+    function warehouse_category_operation() : BelongsTo {
+        return $this->belongsTo(WarehouseCategoryOperation::class);
     }
 
     function checkDateInS(): void
     {
-        $s_f_t_o = $this->warehouse_fish_tracking_number
-            ->warehouse_fish_tracking_number_operations()
+        $s_f_t_o = $this->warehouse_stockable_tracking_number
+            ->warehouse_stockable_tracking_number_operations()
             ->where("type_operation", "in")
             ->first();
 
-        if ($this->type_operation == 'in' && $this->warehouse_fish_tracking_number->date_in_warehouse == null && $s_f_t_o) {
-            $this->warehouse_fish_tracking_number->update([
+        if ($this->type_operation == 'in' && $this->warehouse_stockable_tracking_number->date_in_warehouse == null && $s_f_t_o) {
+            $this->warehouse_stockable_tracking_number->update([
                 "date_in_warehouse" => $s_f_t_o->date
             ]);
         }
@@ -71,7 +70,7 @@ class WarehouseFishTrackingNumberOperation extends Model
 
     function checkdateOFT() : void {
         $total_weight = 0.00;
-        $s_f_t_n_os = $this->warehouse_fish_tracking_number->warehouse_fish_tracking_number_operations;
+        $s_f_t_n_os = $this->warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations;
         foreach ($s_f_t_n_os as $s_f_t_n_o) {
             if($s_f_t_n_o->type_operation == 'in'){
                 $total_weight+= $s_f_t_n_o->total_weight;
@@ -80,7 +79,7 @@ class WarehouseFishTrackingNumberOperation extends Model
             }
         }
         if($total_weight <= 0){
-            $this->warehouse_fish_tracking_number->update([
+            $this->warehouse_stockable_tracking_number->update([
                 "date_out_of_warehouse" => $this->date
             ]);
         }

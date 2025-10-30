@@ -5,9 +5,9 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\NonWarehouseChargeOperation>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\WarehouseCategoryOperation>
  */
-class NonWarehouseChargeOperationFactory extends Factory
+class WarehouseCategoryOperationFactory extends Factory
 {
     /**
      * Define the model's default state.

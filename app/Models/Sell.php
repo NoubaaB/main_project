@@ -19,7 +19,7 @@ class Sell extends Model
     /** @use HasFactory<\Database\Factories\SellFactory> */
     use HasFactory , SoftDeletes;
 
-    protected $with = ['warehouse_fish_tracking_number_operations', 'clients'];
+    protected $with = ['warehouse_stockable_tracking_number_operations', 'clients'];
 
     protected $guarded = [];
 
@@ -32,15 +32,14 @@ class Sell extends Model
         'sell_details_total_price' => 'double',
         'sell_details_total_weight' => 'double'
     ];
-
-    function warehouse_fish_tracking_number_operations(): MorphMany
+    function warehouse_stockable_tracking_number_operations(): MorphMany
     {
-        return $this->morphMany(WarehouseFishTrackingNumberOperation::class, 'operationable');
+        return $this->morphMany(WarehouseStockableTrackingNumberOperation::class, 'operationable');
     }
 
-    function type_sell(): BelongsTo
+    function sell_category(): BelongsTo
     {
-        return $this->belongsTo(TypeSell::class, 'type_sell_id');
+        return $this->belongsTo(SellCategory::class, 'sell_category_id');
     }
 
     function clients(): BelongsToMany
@@ -75,10 +74,10 @@ class Sell extends Model
         $total_weight = 0.00;
         $total_price = 0.00;
         $total_package_count = 0.00;
-        foreach ($this->warehouse_fish_tracking_number_operations as $warehouse_fish_tracking_number_operation) {
-            $total_weight += $warehouse_fish_tracking_number_operation->total_weight;
-            $total_price += $warehouse_fish_tracking_number_operation->total_price;
-            $total_package_count += $warehouse_fish_tracking_number_operation->total_package_count;
+        foreach ($this->warehouse_stockable_tracking_number_operations as $warehouse_stockable_tracking_number_operation) {
+            $total_weight += $warehouse_stockable_tracking_number_operation->total_weight;
+            $total_price += $warehouse_stockable_tracking_number_operation->total_price;
+            $total_package_count += $warehouse_stockable_tracking_number_operation->total_package_count;
         }
 
         $t = [

@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('type_warehouses', function (Blueprint $table) {
+        Schema::create('warehouse_categories', function (Blueprint $table) {
             $table->id();
             $table->string("name",50)->unique();
             $table->string("description",250)->nullable();
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This table stores categories for warehouses, allowing for organized classification of various warehouse types such as local, foreign, and client warehouses.');
         });
     }
 
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('type_warehouses');
+        Schema::dropIfExists('warehouse_categories');
     }
 };

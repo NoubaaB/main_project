@@ -3,16 +3,17 @@
 namespace App\Models;
 
 use App\Models\Warehouse;
-use App\Models\WarehouseFishTrackingNumber;
+use App\Models\WarehouseStockableTrackingNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class WarehouseFish extends Model
+class WarehouseStockable extends Model
 {
-    /** @use HasFactory<\Database\Factories\WarehouseFishFactory> */
+    /** @use HasFactory<\Database\Factories\WarehouseStockableFactory> */
     use HasFactory , SoftDeletes;
 
     protected $guarded = [];
@@ -21,16 +22,20 @@ class WarehouseFish extends Model
         return $this->belongsTo(Warehouse::class);
     }
 
-    function warehouse_fish_tracking_numbers() : HasMany {
-        return $this->hasMany(WarehouseFishTrackingNumber::class);
+    function warehouse_stockable_tracking_numbers() : HasMany {
+        return $this->hasMany(WarehouseStockableTrackingNumber::class);
+    }
+
+    function stockable() : MorphTo {
+        return $this->morphTo();
     }
 
     function calc(): array
     {
         $temp_arr = [];
         $count = 0;
-        foreach ($this->warehouse_fish_tracking_numbers as $warehouse_fish_tracking_number) {
-            $total = $warehouse_fish_tracking_number->calc();
+        foreach ($this->warehouse_stockable_tracking_numbers as $warehouse_stockable_tracking_number) {
+            $total = $warehouse_stockable_tracking_number->calc();
 
             $temp_arr[] = [
                 "total_weight" => $total["total_weight"],

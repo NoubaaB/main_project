@@ -18,6 +18,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This table stores trucks information including their registration plates.');
         });
     }
 

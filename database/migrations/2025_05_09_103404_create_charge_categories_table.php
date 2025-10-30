@@ -17,14 +17,6 @@ return new class extends Migration
             $table->string("name_fr")->nullable();
             $table->string("name_en")->nullable();
             $table->string("name_es")->nullable();
-            $table->boolean("allow_charge_details")->default(false);
-            $table->boolean("allow_stockable_charge_details")->default(false);
-            $table->boolean("allow_production_details")->default(false);
-            $table->boolean("allow_stockable_production_details")->default(false);
-            $table->boolean("allow_wieght")->default(true);
-            $table->boolean("is_fishes_charge")->default(true);
-            $table->integer("list_type_details",)->default(0);
-            $table->string("process")->nullable();
 
             $table->timestamps();
             $table->softDeletes();

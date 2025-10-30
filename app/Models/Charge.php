@@ -7,12 +7,12 @@ use App\Models\Truck;
 use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\Supplier;
-use App\Models\TypeCharge;
-use App\Models\NonWarehouseChargeOperation;
+use App\Models\ChargeCategory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\NonWarehouseStockableOperation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\WarehouseFishTrackingNumberOperation;
+use App\Models\WarehouseStockableTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,7 +23,7 @@ class Charge extends Model
     /** @use HasFactory<\Database\Factories\ChargeFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $with = ['warehouse_fish_tracking_number_operations', 'non_warehouse_charge_operations' , 'suppliers'];
+    protected $with = ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations' , 'suppliers'];
 
     protected $guarded = [];
 
@@ -52,16 +52,16 @@ class Charge extends Model
         });
     }
 
-    function non_warehouse_charge_operations() : HasMany {
-        return $this->hasMany(NonWarehouseChargeOperation::class);
+    function non_warehouse_stockable_operations() : HasMany {
+        return $this->hasMany(NonWarehouseStockableOperation::class);
     }
 
-    function type_charge() : BelongsTo {
-        return $this->belongsTo(TypeCharge::class, 'type_charge_id'); 
+    function charge_category() : BelongsTo {
+        return $this->belongsTo(ChargeCategory::class, 'type_charge_id'); 
     }
 
-    function warehouse_fish_tracking_number_operations() : MorphMany {
-        return $this->morphMany(WarehouseFishTrackingNumberOperation::class, 'operationable');
+    function warehouse_stockable_tracking_number_operations() : MorphMany {
+        return $this->morphMany(WarehouseStockableTrackingNumberOperation::class, 'operationable');
     }
 
     function suppliers() : BelongsToMany 
@@ -98,16 +98,16 @@ class Charge extends Model
         $total_weight = 0.00;
         $total_price = 0.00;
         $total_package_count = 0.00;
-        foreach ($this->warehouse_fish_tracking_number_operations as $warehouse_fish_tracking_number_operation) {
-            $total_weight += $warehouse_fish_tracking_number_operation->total_weight;
-            $total_price += $warehouse_fish_tracking_number_operation->total_price;
-            $total_package_count += $warehouse_fish_tracking_number_operation->total_package_count;
+        foreach ($this->warehouse_stockable_tracking_number_operations as $warehouse_stockable_tracking_number_operation) {
+            $total_weight += $warehouse_stockable_tracking_number_operation->total_weight;
+            $total_price += $warehouse_stockable_tracking_number_operation->total_price;
+            $total_package_count += $warehouse_stockable_tracking_number_operation->total_package_count;
         }
 
-        foreach ($this->non_warehouse_charge_operations as $non_warehouse_charge_operation) {
-            $total_weight += $non_warehouse_charge_operation->total_weight;
-            $total_price += $non_warehouse_charge_operation->total_price;
-            $total_package_count += $non_warehouse_charge_operation->total_package_count;
+        foreach ($this->non_warehouse_stockable_operations as $non_warehouse_stockable_operation) {
+            $total_weight += $non_warehouse_stockable_operation->total_weight;
+            $total_price += $non_warehouse_stockable_operation->total_price;
+            $total_package_count += $non_warehouse_stockable_operation->total_package_count;
         }
 
         $t = [

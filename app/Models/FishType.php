@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Models\FishFamilly;
 use App\Models\FishProcessType;
+use App\Models\WarehouseStockable;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\NonWarehouseChargeOperation;
+use App\Models\NonWarehouseStockableOperation;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class FishType extends Model
@@ -18,14 +20,19 @@ class FishType extends Model
 
     protected $guarded = [];
 
-    function non_warehouse_charge_items() : HasMany
+    function nonWarehouse_stockable_operations() : HasMany
     {
-        return $this->hasMany(NonWarehouseChargeOperation::class, 'fish_type_id');    
+        return $this->hasMany(NonWarehouseStockableOperation::class);    
     }
 
-    function warehouse_fish_tracking_number_operations() : HasMany
+    function warehouse_stockable_tracking_number_operations() : MorphMany
     {
-        return $this->hasMany(WarehouseFishTrackingNumberOperation::class, 'fish_type_id');    
+        return $this->morphMany(WarehouseStockableTrackingNumberOperation::class, 'stockable');  
+    }
+
+    function warehouse_stockables() : MorphMany
+    {
+        return $this->morphMany(WarehouseStockable::class, 'stockable');  
     }
 
     function fish_familly() : BelongsTo {
@@ -35,4 +42,6 @@ class FishType extends Model
     function fish_process_type() : BelongsTo {
         return $this->belongsTo(FishProcessType::class, 'fish_process_type_id'); 
     }
+
+
 }

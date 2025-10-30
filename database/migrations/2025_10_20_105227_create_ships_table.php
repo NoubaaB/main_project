@@ -19,6 +19,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This table stores ships information including their names and IMO numbers.');
         });
     }
 

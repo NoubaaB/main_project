@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('warehouse_fish_tracking_numbers', function (Blueprint $table) {
+        Schema::create('warehouse_stockable_tracking_numbers', function (Blueprint $table) {
             $table->id();
 
             $table->json("tracking_numbers")->nullable();
@@ -25,13 +25,12 @@ return new class extends Migration
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 
-            $table->foreignId('warehouse_fish_id')->nullable()->index();
-            $table->foreignId('fish_type_id')->nullable()->index();
+            $table->foreignId('warehouse_stockable_id')->nullable()->index("WS_IDX");
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This warehouse_fish_tracking_numbers table describe the tracking numbers of fish types in warehouse_fish table and have relationship with warehouse_fish table as belong to one warehouse_fish record and its source of warehouse_fish.total_weight , warehouse_fish.total_price , warehouse_fish.total_package_count total calculation');
+            $table->comment('This warehouse_stockable_tracking_numbers table describe the tracking numbers of fish types in warehouse_stockable table and have relationship with warehouse_stockable table as belong to one warehouse_stockable record and its source of warehouse_stockable.total_weight , warehouse_stockable.total_price , warehouse_stockable.total_package_count total calculation');
         });
     }
 
@@ -40,6 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('warehouse_fish_tracking_numbers');
+        Schema::dropIfExists('warehouse_stockable_tracking_numbers');
     }
 };

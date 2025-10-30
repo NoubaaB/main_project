@@ -20,12 +20,12 @@ return new class extends Migration
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 
-            $table->foreignId('type_warehouse_id')->nullable()->index()->comment("This type_warehouse_id's Column is one to many relationship with warehouses table its describe type of wirehouse. local means every fish in the company store here , foreign means that fish that company store in other companies , client means fish that client store in our local warehouses");
+            $table->foreignId('warehouse_category_id')->nullable()->index()->comment("This warehouse_category_id's Column is one to many relationship with warehouses table its describe type of wirehouse. local means every fish in the company store here , foreign means that fish that company store in other companies , client means fish that client store in our local warehouses");
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This warehouses table describe the wirehouse of fish store after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail , and have relationship with type_warehouses_table each warehouses table have one type_warehouses that indicate type of wirehouse' );
+            $table->comment('This warehouses table describe the wirehouse of fish store after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail , and have relationship with warehouse_categories_table each warehouses table have one warehouse_categories that indicate type of wirehouse' );
         });
     }
 

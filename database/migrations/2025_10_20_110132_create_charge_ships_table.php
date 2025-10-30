@@ -19,6 +19,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This charge_ships table describe the many to many relationship between charges and ships tables' );
         });
     }
 

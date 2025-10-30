@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('warehouse_fish', function (Blueprint $table) {
+        Schema::create('warehouse_stockables', function (Blueprint $table) {
             $table->id();
 
             $table->double("unit_price")->default(0.00);
@@ -20,12 +20,12 @@ return new class extends Migration
             $table->double("total_package_count")->default(0.00);
 
             $table->foreignId('warehouse_id')->nullable()->index();
-            $table->foreignId('fish_type_id')->nullable()->index();
+            $table->nullableMorphs('stockable'); //fish_type or package
 
             $table->timestamps();    
             $table->softDeletes();
 
-            $table->comment('This warehouse_fish table describe the fish types in warehouse table and have relationship with warehouses table as belong to one warehouse record and its source of warehouses.total_weight , warehouses.total_price , warehouses.total_package_count total calculation' );
+            $table->comment('This warehouse_stockables table describe the fish types in warehouse table and have relationship with warehouses table as belong to one warehouse record and its source of warehouses.total_weight , warehouses.total_price , warehouses.total_package_count total calculation' );
         });
     }
 
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('warehouse_fish');
+        Schema::dropIfExists('warehouse_stockables');
     }
 };

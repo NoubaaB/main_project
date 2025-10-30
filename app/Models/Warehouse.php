@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\WarehouseFish;
-use App\Models\TypeWarehouse;
+use App\Models\WarehouseStockable;
+use App\Models\WarehouseCategory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,19 +17,19 @@ class Warehouse extends Model
 
     protected $guarded = [];
 
-    function warehouse_fishes() : HasMany {
-        return $this->hasMany(WarehouseFish::class);
+    function warehouse_stockables() : HasMany {
+        return $this->hasMany(WarehouseStockable::class);
     }
 
-    function type_warehouse() : BelongsTo {
-        return $this->belongsTo(TypeWarehouse::class);
+    function warehouse_category() : BelongsTo {
+        return $this->belongsTo(WarehouseCategory::class);
     }
 
     function calc() : array {
         $temp_arr = [];
         $count = 0;
-        foreach ($this->warehouse_fishes as $warehouse_fishe) {
-            $total = $warehouse_fishe->calc();
+        foreach ($this->warehouse_stockables as $warehouse_stockable) {
+            $total = $warehouse_stockable->calc();
             
             $temp_arr[] = [
                 "total_weight" => $total["total_weight"],

@@ -5,9 +5,9 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\TypeWarehouse>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\WarehouseStockableTrackingNumberOperation>
  */
-class TypeWarehouseFactory extends Factory
+class WarehouseStockableTrackingNumberOperationFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -18,8 +18,6 @@ class TypeWarehouseFactory extends Factory
     {
         return [
             //
-            "name" => $this->faker->word(),
-            "description" => $this->faker->sentence(),
         ];
     }
 }

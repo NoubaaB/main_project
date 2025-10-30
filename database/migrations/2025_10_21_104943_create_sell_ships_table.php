@@ -18,6 +18,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This sell_ships table describe the many to many relationship between sells and ships tables' );
         });
     }
 
