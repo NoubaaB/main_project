@@ -48,7 +48,7 @@ export const useCharge = defineStore("charge", {
         add_charges: function () {
             this.charges.push({
                 id: uuidv4(),
-                warehouse_category_operation_id: this.warehouse_category_operation.getList[0]?.id || null,
+                warehouse_category_operation_id: this.warehouse_category_operation.getList.filter(o => o.disabled == false)[0]?.id || null,
             });  
         },
         delete_detail: function (charge_id) {
