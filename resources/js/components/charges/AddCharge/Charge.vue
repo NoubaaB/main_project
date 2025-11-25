@@ -1,9 +1,47 @@
 <template>
     <v-card class="ma-auto rounded-lg">
         <v-card-title>
-          <span>
-            {{ $t("add_production") }}
-          </span>
+          <v-row>
+            <v-col cols="6">
+              <span>
+                <v-autocomplete
+                  v-model="charge.warehouse_category_operation_id"
+                  :items="_warehouseCategoryOperation.getList"
+                  item-value="id"
+                  :item-title="`name_${_main.lang.code}`"
+                  :label="$t('charge_category_operation')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  color="info"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        variant="tonal"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </span>
+            </v-col>
+            <v-col class="text-end">
+              <v-btn
+                class="pa-2"
+                size="small"
+                color="red"
+                icon="mdi-close"
+                variant="outlined"
+                @click="delete_detail"
+              ></v-btn>
+            </v-col>
+          </v-row>
         </v-card-title>
         <v-card-text>
           <v-row>
@@ -14,7 +52,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon class="text-blue">{{_charge.production ? 'mdi-numeric-4-circle-outline' : 'mdi-numeric-3-circle-outline'}}</v-icon>
+                    <v-icon class="text-blue">mdi-numeric-3-circle-outline</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">
@@ -32,8 +70,9 @@
               <!-- select Type Article -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_charge.production_detail.fish_type_id"
-                  :items="_charge.type_detail"
+                  v-if="type_detail != null"
+                  v-model="charge_detail.fish_type_id"
+                  :items="type_detail"
                   item-value="id"
                   item-title="name"
                   :label="$t('type_article')"
@@ -42,9 +81,9 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
-                  :hide-details="v$._charge.production_detail.fish_type_id.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.fish_type_id.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.fish_type_id.$touch()"
+                  :hide-details="v$.charge_detail.fish_type_id.$errors.length==0"
+                  :error-messages="v$.charge_detail.fish_type_id.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.fish_type_id.$touch()"
                   color="info"
                   >
                     <!-- Custom Chips Slot -->
@@ -55,19 +94,30 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_charge.production_detail.fish_type_id = null"
+                        @click:close="charge_detail.fish_type_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
                     </template>
                 </v-autocomplete>
+                <v-textarea
+                  v-else
+                  color="info"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  :label="$t('article_description')"
+                >
+
+                </v-textarea>
               </v-col>
+              
 
 
               <!-- select warehouse -->
               <v-col cols="12" md="6" v-if="_charge.charge.is_stockable">
                 <v-autocomplete
-                  v-model="_charge.production_detail.warehouse_id"
+                  v-model="charge_detail.warehouse_id"
                   :items="_charge.getWarehouses"
                   item-value="id"
                   item-title="name"
@@ -78,9 +128,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.production_detail.warehouse_id.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.warehouse_id.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.warehouse_id.$touch()"                  
+                  :hide-details="v$.charge_detail.warehouse_id.$errors.length==0"
+                  :error-messages="v$.charge_detail.warehouse_id.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.warehouse_id.$touch()"                  
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -90,7 +140,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_charge.production_detail.warehouse_id = null"
+                        @click:close="charge_detail.warehouse_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -101,7 +151,7 @@
               <!-- weight -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_charge.production_detail.weight"
+                  v-model="charge_detail.weight"
                   :label="$t('weight') + ' (Kg)'"
                   type="number" 
                   density="compact"
@@ -109,9 +159,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.production_detail.weight.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.weight.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.weight.$touch()"
+                  :hide-details="v$.charge_detail.weight.$errors.length==0"
+                  :error-messages="v$.charge_detail.weight.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.weight.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -119,7 +169,7 @@
               <!-- unit price -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_charge.production_detail.unit_price"
+                  v-model="charge_detail.unit_price"
                   :label="$t('pu') + ' (Dh)'"
                   type="number"
                   density="compact"
@@ -127,9 +177,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.production_detail.unit_price.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.unit_price.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.unit_price.$touch()"
+                  :hide-details="v$.charge_detail.unit_price.$errors.length==0"
+                  :error-messages="v$.charge_detail.unit_price.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.unit_price.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -137,7 +187,7 @@
               <!-- weight bill -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_charge.production_detail.weight_bill"
+                  v-model="charge_detail.weight_bill"
                   :label="$t('weight_bill') + ' (Kg)'"
                   type="number"
                   min="0"
@@ -146,9 +196,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.production_detail.weight_bill.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.weight_bill.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.weight_bill.$touch()"
+                  :hide-details="v$.charge_detail.weight_bill.$errors.length==0"
+                  :error-messages="v$.charge_detail.weight_bill.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.weight_bill.$touch()"
                   >
                 </v-text-field>
               </v-col>
@@ -156,7 +206,7 @@
               <!-- total price -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_charge.production_detail.price"
+                  v-model="charge_detail.price"
                   :label="$t('total_price') + ' (Dh)'"
                   type="number"
                   readonly
@@ -165,17 +215,17 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.production_detail.price.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.price.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.price.$touch()"
+                  :hide-details="v$.charge_detail.price.$errors.length==0"
+                  :error-messages="v$.charge_detail.price.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.price.$touch()"
                   >
                 </v-text-field>
               </v-col>
 
-              <!-- select package type -->
+              <!-- select package_type type -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-model="_charge.production_detail.package_id"
+                  v-model="charge_detail.package_id"
                   :items="_charge.getPackages"
                   item-value="id"
                   item-title="name"
@@ -186,9 +236,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.production_detail.package_id.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.package_id.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.package_id.$touch()"
+                  :hide-details="v$.charge_detail.package_id.$errors.length==0"
+                  :error-messages="v$.charge_detail.package_id.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.package_id.$touch()"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -198,7 +248,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_charge.production_detail.package_id = null"
+                        @click:close="charge_detail.package_id = null"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -209,7 +259,7 @@
               <!-- number of packages -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="_charge.production_detail.package_count"
+                  v-model="charge_detail.package_count"
                   :label="$t('nbr_boxes')"
                   type="number"
                   readonly
@@ -218,9 +268,9 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
-                  :hide-details="v$._charge.production_detail.package_count.$errors.length==0"
-                  :error-messages="v$._charge.production_detail.package_count.$errors.map(e => e.$message)"
-                  @blur="v$._charge.production_detail.package_count.$touch()"                  
+                  :hide-details="v$.charge_detail.package_count.$errors.length==0"
+                  :error-messages="v$.charge_detail.package_count.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.package_count.$touch()"                  
                   >
                 </v-text-field>
               </v-col>
@@ -241,7 +291,7 @@
             <v-row>
               <v-data-table
                 :headers="headers"
-                :items="_charge.charge.production_details"
+                :items="_charge.charge.charge_details"
                 tabindex="0"
                 item-value="id"
                 density="compact"
@@ -316,7 +366,7 @@
                 </template>
 
                 <template v-slot:[`item.fish_type_id`]="{ item }">
-                  <v-chip color="secondary">
+                  <v-chip color="info">
                     {{ _charge.getFishTypeName(item.fish_type_id) }}
                   </v-chip>
                 </template>
@@ -351,14 +401,14 @@
                   </div>
                 </template>
                 <template v-slot:[`item.warehouse_id`]="{ item }">
-                  <v-chip color="secondary">
+                  <v-chip color="indigo">
                     {{ _charge.getWarehouseName(item.warehouse_id) }}
                   </v-chip>
                 </template>
                 <template v-slot:no-data>
                   <div class="text-orange">
                     <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2"></v-icon>
-                    <span>{{$t("no_data_available")}}</span>
+                    <span>No data available</span>
                   </div>
                 </template>
               </v-data-table>
@@ -368,56 +418,83 @@
 </template>
 
 <script>
+    import { v4 as uuidv4 } from 'uuid';
     import { useCharge } from '@/stores/Charge';
     import { useMain } from '@/stores/Main';
-    import useVuelidate from '@vuelidate/core'
-    import { required, numeric , requiredIf  } from '@vuelidate/validators'
+    import {useWarehouseCategoryOperation} from '@/stores/WarehouseCategoryOperation';
+    import useVuelidate from '@vuelidate/core';
+    import { required, numeric, requiredIf } from '@vuelidate/validators';
+    import { useFishType } from "@/stores/FishType";
+    import { usePackageType } from "@/stores/PackageType";
+    import { useGuanoType } from "@/stores/GuanoType";
+    
     export default {
+      props: {
+        charge: {
+          type: Object,
+          required: true
+        }
+      },
       data: function () {
         return {
           headers: [],
           selected: [],
-            v$: useVuelidate(),
-            is_editing: false,
+          v$: useVuelidate(),
+          is_editing: false,
+          charge_detail: {
+              id: uuidv4(),
+              weight: null,
+              weight_bill: null,
+              unit_price: null,
+              price: null,
+              package_count: null,
+              fish_type_id: null,
+              warehouse_category_operation_id: null,
+              warehouse_id: null,
+              package_id: null,
+          },
+          type_detail:null
         };    
       },
       validations: function () {
         return {
-          _charge: {
-            production_detail: {
-                fish_type_id: {
-                  required,
-                  numeric,
-                },
-                warehouse_id: {
-                  requiredIf: requiredIf(()=>this._charge.charge.is_stockable) ,
-                  numeric,
-                },
-                weight: {
-                  required,
-                  numeric,
-                },
-                unit_price: {
-                  required,
-                  numeric,
-                },
-                weight_bill: {
-                  required,
-                  numeric,
-                },
-                price: {
-                  required,
-                  numeric,
-                },
-                package_id: {
-                  required,
-                  numeric,
-                },
-                package_count: {
-                  required,
-                  numeric,
-                }
-            }
+          charge_detail: {
+              warehouse_category_operation_id: {
+                required,
+                numeric,
+              },
+              fish_type_id: {
+                required,
+                numeric,
+              },
+              warehouse_id: {
+                requiredIf: requiredIf(() =>this._charge.charge.is_warehouseabl),
+                numeric,
+              },
+              weight: {
+                required,
+                numeric,
+              },
+              unit_price: {
+                required,
+                numeric,
+              },
+              weight_bill: {
+                required,
+                numeric,
+              },
+              price: {
+                required,
+                numeric,
+              },
+              package_id: {
+                required,
+                numeric,
+              },
+              package_count: {
+                required,
+                numeric,
+              }
           }
         }
       },
@@ -430,6 +507,18 @@
         },
         _main() {
           return useMain();
+        },
+        _fish_type() {
+          return useFishType();
+        },
+        _package_type() {
+          return usePackageType();
+        },
+        _guano_type() {
+          return useGuanoType();
+        },
+        _warehouseCategoryOperation() {
+          return useWarehouseCategoryOperation();
         },
       },
       methods:{
@@ -447,18 +536,18 @@
           ]
         },
         update: function () {
-          this._charge.update_production_detail();
+          this._charge.update_charge_detail();
           this.is_editing = false;
         },
         submit: function () {
-          this._charge.add_production_detail();
+          this._charge.add_charge_detail();
         },
         edit: function (id) {
           this.is_editing = true;
-          this._charge.edit_production_detail(id);
+          this._charge.edit_charge_detail(id);
         },
         remove: function (id) {
-          this._charge.remove_production_detail(id);
+          this._charge.remove_charge_detail(id);
         },
         onClickReset : function() {
           this.headers = this.DEFAULT_HEADERS()
@@ -466,34 +555,56 @@
         remove_header: function (key) {
           this.headers = this.headers.filter(header => header.value !== key);
         },
+        delete_detail: function () {
+          this._charge.delete_detail(this.charge.id);
+        },
+        getTypeDetail: function (value) {
+          let warehouse_type = this._warehouseCategoryOperation.getList.find(e => e.id == value)?.warehouse_type;
+          switch (warehouse_type) {
+            case "package_type":
+                this.type_detail = this._package_type.getList;
+                break;
+            case "fish_type":
+                this.type_detail = this._fish_type.getList;
+                break;
+            case "guano_type":
+                this.type_detail = this._guano_type.getList;
+                break;
+            default:
+              this.type_detail = null;
+          }
+        }
       },
       watch: {
-        '_charge.production_detail': {
+        'charge_detail': {
           handler: function () {
             this._charge.UpdateCharge();
           },
           deep: true
         },
-        "_charge.production_detail.unit_price": function () {
-          this._charge.production_detail.price = this._charge.production_detail.weight * this._charge.production_detail.unit_price;
+        "charge_detail.unit_price": function () {
+          this.charge_detail.price = this.charge_detail.weight * this.charge_detail.unit_price;
         },
-        "_charge.production_detail.weight": function (value) {
-          this._charge.production_detail.weight_bill = value;
-          this._charge.production_detail.price = this._main.formatNumber(this._charge.production_detail.weight * this._charge.production_detail.unit_price);
+        "charge_detail.weight": function (value) {
+          this.charge_detail.weight_bill = value;
+          this.charge_detail.price = this._main.formatNumber(this.charge_detail.weight * this.charge_detail.unit_price);
         },
-        "_charge.production_detail.weight_bill": function (value) {
-          if (this._charge.production_detail.package_id && value > 0) {
-            this._charge.production_detail.package_count = +(value / this._charge.getPackageSize(this._charge.production_detail.package_id,value)).toFixed(1);
+        "charge_detail.weight_bill": function (value) {
+          if (this.charge_detail.package_id && value > 0) {
+            this.charge_detail.package_count = +(value / this._charge.getPackageSize(this.charge_detail.package_id,value)).toFixed(1);
           } else {
-            this._charge.production_detail.package_count = 0;  
+            this.charge_detail.package_count = 0;  
           }
         },
-        "_charge.production_detail.package_id": function (value) {
-          if (this._charge.production_detail.package_id && value > 0) {
-            this._charge.production_detail.package_count = +(this._charge.production_detail.weight_bill / this._charge.getPackageSize(value,this._charge.production_detail.weight_bill)).toFixed(1);
+        "charge_detail.package_id": function (value) {
+          if (this.charge_detail.package_id && value > 0) {
+            this.charge_detail.package_count = +(this.charge_detail.weight_bill / this._charge.getPackageSize(value,this.charge_detail.weight_bill)).toFixed(1);
           } else {
-            this._charge.production_detail.package_count = 0;  
+            this.charge_detail.package_count = 0;  
           }
+        },
+        "charge.warehouse_category_operation_id": function (value) {
+          this.getTypeDetail(value);
         }
       },
     }

@@ -11,18 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('packages', function (Blueprint $table) {
+        Schema::create('guano_types', function (Blueprint $table) {
             $table->id();
             $table->string("name")->unique();
-            $table->integer("size");
+            $table->string("name_in_invoice")->unique();
+            $table->string("scientific_name")->nullable();
+            $table->string("image")->nullable();
             $table->string("description")->nullable();
-            $table->string("type_emballage")->nullable();
-            
+            $table->string("process")->nullable();
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This packages table describe purchase packages of fish_type its like emballage that contain fish and have relationship with production_details table as has many of production_detail records' );
+            $table->comment('This guano_types table describe fish emulsion and has belong to many of warehouse_stockable_tracking_number_operations records in table warehouse_stockable_tracking_number_operations');
         });
     }
 
@@ -31,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('packages');
+        Schema::dropIfExists('guano_types');
     }
 };

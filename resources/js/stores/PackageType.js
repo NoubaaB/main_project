@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-export const usePackage = defineStore("Package", {
+export const usePackageType = defineStore("PackageType", {
     state: () => {
         return {
             list: [],
@@ -20,7 +20,7 @@ export const usePackage = defineStore("Package", {
             this.list = this.list.filter(e => e.id != _package.id);
         },
         updatePackage: function (_package) {
-            console.log("package", _package)
+            console.log("package_type", _package)
         },
     },
     getters: {

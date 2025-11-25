@@ -21,7 +21,7 @@ return new class extends Migration
             $table->double("total_package_count")->default(0.00);
 
             $table->foreignId('charge_id')->nullable()->index();
-            $table->foreignId('package_id')->nullable()->index();
+            $table->foreignId('package_type_id')->nullable()->index();
             $table->foreignId('fish_type_id')->nullable()->index();
             $table->foreignId('warehouse_category_operation_id')->nullable()->index("CWC_IDX");
 

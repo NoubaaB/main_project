@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use App\Models\Package;
-use App\Models\WarehouseStockableTrackingNumber;
+use App\Models\PackageType;
+use App\Models\WarehouseDetailCategory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\WarehouseStockableTrackingNumber;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -42,12 +44,13 @@ class WarehouseStockableTrackingNumberOperation extends Model
         return $this->belongsTo(WarehouseStockableTrackingNumber::class);
     }
 
-    function operationable() : MorphTo {
+    //can be charge_id or sell_id
+    function sourceable() : MorphTo {
         return $this->morphTo();
     }
 
-    function package() : BelongsTo {
-        return $this->belongsTo(Package::class);
+    function package_type() : BelongsTo {
+        return $this->belongsTo(PackageType::class);
     }
 
     function warehouse_category_operation() : BelongsTo {

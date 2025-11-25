@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Package;
+use App\Models\GuanoType;
 use Illuminate\Http\Request;
 
-class PackageController extends Controller
+class GuanoTypeController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class PackageController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Package $package)
+    public function show(GuanoType $guanoType)
     {
         //
     }
@@ -42,7 +42,7 @@ class PackageController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Package $package)
+    public function edit(GuanoType $guanoType)
     {
         //
     }
@@ -50,7 +50,7 @@ class PackageController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Package $package)
+    public function update(Request $request, GuanoType $guanoType)
     {
         //
     }
@@ -58,7 +58,7 @@ class PackageController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Package $package)
+    public function destroy(GuanoType $guanoType)
     {
         //
     }

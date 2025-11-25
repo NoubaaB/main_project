@@ -61,7 +61,7 @@ class Charge extends Model
     }
 
     function warehouse_stockable_tracking_number_operations() : MorphMany {
-        return $this->morphMany(WarehouseStockableTrackingNumberOperation::class, 'operationable');
+        return $this->morphMany(WarehouseStockableTrackingNumberOperation::class, 'sourceable');
     }
 
     function suppliers() : BelongsToMany 

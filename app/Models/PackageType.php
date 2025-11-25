@@ -8,9 +8,9 @@ use App\Models\WarehouseStockableTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Package extends Model
+class PackageType extends Model
 {
-    /** @use HasFactory<\Database\Factories\PackageFactory> */
+    /** @use HasFactory<\Database\Factories\PackageTypeFactory> */
     use HasFactory , SoftDeletes;
 
     protected $guarded = [];

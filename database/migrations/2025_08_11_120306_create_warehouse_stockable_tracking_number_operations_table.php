@@ -24,17 +24,17 @@ return new class extends Migration
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 
-            $table->foreignId('package_id')->nullable()->index();
+            $table->foreignId('package_type_id')->nullable()->index("PT_IDX");
             $table->foreignId('warehouse_stockable_tracking_number_id')->nullable()->index("SFTN_IDX");
-            $table->foreignId('warehouse_category_operation_id')->nullable()->index("CWC_IDX");
-            $table->nullableMorphs('stockable',"STK_IDX");
+            $table->foreignId('warehouse_category_operation_id')->nullable()->index("WCO_IDX");
+            $table->nullableMorphs('stockable',"STK_IDX"); //fish_type or package_type or guano_type
 
-            $table->nullableMorphs('operationable',"OP_IDX");
+            $table->nullableMorphs('sourceable',"OP_IDX");
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This warehouse_stockable_tracking_number_operations table describe the operations of tracking numbers of fish types in warehouse_stockable_tracking_numbers table what ever is IN or OUT depend of type_operation column, and have relationship with warehouse_stockable_tracking_numbers table as belong to one warehouse_stockable_tracking_numbers record and its source of warehouse_stockable_tracking_numbers.total_weight , warehouse_stockable_tracking_numbers.total_price , warehouse_stockable_tracking_numbers.total_package_count total calculation , and assoiciated with table charge_warehouse_categories as belong to one warehouse_category_operation');
+            $table->comment('This warehouse_stockable_tracking_number_operations table describe all charges detail\'s operations of tracking numbers of fish types in warehouse_stockable_tracking_numbers table what ever is IN or OUT depend of type_operation column, and have relationship with warehouse_stockable_tracking_numbers table as belong to one warehouse_stockable_tracking_numbers record and its source of warehouse_stockable_tracking_numbers.total_weight , warehouse_stockable_tracking_numbers.total_price , warehouse_stockable_tracking_numbers.total_package_count total calculation , and assoiciated with table charge_warehouse_categories as belong to one warehouse_category_operation');
         });
     }
 

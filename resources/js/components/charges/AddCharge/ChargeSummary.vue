@@ -1,10 +1,13 @@
 <template>
     <v-card class="ma-auto rounded-lg">
-        <v-card-title>
-          <span>
-            {{ $t("charge_summary") }}
-          </span>
-        </v-card-title>
+        <v-row>
+          <v-col>
+              <v-btn variant="tonal" block rounded color="info" @click="_charge.add_charges">
+                <v-icon class="mx-2">mdi-receipt-text-plus</v-icon>
+                {{$t("add_detail_charge")}}
+              </v-btn>
+          </v-col>
+        </v-row>
         <v-card-text>
           <v-row>
             <v-col class="d-flex align-center">

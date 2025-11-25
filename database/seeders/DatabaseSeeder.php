@@ -11,19 +11,20 @@ use App\Models\Charge;
 use App\Models\Client;
 use App\Models\Origin;
 use App\Models\Fishery;
-use App\Models\Package;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\FishType;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Supplier;
+use App\Models\GuanoType;
 use App\Models\Warehouse;
 use App\Support\CsvReader;
 use App\Models\FishFamilly;
 use App\Models\FixedCharge;
+use App\Models\PackageType;
 use App\Models\SellCategory;
-use App\Models\WarehouseCategory;
 use App\Models\ChargeCategory;
 use App\Models\FishProcessType;
 use Illuminate\Database\Seeder;
+use App\Models\WarehouseCategory;
 use App\Models\WarehouseCategoryOperation;
 
 class DatabaseSeeder extends Seeder
@@ -54,11 +55,38 @@ class DatabaseSeeder extends Seeder
             "charge_category_id" => 1
         ]);
 
+        $guano_type_entier = GuanoType::create([
+            "name" => "Guano Entier",
+            "name_in_invoice" => "Guano Entier",
+            "scientific_name" => "Guano Entier",
+            "description" => "Guano Entier",
+        ]);
+
+        $guano_type_hgt = GuanoType::create([
+            "name" => "Guano HGT",
+            "name_in_invoice" => "Guano HGT",
+            "scientific_name" => "Guano HGT",
+            "description" => "Guano HGT",
+        ]);
+
+        $guano_type_filet= GuanoType::create([
+            "name" => "Guano Filet",
+            "name_in_invoice" => "Guano Filet",
+            "scientific_name" => "Guano Filet",
+            "description" => "Guano Filet",
+        ]);
+
         $charge_category_frais =  ChargeCategory::factory()->create([
             "description" => "Frais",
             "name_en" => "Frais",
             "name_fr" => "Frais",
-            "name_es" => "Frais"
+            "name_es" => "Frais",
+            "enable_tracking_numbers" => true,
+            "enable_fishery_id" => true,
+            "enable_ship_id" => true,
+            "enable_origin_id" => true,
+            "enable_supplier_process_id" => true,
+            "enable_tracking_onp_numbers" => true
         ]);
 
 
@@ -66,7 +94,13 @@ class DatabaseSeeder extends Seeder
             "description" => "Congele",
             "name_en" => "Congele",
             "name_fr" => "Congele",
-            "name_es" => "Congele"
+            "name_es" => "Congele",
+            "enable_tracking_numbers" => true,
+            "enable_fishery_id" => true,
+            "enable_ship_id" => true,
+            "enable_origin_id" => true,
+            "enable_supplier_process_id" => true,
+            "enable_tracking_onp_numbers" => true
         ]);
 
         #region Charge Detail Categories Seeders
@@ -75,84 +109,88 @@ class DatabaseSeeder extends Seeder
             "name_fr" => "Frais MP",
             "name_en" => "Frais MP",
             "name_es" => "Frais MP",
-            "description" => "Frais Matiere Premiere"
+            "description" => "Frais Matiere Premiere",
+            "warehouse_type" => "fish_type"
         ]);
 
         $warehouse_category_operation_frais_arvd =  WarehouseCategoryOperation::create([
             "name_fr" => "Frais Achat Revendu",
             "name_en" => "Frais Achat Revendu",
             "name_es" => "Frais Achat Revendu",
-            "description" => "Frais Achat Revendu"
+            "description" => "Frais Achat Revendu",
+            "warehouse_type" => "fish_type"
         ]);
 
         $warehouse_category_operation_congele_p =  WarehouseCategoryOperation::create([
             "name_fr" => "Congele P",
             "name_en" => "Congele P",
             "name_es" => "Congele P",
-            "description" => "Congele Production"
+            "description" => "Congele Production",
+            "warehouse_type" => "fish_type"
         ]);
 
         $warehouse_category_operation_congele_achete =  WarehouseCategoryOperation::create([
             "name_fr" => "Congele Achete",
             "name_en" => "Congele Achete",
             "name_es" => "Congele Achete",
-            "description" => "Congele Achete"
+            "description" => "Congele Achete",
+            "warehouse_type" => "fish_type"
         ]);
 
         $warehouse_category_operation_guano_production =  WarehouseCategoryOperation::create([
             "name_fr" => "Guano Production",
             "name_en" => "Guano Production",
             "name_es" => "Guano Production",
-            "description" => "Guano Production"
+            "description" => "Guano Production",
+            "warehouse_type" => "guano_type"
         ]);
 
         $warehouse_category_operation_guano_arvd =  WarehouseCategoryOperation::create([
             "name_fr" => "Guano Achat Revendu",
             "name_en" => "Guano Achat Revendu",
             "name_es" => "Guano Achat Revendu",
-            "description" => "Guano Achat Revendu"
+            "description" => "Guano Achat Revendu",
+            "warehouse_type" => "guano_type"
         ]);
 
         $warehouse_category_operation_glace =  WarehouseCategoryOperation::create([
             "name_fr" => "Glace",
             "name_en" => "Glace",
             "name_es" => "Glace",
-            "description" => "Glace"
-        ]);
-
-        $warehouse_category_operation_glace =  WarehouseCategoryOperation::create([
-            "name_fr" => "Glace",
-            "name_en" => "Glace",
-            "name_es" => "Glace",
-            "description" => "Glace"
+            "description" => "Glace",
+            "warehouse_type" => null
         ]);
 
         $warehouse_category_operation_transport_on_charges =  WarehouseCategoryOperation::create([
             "name_fr" => "Transport on Charges",
             "name_en" => "Transport on Charges",
             "name_es" => "Transport on Charges",
-            "description" => "Transport on Charges"
+            "description" => "Transport on Charges",
+            "warehouse_type" => null
         ]);
 
         $warehouse_category_operation_transport_on_sells =  WarehouseCategoryOperation::create([
             "name_fr" => "Transport on Sells",
             "name_en" => "Transport on Sells",
             "name_es" => "Transport on Sells",
-            "description" => "Transport on Sells"
+            "description" => "Transport on Sells",
+            "warehouse_type" => null
         ]);
 
         $warehouse_category_operation_emballage =  WarehouseCategoryOperation::create([
             "name_fr" => "Emballage",
             "name_en" => "Emballage",
             "name_es" => "Emballage",
-            "description" => "Emballage"
+            "description" => "Emballage",
+            "warehouse_type" => "package_type"
         ]);
 
         $warehouse_category_operation_commission =  WarehouseCategoryOperation::create([
             "name_fr" => "Commission",
             "name_en" => "Commission",
             "name_es" => "Commission",
-            "description" => "Commission for suppliers"
+            "description" => "Commission for suppliers",
+            "warehouse_type" => null
         ]);
 
         #endregion Charge Detail Categories Seeders
@@ -205,7 +243,6 @@ class DatabaseSeeder extends Seeder
                 "description" => "its meaen that is local warehouse thta hold his fishes and goods"
             ]);
             $rows = CsvReader::read($path);
-
             foreach ($rows as $data) {
                 $count = Warehouse::where("name", $data['name_chambre'])->count();
                 $warehouse_category_id = $warehouse_category_client->id;
@@ -323,8 +360,8 @@ class DatabaseSeeder extends Seeder
             $rows = CsvReader::read($path);
 
             foreach ($rows as $data) {
-                if (Package::where("name", $data["name_container"])->count() == 0) {
-                    Package::create([
+                if (PackageType::where("name", $data["name_container"])->count() == 0) {
+                    PackageType::create([
                         "id" => $data["id"],
                         "name" => $data["name_container"],
                         "size" => $data["size"]
@@ -350,7 +387,7 @@ class DatabaseSeeder extends Seeder
                 foreach (json_decode($data["types_reception"]) as $item) {
                     $charge->non_warehouse_stockable_operations()->create([
                         "fish_type_id" => $item->type_id,
-                        "package_id" => null,
+                        "package_type_id" => null,
     
                         "unit_price" => $item->price,
                         "total_weight" => $item->weight,
@@ -416,8 +453,8 @@ class DatabaseSeeder extends Seeder
                         "unit_price" => $item->pu,
                         "total_weight" => $item->total_weight_container,
                         "total_price" => $item->total_weight_container * $item->pu,
-                        "total_package_count" => round($item->total_weight_container / Package::find($item->container_id)->size, 2),
-                        "package_id" => $item->container_id,
+                        "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
+                        "package_type_id" => $item->container_id,
                         "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
                     ]);
                     // $warehouse->calc();
@@ -486,8 +523,8 @@ class DatabaseSeeder extends Seeder
                     "unit_price" => $item->pu,
                     "total_weight" => $item->total_weight_container,
                     "total_price" => $item->total_weight_container * $item->pu,
-                    "total_package_count" => round($item->total_weight_container / Package::find($item->container_id)->size, 2),
-                    "package_id" => $item->container_id,
+                    "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
+                    "package_type_id" => $item->container_id,
                     "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
                 ]);
                 // $warehouse->calc();
@@ -557,8 +594,8 @@ class DatabaseSeeder extends Seeder
                         "unit_price" => $item->pu,
                         "total_weight" => $item->weight,
                         "total_price" => $item->weight * $item->pu,
-                        "total_package_count" => round($item->weight / Package::find($item->container_id)->size, 2),
-                        "package_id" => $item->container_id,
+                        "total_package_count" => round($item->weight / PackageType::find($item->container_id)->size, 2),
+                        "package_type_id" => $item->container_id,
                         "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
                     ]);
                     // $warehouse->calc();

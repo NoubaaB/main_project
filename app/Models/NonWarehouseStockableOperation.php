@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Package;
+use App\Models\PackageType;
 use App\Models\FishType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,9 +21,9 @@ class NonWarehouseStockableOperation extends Model
         return $this->belongsTo(Charge::class);
     }
 
-    function package(): BelongsTo
+    function packageType_type(): BelongsTo
     {
-        return $this->belongsTo(Package::class);
+        return $this->belongsTo(PackageType::class);
     }
 
     function fish_type(): BelongsTo

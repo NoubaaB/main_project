@@ -6,14 +6,16 @@ use App\Models\User;
 use App\Models\Stock;
 use App\Models\Origin;
 use App\Models\Fishery;
-use App\Models\Package;
+use App\Models\PackageType;
 use App\Models\FishType;
 use App\Models\ChargeCategory;
+use App\Models\GuanoType;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PasswordReset;
 use App\Models\Supplier;
 use App\Models\Warehouse;
+use App\Models\WarehouseCategoryOperation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -194,17 +196,21 @@ class AuthController extends Controller implements HasMiddleware
     {
         $suppliers = Supplier::all();
         $fish_types = FishType::all();
-        $packages = Package::all();
+        $package_types = PackageType::all();
+        $guano_types = GuanoType::all();
         $warehouses = Warehouse::all();
         $fisheries = Fishery::all();
         $origins = Origin::all();
         $charge_categories = ChargeCategory::all();
+        $warehouse_category_operations = WarehouseCategoryOperation::all();
         return [
             "suppliers" => $suppliers,
             "fish_types" => $fish_types,
-            "packages" => $packages,
+            "package_types" => $package_types,
+            "guano_types" => $guano_types,
             "warehouses" => $warehouses,
             "charge_categories" => $charge_categories,
+            "warehouse_category_operations" => $warehouse_category_operations,
             "fisheries" => $fisheries,
             "origins" => $origins,
         ];

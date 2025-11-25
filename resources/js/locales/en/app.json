@@ -1,5 +1,5 @@
 {
-    "title_logo": "Title Logo",
+    "title_logo": "A horse with no name",
     "back_home": "Back Home",
     "please_select_items": "Please Select Items",
     "command_tips": "Tips",
@@ -180,12 +180,16 @@
     "fishery": "Fishery",
     "origin": "Origin",
     "is_stockable?": "Is Stockable?",
+    "charge_category_operation": "Charge Category Operation",
+    "article_description": "Article Description",
     "archive": "Archive",
     "charge_summary": "Charge Summary",
     "summary": "Summary",
     "total_weight": "Total Weight",
     "suppliers": "Suppliers",
     "supplier": "Supplier",
+    "add_charge_detail": "Add Charge Detail",
+    "add_detail_charge": "Add Detail Charge",
     "warehouse_name": "Warehouse Name",
     "total_weight_of_all_items_s_Weight_bill": "Total Weight of all items's Weight bill",
     "item_name": "Item Name"

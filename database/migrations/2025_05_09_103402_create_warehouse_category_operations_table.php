@@ -18,11 +18,13 @@ return new class extends Migration
             $table->string("name_en")->nullable();
             $table->string("name_es")->nullable();
             $table->string("description")->nullable();
-            $table->boolean("allow_price")->default(true);
             $table->boolean("allow_weight")->default(false);
-            $table->boolean("is_stockable")->default(true);
+            $table->boolean("allow_price")->default(true);
+            $table->boolean("allow_package_type_id")->default(true);
+            $table->boolean("allow_warehouse")->default(true);
             
             $table->enum("operation_type",["charge","sells","both"])->default("both");
+            $table->enum("warehouse_type",["fish_type","guano_type","package_type"])->nullable();
 
             $table->timestamps();
             $table->softDeletes();

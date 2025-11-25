@@ -19,9 +19,11 @@ class CsvReader
         $data = [];
         if (($handle = fopen($path, 'r')) !== false) {
             $header = fgetcsv($handle);
-
             while (($row = fgetcsv($handle)) !== false) {
-                $data[] = array_combine($header, $row);
+                $obj = array_combine($header, $row);
+                if($obj["deleted_at"] == "NULL"){
+                    $data[] = $obj;
+                }
             }
 
             fclose($handle);

@@ -60,34 +60,7 @@
                   </template>
               </v-autocomplete>
             </v-col>
-          </v-row>
-          <v-row class="text-center">
-            <!-- Select Detail -->
-            <v-col class="py-0">
-              <v-switch
-                density="compact"
-                color="info"
-                hide-details
-                variant="outlined"
-                rounded
-                v-model="_charge.add_charge_details"
-                :label="$t('primary_matters')"
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col class="py-0">
-              <v-switch
-                density="compact"
-                color="info"
-                hide-details
-                variant="outlined"
-                rounded
-                v-model="_charge.add_production_details"
-                :label="$t('production_matters')"
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col cols="2" class="py-0">
+            <v-col cols="2" class="py-2 pl-0">
               <v-btn
                 variant="tonal"
                 color="info"
@@ -152,6 +125,7 @@
               <!-- Tracking Numbers -->
               <v-col cols="12" md="6">
                 <v-autocomplete
+                  v-if="_charge.getCharge.enable_tracking_numbers"
                   v-model="_charge.charge.tracking_numbers"
                   :items="_charge.charge.tracking_numbers"
                   :rules="[!v$._charge.charge.tracking_numbers.$invalid ]"
@@ -187,6 +161,7 @@
 
               <v-col cols="12" md="6">
                 <v-autocomplete
+                  v-if="_charge.getCharge.enable_tracking_onp_numbers"
                   v-model="_charge.charge.tracking_onp_numbers"
                   :items="_charge.charge.tracking_onp_numbers"
                   :label="$t('tracking_onp_numbers')"
@@ -219,6 +194,7 @@
               <!-- Supplier -->
               <v-col cols="12" md="6">
                 <v-autocomplete
+                  v-if="_charge.getCharge.enable_supplier_process_id"
                   v-model="_charge.charge.supplier_ids"
                   :items="_supplier.list"
                   :rules="[!v$._charge.charge.supplier_ids.$invalid ]"
@@ -256,6 +232,7 @@
               <!-- Fishery -->
               <v-col cols="12" md="6">
                 <v-autocomplete
+                  v-if="_charge.getCharge.enable_fishery_id"
                   :rules="[!v$._charge.charge.fishery_id.$invalid ]"
                   :hide-details="v$._charge.charge.fishery_id.$errors.length==0"
                   :error-messages="v$._charge.charge.fishery_id.$errors.map(e => e.$message)"
@@ -288,6 +265,7 @@
               <!-- Origin -->
               <v-col cols="12" md="6">
                 <v-autocomplete
+                  v-if="_charge.getCharge.enable_origin_id"
                   :rules="[!v$._charge.charge.origin_id.$invalid ]"
                   :hide-details="v$._charge.charge.origin_id.$errors.length==0"
                   :error-messages="v$._charge.charge.origin_id.$errors.map(e => e.$message)"

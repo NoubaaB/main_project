@@ -25,7 +25,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This warehouses table describe the wirehouse of fish store after production and have relationship with production_details table as has many of production_detail records also have relationship with charge_details table as has many of charge_detail , and have relationship with warehouse_categories_table each warehouses table have one warehouse_categories that indicate type of wirehouse' );
+            $table->comment('This warehouses table have relationship with warehouse_categories_table each warehouses table have one warehouse_categories that indicate type of wirehouse' );
         });
     }
 

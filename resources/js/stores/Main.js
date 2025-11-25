@@ -41,26 +41,15 @@ export const useMain = defineStore("main", {
             let charge = localStorage.getItem("charge") || '{}';
             Object.assign(useCharge().charge, JSON.parse(charge));
 
-            //initialize the charge store with data from localStorage
-            let charge_detail = localStorage.getItem("charge_detail") || '{}';
-            Object.assign(useCharge().charge_detail, JSON.parse(charge_detail));
-
-            //initialize the charge store with data from localStorage
-            let production_detail = localStorage.getItem("production_detail") || '{}';
-            Object.assign(useCharge().production_detail, JSON.parse(production_detail));
+            //initialize the charge_details store with data from localStorage
+            let charge_details = localStorage.getItem("charge_details") || '{}';
+            Object.assign(useCharge().charge_details, JSON.parse(charge_details));
 
             //initialize the charges store with data from localStorage
             let charges = localStorage.getItem("charges") || '[]';
             useCharge().charges = JSON.parse(charges);
-
-            //initialize the add_charge_details store with data from localStorage
-            let add_charge_details = localStorage.getItem("add_charge_details") == "true";
-            useCharge().add_charge_details = add_charge_details;
-
-            //initialize the add_production_details store with data from localStorage
-            let add_production_details = localStorage.getItem("add_production_details") == "true";
-            useCharge().add_production_details = add_production_details;
-
+            
+            //other settings
             useCharge().input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
             useCharge().showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
 
