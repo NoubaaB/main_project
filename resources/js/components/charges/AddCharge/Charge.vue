@@ -6,7 +6,7 @@
               <span>
                 <v-autocomplete
                   v-model="charge.warehouse_category_operation_id"
-                  :items="_warehouseCategoryOperation.getList"
+                  :items="_charge.unique_warehouse_category_operations_list"
                   item-value="id"
                   :item-title="`name_${_main.lang.code}`"
                   :label="$t('charge_category_operation')"
@@ -28,6 +28,14 @@
                         {{ item.title }}
                       </v-chip>
                     </template>
+                    <template v-slot:item="{ props, item }">
+                      <v-list-item
+                        v-bind="props"
+                        :disabled="item.raw.disabled"
+                        :title="item.raw[`name_${_main.lang.code}`]"
+                      ></v-list-item>
+                    </template>
+
                 </v-autocomplete>
               </span>
             </v-col>
@@ -105,10 +113,15 @@
                   color="info"
                   density="compact"
                   variant="outlined"
+                  counter="250"
                   rounded
                   :label="$t('article_description')"
+                  v-model="charge_detail.fish_type_id"
+                  @keydown.enter.prevent="submit"
+                  details
+                  :error-messages="v$.charge_detail.fish_type_id.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.fish_type_id.$touch()"
                 >
-
                 </v-textarea>
               </v-col>
               
@@ -291,7 +304,7 @@
             <v-row>
               <v-data-table
                 :headers="headers"
-                :items="_charge.charge.charge_details"
+                :items="get_charge_details"
                 tabindex="0"
                 item-value="id"
                 density="compact"
@@ -459,13 +472,8 @@
       validations: function () {
         return {
           charge_detail: {
-              warehouse_category_operation_id: {
-                required,
-                numeric,
-              },
               fish_type_id: {
                 required,
-                numeric,
               },
               warehouse_id: {
                 requiredIf: requiredIf(() =>this._charge.charge.is_warehouseabl),
@@ -499,6 +507,7 @@
         }
       },
       mounted() {
+        this.getTypeDetail()
         this.headers = this.DEFAULT_HEADERS();
       },
       computed: {
@@ -520,6 +529,9 @@
         _warehouseCategoryOperation() {
           return useWarehouseCategoryOperation();
         },
+        get_charge_details() {
+          return this._charge.charge_details.filter(e => e.warehouse_category_operation_id == this.charge.warehouse_category_operation_id);
+        }
       },
       methods:{
         DEFAULT_HEADERS () {
@@ -540,7 +552,24 @@
           this.is_editing = false;
         },
         submit: function () {
-          this._charge.add_charge_detail();
+          this._charge.add_charge_detail(this.charge_detail);
+          this.reset_charge_detail();
+        },
+        reset_charge_detail: function () {
+          this.charge_detail = {
+              id: uuidv4(),
+              weight: null,
+              weight_bill: null,
+              unit_price: null,
+              price: null,
+              package_count: null,
+              fish_type_id: null,
+              warehouse_category_operation_id: null,
+              warehouse_id: null,
+              package_id: null,
+          };
+          this.v$.$reset();
+          this.is_editing = false;
         },
         edit: function (id) {
           this.is_editing = true;
@@ -558,8 +587,10 @@
         delete_detail: function () {
           this._charge.delete_detail(this.charge.id);
         },
-        getTypeDetail: function (value) {
-          let warehouse_type = this._warehouseCategoryOperation.getList.find(e => e.id == value)?.warehouse_type;
+        getTypeDetail: function () {
+          this.charge_detail.fish_type_id = null;
+          this.charge_detail.warehouse_category_operation_id = this.charge.warehouse_category_operation_id;
+          let warehouse_type = this._warehouseCategoryOperation.getList.find(e => e.id == this.charge.warehouse_category_operation_id)?.warehouse_type;
           switch (warehouse_type) {
             case "package_type":
                 this.type_detail = this._package_type.getList;
@@ -603,8 +634,8 @@
             this.charge_detail.package_count = 0;  
           }
         },
-        "charge.warehouse_category_operation_id": function (value) {
-          this.getTypeDetail(value);
+        "charge.warehouse_category_operation_id": function () {
+          this.getTypeDetail();
         }
       },
     }

@@ -54,6 +54,9 @@ export const useCharge = defineStore("charge", {
         delete_detail: function (charge_id) {
             this.charges = this.charges.filter(e => e.id != charge_id);
         },
+        add_charge_detail: function (charge_detail) {
+            this.charge_details.push(charge_detail);
+        },
         submitCharge: function () {
             axios.post("/api/charge", this.charge)
                 .then(response => {
@@ -118,5 +121,9 @@ export const useCharge = defineStore("charge", {
         charge_categories: (state) => {
             return state.charge_category.getList;
         },
+        unique_warehouse_category_operations_list: (state) => {
+            const warehouse_category_operation_ids = state.charges.map((charge) => charge.warehouse_category_operation_id);
+            return state.warehouse_category_operation.getList.map((operation) => operation.disabled = !warehouse_category_operation_ids.includes(operation.id) ? false : true) && state.warehouse_category_operation.getList;
+        }
     },
 });
