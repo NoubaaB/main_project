@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string("description")->nullable();
             $table->boolean("allow_weight")->default(false);
             $table->boolean("allow_price")->default(true);
-            $table->boolean("allow_package_type_id")->default(true);
+            $table->boolean("allow_package_type")->default(true);
             $table->boolean("allow_warehouse")->default(true);
             
             $table->enum("operation_type",["charge","sells","both"])->default("both");

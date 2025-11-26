@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('fish_types', function (Blueprint $table) {
             $table->id();
-            $table->string("name")->unique();
+            $table->string("name_fr")->unique();
+            $table->string("name_en")->unique();
+            $table->string("name_es")->unique();
             $table->string("name_in_invoice")->unique();
             $table->string("scientific_name")->nullable();
             $table->string("image")->nullable();

@@ -8,8 +8,8 @@
         <v-divider vertical ></v-divider>
         <v-col cols="12" md="7">
           <!-- Fresh Fish Receive Details -->
-          <Charge class="mt-5" v-for="charge in _charge.charges" :key="charge.id"  :charge="charge" />
-          <v-divider vertical ></v-divider>
+          <Charge class="mb-5" v-for="charge in _charge.charges" :key="charge.id"  :charge="charge" />
+          <v-divider class="my-5" ></v-divider>
           <!-- Charge Summary -->
           <ChargeSummary :charge="_charge.charge" />
         </v-col>

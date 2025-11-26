@@ -56,21 +56,27 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $guano_type_entier = GuanoType::create([
-            "name" => "Guano Entier",
+            "name_fr" => "Guano Entier",
+            "name_en" => "Guano Entier",
+            "name_es" => "Guano Entier",
             "name_in_invoice" => "Guano Entier",
             "scientific_name" => "Guano Entier",
             "description" => "Guano Entier",
         ]);
 
         $guano_type_hgt = GuanoType::create([
-            "name" => "Guano HGT",
+            "name_fr" => "Guano HGT",
+            "name_en" => "Guano HGT",
+            "name_es" => "Guano HGT",
             "name_in_invoice" => "Guano HGT",
             "scientific_name" => "Guano HGT",
             "description" => "Guano HGT",
         ]);
 
         $guano_type_filet= GuanoType::create([
-            "name" => "Guano Filet",
+            "name_fr" => "Guano Filet",
+            "name_en" => "Guano Filet",
+            "name_es" => "Guano Filet",
             "name_in_invoice" => "Guano Filet",
             "scientific_name" => "Guano Filet",
             "description" => "Guano Filet",
@@ -110,7 +116,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Frais MP",
             "name_es" => "Frais MP",
             "description" => "Frais Matiere Premiere",
-            "warehouse_type" => "fish_type"
+            "warehouse_type" => "fish_type",
+            "allow_weight"=>true,
+            "allow_price"=>true,
+            "allow_package_type"=>false,
+            "allow_warehouse"=>false
         ]);
 
         $warehouse_category_operation_frais_arvd =  WarehouseCategoryOperation::create([
@@ -118,7 +128,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Frais Achat Revendu",
             "name_es" => "Frais Achat Revendu",
             "description" => "Frais Achat Revendu",
-            "warehouse_type" => "fish_type"
+            "warehouse_type" => "fish_type",
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => true,
+            "allow_warehouse" => true
         ]);
 
         $warehouse_category_operation_congele_p =  WarehouseCategoryOperation::create([
@@ -126,7 +140,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Congele P",
             "name_es" => "Congele P",
             "description" => "Congele Production",
-            "warehouse_type" => "fish_type"
+            "warehouse_type" => "fish_type",
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => true,
+            "allow_warehouse" => true
         ]);
 
         $warehouse_category_operation_congele_achete =  WarehouseCategoryOperation::create([
@@ -134,7 +152,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Congele Achete",
             "name_es" => "Congele Achete",
             "description" => "Congele Achete",
-            "warehouse_type" => "fish_type"
+            "warehouse_type" => "fish_type",
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => true,
+            "allow_warehouse" => true
         ]);
 
         $warehouse_category_operation_guano_production =  WarehouseCategoryOperation::create([
@@ -142,7 +164,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Guano Production",
             "name_es" => "Guano Production",
             "description" => "Guano Production",
-            "warehouse_type" => "guano_type"
+            "warehouse_type" => "guano_type",
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => true,
+            "allow_warehouse" => true
         ]);
 
         $warehouse_category_operation_guano_arvd =  WarehouseCategoryOperation::create([
@@ -150,7 +176,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Guano Achat Revendu",
             "name_es" => "Guano Achat Revendu",
             "description" => "Guano Achat Revendu",
-            "warehouse_type" => "guano_type"
+            "warehouse_type" => "guano_type",
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => true,
+            "allow_warehouse" => true
         ]);
 
         $warehouse_category_operation_glace =  WarehouseCategoryOperation::create([
@@ -158,7 +188,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Glace",
             "name_es" => "Glace",
             "description" => "Glace",
-            "warehouse_type" => null
+            "warehouse_type" => null,
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => false,
+            "allow_warehouse" => false
         ]);
 
         $warehouse_category_operation_transport_on_charges =  WarehouseCategoryOperation::create([
@@ -166,7 +200,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Transport on Charges",
             "name_es" => "Transport on Charges",
             "description" => "Transport on Charges",
-            "warehouse_type" => null
+            "warehouse_type" => null,
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => false,
+            "allow_warehouse" => false
         ]);
 
         $warehouse_category_operation_transport_on_sells =  WarehouseCategoryOperation::create([
@@ -174,7 +212,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Transport on Sells",
             "name_es" => "Transport on Sells",
             "description" => "Transport on Sells",
-            "warehouse_type" => null
+            "warehouse_type" => null,
+            "allow_weight" => true,
+            "allow_price" => true,
+            "allow_package_type" => false,
+            "allow_warehouse" => false
         ]);
 
         $warehouse_category_operation_emballage =  WarehouseCategoryOperation::create([
@@ -182,7 +224,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Emballage",
             "name_es" => "Emballage",
             "description" => "Emballage",
-            "warehouse_type" => "package_type"
+            "warehouse_type" => "package_type",
+            "allow_weight" => false,
+            "allow_price" => true,
+            "allow_package_type" => true,
+            "allow_warehouse" => true
         ]);
 
         $warehouse_category_operation_commission =  WarehouseCategoryOperation::create([
@@ -190,7 +236,11 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Commission",
             "name_es" => "Commission",
             "description" => "Commission for suppliers",
-            "warehouse_type" => null
+            "warehouse_type" => null,
+            "allow_weight" => false,
+            "allow_price" => true,
+            "allow_package_type" => false,
+            "allow_warehouse" => false
         ]);
 
         #endregion Charge Detail Categories Seeders
@@ -310,7 +360,7 @@ class DatabaseSeeder extends Seeder
 
             foreach ($rows as $data) {
 
-                if (FishType::where("name", $data["name_type"])->count() == 0) {
+                if (FishType::where("name_fr", $data["name_type"])->count() == 0) {
                     $fish_process_type =  FishProcessType::Where("name",$data["process"])->first();
                     $fish_process_type_id = null;
                     if($fish_process_type){
@@ -324,7 +374,9 @@ class DatabaseSeeder extends Seeder
                     }
                     FishType::create([
                         "id" => $data["id"],
-                        "name" => $data["name_type"],
+                        "name_fr" => $data["name_type"],
+                        "name_en" => $data["name_type"],
+                        "name_es" => $data["name_type"],
                         "name_in_invoice" => $data["name_type"],
                         "fish_familly_id" => $data["family_id"] == "NULL" ? NULL : $data["family_id"],
                         "fish_process_type_id" => $fish_process_type_id
@@ -360,10 +412,12 @@ class DatabaseSeeder extends Seeder
             $rows = CsvReader::read($path);
 
             foreach ($rows as $data) {
-                if (PackageType::where("name", $data["name_container"])->count() == 0) {
+                if (PackageType::where("name_fr", $data["name_container"])->count() == 0) {
                     PackageType::create([
                         "id" => $data["id"],
-                        "name" => $data["name_container"],
+                        "name_fr" => $data["name_container"],
+                        "name_en" => $data["name_container"],
+                        "name_es" => $data["name_container"],
                         "size" => $data["size"]
                     ]);
                 }

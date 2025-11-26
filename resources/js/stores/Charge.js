@@ -3,18 +3,20 @@ import moment from "moment";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from 'uuid';
 import { useWebWorkerFn } from '@vueuse/core';
-
+import { useMain } from "./Main";
 import { useFishType } from "./FishType";
 import { usePackageType } from "./PackageType";
 import { useGuanoType } from "./GuanoType";
 import { useWarehouse } from "./Warehouse";
 import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useChargeCategory } from "./ChargeCategory";
+import { main } from "@popperjs/core";
 
 export const useCharge = defineStore("charge", {
     state: () => {
         return {
             showAdditionalInfo: false,
+            main: useMain(),
             fish_type: useFishType(),
             package_type: usePackageType(),
             guano_type: useGuanoType(),
@@ -79,22 +81,34 @@ export const useCharge = defineStore("charge", {
             this.charges.push(this.charge);
             this.reset();
         },
-        getFishTypeName: function (fish_type_id) {
-            const fishType = this.fish_type.getList.find(type => type.id === fish_type_id);
+        getFishTypeName: function (stockable_id) {
+            const fishType = this.fish_type.getList.find(type => type.id === stockable_id);
             return fishType ? fishType.name : 'N/A';
         },
         getWarehouseName: function (warehouse_id) {
             const warehouse = this.getWarehouses.find(warehouse => warehouse.id === warehouse_id);
             return warehouse ? warehouse.name : 'N/A';
         },
-        getPackageName: function (package_id) {
-            const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
-            return packageItem ? packageItem.name : 'N/A';
+        getPackageName: function (package_type_id) {
+            const packageItem = this.getPackages.find(pkg => pkg.id === package_type_id);
+            return packageItem ? packageItem[`name_${this.main.lang.code}`] : 'N/A';
         },
-        getPackageSize: function (package_id, wieght) {
-            const packageItem = this.getPackages.find(pkg => pkg.id === package_id);
+        getPackageSize: function (package_type_id, wieght) {
+            const packageItem = this.getPackages.find(pkg => pkg.id === package_type_id);
             return packageItem ? packageItem.size : wieght;
-        }
+        },
+        getStockableName: function (stockable_id, stockable_type) {
+            switch (stockable_type) {
+                case "package_type":
+                    return this.getPackages.find(e => e.id == stockable_id)[`name_${this.main.lang.code}`];
+                case "fish_type":
+                    return this.getFishTypes.find(e => e.id == stockable_id)[`name_${this.main.lang.code}`];
+                case "guano_type":
+                    return this.getGuanoTypes.find(e => e.id == stockable_id)[`name_${this.main.lang.code}`];
+                default:
+                    return stockable_id;
+            }
+        },
     },
     getters: {
         getTypeCharge: (state) => {

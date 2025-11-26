@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('package_types', function (Blueprint $table) {
             $table->id();
-            $table->string("name")->unique();
+            $table->string("name_fr")->unique();
+            $table->string("name_en")->unique();
+            $table->string("name_es")->unique();
             $table->integer("size");
             $table->string("description")->nullable();
             $table->string("type_emballage")->nullable();
