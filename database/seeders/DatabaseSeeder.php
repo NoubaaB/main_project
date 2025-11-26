@@ -167,7 +167,7 @@ class DatabaseSeeder extends Seeder
             "warehouse_type" => "guano_type",
             "allow_weight" => true,
             "allow_price" => true,
-            "allow_package_type" => true,
+            "allow_package_type" => false,
             "allow_warehouse" => true
         ]);
 
@@ -179,7 +179,7 @@ class DatabaseSeeder extends Seeder
             "warehouse_type" => "guano_type",
             "allow_weight" => true,
             "allow_price" => true,
-            "allow_package_type" => true,
+            "allow_package_type" => false,
             "allow_warehouse" => true
         ]);
 
@@ -299,17 +299,19 @@ class DatabaseSeeder extends Seeder
                 if("CHAMBRE AKF 2" == $data['name_chambre']){
                     $warehouse_category_id = $warehouse_category_local->id;
                 }
+                $warehouse_type = str_contains($data['name_chambre'], "DECHET") ? "guano_type" : "fish_type";
                 if ($count == 0) {
                     Warehouse::create([
                         "id" => $data['id'],
                         "name" => $data['name_chambre'],
-                        "warehouse_category_id" => $warehouse_category_id
+                        "warehouse_category_id" => $warehouse_category_id,
+                        "warehouse_type"=>$warehouse_type
                     ]);
                 }else{
                     Warehouse::create([
                         "id" => $data['id'],
                         "name" => $data['name_chambre']."_".rand(),
-                        "warehouse_category_id" => $warehouse_category_id
+                        "warehouse_category_id" => $warehouse_category_id,
                     ]);
                 }
             }

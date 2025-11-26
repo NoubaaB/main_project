@@ -295,20 +295,6 @@
                 </v-autocomplete>
               </v-col>
 
-              <!-- Is Stockable -->
-              <v-col cols="12" md="6">
-                <v-switch
-                  density="compact"
-                  color="info"
-                  hide-details
-                  variant="outlined"
-                  rounded
-                  v-model="_charge.charge.is_stockable"
-                  :label="$t('is_stockable?')"
-                  inset
-                ></v-switch>
-            
-              </v-col>
             </v-row>
           </v-expand-transition>
 

@@ -59,6 +59,9 @@ export const useCharge = defineStore("charge", {
         add_charge_detail: function (charge_detail) {
             this.charge_details.push(charge_detail);
         },
+        edit_charge_detail: function (index,charge_detail) {
+            this.charge_details.splice(index, 1, charge_detail);
+        },
         submitCharge: function () {
             axios.post("/api/charge", this.charge)
                 .then(response => {

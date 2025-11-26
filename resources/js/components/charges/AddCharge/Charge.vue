@@ -129,7 +129,7 @@
               <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_warehouse">
                 <v-autocomplete
                   v-model="charge_detail.warehouse_id"
-                  :items="_charge.getWarehouses"
+                  :items="getWarehouse"
                   item-value="id"
                   item-title="name"
                   :label="$t('warehouse_name')"
@@ -288,13 +288,13 @@
               <v-col>
                 <v-btn
                   :disabled="v$.$invalid"
-                  color="info"
+                  :color="`${is_editing ? 'amber' : 'green'}`"
                   variant="tonal"
                   rounded="pill"
                   block
                   @click="submit"
                 >
-                  {{ $t("add_article") }}
+                  {{is_editing ? $t("edit_article") : $t("add_article") }}
                 </v-btn>
               </v-col>
           </v-row>
@@ -377,7 +377,7 @@
                 </template>
 
                 <template v-slot:[`item.stockable_id`]="{ item }">
-                  <v-chip color="info">
+                  <v-chip :color="stockable_color">
                     {{ _charge.getStockableName(item.stockable_id,item.stockable_type) }}
                   </v-chip>
                 </template>
@@ -528,6 +528,9 @@
         _warehouse_category_operation() {
           return useWarehouseCategoryOperation();
         },
+        getWarehouse() {
+          return this._charge.getWarehouses.filter(e => e.warehouse_type == this.warehouse_category_operation.warehouse_type);
+        },
         get_charge_details() {
           return this._charge.charge_details.filter(e => e.warehouse_category_operation_id == this.charge.warehouse_category_operation_id);
         },
@@ -536,12 +539,25 @@
         },
         number: function () {
           return this._charge.charges.indexOf(this.charge) + 1;
+        },
+        stockable_color: function () {
+          let warehouse_type = this._warehouse_category_operation.getList.find(e => e.id == this.charge.warehouse_category_operation_id)?.warehouse_type;
+          switch (warehouse_type) {
+            case "package_type":
+                return "teal";
+            case "fish_type":
+                return "info";
+            case "guano_type":
+                return "brown";
+            default:
+              return "grey";
+          }
         }
       },
       methods:{
         DEFAULT_HEADERS () {
           return [
-            { title: this.$t("type_article"), value: 'stockable_id', removable: true },
+            { title: this.$t("type_article"), value: 'stockable_id', removable: true ,visible:true },
             { title: this.$t("weight_(KG)"), value: 'weight', removable: true, visible: this.warehouse_category_operation.allow_weight },
             { title: this.$t("weight_bill_(KG)"), value: 'weight_bill', removable: true , visible: this.warehouse_category_operation.allow_weight },
             { title: this.$t("pu_(DH)"), value: 'unit_price', removable: true , visible: this.warehouse_category_operation.allow_price },
@@ -549,7 +565,7 @@
             { title: this.$t("type_package"), value: 'package_type_id', removable: true , visible: this.warehouse_category_operation.allow_package_type },
             { title: this.$t("nbr_caisses"), value: 'package_count', removable: true , visible: this.warehouse_category_operation.allow_package_type },
             { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.warehouse_category_operation.allow_warehouse },
-            { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false }
+            { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false,visible:true }
           ]
         },
         update: function () {
@@ -557,7 +573,13 @@
           this.is_editing = false;
         },
         submit: function () {
-          this._charge.add_charge_detail(this.charge_detail);
+          if (this.is_editing) {
+            let charge_detail = this.get_charge_details.find(e => e.id == this.charge_detail.id);
+            charge_detail = JSON.parse(JSON.stringify(this.charge_detail));
+            this.is_editing = false;
+          } else {
+            this._charge.add_charge_detail(this.charge_detail);
+          }
           this.reset_charge_detail();
         },
         reset_charge_detail: function () {
@@ -579,7 +601,7 @@
         },
         edit: function (id) {
           this.is_editing = true;
-          this._charge.edit_charge_detail(id);
+          this.charge_detail = this.get_charge_details.find(e => e.id == id);
         },
         remove: function (id) {
           this._charge.remove_charge_detail(id);
