@@ -533,8 +533,11 @@
         _warehouse_category_operation() {
           return useWarehouseCategoryOperation();
         },
+        store_warehouse_category_operation: function () {
+          return this._warehouse_category_operation.getList.find(e => e.id == this.warehouse_category_operation.id);
+        },
         getWarehouse() {
-          return this._charge.getWarehouses.filter(e => e.warehouse_type == this.warehouse_category_operation.warehouse_type);
+          return this._charge.getWarehouses.filter(e => e.warehouse_type == this.store_warehouse_category_operation.warehouse_type);
         },
         ability_warehouse_category_operation : function(){
           return this._warehouse_category_operation.getList.find(e => e.id == this.warehouse_category_operation.id);
