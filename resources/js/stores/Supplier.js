@@ -26,6 +26,9 @@ export const useSupplier = defineStore("supplier", {
         updateSupplier: function (supplier) {
             console.log("supplier", supplier)
         },
+        get_supplier_name_by_id: function (id) {
+            return this.list.find(s => s.id == id).name;
+        }
     },
     getters: {
         getList: state => state.list

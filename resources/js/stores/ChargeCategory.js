@@ -24,6 +24,9 @@ export const useChargeCategory = defineStore("charge_category", {
         updateChargeCategory: function (charge_catgeory) {
             console.log("charge_catgeory", charge_catgeory)
         },
+        get_charge_category_name_by_id: function (id) {
+            return this.list.find(c => c.id == id).description;
+        }
     },
     getters: {
         getList: state => state.list

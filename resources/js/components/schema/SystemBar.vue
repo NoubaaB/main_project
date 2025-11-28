@@ -95,6 +95,25 @@
                                 <template v-slot:[`item.date`]="{ item }">
                                     {{ main.formateDate(item.date) }}
                                 </template>
+                                <template v-slot:[`item.charge_category_id`]="{ item }">
+                                    <v-chip
+                                        color="info"
+                                        class="mt-3"
+                                        :text="_charge_category.get_charge_category_name_by_id(item.charge_category_id)"
+                                    ></v-chip>
+                                </template>
+                                <template v-slot:[`item.supplier_ids`]="{ item }">
+                                    <v-responsive class="overflow-y-auto" max-height="280">
+                                        <v-chip
+                                            v-for="suppliers_id in item.supplier_ids"
+                                            color="info"
+                                            class="mt-1"
+                                            size="small"
+                                            :key="suppliers_id"
+                                            :text="_supplier.get_supplier_name_by_id(suppliers_id)"
+                                        ></v-chip>
+                                    </v-responsive>
+                                </template>
                                 <template v-slot:[`item.total_weight`]="{ item }">
                                     {{ main.formatDisplayNumber(item.total_weight) }}
                                 </template>
@@ -109,10 +128,11 @@
                                 </div>
                                 </template>
                             </v-data-table>
-                            <v-row>
+                            <v-row class="mt-1">
                                 <v-col>
                                     <div class="text-center">
                                         <v-btn
+                                            :disabled="selected.length == 0"
                                             class="text-none"
                                             color="info"
                                             variant="tonal"
@@ -120,22 +140,23 @@
                                             rounded
                                             block
                                         >
-                                            Submit
+                                            {{ `${selected.length == 0 ? '': `(${selected.length})`} ${$t('submit')}` }}
                                         </v-btn>
                                     </div>
                                 </v-col>
                                 <v-col>
                                     <div class="text-center">
                                         <v-btn
+                                            :disabled="selected.length == 0"
                                             class="text-none"
                                             color="red"
                                             variant="outlined"
                                             width="90"
                                             rounded
                                             block
-                                            @click="deleteCharges"
+                                            @click="delete_archived_charges"
                                         >
-                                            Delete
+                                            {{ `${selected.length == 0 ? '': `(${selected.length})`} ${$t('delete')}` }}
                                         </v-btn>
                                     </div>
                                 </v-col>
@@ -194,6 +215,8 @@
     import { useMain } from "@/stores/Main"; 
     import { useAuth } from "@/stores/Auth";
     import { useCharge } from "@/stores/Charge";
+    import { useSupplier } from "@/stores/Supplier";
+    import { useChargeCategory } from "@/stores/ChargeCategory";
     import annyang from "annyang";
 
     export default {
@@ -215,9 +238,17 @@
             _charge: function () {
                 return useCharge();
             },
+            _supplier: function () {
+                return useSupplier();
+            },
+            _charge_category: function () {
+                return useChargeCategory();
+            },
             headers: function () {
                 return [
                     { title: this.$t("charge.date"), value: "date" },
+                    { title: this.$t("charge.charge_category"), value: "charge_category_id" },
+                    { title: this.$t("charge.suppliers"), value: "supplier_ids" },
                     { title: this.$t("charge.tracking_numbers"), value: "tracking_numbers" },
                     { title: this.$t("charge.total_price"), value: "total_price" },
                     { title: this.$t("charge.total_weight"), value: "total_weight" },
@@ -236,14 +267,13 @@
                 this.main.lang = lang;
             },
             edit: function (item_id) {
-              this._charge.charge =  this._charge.charges.find(item => item.id === item_id); 
+                this._charge.edit_archived_charge(item_id);
             },
             remove: function (item_id) {
                 this.selected = [item_id];
-                this.deleteCharges();
+                this.delete_archived_charges();
             },
-            deleteCharges: function () {
-                console.log(this.selected);
+            delete_archived_charges: function () {
                 this._charge.deleteMany(this.selected);
             }
         }

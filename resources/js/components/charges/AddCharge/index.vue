@@ -3,15 +3,15 @@
       <v-row>
         <v-col cols="12" md="5">
            <!-- Necessary Charge information -->
-          <NecessaryInformation :charge="_charge"/>
+          <NecessaryInformation />
         </v-col>
         <v-divider vertical ></v-divider>
         <v-col cols="12" md="7">
           <!-- Fresh Fish Receive Details -->
-          <Charge class="mb-5" v-for="charge in _charge.charges" :key="charge.id"  :charge="charge" />
+          <Charge class="mb-5" v-for="(warehouse_category_operation , index) in _charge.charge.warehouse_category_operations" :key="warehouse_category_operation.id"  :warehouse_category_operation="warehouse_category_operation" :number="index+1" />
           <v-divider class="my-5" ></v-divider>
           <!-- Charge Summary -->
-          <ChargeSummary :charge="_charge.charge" />
+          <ChargeSummary />
         </v-col>
       </v-row>
     </v-form>

@@ -5,11 +5,11 @@
             <v-col cols="6">
               <span>
                 <v-autocomplete
-                  v-model="charge.warehouse_category_operation_id"
+                  v-model="warehouse_category_operation.id"
                   :items="_charge.unique_warehouse_category_operations_list"
                   item-value="id"
                   :item-title="`name_${_main.lang.code}`"
-                  :label="$t('charge_category_operation')"
+                  :label="$t('warehouse_category_operation')"
                   chips
                   density="compact"
                   variant="outlined"
@@ -31,7 +31,7 @@
                     <template v-slot:item="{ props, item }">
                       <v-list-item
                         v-bind="props"
-                        :disabled="item.raw.disabled"
+                        :disabled="is_used_warehouse_category_operation(item.raw.id)"
                         :title="item.raw[`name_${_main.lang.code}`]"
                       ></v-list-item>
                     </template>
@@ -46,7 +46,7 @@
                 color="red"
                 icon="mdi-close"
                 variant="outlined"
-                @click="delete_detail"
+                @click="delete_warehouse_category_operation"
               ></v-btn>
             </v-col>
           </v-row>
@@ -126,7 +126,7 @@
               </v-col>
 
               <!-- select warehouse -->
-              <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_warehouse">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_warehouse">
                 <v-autocomplete
                   v-model="charge_detail.warehouse_id"
                   :items="getWarehouse"
@@ -160,7 +160,7 @@
               </v-col>
               
               <!-- weight -->
-              <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_weight">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_weight">
                 <v-text-field
                   v-model="charge_detail.weight"
                   :label="$t('weight') + ' (Kg)'"
@@ -178,7 +178,7 @@
               </v-col>
 
               <!-- unit price -->
-              <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_price">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_price">
                 <v-text-field
                   v-model="charge_detail.unit_price"
                   :label="$t('pu') + ' (Dh)'"
@@ -196,7 +196,7 @@
               </v-col>
 
               <!-- weight bill -->
-              <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_weight">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_weight">
                 <v-text-field
                   v-model="charge_detail.weight_bill"
                   :label="$t('weight_bill') + ' (Kg)'"
@@ -215,7 +215,7 @@
               </v-col>
 
               <!-- total price -->
-              <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_price">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_price">
                 <v-text-field
                   v-model="charge_detail.price"
                   :label="$t('total_price') + ' (Dh)'"
@@ -234,7 +234,7 @@
               </v-col>
 
               <!-- select package_type type -->
-              <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_package_type">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_package_type">
                 <v-autocomplete
                   v-model="charge_detail.package_type_id"
                   :items="_charge.getPackages"
@@ -268,7 +268,7 @@
               </v-col>
 
               <!-- number of packages -->
-              <v-col cols="12" md="6" v-if="warehouse_category_operation.allow_package_type">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_package_type">
                 <v-text-field
                   v-model="charge_detail.package_count"
                   :label="$t('nbr_boxes')"
@@ -302,7 +302,7 @@
             <v-row>
               <v-data-table
                 :headers="headers"
-                :items="get_charge_details"
+                :items="warehouse_category_operation.charge_details"
                 tabindex="0"
                 item-value="id"
                 density="compact"
@@ -341,7 +341,7 @@
 
                 <template v-slot:top>
                   <v-expand-transition>
-                    <div class="my-3" v-if="headers.length < 9">
+                    <div class="my-3" v-if="headers.length < header_initial_length">
                       <v-btn
                         rounded="lg"
                         size="small"
@@ -441,8 +441,12 @@
     
     export default {
       props: {
-        charge: {
+        warehouse_category_operation: {
           type: Object,
+          required: true
+        },
+        number: {
+          type: Number,
           required: true
         }
       },
@@ -452,6 +456,7 @@
           selected: [],
           v$: useVuelidate(),
           is_editing: false,
+          header_initial_length: 0,
           charge_detail: {
               id: uuidv4(),
               weight: null,
@@ -475,31 +480,31 @@
                 required,
               },
               warehouse_id: {
-                requiredIf: requiredIf(() =>this.warehouse_category_operation.allow_warehouse),
+                requiredIf: requiredIf(() =>this.ability_warehouse_category_operation.allow_warehouse),
                 numeric,
               },
               weight: {
-                required: requiredIf(() =>this.warehouse_category_operation.allow_weight),
+                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_weight),
                 numeric,
               },
               unit_price: {
-                required: requiredIf(() =>this.warehouse_category_operation.allow_price),
+                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_price),
                 numeric,
               },
               weight_bill: {
-                required: requiredIf(() =>this.warehouse_category_operation.allow_weight),
+                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_weight),
                 numeric,
               },
               price: {
-                required: requiredIf(() =>this.warehouse_category_operation.allow_price),
+                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_price),
                 numeric,
               },
               package_type_id: {
-                required: requiredIf(() =>this.warehouse_category_operation.allow_package_type),
+                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_package_type),
                 numeric,
               },
               package_count: {
-                required: requiredIf(() =>this.warehouse_category_operation.allow_package_type),
+                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_package_type),
                 numeric,
               }
           }
@@ -531,17 +536,11 @@
         getWarehouse() {
           return this._charge.getWarehouses.filter(e => e.warehouse_type == this.warehouse_category_operation.warehouse_type);
         },
-        get_charge_details() {
-          return this._charge.charge_details.filter(e => e.warehouse_category_operation_id == this.charge.warehouse_category_operation_id);
-        },
-        warehouse_category_operation : function(){
-          return this._warehouse_category_operation.getList.find(e => e.id == this.charge.warehouse_category_operation_id);
-        },
-        number: function () {
-          return this._charge.charges.indexOf(this.charge) + 1;
+        ability_warehouse_category_operation : function(){
+          return this._warehouse_category_operation.getList.find(e => e.id == this.warehouse_category_operation.id);
         },
         stockable_color: function () {
-          let warehouse_type = this._warehouse_category_operation.getList.find(e => e.id == this.charge.warehouse_category_operation_id)?.warehouse_type;
+          let warehouse_type = this._warehouse_category_operation.getList.find(e => e.id == this.warehouse_category_operation.id)?.warehouse_type;
           switch (warehouse_type) {
             case "package_type":
                 return "teal";
@@ -558,13 +557,13 @@
         DEFAULT_HEADERS () {
           return [
             { title: this.$t("type_article"), value: 'stockable_id', removable: true ,visible:true },
-            { title: this.$t("weight_(KG)"), value: 'weight', removable: true, visible: this.warehouse_category_operation.allow_weight },
-            { title: this.$t("weight_bill_(KG)"), value: 'weight_bill', removable: true , visible: this.warehouse_category_operation.allow_weight },
-            { title: this.$t("pu_(DH)"), value: 'unit_price', removable: true , visible: this.warehouse_category_operation.allow_price },
-            { title: this.$t("total_price_(DH)"), value: 'price', removable: true , visible: this.warehouse_category_operation.allow_price },
-            { title: this.$t("type_package"), value: 'package_type_id', removable: true , visible: this.warehouse_category_operation.allow_package_type },
-            { title: this.$t("nbr_caisses"), value: 'package_count', removable: true , visible: this.warehouse_category_operation.allow_package_type },
-            { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.warehouse_category_operation.allow_warehouse },
+            { title: this.$t("weight_(KG)"), value: 'weight', removable: true, visible: this.ability_warehouse_category_operation.allow_weight },
+            { title: this.$t("weight_bill_(KG)"), value: 'weight_bill', removable: true , visible: this.ability_warehouse_category_operation.allow_weight },
+            { title: this.$t("pu_(DH)"), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
+            { title: this.$t("total_price_(DH)"), value: 'price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
+            { title: this.$t("type_package"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
+            { title: this.$t("nbr_caisses"), value: 'package_count', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
+            { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.ability_warehouse_category_operation.allow_warehouse },
             { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false,visible:true }
           ]
         },
@@ -572,13 +571,15 @@
           this._charge.update_charge_detail();
           this.is_editing = false;
         },
+        remove: function (charge_detail_id) {
+          this._charge.remove_charge_detail(this.warehouse_category_operation.id , charge_detail_id);
+        },
         submit: function () {
           if (this.is_editing) {
-            let charge_detail = this.get_charge_details.find(e => e.id == this.charge_detail.id);
-            charge_detail = JSON.parse(JSON.stringify(this.charge_detail));
+            this._charge.edit_charge_detail(this.warehouse_category_operation.id , this.charge_detail);
             this.is_editing = false;
           } else {
-            this._charge.add_charge_detail(this.charge_detail);
+            this._charge.add_charge_detail(this.warehouse_category_operation.id , this.charge_detail);
           }
           this.reset_charge_detail();
         },
@@ -591,8 +592,8 @@
               price: null,
               package_count: null,
               stockable_id: null,
-              stockable_type: null,
-              warehouse_category_operation_id: null,
+              stockable_type: this.charge_detail.stockable_type,
+              warehouse_category_operation_id: this.warehouse_category_operation.id,
               warehouse_id: null,
               package_type_id: null,
           };
@@ -601,10 +602,7 @@
         },
         edit: function (id) {
           this.is_editing = true;
-          this.charge_detail = this.get_charge_details.find(e => e.id == id);
-        },
-        remove: function (id) {
-          this._charge.remove_charge_detail(id);
+          this.charge_detail = JSON.parse(JSON.stringify(this.warehouse_category_operation.charge_details.find(e => e.id == id)));
         },
         onClickReset : function() {
           this.headers = this.DEFAULT_HEADERS().filter(header => header.visible == true);
@@ -612,12 +610,13 @@
         remove_header: function (key) {
           this.headers = this.headers.filter(header => header.value !== key);
         },
-        delete_detail: function () {
-          this._charge.delete_detail(this.charge.id);
+        delete_warehouse_category_operation: function () {
+          this._charge.delete_warehouse_category_operation(this.warehouse_category_operation);
         },
         getTypeDetail: function () {
-          let warehouse_type = this._warehouse_category_operation.getList.find(e => e.id == this.charge.warehouse_category_operation_id)?.warehouse_type;
-          this.charge_detail.warehouse_category_operation_id = this.charge.warehouse_category_operation_id;
+          let warehouse_type = this._warehouse_category_operation
+            .getList.find(e => e.id == this.warehouse_category_operation.id)?.warehouse_type;
+          this.charge_detail.warehouse_category_operation_id = this.warehouse_category_operation.id;
           this.charge_detail.stockable_id = null;
           this.charge_detail.stockable_type = warehouse_type;
           switch (warehouse_type) {
@@ -635,16 +634,15 @@
           }
         },
         init_headers: function () {
-          this.headers = this.DEFAULT_HEADERS().filter(header => header.visible == true);
+          let headers = this.DEFAULT_HEADERS().filter(header => header.visible == true);
+          this.header_initial_length = headers.length;
+          this.headers = headers;
+        },
+        is_used_warehouse_category_operation: function(id){
+          return this._charge.charge.warehouse_category_operations.some(e => e.id == id);
         }
       },
       watch: {
-        'charge_detail': {
-          handler: function () {
-            this._charge.UpdateCharge();
-          },
-          deep: true
-        },
         "charge_detail.unit_price": function () {
           this.charge_detail.price = this.charge_detail.weight * this.charge_detail.unit_price;
         },
@@ -666,9 +664,14 @@
             this.charge_detail.package_count = 0;  
           }
         },
-        "charge.warehouse_category_operation_id": function () {
-          this.getTypeDetail();
-          this.init_headers();
+        "warehouse_category_operation.id": {
+          handler: function () {
+            this.getTypeDetail();
+            this.init_headers();
+            // this._charge.disable_used_warehouse_category_operations();
+          },
+          deep: true,
+          immediate: true,
         }
       },
     }

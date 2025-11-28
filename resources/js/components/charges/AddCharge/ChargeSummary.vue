@@ -2,7 +2,7 @@
     <v-card class="ma-auto rounded-lg">
         <v-row>
           <v-col>
-              <v-btn variant="tonal" block rounded color="info" @click="_charge.add_charges">
+              <v-btn variant="tonal" block rounded color="info" @click="_charge.add_warehouse_category_operation">
                 <v-icon class="mx-2">mdi-receipt-text-plus</v-icon>
                 {{$t("add_detail_charge")}}
               </v-btn>
@@ -58,7 +58,7 @@
         
               <template v-slot:text>
                 <div class="text-h5 font-weight-black">{{_main.formatDisplayNumber(_charge.charge.total_price)}} MAD</div>
-        
+                {{ _charge.charge.total_price }}
                 <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
                   <div>
                     <span class="text-green">
@@ -141,7 +141,7 @@
     import { useVuelidate } from '@vuelidate/core';
     import { required , minValue } from '@vuelidate/validators';
 
-export default {
+    export default {
         data: function () {
           return {
             v$: useVuelidate()

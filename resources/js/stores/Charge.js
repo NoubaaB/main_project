@@ -10,7 +10,7 @@ import { useGuanoType } from "./GuanoType";
 import { useWarehouse } from "./Warehouse";
 import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useChargeCategory } from "./ChargeCategory";
-import { main } from "@popperjs/core";
+
 
 export const useCharge = defineStore("charge", {
     state: () => {
@@ -23,8 +23,22 @@ export const useCharge = defineStore("charge", {
             warehouse: useWarehouse(),
             charge_category: useChargeCategory(),
             warehouse_category_operation: useWarehouseCategoryOperation(),
-            charge: {
-                id: uuidv4(),
+            charge_category_operation: {
+                charge_details: [],
+                id: null,
+            },
+            charge: {},
+            charges: [],
+        };
+    },
+    actions: {
+        add_charge: function () {
+            let charge_id = uuidv4();
+            let _warehouse_category_operation = this.warehouse_category_operation.getList[0];
+
+            this.charge =  JSON.parse(JSON.stringify({
+                id: charge_id,
+                is_archived: false,
                 date: new Date(), // Default to today
                 trackingNumbersInput: "",
                 tracking_numbers: [],
@@ -32,57 +46,101 @@ export const useCharge = defineStore("charge", {
                 tracking_onp_numbers: [],
                 total_price: null,
                 total_weight: null,
-                is_stockable: false,
-                warehouse_stockable_tracking_number_operations: [],
-                non_warehouse_stockable_operations: [],
                 origin_id: null,
                 fishery_id: null,
                 supplier_ids: [],
-                charge_category_id: 1,
+                charge_category_id: this.charge_category.getList[0]?.id || 1,
                 daily_charge_id: null,
-            },
-            charge_details: [],
-            charges: [],
+                warehouse_category_operations: [
+                    {
+                        id: _warehouse_category_operation?.id || null,
+                        charge_details: [],
+                        charge_id: charge_id,
+                    }
+                ]
+            }))
+            console.log("this.charge", this.charge);
+        },
+        get_first_non_disabled_warehouse_category_operation: function () {
+            const warehouse_category_operation_ids = this.charge.warehouse_category_operations?.map((warehouse_category_operation) => warehouse_category_operation.id)|| [];
+            return this.warehouse_category_operation.getList.filter((operation) => !warehouse_category_operation_ids.includes(operation.id))[0];
+        },
+        add_warehouse_category_operation: function () {
+            let _warehouse_category_operation = this.get_first_non_disabled_warehouse_category_operation();
 
-        };
-    },
-    actions: {
-        add_charges: function () {
-            this.charges.push({
-                id: uuidv4(),
-                warehouse_category_operation_id: this.warehouse_category_operation.getList.filter(o => o.disabled == false)[0]?.id || null,
-            });  
+            this.charge.warehouse_category_operations.push({
+                id: _warehouse_category_operation?.id || null,
+                charge_details: [],
+                charge_id: this.charge.id,
+            });
+            console.log("add_warehouse_category_operation", this.charges);
         },
-        delete_detail: function (charge_id) {
-            this.charges = this.charges.filter(e => e.id != charge_id);
+        delete_warehouse_category_operation: function (warehouse_category_operation) {
+            this.charge.warehouse_category_operations = this.charge.warehouse_category_operations.filter(o => o.id != warehouse_category_operation.id);
+            console.log("delete_warehouse_category_operation", warehouse_category_operation, this.charges);
         },
-        add_charge_detail: function (charge_detail) {
-            this.charge_details.push(charge_detail);
+        add_charge_detail: function (warehouse_category_operation_id, charge_detail) {
+            this.charge.warehouse_category_operations
+                .find(o => o.id == warehouse_category_operation_id)
+                .charge_details.push(charge_detail);
         },
-        edit_charge_detail: function (index,charge_detail) {
-            this.charge_details.splice(index, 1, charge_detail);
+        edit_charge_detail: function (warehouse_category_operation_id, charge_detail) {
+            let _charge_detail = this.charge.warehouse_category_operations
+                .find(o => o.id == warehouse_category_operation_id)
+                .charge_details.find(d => d.id == charge_detail.id);
+            
+            Object.assign(_charge_detail, charge_detail);//dosen't replace the object reference to keep reactivity
+        },
+        remove_charge_detail: function (warehouse_category_operation_id, charge_detail_id) {
+            this.charge.warehouse_category_operations
+                .find(o => o.id == warehouse_category_operation_id)
+                .charge_details = this.charge.warehouse_category_operations
+                .find(o => o.id == warehouse_category_operation_id)
+                .charge_details.filter(d => d.id != charge_detail_id);
+        },
+        deleteMany: function (selected) {
+            this.charges = this.charges.filter(detail => !selected.includes(detail.id));
+            this.UpdateCharge();
+            console.log("deleteMany", this.charges);
         },
         submitCharge: function () {
-            axios.post("/api/charge", this.charge)
+            axios.post("/api/charge_category_operation", this.charge_category_operation)
                 .then(response => {
-                    console.log("charge submitted successfully:", response.data);
+                    console.log("charge_category_operation submitted successfully:", response.data);
                 })
                 .catch(error => {
-                    console.error("Error submitting charge:", error);
+                    console.error("Error submitting charge_category_operation:", error);
                 });
         },
         UpdateCharge: function () {
+            this.charge.total_weight = this.charge.warehouse_category_operations.reduce((total, operation) => {
+                return +total + operation.charge_details.reduce((opTotal, detail) => opTotal + (+detail.weight_bill || 0), 0);
+            }, 0);
+            this.charge.total_price = this.charge.warehouse_category_operations.reduce((total, operation) => {
+                return +total + operation.charge_details.reduce((opTotal, detail) => opTotal + (+detail.price || 0), 0);
+            }, 0);
             localStorage.setItem("charge", JSON.stringify(this.charge));
-            localStorage.setItem("warehouse_stockable_tracking_number_operation", JSON.stringify(this.warehouse_stockable_tracking_number_operation));
-            localStorage.setItem("non_warehouse_stockable_operation", JSON.stringify(this.non_warehouse_stockable_operation));
             localStorage.setItem("charges", JSON.stringify(this.charges));
             localStorage.setItem("showAdditionalInfo", this.showAdditionalInfo);
-            this.charge.total_weight = this.charge.warehouse_stockable_tracking_number_operations.reduce((acc, detail) => acc + +detail.weight_bill, 0);
-            this.charge.total_price = this.charge.warehouse_stockable_tracking_number_operations.reduce((acc, detail) => acc + +detail.price, 0);
+            console.log("UpdateCharge",this.charge);
         },
         archive: function () {
-            this.charges.push(this.charge);
-            this.reset();
+            this.charge.is_archived = true;
+            this.charges.push(JSON.parse(JSON.stringify(this.charge)));
+            this.add_charge();
+            this.UpdateCharge();
+            console.log("archive charges", this.charge, this.charges);
+        },
+        edit_archived_charge: function (item_id) {
+            this.charge = JSON.parse(JSON.stringify(this.charges.find(item => item.id === item_id)));
+            console.log("edit_archived_charge", this.charge);
+        },
+        update_archive: function () {
+            let charge = this.charges.find(c => c.id === this.charge.id);
+            Object.assign(charge, this.charge);
+            this.add_charge();
+            this.UpdateCharge();
+            console.log("update_archive", charge);
         },
         getFishTypeName: function (stockable_id) {
             const fishType = this.fish_type.getList.find(type => type.id === stockable_id);
@@ -114,12 +172,6 @@ export const useCharge = defineStore("charge", {
         },
     },
     getters: {
-        getTypeCharge: (state) => {
-            if (state.charge.charge_category_id == null) {
-                return null;
-            }
-            return state.charge_categories?.find(e => e.name == state.charge.charge_category_id)?.list_type_details ?? [];
-        },
         getCharge: (state) => {
             return state.charge_category.getList.find(e => e.id == state.charge.charge_category_id) || {};  
         },
@@ -139,7 +191,7 @@ export const useCharge = defineStore("charge", {
             return state.charge_category.getList;
         },
         unique_warehouse_category_operations_list: (state) => {
-            const warehouse_category_operation_ids = state.charges.map((charge) => charge.warehouse_category_operation_id);
+            const warehouse_category_operation_ids = state.charges.map((charge_category_operation) => charge_category_operation.id);
             return state.warehouse_category_operation.getList.map((operation) => operation.disabled = !warehouse_category_operation_ids.includes(operation.id) ? false : true) && state.warehouse_category_operation.getList;
         }
     },

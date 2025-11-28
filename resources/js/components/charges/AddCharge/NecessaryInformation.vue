@@ -307,7 +307,10 @@
               <v-btn :disabled="v$.$invalid" block variant="tonal" rounded color="info" @click="submit">{{$t('submit')}}</v-btn>
             </v-col>
             <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
-            <v-col class="pr-1">
+            <v-col class="pr-1" v-if="_charge.charge.is_archived">
+              <v-btn block variant="tonal" rounded color="orange" class="rounded-e-lg" @click="update_archive">{{$t('update_archive')}}</v-btn>
+            </v-col>
+            <v-col class="pr-1" v-else>
               <v-btn block variant="tonal" rounded color="green" class="rounded-e-lg" @click="archive">{{$t('archive')}}</v-btn>
             </v-col>
             <v-col class="pl-1">
@@ -368,12 +371,6 @@ import { useVuelidate } from '@vuelidate/core';
 import { required , minValue } from '@vuelidate/validators';
 
 export default {
-  props: {
-    charge: {
-      type: Object,
-      required: true,
-    }
-  },
   data: function () {
     return {
       v$ : useVuelidate(),
@@ -393,7 +390,6 @@ export default {
           origin_id: { required },
           charge_details_total_price: { required , minValue : minValue(1) },
           charge_details_total_weight: { required , minValue : minValue(1) },
-          is_stockable: { required }
         }
       }
     }
@@ -455,12 +451,15 @@ export default {
     archive: function () {
       this._charge.archive();
     },
+    update_archive: function () {
+      this._charge.update_archive();
+    },
     reset: function () {
       this._charge.reset();
     },
   },
   watch: {
-    charge: {
+    "_charge.charge": {
       handler(_) {
         // Save charge to localStorage whenever it changes
         this.update();
@@ -472,12 +471,6 @@ export default {
       this.update();
     },
     '_charge.charge.charge_category_id': function (_) {
-      this.update();
-    },
-    '_charge.add_charges': function (_) {
-      this.update();
-    },
-    '_charge.add_productions': function (_) {
       this.update();
     },
   }

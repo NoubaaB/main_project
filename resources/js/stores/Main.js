@@ -20,17 +20,23 @@ export const useMain = defineStore("main", {
                     annyang: "fr-FR",
                 },
                 {
+                    id: 1,
+                    short: "es",
+                    code: "es",
+                    annyang: "es-ES",
+                },
+                {
                     id: 2,
                     short: "fr",
                     code: "fr",
                     annyang: "fr-FR",
                 },
-                {
-                    id: 3,
-                    short: "ma",
-                    code: "ar",
-                    annyang: "ar-MA",
-                },
+                // {
+                //     id: 3,
+                //     short: "ma",
+                //     code: "ar",
+                //     annyang: "ar-MA",
+                // },
             ],
             lang: null
         };
@@ -39,11 +45,12 @@ export const useMain = defineStore("main", {
         initData: function () {
             //initialize the charge store with data from localStorage
             let charge = localStorage.getItem("charge") || '{}';
-            Object.assign(useCharge().charge, JSON.parse(charge));
-
-            //initialize the charge_details store with data from localStorage
-            let charge_details = localStorage.getItem("charge_details") || '{}';
-            Object.assign(useCharge().charge_details, JSON.parse(charge_details));
+            if (charge == '{}') {
+                useCharge().add_charge();  
+            } else {
+                Object.assign(useCharge().charge, JSON.parse(charge));
+            }
+            console.log("init charge", useCharge().charge);
 
             //initialize the charges store with data from localStorage
             let charges = localStorage.getItem("charges") || '[]';
