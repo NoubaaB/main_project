@@ -57,16 +57,30 @@
               </template>
         
               <template v-slot:text>
-                <div class="text-h5 font-weight-black">{{_main.formatDisplayNumber(_charge.charge.total_price)}} MAD</div>
-                {{ _charge.charge.total_price }}
-                <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
+                <div class="text-h5 font-weight-black">
+                  <small>
+                    <v-btn
+                      icon="mdi-cash-multiple"
+                      size="x-small"
+                      variant="text"
+                      color="green"
+                      border="green sm"
+                      class="ma-1"
+                    ></v-btn>
+                  </small>                  
+                  {{_main.formatDisplayNumber(_charge.charge.total_price)}} MAD
+                </div>
+                <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center"
+                v-for="warehouse_category_operation in _charge.charge.warehouse_category_operations"
+                :key="warehouse_category_operation.id"
+                >
                   <div>
                     <span class="text-green">
-                      <v-avatar icon="mdi-arrow-up" size="x-small" variant="tonal"></v-avatar>
-                      + {{ _main.formatDisplayNumber(_charge.charge.total_price) }} MAD
+                      <v-avatar icon="mdi-cash" size="x-small" variant="tonal"></v-avatar>
+                      + {{ _main.formatDisplayNumber(get_warehouse_category_operation_total_price(warehouse_category_operation)) }} MAD
                     </span>
-        
-                    in the last week
+                    
+                    ({{ get_warehouse_category_operation_name(warehouse_category_operation) }})
                   </div>
                 </small>
               </template>
@@ -75,46 +89,55 @@
             <!--  Total Weight -->
             <v-col cols="12" md="6">
               <v-card
-              border="opacity-50 info sm"
+              border="opacity-50 warning sm"
               class="mx-auto"
               max-width="360"
               rounded="xl"
               variant="text"
             >
-              <template v-slot:title>
-                <div class="text-caption font-weight-bold">{{$t("total_weight")}}</div>
-              </template>
-        
-              <template v-slot:append>
-                <v-chip
-                  border="success sm opacity-100"
-                  color="info"
-                  size="small"
-                  variant="text"
-                >
-                  <v-icon icon="mdi-scale" center></v-icon>
-                </v-chip>
-              </template>
-        
-              <template v-slot:text>
-                <div class="text-h6 font-weight-black d-inline">
-                  <small>
-                    <v-btn
-                      icon="mdi-weight-kilogram"
-                      size="x-small"
-                      variant="text"
-                      color="info"
-                      border="info sm"
-                    ></v-btn>
-                  </small>
-                   {{ _main.formatDisplayNumber(_charge.charge.total_weight) }} Kg
-                </div>
-                <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center">
-                  <div>
-                    {{ $t("total_weight_of_all_items_s_Weight_bill") }}
+                <template v-slot:title>
+                  <div class="text-caption font-weight-bold">{{$t("total_weight")}}</div>
+                </template>
+          
+                <template v-slot:append>
+                  <v-chip
+                    border="warning sm opacity-100"
+                    color="amber"
+                    size="small"
+                    variant="text"
+                  >
+                    <v-icon icon="mdi-scale" center></v-icon>
+                  </v-chip>
+                </template>
+          
+                <template v-slot:text>
+                  <div class="text-h6 font-weight-black d-inline">
+                    <small>
+                      <v-btn
+                        icon="mdi-weight-kilogram"
+                        size="x-small"
+                        variant="text"
+                        color="amber"
+                        border="amber sm"
+                        class="ma-1"
+                      ></v-btn>
+                    </small>
+                    {{ _main.formatDisplayNumber(_charge.charge.total_weight) }} KG
                   </div>
-                </small>
-              </template>
+                  <small class="text-caption text-medium-emphasis d-flex justify-space-between align-center"
+                  v-for="warehouse_category_operation in _charge.charge.warehouse_category_operations"
+                  :key="warehouse_category_operation.id"
+                  >
+                    <div>
+                      <span class="text-amber">
+                        <v-avatar icon="mdi-weight-kilogram" size="x-small" variant="tonal"></v-avatar>
+                        + {{ _main.formatDisplayNumber(get_warehouse_category_operation_total_weight(warehouse_category_operation)) }} KG
+                      </span>
+                      
+                      ({{ get_warehouse_category_operation_name(warehouse_category_operation) }})
+                    </div>
+                  </small>              
+                </template>
               </v-card>    
             </v-col>
           </v-row>
@@ -140,6 +163,7 @@
     import { useMain } from '@/stores/Main';
     import { useVuelidate } from '@vuelidate/core';
     import { required , minValue } from '@vuelidate/validators';
+import { get } from 'lodash';
 
     export default {
         data: function () {
@@ -178,6 +202,19 @@
           },
           reset_charge_detail: function () {
             this._charge.reset_charge_detail();
+          },
+          get_warehouse_category_operation_total_price: function (warehouse_category_operation) {
+            return warehouse_category_operation.charge_details.reduce((total, detail) => {
+              return total + (+detail.price);
+            }, 0);
+          },
+          get_warehouse_category_operation_total_weight: function (warehouse_category_operation) {
+            return warehouse_category_operation.charge_details.reduce((total, detail) => {
+              return total + (+detail.weight);
+            }, 0);
+          },
+          get_warehouse_category_operation_name: function (warehouse_category_operation) {
+            return this._charge.getWarehouseCategoryOperationName(warehouse_category_operation);
           }
         }
       }

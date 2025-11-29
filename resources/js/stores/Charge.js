@@ -142,6 +142,11 @@ export const useCharge = defineStore("charge", {
             this.UpdateCharge();
             console.log("update_archive", charge);
         },
+        reset: function () {
+            this.add_charge();
+            this.UpdateCharge();
+            console.log("reset charge", this.charge);
+        },
         getFishTypeName: function (stockable_id) {
             const fishType = this.fish_type.getList.find(type => type.id === stockable_id);
             return fishType ? fishType.name : 'N/A';
@@ -170,6 +175,11 @@ export const useCharge = defineStore("charge", {
                     return stockable_id;
             }
         },
+        getWarehouseCategoryOperationName: function (warehouse_category_operation) {
+            if (!warehouse_category_operation) return '';
+            const operation = this.warehouse_category_operation.getList.find(op => op.id === warehouse_category_operation.id);
+            return operation ? operation[`name_${this.main.lang.code}`] : '';
+        }
     },
     getters: {
         getCharge: (state) => {

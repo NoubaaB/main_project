@@ -328,11 +328,16 @@
           class="pa-1"
         >
           <v-card-title>
-            <v-icon class="mx-2" color="info">mdi-update</v-icon>
+            <v-btn
+              variant="tonal"
+              color="info"
+              class="mx-2"
+              icon="mdi-notebook-plus-outline">
+            </v-btn>
             <span class="text-h6 font-weight-bold">Charge Note</span>
           </v-card-title>
           <v-divider class="border-opacity-25" color="info"></v-divider>
-          <v-card-text>
+          <v-card-text class="px-0 pb-0">
             <v-textarea
               v-model="_charge.charge.note"
               label="Charge Note"
