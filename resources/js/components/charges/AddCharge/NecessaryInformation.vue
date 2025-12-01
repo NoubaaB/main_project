@@ -3,7 +3,7 @@
         <v-card-title>
           <v-row class="text-center text-info">
             <v-col cols="2">
-              <v-btn icon="mdi-sticker-plus-outline" variant="outlined" color="info" class="mr-2"></v-btn>
+              <v-btn icon="mdi-sticker-plus-outline" variant="tonal" color="info" class="mr-2"></v-btn>
             </v-col>
             <v-divider class="text-info" vertical></v-divider>
             <v-col class="text-left">
