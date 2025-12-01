@@ -203,6 +203,8 @@ export const useCharge = defineStore("charge", {
                 case "guano_type":
                     type = this.getGuanoTypes.find(e => e.id == stockable_id);
                     break;
+                default:
+                    return isNaN(stockable_id) ? stockable_id : i18n.global.t("add_description");
             }
             console.log("type",type, stockable_id, stockable_type);
             if (!!type) {

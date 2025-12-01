@@ -199,6 +199,7 @@
     "editing_archived_charge": "Editing Archived Charge",
     "reset_charge": "Charge Reset Successfully",
     "delete_many_charges": "Selected Charges Deleted Successfully",
+    "add_description":"Add Description",
     "charge.total_price": "Total Price",
     "charge.total_weight": "Total Weight",
     "charge.actions": "Actions",

@@ -674,6 +674,9 @@
                     type = this._charge.getGuanoTypes.find(e => e.id == detail.stockable_id);
                     first = _.first(this._charge.getPackages);
                     break;
+                default:
+                  detail.stockable_id = this.$t("add_description");
+                  return;
             }
             if (!!type) {
               detail.stockable_id = type.id;
