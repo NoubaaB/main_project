@@ -399,8 +399,8 @@ export default {
           supplier_ids: { required },
           fishery_id: { required },
           origin_id: { required },
-          charge_details_total_price: { required , minValue : minValue(1) },
-          charge_details_total_weight: { required , minValue : minValue(1) },
+          total_price: { required , minValue : minValue(1) },
+          total_weight: { required , minValue : minValue(1) },
         }
       }
     }

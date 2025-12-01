@@ -49,10 +49,9 @@
                 <v-chip
                   border="success sm opacity-100"
                   color="green"
-                  size="small"
-                  variant="text"
+                  variant="tonal"
                 >
-                  <v-icon icon="mdi-arrow-up" start></v-icon> 13%
+                  <v-icon icon="mdi-cash"></v-icon>
                 </v-chip>
               </template>
         
@@ -103,8 +102,7 @@
                   <v-chip
                     border="warning sm opacity-100"
                     color="amber"
-                    size="small"
-                    variant="text"
+                    variant="tonal"
                   >
                     <v-icon icon="mdi-scale" center></v-icon>
                   </v-chip>
@@ -142,19 +140,6 @@
             </v-col>
           </v-row>
         </v-card-text>
-        <v-divider class="border-opacity-25" color="info"></v-divider>
-        <!-- Submit Button -->
-        <v-card-actions>
-          <v-row class="text-center py-3">
-            <v-col>
-              <v-btn :disabled="v$.$invalid" block variant="tonal"  rounded color="info" @click="submit">{{$t("submit")}}</v-btn>
-            </v-col>
-            <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
-            <v-col class="pr-1">
-              <v-btn block variant="outlined" rounded color="amber" @click="reset_charge_detail">{{$t(('cancel'))}}</v-btn>
-            </v-col>
-          </v-row>
-        </v-card-actions>
       </v-card>
 </template>
 
@@ -197,21 +182,11 @@ import { get } from 'lodash';
           }
         },
         methods:{
-          submit: function () {
-            this._charge.submitCharge();
-          },
-          reset_charge_detail: function () {
-            this._charge.reset_charge_detail();
-          },
           get_warehouse_category_operation_total_price: function (warehouse_category_operation) {
-            return warehouse_category_operation.charge_details.reduce((total, detail) => {
-              return total + (+detail.price);
-            }, 0);
+            return warehouse_category_operation.total_price;
           },
           get_warehouse_category_operation_total_weight: function (warehouse_category_operation) {
-            return warehouse_category_operation.charge_details.reduce((total, detail) => {
-              return total + (+detail.weight);
-            }, 0);
+            return warehouse_category_operation.total_weight
           },
           get_warehouse_category_operation_name: function (warehouse_category_operation) {
             return this._charge.getWarehouseCategoryOperationName(warehouse_category_operation);

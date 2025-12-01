@@ -57,7 +57,7 @@ class Charge extends Model
     }
 
     function charge_category() : BelongsTo {
-        return $this->belongsTo(ChargeCategory::class, 'type_charge_id'); 
+        return $this->belongsTo(ChargeCategory::class, 'charge_category_id'); 
     }
 
     function warehouse_stockable_tracking_number_operations() : MorphMany {

@@ -166,7 +166,7 @@ class DatabaseSeeder extends Seeder
             "description" => "Guano Production",
             "warehouse_type" => "guano_type",
             "allow_weight" => true,
-            "allow_price" => true,
+            "allow_price" => false,
             "allow_package_type" => false,
             "allow_warehouse" => true
         ]);

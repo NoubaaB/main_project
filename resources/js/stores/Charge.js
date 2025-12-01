@@ -27,6 +27,8 @@ export const useCharge = defineStore("charge", {
             charge_category_operation: {
                 charge_details: [],
                 id: null,
+                total_weight:0.00,
+                total_price:0.00,
             },
             charge: {},
             charges: [],
@@ -57,6 +59,8 @@ export const useCharge = defineStore("charge", {
                         id: _warehouse_category_operation?.id || null,
                         charge_details: [],
                         charge_id: charge_id,
+                        total_weight: 0.00,
+                        total_price: 0.00,
                     }
                 ]
             }))
@@ -73,6 +77,8 @@ export const useCharge = defineStore("charge", {
                 id: _warehouse_category_operation?.id || null,
                 charge_details: [],
                 charge_id: this.charge.id,
+                total_weight: 0.00,
+                total_price: 0.00,
             });
             console.log("add_warehouse_category_operation", this.charges);
         },
@@ -110,7 +116,7 @@ export const useCharge = defineStore("charge", {
             console.log("deleteMany", this.charges);
         },
         submitCharge: function () {
-            axios.post("/api/charge_category_operation", this.charge_category_operation)
+            axios.post("/api/charge", this.charge_category_operation)
                 .then(response => {
                     console.log("charge_category_operation submitted successfully:", response.data);
                 })
@@ -185,15 +191,24 @@ export const useCharge = defineStore("charge", {
             return packageItem ? packageItem.size : wieght;
         },
         getStockableName: function (stockable_id, stockable_type) {
+            // return stockable_type + stockable_id;
+            let type = null
             switch (stockable_type) {
                 case "package_type":
-                    return this.getPackages.find(e => e.id == stockable_id)[`name_${this.main.lang.code}`];
+                    type = this.getPackages.find(e => e.id == stockable_id);
+                    break;
                 case "fish_type":
-                    return this.getFishTypes.find(e => e.id == stockable_id)[`name_${this.main.lang.code}`];
+                    type = this.getFishTypes.find(e => e.id == stockable_id);
+                    break;
                 case "guano_type":
-                    return this.getGuanoTypes.find(e => e.id == stockable_id)[`name_${this.main.lang.code}`];
-                default:
-                    return stockable_id;
+                    type = this.getGuanoTypes.find(e => e.id == stockable_id);
+                    break;
+            }
+            console.log("type",type, stockable_id, stockable_type);
+            if (!!type) {
+                return type[`name_${this.main.lang.code}`];
+            } else {
+                return "N/A"
             }
         },
         getWarehouseCategoryOperationName: function (warehouse_category_operation) {

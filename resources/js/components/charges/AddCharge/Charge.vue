@@ -9,6 +9,7 @@
                   :items="_charge.unique_warehouse_category_operations_list"
                   item-value="id"
                   :item-title="`name_${_main.lang.code}`"
+                  :disabled="is_editing"
                   :label="$t('warehouse_category_operation')"
                   chips
                   density="compact"
@@ -93,6 +94,7 @@
                   :error-messages="v$.charge_detail.stockable_id.$errors.map(e => e.$message)"
                   @blur="v$.charge_detail.stockable_id.$touch()"
                   color="info"
+                  ref="charge_focus_input"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -121,6 +123,7 @@
                   details
                   :error-messages="v$.charge_detail.stockable_id.$errors.map(e => e.$message)"
                   @blur="v$.charge_detail.stockable_id.$touch()"
+                  ref="charge_focus_input"
                 >
                 </v-textarea>
               </v-col>
@@ -300,7 +303,7 @@
           </v-row>
 
             <v-row>
-              <v-data-table
+              <v-data-table-virtual
                 :headers="headers"
                 :items="warehouse_category_operation.charge_details"
                 tabindex="0"
@@ -369,7 +372,7 @@
                 </template>
 
                 <template v-slot:[`item.actions`]="{ item }">
-                  <div class="d-flex ga-2 justify-end">
+                  <div class="d-flex ga-2 justify-end" v-if="item.id != charge_detail.id">
                     <v-icon color="amber" icon="mdi-pencil" size="small" @click="edit(item.id)"></v-icon>
 
                     <v-icon color="red" icon="mdi-delete" size="small" @click="remove(item.id)"></v-icon>
@@ -422,7 +425,7 @@
                     <span>No data available</span>
                   </div>
                 </template>
-              </v-data-table>
+              </v-data-table-virtual>
             </v-row>
         </v-card-text>
       </v-card>
@@ -585,6 +588,7 @@
             this._charge.add_charge_detail(this.warehouse_category_operation.id , this.charge_detail);
           }
           this.reset_charge_detail();
+          this.$refs.charge_focus_input?.focus()
         },
         reset_charge_detail: function () {
           this.charge_detail = {
@@ -643,15 +647,51 @@
         },
         is_used_warehouse_category_operation: function(id){
           return this._charge.charge.warehouse_category_operations.some(e => e.id == id);
+        },
+        re_caclulate: function () {
+          this.warehouse_category_operation.total_price = this.warehouse_category_operation.charge_details.reduce((acc, detail) => {
+            return acc + (+detail.price || 0);
+          }, 0);
+          this.warehouse_category_operation.total_weight = this.warehouse_category_operation.charge_details.reduce((acc, detail) => {
+            return acc + (+detail.weight || 0);
+          }, 0);
+        },
+        checkTypeInDetails: function () {
+          this.warehouse_category_operation.charge_details.forEach(detail => {
+            detail.stockable_type = this.charge_detail.stockable_type;
+            let type = null;
+            let first = null
+            switch (detail.stockable_type) {
+                case "package_type":
+                    type = this._charge.getPackages.find(e => e.id == detail.stockable_id);
+                    first = _.first(this._charge.getPackages);
+                    break;
+                case "fish_type":
+                    type = this._charge.getFishTypes.find(e => e.id == detail.stockable_id);
+                    first = _.first(this._charge.getFishTypes);                    
+                    break;
+                case "guano_type":
+                    type = this._charge.getGuanoTypes.find(e => e.id == detail.stockable_id);
+                    first = _.first(this._charge.getPackages);
+                    break;
+            }
+            if (!!type) {
+              detail.stockable_id = type.id;
+            } else {
+              detail.stockable_id = first.id;
+            }
+          });
         }
       },
       watch: {
         "charge_detail.unit_price": function () {
           this.charge_detail.price = this.charge_detail.weight * this.charge_detail.unit_price;
+          this.re_caclulate();
         },
         "charge_detail.weight": function (value) {
           this.charge_detail.weight_bill = value;
           this.charge_detail.price = this._main.formatNumber(this.charge_detail.weight * this.charge_detail.unit_price);
+          this.re_caclulate();
         },
         "charge_detail.weight_bill": function (value) {
           if (this.charge_detail.package_type_id && value > 0) {
@@ -671,6 +711,7 @@
           handler: function () {
             this.getTypeDetail();
             this.init_headers();
+            this.checkTypeInDetails();
             // this._charge.disable_used_warehouse_category_operations();
           },
           deep: true,
