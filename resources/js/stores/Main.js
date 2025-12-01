@@ -10,6 +10,11 @@ export const useMain = defineStore("main", {
             menu_drawer: false,
             command_drawer: false,
             currency: "Dh",
+            snackbar: {
+                show: false,
+                message: "",
+                color:""
+            },
             is_dark: localStorage.getItem("theme") == "dark",
             langs: [
                 {
@@ -92,7 +97,9 @@ export const useMain = defineStore("main", {
                 maximumFractionDigits: 2,
             }).format(num)
         },
-
+        add_snackbar: function (message) {
+            this.snackbar = { ...message };
+        }
     },
     getters: {
         color_theme: (state) => {

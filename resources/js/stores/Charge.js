@@ -11,6 +11,7 @@ import { useWarehouse } from "./Warehouse";
 import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useChargeCategory } from "./ChargeCategory";
 
+import i18n  from '@/plugins/i18n'
 
 export const useCharge = defineStore("charge", {
     state: () => {
@@ -101,6 +102,11 @@ export const useCharge = defineStore("charge", {
         deleteMany: function (selected) {
             this.charges = this.charges.filter(detail => !selected.includes(detail.id));
             this.UpdateCharge();
+            this.main.add_snackbar({
+                show: true,
+                message: i18n.global.t("delete_many_charges"),
+                color: "success"
+            });        
             console.log("deleteMany", this.charges);
         },
         submitCharge: function () {
@@ -129,6 +135,11 @@ export const useCharge = defineStore("charge", {
             this.charges.push(JSON.parse(JSON.stringify(this.charge)));
             this.add_charge();
             this.UpdateCharge();
+            this.main.add_snackbar({
+                show: true,
+                message: i18n.global.t("charge_archived_successfully"),
+                color: "success"
+            });
             console.log("archive charges", this.charge, this.charges);
         },
         edit_archived_charge: function (item_id) {
@@ -140,11 +151,21 @@ export const useCharge = defineStore("charge", {
             Object.assign(charge, this.charge);
             this.add_charge();
             this.UpdateCharge();
+            this.main.add_snackbar({
+                show: true,
+                message: i18n.global.t("editing_archived_charge"),
+                color: "success"
+            });
             console.log("update_archive", charge);
         },
         reset: function () {
             this.add_charge();
             this.UpdateCharge();
+            this.main.add_snackbar({
+                show: true,
+                message: i18n.global.t("reset_charge"),
+                color: "success"
+            });            
             console.log("reset charge", this.charge);
         },
         getFishTypeName: function (stockable_id) {

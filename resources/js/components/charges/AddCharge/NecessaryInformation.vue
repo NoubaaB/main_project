@@ -1,9 +1,15 @@
 <template>
     <v-card class="ma-auto rounded-lg">
         <v-card-title>
-          <span>
-            Add Fresh Fish Receive
-          </span>
+          <v-row class="text-center text-info">
+            <v-col cols="2">
+              <v-btn icon="mdi-sticker-plus-outline" variant="outlined" color="info" class="mr-2"></v-btn>
+            </v-col>
+            <v-divider class="text-info" vertical></v-divider>
+            <v-col class="text-left">
+              <h2 class="d-inline">{{ $t("charge_creation_interface") }}</h2>
+            </v-col>
+          </v-row>
         </v-card-title>
         <v-card-text>
           <v-row>
@@ -334,13 +340,13 @@
               class="mx-2"
               icon="mdi-notebook-plus-outline">
             </v-btn>
-            <span class="text-h6 font-weight-bold">Charge Note</span>
+            <span class="text-h6 font-weight-bold">{{$t('charge_note')}}</span>
           </v-card-title>
           <v-divider class="border-opacity-25" color="info"></v-divider>
           <v-card-text class="px-0 pb-0">
             <v-textarea
               v-model="_charge.charge.note"
-              label="Charge Note"
+              :label="$t('charge_note')"
               density="compact"
               variant="outlined"
               rounded

@@ -9,30 +9,15 @@ import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
 import en from "@/locales/en/app.json";
 import fr from "@/locales/fr/app.json";
+import es from "@/locales/es/app.json";
 // Composables
 
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
-//intarnetionalization
-import { createI18n, useI18n } from "vue-i18n";
-import { createVueI18nAdapter } from 'vuetify/locale/adapters/vue-i18n';
-/* multi-languages */
-import messages from "@/locales";
+import _i18n  from './i18n';
 
-let lang = localStorage.getItem("language");
-if (lang == null) {
-    lang = "en";
-    localStorage.setItem('language', lang);
-
-}
-export const i18n = createI18n({
-    locale: lang,
-    messages,
-    legacy: false,
-    globalInjection: true,
-    silentTranslationWarn: true
-})
+export const  i18n = _i18n;
 
 //detects theme
 if (!localStorage.getItem("theme")) {
@@ -48,7 +33,7 @@ export function crerate() {
         components,
         directives,
         locale: {
-            messages: { en, fr },
+            messages: { en, fr ,es },
             // adapter: createVueI18nAdapter({ i18n, useI18n }),
         },
     })
