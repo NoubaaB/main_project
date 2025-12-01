@@ -36,9 +36,10 @@
             <v-col cols="12" md="6">
               <v-card
               border="opacity-50 success sm"
-              class="mx-auto"
+              class="mx-auto bg-green-lighten-5"
               max-width="360"
               rounded="xl"
+              color="green-darken-3"
               variant="text"
             >
               <template v-slot:title>
@@ -89,7 +90,8 @@
             <v-col cols="12" md="6">
               <v-card
               border="opacity-50 warning sm"
-              class="mx-auto"
+              class="mx-auto bg-orange-lighten-5"
+              color="orange-darken-3"
               max-width="360"
               rounded="xl"
               variant="text"
@@ -101,10 +103,10 @@
                 <template v-slot:append>
                   <v-chip
                     border="warning sm opacity-100"
-                    color="amber"
+                    color="orange"
                     variant="tonal"
                   >
-                    <v-icon icon="mdi-scale" center></v-icon>
+                    <v-icon icon="mdi-scale-balance" center></v-icon>
                   </v-chip>
                 </template>
           
@@ -115,8 +117,8 @@
                         icon="mdi-weight-kilogram"
                         size="x-small"
                         variant="text"
-                        color="amber"
-                        border="amber sm"
+                        color="orange"
+                        border="orange sm"
                         class="ma-1"
                       ></v-btn>
                     </small>
@@ -127,7 +129,7 @@
                   :key="warehouse_category_operation.id"
                   >
                     <div>
-                      <span class="text-amber">
+                      <span class="text-orange">
                         <v-avatar icon="mdi-weight-kilogram" size="x-small" variant="tonal"></v-avatar>
                         + {{ _main.formatDisplayNumber(get_warehouse_category_operation_total_weight(warehouse_category_operation)) }} KG
                       </span>
