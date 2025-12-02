@@ -501,8 +501,7 @@ class DatabaseSeeder extends Seeder
                         "total_price" => 0.00,
                         "total_package_count" => 0.00,
                         "warehouse_stockable_id" => $warehouse_stockable->id,
-
-                ]);
+                    ]);
     
                     $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
                         "type_operation" => "in",

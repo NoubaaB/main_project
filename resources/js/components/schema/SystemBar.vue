@@ -88,7 +88,7 @@
                                     </div>
                                 </template>
                                 <template v-slot:[`item.tracking_numbers`]="{ item }">
-                                    <v-chip color="secondary" v-for="tracking_number in item.tracking_numbers" :key="tracking_number" class="mx-1">
+                                    <v-chip  color="secondary" v-for="tracking_number in item.tracking_numbers" :key="tracking_number" class="mx-1 mt-1">
                                         {{ tracking_number }}
                                     </v-chip>
                                 </template>
@@ -98,7 +98,7 @@
                                 <template v-slot:[`item.charge_category_id`]="{ item }">
                                     <v-chip
                                         color="info"
-                                        class="mt-3"
+                                        class="mt-1"
                                         :text="_charge_category.get_charge_category_name_by_id(item.charge_category_id)"
                                     ></v-chip>
                                 </template>
