@@ -14,17 +14,17 @@ return new class extends Migration
         Schema::create('non_warehouse_stockable_operations', function (Blueprint $table) {
             $table->id();
 
-            $table->string("description")->nullable();
             $table->double("unit_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
+            $table->double("total_weight_bill")->default(0.00);
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 
             $table->foreignId('charge_id')->nullable()->index();
             $table->foreignId('package_type_id')->nullable()->index();
-            $table->foreignId('fish_type_id')->nullable()->index();
             $table->foreignId('warehouse_category_operation_id')->nullable()->index("CWC_IDX");
-
+            $table->nullableMorphs('stockable', "STK_IDX"); //fish_type or package_type or guano_type
+            
             $table->timestamps();
             $table->softDeletes();
 

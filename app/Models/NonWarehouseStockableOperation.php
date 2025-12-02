@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\PackageType;
 use App\Models\FishType;
+use App\Models\PackageType;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\WarehouseCategoryOperation;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -21,14 +23,18 @@ class NonWarehouseStockableOperation extends Model
         return $this->belongsTo(Charge::class);
     }
 
-    function packageType_type(): BelongsTo
-    {
+    //can be FishType or GuanoType or PackageType
+    function stockable() : MorphTo {
+        return $this->morphTo();
+    }
+
+    function package_type() : BelongsTo {
         return $this->belongsTo(PackageType::class);
     }
 
-    function fish_type(): BelongsTo
+    function warehouse_category_operation(): BelongsTo
     {
-        return $this->belongsTo(FishType::class);
+        return $this->belongsTo(WarehouseCategoryOperation::class);
     }
 }
 

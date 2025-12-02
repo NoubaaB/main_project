@@ -116,7 +116,7 @@ export const useCharge = defineStore("charge", {
             console.log("deleteMany", this.charges);
         },
         submitCharge: function () {
-            axios.post("/api/charge", this.charge_category_operation)
+            axios.post("/api/charge", this.charge)
                 .then(response => {
                     console.log("charge_category_operation submitted successfully:", response.data);
                 })
@@ -125,11 +125,11 @@ export const useCharge = defineStore("charge", {
                 });
         },
         UpdateCharge: function () {
-            this.charge.total_weight = this.charge.warehouse_category_operations.reduce((total, operation) => {
-                return +total + operation.charge_details.reduce((opTotal, detail) => opTotal + (+detail.weight_bill || 0), 0);
+            this.charge.total_weight = +this.charge.warehouse_category_operations.reduce((total, operation) => {
+                return +total + operation.charge_details.reduce((opTotal, detail) => opTotal + (+detail.total_weight_bill || 0), 0);
             }, 0);
-            this.charge.total_price = this.charge.warehouse_category_operations.reduce((total, operation) => {
-                return +total + operation.charge_details.reduce((opTotal, detail) => opTotal + (+detail.price || 0), 0);
+            this.charge.total_price = +this.charge.warehouse_category_operations.reduce((total, operation) => {
+                return +total + operation.charge_details.reduce((opTotal, detail) => opTotal + (+detail.total_price || 0), 0);
             }, 0);
             localStorage.setItem("charge", JSON.stringify(this.charge));
             localStorage.setItem("charges", JSON.stringify(this.charges));
@@ -194,19 +194,18 @@ export const useCharge = defineStore("charge", {
             // return stockable_type + stockable_id;
             let type = null
             switch (stockable_type) {
-                case "package_type":
+                case "PackageType":
                     type = this.getPackages.find(e => e.id == stockable_id);
                     break;
-                case "fish_type":
+                case "FishType":
                     type = this.getFishTypes.find(e => e.id == stockable_id);
                     break;
-                case "guano_type":
+                case "GuanoType":
                     type = this.getGuanoTypes.find(e => e.id == stockable_id);
                     break;
                 default:
                     return isNaN(stockable_id) ? stockable_id : i18n.global.t("add_description");
             }
-            console.log("type",type, stockable_id, stockable_type);
             if (!!type) {
                 return type[`name_${this.main.lang.code}`];
             } else {

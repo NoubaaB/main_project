@@ -24,7 +24,7 @@ return new class extends Migration
             $table->boolean("allow_warehouse")->default(true);
             
             $table->enum("operation_type",["charge","sells","both"])->default("both");
-            $table->enum("warehouse_type",["fish_type","guano_type","package_type"])->nullable();
+            $table->enum("warehouse_type",["FishType","GuanoType","PackageType"])->nullable();
 
             $table->timestamps();
             $table->softDeletes();

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->double("total_weight")->default(0.00);
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
-            $table->enum("warehouse_type", ["fish_type", "guano_type", "package_type"])->nullable();
+            $table->enum("warehouse_type", ["FishType", "GuanoType", "PackageType"])->nullable();
 
             $table->foreignId('warehouse_category_id')->nullable()->index()->comment("This warehouse_category_id's Column is one to many relationship with warehouses table its describe type of wirehouse. local means every fish in the company store here , foreign means that fish that company store in other companies , client means fish that client store in our local warehouses");
 

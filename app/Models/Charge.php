@@ -31,10 +31,9 @@ class Charge extends Model
         'date' => 'date:Y-m-d',
         'tracking_numbers' => 'array',
         'tracking_onp_numbers' => 'array',
-        'is_warehouseable' => 'boolean',
         'note' => 'string',
-        'charge_details_total_price' => 'double',
-        'charge_details_total_weight' => 'double'
+        'total_price' => 'double',
+        'total_weight' => 'double'
     ];
 
     protected static function boot()

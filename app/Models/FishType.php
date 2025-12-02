@@ -30,6 +30,11 @@ class FishType extends Model
         return $this->morphMany(WarehouseStockableTrackingNumberOperation::class, 'stockable');  
     }
 
+    function non_warehouse_stockable_operation() : MorphMany
+    {
+        return $this->morphMany(NonWarehouseStockableOperation::class, 'stockable');  
+    }
+
     function warehouse_stockables() : MorphMany
     {
         return $this->morphMany(WarehouseStockable::class, 'stockable');  

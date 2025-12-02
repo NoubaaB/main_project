@@ -116,7 +116,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Frais MP",
             "name_es" => "Frais MP",
             "description" => "Frais Matiere Premiere",
-            "warehouse_type" => "fish_type",
+            "warehouse_type" => "FishType",
             "allow_weight"=>true,
             "allow_price"=>true,
             "allow_package_type"=>false,
@@ -128,7 +128,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Frais Achat Revendu",
             "name_es" => "Frais Achat Revendu",
             "description" => "Frais Achat Revendu",
-            "warehouse_type" => "fish_type",
+            "warehouse_type" => "FishType",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
@@ -140,7 +140,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Congele P",
             "name_es" => "Congele P",
             "description" => "Congele Production",
-            "warehouse_type" => "fish_type",
+            "warehouse_type" => "FishType",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
@@ -152,7 +152,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Congele Achete",
             "name_es" => "Congele Achete",
             "description" => "Congele Achete",
-            "warehouse_type" => "fish_type",
+            "warehouse_type" => "FishType",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
@@ -164,7 +164,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Guano Production",
             "name_es" => "Guano Production",
             "description" => "Guano Production",
-            "warehouse_type" => "guano_type",
+            "warehouse_type" => "GuanoType",
             "allow_weight" => true,
             "allow_price" => false,
             "allow_package_type" => false,
@@ -176,7 +176,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Guano Achat Revendu",
             "name_es" => "Guano Achat Revendu",
             "description" => "Guano Achat Revendu",
-            "warehouse_type" => "guano_type",
+            "warehouse_type" => "GuanoType",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
@@ -224,7 +224,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Emballage",
             "name_es" => "Emballage",
             "description" => "Emballage",
-            "warehouse_type" => "package_type",
+            "warehouse_type" => "PackageType",
             "allow_weight" => false,
             "allow_price" => true,
             "allow_package_type" => true,
@@ -299,7 +299,7 @@ class DatabaseSeeder extends Seeder
                 if("CHAMBRE AKF 2" == $data['name_chambre']){
                     $warehouse_category_id = $warehouse_category_local->id;
                 }
-                $warehouse_type = str_contains($data['name_chambre'], "DECHET") ? "guano_type" : "fish_type";
+                $warehouse_type = str_contains($data['name_chambre'], "DECHET") ? "GuanoType" : "FishType";
                 if ($count == 0) {
                     Warehouse::create([
                         "id" => $data['id'],
@@ -442,7 +442,8 @@ class DatabaseSeeder extends Seeder
                 $charge->suppliers()->attach($suppliers);
                 foreach (json_decode($data["types_reception"]) as $item) {
                     $charge->non_warehouse_stockable_operations()->create([
-                        "fish_type_id" => $item->type_id,
+                        "stockable_type" => "FishType",
+                        "stockable_id" => $item->type_id,
                         "package_type_id" => null,
     
                         "unit_price" => $item->price,

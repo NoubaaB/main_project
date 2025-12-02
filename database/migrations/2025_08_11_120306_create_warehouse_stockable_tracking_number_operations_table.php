@@ -21,6 +21,7 @@ return new class extends Migration
 
             $table->double("unit_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
+            $table->double("total_weight_bill")->default(0.00);
             $table->double("total_price")->default(0.00);
             $table->double("total_package_count")->default(0.00);
 

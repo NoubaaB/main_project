@@ -49,6 +49,11 @@ class WarehouseStockableTrackingNumberOperation extends Model
         return $this->morphTo();
     }
 
+    //can be FishType or GuanoType or PackageType
+    function stockable() : MorphTo {
+        return $this->morphTo();
+    }
+
     function package_type() : BelongsTo {
         return $this->belongsTo(PackageType::class);
     }
