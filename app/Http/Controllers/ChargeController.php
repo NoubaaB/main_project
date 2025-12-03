@@ -136,7 +136,7 @@ class ChargeController extends Controller
         $date_start = request()->query('date_start');
         $date_end = request()->query('date_end');
         $charges = Charge::whereBetween('date', [$date_start, $date_end])
-            ->with(['suppliers', 'chargeDetails', 'productionDetails'])
+            ->with(['suppliers', 'non_warehouse_stockable_operations', 'warehouse_stockable_tracking_number_operations'])
             ->get();
         return response()->json(["charges" => $charges], 200);
     }

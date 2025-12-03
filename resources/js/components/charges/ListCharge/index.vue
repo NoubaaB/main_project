@@ -9,16 +9,14 @@
         expanded
       />
     </div>
-    <v-data-table
+    <v-data-table-virtual
       v-model="data_selected"
       :headers="headers"
       :items="data_row"
       item-selectable="selectable"
       density="compact"
-      :hide-default-footer="true"
-      :items-per-page="0"
       show-select
-    ></v-data-table>
+    ></v-data-table-virtual>
   </div>
 </template>
 
@@ -28,8 +26,8 @@
       data() {
         return {
           date: {
-            start: new Date(2025, 8, 1),
-            end: new Date(2025, 8, 17)
+            start: new Date(2025, 11, 1),
+            end: new Date(2025, 11, 17)
           },
           data_selected: [],
           data_row: [],
@@ -47,9 +45,10 @@
           return [
             { text: this.$t("date"), value: "date", align: "center" },
             { text: this.$t("tracking_number"), value: "tracking_numbers", align: "center" },
-            { text: this.$t("supplier"), value: "suppliers", align: "center" },
-            { text: this.$t("origin"), value: "origin", align: "center" },
-            { text: this.$t("fishery"), value: "fishery", align: "center" },
+            { text: this.$t("tracking_onp_numbers"), value: "tracking_onp_numbers", align: "center" },
+            { text: this.$t("suppliers"), value: "suppliers", align: "center" },
+            { text: this.$t("origin"), value: "origin_id", align: "center" },
+            { text: this.$t("fishery"), value: "fishery_id", align: "center" },
             { text: this.$t("total_weight"), value: "total_weight", align: "center" },
             { text: this.$t("total_price"), value: "total_price", align: "center" },
           ];
