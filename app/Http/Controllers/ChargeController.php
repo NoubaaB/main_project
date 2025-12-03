@@ -40,6 +40,7 @@ class ChargeController extends Controller
             'supplier_ids.*' => 'exists:suppliers,id',
             'warehouse_category_operations.*' => 'array',
             'warehouse_category_operations.*.id' => 'required|exists:warehouse_category_operations,id',
+            'warehouse_category_operations.*.charge_details.*' => 'array',
             'warehouse_category_operations.*.charge_details.*.warehouse_category_operation_id' => 'required|exists:warehouse_category_operations,id',
             'warehouse_category_operations.*.charge_details.*.total_weight' => 'nullable|numeric|min:0',
             'warehouse_category_operations.*.charge_details.*.total_weight_bill' => 'nullable|numeric|min:0',
@@ -66,54 +67,57 @@ class ChargeController extends Controller
         // ✅ 2. Create warehouse_category_operations children (details)
         if (isset($data['warehouse_category_operations'])) {
             foreach ($data['warehouse_category_operations'] as $warehouse_category_operation) {
-                foreach ($warehouse_category_operation["charge_details"] as $charge_detail) {
-                    if($charge_detail["warehouse_id"] == null){
-                        unset($charge_detail["warehouse_id"]);
-                        $charge->non_warehouse_stockable_operations()->create($charge_detail);
-                    }else{
-                        $warehouse = Warehouse::find($charge_detail["warehouse_id"]);
-                        $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class], fn($query) => $query->where('stockable_id', $charge_detail["stockable_id"]))
-                            ->first();
-
-                        if (isset($warehouse_stockable) == false) {
-                            $warehouse_stockable = $warehouse->warehouse_stockables()->create([
+                if(isset($warehouse_category_operation["charge_details"])){
+                    foreach ($warehouse_category_operation["charge_details"] as $charge_detail) {
+                        if($charge_detail["warehouse_id"] == null){
+                            unset($charge_detail["warehouse_id"]);
+                            $charge->non_warehouse_stockable_operations()->create($charge_detail);
+                        }else{
+                            $warehouse = Warehouse::find($charge_detail["warehouse_id"]);
+                            $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class], fn($query) => $query->where('stockable_id', $charge_detail["stockable_id"]))
+                                ->first();
+    
+                            if (isset($warehouse_stockable) == false) {
+                                $warehouse_stockable = $warehouse->warehouse_stockables()->create([
+                                    "unit_price" => 0.00,
+                                    "total_weight" => 0.00,
+                                    "total_price" => 0.00,
+                                    "total_package_count" => 0.00,
+                                    "warehouse_id" => $warehouse->id,
+                                    "stockable_id" => $charge_detail["stockable_id"],
+                                    "stockable_type" => FishType::class
+                                ]);
+                            }
+    
+                            $warehouse_stockable_tracking_number = null;
+                            if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data["tracking_numbers"])->count() != 1) {
+                                $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data["tracking_numbers"]);
+                            }
+                            $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->create([
+                                "tracking_numbers" => $data["tracking_numbers"],
                                 "unit_price" => 0.00,
                                 "total_weight" => 0.00,
                                 "total_price" => 0.00,
                                 "total_package_count" => 0.00,
-                                "warehouse_id" => $warehouse->id,
-                                "stockable_id" => $charge_detail["stockable_id"],
-                                "stockable_type" => FishType::class
+                                "warehouse_stockable_id" => $warehouse_stockable->id,
                             ]);
+    
+                            $stockable = $this->passes($charge_detail['stockable_type'], $charge_detail['stockable_id']) ;
+                            $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
+                                "type_operation" => "in",
+                                "date" => $charge->date,
+                                "unit_price" => $charge_detail['unit_price'],
+                                "total_weight" => $charge_detail['total_weight'],
+                                "total_price" => $charge_detail['total_price'],
+                                "stockable_type" => get_class($stockable),
+                                "stockable_id" => $stockable->id,
+                                "total_package_count" => $charge_detail['total_package_count'],
+                                "package_type_id" => $charge_detail['package_type_id'] ?? null,
+                                "warehouse_category_operation_id" => $charge_detail['warehouse_category_operation_id'],
+                            ]);
+                            $charge->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
                         }
-
-                        $warehouse_stockable_tracking_number = null;
-                        if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data["tracking_numbers"])->count() != 1) {
-                            $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data["tracking_numbers"]);
-                        }
-                        $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->create([
-                            "tracking_numbers" => $data["tracking_numbers"],
-                            "unit_price" => 0.00,
-                            "total_weight" => 0.00,
-                            "total_price" => 0.00,
-                            "total_package_count" => 0.00,
-                            "warehouse_stockable_id" => $warehouse_stockable->id,
-                        ]);
-
-                        $stockable = $this->passes($charge_detail['stockable_type'], $charge_detail['stockable_id']) ;
-                        $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
-                            "type_operation" => "in",
-                            "date" => $charge->date,
-                            "unit_price" => $charge_detail['unit_price'],
-                            "total_weight" => $charge_detail['total_weight'],
-                            "total_price" => $charge_detail['total_price'],
-                            "stockable_type" => get_class($stockable),
-                            "stockable_id" => $stockable->id,
-                            "total_package_count" => $charge_detail['total_package_count'],
-                            "package_type_id" => $charge_detail['package_type_id'] ?? null,
-                            "warehouse_category_operation_id" => $charge_detail['warehouse_category_operation_id'],
-                        ]);
-                        $charge->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
+                        $charge->calc();
                     }
                 }
             }

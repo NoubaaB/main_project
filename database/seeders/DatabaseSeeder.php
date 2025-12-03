@@ -245,7 +245,15 @@ class DatabaseSeeder extends Seeder
 
         #endregion Charge Detail Categories Seeders
 
-        
+        #region sell_category
+        $sell_category =  SellCategory::factory()->create([
+            "description" => "Vente Service Congelation",
+            "name_en" => "Vente Service Congelation",
+            "name_fr" => "Vente Service Congelation",
+            "name_es" => "Vente Service Congelation",
+            "list_type_details" => 1,
+        ]);
+        #endregion sell_category
 
         #endregion Fixed Charges and Type Charges Seeders
 
@@ -425,6 +433,8 @@ class DatabaseSeeder extends Seeder
                 }
             }
 
+            return ;
+            
             $path = ('storage/csv/frais.csv');
     
             $rows = CsvReader::read($path);
@@ -519,16 +529,8 @@ class DatabaseSeeder extends Seeder
                 $charge->calc();
             }
     
-            $sell_category =  SellCategory::factory()->create([
-                "description" => "Vente Service Congelation",
-                "name_en" => "Vente Service Congelation",
-                "name_fr" => "Vente Service Congelation",
-                "name_es" => "Vente Service Congelation",
-                "list_type_details" => 1,
-            ]);
-    
             $path = ('storage/csv/congelation_clients.csv');
-    
+   
             $rows = CsvReader::read($path);
             foreach ($rows as $data) {
                 $sell = Sell::create([
