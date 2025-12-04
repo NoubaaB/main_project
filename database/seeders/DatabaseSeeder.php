@@ -433,7 +433,7 @@ class DatabaseSeeder extends Seeder
                 }
             }
 
-            return ;
+            // return ;
             
             $path = ('storage/csv/frais.csv');
     
@@ -441,7 +441,7 @@ class DatabaseSeeder extends Seeder
             foreach ($rows as $data) {
                 $charge = Charge::create([
                     "date" => $data["date_reception"],
-                    "tracking_numbers" => $data["num_bon_receptions"],
+                    "tracking_numbers" => json_decode($data["num_bon_receptions"]),
                     "origin_id" => $data["origin_id"],
                     "fishery_id" => $data["place_id"],
                     "charge_category_id" => $charge_category_frais->id,
@@ -472,7 +472,7 @@ class DatabaseSeeder extends Seeder
             foreach ($rows as $data) {
                 $charge = Charge::create([
                     "date" => $data["date_reception"],
-                    "tracking_numbers" => $data["num_bon_receptions"],
+                    "tracking_numbers" => json_decode($data["num_bon_receptions"]),
                     "origin_id" => $data["origin_id"],
                     "fishery_id" => $data["place_id"],
                     "charge_category_id" => $charge_category_congele->id,
@@ -535,7 +535,7 @@ class DatabaseSeeder extends Seeder
             foreach ($rows as $data) {
                 $sell = Sell::create([
                     "date" => $data["date_reception"],
-                    "tracking_numbers" => $data["num_bon_receptions"],
+                    "tracking_numbers" => json_decode($data["num_bon_receptions"]),
                     "origin_id" => $data["origin_id"],
                     "fishery_id" => $data["place_id"],
                     "sell_category_id" => $sell_category->id,
@@ -606,7 +606,7 @@ class DatabaseSeeder extends Seeder
                 echo $data['id']."\n";
                 $sell = Sell::create([
                     "date" => $data["date_sortie"],
-                    "tracking_numbers" => $data["num_bon_sorties"],
+                    "tracking_numbers" => json_decode($data["num_bon_sorties"]),
                     "origin_id" => $data["origin_id"]??1,
                     "fishery_id" => $data["place_id"]??1,
                     "sell_category_id" => $sell_category_sortie_client->id,

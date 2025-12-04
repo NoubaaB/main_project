@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('charge_categories', function (Blueprint $table) {
             $table->id();
             $table->string("description")->nullable();
+            $table->string("name")->nullable();
             $table->string("name_fr")->nullable();
             $table->string("name_en")->nullable();
             $table->string("name_es")->nullable();

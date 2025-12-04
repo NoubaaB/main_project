@@ -201,6 +201,7 @@
     "delete_many_charges": "Selected Charges Deleted Successfully",
     "add_description":"Add Description",
     "total_weight_bill":"Total Weight Bill",
+    "supplier_ids":"Suppliers",
     "charge.total_price": "Total Price",
     "charge.total_weight": "Total Weight",
     "charge.actions": "Actions",

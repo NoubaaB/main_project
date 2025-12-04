@@ -17,15 +17,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Charge extends Model
 {
     /** @use HasFactory<\Database\Factories\ChargeFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $with = ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations' , 'suppliers'];
+    protected $with = ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'];
 
     protected $guarded = [];
+
+    protected $appends = ['supplier_ids'];
 
     protected $casts = [
         'date' => 'date:Y-m-d',
@@ -65,8 +68,7 @@ class Charge extends Model
 
     function suppliers() : BelongsToMany 
     {
-        return $this->belongsToMany(Supplier::class, "charge_suppliers", "charge_id", "supplier_id")
-                ->withPivot('charge_id', 'supplier_id');
+        return $this->belongsToMany(Supplier::class, "charge_suppliers", "charge_id", "supplier_id");
     }
 
     function fishery() : BelongsTo {
@@ -89,6 +91,11 @@ class Charge extends Model
 
     function supplier_process() : BelongsTo {
         return $this->belongsTo(Supplier::class, 'supplier_process_id'); 
+    }
+
+    protected function supplierIds(): Attribute
+    {
+        return Attribute::get(fn() => $this->suppliers->pluck('id')->toArray());
     }
 
     //private functions

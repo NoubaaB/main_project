@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { useMain } from "./Main";
 
 export const useChargeCategory = defineStore("charge_category", {
     state: () => {
@@ -11,7 +12,8 @@ export const useChargeCategory = defineStore("charge_category", {
                 qte: 0,
                 total: 0,
                 variable_charge_id: null,
-            }
+            },
+            main : useMain()
         };
     },
     actions: {
@@ -29,6 +31,9 @@ export const useChargeCategory = defineStore("charge_category", {
         }
     },
     getters: {
-        getList: state => state.list
+        getList: state => state.list.map(e => {
+            e.name = e[`name_${state.main.lang.code}`];
+            return e;
+        })
     }
 });

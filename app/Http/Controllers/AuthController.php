@@ -13,6 +13,7 @@ use App\Models\GuanoType;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PasswordReset;
+use App\Models\Ship;
 use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Models\WarehouseCategoryOperation;
@@ -195,6 +196,7 @@ class AuthController extends Controller implements HasMiddleware
     function getData(): array
     {
         $suppliers = Supplier::all();
+        $ships = Ship::all();
         $fish_types = FishType::all();
         $package_types = PackageType::all();
         $guano_types = GuanoType::all();
@@ -205,6 +207,7 @@ class AuthController extends Controller implements HasMiddleware
         $warehouse_category_operations = WarehouseCategoryOperation::all();
         return [
             "suppliers" => $suppliers,
+            "ships" => $ships,
             "fish_types" => $fish_types,
             "package_types" => $package_types,
             "guano_types" => $guano_types,
