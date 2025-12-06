@@ -32,9 +32,19 @@ export function crerate() {
         },
         components,
         directives,
-        locale: {
-            messages: { en, fr ,es },
-            // adapter: createVueI18nAdapter({ i18n, useI18n }),
+        messages: {
+            fr: {
+                // Your French translations
+                ...fr, // Merge Vuetify's French translations
+            },
+            en: {
+                // Ensure English translations are present
+                ...en, // Merge Vuetify's English translations (fallback)
+            },
+            es: {
+                // Ensure English translations are present
+                ...es, // Merge Vuetify's English translations (fallback)
+            }
         },
     })
 };

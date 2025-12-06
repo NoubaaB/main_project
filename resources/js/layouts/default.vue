@@ -11,7 +11,7 @@
     <!-- system bar end -->
     
     <!-- main start -->
-    <v-container max-width="1400" class="mt-10 ma-auto" :class="{'py-15':auth.is_auth,'py-5':!auth.is_auth}" style="position: relative">
+    <v-container max-width="1400" class="ma-auto" :class="{'py-15':auth.is_auth,'py-5':!auth.is_auth}" style="position: relative">
       <router-view />
       <v-snackbar
         v-model="main.snackbar.show"
