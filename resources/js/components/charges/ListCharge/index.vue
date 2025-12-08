@@ -1,7 +1,9 @@
 <template>
-  <div>
+  <v-card>
+    <v-card-title>
+      {{ $t('datatable_list_charges') }}
+    </v-card-title>
     <DataTable
-     :title_name="title_name"
      :api_url="api_url" 
      :api_url_prop="api_url_prop"
      :relations="relations"
@@ -80,7 +82,7 @@
           {{ main.formatDisplayNumber(item.total_price) }}
         </template>
     </DataTable>
-  </div>
+  </v-card>
 </template>
 
 <script>
@@ -99,7 +101,6 @@ import moment from 'moment';
     },
     data:function(){
       return {
-        title_name:"Data Table - List Charges",
         api_url:"/api/get_charges",
         api_url_prop: "charges",
         filters: {

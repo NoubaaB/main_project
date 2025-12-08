@@ -1,28 +1,8 @@
 <template>
-  <v-container fluid>
-    <v-card class="position-relative">
       <!-- TITLE + RESET BUTTON -->
-      <v-card-title class="d-flex align-center justify-space-between">
-        <div class="d-flex align-center">
-          <div class="text-h6">{{ title_name }}</div>
-
-          <v-btn
-            v-if="hiddenHeaderKeys.length>0"
-            small
-            rounded
-            class="ml-3"
-            color="info"
-            variant="tonal"
-            @click="resetHeaders"
-            :disabled="loading"
-            title="$t('reset_hidden_headers')"
-          >
-          <v-icon class="mr-1">mdi-table-headers-eye</v-icon>  {{ $t("reset_header") }} ({{ hiddenHeaderKeys.length }})
-          </v-btn>
-        </div>
-
+      <v-card-text class="d-flex align-center justify-space-between">
         <div class="text-caption grey--text">{{$t('sprting_priority')}}</div>
-      </v-card-title>
+      </v-card-text>
 
       <!-- DATE -->
       <VDatePicker
@@ -35,6 +15,26 @@
       />
 
       <div style="position:relative">
+        <v-row>
+          <v-col>
+            <v-btn
+              v-if="hiddenHeaderKeys.length>0"
+              small
+              rounded
+              color="info"
+              variant="tonal"
+              @click="resetHeaders"
+              :disabled="loading"
+              :title="$t('reset_hidden_headers')"
+            >
+              <v-icon class="mr-1">mdi-table-headers-eye</v-icon>  {{ $t("reset_header") }} ({{ hiddenHeaderKeys.length }})
+            </v-btn>
+          </v-col>
+          <v-col>
+            test
+          </v-col>
+        </v-row>
+
         <v-data-table-virtual
           v-model="items_selected"
           :headers="visibleHeaders"
@@ -200,8 +200,6 @@
             </div>
         </v-overlay>
     </div>
-    </v-card>
-  </v-container>
 </template>
 
 <script>
@@ -213,7 +211,6 @@ const NULL_VALUE = '__NULL__'
 
 export default {
   props: {
-    title_name: String,
     api_url: String,
     api_url_prop: String,
     relations: Object,

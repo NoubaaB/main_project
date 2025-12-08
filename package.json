@@ -63,6 +63,7 @@
         "vue3-sfc-loader": "^0.9.5",
         "vue3-snackbar": "^2.2.1",
         "vuedraggable": "^4.1.0",
-        "vuetify": "^3.9.0"
+        "vuetify": "^3.9.0",
+        "xlsx": "^0.18.5"
     }
 }
