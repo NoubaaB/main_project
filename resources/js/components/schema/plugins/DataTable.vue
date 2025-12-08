@@ -622,8 +622,8 @@ export default {
       // theme-aware colors (light/dark)
       const isDark = !!(this.main && this.main.is_dark)
       // pick appropriate backgrounds and shadows for pinned headers/body
-      const headerBg = isDark ? 'rgba(255,255,255,0.04)' : '#e0e0e0'
-      const bodyBg = isDark ? 'rgba(255,255,255,0.02)' : '#f5f5f5'
+      const headerBg = isDark ? 'rgba(255,255,255,0.5)' : '#e0e0e0'
+      const bodyBg = isDark ? 'rgba(33,33,33,1)' : '#f5f5f5'
       const selectBg = isDark ? 'rgba(255,255,255,0.04)' : '#e0e0e0'
       const headerShadow = isDark ? '2px 0 10px rgba(0,0,0,0.7)' : '2px 0 8px rgba(0,0,0,0.08)'
       const bodyShadow = isDark ? '1px 0 6px rgba(0,0,0,0.55)' : '1px 0 6px rgba(0,0,0,0.04)'
