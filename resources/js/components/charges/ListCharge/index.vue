@@ -94,7 +94,6 @@
   import { useFishery } from '@/stores/Fishery';
   import { useShip } from '@/stores/Ship';
   import { useChargeCategory } from '@/stores/ChargeCategory';
-import moment from 'moment';
   export default {
     components: {
       DataTable
@@ -142,7 +141,8 @@ import moment from 'moment';
             { title: this.$t("origin"), key: 'origin_id' , visible:true },
             { title: this.$t("fishery"), key: 'fishery_id' , visible:false },
             { title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
-            { title: this.$t("price_dh"), key: 'total_price' , visible:true }
+            { title: this.$t("price_dh"), key: 'total_price', visible: true },
+            { key: 'data-table-expand', align: 'end',visible: true }
           ]
         }
     }
