@@ -17,6 +17,7 @@
   <!-- injected dynamic CSS for pinned columns -->
   <div v-html="pinnedStyleHtml"></div>
 
+  <!-- table-scope is the horizontal scroll container -->
   <div class="table-scope" ref="tableRoot" style="position:relative">
     <v-data-table-virtual
       v-model="items_selected"
@@ -311,15 +312,12 @@ export default {
 
   mounted () {
     this.fetchData()
-    // compute pinned CSS after mount
-    this.$nextTick(() => {
-      this.computePinnedCss()
-    })
-    // recompute on window resize
-    window.addEventListener('resize', this.debouncedComputePinnedCss)
+    // make tableRoot horizontally scrollable so sticky works inside it
   },
 
   beforeUnmount () {
+    const root = this.$refs.tableRoot
+    if (root) root.removeEventListener('scroll', this.debouncedComputePinnedCss)
     window.removeEventListener('resize', this.debouncedComputePinnedCss)
   },
 
@@ -445,7 +443,6 @@ export default {
         })
         this.items = res.data[this.api_url_prop] || []
       } catch (err) {
-        // fixed template string usage for error logging
         console.error(`Error fetching ${this.api_url}`, err)
       } finally {
         this.loading = false
@@ -581,7 +578,7 @@ export default {
     togglePin (key) {
       const i = this.pinnedHeaderKeys.indexOf(key)
       if (i === -1) {
-        // add to pinned
+        // add to pinned (push to end so newest pins appear to the right of other pinned columns)
         this.pinnedHeaderKeys.push(key)
       } else {
         // remove
@@ -610,6 +607,7 @@ export default {
       }
 
       // thead th list (includes the select th we manually render as first th)
+      // NOTE: searching inside root ensures we measure sizes within the scroll container
       const ths = Array.from(root.querySelectorAll('thead tr th'))
       if (!ths.length) {
         this.pinnedCss = ''
@@ -617,68 +615,71 @@ export default {
       }
 
       // Build an array of widths for each column (in DOM order)
-      const widths = ths.map(th => th.getBoundingClientRect().width || th.offsetWidth || 0)
+      const widths = ths.map(th => {
+        const rect = th.getBoundingClientRect()
+        // widths should be measured relative to the table (use offsetWidth fallback)
+        return Math.max(1, Math.round(rect.width || th.offsetWidth || 0))
+      })
 
       // theme-aware colors (light/dark)
       const isDark = !!(this.main && this.main.is_dark)
       // pick appropriate backgrounds and shadows for pinned headers/body
-      const headerBg = isDark ? 'rgba(255,255,255,0.5)' : '#e0e0e0'
-      const bodyBg = isDark ? 'rgba(33,33,33,1)' : '#f5f5f5'
-      const selectBg = isDark ? 'rgba(255,255,255,0.04)' : '#e0e0e0'
-      const headerShadow = isDark ? '2px 0 10px rgba(0,0,0,0.7)' : '2px 0 8px rgba(0,0,0,0.08)'
-      const bodyShadow = isDark ? '1px 0 6px rgba(0,0,0,0.55)' : '1px 0 6px rgba(0,0,0,0.04)'
-
-      // Now map our visibleHeaders to DOM column indices (1-based nth-child).
-      // DOM order: first th is select checkbox (we rendered), then visible headers in the same order we render columns in the header template.
-      // For visibleHeaders index j, the DOM nth-child is j + 2 (select checkbox = 1).
-      // For the special key 'data-table-select' we treat DOM nth-child = 1.
-
-      // Build CSS rules
-      let css = ''
-      const pinnedDomEntries = []
+      const headerBg = isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'
+      const bodyBg = isDark ? 'rgba(33,33,33,1)' : '#f9f9fa'
+      const selectBg = isDark ? 'rgba(255,255,255,0.04)' : '#f1f1f1'
+      const headerShadow = isDark ? '2px 0 12px rgba(0,0,0,0.6)' : '2px 0 8px rgba(0,0,0,0.06)'
+      const bodyShadow = isDark ? '1px 0 8px rgba(0,0,0,0.45)' : '1px 0 6px rgba(0,0,0,0.03)'
 
       // visibleHeaders keys in DOM order:
       const visibleKeys = this.visibleHeaders.map(h => h.key)
 
+      // Build pinned entries in the order of pinnedHeaderKeys (so pinned order equals pinnedHeaderKeys order).
+      // Each entry will contain domIndex and width
+      const pinnedDomEntries = []
       for (const pinnedKey of this.pinnedHeaderKeys) {
         if (pinnedKey === 'data-table-select') {
           // special-case: our select column is the first th in DOM
-          pinnedDomEntries.push({ key: pinnedKey, visibleIndex: -1, domIndex: 1 })
+          pinnedDomEntries.push({ key: pinnedKey, domIndex: 1, width: widths[0] || 56 })
           continue
         }
         const visibleIndex = visibleKeys.indexOf(pinnedKey)
         if (visibleIndex === -1) continue // pinned key not visible
-        const domIndex = visibleIndex + 2 // nth-child (1: select checkbox, then headers)
-        pinnedDomEntries.push({ key: pinnedKey, visibleIndex, domIndex })
+        const domIndex = visibleIndex + 2 // nth-child (1: select checkbox)
+        pinnedDomEntries.push({ key: pinnedKey, domIndex, width: widths[domIndex - 1] || 100 })
       }
 
-      // sort pinned entries by domIndex (left to right)
-      pinnedDomEntries.sort((a, b) => a.domIndex - b.domIndex)
+      if (!pinnedDomEntries.length) {
+        this.pinnedCss = ''
+        return
+      }
 
-      // compute left offsets
-      for (let p = 0; p < pinnedDomEntries.length; p++) {
-        const entry = pinnedDomEntries[p]
-        // left = sum of widths of all columns left of this column
-        let left = 0
-        for (let i = 0; i < entry.domIndex - 1; i++) {
-          left += widths[i] || 0
-        }
-
-        left = Math.round(left)
+      // compute left offsets so pinned columns stack from the left (cumulative widths of previous pinned columns)
+      let css = ''
+      let cumLeft = 0
+      for (let i = 0; i < pinnedDomEntries.length; i++) {
+        const entry = pinnedDomEntries[i]
         const nth = entry.domIndex
+        const left = Math.round(cumLeft)
 
+        // Header cell (thead)
         css += `
         .table-scope thead tr th:nth-child(${nth}) {
           position: sticky;
           left: ${left}px;
+          right: ${left}px;
           z-index: 1;
           background: ${headerBg};
           box-shadow: ${headerShadow};
           border-right: 1px solid rgba(0,0,0,0.06);
         }
+        `
+
+                // Body cell (tbody)
+                css += `
         .table-scope tbody tr td:nth-child(${nth}) {
           position: sticky;
           left: ${left}px;
+          right: ${left}px;
           z-index: 1;
           background: ${bodyBg};
           box-shadow: ${bodyShadow};
@@ -688,12 +689,14 @@ export default {
           position:absolute
         }
         `
+
+        cumLeft += entry.width
       }
 
-      // small visual improvements: ensure select-th remains above pinned columns if needed
+      // ensure select-th has top z (if pinned or not)
       css += `
 .table-scope thead tr th.select-th {
-  z-index: 1;
+  z-index: 6;
   background: ${selectBg};
 }
 .table-scope thead tr th, .table-scope tbody tr td {
@@ -704,7 +707,7 @@ export default {
       this.pinnedCss = css
     },
 
-    // a debounced wrapper to avoid computing too frequently on resize
+    // a debounced wrapper to avoid computing too frequently on resize/scroll
     debouncedComputePinnedCss: (function () {
       let timeout = null
       return function () {
@@ -716,13 +719,11 @@ export default {
       }
     })(),
 
-    /* ---------------- Excel export ---------------- */
+    /* ---------------- Excel export & helpers (unchanged) ---------------- */
 
-    // Convert the row's cell to a display value (resolves relations and arrays)
     resolveDisplayValue (row, key) {
       const val = row[key]
 
-      // Relations: same logic as sorting resolution
       if (this.relations && this.relations[key]) {
         const { source, label } = this.relations[key]
         const list = Array.isArray(source) ? source : (this[source] || [])
@@ -743,40 +744,27 @@ export default {
 
     exportToExcel () {
       if (!this.items_selected || !this.items_selected.length) {
-        // nothing selected — nothing to export
         console.warn('No rows selected to export')
         return
       }
 
-      // 1) Find selected rows (by id)
       const selectedRows = this.items.filter(i => this.items_selected.includes(i.id))
-
-      // 2) Determine exported columns: visible headers in current order,
-      // exclude selection column and the expand column from export
       const cols = this.visibleHeaders.filter(
         h => h.key !== 'data-table-select' && h.key !== 'data-table-expand'
       )
-
-      // 3) Build a 2D array: first row = header titles, then each selected row mapped to column values
-      // NOTE: For the column with key === 'date' we attempt to produce a JS Date object so XLSX can mark cell as date.
       const headerTitles = cols.map(h => h.title ?? h.key)
 
       const dataAoA = [
         headerTitles,
         ...selectedRows.map(row => cols.map(h => {
-          // Special handling for date column (export as Date)
           if (h.key === 'date') {
             const raw = row[h.key]
             if (raw == null || raw === '') return ''
-            // If already a Date use it, else try to parse with moment
             if (raw instanceof Date) return raw
             const m = moment(raw)
             if (m.isValid()) return m.toDate()
-            // fallback to string if unparseable
             return String(raw)
           }
-
-          // otherwise use resolved display value (relations/arrays)
           const v = this.resolveDisplayValue(row, h.key)
           if (v === '') return ''
           const num = parseFloat(v)
@@ -785,26 +773,20 @@ export default {
         }))
       ]
 
-      // 4) Create worksheet & workbook
       const ws = XLSX.utils.aoa_to_sheet(dataAoA)
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Export')
 
-      // 5) Ensure date cells are typed as dates and formatted
       const dateColIndex = cols.findIndex(h => h.key === 'date')
       if (dateColIndex !== -1) {
-        // rows start at r = 1 (0 = header)
         for (let r = 1; r <= selectedRows.length; r++) {
           const cellRef = XLSX.utils.encode_cell({ c: dateColIndex, r })
           const cell = ws[cellRef]
           if (!cell) continue
-          // if value is a JS Date, set type 'd' and give a simple date number format
           if (cell.v instanceof Date) {
             cell.t = 'd'
-            // Excel date format: yyyy-mm-dd; set z so Excel displays it as date
             cell.z = 'yyyy-mm-dd'
           } else {
-            // attempt to parse cell.v as date string and convert
             const m = moment(cell.v)
             if (cell.v && typeof cell.v === 'string' && m.isValid()) {
               cell.v = m.toDate()
@@ -815,7 +797,6 @@ export default {
         }
       }
 
-      // 6) Write file
       const filename = `export_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
       XLSX.writeFile(wb, filename)
     }
@@ -824,6 +805,12 @@ export default {
 </script>
 
 <style scoped>
+
+/* Ensure table expands horizontally to force a horizontal scrollbar when needed */
+.table-scope table {
+  min-width: max-content; /* table grows to content width enabling horizontal scroll */
+}
+
 /* Keep header cells from wrapping and keep layout inline */
 .header-th { vertical-align: top; }
 
@@ -844,7 +831,6 @@ export default {
 /* Title text: prevent wrapping, show ellipsis if too long */
 .header-title-text {
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
   display: inline-block;
   max-width: 220px; /* adjust as needed */
@@ -854,7 +840,6 @@ export default {
 .header-bottom .header-filter,
 .header-bottom .header-total {
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
   max-width: 260px; /* adjust as needed */
 }
@@ -877,5 +862,12 @@ th {
 /* Smooth left transitions when pinning/unpinning */
 .table-scope thead tr th, .table-scope tbody tr td {
   transition: left 0.12s;
+  will-change: left;
+}
+
+/* Ensure pinned cells overlay other cells when needed */
+.table-scope thead tr th[style*="position: sticky"], .table-scope tbody tr td[style*="position: sticky"] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 </style>
