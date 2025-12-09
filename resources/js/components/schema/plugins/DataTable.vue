@@ -10,7 +10,6 @@
     :max-date="new Date()"
     v-model.range="date"
     mode="date"
-    expanded
     :disabled="loading"
   />
 
@@ -61,9 +60,6 @@
               <v-icon class="mr-1">mdi-file-excel</v-icon>
               {{ $t('export') }} ({{ items_selected.length }})
             </v-btn>
-          </v-col>
-          <v-col>
-            test
           </v-col>
         </v-row>
       </template>
@@ -548,8 +544,8 @@ export default {
 
     sortTitle (key) {
       const dir = this.sortDir(key)
-      if (!dir) return 'No sort (click to add asc)'
-      return dir === 'asc' ? 'Sorted asc (click to change to desc)' : 'Sorted desc (click to remove)'
+      if (!dir) return this.$t('no_sort_click_to_add_asc')
+      return dir === this.$t('asc') ? this.$t('sorted_click_to_change_to_desc') : this.$t('sorted_desc_click_to_remove')
     },
 
     // toggle sort state for key: none -> asc -> desc -> none
