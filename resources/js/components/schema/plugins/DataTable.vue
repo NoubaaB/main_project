@@ -633,16 +633,18 @@ export default {
 
       let css = ''
       let cumLeft = 0
+      let cumRight = 0
       for (let i = 0; i < pinnedDomEntries.length; i++) {
         const entry = pinnedDomEntries[i]
         const nth = entry.domIndex
         const left = Math.round(cumLeft)
+        const right = Math.round(cumRight)
 
         css += `
           .table-scope thead tr th:nth-child(${nth}) {
             position: sticky;
             left: ${left}px;
-            right: ${left}px;
+            right: ${right}px;
             z-index: 1;
             background: ${headerBg};
             box-shadow: ${headerShadow};
@@ -655,7 +657,7 @@ export default {
           .table-scope tbody tr td:nth-child(${nth}) {
             position: sticky;
             left: ${left}px;
-            right: ${left}px;
+            right: ${right}px;
             z-index: 1;
             background: ${bodyBg};
             box-shadow: ${bodyShadow};
