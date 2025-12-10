@@ -20,7 +20,7 @@
   <div class="table-scope" ref="tableRoot" style="position:relative">
     <v-data-table-virtual
       v-model="items_selected"
-      :headers="visibleHeaders"
+      :headers="orderedVisibleHeaders"
       :items="sortedFilteredItems"
       item-key="id"
       fixed-header
@@ -64,7 +64,7 @@
         </v-row>
       </template>
 
-      <!-- expand button column (kept in UI but excluded from Excel) -->
+      <!-- expand button column -->
       <template v-slot:[`item.data-table-expand`]="{ internalItem, isExpanded, toggleExpand }">
         <v-btn
           :append-icon="isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
@@ -100,10 +100,10 @@
         </div>
       </template>
 
-      <!-- FILTER HEADER -->
-      <template #headers="{ columns }">
+      <!-- FILTER HEADER with native drag & drop -->
+      <template #headers>
         <tr>
-          <!-- SELECT ALL CHECKBOX TH -->
+          <!-- SELECT ALL CHECKBOX TH (kept first and not draggable) -->
           <th class="pa-1 header-th select-th">
             <v-checkbox
               :model-value="items_selected.length === filteredItems.length && filteredItems.length > 0"
@@ -116,22 +116,40 @@
             />
           </th>
 
-          <!-- DATA HEADERS (we render every visible header except selection) -->
+          <!-- Render THs according to headerOrder (excluding select column) -->
           <th
-            v-for="(col, idx) in columns.filter(c => c.key !== 'data-table-select')"
+            v-for="(col, idx) in headerOrder.filter(h => h.key !== 'data-table-select')"
             :key="idx"
             class="pa-1 header-th"
+            @dragover.prevent="onDragOver($event, col.key)"
+            @drop.prevent="onDrop($event, col.key)"
+            :class="{ 'drag-over': dragOverKey === col.key }"
           >
-            <!-- TOP: title + actions (single-line, no-wrap) -->
+            <!-- header-top contains a small drag handle icon which is draggable.
+                 Drag is initiated from the handle to avoid interfering with buttons/inputs. -->
             <div class="header-top d-flex align-center justify-space-between flex-nowrap mb-1">
               <div class="header-title d-flex align-center flex-nowrap">
+                <!-- DRAG HANDLE (draggable) -->
+                <span
+                  class="drag-handle me-2"
+                  role="button"
+                  tabindex="0"
+                  :title="$t('drag_to_reorder')"
+                  draggable="true"
+                  @dragstart="onDragStart($event, col.key)"
+                  @dragend="onDragEnd($event)"
+                >
+                  <v-icon small class="me-1">mdi-drag</v-icon>
+                </span>
+
                 <!-- sort button (small) -->
                 <v-btn
+                  v-if="col.key != 'data-table-expand'"
                   variant="text"
                   icon
                   size="x-small"
                   :disabled="loading"
-                  @click="toggleSort(col.key)"
+                  @click.stop="toggleSort(col.key)"
                   :title="sortTitle(col.key)"
                 >
                   <v-badge
@@ -159,7 +177,7 @@
                   size="x-small"
                   class="ml-1"
                   :disabled="loading"
-                  @click="togglePin(col.key)"
+                  @click.stop="togglePin(col.key)"
                   :title="pinnedHeaderKeys.includes(col.key) ? $t('unpin_column') : $t('pin_column')"
                 >
                   <v-icon small>
@@ -168,15 +186,15 @@
                 </v-btn>
 
                 <!-- remove header -->
-                <v-btn variant="text" icon size="x-small" class="ml-1" :disabled="loading" @click="removeHeader(col.key)" :title="$t('remove_column')">
+                <v-btn variant="text" icon size="x-small" class="ml-1" :disabled="loading" @click.stop="removeHeader(col.key)" :title="$t('remove_column')">
                   <v-icon small color="error">mdi-close</v-icon>
                 </v-btn>
               </div>
             </div>
 
-            <!-- BOTTOM: filter / total (kept compact and no-wrap) -->
-            <div class="header-bottom d-flex align-center">
-              <div class="filter-wrap" :class="{ 'filter-has': filters[col.key] !== undefined }">
+            <!-- BOTTOM: filter / total -->
+            <div class="header-bottom">
+              <div class="filter-wrap text-center" :class="{ 'filter-has': filters[col.key] !== undefined }">
                 <v-autocomplete
                   v-if="filters[col.key] !== undefined"
                   v-model="filters[col.key]"
@@ -195,7 +213,6 @@
                   class="text-info header-filter"
                   :prepend-inner-icon="filters[col.key].length>0? 'mdi-filter' :'mdi-filter-outline'"
                 >
-                  <!-- Custom Chips Slot -->
                   <template v-slot:chip="{ props, item }">
                     <v-chip
                       v-bind="props"
@@ -224,6 +241,7 @@
                 </v-autocomplete>
 
                 <v-chip v-else-if="col.key != 'data-table-expand'" color="info" class="mt-1 header-total">
+                  <v-icon>mdi-sigma</v-icon> =
                   {{ get_total(col.key) }}
                 </v-chip>
               </div>
@@ -263,6 +281,7 @@ import { nextTick } from 'vue'
 const NULL_VALUE = '__NULL__'
 
 export default {
+  name: 'VirtualTableNativeReorder',
   props: {
     api_url: String,
     api_url_prop: String,
@@ -281,34 +300,34 @@ export default {
       items_selected: [],
       loading: false,
 
-      // reactive array of hidden header keys
       hiddenHeaderKeys: [],
-
-      // store default header keys for reset
       defaultHeaderKeys: [],
-
-      // pinned header keys (columns the user fixed)
-      // selection column pinned by default
       pinnedHeaderKeys: ['data-table-select'],
-
-      // multi column sortOrders: each item { key, dir } where dir is 'asc'|'desc'
-      // first item = highest priority
       sortOrders: [],
+      pinnedCss: '',
 
-      // dynamic CSS for pinned columns (string)
-      pinnedCss: ''
+      // ORDER of header objects used to render table columns (this is what we reorder)
+      headerOrder: [],
+
+      // drag state
+      draggingKey: null,
+      dragOverKey: null
     }
   },
 
   created () {
-    // initialize defaultHeaderKeys
     this.defaultHeaderKeys = this.headers.map(h => h.key)
     this.hiddenHeaderKeys = this.headers.filter(h => h.visible === false).map(h => h.key)
+    this.syncHeaderOrder()
   },
 
   mounted () {
     this.fetchData()
-    // make tableRoot horizontally scrollable so sticky works inside it
+    const root = this.$refs.tableRoot
+    if (root) {
+      root.addEventListener('scroll', this.debouncedComputePinnedCss)
+      window.addEventListener('resize', this.debouncedComputePinnedCss)
+    }
   },
 
   beforeUnmount () {
@@ -320,15 +339,16 @@ export default {
   computed: {
     main: () => useMain(),
 
-    // visible headers computed from prop headers and hiddenHeaderKeys
+    // original visible headers by prop order
     visibleHeaders () {
-      // Return headers in their original order but without hidden ones.
       return this.headers.filter(h => !this.hiddenHeaderKeys.includes(h.key))
     },
 
-    /**
-     * CORE FILTER ENGINE: row must satisfy every column's selected set (column-wise OR, across columns AND)
-     */
+    // headerOrder filtered for visibility (source used by table)
+    orderedVisibleHeaders () {
+      return this.headerOrder.filter(h => !this.hiddenHeaderKeys.includes(h.key))
+    },
+
     filteredItems () {
       return this.items.filter(row =>
         Object.entries(this.filters).every(([key, selected]) => {
@@ -347,15 +367,13 @@ export default {
       )
     },
 
-    // apply multi-column sorting on filteredItems
     sortedFilteredItems () {
       if (!this.sortOrders.length) return this.filteredItems
 
-      const orders = this.sortOrders.slice() // clone
+      const orders = this.sortOrders.slice()
 
       const getComparable = (row, key) => {
         const val = row[key]
-        // relations: try to resolve label via relations prop (source may be array name or array)
         if (this.relations && this.relations[key]) {
           const { source, label } = this.relations[key]
           const list = Array.isArray(source) ? source : (this[source] || [])
@@ -376,8 +394,6 @@ export default {
         for (const { key, dir } of orders) {
           const va = getComparable(a, key)
           const vb = getComparable(b, key)
-
-          // numeric compare if both can be numbers
           const na = parseFloat(va)
           const nb = parseFloat(vb)
           let cmp = 0
@@ -386,7 +402,6 @@ export default {
           } else {
             cmp = String(va).localeCompare(String(vb))
           }
-
           if (cmp !== 0) return dir === 'asc' ? cmp : -cmp
         }
         return 0
@@ -395,7 +410,6 @@ export default {
       return arr
     },
 
-    // returns HTML string with style tag containing pinnedCss
     pinnedStyleHtml () {
       if (!this.pinnedCss) return ''
       return `<style>${this.pinnedCss}</style>`
@@ -403,16 +417,24 @@ export default {
   },
 
   watch: {
-    // recompute pinned CSS when headers visibility or pinned keys change
     hiddenHeaderKeys () {
       this.debouncedComputePinnedCss()
+      this.syncHeaderOrder()
     },
     pinnedHeaderKeys () {
       this.debouncedComputePinnedCss()
     },
     visibleHeaders () {
-      // if visible headers changed (e.g. after reset), recompute CSS
-      this.$nextTick(() => this.computePinnedCss())
+      this.$nextTick(() => {
+        this.syncHeaderOrder()
+        this.computePinnedCss()
+      })
+    },
+    headers: {
+      deep: true,
+      handler () {
+        this.$nextTick(() => this.syncHeaderOrder())
+      }
     },
     "main.is_dark": function () {
       this.computePinnedCss();
@@ -426,6 +448,30 @@ export default {
   },
 
   methods: {
+    // ---- Sync headerOrder keeping previous user order where possible ----
+    syncHeaderOrder () {
+      const currentKeys = this.headerOrder.map(h => h.key)
+      const headerMap = {}
+      this.headers.forEach(h => { headerMap[h.key] = h })
+      const newOrder = []
+      currentKeys.forEach(k => {
+        if (!this.hiddenHeaderKeys.includes(k) && headerMap[k]) newOrder.push(headerMap[k])
+      })
+      this.visibleHeaders.forEach(h => {
+        if (!newOrder.find(x => x.key === h.key)) newOrder.push(h)
+      })
+      // ensure select column exists and is first if present
+      const selectIdx = newOrder.findIndex(h => h.key === 'data-table-select')
+      if (selectIdx > 0) {
+        const sel = newOrder.splice(selectIdx, 1)[0]
+        newOrder.unshift(sel)
+      } else if (selectIdx === -1) {
+        const selectProp = this.headers.find(h => h.key === 'data-table-select')
+        if (selectProp) newOrder.unshift(selectProp)
+      }
+      this.headerOrder = newOrder
+    },
+
     async fetchData () {
       this.loading = true
       this.items_selected = []
@@ -442,26 +488,24 @@ export default {
         console.error(`Error fetching ${this.api_url}`, err)
       } finally {
         this.loading = false
-        // recompute pinned columns after data finishes loading (table may re-render)
         this.$nextTick(() => this.computePinnedCss())
       }
     },
 
-    // remove header (hide)
     removeHeader (key) {
       if (!this.hiddenHeaderKeys.includes(key)) {
         this.hiddenHeaderKeys.push(key)
       }
     },
 
-    // reset to show all headers
     resetHeaders () {
       this.hiddenHeaderKeys = []
-      // recompute after reset
-      this.$nextTick(() => this.computePinnedCss())
+      this.$nextTick(() => {
+        this.syncHeaderOrder()
+        this.computePinnedCss()
+      })
     },
 
-    // select all visible items
     selectAll () {
       this.items_selected =
         this.items_selected.length === this.filteredItems.length
@@ -475,7 +519,6 @@ export default {
       )
     },
 
-    // items filtered by all other columns except exceptKey (used to compute options)
     itemsFilteredExcept (exceptKey) {
       return this.items.filter(row =>
         Object.entries(this.filters).every(([key, selected]) => {
@@ -520,136 +563,74 @@ export default {
       return options.sort((a, b) => String(a.title).localeCompare(String(b.title)))
     },
 
-    /* ---------------- Sorting helpers ---------------- */
-
-    // return 'asc' | 'desc' | null
+    /* Sorting helpers (unchanged) */
     sortDir (key) {
       const o = this.sortOrders.find(s => s.key === key)
       return o ? o.dir : null
     },
-
-    // return index (priority) or null
-    sortIndex (key) {
-      const i = this.sortOrders.findIndex(s => s.key === key)
-      return i === -1 ? null : i
-    },
-
-    // return icon name
+    sortIndex (key) { const i = this.sortOrders.findIndex(s => s.key === key); return i === -1 ? null : i },
     sortIcon (key) {
       const dir = this.sortDir(key)
       if (dir === 'asc') return 'mdi-sort-ascending'
       if (dir === 'desc') return 'mdi-sort-descending'
-      return 'mdi-swap-vertical' // unsorted
+      return 'mdi-swap-vertical'
     },
-
     sortTitle (key) {
       const dir = this.sortDir(key)
       if (!dir) return this.$t('no_sort_click_to_add_asc')
       return dir === this.$t('asc') ? this.$t('sorted_click_to_change_to_desc') : this.$t('sorted_desc_click_to_remove')
     },
-
-    // toggle sort state for key: none -> asc -> desc -> none
     toggleSort (key) {
       const idx = this.sortOrders.findIndex(s => s.key === key)
-      if (idx === -1) {
-        // not present -> add as highest priority (unshift)
-        this.sortOrders.unshift({ key, dir: 'asc' })
-      } else if (this.sortOrders[idx].dir === 'asc') {
-        // replace entry at idx with desc using splice to keep reactivity
-        this.sortOrders.splice(idx, 1, { key, dir: 'desc' })
-      } else {
-        // remove the sort entry
-        this.sortOrders.splice(idx, 1)
-      }
+      if (idx === -1) this.sortOrders.unshift({ key, dir: 'asc' })
+      else if (this.sortOrders[idx].dir === 'asc') this.sortOrders.splice(idx, 1, { key, dir: 'desc' })
+      else this.sortOrders.splice(idx, 1)
     },
+    sortPriority (key) { return this.sortIndex(key) },
 
-    // return priority index (0-based) or null
-    sortPriority (key) {
-      return this.sortIndex(key)
-    },
-
-    /* ---------------- Pin (fixed) columns functionality ---------------- */
-
-    // toggle pin state for a header key
+    /* Pin / CSS (unchanged) */
     togglePin (key) {
       const i = this.pinnedHeaderKeys.indexOf(key)
-      if (i === -1) {
-        // add to pinned (push to end so newest pins appear to the right of other pinned columns)
-        this.pinnedHeaderKeys.push(key)
-      } else {
-        // remove
-        this.pinnedHeaderKeys.splice(i, 1)
-      }
-      // recompute CSS after DOM update
+      if (i === -1) this.pinnedHeaderKeys.push(key)
+      else this.pinnedHeaderKeys.splice(i, 1)
       this.$nextTick(() => this.computePinnedCss())
     },
 
-    // compute pinned CSS rules and store into pinnedCss
     async computePinnedCss () {
-      // no pinned columns -> clear css
-      if (!this.pinnedHeaderKeys.length) {
-        this.pinnedCss = ''
-        return
-      }
-
-      // wait for DOM to be ready
+      if (!this.pinnedHeaderKeys.length) { this.pinnedCss = ''; return }
       await nextTick()
-
-      // find table header cells inside our table-scope container
       const root = this.$refs.tableRoot
-      if (!root) {
-        this.pinnedCss = ''
-        return
-      }
-
-      // thead th list (includes the select th we manually render as first th)
-      // NOTE: searching inside root ensures we measure sizes within the scroll container
+      if (!root) { this.pinnedCss = ''; return }
       const ths = Array.from(root.querySelectorAll('thead tr th'))
-      if (!ths.length) {
-        this.pinnedCss = ''
-        return
-      }
-
-      // Build an array of widths for each column (in DOM order)
+      if (!ths.length) { this.pinnedCss = ''; return }
       const widths = ths.map(th => {
         const rect = th.getBoundingClientRect()
-        // widths should be measured relative to the table (use offsetWidth fallback)
         return Math.max(1, Math.round(rect.width || th.offsetWidth || 0))
       })
-
-      // theme-aware colors (light/dark)
       const isDark = !!(this.main && this.main.is_dark)
-      // pick appropriate backgrounds and shadows for pinned headers/body
       const headerBg = isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'
       const bodyBg = isDark ? 'rgba(33,33,33,1)' : '#f9f9fa'
       const selectBg = isDark ? 'rgba(255,255,255,0.04)' : '#f1f1f1'
       const headerShadow = isDark ? '2px 0 12px rgba(0,0,0,0.6)' : '2px 0 8px rgba(0,0,0,0.06)'
       const bodyShadow = isDark ? '1px 0 8px rgba(0,0,0,0.45)' : '1px 0 6px rgba(0,0,0,0.03)'
 
-      // visibleHeaders keys in DOM order:
-      const visibleKeys = this.visibleHeaders.map(h => h.key)
+      // visible keys in DOM order based on orderedVisibleHeaders
+      const visibleKeys = this.orderedVisibleHeaders.map(h => h.key)
 
-      // Build pinned entries in the order of pinnedHeaderKeys (so pinned order equals pinnedHeaderKeys order).
-      // Each entry will contain domIndex and width
       const pinnedDomEntries = []
       for (const pinnedKey of this.pinnedHeaderKeys) {
         if (pinnedKey === 'data-table-select') {
-          // special-case: our select column is the first th in DOM
           pinnedDomEntries.push({ key: pinnedKey, domIndex: 1, width: widths[0] || 56 })
           continue
         }
         const visibleIndex = visibleKeys.indexOf(pinnedKey)
-        if (visibleIndex === -1) continue // pinned key not visible
-        const domIndex = visibleIndex + 2 // nth-child (1: select checkbox)
+        if (visibleIndex === -1) continue
+        const domIndex = visibleIndex + 2
         pinnedDomEntries.push({ key: pinnedKey, domIndex, width: widths[domIndex - 1] || 100 })
       }
 
-      if (!pinnedDomEntries.length) {
-        this.pinnedCss = ''
-        return
-      }
+      if (!pinnedDomEntries.length) { this.pinnedCss = ''; return }
 
-      // compute left offsets so pinned columns stack from the left (cumulative widths of previous pinned columns)
       let css = ''
       let cumLeft = 0
       for (let i = 0; i < pinnedDomEntries.length; i++) {
@@ -657,39 +638,36 @@ export default {
         const nth = entry.domIndex
         const left = Math.round(cumLeft)
 
-        // Header cell (thead)
         css += `
-        .table-scope thead tr th:nth-child(${nth}) {
-          position: sticky;
-          left: ${left}px;
-          right: ${left}px;
-          z-index: 1;
-          background: ${headerBg};
-          box-shadow: ${headerShadow};
-          border-right: 1px solid rgba(0,0,0,0.06);
-        }
-        `
+          .table-scope thead tr th:nth-child(${nth}) {
+            position: sticky;
+            left: ${left}px;
+            right: ${left}px;
+            z-index: 1;
+            background: ${headerBg};
+            box-shadow: ${headerShadow};
+            border-right: 1px solid rgba(0,0,0,0.06);
+          }
+          `
 
-                // Body cell (tbody)
-                css += `
-        .table-scope tbody tr td:nth-child(${nth}) {
-          position: sticky;
-          left: ${left}px;
-          right: ${left}px;
-          z-index: 1;
-          background: ${bodyBg};
-          box-shadow: ${bodyShadow};
-          border-right: 1px solid rgba(0,0,0,0.03);
-        }
-        theader:{
-          position:absolute
-        }
+                  // Body cell (tbody)
+                  css += `
+          .table-scope tbody tr td:nth-child(${nth}) {
+            position: sticky;
+            left: ${left}px;
+            right: ${left}px;
+            z-index: 1;
+            background: ${bodyBg};
+            box-shadow: ${bodyShadow};
+            border-right: 1px solid rgba(0,0,0,0.03);
+          }
+          theader:{
+            position:absolute
+          }
         `
-
         cumLeft += entry.width
       }
 
-      // ensure select-th has top z (if pinned or not)
       css += `
 .table-scope thead tr th.select-th {
   z-index: 6;
@@ -699,11 +677,9 @@ export default {
   transition: left 0.12s;
 }
 `
-
       this.pinnedCss = css
     },
 
-    // a debounced wrapper to avoid computing too frequently on resize/scroll
     debouncedComputePinnedCss: (function () {
       let timeout = null
       return function () {
@@ -714,6 +690,81 @@ export default {
         }, 120)
       }
     })(),
+
+    /* ---------------- Native Drag & Drop handlers ---------------- */
+
+    onDragStart (evt, key) {
+      // disallow dragging select column
+      if (key === 'data-table-select') {
+        evt.preventDefault(); return
+      }
+      // store the dragged key
+      try {
+        evt.dataTransfer.effectAllowed = 'move'
+        evt.dataTransfer.setData('text/plain', key)
+      } catch (e) {
+        // some browsers require try/catch
+      }
+      this.draggingKey = key
+      // add a 'dragging' class for visual feedback if desired
+      const el = evt.currentTarget
+      if (el) el.classList.add('dragging')
+    },
+
+    onDragOver (evt, targetKey) {
+      // show visual indicator only when dragging a different header
+      const srcKey = this.draggingKey || (evt.dataTransfer && evt.dataTransfer.getData && evt.dataTransfer.getData('text/plain'))
+      if (!srcKey || srcKey === targetKey) {
+        this.dragOverKey = null
+        return
+      }
+      // don't allow dropping ONTO select col (we render select separately)
+      if (targetKey === 'data-table-select') { this.dragOverKey = null; return }
+      this.dragOverKey = targetKey
+    },
+
+    onDrop (evt, targetKey) {
+      evt.preventDefault()
+      const srcKey = evt.dataTransfer.getData('text/plain') || this.draggingKey
+      if (!srcKey || srcKey === targetKey) {
+        this.dragOverKey = null
+        this.draggingKey = null
+        return
+      }
+      // find indices in headerOrder
+      const srcIdx = this.headerOrder.findIndex(h => h.key === srcKey)
+      const tgtIdx = this.headerOrder.findIndex(h => h.key === targetKey)
+      if (srcIdx === -1 || tgtIdx === -1) {
+        this.dragOverKey = null
+        this.draggingKey = null
+        return
+      }
+      // move src to position of target (insert before target)
+      const [item] = this.headerOrder.splice(srcIdx, 1)
+      // re-compute tgtIdx if srcIdx < tgtIdx (because removal shifts indices)
+      const adjustedTgtIdx = srcIdx < tgtIdx ? tgtIdx  : tgtIdx
+      this.headerOrder.splice(adjustedTgtIdx, 0, item)
+
+      // ensure select column remains first (if present)
+      const si = this.headerOrder.findIndex(h => h.key === 'data-table-select')
+      if (si > 0) {
+        const s = this.headerOrder.splice(si, 1)[0]
+        this.headerOrder.unshift(s)
+      }
+
+      this.dragOverKey = null
+      this.draggingKey = null
+
+      // recompute pinned css after DOM updates
+      this.$nextTick(() => this.computePinnedCss())
+    },
+
+    onDragEnd (evt) {
+      this.draggingKey = null
+      this.dragOverKey = null
+      const el = evt.currentTarget
+      if (el) el.classList.remove('dragging')
+    },
 
     /* ---------------- Excel export & helpers (unchanged) ---------------- */
 
@@ -745,7 +796,7 @@ export default {
       }
 
       const selectedRows = this.items.filter(i => this.items_selected.includes(i.id))
-      const cols = this.visibleHeaders.filter(
+      const cols = this.orderedVisibleHeaders.filter(
         h => h.key !== 'data-table-select' && h.key !== 'data-table-expand'
       )
       const headerTitles = cols.map(h => h.title ?? h.key)
@@ -801,10 +852,9 @@ export default {
 </script>
 
 <style scoped>
-
 /* Ensure table expands horizontally to force a horizontal scrollbar when needed */
 .table-scope table {
-  min-width: max-content; /* table grows to content width enabling horizontal scroll */
+  min-width: max-content;
 }
 
 /* Keep header cells from wrapping and keep layout inline */
@@ -829,7 +879,7 @@ export default {
   white-space: nowrap;
   text-overflow: ellipsis;
   display: inline-block;
-  max-width: 220px; /* adjust as needed */
+  max-width: 220px;
 }
 
 /* Filter / autocomplete: no-wrap and ellipsis */
@@ -837,7 +887,7 @@ export default {
 .header-bottom .header-total {
   white-space: nowrap;
   text-overflow: ellipsis;
-  max-width: 260px; /* adjust as needed */
+  max-width: 260px;
 }
 
 /* Ensure action buttons don't expand */
@@ -850,7 +900,6 @@ export default {
   flex-wrap: nowrap !important;
 }
 
-/* Optional: give th a minimum width so layout is stable */
 th {
   min-width: 80px;
 }
@@ -865,5 +914,24 @@ th {
 .table-scope thead tr th[style*="position: sticky"], .table-scope tbody tr td[style*="position: sticky"] {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+
+/* drag visuals */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  cursor: grab;
+  user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
+
+.dragging {
+  opacity: 0.7;
+}
+
+.drag-over {
+  outline: 3px dashed rgba(16, 110, 234, 0.22);
+  outline-offset: -6px;
+  transition: outline 0.08s;
 }
 </style>

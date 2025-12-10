@@ -190,6 +190,7 @@
     "view_details": "View Details",
     "unpin_column": "Unpin Column",
     "pin_column": "pin Column",
+    "drag_to_reorder": "Drag To Reorder",
     "no_sort_click_to_add_asc": "No sort (click to add asc)",
     "sorted_click_to_change_to_desc": "Sorted asc (click to change to desc)",
     "sorted_desc_click_to_remove": "Sorted desc (click to remove)",

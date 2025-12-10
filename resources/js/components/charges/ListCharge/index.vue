@@ -132,17 +132,18 @@
         },
         headers:function(){
           return [
-            { title: this.$t("date"), key: 'date' , visible:true },
-            { title: this.$t("category"), key: 'charge_category_id' , visible:true },
-            { title: this.$t("ship"), key: 'ship_id' , visible:false },
-            { title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
-            { title: this.$t("tracking_onp_number_short"), key: 'tracking_onp_numbers' , visible:false },
-            { title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
-            { title: this.$t("origin"), key: 'origin_id' , visible:true },
-            { title: this.$t("fishery"), key: 'fishery_id' , visible:false },
-            { title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
-            { title: this.$t("price_dh"), key: 'total_price', visible: true },
-            { key: 'data-table-expand', align: 'end',visible: true }
+            { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
+            { align : "center" , title: this.$t("category"), key: 'charge_category_id' , visible:true },
+            { align : "center" , title: this.$t("ship"), key: 'ship_id' , visible:false },
+            { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
+            { align : "center" , title: this.$t("tracking_onp_number_short"), key: 'tracking_onp_numbers' , visible:false },
+            { align : "center" , title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
+            { align : "center" , title: this.$t("origin"), key: 'origin_id' , visible:true },
+            { align : "center" , title: this.$t("fishery"), key: 'fishery_id' , visible:false },
+            { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
+            { align : "center" , title: this.$t("price_dh"), key: 'total_price', visible: true },
+            { key: 'data-table-expand', align: 'end', visible: true }
+            
           ]
         }
     }
