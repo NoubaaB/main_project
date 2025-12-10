@@ -4,15 +4,6 @@
     <div class="text-caption grey--text">{{$t('sprting_priority')}}</div>
   </v-card-text>
 
-  <!-- DATE -->
-  <VDatePicker
-    :is-dark="main.is_dark"
-    :max-date="new Date()"
-    v-model.range="date"
-    mode="date"
-    :disabled="loading"
-  />
-
   <!-- injected dynamic CSS for pinned columns -->
   <div v-html="pinnedStyleHtml"></div>
 
@@ -286,16 +277,13 @@ export default {
     api_url: String,
     api_url_prop: String,
     relations: Object,
+    date: Object,
     filters: Object,
     headers: { type: Array, required: true }
   },
 
   data () {
     return {
-      date: {
-        start: new Date(2024, 10, 1),
-        end: new Date(2025, 11, 17)
-      },
       items: [],
       items_selected: [],
       loading: false,
@@ -626,7 +614,7 @@ export default {
         const visibleIndex = visibleKeys.indexOf(pinnedKey)
         if (visibleIndex === -1) continue
         const domIndex = visibleIndex + 2
-        pinnedDomEntries.push({ key: pinnedKey, domIndex, width: widths[domIndex - 1] || 100 })
+        pinnedDomEntries.push({ key: pinnedKey, domIndex, width: widths[domIndex - 1] || 56 })
       }
 
       if (!pinnedDomEntries.length) { this.pinnedCss = ''; return }
@@ -634,12 +622,11 @@ export default {
       let css = ''
       let cumLeft = 0
       let cumRight = 0
-      for (let i = 0; i < pinnedDomEntries.length; i++) {
-        const entry = pinnedDomEntries[i]
+      for ( const pinnedDomEntrie of _.sortBy(pinnedDomEntries,'domIndex')) {
+        const entry = pinnedDomEntrie
         const nth = entry.domIndex
         const left = Math.round(cumLeft)
         const right = Math.round(cumRight)
-
         css += `
           .table-scope thead tr th:nth-child(${nth}) {
             position: sticky;
@@ -651,7 +638,6 @@ export default {
             border-right: 1px solid rgba(0,0,0,0.06);
           }
           `
-
                   // Body cell (tbody)
                   css += `
           .table-scope tbody tr td:nth-child(${nth}) {
@@ -663,11 +649,15 @@ export default {
             box-shadow: ${bodyShadow};
             border-right: 1px solid rgba(0,0,0,0.03);
           }
+        `
+        css += `
           theader:{
             position:absolute
           }
         `
-        cumLeft += entry.width
+        cumLeft += entry.width;
+        // cumRight -= entry.width - 56 - _.sum(pinnedDomEntries.map(e => e.width));
+        cumRight -= 0;
       }
 
       css += `

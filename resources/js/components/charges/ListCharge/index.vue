@@ -3,11 +3,21 @@
     <v-card-title>
       {{ $t('datatable_list_charges') }}
     </v-card-title>
+
+  <!-- DATE -->
+  <VDatePicker
+    :is-dark="main.is_dark"
+    :max-date="new Date()"
+    v-model.range="date"
+    mode="date"
+  />
+
     <DataTable
      :api_url="api_url" 
      :api_url_prop="api_url_prop"
      :relations="relations"
      :filters="filters"
+     :date="date"
      :headers="headers"
      >
         <!-- CELLS -->
@@ -111,7 +121,11 @@
           origin_id: [],
           ship_id: [],
           fishery_id: []
-        }
+        },
+        date: {
+          start: new Date(2024, 10, 1),
+          end: new Date(2025, 11, 17)
+        },
       }
     },
     computed:{
