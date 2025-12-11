@@ -117,9 +117,9 @@ class Charge extends Model
         }
 
         $t = [
-            "total_weight" => ceil($total_weight),
-            "total_price" => ceil($total_price),
-            "total_package_count" => ceil($total_package_count),
+            "total_weight" => $total_weight,
+            "total_price" => $total_price,
+            "total_package_count" => $total_package_count,
         ];
         $this->update($t);
     }

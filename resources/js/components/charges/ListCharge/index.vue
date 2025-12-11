@@ -16,7 +16,7 @@
           />
         </v-col>
         <v-col>
-          test
+          {{ charge.get_fetched_warehouse_category_operation_list }}
         </v-col>
         <v-col>
           test
@@ -146,8 +146,13 @@
         origins: () => useOrigin().getList,
         fisheries: () => useFishery().getList,
         ships: () => useShip().getList,
-        fetchCharge: () => useCharge().fetchCharge,
-        items: () => useCharge().charge_fetch_items,
+        charge: () => useCharge(),
+        fetchCharge: function(){
+          return this.charge.fetchCharge
+        },
+        items: function(){
+          return this.charge.charge_fetch_items
+        },
         charge_categories: () => useChargeCategory().getList,
         relations:function(){
           return {

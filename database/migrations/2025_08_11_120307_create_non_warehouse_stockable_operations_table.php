@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('non_warehouse_stockable_operations', function (Blueprint $table) {
             $table->id();
 
+            $table->date("date")->nullable();
+
             $table->double("unit_price")->default(0.00);
             $table->double("total_weight")->default(0.00);
             $table->double("total_weight_bill")->default(0.00);

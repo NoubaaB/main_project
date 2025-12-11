@@ -65,10 +65,10 @@ class WarehouseStockableTrackingNumber extends Model
         }
 
         $t = [
-            "total_weight" => ceil($total_weight),
-            "total_price" => ceil($total_price),
-            "total_package_count" => ceil($total_package_count),
-            "unit_price" => ceil($unit_price / ($count == 0? 1 : $count)),
+            "total_weight" => ($total_weight),
+            "total_price" => ($total_price),
+            "total_package_count" => ($total_package_count),
+            "unit_price" => ($unit_price / ($count == 0? 1 : $count)),
         ];
         $this->update($t);
 

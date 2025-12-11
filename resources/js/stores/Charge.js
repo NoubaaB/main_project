@@ -12,6 +12,7 @@ import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useChargeCategory } from "./ChargeCategory";
 
 import i18n  from '@/plugins/i18n'
+import { _ } from "core-js";
 
 export const useCharge = defineStore("charge", {
     state: () => {
@@ -35,6 +36,8 @@ export const useCharge = defineStore("charge", {
             charge: {},
             charges: [],
             charge_fetch_items: [],
+            warehouse_stockable_tracking_number_operations: [],
+            non_warehouse_stockable_operations: [],
         };
     },
     actions: {
@@ -129,6 +132,8 @@ export const useCharge = defineStore("charge", {
         },
         fetchCharge: async function (date_start, date_end) {
             this.charge_fetch_items = await this.main.fetchData(date_start, date_end, this.api_url, this.api_url_prop)
+            this.non_warehouse_stockable_operations = this.charge_fetch_items.flatMap(e => e.non_warehouse_stockable_operations)
+            this.warehouse_stockable_tracking_number_operations = this.charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations)
         },
         UpdateCharge: function () {
             this.charge.total_weight = +this.charge.warehouse_category_operations.reduce((total, operation) => {
@@ -246,6 +251,50 @@ export const useCharge = defineStore("charge", {
         unique_warehouse_category_operations_list: (state) => {
             const warehouse_category_operation_ids = state.charges.map((charge_category_operation) => charge_category_operation.id);
             return state.warehouse_category_operation.getList.map((operation) => operation.disabled = !warehouse_category_operation_ids.includes(operation.id) ? false : true) && state.warehouse_category_operation.getList;
+        },
+        get_fetched_operations: (state) => {
+          return [...state.non_warehouse_stockable_operations , ...state.warehouse_stockable_tracking_number_operations]  
+        },
+        get_fetched_warehouse_category_operation_list: (state) => {
+            let warehouse_category_operations = []
+            state.get_fetched_operations.forEach(item => {
+                warehouse_category_operations.push({
+                    id: item.warehouse_category_operation_id,
+                    date: item.date,
+                    unit_price: item.unit_price,
+                    total_weight: item.total_weight,
+                    total_price: item.total_price,
+                    total_package_count: item.total_package_count,
+                    stockable_type: item.stockable_type,
+                });
+            })
+            let warehouse_category_operations_ids = _.uniqBy(warehouse_category_operations, 'id').map(e => e.id);
+            return warehouse_category_operations_ids;
+
+            let data = [];
+            warehouse_category_operations_ids.forEach(id => {
+                let total_weight = 0.00;
+                let total_price = 0.00;
+                let total_package_count = 0.00;
+                warehouse_category_operations
+                    .filter(e => e.id == id)
+                    .forEach(e => {
+                        total_weight += e.total_weight;
+                        total_price += e.total_price;
+                        total_package_count += e.total_package_count;
+                    })
+                
+                let price_moyenne = total_price / total_weight;
+
+                data.push({
+                    id,
+                    total_weight,
+                    total_price,
+                    total_package_count,
+                    price_moyenne,
+                })
+            });
+            return data;
         }
     },
 });

@@ -452,6 +452,7 @@ class DatabaseSeeder extends Seeder
                 $charge->suppliers()->attach($suppliers);
                 foreach (json_decode($data["types_reception"]) as $item) {
                     $charge->non_warehouse_stockable_operations()->create([
+                        "date" => $data["date_reception"],
                         "stockable_type" => "FishType",
                         "stockable_id" => $item->type_id,
                         "package_type_id" => null,

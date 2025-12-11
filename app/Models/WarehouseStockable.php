@@ -47,10 +47,10 @@ class WarehouseStockable extends Model
         }
 
         $t = [
-            "total_weight" => ceil(collect($temp_arr)->sum('total_weight')),
-            "total_price" => ceil(collect($temp_arr)->sum('total_price')),
-            "total_package_count" => ceil(collect($temp_arr)->sum('total_package_count')),
-            "unit_price" => ceil(collect($temp_arr)->sum('unit_price') / ($count == 0 ? 1 : $count)),
+            "total_weight" => (collect($temp_arr)->sum('total_weight')),
+            "total_price" => (collect($temp_arr)->sum('total_price')),
+            "total_package_count" => (collect($temp_arr)->sum('total_package_count')),
+            "unit_price" => (collect($temp_arr)->sum('unit_price') / ($count == 0 ? 1 : $count)),
         ];
         $this->update($t);
 
