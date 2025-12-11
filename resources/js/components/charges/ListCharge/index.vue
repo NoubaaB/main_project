@@ -4,13 +4,26 @@
       {{ $t('datatable_list_charges') }}
     </v-card-title>
 
-  <!-- DATE -->
-  <VDatePicker
-    :is-dark="main.is_dark"
-    :max-date="new Date()"
-    v-model.range="date"
-    mode="date"
-  />
+    <v-card-text>
+      <v-row>
+        <v-col>
+          <!-- DATE -->
+          <VDatePicker
+            :is-dark="main.is_dark"
+            :max-date="new Date()"
+            v-model.range="date"
+            mode="date"
+          />
+        </v-col>
+        <v-col>
+          test
+        </v-col>
+        <v-col>
+          test
+        </v-col>
+      </v-row>
+    </v-card-text>
+
 
     <DataTable
      :api_url="api_url" 

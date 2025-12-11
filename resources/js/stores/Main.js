@@ -75,6 +75,19 @@ export const useMain = defineStore("main", {
             annyang.setLanguage(lang.annyang);
             this.lang = lang;
         },
+        fetchData: async function (date_start, date_end, api_url, api_url_prop) {
+            try {
+                const res = await axios.get(api_url, {
+                    params: {
+                        date_start: moment(date_start).format('YYYY-MM-DD'),
+                        date_end: moment(date_end).format('YYYY-MM-DD')
+                    }
+                })
+                return res.data[api_url_prop] || []
+            } catch (err) {
+                console.error(`Error fetching ${api_url}`, err)
+            } 
+        },
         formatNumber: function (num) {
             if (isNaN(num) || num === null || num === undefined) {
                 return 0.00;

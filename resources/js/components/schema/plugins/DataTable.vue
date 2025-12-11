@@ -464,20 +464,16 @@ export default {
       this.loading = true
       this.items_selected = []
 
-      try {
-        const res = await axios.get(this.api_url, {
-          params: {
-            date_start: moment(this.date.start).format('YYYY-MM-DD'),
-            date_end: moment(this.date.end).format('YYYY-MM-DD')
-          }
-        })
-        this.items = res.data[this.api_url_prop] || []
-      } catch (err) {
-        console.error(`Error fetching ${this.api_url}`, err)
-      } finally {
+
+      this.main.fetchData(this.date.start, this.date.end, this.api_url, this.api_url_prop).then(res => {
+        this.items = res
+      }).catch(err=>{
+                console.error(`Error fetching ${this.api_url}`, err)
+
+      }).finally(() => {
         this.loading = false
         this.$nextTick(() => this.computePinnedCss())
-      }
+      });
     },
 
     removeHeader (key) {
@@ -656,8 +652,8 @@ export default {
           }
         `
         cumLeft += entry.width;
-        // cumRight -= entry.width - 56 - _.sum(pinnedDomEntries.map(e => e.width));
         cumRight -= 0;
+        // cumRight -= entry.width - 56;
       }
 
       css += `
