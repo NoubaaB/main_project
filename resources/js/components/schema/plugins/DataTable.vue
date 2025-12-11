@@ -274,17 +274,16 @@ const NULL_VALUE = '__NULL__'
 export default {
   name: 'VirtualTableNativeReorder',
   props: {
-    api_url: String,
-    api_url_prop: String,
     relations: Object,
     date: Object,
     filters: Object,
+    items: Array,
+    fetchData: Function,
     headers: { type: Array, required: true }
   },
 
   data () {
     return {
-      items: [],
       items_selected: [],
       loading: false,
 
@@ -303,14 +302,11 @@ export default {
     }
   },
 
-  created () {
+  mounted() {
     this.defaultHeaderKeys = this.headers.map(h => h.key)
     this.hiddenHeaderKeys = this.headers.filter(h => h.visible === false).map(h => h.key)
     this.syncHeaderOrder()
-  },
-
-  mounted () {
-    this.fetchData()
+    this._fetchData(this.date.start , this.date.end)
     const root = this.$refs.tableRoot
     if (root) {
       root.addEventListener('scroll', this.debouncedComputePinnedCss)
@@ -430,12 +426,26 @@ export default {
     date: {
       deep: true,
       handler (d) {
-        if (d.start && d.end) this.fetchData()
+        if (d.start && d.end) this._fetchData()
       }
     }
   },
 
   methods: {
+    async _fetchData () {
+      this.loading = true
+      this.items_selected = []
+
+
+      this.fetchData(this.date.start, this.date.end)
+      .catch(err => {
+        console.error(`Error fetching ${this.api_url}`, err)
+      }).finally(() => {
+        this.loading = false
+        this.$nextTick(() => this.computePinnedCss())
+      });
+    },
+
     // ---- Sync headerOrder keeping previous user order where possible ----
     syncHeaderOrder () {
       const currentKeys = this.headerOrder.map(h => h.key)
@@ -458,22 +468,6 @@ export default {
         if (selectProp) newOrder.unshift(selectProp)
       }
       this.headerOrder = newOrder
-    },
-
-    async fetchData () {
-      this.loading = true
-      this.items_selected = []
-
-
-      this.main.fetchData(this.date.start, this.date.end, this.api_url, this.api_url_prop).then(res => {
-        this.items = res
-      }).catch(err=>{
-                console.error(`Error fetching ${this.api_url}`, err)
-
-      }).finally(() => {
-        this.loading = false
-        this.$nextTick(() => this.computePinnedCss())
-      });
     },
 
     removeHeader (key) {

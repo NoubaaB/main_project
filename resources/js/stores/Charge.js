@@ -16,6 +16,8 @@ import i18n  from '@/plugins/i18n'
 export const useCharge = defineStore("charge", {
     state: () => {
         return {
+            api_url: "/api/get_charges",
+            api_url_prop: "charges",
             showAdditionalInfo: false,
             main: useMain(),
             fish_type: useFishType(),
@@ -32,6 +34,7 @@ export const useCharge = defineStore("charge", {
             },
             charge: {},
             charges: [],
+            charge_fetch_items: [],
         };
     },
     actions: {
@@ -123,6 +126,9 @@ export const useCharge = defineStore("charge", {
                 .catch(error => {
                     console.error("Error submitting charge_category_operation:", error);
                 });
+        },
+        fetchCharge: async function (date_start, date_end) {
+            this.charge_fetch_items = await this.main.fetchData(date_start, date_end, this.api_url, this.api_url_prop)
         },
         UpdateCharge: function () {
             this.charge.total_weight = +this.charge.warehouse_category_operations.reduce((total, operation) => {

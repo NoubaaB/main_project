@@ -26,12 +26,12 @@
 
 
     <DataTable
-     :api_url="api_url" 
-     :api_url_prop="api_url_prop"
      :relations="relations"
      :filters="filters"
+     :items="items"
      :date="date"
      :headers="headers"
+     :fetchData="fetchCharge"
      >
         <!-- CELLS -->
         <template v-slot:[`item.date`]="{ item }">
@@ -117,14 +117,13 @@
   import { useFishery } from '@/stores/Fishery';
   import { useShip } from '@/stores/Ship';
   import { useChargeCategory } from '@/stores/ChargeCategory';
+  import { useCharge } from '@/stores/Charge';
   export default {
     components: {
       DataTable
     },
     data:function(){
       return {
-        api_url:"/api/get_charges",
-        api_url_prop: "charges",
         filters: {
           date: [],
           charge_category_id: [],
@@ -147,6 +146,8 @@
         origins: () => useOrigin().getList,
         fisheries: () => useFishery().getList,
         ships: () => useShip().getList,
+        fetchCharge: () => useCharge().fetchCharge,
+        items: () => useCharge().charge_fetch_items,
         charge_categories: () => useChargeCategory().getList,
         relations:function(){
           return {

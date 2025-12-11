@@ -55,7 +55,6 @@ export const useMain = defineStore("main", {
             } else {
                 Object.assign(useCharge().charge, JSON.parse(charge));
             }
-            console.log("init charge", useCharge().charge);
 
             //initialize the charges store with data from localStorage
             let charges = localStorage.getItem("charges") || '[]';
