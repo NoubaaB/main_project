@@ -10,7 +10,7 @@ export const useMain = defineStore("main", {
             menu_drawer: false,
             command_drawer: false,
             currency: "Dh",
-            date_format: "YYYY/MM/DD",
+            date_format: "DD/MM/YYYY",
             snackbar: {
                 show: false,
                 message: "",

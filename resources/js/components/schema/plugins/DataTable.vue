@@ -814,19 +814,19 @@ export default {
           if (!cell) continue
           if (cell.v instanceof Date) {
             cell.t = 'd'
-            cell.z = 'yyyy-mm-dd'
+            cell.z = this.main.date_format
           } else {
             const m = moment(cell.v)
             if (cell.v && typeof cell.v === 'string' && m.isValid()) {
               cell.v = m.toDate()
               cell.t = 'd'
-              cell.z = 'yyyy-mm-dd'
+              cell.z = this.main.date_format
             }
           }
         }
       }
 
-      const filename = `export_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
+      const filename = `export_charge_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
       XLSX.writeFile(wb, filename)
     }
   }
