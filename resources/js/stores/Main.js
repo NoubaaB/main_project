@@ -10,6 +10,7 @@ export const useMain = defineStore("main", {
             menu_drawer: false,
             command_drawer: false,
             currency: "Dh",
+            date_format: "YYYY/MM/DD",
             snackbar: {
                 show: false,
                 message: "",
@@ -94,7 +95,7 @@ export const useMain = defineStore("main", {
             return parseFloat(parseFloat(num).toFixed(2))
         },
         formateDate: function (date) {
-            return moment(date).format("YYYY/MM/DD");
+            return moment(date).format(this.date_format);
         },
         formatDisplayNumber: function (num) {
             if (isNaN(num) || num === null || num === undefined) {

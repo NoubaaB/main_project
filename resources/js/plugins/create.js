@@ -14,7 +14,6 @@ import VDatePicker from 'v-calendar';
 import 'v-calendar/style.css';
 
 import pinia from "@/stores";
-console.log("i18n in plugins create", i18n);
 export async function registerPlugins(app) {
     app
         .use(crerate())

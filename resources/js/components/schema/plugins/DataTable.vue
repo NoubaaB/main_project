@@ -15,7 +15,7 @@
       :items="sortedFilteredItems"
       item-key="id"
       fixed-header
-      height="750"
+      height="650"
       show-select
       density="compact"
       :loading="loading"

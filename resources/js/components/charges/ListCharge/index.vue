@@ -6,24 +6,53 @@
 
     <v-card-text>
       <v-row>
-        <v-col>
+        <v-col cols="3">
           <!-- DATE -->
           <VDatePicker
             :is-dark="main.is_dark"
             :max-date="new Date()"
             v-model.range="date"
             mode="date"
+            expanded 
           />
+          <div class="text-center mt-3" role="group" aria-label="Date range">
+            <!-- Start date chip -->
+            <v-chip
+              color="info"
+              variant="tonal"
+              class="mr-2"
+            >
+              <v-icon left small class="mr-2">mdi-calendar-start</v-icon>
+              <span>{{ main.formateDate(date.start) }}</span>
+            </v-chip>
+            <v-divider vertical></v-divider>
+            <!-- End date chip -->
+            <v-chip
+              color="primary"
+              variant="tonal"
+              class="ml-2"
+            >
+              <v-icon left small class="mr-2">mdi-calendar-end</v-icon>
+              <span>{{ main.formateDate(date.end) }}</span>
+            </v-chip>
+          </div>
+
         </v-col>
-        <v-col>
-          {{ charge.get_fetched_warehouse_category_operation_list }}
-        </v-col>
-        <v-col>
-          test
+        <v-col style="overflow-y: auto; max-height: 47vh !important;">
+            <div class="d-flex align-content-end flex-wrap " >
+                <WarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_fetched_warehouse_category_operation_list"
+                 :key="warehouse_category_operation.id" 
+                 :data="warehouse_category_operation"
+                 :date="date"
+                 /> 
+                 <WarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_placeholder_warehouse_category_operation_list"
+                 :key="warehouse_category_operation.id" 
+                 :id="warehouse_category_operation.id"
+                 />
+            </div>
         </v-col>
       </v-row>
     </v-card-text>
-
 
     <DataTable
      :relations="relations"
@@ -110,6 +139,7 @@
 
 <script>
   import DataTable from '../../schema/plugins/DataTable.vue';
+  import WarehouseCategoryOpration from './WarehouseCategoryOpration.vue';
 
   import { useMain } from '@/stores/Main';
   import { useSupplier } from '@/stores/Supplier';
@@ -120,7 +150,8 @@
   import { useCharge } from '@/stores/Charge';
   export default {
     components: {
-      DataTable
+      DataTable,
+      WarehouseCategoryOpration
     },
     data:function(){
       return {
@@ -174,7 +205,7 @@
             { align : "center" , title: this.$t("origin"), key: 'origin_id' , visible:true },
             { align : "center" , title: this.$t("fishery"), key: 'fishery_id' , visible:false },
             { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
-            { align : "center" , title: this.$t("price_dh"), key: 'total_price', visible: true },
+            { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },
             { key: 'data-table-expand', align: 'end', visible: true }
             
           ]
