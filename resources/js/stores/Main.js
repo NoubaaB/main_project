@@ -110,6 +110,19 @@ export const useMain = defineStore("main", {
                 maximumFractionDigits: 2,
             }).format(num)
         },
+        formatDisplayNumberNonFloat: function (num) {
+            if (isNaN(num) || num === null || num === undefined) {
+                return 0.00;
+            }
+            // Ensure num is a float
+            num = parseFloat(num)
+
+            // Format using Intl.NumberFormat with French locale
+            return new Intl.NumberFormat('fr-FR', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(num)
+        },
         add_snackbar: function (message) {
             this.snackbar = { ...message };
         }

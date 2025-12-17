@@ -32,9 +32,47 @@
             height="350"
             />
         </v-card-text>
-        <v-card-action>
-            test
-        </v-card-action>
+        <v-divider ></v-divider>
+        <v-card-actions>
+            <v-row class="text-center">
+                <v-col class="d-inline">
+                    <v-chip color="green">
+                        <span class="d-inline mr-2" >
+                            <v-icon small class="mr-1" color="green lighten-1">mdi-cash</v-icon>
+                            <span >{{$t("price")}}</span>
+                        </span>
+                        <strong >{{ main.formatDisplayNumber(summary.total_price) }} ({{main.currency}})</strong>
+                    </v-chip>
+                </v-col>
+                <v-col>
+                    <v-chip color="blue">
+                        <span class="d-inline mr-2" >
+                            <v-icon small class="mr-1" color="green lighten-1">mdi-weight-kilogram</v-icon>
+                            <span >{{$t("weight")}}</span>
+                        </span>
+                        <strong >{{ main.formatDisplayNumber(summary.total_weight) }} (Kg)</strong>
+                    </v-chip>
+                </v-col>
+                <v-col>
+                    <v-chip color="purple">
+                        <span class="d-inline mr-2" >
+                            <v-icon small class="mr-1" color="green lighten-1">mdi-package-variant-closed</v-icon>
+                            <span >{{$t("boxes")}}</span>
+                        </span>
+                        <strong >{{ main.formatDisplayNumberNonFloat(summary.total_weight) }} (Un)</strong>
+                    </v-chip>
+                </v-col>
+                <v-col>
+                    <v-chip color="purple">
+                        <span class="d-inline mr-2" >
+                            <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
+                            <span >{{$t("avg_price")}}</span>
+                        </span>
+                        <strong >{{ main.formatDisplayNumber(avgPrice) }} {{main.currency}}/Kg</strong>
+                    </v-chip>
+                </v-col>
+            </v-row>
+        </v-card-actions>
     </v-card>
 </template>
 
@@ -45,7 +83,8 @@
     export default {
         components: { ApexCharts },
         props:{
-            details:Array
+            details:Array,
+            summary:Object
         },
         data:function(){
             return {

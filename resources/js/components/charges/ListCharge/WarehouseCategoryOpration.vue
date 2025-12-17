@@ -3,8 +3,13 @@
   elevation="6" 
   :style="cardStyle" 
   :disabled="!data"
+  :color="!data?'blue-grey-lighten-5':''"
   @click="showDialog"
+  :loading="charge.loading"
   >
+    <template v-slot:loader="{ isActive }">
+      <v-progress-linear v-if="isActive && !!data" color="info" indeterminate></v-progress-linear>
+    </template>
     <div class="card-inner d-flex" >
       <!-- LEFT: numbers -->
       <div style="flex:1; min-width:0;">
@@ -13,7 +18,7 @@
             <v-icon small class="mr-1" color="green lighten-1">mdi-cash</v-icon>
             <div class="kpi-label">{{$t("price")}}</div>
           </div>
-          <div class="kpi-value">{{ main.formatDisplayNumber(summary.total_price) }} {{main.currency}}</div>
+          <div class="kpi-value">{{ main.formatDisplayNumber(summary.total_price) }} <small>{{main.currency}}</small></div>
         </div>
 
         <div class="kpi-row d-flex align-center justify-space-between">
@@ -21,7 +26,7 @@
             <v-icon small class="mr-1" color="blue lighten-1">mdi-weight-kilogram</v-icon>
             <div class="kpi-label">{{$t("weight")}}</div>
           </div>
-          <div class="kpi-value">{{ main.formatDisplayNumber(summary.total_weight) }} Kg</div>
+          <div class="kpi-value">{{ main.formatDisplayNumber(summary.total_weight) }} <small>Kg</small></div>
         </div>
 
         <div class="kpi-row d-flex align-center justify-space-between">
@@ -29,15 +34,15 @@
             <v-icon small class="mr-1" color="purple lighten-1">mdi-package-variant-closed</v-icon>
             <div class="kpi-label">{{$t("boxes")}}</div>
           </div>
-          <div class="kpi-value">{{ summary.total_package_count }}</div>
+          <div class="kpi-value">{{ main.formatDisplayNumberNonFloat(summary.total_weight) }} <small>Un</small></div>
         </div>
 
         <div class="kpi-row d-flex align-center justify-space-between">
           <div class="d-flex align-center">
             <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
-            <div class="kpi-label">{{$t("avg")}}</div>
+            <div class="kpi-label">{{$t("avg_price")}}</div>
           </div>
-          <div class="kpi-value">{{ main.formatDisplayNumber(avgPrice) }} {{main.currency}}/Kg</div>
+          <div class="kpi-value">{{ main.formatDisplayNumber(avgPrice) }} <small>{{main.currency}}/Kg</small></div>
         </div>
         <v-divider color="info"></v-divider>
         <div class="mt-1">
@@ -59,7 +64,7 @@
     </div>
   </v-card>
   <v-dialog v-model="dialog" max-width="1300" max-height="700">
-    <ShowDetailChart :details="data.grouped_details"/>
+    <ShowDetailChart :summary="summary" :details="data.grouped_details"/>
   </v-dialog>
 </template>
 

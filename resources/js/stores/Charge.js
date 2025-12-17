@@ -19,6 +19,7 @@ export const useCharge = defineStore("charge", {
         return {
             api_url: "/api/get_charges",
             api_url_prop: "charges",
+            loading:false,
             showAdditionalInfo: false,
             main: useMain(),
             fish_type: useFishType(),
@@ -131,9 +132,11 @@ export const useCharge = defineStore("charge", {
                 });
         },
         fetchCharge: async function (date_start, date_end) {
+            this.loading = true;
             this.charge_fetch_items = await this.main.fetchData(date_start, date_end, this.api_url, this.api_url_prop)
             this.non_warehouse_stockable_operations = this.charge_fetch_items.flatMap(e => e.non_warehouse_stockable_operations)
             this.warehouse_stockable_tracking_number_operations = this.charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations)
+            this.loading = false;
         },
         UpdateCharge: function () {
             this.charge.total_weight = +this.charge.warehouse_category_operations.reduce((total, operation) => {
