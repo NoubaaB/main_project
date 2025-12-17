@@ -63,7 +63,7 @@
                     </v-chip>
                 </v-col>
                 <v-col>
-                    <v-chip color="purple">
+                    <v-chip color="orange">
                         <span class="d-inline mr-2" >
                             <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
                             <span >{{$t("avg_price")}}</span>
@@ -79,7 +79,7 @@
 <script>
     import ApexCharts from 'vue3-apexcharts'
     import { useMain } from '../../../stores/Main';
-
+    import locals from "@/locales/apexcharts_local.js";
     export default {
         components: { ApexCharts },
         props:{
@@ -133,6 +133,8 @@
                 return {
                     chart: {
                         type: 'line',
+                        locales: Object.entries(locals).map(([key,value]) =>value),
+                        defaultLocale: this.main.lang.short,
                         height: 350,
                         stacked: false,
                         events: {
