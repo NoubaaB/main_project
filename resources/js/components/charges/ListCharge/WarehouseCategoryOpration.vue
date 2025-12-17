@@ -86,20 +86,7 @@ export default {
         total_package_count: 0,
         stockable_type: 'product'
       },
-      seriesData: [
-        { id: 1, date: '2025-11-01', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 2, stockable_type: 'product' },
-        { id: 2, date: '2025-11-05', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 8, stockable_type: 'product' },
-        { id: 4, date: '2025-11-10', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 5, date: '2025-11-11', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 6, date: '2025-11-12', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 7, date: '2025-11-13', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 8, date: '2025-11-14', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 9, date: '2025-11-15', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 10, date: '2025-11-16', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 11, date: '2025-11-17', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        { id: 12, date: '2025-11-18', unit_price: Math.random() * 10, total_weight: Math.random() * 100, total_price: Math.random() * 100, total_package_count: 12, stockable_type: 'product' },
-        // ...
-      ],
+      seriesData: [],
       dialog:false
     }
   },
@@ -107,7 +94,20 @@ export default {
     if (this.data) {
       this.summary = this.data;
       this.seriesData = this.data.grouped_details;
-      console.log("this.series",this.seriesData)
+    } else {
+      this.generateLastDays().forEach((date, idx) => {
+        let rand_1 = Math.random();
+        let rand_2 = Math.random();
+        this.seriesData.push({
+          id: idx,
+          date: date,
+          unit_price: (rand_1/rand_2)*2,
+          total_price:  rand_1*10*rand_2,
+          total_weight: rand_1*10,
+          total_package_count: 12,
+          stockable_type: 'product'
+        });
+      })
     }
     
   },
@@ -247,7 +247,7 @@ export default {
                     },
                 },
                 {
-                    seriesName: this.$t("unit_price"),
+                    seriesName: this.$t("avg_price"),
                     show:false,
                     axisTicks: {
                         show: true,
@@ -307,7 +307,20 @@ export default {
     showDialog() {
       console.log("event, chartContext, config")
       this.dialog = true
+    },
+    generateLastDays() {
+      const dates = [];
+      const today = new Date();
+
+      for (let i = 0; i < 10; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        dates.push(moment(d).format(this.main.date_format));
+      }
+
+      return dates.reverse(); // oldest → newest
     }
+
   }
 }
 </script>

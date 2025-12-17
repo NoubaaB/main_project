@@ -219,6 +219,7 @@
     "warehouse_category": "Warehouse Category",
     "warehouse": "Warehouse",
     "fish_type": "Fish Type",
+    "unit_price": "Unit Price",
     "is_stockable?": "Is Stockable?",
     "charge_category_operation": "Charge Category Operation",
     "article_description": "Article Description",

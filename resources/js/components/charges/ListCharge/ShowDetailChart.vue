@@ -31,7 +31,10 @@
             :series="series"
             height="350"
             />
-            </v-card-text>
+        </v-card-text>
+        <v-card-action>
+            test
+        </v-card-action>
     </v-card>
 </template>
 
@@ -172,10 +175,13 @@
                                     }
                                 },
                                 title: {
-                                text: this.$t("total_weight_on_kg"),
-                                    style: {
-                                        color: '#00e396',
-                                    }
+                                    text: this.$t("total_weight_on_kg"),
+                                        style: {
+                                            color: '#00e396',
+                                        }
+                                },
+                                tooltip: {
+                                    enabled: true
                                 },
                             },
                             {

@@ -16,7 +16,7 @@ class ChargeCategory extends Model
     protected $guarded = [];
 
     function charges() : HasMany {
-        return $this->hasMany(Charge::class, 'type_charge_id');
+        return $this->hasMany(Charge::class, 'charge_category_id');
         
     }
 }
