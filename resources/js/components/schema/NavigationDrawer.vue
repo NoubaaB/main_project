@@ -10,6 +10,7 @@
           class="mb-4"
           color="grey-darken-1"
           size="64"
+          image="/storage/images/user.png"
         ></v-avatar>
 
         <div>john@google.com</div>
@@ -72,6 +73,7 @@
             <v-avatar
               color="grey-darken-1"
               size="40"
+              image="/storage/images/user.png"
             ></v-avatar>
             <div class="ml-3 d-block">
               <div class="font-weight-black">
