@@ -83,6 +83,7 @@
                 expanded
                 :max-date="new Date()"
                 v-model="_charge.charge.date"
+                :locale="main.lang.short"
                 mode="date"
               />
             </v-col>

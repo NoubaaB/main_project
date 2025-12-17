@@ -13,16 +13,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
     <title>{{config('app.name')}} App</title>
     @vite(['resources/css/app.css'])
-    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link href="{{asset('/css/vuetify.min.css')}}" rel="stylesheet">
+    <link href="{{asset('/css/materialdesignicons.min.css')}}" rel="stylesheet">
+    <script src="{{asset('/js/vue.global.js')}}"></script>
+    <script src="{{asset('/js/vuetify.min.js')}}"></script>
+    <script src="{{asset('/js/apexcharts.js')}}"></script>
     <script type="importmap">
         {
             "imports": {
-                "vue": "https://cdn.jsdelivr.net/npm/vue@latest/dist/vue.esm-browser.js",
-                "vuetify": "https://cdn.jsdelivr.net/npm/vuetify@3.7.15/dist/vuetify.esm.js"
+                "vue": "{{asset('/js/vue.esm-browser.js')}}",
+                "vuetify": "{{asset('/js/vuetify.esm.js')}}"
             }
         }
     </script>

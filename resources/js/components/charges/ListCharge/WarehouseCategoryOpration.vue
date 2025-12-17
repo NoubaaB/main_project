@@ -3,7 +3,7 @@
   elevation="6" 
   :style="cardStyle" 
   :disabled="!data"
-  :color="!data?'blue-grey-lighten-5':''"
+  :color="!data?`grey-${main.mode}ten-5`:''"
   @click="showDialog"
   :loading="charge.loading"
   >

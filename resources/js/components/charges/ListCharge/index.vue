@@ -13,6 +13,7 @@
             :max-date="new Date()"
             v-model.range="date"
             mode="date"
+            :locale="main.lang.short"
             expanded 
           />
           <div class="text-center mt-3" role="group" aria-label="Date range">

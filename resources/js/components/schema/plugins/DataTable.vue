@@ -245,6 +245,9 @@
       <template v-for="(_, name) in $slots" :key="name" v-slot:[name]="slotProps">
         <slot :name="name" v-bind="slotProps" />
       </template>
+    <template v-slot:expanded-row="{ columns, item }">
+    {{item}} {{ columns }}
+    </template>
     </v-data-table-virtual>
 
     <!-- LOADER OVERLAY -->
@@ -290,6 +293,7 @@ export default {
       hiddenHeaderKeys: [],
       defaultHeaderKeys: [],
       pinnedHeaderKeys: ['data-table-select'],
+      // pinnedHeaderKeys: ['data-table-select','data-table-expand'],
       sortOrders: [],
       pinnedCss: '',
 
