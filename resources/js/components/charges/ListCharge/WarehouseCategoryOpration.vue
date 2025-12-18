@@ -42,7 +42,7 @@
             <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
             <div class="kpi-label">{{$t("avg_price")}}</div>
           </div>
-          <div class="kpi-value">{{ main.formatDisplayNumber(avgPrice) }} <small>{{main.currency}}/Kg</small></div>
+          <div class="kpi-value">{{ main.formatDisplayNumber(summary.unit_price) }} <small>{{main.currency}}/Kg</small></div>
         </div>
         <v-divider color="info"></v-divider>
         <div class="mt-1">
@@ -121,9 +121,6 @@ export default {
       return this.charge.warehouse_category_operation.getName(this.id || this.summary.warehouse_category_operation_id)
     },
     // computed average price for the summary KPI
-    avgPrice () {
-      return this.summary.unit_price
-    },
     main: () => useMain(),
     charge: () => useCharge(),
     // build series arrays (numbers) and categories (dates)

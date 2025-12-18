@@ -29,8 +29,10 @@ class Sell extends Model
         'tracking_onp_numbers' => 'array',
         'is_warehouseable' => 'boolean',
         'note' => 'string',
-        'sell_details_total_price' => 'double',
-        'sell_details_total_weight' => 'double'
+        'unit_price'   => 'float',
+        'total_price'  => 'float',
+        'total_weight' => 'float',
+
     ];
     function warehouse_stockable_tracking_number_operations(): MorphMany
     {

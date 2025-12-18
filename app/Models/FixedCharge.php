@@ -12,8 +12,11 @@ class FixedCharge extends Model
 {
     /** @use HasFactory<\Database\Factories\FixedChargeFactory> */
     use HasFactory , SoftDeletes;
+    protected $casts = [
+        'amount'   => 'float'
+    ];
 
     function type_charge() : BelongsTo {
-        return $this->belongsTo(TypeCharge::class, 'type_charge_id');
+        return $this->belongsTo(ChargeCategory::class, 'charge_category_id');
     }
 }

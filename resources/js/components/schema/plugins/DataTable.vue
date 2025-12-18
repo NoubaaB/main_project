@@ -245,9 +245,6 @@
       <template v-for="(_, name) in $slots" :key="name" v-slot:[name]="slotProps">
         <slot :name="name" v-bind="slotProps" />
       </template>
-    <template v-slot:expanded-row="{ columns, item }">
-    {{item}} {{ columns }}
-    </template>
     </v-data-table-virtual>
 
     <!-- LOADER OVERLAY -->
@@ -266,9 +263,7 @@
 </template>
 
 <script>
-import { useMain } from '@/stores/Main'
-import axios from 'axios'
-import moment from 'moment'
+import { useMain } from '@/stores/Main';
 import * as XLSX from 'xlsx'
 import { nextTick } from 'vue'
 
@@ -284,7 +279,7 @@ export default {
     fetchData: Function,
     headers: { type: Array, required: true }
   },
-
+  emits: ['sync_items'],
   data () {
     return {
       items_selected: [],
@@ -405,6 +400,9 @@ export default {
   },
 
   watch: {
+    filteredItems(value){
+      this.$emit("sync_items",value);
+    },
     hiddenHeaderKeys () {
       this.debouncedComputePinnedCss()
       this.syncHeaderOrder()

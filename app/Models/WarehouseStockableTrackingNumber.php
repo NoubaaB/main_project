@@ -18,9 +18,13 @@ class WarehouseStockableTrackingNumber extends Model
     protected $guarded = [];
 
     protected $casts = [
-        "tracking_numbers" => "array"
+        "tracking_numbers" => "array",
+        'unit_price'   => 'float',
+        'total_price'  => 'float',
+        'total_weight' => 'float',
+        'total_package_count' => 'float',
+        'total_weight_bill' => 'float',
     ];
-
     protected static function boot()
     {
         parent::boot();

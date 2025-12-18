@@ -18,9 +18,9 @@ return new class extends Migration
             $table->json("tracking_onp_numbers")->nullable();
             
             $table->string("note",500)->nullable();
-            $table->double("total_price")->default(0.00);
-            $table->double("total_weight")->default(0.00);
-            $table->double("total_package_count")->default(0.00);
+            $table->decimal("total_price",15,2)->default(0.00);
+            $table->decimal("total_weight",15,2)->default(0.00);
+            $table->decimal("total_package_count",15,2)->default(0.00);
             // $table->boolean("is_stockable")->default(false);
 
             $table->foreignId('fishery_id')->nullable()->index();

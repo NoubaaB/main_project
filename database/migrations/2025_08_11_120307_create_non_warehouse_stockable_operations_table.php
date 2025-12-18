@@ -16,11 +16,11 @@ return new class extends Migration
 
             $table->date("date")->nullable();
 
-            $table->double("unit_price")->default(0.00);
-            $table->double("total_weight")->default(0.00);
-            $table->double("total_weight_bill")->default(0.00);
-            $table->double("total_price")->default(0.00);
-            $table->double("total_package_count")->default(0.00);
+            $table->decimal("unit_price",15,2)->default(0.00);
+            $table->decimal("total_weight",15,2)->default(0.00);
+            $table->decimal("total_weight_bill",15,2)->default(0.00);
+            $table->decimal("total_price",15,2)->default(0.00);
+            $table->decimal("total_package_count",15,2)->default(0.00);
 
             $table->foreignId('charge_id')->nullable()->index();
             $table->foreignId('package_type_id')->nullable()->index();

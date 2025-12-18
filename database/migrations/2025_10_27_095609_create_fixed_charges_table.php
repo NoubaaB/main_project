@@ -19,7 +19,7 @@ return new class extends Migration
 
             $table->string("name", 50)->nullable();
             $table->string("description", 500)->nullable();
-            $table->double("amount")->default(0.00);
+            $table->decimal("amount",15,2)->default(0.00);
             $table->enum("fixed_periodic_charge", ['daily', 'weekly', 'monthly', 'yearly'])
             ->nullable()->default(null);
 

@@ -17,6 +17,13 @@ class Warehouse extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'unit_price'   => 'float',
+        'total_price'  => 'float',
+        'total_weight' => 'float',
+        'total_package_count' => 'float',
+    ];
+
     function warehouse_stockables() : HasMany {
         return $this->hasMany(WarehouseStockable::class);
     }

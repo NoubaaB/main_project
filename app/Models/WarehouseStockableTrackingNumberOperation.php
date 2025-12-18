@@ -18,6 +18,14 @@ class WarehouseStockableTrackingNumberOperation extends Model
     use HasFactory, SoftDeletes;
 
     protected $guarded = [];
+    
+    protected $casts = [
+        'unit_price'   => 'float',
+        'total_price'  => 'float',
+        'total_weight' => 'float',
+        'total_package_count' => 'float',
+        'total_weight_bill' => 'float',
+    ];
 
     protected static function boot()
     {

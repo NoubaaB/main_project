@@ -1,43 +1,50 @@
 <template>
     <v-card >
         <v-card-text>
-            <v-tabs
-            v-model="type"
-            color="primary"
-            height="60"
-            grow
-            align-tabs="center"
-            slider-color="#f78166"
-            >
-                <v-tab value="day" class="rounded-ts-xl">
-                    <v-icon start>mdi-calendar-today</v-icon>
-                    {{ $t("daily") }}
-                </v-tab>
+            <v-row>
+                <v-col>
+                    <v-tabs
+                    v-model="type"
+                    color="primary"
+                    height="60"
+                    grow
+                    align-tabs="center"
+                    slider-color="#f78166"
+                    >
+                        <v-tab value="day" class="rounded-ts-xl">
+                            <v-icon start>mdi-calendar-today</v-icon>
+                            {{ $t("daily") }}
+                        </v-tab>
 
-                <v-tab value="month">
-                    <v-icon start>mdi-calendar-month</v-icon>
-                    {{ $t("monthly") }}
-                </v-tab>
+                        <v-tab value="month">
+                            <v-icon start>mdi-calendar-month</v-icon>
+                            {{ $t("monthly") }}
+                        </v-tab>
 
-                <v-tab value="year" class="rounded-te-xl">
-                    <v-icon start>mdi-calendar</v-icon>
-                    {{ $t("yearly") }}
-                </v-tab>
-            </v-tabs>
-
-            <ApexCharts
-            type="area"
-            :options="chartOptions"
-            :series="series"
-            height="350"
-            />
+                        <v-tab value="year" class="rounded-te-xl">
+                            <v-icon start>mdi-calendar</v-icon>
+                            {{ $t("yearly") }}
+                        </v-tab>
+                    </v-tabs>
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col>
+                    <ApexCharts
+                    type="area"
+                    :options="chartOptions"
+                    :series="series"
+                    height="350"
+                    />
+                </v-col>
+            </v-row>
         </v-card-text>
         <v-divider ></v-divider>
         <v-card-actions>
-            <v-row class="text-center">
-                <v-col class="d-inline">
+            <v-row no-gutters class="text-center mb-2 mt-1">
+                <v-col>
                     <v-chip color="green">
-                        <span class="d-inline mr-2" >
+                        <span class="mr-2" >
                             <v-icon small class="mr-1" color="green lighten-1">mdi-cash</v-icon>
                             <span >{{$t("price")}}</span>
                         </span>
@@ -46,7 +53,7 @@
                 </v-col>
                 <v-col>
                     <v-chip color="blue">
-                        <span class="d-inline mr-2" >
+                        <span class="mr-2" >
                             <v-icon small class="mr-1" color="green lighten-1">mdi-weight-kilogram</v-icon>
                             <span >{{$t("weight")}}</span>
                         </span>
@@ -55,7 +62,7 @@
                 </v-col>
                 <v-col>
                     <v-chip color="purple">
-                        <span class="d-inline mr-2" >
+                        <span class="mr-2" >
                             <v-icon small class="mr-1" color="green lighten-1">mdi-package-variant-closed</v-icon>
                             <span >{{$t("boxes")}}</span>
                         </span>
@@ -64,11 +71,11 @@
                 </v-col>
                 <v-col>
                     <v-chip color="orange">
-                        <span class="d-inline mr-2" >
+                        <span class="mr-2" >
                             <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
                             <span >{{$t("avg_price")}}</span>
                         </span>
-                        <strong >{{ main.formatDisplayNumber(avgPrice) }} {{main.currency}}/Kg</strong>
+                        <strong >{{ main.formatDisplayNumber(summary.unit_price) }} {{main.currency}}/Kg</strong>
                     </v-chip>
                 </v-col>
             </v-row>

@@ -35,10 +35,10 @@ class Charge extends Model
         'tracking_numbers' => 'array',
         'tracking_onp_numbers' => 'array',
         'note' => 'string',
-        'total_price' => 'double',
-        'total_weight' => 'double'
+        'total_price'  => 'float',
+        'total_weight' => 'float',
+        'total_package_count' => 'float',
     ];
-
     protected static function boot()
     {
         parent::boot();

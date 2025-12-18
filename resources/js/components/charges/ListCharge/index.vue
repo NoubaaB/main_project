@@ -62,6 +62,7 @@
      :date="date"
      :headers="headers"
      :fetchData="fetchCharge"
+     @sync_items="update_filtred_items_to_source"
      >
         <!-- CELLS -->
         <template v-slot:[`item.date`]="{ item }">
@@ -211,6 +212,17 @@
             
           ]
         }
+    },
+    methods:{
+      update_filtred_items_to_source: function (items) {
+        console.log("items", items)
+        setTimeout(() => {
+          this.charge.filtred_charge_fetch_items = [];
+        }, 100);
+        setTimeout(() => {
+          this.charge.filtred_charge_fetch_items = items;
+        }, 100);
+      }
     }
   }
 </script>

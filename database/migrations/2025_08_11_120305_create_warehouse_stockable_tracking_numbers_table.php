@@ -20,10 +20,10 @@ return new class extends Migration
             $table->date("date_out_of_warehouse")->nullable();
 
 
-            $table->double("unit_price")->default(0.00);
-            $table->double("total_weight")->default(0.00);
-            $table->double("total_price")->default(0.00);
-            $table->double("total_package_count")->default(0.00);
+            $table->decimal("unit_price",15,2)->default(0.00);
+            $table->decimal("total_weight",15,2)->default(0.00);
+            $table->decimal("total_price",15,2)->default(0.00);
+            $table->decimal("total_package_count",15,2)->default(0.00);
 
             $table->foreignId('warehouse_stockable_id')->nullable()->index("WS_IDX");
 

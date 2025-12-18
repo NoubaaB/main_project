@@ -37,6 +37,7 @@ export const useCharge = defineStore("charge", {
             charge: {},
             charges: [],
             charge_fetch_items: [],
+            filtred_charge_fetch_items: [],
             warehouse_stockable_tracking_number_operations: [],
             non_warehouse_stockable_operations: [],
         };
@@ -256,11 +257,14 @@ export const useCharge = defineStore("charge", {
             return state.warehouse_category_operation.getList.map((operation) => operation.disabled = !warehouse_category_operation_ids.includes(operation.id) ? false : true) && state.warehouse_category_operation.getList;
         },
         get_fetched_operations: (state) => {
-          return [...state.non_warehouse_stockable_operations , ...state.warehouse_stockable_tracking_number_operations]  
+            let non_warehouse_stockable_operations = state.filtred_charge_fetch_items.flatMap(e => e.non_warehouse_stockable_operations)
+            let warehouse_stockable_tracking_number_operations = state.filtred_charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations)
+
+            return [...non_warehouse_stockable_operations , ...warehouse_stockable_tracking_number_operations]  
         },
         get_fetched_warehouse_category_operation_list: (state) => {
             let warehouse_category_operations = []
-            state.get_fetched_operations.forEach(item => {
+            state.get_fetched_operations?.forEach(item => {
                 warehouse_category_operations.push({
                     id:uuidv4(),
                     warehouse_category_operation_id: item.warehouse_category_operation_id,
@@ -287,29 +291,50 @@ export const useCharge = defineStore("charge", {
                         total_price += e.total_price;
                         total_package_count += e.total_package_count;
                     })
-                let unit_price = total_price / total_weight;
+                let unit_price = +total_price / total_weight
                 
                 let selected_warehouse_category_operations = warehouse_category_operations
                     .filter(e => e.warehouse_category_operation_id == w_id);
                 
                 data.push({
                     id: uuidv4(),
-                    total_weight,
-                    total_price,
-                    total_package_count,
-                    unit_price,
+                    total_weight: +total_weight.toFixed(2),
+                    total_price: +(total_price).toFixed(2),
+                    total_package_count: +(total_package_count).toFixed(2),
+                    unit_price: +(unit_price).toFixed(2),
                     warehouse_category_operation_id:w_id,
                     details: selected_warehouse_category_operations,
                     grouped_details: _(selected_warehouse_category_operations)
                         .groupBy('date')
-                        .map((items, date) => ({
-                            date,
-                            warehouse_category_operation_id: w_id,
-                            total_weight: _.sumBy(items, 'total_weight'),
-                            total_price: _.sumBy(items, 'total_price'),
-                            total_package_count: _.sumBy(items, 'total_package_count'),
-                            unit_price: _.sumBy(items, 'total_price') / _.sumBy(items, 'total_weight')
-                        }))
+                        .map((items, date) =>
+                        {
+                            let total_weight = 0.00;
+                            let total_price = 0.00;
+                            let total_package_count = 0.00;
+                            let unit_price = 0.00;
+                            items.forEach(i => {
+                                total_weight += i.total_weight
+                                total_price += i.total_price
+                                total_package_count += i.total_package_count
+                            })
+                            total_weight = +(total_weight).toFixed(2);
+                            total_price = +(total_price).toFixed(2);
+                            total_package_count = +(total_package_count).toFixed(0);
+                            if (total_price > 0 && total_weight > 0) {
+                                console.log("total_price / total_weight", total_price , total_weight)
+                                unit_price = +(total_price/ total_weight).toFixed(2)
+                            } else {    
+                                unit_price = 0;
+                            }
+                            return {
+                                date,
+                                warehouse_category_operation_id: w_id,
+                                total_weight,
+                                total_price,
+                                total_package_count,
+                                unit_price
+                            }
+                        })
                         .value()
                 })
             });
