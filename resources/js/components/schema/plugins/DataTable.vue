@@ -21,7 +21,7 @@
       :loading="loading"
     >
       <template v-slot:top>
-        <v-row>
+        <v-row class="mx-1">
           <v-col>
             <v-btn
               v-if="hiddenHeaderKeys.length>0"

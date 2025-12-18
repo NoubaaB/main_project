@@ -308,7 +308,6 @@ export default {
       return `${this.main.formatDisplayNumber(v)} ${this.main.currency}`
     },
     showDialog() {
-      console.log("event, chartContext, config")
       this.dialog = true
     },
     generateLastDays() {
@@ -329,6 +328,13 @@ export default {
 </script>
 
 <style scoped>
+  .apexcharts-tooltip {
+    width: 50px; /* Set a fixed width */
+    /* OR */
+    max-width: 300px; /* Or a maximum width */
+    padding: 10px;
+}
+
 .mini-card {
   display: flex;
   align-items: stretch;

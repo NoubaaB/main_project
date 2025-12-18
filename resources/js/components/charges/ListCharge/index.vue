@@ -29,12 +29,12 @@
             <v-divider vertical></v-divider>
             <!-- End date chip -->
             <v-chip
-              color="primary"
+              color="indigo"
               variant="tonal"
               class="ml-2"
             >
-              <v-icon left small class="mr-2">mdi-calendar-end</v-icon>
               <span>{{ main.formateDate(date.end) }}</span>
+              <v-icon left small class="ml-2">mdi-calendar-end</v-icon>
             </v-chip>
           </div>
 
