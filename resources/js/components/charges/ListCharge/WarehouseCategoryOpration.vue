@@ -34,7 +34,7 @@
             <v-icon small class="mr-1" color="purple lighten-1">mdi-package-variant-closed</v-icon>
             <div class="kpi-label">{{$t("boxes")}}</div>
           </div>
-          <div class="kpi-value">{{ main.formatDisplayNumberNonFloat(summary.total_weight) }} <small>Un</small></div>
+          <div class="kpi-value">{{ main.formatDisplayNumberNonFloat(summary.total_package_count) }} <small>Un</small></div>
         </div>
 
         <div class="kpi-row d-flex align-center justify-space-between">
@@ -71,8 +71,9 @@
 <script>
 import { useMain } from '../../../stores/Main';
 import { useCharge } from '../../../stores/Charge';
-import ApexCharts from 'vue3-apexcharts'
-import ShowDetailChart from "./ShowDetailChart.vue"
+import ApexCharts from 'vue3-apexcharts';
+import ShowDetailChart from "./ShowDetailChart.vue";
+
 export default {
   components: { ApexCharts , ShowDetailChart},
   props: {

@@ -321,7 +321,6 @@ export const useCharge = defineStore("charge", {
                             total_price = +(total_price).toFixed(2);
                             total_package_count = +(total_package_count).toFixed(0);
                             if (total_price > 0 && total_weight > 0) {
-                                console.log("total_price / total_weight", total_price , total_weight)
                                 unit_price = +(total_price/ total_weight).toFixed(2)
                             } else {    
                                 unit_price = 0;
