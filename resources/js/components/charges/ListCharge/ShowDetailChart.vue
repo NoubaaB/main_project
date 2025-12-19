@@ -66,7 +66,7 @@
                             <v-icon small class="mr-1" color="green lighten-1">mdi-package-variant-closed</v-icon>
                             <span >{{$t("boxes")}}</span>
                         </span>
-                        <strong >{{ main.formatDisplayNumberNonFloat(summary.total_weight) }} (Un)</strong>
+                        <strong >{{ main.formatDisplayNumberNonFloat(summary.total_package_count) }} (Un)</strong>
                     </v-chip>
                 </v-col>
                 <v-col>
@@ -95,8 +95,24 @@
         },
         data:function(){
             return {
-                type: 'day'
+                type: 'day',
+                tooltip_date_format:"DD/MM/YYYY",
             }
+        },
+        watch:{
+            type: function () {
+                switch (this.type) {
+                    case "day":
+                        this.tooltip_date_format = "DD/MM/YYYY";
+                    break;
+                    case "month":
+                        this.tooltip_date_format = "MM/YYYY";
+                        break;
+                    case "year":
+                        this.tooltip_date_format = "YYYY";
+                        break;
+                }
+            }    
         },
         computed: {
             main: () => useMain(),       
@@ -114,8 +130,6 @@
                     out.push(m.format(fmt));
                 }
                 return out;
-
-
             },  
             series: function () {
                 return [
@@ -158,7 +172,7 @@
                         enabled: true,
                         theme: this.main.mode,
                         x: {
-                            show: true, formatter: (val) => this.main.formateDate(val)},
+                            show: true, formatter: (val) => this.main.formateDateCustom(val,this.tooltip_date_format)},
                         y: {
                             formatter: (val, { seriesIndex }) => {
                                 // nicer formatting depending on series
@@ -201,7 +215,7 @@
                         horizontalAlign: 'left'
                     },
                     xaxis: {
-                        type: 'datetime'
+                        type: "datetime"
                     },
                     yaxis: [
                             {

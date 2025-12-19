@@ -97,6 +97,9 @@ export const useMain = defineStore("main", {
         formateDate: function (date) {
             return moment(date).format(this.date_format);
         },
+        formateDateCustom: function (date,format) {
+            return moment(date).format(format);
+        },
         formatDisplayNumber: function (num) {
             if (isNaN(num) || num === null || num === undefined) {
                 return 0.00;
