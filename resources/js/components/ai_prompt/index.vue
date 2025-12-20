@@ -32,7 +32,7 @@
           <v-col cols="12">
             <v-text-field
                 v-model="newMessage"
-                label="Type your message..."
+                :label="$t('type_a_message')"
                 outlined
                 dense
                 variant="solo-filled"

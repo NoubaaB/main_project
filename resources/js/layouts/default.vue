@@ -30,12 +30,13 @@
       </v-snackbar>
     </v-container>
     <!-- main end -->
-
+    <AiButton/>
   </v-app>
 </template>
 
 <script>
   import SnackBar from "@/components/schema/SnackBar.vue" ;
+  import AiButton from "@/components/schema/AiButton.vue" ;
   import NavigationDrawer from "@/components/schema/NavigationDrawer.vue" ;
   import SystemBar from "@/components/schema/SystemBar.vue" ;
   import  { useAuth } from "@/stores/Auth";
@@ -44,7 +45,8 @@
       components: {
         SnackBar,
         NavigationDrawer,
-        SystemBar
+        SystemBar,
+        AiButton
       },
       computed:{
         auth: function () {

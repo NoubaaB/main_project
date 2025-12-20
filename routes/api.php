@@ -7,7 +7,7 @@ use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\ReceiptController;
 
 #region AI routes
-Route::get('/deepseek-ai', [App\Http\Controllers\DeepSeekController::class, 'ask']);
+Route::post('/ai-assistant', [App\Http\Controllers\AIAssistantController::class, 'ask']);
 Route::post('/ask-db', [App\Http\Controllers\AIQueryController::class, 'ask']);
 // Route::post('/ask-db', [App\Http\Controllers\DeepSeekController::class, 'ask']);
 #endregion

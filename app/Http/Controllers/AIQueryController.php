@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use ReflectionClass;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Services\CustomService;
 use App\Services\GeminiService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -13,10 +14,11 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AIQueryController extends Controller
 {
-    private $gemini = null;
+    private $ai_agent = null;
 
     public function __construct() {
-        $this->gemini = new GeminiService();
+        // $this->ai_agent = new GeminiService();
+        $this->ai_agent = new CustomService();
     }
     
     public function ask(Request $request)
@@ -53,7 +55,8 @@ class AIQueryController extends Controller
             User question: {$question}
         ";
 
-        $sqlQuery = $this->gemini->generate($text);
+        $sqlQuery = $this->ai_agent->generate($text);
+        
         if (!$sqlQuery) {
             return $sqlQuery;
         }
@@ -69,7 +72,7 @@ class AIQueryController extends Controller
     
         $text = "
             You are a Moroccan chartered accountant and a professional SQL data analyst and a frontend developer.
-            don't fake data if local data is empty , id data is empty or NULL just write 'no data Availabel'.
+            don't fake data if local data is empty , if data is empty or NULL just write 'no data Availabel'.
             You are provided with the database schema and table relationships: {$schema}
             Based on:
             - the local data: [$result]
@@ -166,7 +169,7 @@ class AIQueryController extends Controller
         }
 
         //get final answer from ai
-        $answer = $this->gemini->generate($text);
+        $answer = $this->ai_agent->generate($text);
 
         return response()->json(['answer' => $answer], 200);
     }

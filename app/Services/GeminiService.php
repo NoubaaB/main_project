@@ -12,12 +12,13 @@ class GeminiService
     public function __construct()
     {
         $this->geminiApiKey = env('GEMINI_API_KEY'); // Set in .env file
-        $this->client = new Client(['base_uri' => 'https://generativelanguage.googleapis.com/v1/']);
+        // $this->client = new Client(['base_uri' => 'https://generativelanguage.googleapis.com/v1beta/']);
+        $this->client = new Client(['base_uri' => 'https://generativelanguage.googleapis.com/v1/']); //for gemini-2.5-pro
     }
 
     public function generate(string $prompt_question): string | null
     {
-        $response = $this->client->post("models/gemini-2.5-pro:generateContent", [
+        $response = $this->client->post("models/gemini-2.5-flash:generateContent", [
             'query' => [
                 'key' => $this->geminiApiKey
             ],

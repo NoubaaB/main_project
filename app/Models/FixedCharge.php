@@ -12,6 +12,8 @@ class FixedCharge extends Model
 {
     /** @use HasFactory<\Database\Factories\FixedChargeFactory> */
     use HasFactory , SoftDeletes;
+
+    protected $guarded = [];
     protected $casts = [
         'amount'   => 'float'
     ];
