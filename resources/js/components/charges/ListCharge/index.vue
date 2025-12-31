@@ -1,7 +1,7 @@
 <template>
   <v-card>
     <v-card-title>
-      {{ $t('datatable_list_charges') }}
+      {{ $t('datatable_charges') }}
     </v-card-title>
 
     <v-card-text>
