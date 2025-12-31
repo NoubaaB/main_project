@@ -22,7 +22,8 @@
           elevation="14"
           rounded="xl"
           role="dialog"
-          aria-label="Assistant chat"
+          aria-modal="true"
+          :aria-label="$t('ai_assistant')"
         >
           <header class="chat-header my-gradient-div ">
             <div class="header-left">
@@ -51,8 +52,19 @@
                 variant="tonal"
                 @click="closeAssistant"
                 :aria-label="'Minimize chat'"
+                class="mr-2"
               >
                 <v-icon>mdi-minus</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                color="red"
+                size="x-small"
+                variant="tonal"
+                @click="clearAssistantMessage"
+                :aria-label="'Close chat'"
+              >
+                <v-icon>mdi-notification-clear-all</v-icon>
               </v-btn>
             </div>
           </header>
@@ -64,7 +76,7 @@
                 :key="m.id || i"
                 :class="['message-row', m.role === 'agent' ? 'agent' : 'user']"
               >
-                <div :class="['bubble elevation-5', m.role === 'agent' ? '' : 'bg-blue']">
+                <div :class="['elevation-5', m.typing ?'bubble-no-padding': 'bubble', m.role === 'agent' ? '' : 'bg-blue']">
                   <div class="bubble-text">
                     <!-- Typing indicator -->
                     <template v-if="m.typing">
@@ -92,7 +104,7 @@
           <div>
             <v-text-field
               v-model="input"
-              :label="$t('type_a_message')"
+              :label="input.length? '' : $t('type_a_message')"
               outlined
               dense
               variant="solo-filled"
@@ -168,6 +180,14 @@ export default {
     closeAssistant() {
       this.isOpen = false;
     },
+    clearAssistantMessage() {
+      this.ai_prompt.clear_assistant_messages();
+      this.initChat()
+    },
+    initChat() {
+      let msg = { id: 1, role: 'agent', text: this.$t("ai_assistant_msg"), ts: Date.now() };
+      this.ai_prompt.add_assistant_messages(msg);
+    },
     formatTime(ts) {
       const d = new Date(ts);
       const hh = String(d.getHours()).padStart(2, '0');
@@ -196,7 +216,7 @@ export default {
       const userMsg = {
         id: Date.now() + Math.random(),
         role: 'user',
-        text: this.escapeHtml(text),
+        text: text,
         ts: Date.now(),
       };
 
@@ -245,33 +265,22 @@ export default {
         this.$nextTick(() => this.scrollToBottom());
       }
     },
-    escapeHtml(unsafe) {
-      if (typeof unsafe !== 'string') return '';
-      return unsafe
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    },
-    simulateAgentReply(userText) {
-      // kept for compatibility if you want to test without backend
-      return `I received: "${userText}". For demo, here's a sample response — let me know if you want the real data.`;
-    },
+
   },
   mounted() {
     if (this.isOpen) {
       this.scrollToBottom();
-      }
-      let msg =
-          { id: 1, role: 'agent', text: this.$t("ai_assistant_msg"), ts: Date.now() - 60000 };
-
-      this.ai_prompt.add_assistant_messages(msg);
+    }
+    this.initChat();
   },
 };
 </script>
 
 <style scoped>
+ul{
+  margin-left: 20px !important;
+}
+
 /* ---------- FAB pulse ---------- */
 .fab-container {
   position: fixed;
@@ -435,6 +444,15 @@ export default {
   max-width: 78%;
   padding: 10px 12px;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  font-size: 14px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+.bubble-no-padding {
+  max-width: 78%;
+  padding: 8px 8px;
+  border-radius: 18px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   font-size: 14px;
   line-height: 1.3;

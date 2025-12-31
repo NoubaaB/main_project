@@ -11,7 +11,9 @@ class CustomService
     {
         $response = Ollama::agent('You are an AI assistant connected to a Laravel app database. answer the question without any hallucinations or explaining give just clean code')
             ->prompt($prompt_question)
-            ->model('qwen3-coder:480b-cloud')
+            // ->model('gemini-3-pro-preview:latest')
+            ->model('gemini-3-flash-preview:cloud')
+            // ->model('qwen3-vl:235b-cloud')
             ->ask();
         try {
             return  $response['response'];

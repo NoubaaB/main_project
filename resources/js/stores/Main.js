@@ -49,6 +49,16 @@ export const useMain = defineStore("main", {
     },
     actions: {
         initData: function () {
+            let language = localStorage.getItem("language");
+            let lang = null;
+            if (language) {
+                lang = this.langs.find(l => l.code == language);
+            } else {
+                lang = this.langs[0];
+            }
+            annyang.setLanguage(lang.annyang);
+            this.lang = lang;
+
             //initialize the charge store with data from localStorage
             let charge = localStorage.getItem("charge") || '{}';
             if (charge == '{}') {
@@ -64,16 +74,6 @@ export const useMain = defineStore("main", {
             //other settings
             useCharge().input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
             useCharge().showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
-
-            let language = localStorage.getItem("language");
-            let lang = null;
-            if (language) {
-                lang = this.langs.find(l => l.code == language);
-            } else {
-                lang = this.langs[0];
-            }
-            annyang.setLanguage(lang.annyang);
-            this.lang = lang;
         },
         fetchData: async function (date_start, date_end, api_url, api_url_prop) {
             try {
@@ -125,6 +125,16 @@ export const useMain = defineStore("main", {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0,
             }).format(num)
+        },
+        escapeHtml: function(unsafe) {
+            if (typeof unsafe !== 'string') return '';
+            return unsafe
+                .replaceAll("\n", '<br>')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
         },
         add_snackbar: function (message) {
             this.snackbar = { ...message };

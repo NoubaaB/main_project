@@ -4,13 +4,12 @@ import "vuetify/styles";
 import { crerate, i18n } from './vuetify';
 import VueApexCharts from "vue3-apexcharts";
 import { SnackbarService, Vue3Snackbar } from "vue3-snackbar";
-import VueDatePicker from '@vuepic/vue-datepicker';
 import "vue3-snackbar/styles";
 
 import methods from "@/plugins/methods.js";
 import { useAuth } from '@/stores/Auth';
 import { useMain } from '@/stores/Main';
-import VDatePicker from 'v-calendar';
+import { setupCalendar, DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
 
 import pinia from "@/stores";
@@ -18,7 +17,8 @@ export async function registerPlugins(app) {
     app
         .use(crerate())
         .use(pinia)
-        .use(VDatePicker, {})
+        .use(setupCalendar, {})
+        .component('DatePicker', DatePicker)
         .use(i18n)
         .use(VueApexCharts)
         .use(SnackbarService)

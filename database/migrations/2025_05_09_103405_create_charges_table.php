@@ -21,8 +21,10 @@ return new class extends Migration
             $table->decimal("total_price",15,2)->default(0.00);
             $table->decimal("total_weight",15,2)->default(0.00);
             $table->decimal("total_package_count",15,2)->default(0.00);
-            // $table->boolean("is_stockable")->default(false);
 
+            $table->boolean("allow_invoice")->default(true);// Whether this charge allows billing or not like guano with no name/supplier
+
+            $table->foreignId('invoice_id')->nullable()->index();
             $table->foreignId('fishery_id')->nullable()->index();
             $table->foreignId('ship_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();

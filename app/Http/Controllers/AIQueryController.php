@@ -17,8 +17,8 @@ class AIQueryController extends Controller
     private $ai_agent = null;
 
     public function __construct() {
-        // $this->ai_agent = new GeminiService();
-        $this->ai_agent = new CustomService();
+        $this->ai_agent = new GeminiService();
+        // $this->ai_agent = new CustomService();
     }
     
     public function ask(Request $request)
@@ -30,10 +30,12 @@ class AIQueryController extends Controller
             'message' => 'required|string',
             'id' => 'required|numeric',
             'theme' => 'required|string',
+            'messages' => 'required|string',
         ]);
         $question = $data['message'];
         $id = $data['id'];
         $theme = $data['theme'];
+        $messages = $data['messages'];
 
         // Get all table names from DB
         $existingTables = $this->getDatabaseSchema();
@@ -52,7 +54,7 @@ class AIQueryController extends Controller
             - Generate only one final output: a valid MySQL query that answers the user’s request.
             - Do not include markdown, explanations, or extra text — only return the raw SQL query.
 
-            User question: {$question}
+            User question: {$question} , and use previous conversation that you and user have made to understand the context : {$messages}.
         ";
 
         $sqlQuery = $this->ai_agent->generate($text);
@@ -71,14 +73,14 @@ class AIQueryController extends Controller
         // Get all table names from DB
     
         $text = "
-            You are a Moroccan chartered accountant and a professional SQL data analyst and a frontend developer.
-            don't fake data if local data is empty , if data is empty or NULL just write 'no data Availabel'.
+            You are a Moroccan chartered accountant and a professional SQL data analyst and a frontend developer, developed by Elbachir Noubaa.
+            don't fake data if local data is empty , if data is empty or NULL just tell user in proper way data is not available.
             You are provided with the database schema and table relationships: {$schema}
             Based on:
-            - the local data: [$result]
+            - local data that you already selected: [$result]
             - and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
 
-            Answer the question: ['$question'].
+            Answer the question: ['$question']. and use previous conversation that you and user have made to understand the context : {$messages}.
 
             Instructions:
             * consider that already html file:
@@ -142,7 +144,7 @@ class AIQueryController extends Controller
         ";
         if ($result == null) {
             $text = "
-                be free to Answer the question: '$question'.
+                you are AI agent developed by Elbachir Noubaa, be free to Answer the question: '$question', and use previous conversation that you and user have made to understand the context : {$messages}.
 
                 Instructions:
                 * consider that already import those liberary in my html file:

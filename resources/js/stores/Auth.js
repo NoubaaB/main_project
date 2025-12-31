@@ -10,6 +10,7 @@ import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useFishery } from "./Fishery";
 import { useOrigin } from "./Origin";
 import { useChargeCategory } from "./ChargeCategory";
+import { useFormula } from "./Formula";
 export const useAuth = defineStore("Auth", {
   state: () => {
     return {
@@ -34,6 +35,7 @@ export const useAuth = defineStore("Auth", {
       fishery: useFishery(),
       origin: useOrigin(),
       charge_category: useChargeCategory(),
+      formula: useFormula(),
     };
   },
   actions: {
@@ -71,6 +73,7 @@ export const useAuth = defineStore("Auth", {
       this.charge_category.list = response.data.charge_categories;
       this.fishery.list = response.data.fisheries;
       this.origin.list = response.data.origins;
+      this.formula.list = response.data.formulas;
     },
     set_user: function (user) {
       this.user = user;

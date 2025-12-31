@@ -1,20 +1,23 @@
 import { defineStore } from "pinia";
 import { useAuth } from "./Auth";
+import { useMain } from "./Main";
 export const useAIPrompt = defineStore("ai_prompt", {
     state: () => {
         return {
-            messages: [
-                {
-                    text: "Hello! How can I help you today?",
-                    sender: "AI"
-                },
-            ],
+            messages: [],
             assistant_messages: [],
-            auth:useAuth(),
+            auth: useAuth(),
+            main: useMain()
         };
     },
     actions: {
         sendMessage:async function (message) {
+            let messages = JSON.stringify(this.assistant_messages.filter(e => e.sender != 'AI').map(e => {
+                return {
+                    role: e.sender,
+                    text: e.text
+                }
+            }));
             this.messages.push({
                 text: message,
                 sender: this.auth.user.name
@@ -24,7 +27,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
             return await axios.post(`/api/ask-db`, {
                 message,
                 id,
-                theme
+                theme,
+                messages
             }).then(response => {
                 this.messages.push({
                     text: response.data.answer,
@@ -79,7 +83,11 @@ export const useAIPrompt = defineStore("ai_prompt", {
              });
         },
         add_assistant_messages: function (msg) {
+            // msg.text =  this.main.escapeHtml(msg.text);
             this.assistant_messages.push(msg)
+        },
+        clear_assistant_messages: function () {
+            this.assistant_messages = [];
         }
     },
     getters: {

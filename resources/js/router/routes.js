@@ -37,6 +37,7 @@ const routes = [
                     {
                         path: "/",
                         name: "index",
+                        component: () => import("@/components/ai_prompt/index.vue") //create origin component later
                     },
                     {
                         path: "/ai_prompt",
@@ -60,6 +61,7 @@ const routes = [
                             {
                                 path: "list_charge",
                                 name: "list_charge",
+                                keeplive:true,
                                 component: () => import("@/components/charges/ListCharge/index.vue")
                             },
                         ]

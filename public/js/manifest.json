@@ -1,0 +1,15 @@
+{
+    "name": "Main Project",
+    "short_name": "MainProj",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1976D2",
+    "icons": [
+        {
+            "src": "/storage/favicon.ico.png",
+            "sizes": "48x48",
+            "type": "image/png"
+        }
+    ]
+}

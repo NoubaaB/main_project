@@ -78,7 +78,7 @@
           <v-row class="text-center">
             <!-- Date -->
             <v-col>
-              <VDatePicker  
+              <DatePicker  
                 :is-dark="is_dark"
                 expanded
                 :max-date="new Date()"

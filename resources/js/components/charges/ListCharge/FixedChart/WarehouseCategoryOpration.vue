@@ -13,40 +13,49 @@
     <div class="card-inner d-flex" >
       <!-- LEFT: numbers -->
       <div style="flex:1; min-width:0;">
-        <div class="kpi-row d-flex align-center justify-space-between">
-          <div class="d-flex align-center">
-            <v-icon small class="mr-1" color="green lighten-1">mdi-cash</v-icon>
-            <div class="kpi-label">{{$t("price")}}</div>
+        <div class="kpi-master">
+          <div class="kpi-row d-flex align-center justify-space-between" :class="{'disabled-text': !ability_warehouse_category_operation.allow_price}">
+            <div class="d-flex align-center">
+              <v-icon small class="mr-1" color="green lighten-1">mdi-cash</v-icon>
+              <div class="kpi-label">{{$t("price")}}</div>
+            </div>
+            <div class="kpi-value">{{ main.formatDisplayNumber(filterDumpValue(summary.total_price,ability_warehouse_category_operation.allow_price)) }} <small>{{main.currency}}</small></div>
           </div>
-          <div class="kpi-value">{{ main.formatDisplayNumber(summary.total_price) }} <small>{{main.currency}}</small></div>
-        </div>
+  
+          <div class="kpi-row d-flex align-center justify-space-between" :class="{'disabled-text': !ability_warehouse_category_operation.allow_weight}">
+            <div class="d-flex align-center">
+              <v-icon small class="mr-1" color="blue lighten-1">mdi-weight-kilogram</v-icon>
+              <div class="kpi-label">{{$t("weight")}}</div>
+            </div>
+            <div class="kpi-value">{{ main.formatDisplayNumber(filterDumpValue(summary.total_weight,ability_warehouse_category_operation.allow_weight)) }} <small>Kg</small></div>
+          </div>
+  
+          <div class="kpi-row d-flex align-center justify-space-between" :class="{'disabled-text': !ability_warehouse_category_operation.allow_package_type}">
+            <div class="d-flex align-center">
+              <v-icon small class="mr-1" color="purple lighten-1">mdi-package-variant-closed</v-icon>
+              <div class="kpi-label">{{$t("boxes")}}</div>
+            </div>
+            <div class="kpi-value">{{ main.formatDisplayNumberNonFloat(filterDumpValue(summary.total_package_count,ability_warehouse_category_operation.allow_package_type)) }} <small>Un</small></div>
+          </div>
+  
+          <div class="kpi-row d-flex align-center justify-space-between" :class="{'disabled-text': !ability_warehouse_category_operation.allow_price}">
+            <div class="d-flex align-center">
+              <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
+              <div class="kpi-label">{{$t("avg_price")}}</div>
+            </div>
+            <div class="kpi-value">{{ main.formatDisplayNumber(filterDumpValue(summary.unit_price,ability_warehouse_category_operation.allow_price)) }} <small>{{main.currency}}/Kg</small></div>
+          </div>
 
-        <div class="kpi-row d-flex align-center justify-space-between">
-          <div class="d-flex align-center">
-            <v-icon small class="mr-1" color="blue lighten-1">mdi-weight-kilogram</v-icon>
-            <div class="kpi-label">{{$t("weight")}}</div>
-          </div>
-          <div class="kpi-value">{{ main.formatDisplayNumber(summary.total_weight) }} <small>Kg</small></div>
-        </div>
-
-        <div class="kpi-row d-flex align-center justify-space-between">
-          <div class="d-flex align-center">
-            <v-icon small class="mr-1" color="purple lighten-1">mdi-package-variant-closed</v-icon>
-            <div class="kpi-label">{{$t("boxes")}}</div>
-          </div>
-          <div class="kpi-value">{{ main.formatDisplayNumberNonFloat(summary.total_package_count) }} <small>Un</small></div>
-        </div>
-
-        <div class="kpi-row d-flex align-center justify-space-between">
-          <div class="d-flex align-center">
-            <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
-            <div class="kpi-label">{{$t("avg_price")}}</div>
-          </div>
-          <div class="kpi-value">{{ main.formatDisplayNumber(summary.unit_price) }} <small>{{main.currency}}/Kg</small></div>
         </div>
         <v-divider color="info"></v-divider>
         <div class="mt-1">
-          <h4>{{warehouse_category_operation_name}}</h4>
+          <h4 class="d-inline">{{warehouse_category_operation_name}}</h4>
+          <sub>
+            <small>
+              ({{ entries_length }} {{$t("entries_short")}})
+
+            </small>
+          </sub>
         </div>
       </div>
       
@@ -64,13 +73,14 @@
     </div>
   </v-card>
   <v-dialog v-model="dialog" max-width="1300" max-height="700">
-    <ShowDetailChart :summary="summary" :details="data.grouped_details"/>
+    <ShowDetailChart @closeDialog="closeDialog" :summary="summary" :details="data.grouped_details"/>
   </v-dialog>
 </template>
 
 <script>
-import { useMain } from '../../../stores/Main';
-import { useCharge } from '../../../stores/Charge';
+import { useMain } from '@/stores/Main';
+import { useCharge } from '@/stores/Charge';
+import { useWarehouseCategoryOperation } from '@/stores/WarehouseCategoryOperation';
 import ApexCharts from 'vue3-apexcharts';
 import ShowDetailChart from "./ShowDetailChart.vue";
 
@@ -92,64 +102,86 @@ export default {
         total_package_count: 0,
         stockable_type: 'product'
       },
-      seriesData: [],
       dialog:false
     }
   },
-  mounted: function () {
-    if (this.data) {
-      this.summary = this.data;
-      this.seriesData = this.data.grouped_details;
-    } else {
-      this.generateLastDays().forEach((date, idx) => {
-        let rand_1 = Math.random();
-        let rand_2 = Math.random();
-        this.seriesData.push({
-          id: idx,
-          date: date,
-          unit_price: (rand_1/rand_2)*2,
-          total_price:  rand_1*10*rand_2,
-          total_weight: rand_1*10,
-          total_package_count: 12,
-          stockable_type: 'product'
-        });
-      })
-    }
-    
-  },
   computed: {
-    warehouse_category_operation_name: function () {
-      return this.charge.warehouse_category_operation.getName(this.id || this.summary.warehouse_category_operation_id)
-    },
     // computed average price for the summary KPI
     main: () => useMain(),
     charge: () => useCharge(),
+    entries_length: function () {
+      return this.charge.countWarehouseCategoryOperationUsage(this.id);
+    },
+    seriesData: function () {
+      let data = [];
+      if (this.data) {
+        this.summary = this.data;
+        data = this.data.grouped_details;
+      } else {
+        this.generateLastDays().forEach((date, idx) => {
+          let rand_1 = Math.random();
+          let rand_2 = Math.random();
+          data.push({
+            id: idx,
+            date: date,
+            unit_price: (rand_1/rand_2)*2,
+            total_price:  rand_1*10*rand_2,
+            total_weight: rand_1*10,
+            total_package_count: 12,
+            stockable_type: 'product'
+          });
+        })
+      }
+      return data;
+    },
+    warehouse_category_operation: () => useWarehouseCategoryOperation(),
+    warehouse_category_operation_name: function () {
+      return this.warehouse_category_operation.getName(this.id )
+    },
+    ability_warehouse_category_operation : function(){
+      return this.warehouse_category_operation.getList.find(e => e.id == this.id );
+    },
     // build series arrays (numbers) and categories (dates)
-    chartSeries () {
-      // price series = total_price
-      const price = this.seriesData.map(d => Number(d.total_price || 0))
-      // weight series = total_weight
-      const weight = this.seriesData.map(d => Number(d.total_weight || 0))
-      // avg series (per record)
-      const avg = this.seriesData.map(d => Number(d.unit_price || 0))
-      
-      return [
-        {
+    chartSeries() {
+      let data = [] 
+      if(this.ability_warehouse_category_operation.allow_price){
+        data.push({
           name: this.$t("price"),
           type: 'column',
-          data: price
-        },
-        {
+          scale: this.main.currency,
+          data: this.seriesData.map(d => Number(d.total_price || 0))
+        });
+      }
+      if(this.ability_warehouse_category_operation.allow_weight){
+        data.push({
           name: this.$t('weight'),
           type: 'area',
-          data: weight
-        },
-        {
+          scale: 'Kg',
+          data: this.seriesData.map(d => Number(d.total_weight || 0))
+        });
+      }
+      if(this.ability_warehouse_category_operation.allow_price){
+        data.push({
           name: this.$t('avg_price'),
           type: 'line',
-          data: avg
-        }
-      ]
+          scale: `${this.main.currency}/Kg`,
+          data: this.seriesData.map(d => Number(d.unit_price || 0))
+        });
+      }
+      return data;
+    },
+    chartColors: function () {
+      const colors = [];
+      if (this.ability_warehouse_category_operation.allow_price) {
+          colors.push('#00e396'); // Price - Green
+      }
+      if (this.ability_warehouse_category_operation.allow_weight) {
+          colors.push('#2196F3'); // Weight - Blue
+      }
+      if (this.ability_warehouse_category_operation.allow_price) {
+          colors.push('#feb019'); // Avg Price - Orange
+      }
+      return colors;
     },
 
     chartOptions() {
@@ -185,7 +217,7 @@ export default {
             curve: 'smooth',
             dashArray: [0, 0, 5]
         },
-        colors: ['#1c9ff8', '#00e396', '#feb019'],
+        colors: this.chartColors,
         markers: { size: 0 },
         grid: { show: false },
         xaxis: {
@@ -283,15 +315,12 @@ export default {
             show: true, formatter: (val) => this.main.formateDate(this.seriesData[val-1].date)},
           y: {
             formatter: (val, { seriesIndex }) => {
-              // nicer formatting depending on series
-              if (seriesIndex === 1) return `${this.main.formatDisplayNumber(val)} kg` // weight
-              return this.formatCurrency(val)
+              return `${this.main.formatDisplayNumber(val)} <small>${this.chartSeries[seriesIndex].scale}</small>`;
             }
           },
         }
       }
     },
-
     cardStyle () {
       // fixed size as requested
       return {
@@ -307,8 +336,14 @@ export default {
     formatCurrency (v) {
       return `${this.main.formatDisplayNumber(v)} ${this.main.currency}`
     },
+    closeDialog:function () {
+      this.dialog = false;
+    },
     showDialog() {
       this.dialog = true
+    },
+    filterDumpValue:function(value,allowed){
+      return allowed ? value : 0;
     },
     generateLastDays() {
       const dates = [];
@@ -363,6 +398,17 @@ export default {
   font-size: 13px;
   min-width: 60px;
   text-align: right;
+}
+
+.kpi-master{
+  height: 80% !important;
+}
+.disabled-text {
+  color: #9e9e9e;              /* grey */
+  text-decoration: line-through;
+  opacity: 0.7;                /* optional: softer look */
+  cursor: not-allowed;         /* optional UX hint */
+  user-select: none;           /* optional */
 }
 
 /* icons size tweak inside small card */

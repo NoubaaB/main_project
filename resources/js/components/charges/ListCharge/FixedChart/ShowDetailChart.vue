@@ -1,5 +1,13 @@
 <template>
     <v-card >
+        <v-card-title class="text-h6 shadow-sm text-center">
+            <v-btn @click="close" block rounded color="primary" variant="tonal" >
+                <v-icon class="mr-5">mdi-close-circle-outline</v-icon>
+                {{ $t('close') }}
+                {{ warehouse_category_operation_name }}
+            </v-btn>
+        </v-card-title>
+        <v-divider virtecal></v-divider>
         <v-card-text>
             <v-row>
                 <v-col>
@@ -42,7 +50,7 @@
         <v-divider ></v-divider>
         <v-card-actions>
             <v-row no-gutters class="text-center mb-2 mt-1">
-                <v-col>
+                <v-col v-if="ability_warehouse_category_operation.allow_price">
                     <v-chip color="green">
                         <span class="mr-2" >
                             <v-icon small class="mr-1" color="green lighten-1">mdi-cash</v-icon>
@@ -51,16 +59,16 @@
                         <strong >{{ main.formatDisplayNumber(summary.total_price) }} ({{main.currency}})</strong>
                     </v-chip>
                 </v-col>
-                <v-col>
+                <v-col v-if="ability_warehouse_category_operation.allow_weight">
                     <v-chip color="blue">
                         <span class="mr-2" >
-                            <v-icon small class="mr-1" color="green lighten-1">mdi-weight-kilogram</v-icon>
+                            <v-icon small class="mr-1" color="blue lighten-1">mdi-weight-kilogram</v-icon>
                             <span >{{$t("weight")}}</span>
                         </span>
                         <strong >{{ main.formatDisplayNumber(summary.total_weight) }} (Kg)</strong>
                     </v-chip>
                 </v-col>
-                <v-col>
+                <v-col v-if="ability_warehouse_category_operation.allow_package_type">
                     <v-chip color="purple">
                         <span class="mr-2" >
                             <v-icon small class="mr-1" color="green lighten-1">mdi-package-variant-closed</v-icon>
@@ -69,7 +77,7 @@
                         <strong >{{ main.formatDisplayNumberNonFloat(summary.total_package_count) }} (Un)</strong>
                     </v-chip>
                 </v-col>
-                <v-col>
+                <v-col v-if="ability_warehouse_category_operation.allow_price">
                     <v-chip color="orange">
                         <span class="mr-2" >
                             <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
@@ -85,7 +93,8 @@
 
 <script>
     import ApexCharts from 'vue3-apexcharts'
-    import { useMain } from '../../../stores/Main';
+    import { useMain } from '@/stores/Main';
+    import { useWarehouseCategoryOperation } from '@/stores/WarehouseCategoryOperation';
     import locals from "@/locales/apexcharts_local.js";
     export default {
         components: { ApexCharts },
@@ -115,7 +124,14 @@
             }    
         },
         computed: {
-            main: () => useMain(),       
+            main: () => useMain(),
+            warehouse_category_operation: () => useWarehouseCategoryOperation(),     
+            warehouse_category_operation_name: function () {
+                return this.warehouse_category_operation.getName(this.summary.warehouse_category_operation_id)
+            },
+            ability_warehouse_category_operation : function(){
+                return this.warehouse_category_operation.getList.find(e => e.id == this.summary.warehouse_category_operation_id);
+            },
             generateRange: function () {
                 const firstDate = _.minBy(this.details, o => new Date(o.date))?.date;
                 const latestDate = _.maxBy(this.details, o => new Date(o.date))?.date;
@@ -130,25 +146,133 @@
                     out.push(m.format(fmt));
                 }
                 return out;
-            },  
+            },
+            yaxisOptions: function () {
+                const yaxis = [];
+                if (this.ability_warehouse_category_operation.allow_price) {
+                    yaxis.push({
+                        seriesName: this.$t("price"),
+                        axisTicks: {
+                            show: true,
+                        },
+                        axisBorder: {
+                            show: true,
+                            color: '#00e396'
+                        },
+                        labels: {
+                            style: {
+                                colors: '#00e396',
+                            },
+                            formatter: (value) =>{
+                                return this.main.formatDisplayNumber(value); // Adds '$' and formats to 2 decimal places
+                            }
+                        },
+                        title: {
+                            text: this.$t("total_price_on", {currency:this.main.currency}),
+                            style: {
+                                color: '#00e396',
+                            }
+                        },
+                        tooltip: {
+                            enabled: true
+                        },
+                    });
+                }
+                if (this.ability_warehouse_category_operation.allow_weight) {
+                    yaxis.push({
+                        seriesName: this.$t("weight"),
+                        opposite: true,
+                        axisTicks: {
+                            show: true,
+                        },
+                        axisBorder: {
+                            show: true,
+                            color: '#2196F3'
+                        },
+                        labels: {
+                            style: {
+                                colors: '#2196F3',
+                            },
+                            formatter: (value) =>{
+                                return this.main.formatDisplayNumber(value); // Adds '$' and formats to 2 decimal places
+                            }
+                        },
+                        title: {
+                            text: this.$t("total_weight_on_kg"),
+                                style: {
+                                    color: '#2196F3',
+                                }
+                        },
+                        tooltip: {
+                            enabled: true
+                        },
+                    });
+                }
+                if (this.ability_warehouse_category_operation.allow_price) {
+                    yaxis.push({
+                        seriesName: this.$t("unit_price"),
+                        axisTicks: {
+                            show: true,
+                        },
+                        axisBorder: {
+                            show: true,
+                            color: '#feb019'
+                        },
+                        labels: {
+                            style: {
+                                colors: '#feb019',
+                            },
+                            formatter: (value) =>{
+                                return this.main.formatDisplayNumber(value); // Adds '$' and formats to 2 decimal places
+                            }
+                        },
+                        title: {
+                        text: this.$t("unit_price_on",{currency:this.main.currency}),
+                            style: {
+                                color: '#feb019',
+                            }
+                        }
+                    });
+                }
+                return yaxis;
+            },
             series: function () {
-                return [
-                 {
+                let data  = [];
+                if (this.ability_warehouse_category_operation.allow_price) {
+                    data.push({
                         name: this.$t("price"),
                         type: 'column',
                         data: this.getDataSeries("total_price",false)
-                    },
-                    {
+                    });
+                }
+                if (this.ability_warehouse_category_operation.allow_weight) {
+                    data.push({
                         name: this.$t("weight"),
                         type: 'area',
                         data: this.getDataSeries("total_weight",false)
-                    },
-                    {
+                    });
+                }
+                if (this.ability_warehouse_category_operation.allow_price) {
+                    data.push({
                         name: this.$t("avg_price"),
                         type: 'line',
                         data: this.getDataSeries("unit_price",true)
-                    },
-                ]
+                    });
+                }
+                return data;
+            },
+            chartColors: function () {
+                const colors = [];
+                if (this.ability_warehouse_category_operation.allow_price) {
+                    colors.push('#00e396'); // Price - Green
+                }
+                if (this.ability_warehouse_category_operation.allow_weight) {
+                    colors.push('#2196F3'); // Weight - Blue
+                }
+                if (this.ability_warehouse_category_operation.allow_price) {
+                    colors.push('#feb019'); // Avg Price - Orange
+                }
+                return colors;
             },
             chartOptions: function () {
                 return {
@@ -182,7 +306,7 @@
                         },
                     },
 
-                    colors: ['#1c9ff8', '#00e396', '#feb019'],
+                    colors: this.chartColors,
                     dataLabels: {
                         enabled: false
                     },
@@ -217,93 +341,16 @@
                     xaxis: {
                         type: "datetime"
                     },
-                    yaxis: [
-                            {
-                                seriesName: this.$t("weight"),
-                                opposite: true,
-                                axisTicks: {
-                                    show: true,
-                                },
-                                axisBorder: {
-                                    show: true,
-                                    color: '#00e396'
-                                },
-                                labels: {
-                                    style: {
-                                        colors: '#00e396',
-                                    },
-                                    formatter: (value) =>{
-                                        return this.main.formatDisplayNumber(value); // Adds '$' and formats to 2 decimal places
-                                    }
-                                },
-                                title: {
-                                    text: this.$t("total_weight_on_kg"),
-                                        style: {
-                                            color: '#00e396',
-                                        }
-                                },
-                                tooltip: {
-                                    enabled: true
-                                },
-                            },
-                            {
-                                seriesName: this.$t("price"),
-                                axisTicks: {
-                                    show: true,
-                                },
-                                axisBorder: {
-                                    show: true,
-                                    color: '#1c9ff8'
-                                },
-                                labels: {
-                                    style: {
-                                        colors: '#1c9ff8',
-                                    },
-                                    formatter: (value) =>{
-                                        return this.main.formatDisplayNumber(value); // Adds '$' and formats to 2 decimal places
-                                    }
-                                },
-                                title: {
-                                    text: this.$t("total_price_on", {currency:this.main.currency}),
-                                    style: {
-                                        color: '#1c9ff8',
-                                    }
-                                },
-                                tooltip: {
-                                    enabled: true
-                                },
-                            },
-                            {
-                                seriesName: this.$t("unit_price"),
-                                axisTicks: {
-                                    show: true,
-                                },
-                                axisBorder: {
-                                    show: true,
-                                    color: '#feb019'
-                                },
-                                labels: {
-                                    style: {
-                                        colors: '#feb019',
-                                    },
-                                    formatter: (value) =>{
-                                        return this.main.formatDisplayNumber(value); // Adds '$' and formats to 2 decimal places
-                                    }
-                                },
-                                title: {
-                                text: this.$t("unit_price_on",{currency:this.main.currency}),
-                                    style: {
-                                        color: '#feb019',
-                                    }
-                                }
-                            },
-                    ]
+                    yaxis: this.yaxisOptions,
                 }
             },
         },
         methods: {
             formatCurrency(v) {
                 return `${this.main.formatDisplayNumber(v)} ${this.main.currency}`
+            },
+            close: function () {
+                this.$emit('closeDialog');
             },
             getDataSeries: function (prop,is_divided=false) {
                 const periods = this.generateRange;
@@ -321,7 +368,6 @@
                     _.sumBy(grouped[p] || [], it => {
                         
                         const n = Number(_.get(it, prop, 0));
-                        // console.log("grouped.length",prop,grouped[p].length,Number.isFinite(n) ? n : 0,is_divided)
                         if (is_divided) {
                             return (Number.isFinite(n) ? n : 0)/grouped[p].length;
                         }

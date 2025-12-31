@@ -12,49 +12,54 @@
     
     <!-- main start -->
     <v-container max-width="1400" class="ma-auto" :class="{'py-15':auth.is_auth,'py-5':!auth.is_auth}" style="position: relative">
-      <router-view />
-      <v-snackbar
-        v-model="main.snackbar.show"
-      >
-        {{ main.snackbar.message }}
+  <router-view v-slot="{ Component }">
+    <!-- keep-alive only when route.meta.keepAlive is true -->
+    <keep-alive>
+      <component :is="Component"/>
+    </keep-alive>
 
-        <template v-slot:actions>
-          <v-btn
-            :color="main.snackbar.color"
-            variant="text"
-            @click="main.snackbar.show = false"
-          >
-            {{ $t("close") }}
-          </v-btn>
-        </template>
-      </v-snackbar>
+    <!-- render normally when not cached -->
+  </router-view>
+
     </v-container>
+    <v-snackbar
+      v-model="main.snackbar.show"
+    >
+      {{ main.snackbar.message }}
+
+      <template v-slot:actions>
+        <v-btn
+          :color="main.snackbar.color"
+          variant="text"
+          @click="main.snackbar.show = false"
+        >
+          {{ $t("close") }}
+        </v-btn>
+      </template>
+    </v-snackbar>
     <!-- main end -->
-    <AiButton/>
+    <AiAssistant v-if="auth.is_auth"/>
   </v-app>
 </template>
 
 <script>
   import SnackBar from "@/components/schema/SnackBar.vue" ;
-  import AiButton from "@/components/schema/AiButton.vue" ;
+  import AiAssistant from "@/components/schema/AiAssistant.vue" ;
   import NavigationDrawer from "@/components/schema/NavigationDrawer.vue" ;
   import SystemBar from "@/components/schema/SystemBar.vue" ;
   import  { useAuth } from "@/stores/Auth";
   import {useMain} from "@/stores/Main";
+
   export default {
       components: {
         SnackBar,
         NavigationDrawer,
         SystemBar,
-        AiButton
+        AiAssistant
       },
       computed:{
-        auth: function () {
-          return useAuth();
-        },
-        main: function () {
-          return useMain();
-        }
+        auth: () => useAuth(),
+        main : () => useMain()
       }
   }
 </script>

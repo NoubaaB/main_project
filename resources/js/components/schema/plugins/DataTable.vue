@@ -22,7 +22,7 @@
     >
       <template v-slot:top>
         <v-row class="mx-1">
-          <v-col>
+          <v-col class="text-center" cols="2">
             <v-btn
               v-if="hiddenHeaderKeys.length>0"
               small
@@ -36,7 +36,8 @@
               <v-icon class="mr-1">mdi-table-headers-eye</v-icon>
               {{ $t("reset_header") }} ({{ hiddenHeaderKeys.length }})
             </v-btn>
-
+          </v-col>
+          <v-col class="text-center" cols="2">
             <!-- EXPORT BUTTON -->
             <v-btn
               color="success"
@@ -51,6 +52,96 @@
               <v-icon class="mr-1">mdi-file-excel</v-icon>
               {{ $t('export') }} ({{ items_selected.length }})
             </v-btn>
+          </v-col>
+          <v-col class="text-center" cols="2">
+            <!-- INVOICE BUTTON -->
+            <v-btn
+              color="amber"
+              variant="tonal"
+              small
+              rounded
+              class="ml-2"
+              :disabled="invoices_selected.length === 0 || loading"
+              @click="submitToinvoice"
+              :title="$t('export_selected_to_excel')"
+            >
+              <v-icon class="mr-1">mdi-file-excel</v-icon>
+              {{ $t('invoice') }} ({{ invoices_selected.length }})
+            </v-btn>
+          </v-col>
+          <v-col class="text-center" cols="2">
+                <DatePicker
+                  :is-dark="main.is_dark"
+                  :max-date="new Date()"
+                  v-model="invoice_date"
+                  :locale="main.lang.short"
+                  mode="date"
+                >
+                  <template #default="{ inputEvents }">
+                    <v-text-field
+                      :label="$t('invoice_date')"
+                      density="compact"
+                      variant="outlined"
+                      rounded
+                      readonly
+                      color="info"
+                      type="text" 
+                      :model-value="main.formateDate(invoice_date)" 
+                      v-on="inputEvents"
+                      append-inner-icon="mdi-calendar"
+                      >
+                    </v-text-field>
+                  </template>
+                </DatePicker>            
+          </v-col>
+          <v-col>
+              <v-autocomplete
+                v-model="invoice_filters"
+                :items="invoice_filters_items"
+                item-title="name"
+                item-value="value"
+                multiple
+                chips
+                closable-chips
+                clearable
+                density="compact"
+                hide-details
+                :placeholder="$t('filter_invoices')"
+                variant="outlined"
+                rounded
+                class="text-info header-filter"
+                :prepend-inner-icon="invoice_filters.length>0? 'mdi-filter' :'mdi-filter-outline'"
+              >
+                <template v-slot:chip="{ props, item }">
+                  <v-chip
+                    v-bind="props"
+                    class="text-white"
+                    color="info accent-4"
+                    closable
+                    variant="tonal"
+                  >
+                    {{ item.title }}
+                  </v-chip>
+                </template>
+                <template v-slot:item="{ props, item }">
+                  <v-list-item
+                    v-bind="props"
+                    @click="props.onClick"
+                    class="text-info"
+                    :title="item.title"
+                    :append-icon="item.raw.icon"
+                    :base-color="item.raw.color"
+                    :bg-color="item.raw.color"
+                    :color="item.raw.color"
+                  >
+                    <template v-slot:prepend="{ isSelected, select }">
+                      <v-list-item-action start>
+                        <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                      </v-list-item-action>
+                    </template>
+                  </v-list-item>
+                </template>
+              </v-autocomplete>
           </v-col>
         </v-row>
       </template>
@@ -78,6 +169,7 @@
       <!-- ROW SELECT -->
       <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
         <v-checkbox-btn
+          v-if="internalItem.raw.allow_invoice"
           :model-value="isSelected(internalItem)"
           color="info"
           @update:model-value="toggleSelect(internalItem)"
@@ -231,10 +323,23 @@
                   </template>
                 </v-autocomplete>
 
-                <v-chip v-else-if="col.key != 'data-table-expand'" color="info" class="mt-1 header-total">
+                <v-chip v-else-if="allowed_sigma(col.key)" color="info" class="mt-1 header-total">
                   <v-icon>mdi-sigma</v-icon> =
                   {{ get_total(col.key) }}
                 </v-chip>
+                <div v-if="invoice_prop == col.key" >
+                  <v-chip color="success" class="mt-1 header-total">
+                    <v-icon>mdi-sigma</v-icon> =
+                    {{ get_total_invoice() }}
+                    <v-icon class="ml-1">mdi-printer-check</v-icon>
+                  </v-chip>
+                  <v-divider class="mt-1"></v-divider>
+                  <v-chip color="warning" class="mt-1 header-total">
+                    <v-icon>mdi-sigma</v-icon> =
+                    {{ get_total_none_invoice() }}
+                    <v-icon class="ml-1">mdi-printer-pos-cog</v-icon>
+                  </v-chip>
+                </div>
               </div>
             </div>
           </th>
@@ -266,6 +371,7 @@
 import { useMain } from '@/stores/Main';
 import * as XLSX from 'xlsx'
 import { nextTick } from 'vue'
+import { Parser } from 'expr-eval';
 
 const NULL_VALUE = '__NULL__'
 
@@ -276,6 +382,8 @@ export default {
     date: Object,
     filters: Object,
     items: Array,
+    sigma: Array,
+    invoice_prop: String,
     fetchData: Function,
     headers: { type: Array, required: true }
   },
@@ -288,7 +396,7 @@ export default {
       hiddenHeaderKeys: [],
       defaultHeaderKeys: [],
       pinnedHeaderKeys: ['data-table-select'],
-      // pinnedHeaderKeys: ['data-table-select','data-table-expand'],
+      pinnedHeaderKeys: ['data-table-select','allow_invoice'],
       sortOrders: [],
       pinnedCss: '',
 
@@ -297,7 +405,12 @@ export default {
 
       // drag state
       draggingKey: null,
-      dragOverKey: null
+      dragOverKey: null,
+
+      //invoice
+      invoice_date: new Date(),
+      invoice_expression: "1 == 1",
+      invoice_filters: [],
     }
   },
 
@@ -321,7 +434,32 @@ export default {
 
   computed: {
     main: () => useMain(),
-
+    parser: () => new Parser(),
+    invoices_selected: function () {
+      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice).map(i => i.id);
+    },
+    invoice_filters_items: function () {
+      return [
+        {
+          name: this.$t('overhead_costs'),
+          value: "(allow_invoice == 0)",
+          color:"none",
+          icon:"mdi-printer-pos-cancel"
+        },
+        {
+          name: this.$t('pending_invoice'),
+          value: "(allow_invoice == 1 and invoice_id)",
+          color:"success",
+          icon:"mdi-printer-check"
+        },
+        {
+          name: this.$t('outstanding_invoices'),
+          value: "(allow_invoice == 1 and not invoice_id)",
+          color:"warning",
+          icon:"mdi-printer-pos-cog"
+        },
+      ]
+    },
     // original visible headers by prop order
     visibleHeaders () {
       return this.headers.filter(h => !this.hiddenHeaderKeys.includes(h.key))
@@ -344,10 +482,15 @@ export default {
             return val.some(v => selected.includes(v)) ||
                    (val.length === 0 && selected.includes(NULL_VALUE))
           }
-
           return selected.includes(val)
         })
-      )
+      ).filter(e => {
+        let invoice_expression = this.invoice_filters.join(' or ');
+        if (invoice_expression.length == 0) {
+          return true
+        }
+        return this.parser.evaluate( invoice_expression, {invoice_id : e.invoice_id , allow_invoice : e.allow_invoice})
+      })
     },
 
     sortedFilteredItems () {
@@ -496,6 +639,18 @@ export default {
     get_total (key) {
       return this.main.formatDisplayNumber(
         this.filteredItems.reduce((a, b) => a + (+b[key] || 0), 0)
+      )
+    },
+
+    get_total_invoice () {
+      return this.main.formatDisplayNumber(
+        this.filteredItems.filter(e=>e.allow_invoice).reduce((a, b) => a + (+b.total_price || 0), 0)
+      )
+    },
+
+    get_total_none_invoice () {
+      return this.main.formatDisplayNumber(
+        this.filteredItems.filter(e=>!e.allow_invoice).reduce((a, b) => a + (+b.total_price || 0), 0)
       )
     },
 
@@ -830,6 +985,19 @@ export default {
 
       const filename = `export_charge_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
       XLSX.writeFile(wb, filename)
+    },
+    submitToinvoice: function () {
+      if (!this.invoices_selected || !this.invoices_selected.length) {
+        console.warn('No rows selected to export')
+        return
+      }
+    },
+    allowed_sigma(key) {
+      const sigma_allowed = this.sigma;
+      if (sigma_allowed.includes(key)) {
+        return key;
+      }
+      return null;
     }
   }
 }

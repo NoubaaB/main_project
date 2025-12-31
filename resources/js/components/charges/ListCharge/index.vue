@@ -8,7 +8,7 @@
       <v-row>
         <v-col cols="3">
           <!-- DATE -->
-          <VDatePicker
+          <DatePicker
             :is-dark="main.is_dark"
             :max-date="new Date()"
             v-model.range="date"
@@ -41,12 +41,16 @@
         </v-col>
         <v-col style="overflow-y: auto; max-height: 47vh !important;">
             <div class="d-flex align-content-end flex-wrap " >
-                <WarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_fetched_warehouse_category_operation_list"
+              <CustomChartWarehouseCategoryOpration v-for="formula in charge.get_formulas_list" :key="formula.id" :formula="formula"/>
+            </div>
+            <div class="d-flex align-content-end flex-wrap " >
+                <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_fetched_warehouse_category_operation_list"
                  :key="warehouse_category_operation.id" 
+                 :id="warehouse_category_operation.id"
                  :data="warehouse_category_operation"
                  :date="date"
                  /> 
-                 <WarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_placeholder_warehouse_category_operation_list"
+                 <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_placeholder_warehouse_category_operation_list"
                  :key="warehouse_category_operation.id" 
                  :id="warehouse_category_operation.id"
                  />
@@ -59,6 +63,8 @@
      :relations="relations"
      :filters="filters"
      :items="items"
+     :sigma="sigma"
+     :invoice_prop="invoice_prop"
      :date="date"
      :headers="headers"
      :fetchData="fetchCharge"
@@ -135,13 +141,37 @@
         <template v-slot:[`item.total_price`]="{ item }">
           {{ main.formatDisplayNumber(item.total_price) }}
         </template>
+
+        <template v-slot:[`item.allow_invoice`]="{ item }">
+          <template v-if="item.allow_invoice">
+            <v-chip
+              :color="item.invoice_id == null ? 'green' : 'warning'"
+              class="ma-1"
+            >
+              <v-icon>
+                {{ item.invoice_id == null ? "mdi-printer-check" : "mdi-printer-pos-cog" }}
+              </v-icon>
+            </v-chip>
+          </template>
+          <template v-else>
+            <v-chip
+              color="gray"
+              class="ma-1"
+            >
+              <v-icon>
+                mdi-printer-pos-cancel
+              </v-icon>
+            </v-chip>
+          </template>
+        </template>
     </DataTable>
   </v-card>
 </template>
 
 <script>
   import DataTable from '../../schema/plugins/DataTable.vue';
-  import WarehouseCategoryOpration from './WarehouseCategoryOpration.vue';
+  import FixedChartWarehouseCategoryOpration from './FixedChart/WarehouseCategoryOpration.vue';
+  import CustomChartWarehouseCategoryOpration from './CustomChart/WarehouseCategoryOpration.vue';
 
   import { useMain } from '@/stores/Main';
   import { useSupplier } from '@/stores/Supplier';
@@ -153,7 +183,8 @@
   export default {
     components: {
       DataTable,
-      WarehouseCategoryOpration
+      FixedChartWarehouseCategoryOpration,
+      CustomChartWarehouseCategoryOpration
     },
     data:function(){
       return {
@@ -172,6 +203,9 @@
           end: new Date(2025, 11, 17)
         },
       }
+  },
+    mounted: function () {
+      console.log("Mounted ListCharge.vue",this.charge.get_charts_formulas);
     },
     computed:{
         main: () => useMain(),
@@ -185,6 +219,12 @@
         },
         items: function(){
           return this.charge.charge_fetch_items
+        },
+        sigma: function(){
+          return ['total_price','total_weight'];
+        },
+        invoice_prop: function(){
+          return "allow_invoice";
         },
         charge_categories: () => useChargeCategory().getList,
         relations:function(){
@@ -208,6 +248,7 @@
             { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },
             { align : "center" , title: this.$t("origin"), key: 'origin_id' , visible:true },
             { align : "center" , title: this.$t("fishery"), key: 'fishery_id' , visible:false },
+            { align : "center" , title: this.$t("status"), key: 'allow_invoice' , visible:true },
             { key: 'data-table-expand', align: 'end', visible: true }
             
           ]

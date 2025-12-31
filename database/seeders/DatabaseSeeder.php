@@ -23,6 +23,7 @@ use App\Models\PackageType;
 use App\Models\SellCategory;
 use App\Models\ChargeCategory;
 use App\Models\FishProcessType;
+use App\Models\Formula;
 use Illuminate\Database\Seeder;
 use App\Models\WarehouseCategory;
 use App\Models\WarehouseCategoryOperation;
@@ -44,6 +45,177 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@test.com',
             "role_id" => 1
         ]);
+
+        #region formula
+        Formula::create([
+            "name_fr"=>"Rendement Guano ",
+            "name_en"=>"Rendement Guano ",
+            "name_es"=>"Rendement Guano ",
+            "description"=>"Rendement for Guano",
+            "enabled"=>true,
+            "type"=>"charge",
+            "created_by"=>1,
+            "expressions"=> [
+                [
+                        "expression" => "cc1_weight",
+                        "chart_config" => [
+                            "chart_color" => "#0743acb6",
+                            "chart_type" => "area",
+                            "opposite" => true,
+                            "name_fr" => "HGT Qte",
+                            "name_en" => "HGT Qte",
+                            "name_es" => "HGT Qte",
+                            "scale"=>"KG",
+                            "mdi_icon"=> "mdi-weight-kilogram",
+                            "display_yaxis"=>true,
+                            "use_avg"=>false
+                        ],
+                        "variables" => [
+                            [
+                                "alias" => "cc1_weight",
+                                "kind" => "charge",
+                                "category_id" => 1,
+                                "stockable_type" => null,
+                                "stockable_id" => null,
+                                "field" => "total_weight"
+                            ]
+                    ]
+                ],
+                [
+                        "expression" => "(cc1_weight / cc2_weight)*100",
+                        "chart_config" => [
+                            "chart_color" => "#330099ff",
+                            "chart_type" => "column",
+                            "opposite" => false,
+                            "name_fr" => "Entier",
+                            "name_en" => "Entier",
+                            "name_es" => "Entier",
+                            "scale"=>"%",
+                            "mdi_icon"=>"mdi-percent",
+                            "display_yaxis"=>true,
+                            "use_avg"=>true
+                        ],
+                        "variables" => [
+                            [
+                                "alias" => "cc1_weight",
+                                "kind" => "charge",
+                                "category_id" => 3,
+                                "stockable_type" => class_basename(GuanoType::class),
+                                "stockable_id" => 1,
+                                "field" => "total_weight"
+                            ],
+                            [
+                                "alias" => "cc2_weight",
+                                "kind" => "charge",
+                                "category_id" => 1,
+                                "stockable_type" => null,
+                                "stockable_id" => null,
+                                "field" => "total_weight"
+                            ]
+                    ]
+                ],
+                [
+                        "expression" => "(cc1_weight / cc2_weight)*100",
+                        "chart_config" => [
+                            "chart_color" => "#1eaeecff",
+                            "chart_type" => "column",
+                            "opposite" => false,
+                            "name_fr" => "HGT",
+                            "name_en" => "HGT",
+                            "name_es" => "HGT",
+                            "scale"=>"%",
+                            "mdi_icon"=>"mdi-percent",
+                            "display_yaxis"=>false,
+                            "use_avg"=>true
+                        ],
+                        "variables" => [
+                            [
+                                "alias" => "cc1_weight",
+                                "kind" => "charge",
+                                "category_id" => 3,
+                                "stockable_type" => class_basename(GuanoType::class),
+                                "stockable_id" => 2,
+                                "field" => "total_weight"
+                            ],
+                            [
+                                "alias" => "cc2_weight",
+                                "kind" => "charge",
+                                "category_id" => 1,
+                                "stockable_type" => null,
+                                "stockable_id" => null,
+                                "field" => "total_weight"
+                            ]
+                    ]
+                ],
+                // [
+                //         "expression" => "(cc1_weight / cc2_weight)*100",
+                //         "chart_config" => [
+                //             "chart_color" => "#c5f51aff",
+                //             "chart_type" => "column",
+                //             "opposite" => false,
+                //             "name_fr" => "HG",
+                //             "name_en" => "HG",
+                //             "name_es" => "HG",
+                //             "scale"=>"%",
+                //             "mdi_icon"=>"mdi-percent",
+                //             "display_yaxis"=>false,
+                //             "use_avg"=>true
+                //         ],
+                //         "variables" => [
+                //             [
+                //                 "alias" => "cc1_weight",
+                //                 "kind" => "charge",
+                //                 "category_id" => 3,
+                //                 "stockable_type" => class_basename(GuanoType::class),
+                //                 "stockable_id" => 3,
+                //                 "field" => "total_weight"
+                //             ],
+                //             [
+                //                 "alias" => "cc2_weight",
+                //                 "kind" => "charge",
+                //                 "category_id" => 1,
+                //                 "stockable_type" => null,
+                //                 "stockable_id" => null,
+                //                 "field" => "total_weight"
+                //             ]
+                //     ]
+                // ],
+                // [
+                //         "expression" => "(cc1_weight / cc2_weight)*100",
+                //         "chart_config" => [
+                //             "chart_color" => "#17ea33ff",
+                //             "chart_type" => "column",
+                //             "opposite" => false,
+                //             "name_fr" => "Filet",
+                //             "name_en" => "Filet",
+                //             "name_es" => "Filet",
+                //             "scale"=>"%",
+                //             "mdi_icon"=>"mdi-percent",
+                //             "display_yaxis"=>false,
+                //             "use_avg"=>true
+                //         ],
+                //         "variables" => [
+                //             [
+                //                 "alias" => "cc1_weight",
+                //                 "kind" => "charge",
+                //                 "category_id" => 3,
+                //                 "stockable_type" => class_basename(GuanoType::class),
+                //                 "stockable_id" => 4,
+                //                 "field" => "total_weight"
+                //             ],
+                //             [
+                //                 "alias" => "cc2_weight",
+                //                 "kind" => "charge",
+                //                 "category_id" => 1,
+                //                 "stockable_type" => null,
+                //                 "stockable_id" => null,
+                //                 "field" => "total_weight"
+                //             ]
+                //     ]
+                // ]
+            ],
+        ]);
+        #endregion formula
 
         #region Fixed Charges and Type Charges Seeders
         FixedCharge::create([
@@ -71,6 +243,15 @@ class DatabaseSeeder extends Seeder
             "name_in_invoice" => "Guano HGT",
             "scientific_name" => "Guano HGT",
             "description" => "Guano HGT",
+        ]);
+
+        $guano_type_hg = GuanoType::create([
+            "name_fr" => "Guano HG",
+            "name_en" => "Guano HG",
+            "name_es" => "Guano HG",
+            "name_in_invoice" => "Guano HG",
+            "scientific_name" => "Guano HG",
+            "description" => "Guano HG",
         ]);
 
         $guano_type_filet= GuanoType::create([
@@ -101,6 +282,19 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Congele",
             "name_fr" => "Congele",
             "name_es" => "Congele",
+            "enable_tracking_numbers" => true,
+            "enable_fishery_id" => true,
+            "enable_ship_id" => true,
+            "enable_origin_id" => true,
+            "enable_supplier_process_id" => true,
+            "enable_tracking_onp_numbers" => true
+        ]);
+
+        $charge_category_guano_production =  ChargeCategory::factory()->create([
+            "description" => "Guano Production",
+            "name_en" => "Guano Production",
+            "name_fr" => "Guano Production",
+            "name_es" => "Guano Production",
             "enable_tracking_numbers" => true,
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
@@ -251,7 +445,6 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Vente Service Congelation",
             "name_fr" => "Vente Service Congelation",
             "name_es" => "Vente Service Congelation",
-            "list_type_details" => 1,
         ]);
         #endregion sell_category
 
@@ -338,7 +531,6 @@ class DatabaseSeeder extends Seeder
                     ]);
                 }
             }
-
 
             $path = ('storage/csv/origins.csv');
 
@@ -433,7 +625,89 @@ class DatabaseSeeder extends Seeder
                 }
             }
 
-            // return ;
+        // return ;
+            $path = ('storage/csv/guano_usines.csv');
+
+            $rows = CsvReader::read($path);
+            foreach ($rows as $data) {
+                $charge = Charge::create([
+                    "date" => $data["date_sortie"],
+                    "tracking_numbers" => [(string)$data["num_bon_sortie"]],
+                    "origin_id" => null,
+                    "fishery_id" => null,
+                    "charge_category_id" => $charge_category_guano_production->id,
+                    "ship_id" => null,
+                ]);
+
+                $suppliers = Supplier::find($data["provider_id"]);
+                $charge->suppliers()->attach($suppliers);
+                foreach (json_decode($data["types_sortie"]) as $item) {
+                    $warehouse = Warehouse::find(35);
+                    $search_item = $item->type_id;
+                    $item_type_id = collect([
+                        [
+                            "id"=>1,
+                            "name"=>"Entier",
+                        ],
+                        [
+                            "id"=>2,
+                            "name"=>"HGT",
+                        ],
+                        [
+                            "id"=>3,
+                            "name"=>"HG",
+                        ],
+                        [
+                            "id"=>4,
+                            "name"=>"Filet",
+                        ],
+                    ])->first(function ($item) use ($search_item) {
+                        return strcasecmp($item['name'], $search_item) === 0;
+                    })['id'];
+                    $warehouse_stockable = $warehouse->warehouse_stockables()->
+                    whereHasMorph('stockable', [class_basename(GuanoType::class)], fn($query)=> $query->where('stockable_id', $item_type_id))
+                    ->first();
+                    
+                    if (isset($warehouse_stockable)==false) {
+
+                        $warehouse_stockable = $warehouse->warehouse_stockables()->create([
+                            "unit_price" => 0.00,
+                            "total_weight" => 0.00,
+                            "total_price" => 0.00,
+                            "total_package_count" => 0.00,
+                            "warehouse_id" => $warehouse->id,
+                            "stockable_id" => $item_type_id,
+                            "stockable_type" => class_basename(GuanoType::class)
+                        ]);
+                    }
+                    $warehouse_stockable_tracking_number = null;
+                    if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data['num_bon_sortie'])->count() != 1) {
+                        $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data['num_bon_sortie']);
+                    }
+                    $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->create([
+                        "tracking_numbers" => [(string)$data['num_bon_sortie']],
+                        "unit_price" => 0.00,
+                        "total_weight" => 0.00,
+                        "total_price" => 0.00,
+                        "total_package_count" => 0.00,
+                        "warehouse_stockable_id" => $warehouse_stockable->id,
+                    ]);
+    
+                    $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
+                        "type_operation" => "in",
+                        "date" => $charge->date,
+                        "unit_price" => $item->pu,
+                        "total_weight" => $item->weight,
+                        "total_price" => $item->weight * $item->pu,
+                        "warehouse_category_operation_id" => $warehouse_category_operation_guano_production->id,
+                        "stockable_id" => $item_type_id,
+                        "stockable_type" => class_basename(GuanoType::class)
+                    ]);
+                    // $warehouse->calc();
+                    $charge->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
+                }
+                $charge->calc();
+            }
             
             $path = ('storage/csv/frais.csv');
     
@@ -453,7 +727,7 @@ class DatabaseSeeder extends Seeder
                 foreach (json_decode($data["types_reception"]) as $item) {
                     $charge->non_warehouse_stockable_operations()->create([
                         "date" => $data["date_reception"],
-                        "stockable_type" => "FishType",
+                        "stockable_type" => class_basename(FishType::class),
                         "stockable_id" => $item->type_id,
                         "package_type_id" => null,
     
@@ -466,6 +740,7 @@ class DatabaseSeeder extends Seeder
                 }
                 $charge->calc();
             }
+
             $path = ('storage/csv/congeles.csv');
     
             $rows = CsvReader::read($path);
@@ -486,7 +761,7 @@ class DatabaseSeeder extends Seeder
                 foreach (json_decode($data["types_production"]) as $item) {
                     $warehouse = Warehouse::find($item->chambre_id);
                     $warehouse_stockable = $warehouse->warehouse_stockables()->
-                    whereHasMorph('stockable', [FishType::class], fn($query)=> $query->where('stockable_id', $item->type_id))
+                    whereHasMorph('stockable', [class_basename(FishType::class)], fn($query)=> $query->where('stockable_id', $item->type_id))
                     ->first();
                     
                     if (isset($warehouse_stockable)==false) {
@@ -497,7 +772,7 @@ class DatabaseSeeder extends Seeder
                             "total_package_count" => 0.00,
                             "warehouse_id" => $warehouse->id,
                             "stockable_id" => $item->type_id,
-                            "stockable_type" => FishType::class
+                            "stockable_type" => class_basename(FishType::class)
                         ]);
                     }
 
@@ -523,6 +798,9 @@ class DatabaseSeeder extends Seeder
                         "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
                         "package_type_id" => $item->container_id,
                         "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
+                        "stockable_id" => $item_type_id,
+                        "stockable_type" => class_basename(FishType::class)
+
                     ]);
                     // $warehouse->calc();
                     $charge->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
@@ -547,7 +825,7 @@ class DatabaseSeeder extends Seeder
                 foreach (json_decode($data["types_production"]) as $item) {
                     $warehouse = Warehouse::find($item->chambre_id);
                     $warehouse_stockable = $warehouse->warehouse_stockables()->
-                    whereHasMorph('stockable', [FishType::class], fn($query)=> $query->where('stockable_id', $item->type_id))
+                    whereHasMorph('stockable', [class_basename(FishType::class)], fn($query)=> $query->where('stockable_id', $item->type_id))
                     ->first();
                     
                     if (isset($warehouse_stockable)==false) {
@@ -558,7 +836,7 @@ class DatabaseSeeder extends Seeder
                             "total_package_count" => 0.00,
                             "warehouse_id" => $warehouse->id,
                             "stockable_id" => $item->type_id,
-                            "stockable_type" => FishType::class
+                            "stockable_type" => class_basename(FishType::class)
                         ]);
                     }
 
@@ -585,6 +863,9 @@ class DatabaseSeeder extends Seeder
                     "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
                     "package_type_id" => $item->container_id,
                     "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
+                    "stockable_id" => $item_type_id,
+                    "stockable_type" => class_basename(FishType::class)
+
                 ]);
                 // $warehouse->calc();
                 $sell->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
@@ -599,7 +880,6 @@ class DatabaseSeeder extends Seeder
                 "name_en" => "Sortie Stock Client",
                 "name_fr" => "Sortie Stock Client",
                 "name_es" => "Sortie Stock Client",
-                "list_type_details" => 1,
             ]);
     
             $rows = CsvReader::read($path);
@@ -618,7 +898,7 @@ class DatabaseSeeder extends Seeder
                 $sell->clients()->attach($clients);
                 foreach (json_decode($data["types_sortie"]) as $item) {
                     $warehouse = Warehouse::find($item->chambre_id);
-                    $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class], fn($query) => $query->where('stockable_id', $item->type_id))
+                    $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [class_basename(FishType::class)], fn($query) => $query->where('stockable_id', $item->type_id))
                         ->first();
 
                     if (isset($warehouse_stockable) == false) {
@@ -629,7 +909,7 @@ class DatabaseSeeder extends Seeder
                             "total_package_count" => 0.00,
                             "warehouse_id" => $warehouse->id,
                             "stockable_id" => $item->type_id,
-                            "stockable_type" => FishType::class
+                            "stockable_type" => class_basename(FishType::class)
                         ]);
                     }
 
@@ -656,6 +936,9 @@ class DatabaseSeeder extends Seeder
                         "total_package_count" => round($item->weight / PackageType::find($item->container_id)->size, 2),
                         "package_type_id" => $item->container_id,
                         "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
+                        "stockable_id" => $item_type_id,
+                        "stockable_type" => class_basename(FishType::class)
+
                     ]);
                     // $warehouse->calc();
                     $sell->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);

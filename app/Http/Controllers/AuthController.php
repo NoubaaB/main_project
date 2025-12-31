@@ -9,6 +9,7 @@ use App\Models\Fishery;
 use App\Models\PackageType;
 use App\Models\FishType;
 use App\Models\ChargeCategory;
+use App\Models\Formula;
 use App\Models\GuanoType;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -205,6 +206,7 @@ class AuthController extends Controller implements HasMiddleware
         $origins = Origin::all();
         $charge_categories = ChargeCategory::all();
         $warehouse_category_operations = WarehouseCategoryOperation::all();
+        $formulas = Formula::all();
         return [
             "suppliers" => $suppliers,
             "ships" => $ships,
@@ -216,6 +218,7 @@ class AuthController extends Controller implements HasMiddleware
             "warehouse_category_operations" => $warehouse_category_operations,
             "fisheries" => $fisheries,
             "origins" => $origins,
+            "formulas" => $formulas
         ];
     }
 }

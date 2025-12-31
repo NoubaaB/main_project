@@ -14,12 +14,12 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AIAssistantController extends Controller
 {
-    private $gemini = null;
+    private $ai_agent = null;
 
     public function __construct()
     {
-        // $this->gemini = new GeminiService();
-        $this->gemini = new CustomService();
+        // $this->ai_agent = new GeminiService();
+        $this->ai_agent = new CustomService();
     }
 
     public function ask(Request $request)
@@ -50,11 +50,13 @@ class AIAssistantController extends Controller
             - Do not show your reasoning.
             - Generate only one final output: a valid MySQL query that answers the user’s request.
             - Do not include markdown, explanations, or extra text — only return the raw SQL query.
+            - Ensure the query is syntactically correct and executable.
+            - select only the necessary tables and columns to answer the question and select also relationships tables if you uses.
 
             User question: {$question}, and use previous conversation that you and user have made to understand the context : {$messages}.
         ";
 
-        $sqlQuery = $this->gemini->generate($text);
+        $sqlQuery = $this->ai_agent->generate($text);
         if (!$sqlQuery) {
             return $sqlQuery;
         }
@@ -69,21 +71,21 @@ class AIAssistantController extends Controller
         // Get all table names from DB
 
         $text = "
-            You are a Moroccan AI agent and a professional SQL data analyst.
+            You are a Moroccan AI agent and a professional SQL data analyst and front-end developer, developed by Elbachir Noubaa.
             don't fake data if local data is empty , if data is empty or NULL just write 'no data Availabel'.
             You are provided with the database schema and table relationships: {$schema}
-            Based on:
-            - the local data: [$result]
+            Based on local data that you already selected: [$result].
+            use the data as single source of truth to answer the question.
             - and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
-
-            Answer the question: ['$question'] , and use previous conversation that you and user have made to understand the context : {$messages}..
-            
-            give me pure plain text without any comments, just response about the question 
-        ";
+            - detect user's language from the question and answer him in the same language.
+            - format any nymber like this example '3 000.00'
+            Answer the question as AI Agent : ['$question'] , and use previous conversation that you and user have made to understand the context : {$messages}..
+            if data was simple the answer must be just a plain text but if data was complex the answer must be html code with stylish tag (style='') if you see its proper, just response about the question 
+            ";
         //get final answer from ai
-        $answer = $this->gemini->generate($text);
+        $answer = $this->ai_agent->generate($text);
 
-        return response()->json(['answer' => $answer], 200);
+        return response()->json(['answer' => $answer , "result"=> $result , "sqlQuery"=>$sqlQuery], 200);
     }
 
 

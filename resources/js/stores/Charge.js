@@ -1,8 +1,6 @@
 import axios from "axios";
-import moment from "moment";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from 'uuid';
-import { useWebWorkerFn } from '@vueuse/core';
 import { useMain } from "./Main";
 import { useFishType } from "./FishType";
 import { usePackageType } from "./PackageType";
@@ -10,9 +8,8 @@ import { useGuanoType } from "./GuanoType";
 import { useWarehouse } from "./Warehouse";
 import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useChargeCategory } from "./ChargeCategory";
-
-import i18n  from '@/plugins/i18n'
-import { _ } from "core-js";
+import { useFormula } from "./Formula";
+import i18n  from '@/plugins/i18n';
 
 export const useCharge = defineStore("charge", {
     state: () => {
@@ -28,6 +25,7 @@ export const useCharge = defineStore("charge", {
             warehouse: useWarehouse(),
             charge_category: useChargeCategory(),
             warehouse_category_operation: useWarehouseCategoryOperation(),
+            formula: useFormula(),
             charge_category_operation: {
                 charge_details: [],
                 id: null,
@@ -135,8 +133,8 @@ export const useCharge = defineStore("charge", {
         fetchCharge: async function (date_start, date_end) {
             this.loading = true;
             this.charge_fetch_items = await this.main.fetchData(date_start, date_end, this.api_url, this.api_url_prop)
-            this.non_warehouse_stockable_operations = this.charge_fetch_items.flatMap(e => e.non_warehouse_stockable_operations)
-            this.warehouse_stockable_tracking_number_operations = this.charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations)
+            this.non_warehouse_stockable_operations = this.charge_fetch_items.flatMap(e => e.non_warehouse_stockable_operations.map(ee => { ee.charge_category_id = e.charge_category_id; return ee }))
+            this.warehouse_stockable_tracking_number_operations = this.charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations.map(ee => { ee.charge_category_id = e.charge_category_id; return ee }))
             this.loading = false;
         },
         UpdateCharge: function () {
@@ -231,6 +229,9 @@ export const useCharge = defineStore("charge", {
             if (!warehouse_category_operation) return '';
             const operation = this.warehouse_category_operation.getList.find(op => op.id === warehouse_category_operation.id);
             return operation ? operation[`name_${this.main.lang.code}`] : '';
+        },
+        countWarehouseCategoryOperationUsage: function (warehouse_category_operation_id) {
+            return this.get_fetched_operations.filter(e=>e.warehouse_category_operation_id == warehouse_category_operation_id).length;
         }
     },
     getters: {
@@ -266,7 +267,7 @@ export const useCharge = defineStore("charge", {
             let warehouse_category_operations = []
             state.get_fetched_operations?.forEach(item => {
                 warehouse_category_operations.push({
-                    id:uuidv4(),
+                    id: item.id,
                     warehouse_category_operation_id: item.warehouse_category_operation_id,
                     date: item.date,
                     unit_price: item.unit_price,
@@ -329,7 +330,7 @@ export const useCharge = defineStore("charge", {
                     sup_unit_price = 0;
                 }
                 data.push({
-                    id: uuidv4(),
+                    id: w_id,
                     total_weight: +sup_total_weight.toFixed(2),
                     total_price: +(sup_total_price).toFixed(2),
                     total_package_count: +(sup_total_package_count).toFixed(2),
@@ -344,6 +345,10 @@ export const useCharge = defineStore("charge", {
         get_placeholder_warehouse_category_operation_list: (state) => {
             const ids = new Set(state.get_fetched_warehouse_category_operation_list.map(o => o.warehouse_category_operation_id))
             return state.warehouse_category_operation.list.filter(o => !ids.has(o.id))
+        },
+        get_formulas_list: (state) => {
+            let formulas = state.formula.getList.filter(e => e.type == "charge");
+            return formulas;
         }
     },
 });

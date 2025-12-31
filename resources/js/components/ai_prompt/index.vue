@@ -20,7 +20,7 @@
               </v-chip>
             </template>
             <template v-else>
-              <div :id="`_ai_message_`+index"></div>
+              <AiMessageBox :msg="msg" :index="index" />
             </template>
           </v-col>
         </v-row>
@@ -71,9 +71,11 @@
 <script>
 import {useAIPrompt} from "@/stores/AIPrompt";
 import {useMain} from "@/stores/Main";
-import { loadExternalContent } from '@/helpers/dynamic-loader';
-
+import AiMessageBox from "@/components/ai_prompt/AiMessageBox.vue";
 export default {
+  components: {
+    AiMessageBox
+  },
   data : function() {
     return {
       newMessage: "",
@@ -98,7 +100,7 @@ export default {
         .then(res=>{
             // Clear input
             if(res?.answer){
-              loadExternalContent(res.answer,`_ai_message_${this.ai_prompt.messages.length-1}`);
+              // loadExternalContent(res.answer,`_ai_message_${this.ai_prompt.messages.length-1}`);
               this.newMessage = "";
             }
             this.loading = false;
@@ -106,7 +108,7 @@ export default {
             console.error("Error sending message:", err);
             this.loading = false;
         });
-    },
+    }
   },
 };
 </script>

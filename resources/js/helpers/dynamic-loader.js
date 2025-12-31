@@ -7,7 +7,6 @@ export function loadExternalContent(htmlString, containerId) {
     // Create a temporary DOM element
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlString;
-    console.log("tempDiv", tempDiv)
     // Move everything except scripts
     Array.from(tempDiv.children).forEach(child => {
       if (child.tagName !== 'SCRIPT') {

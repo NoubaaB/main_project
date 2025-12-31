@@ -14,12 +14,16 @@ return new class extends Migration
         Schema::create('sell_categories', function (Blueprint $table) {
             $table->id();
             $table->string("description")->nullable();
+            $table->string("name")->nullable();
             $table->string("name_fr")->nullable();
             $table->string("name_en")->nullable();
             $table->string("name_es")->nullable();
-            $table->boolean("add_wieght")->default(true);
-            $table->integer("list_type_details",)->default(0);
-            $table->string("process")->nullable();
+            $table->boolean("enable_tracking_numbers")->default(false);
+            $table->boolean("enable_tracking_onp_numbers")->default(false);
+            $table->boolean("enable_fishery_id")->default(false);
+            $table->boolean("enable_ship_id")->default(false);
+            $table->boolean("enable_origin_id")->default(false);
+            $table->boolean("enable_supplier_process_id")->default(false);
 
             $table->timestamps();
             $table->softDeletes();
