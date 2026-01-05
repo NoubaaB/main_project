@@ -2,8 +2,11 @@ import { defineStore } from "pinia";
 import { useCharge } from "./Charge";
 import annyang from "annyang";
 import moment from "moment";
-import { isNumber } from "lodash";
-
+import { usePackageType } from "./PackageType";
+import { useGuanoType } from "./GuanoType";
+import { useFishType } from "./FishType";
+import { useFishFamily } from "./FishFamily";
+import { useWarehouse } from "./Warehouse";
 export const useMain = defineStore("main", {
     state: () => {
         return {
@@ -44,7 +47,12 @@ export const useMain = defineStore("main", {
                 //     annyang: "ar-MA",
                 // },
             ],
-            lang: null
+            lang: null,
+            package_type:usePackageType(),
+            guano_type:useGuanoType(),
+            fish_type:useFishType(),
+            fish_family:useFishFamily(),
+            warehouse:useWarehouse()
         };
     },
     actions: {
@@ -138,6 +146,56 @@ export const useMain = defineStore("main", {
         },
         add_snackbar: function (message) {
             this.snackbar = { ...message };
+        },
+        getStockableName: function (stockable_id, stockable_type) {
+            // return stockable_type + stockable_id;
+            let type = null
+            switch (stockable_type) {
+                case "PackageType":
+                    type = this.getPackages.find(e => e.id == stockable_id);
+                    break;
+                case "FishType":
+                    type = this.getFishTypes.find(e => e.id == stockable_id);
+                    break;
+                case "GuanoType":
+                    type = this.getGuanoTypes.find(e => e.id == stockable_id);
+                    break;
+                default:
+                    return isNaN(stockable_id) ? stockable_id : i18n.global.t("add_description");
+            }
+            if (!!type) {
+                return type[`name_${this.lang.code}`];
+            } else {
+                return "N/A"
+            }
+        },
+        getWarehouseName: function (warehouse_id) {
+            const warehouse = this.getWarehouses.find(warehouse => warehouse.id === warehouse_id);
+            return warehouse ? warehouse.name : 'N/A';
+        },
+        getStockableFishFamily: function (stockable_id, stockable_type) {
+            let type = this.getFishTypes.find(e => e.id == stockable_id);
+            let is_fish = (stockable_type == "FishType");
+            if (!!type && is_fish) {
+                let fish_family = this.getFishFamily.find(f => f.id == type.fish_family_id)
+                if (!!fish_family) {
+                    return fish_family[`name_${this.lang.code}`];
+                }
+            }
+            return "N/A"
+        },
+        getClassificationColor: function (stockable_type) {
+            switch (stockable_type) {
+                case "FishType":
+                    return "blue";            
+                case "GuanoType":
+                    return "gray";            
+                case "PackageType":
+                    return "green";            
+                default:
+                    "grey"
+                    return;
+            }
         }
     },
     getters: {
@@ -162,6 +220,21 @@ export const useMain = defineStore("main", {
             }
 
             return true; // Default to assuming a physical keyboard is present
+        },
+        getFishTypes: (state) => {
+            return state.fish_type.getList;
+        },
+        getPackages: (state) => {
+            return state.package_type.getList;
+        },
+        getGuanoTypes: (state) => {
+            return state.guano_type.getList;
+        },
+        getWarehouses: (state) => {
+            return state.warehouse.getList;
+        },
+        getFishFamily: (state) => {
+            return state.fish_family.getList;
         }
     }
 });

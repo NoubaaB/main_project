@@ -381,7 +381,7 @@
 
                 <template v-slot:[`item.stockable_id`]="{ item }">
                   <v-chip :color="stockable_color">
-                    {{ _charge.getStockableName(item.stockable_id,item.stockable_type) }}
+                    {{ _main.getStockableName(item.stockable_id,item.stockable_type) }}
                   </v-chip>
                 </template>
                 <template v-slot:[`item.total_weight`]="{ item }">
@@ -416,7 +416,7 @@
                 </template>
                 <template v-slot:[`item.warehouse_id`]="{ item }">
                   <v-chip color="indigo">
-                    {{ _charge.getWarehouseName(item.warehouse_id) }}
+                    {{ _main.getWarehouseName(item.warehouse_id) }}
                   </v-chip>
                 </template>
                 <template v-slot:no-data>

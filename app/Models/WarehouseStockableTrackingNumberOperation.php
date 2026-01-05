@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\WarehouseStockableTrackingNumber;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class WarehouseStockableTrackingNumberOperation extends Model
 {
@@ -26,6 +26,8 @@ class WarehouseStockableTrackingNumberOperation extends Model
         'total_package_count' => 'float',
         'total_weight_bill' => 'float',
     ];
+
+    protected $appends = ['warehouse_id'];
 
     protected static function boot()
     {
@@ -46,6 +48,11 @@ class WarehouseStockableTrackingNumberOperation extends Model
                 $model->checkdateOFT();
             }
         });
+    }
+
+    protected function warehouseId(): Attribute
+    {
+        return Attribute::get(fn() => $this->warehouse_stockable_tracking_number->warehouse_stockable->warehouse_id);
     }
 
     function warehouse_stockable_tracking_number() : BelongsTo {

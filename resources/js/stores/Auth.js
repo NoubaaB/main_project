@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { useSupplier } from "./Supplier";
 import { useShip } from "./Ship";
 import { useFishType } from "./FishType";
+import { useFishFamily } from "./FishFamily";
 import { usePackageType } from "./PackageType";
 import { useGuanoType } from "./GuanoType";
 import { useWarehouse } from "./Warehouse";
@@ -28,6 +29,7 @@ export const useAuth = defineStore("Auth", {
       supplier: useSupplier(),
       ship: useShip(),
       fish_type: useFishType(),
+      fish_family: useFishFamily(),
       package_type: usePackageType(),
       guano_type: useGuanoType(),
       warehouse: useWarehouse(),
@@ -66,6 +68,7 @@ export const useAuth = defineStore("Auth", {
       this.supplier.list = response.data.suppliers;
       this.ship.list = response.data.ships;
       this.fish_type.list = response.data.fish_types;
+      this.fish_family.list = response.data.fish_families;
       this.package_type.list = response.data.package_types;
       this.guano_type.list = response.data.guano_types;
       this.warehouse.list = response.data.warehouses;

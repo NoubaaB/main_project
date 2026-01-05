@@ -17,7 +17,7 @@ use App\Models\Supplier;
 use App\Models\GuanoType;
 use App\Models\Warehouse;
 use App\Support\CsvReader;
-use App\Models\FishFamilly;
+use App\Models\FishFamily;
 use App\Models\FixedCharge;
 use App\Models\PackageType;
 use App\Models\SellCategory;
@@ -580,7 +580,7 @@ class DatabaseSeeder extends Seeder
                         "name_en" => $data["name_type"],
                         "name_es" => $data["name_type"],
                         "name_in_invoice" => $data["name_type"],
-                        "fish_familly_id" => $data["family_id"] == "NULL" ? NULL : $data["family_id"],
+                        "fish_family_id" => $data["family_id"] == "NULL" ? NULL : $data["family_id"],
                         "fish_process_type_id" => $fish_process_type_id
                     ]);
                 }
@@ -601,10 +601,12 @@ class DatabaseSeeder extends Seeder
             $rows = CsvReader::read($path);
 
             foreach ($rows as $data) {
-                if (FishFamilly::where("name", $data["name"])->count() == 0) {
-                    FishFamilly::create([
+                if (FishFamily::where("name_en", $data["name"])->count() == 0) {
+                    FishFamily::create([
                         "id" => $data["id"],
-                        "name" => $data["name"]
+                        "name_en" => $data["name"],
+                        "name_es" => $data["name"],
+                        "name_fr" => $data["name"]
                     ]);
                 }
             }

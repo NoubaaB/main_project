@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class FishFamilly extends Model
+class FishFamily extends Model
 {
-    /** @use HasFactory<\Database\Factories\FishFamillyFactory> */
+    /** @use HasFactory<\Database\Factories\FishFamilyFactory> */
     use HasFactory , SoftDeletes;
 
     protected $guarded = [];

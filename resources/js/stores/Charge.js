@@ -191,10 +191,6 @@ export const useCharge = defineStore("charge", {
             const fishType = this.fish_type.getList.find(type => type.id === stockable_id);
             return fishType ? fishType.name : 'N/A';
         },
-        getWarehouseName: function (warehouse_id) {
-            const warehouse = this.getWarehouses.find(warehouse => warehouse.id === warehouse_id);
-            return warehouse ? warehouse.name : 'N/A';
-        },
         getPackageName: function (package_type_id) {
             const packageItem = this.getPackages.find(pkg => pkg.id === package_type_id);
             return packageItem ? packageItem[`name_${this.main.lang.code}`] : 'N/A';
@@ -202,28 +198,6 @@ export const useCharge = defineStore("charge", {
         getPackageSize: function (package_type_id, wieght) {
             const packageItem = this.getPackages.find(pkg => pkg.id === package_type_id);
             return packageItem ? packageItem.size : wieght;
-        },
-        getStockableName: function (stockable_id, stockable_type) {
-            // return stockable_type + stockable_id;
-            let type = null
-            switch (stockable_type) {
-                case "PackageType":
-                    type = this.getPackages.find(e => e.id == stockable_id);
-                    break;
-                case "FishType":
-                    type = this.getFishTypes.find(e => e.id == stockable_id);
-                    break;
-                case "GuanoType":
-                    type = this.getGuanoTypes.find(e => e.id == stockable_id);
-                    break;
-                default:
-                    return isNaN(stockable_id) ? stockable_id : i18n.global.t("add_description");
-            }
-            if (!!type) {
-                return type[`name_${this.main.lang.code}`];
-            } else {
-                return "N/A"
-            }
         },
         getWarehouseCategoryOperationName: function (warehouse_category_operation) {
             if (!warehouse_category_operation) return '';

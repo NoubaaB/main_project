@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('fish_famillies', function (Blueprint $table) {
+        Schema::create('fish_families', function (Blueprint $table) {
             $table->id();
-            $table->string("name")->unique();
+            $table->string("name_fr")->unique();
+            $table->string("name_en")->unique();
+            $table->string("name_es")->unique();
 
             $table->timestamps();
             $table->softDeletes();
-            $table->comment("This fish_famillies table store fish familly's names and have one to many relationship with users table");
+            $table->comment("This fish_families table store fish familly's names and have one to many relationship with users table");
         });
     }
 
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('fish_famillies');
+        Schema::dropIfExists('fish_families');
     }
 };

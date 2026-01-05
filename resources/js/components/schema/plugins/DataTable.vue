@@ -14,11 +14,13 @@
       :headers="orderedVisibleHeaders"
       :items="sortedFilteredItems"
       item-key="id"
-      fixed-header
-      height="650"
       show-select
       density="compact"
+      fixed-header
+      height="650"
       :loading="loading"
+      :rowProps="rowProps"
+      
     >
       <template v-slot:top>
         <v-row class="mx-1">
@@ -94,6 +96,53 @@
                   </template>
                 </DatePicker>            
           </v-col>
+          <v-col class="text-center" cols="2">
+              <v-autocomplete
+                v-model="type_invoice"
+                :items="type_invoice_items"
+                chips
+                item-title="name"
+                item-value="name"
+                density="compact"
+                hide-details
+                :placeholder="$t('type_invoice')"
+                variant="outlined"
+                rounded
+                class="text-info header-filter"
+                prepend-inner-icon="mdi-printer-pos-star"
+              >
+                <template v-slot:chip="{ props, item }">
+                  <v-chip
+                    v-bind="props"
+                    class="text-white"
+                    :prepend-icon="item.raw.icon"
+                    :base-color="item.raw.color"
+                    :bg-color="item.raw.color"
+                    :color="item.raw.color"
+                    variant="tonal"
+                  >
+                    {{ $t(item.title) }}
+                  </v-chip>
+                </template>
+                <template v-slot:item="{ props, item }">
+                  <v-list-item
+                    v-bind="props"
+                    class="text-info"
+                    :title="$t(item.title)"
+                    :append-icon="item.raw.icon"
+                    :base-color="item.raw.color"
+                    :bg-color="item.raw.color"
+                    :color="item.raw.color"
+                  >
+                    <template v-slot:prepend="{ isSelected, select }">
+                      <v-list-item-action start>
+                        <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                      </v-list-item-action>
+                    </template>
+                  </v-list-item>
+                </template>
+              </v-autocomplete>
+          </v-col>
           <v-col>
               <v-autocomplete
                 v-model="invoice_filters"
@@ -116,7 +165,10 @@
                   <v-chip
                     v-bind="props"
                     class="text-white"
-                    color="info accent-4"
+                    :prepend-icon="item.raw.icon"
+                    :base-color="item.raw.color"
+                    :bg-color="item.raw.color"
+                    :color="item.raw.color"
                     closable
                     variant="tonal"
                   >
@@ -149,17 +201,15 @@
       <!-- expand button column -->
       <template v-slot:[`item.data-table-expand`]="{ internalItem, isExpanded, toggleExpand }">
         <v-btn
-          :append-icon="isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-          :text="isExpanded(internalItem) ? $t('collapse') : $t('view_details')"
-          class="text-none"
-          color="medium-emphasis"
-          size="small"
-          variant="text"
-          width="105"
-          border
+          class="text-center"
+          :color="isExpanded(internalItem)?'orange':'blue'"
+          size="x-small"
+          variant="tonal"
+          :icon="isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
           slim
           @click="toggleExpand(internalItem)"
-        ></v-btn>
+        >
+        </v-btn>
       </template>
 
       <template #loader>
@@ -182,6 +232,20 @@
           <span>{{ $t("no_data_available") }}</span>
         </div>
       </template>
+
+    <template v-slot:expanded-row="{ item }">
+      <tr>
+        <td :colspan="7" class="py-2">
+          <v-sheet rounded="lg" border>
+            <NestedDataTable
+            :detail_headers="detail_headers"
+            :item="item"
+            />
+          </v-sheet>
+        </td>
+      </tr>
+
+    </template>
 
       <!-- FILTER HEADER with native drag & drop -->
       <template #headers>
@@ -269,7 +333,7 @@
                 </v-btn>
 
                 <!-- remove header -->
-                <v-btn variant="text" icon size="x-small" class="ml-1" :disabled="loading" @click.stop="removeHeader(col.key)" :title="$t('remove_column')">
+                <v-btn v-if="col.key != 'data-table-expand'" variant="text" icon size="x-small" class="ml-1" :disabled="loading" @click.stop="removeHeader(col.key)" :title="$t('remove_column')">
                   <v-icon small color="error">mdi-close</v-icon>
                 </v-btn>
               </div>
@@ -369,12 +433,13 @@
 
 <script>
 import { useMain } from '@/stores/Main';
-import * as XLSX from 'xlsx'
-import { nextTick } from 'vue'
+import * as XLSX from 'xlsx';
+import { nextTick } from 'vue';
 import { Parser } from 'expr-eval';
 
-const NULL_VALUE = '__NULL__'
+const NULL_VALUE = '__NULL__';
 
+import NestedDataTable from "./NestedDataTable.vue";
 export default {
   name: 'VirtualTableNativeReorder',
   props: {
@@ -385,7 +450,11 @@ export default {
     sigma: Array,
     invoice_prop: String,
     fetchData: Function,
-    headers: { type: Array, required: true }
+    headers: { type: Array, required: true },
+    detail_headers: { type: Array, required: true }
+  },
+  components: {
+    NestedDataTable
   },
   emits: ['sync_items'],
   data () {
@@ -395,8 +464,8 @@ export default {
 
       hiddenHeaderKeys: [],
       defaultHeaderKeys: [],
-      pinnedHeaderKeys: ['data-table-select'],
-      pinnedHeaderKeys: ['data-table-select','allow_invoice'],
+      // pinnedHeaderKeys: ['data-table-select'],
+      pinnedHeaderKeys: ['data-table-select','data-table-expand'],
       sortOrders: [],
       pinnedCss: '',
 
@@ -409,8 +478,14 @@ export default {
 
       //invoice
       invoice_date: new Date(),
+      invoice_type:false,
       invoice_expression: "1 == 1",
       invoice_filters: [],
+      type_invoice:{
+                    name:"local",
+                    color:"success",
+                    icon:"mdi-truck"
+                  },
     }
   },
 
@@ -443,7 +518,7 @@ export default {
         {
           name: this.$t('overhead_costs'),
           value: "(allow_invoice == 0)",
-          color:"none",
+          color:"blue",
           icon:"mdi-printer-pos-cancel"
         },
         {
@@ -458,6 +533,20 @@ export default {
           color:"warning",
           icon:"mdi-printer-pos-cog"
         },
+      ]
+    },
+    type_invoice_items: function () {
+      return [
+        {
+          name:"local",
+          color:"blue",
+          icon:"mdi-truck"
+        },        
+        {
+          name:"export",
+          color:"warning",
+          icon:"mdi-truck-delivery"
+        },        
       ]
     },
     // original visible headers by prop order
@@ -998,12 +1087,26 @@ export default {
         return key;
       }
       return null;
+    },
+    rowProps: function (item) {
+      if (this.items_selected.find(e=>e == item.item.id)) {
+        return {
+          style:  {"background-color": "rgba(255, 130, 58, 0.516)"},
+        }
+      }
+      return {
+        style:  {"background-color": "rgba(90, 185, 253, 0.1)"},
+      }
     }
   }
 }
 </script>
 
 <style scoped>
+.row-colored{
+  background-color: rgba(90, 185, 253, 0.516) !important;
+}
+
 /* Ensure table expands horizontally to force a horizontal scrollbar when needed */
 .table-scope table {
   min-width: max-content;
@@ -1085,5 +1188,9 @@ th {
   outline: 3px dashed rgba(16, 110, 234, 0.22);
   outline-offset: -6px;
   transition: outline 0.08s;
+}
+
+.bg-v-d-t-v{
+  background-color: rgba(49, 164, 251, 0.081);
 }
 </style>

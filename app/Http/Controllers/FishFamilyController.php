@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FishFamilly;
+use App\Models\FishFamily;
 use Illuminate\Http\Request;
 
-class FishFamillyController extends Controller
+class FishFamilyController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class FishFamillyController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(FishFamilly $fishFamilly)
+    public function show(FishFamily $fishFamily)
     {
         //
     }
@@ -42,7 +42,7 @@ class FishFamillyController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(FishFamilly $fishFamilly)
+    public function edit(FishFamily $fishFamily)
     {
         //
     }
@@ -50,7 +50,7 @@ class FishFamillyController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, FishFamilly $fishFamilly)
+    public function update(Request $request, FishFamily $fishFamily)
     {
         //
     }
@@ -58,7 +58,7 @@ class FishFamillyController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(FishFamilly $fishFamilly)
+    public function destroy(FishFamily $fishFamily)
     {
         //
     }

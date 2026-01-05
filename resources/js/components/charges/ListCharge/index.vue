@@ -67,6 +67,7 @@
      :invoice_prop="invoice_prop"
      :date="date"
      :headers="headers"
+     :detail_headers="detail_headers"
      :fetchData="fetchCharge"
      @sync_items="update_filtred_items_to_source"
      >
@@ -218,7 +219,15 @@
           return this.charge.fetchCharge
         },
         items: function(){
-          return this.charge.charge_fetch_items
+            return _(this.charge.charge_fetch_items)
+                  .map(g => ({
+                    ...g,
+                    warehouse_stockable_tracking_number_operations: _.filter(g.warehouse_stockable_tracking_number_operations, i => i.stockable_type != "GuanoType-"),
+                    non_warehouse_stockable_operations: _.filter(g.non_warehouse_stockable_operations, i => i.stockable_type != "GuanoType-")
+
+                  }))
+                  .filter(g => g.warehouse_stockable_tracking_number_operations.length != 0 || g.non_warehouse_stockable_operations.length != 0 )
+                  .value();
         },
         sigma: function(){
           return ['total_price','total_weight'];
@@ -238,6 +247,7 @@
         },
         headers:function(){
           return [
+            { key: 'data-table-expand', align: 'center', visible: true },
             { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
             { align : "center" , title: this.$t("category"), key: 'charge_category_id' , visible:true },
             { align : "center" , title: this.$t("ship"), key: 'ship_id' , visible:false },
@@ -249,8 +259,19 @@
             { align : "center" , title: this.$t("origin"), key: 'origin_id' , visible:true },
             { align : "center" , title: this.$t("fishery"), key: 'fishery_id' , visible:false },
             { align : "center" , title: this.$t("status"), key: 'allow_invoice' , visible:true },
-            { key: 'data-table-expand', align: 'end', visible: true }
             
+          ]
+        },
+        detail_headers:function(){
+          return [
+            { align : "center" , title: this.$t("classification"), key: 'classification' , visible:true },
+            { align : "center" , title: this.$t("product"), key: 'product' , visible:true },
+            { align : "center" , title: this.$t("product_family"), key: 'product_family' , visible:true },
+            { align : "center" , title: this.$t("warehouse"), key: 'warehouse' , visible:true },
+            { align : "center" , title: this.$t("total_weight_on_kg"), key: 'total_weight' , visible:true },
+            { align : "center" , title: this.$t("unit_price_currency",{currency:this.main.currency}), key: 'unit_price' , visible:true },
+            { align : "center" , title: this.$t("total_price_on",{currency:this.main.currency}), key: 'total_price' , visible:true },
+            { align : "center" , title: this.$t("total_package_count_un"), key: 'total_package_count' , visible:true },
           ]
         }
     },

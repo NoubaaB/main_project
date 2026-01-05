@@ -29,7 +29,7 @@
             <div class="header-left">
               <v-icon size="20">mdi-robot</v-icon>
               <div class="header-title">
-                <div class="title">Assistant</div>
+                <div class="title">{{$t('assistant')}}</div>
                 <div class="subtitle">
                   <v-badge
                     bordered
@@ -277,280 +277,280 @@ export default {
 </script>
 
 <style scoped>
-ul{
-  margin-left: 20px !important;
-}
-
-/* ---------- FAB pulse ---------- */
-.fab-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.fab {
-  width: 54px;
-  height: 54px;
-  min-width: 54px;
-  min-height: 54px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  pointer-events: auto;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
-  transition: transform 150ms ease, box-shadow 150ms ease;
-}
-
-.fab:hover,
-.fab:focus {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
-}
-
-.pulse {
-  position: relative;
-  overflow: visible;
-}
-
-.pulse::before,
-.pulse::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  z-index: -1;
-  pointer-events: none;
-}
-
-.pulse::before {
-  box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.35);
-  animation: pulse-ring-1 1.2s infinite ease-out;
-}
-
-@keyframes pulse-ring-1 {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.35);
-    opacity: 1;
+  ul{
+    margin-left: 20px !important;
   }
-  70% {
-    transform: translate(-50%, -50%) scale(1.18);
-    box-shadow: 0 0 0 20px rgba(25, 118, 210, 0);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.18);
-    box-shadow: 0 0 0 20px rgba(25, 118, 210, 0);
-    opacity: 0;
-  }
-}
 
-/* ---------- Chat panel layout & animations ---------- */
-.panel-slide-enter-active,
-.panel-slide-leave-active {
-  transition: transform 220ms cubic-bezier(.2, .8, .2, 1), opacity 160ms ease;
-}
-.panel-slide-enter-from {
-  transform: translateY(12px);
-  opacity: 0;
-}
-.panel-slide-enter-to {
-  transform: translateY(0);
-  opacity: 1;
-}
-.panel-slide-leave-from {
-  transform: translateY(0);
-  opacity: 1;
-}
-.panel-slide-leave-to {
-  transform: translateY(12px);
-  opacity: 0;
-}
-
-.chat-panel {
-  position: fixed;
-  bottom: 100px; /* above FAB */
-  right: 24px;
-  width: 400px;
-  height: 540px;
-  z-index: 2100;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* header */
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(180deg, rgba(25, 118, 210, 0.06), transparent);
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.header-title .title {
-  font-weight: 600;
-  font-size: 15px;
-}
-.header-title .subtitle {
-  font-size: 12px;
-}
-
-/* body */
-.chat-body {
-  flex: 1;
-  overflow: hidden;
-}
-.chat-messages {
-  height: 100%;
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* message row */
-.message-row {
-  display: flex;
-  max-width: 100%;
-}
-.message-row.agent {
-  justify-content: flex-start;
-}
-.message-row.user {
-  justify-content: flex-end;
-}
-
-/* bubble */
-.bubble {
-  max-width: 78%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  font-size: 14px;
-  line-height: 1.3;
-  word-break: break-word;
-}
-.bubble-no-padding {
-  max-width: 78%;
-  padding: 8px 8px;
-  border-radius: 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  font-size: 14px;
-  line-height: 1.3;
-  word-break: break-word;
-}
-.bubble.agent {
-  border-top-left-radius: 4px;
-}
-.bubble.user {
-  border-top-right-radius: 4px;
-}
-.bubble-meta {
-  margin-top: 6px;
-  font-size: 11px;
-  opacity: 0.65;
-  text-align: right;
-}
-
-/* typing dots */
-.typing-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 18px;
-  padding: 4px 6px;
-}
-.typing-dots .dot {
-  width: 7px;
-  height: 7px;
-  background: rgba(0, 0, 0, 0.22);
-  border-radius: 50%;
-  display: inline-block;
-  transform: translateY(0);
-  animation: jump 900ms infinite cubic-bezier(.2, .6, .2, 1);
-}
-.typing-dots .dot:nth-child(1) {
-  animation-delay: 0ms;
-}
-.typing-dots .dot:nth-child(2) {
-  animation-delay: 120ms;
-}
-.typing-dots .dot:nth-child(3) {
-  animation-delay: 240ms;
-}
-
-@keyframes jump {
-  0% {
-    transform: translateY(0);
-    opacity: 0.6;
-  }
-  30% {
-    transform: translateY(-6px);
-    opacity: 1;
-  }
-  60% {
-    transform: translateY(0);
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 0.6;
-  }
-}
-
-/* responsive */
-@media (max-width: 420px) {
-  .chat-panel {
-    right: 12px;
-    left: 12px;
-    width: auto;
-    bottom: 90px;
-    height: 60vh;
-  }
+  /* ---------- FAB pulse ---------- */
   .fab-container {
-    right: 12px;
-    bottom: 18px;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
   }
-}
 
-/* reduced motion */
-@media (prefers-reduced-motion: reduce) {
+  .fab {
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    min-height: 54px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    pointer-events: auto;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+
+  .fab:hover,
+  .fab:focus {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+  }
+
+  .pulse {
+    position: relative;
+    overflow: visible;
+  }
+
   .pulse::before,
   .pulse::after {
-    animation: none !important;
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    z-index: -1;
+    pointer-events: none;
   }
+
+  .pulse::before {
+    box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.35);
+    animation: pulse-ring-1 1.2s infinite ease-out;
+  }
+
+  @keyframes pulse-ring-1 {
+    0% {
+      transform: translate(-50%, -50%) scale(1);
+      box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.35);
+      opacity: 1;
+    }
+    70% {
+      transform: translate(-50%, -50%) scale(1.18);
+      box-shadow: 0 0 0 20px rgba(25, 118, 210, 0);
+      opacity: 0;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1.18);
+      box-shadow: 0 0 0 20px rgba(25, 118, 210, 0);
+      opacity: 0;
+    }
+  }
+
+  /* ---------- Chat panel layout & animations ---------- */
   .panel-slide-enter-active,
   .panel-slide-leave-active {
-    transition: none !important;
+    transition: transform 220ms cubic-bezier(.2, .8, .2, 1), opacity 160ms ease;
+  }
+  .panel-slide-enter-from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  .panel-slide-enter-to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .panel-slide-leave-from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .panel-slide-leave-to {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+
+  .chat-panel {
+    position: fixed;
+    bottom: 100px; /* above FAB */
+    right: 24px;
+    width: 400px;
+    height: 540px;
+    z-index: 2100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* header */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    background: linear-gradient(180deg, rgba(25, 118, 210, 0.06), transparent);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-title .title {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .header-title .subtitle {
+    font-size: 12px;
+  }
+
+  /* body */
+  .chat-body {
+    flex: 1;
+    overflow: hidden;
+  }
+  .chat-messages {
+    height: 100%;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* message row */
+  .message-row {
+    display: flex;
+    max-width: 100%;
+  }
+  .message-row.agent {
+    justify-content: flex-start;
+  }
+  .message-row.user {
+    justify-content: flex-end;
+  }
+
+  /* bubble */
+  .bubble {
+    max-width: 78%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    font-size: 14px;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .bubble-no-padding {
+    max-width: 78%;
+    padding: 8px 8px;
+    border-radius: 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    font-size: 14px;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .bubble.agent {
+    border-top-left-radius: 4px;
+  }
+  .bubble.user {
+    border-top-right-radius: 4px;
+  }
+  .bubble-meta {
+    margin-top: 6px;
+    font-size: 11px;
+    opacity: 0.65;
+    text-align: right;
+  }
+
+  /* typing dots */
+  .typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 18px;
+    padding: 4px 6px;
   }
   .typing-dots .dot {
-    animation: none !important;
-    transform: translateY(0) !important;
-    opacity: 1 !important;
+    width: 7px;
+    height: 7px;
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 50%;
+    display: inline-block;
+    transform: translateY(0);
+    animation: jump 900ms infinite cubic-bezier(.2, .6, .2, 1);
   }
-}
+  .typing-dots .dot:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .typing-dots .dot:nth-child(2) {
+    animation-delay: 120ms;
+  }
+  .typing-dots .dot:nth-child(3) {
+    animation-delay: 240ms;
+  }
 
-.my-gradient-div {
-  /* Use a Vuetify blue color and set the end to transparent */
-  background-image: linear-gradient(to bottom, rgba(98, 182, 255, 0.3) 1%, transparent) !important;
-}
+  @keyframes jump {
+    0% {
+      transform: translateY(0);
+      opacity: 0.6;
+    }
+    30% {
+      transform: translateY(-6px);
+      opacity: 1;
+    }
+    60% {
+      transform: translateY(0);
+      opacity: 0.6;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 0.6;
+    }
+  }
+
+  /* responsive */
+  @media (max-width: 420px) {
+    .chat-panel {
+      right: 12px;
+      left: 12px;
+      width: auto;
+      bottom: 90px;
+      height: 60vh;
+    }
+    .fab-container {
+      right: 12px;
+      bottom: 18px;
+    }
+  }
+
+  /* reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .pulse::before,
+    .pulse::after {
+      animation: none !important;
+    }
+    .panel-slide-enter-active,
+    .panel-slide-leave-active {
+      transition: none !important;
+    }
+    .typing-dots .dot {
+      animation: none !important;
+      transform: translateY(0) !important;
+      opacity: 1 !important;
+    }
+  }
+
+  .my-gradient-div {
+    /* Use a Vuetify blue color and set the end to transparent */
+    background-image: linear-gradient(to bottom, rgba(98, 182, 255, 0.3) 1%, transparent) !important;
+  }
 </style>

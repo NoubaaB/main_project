@@ -9,6 +9,7 @@ use App\Models\Fishery;
 use App\Models\PackageType;
 use App\Models\FishType;
 use App\Models\ChargeCategory;
+use App\Models\FishFamily;
 use App\Models\Formula;
 use App\Models\GuanoType;
 use Illuminate\Support\Str;
@@ -199,6 +200,7 @@ class AuthController extends Controller implements HasMiddleware
         $suppliers = Supplier::all();
         $ships = Ship::all();
         $fish_types = FishType::all();
+        $fish_families = FishFamily::all();
         $package_types = PackageType::all();
         $guano_types = GuanoType::all();
         $warehouses = Warehouse::all();
@@ -211,6 +213,7 @@ class AuthController extends Controller implements HasMiddleware
             "suppliers" => $suppliers,
             "ships" => $ships,
             "fish_types" => $fish_types,
+            "fish_families" => $fish_families,
             "package_types" => $package_types,
             "guano_types" => $guano_types,
             "warehouses" => $warehouses,

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\FishFamilly;
+use App\Models\FishFamily;
 use App\Models\FishProcessType;
 use App\Models\WarehouseStockable;
 use Illuminate\Database\Eloquent\Model;
@@ -40,8 +40,8 @@ class FishType extends Model
         return $this->morphMany(WarehouseStockable::class, 'stockable');  
     }
 
-    function fish_familly() : BelongsTo {
-        return $this->belongsTo(FishFamilly::class, 'fish_familly_id'); 
+    function fish_family() : BelongsTo {
+        return $this->belongsTo(FishFamily::class, 'fish_family_id'); 
     }
 
     function fish_process_type() : BelongsTo {
