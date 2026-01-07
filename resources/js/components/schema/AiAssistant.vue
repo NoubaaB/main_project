@@ -211,7 +211,7 @@ export default {
      */
     async send() {
       const text = (this.input || '').trim();
-      if (!text) return;
+      if (!text && text.length > 5) return;
 
       const userMsg = {
         id: Date.now() + Math.random(),
