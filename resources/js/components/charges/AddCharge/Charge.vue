@@ -243,7 +243,7 @@
                   :items="_charge.getPackages"
                   item-value="id"
                   :item-title="`name_${_main.lang.code}`"
-                  :label="$t('type_package')"
+                  :label="$t('package_type')"
                   chips
                   density="compact"
                   variant="outlined"
@@ -567,7 +567,7 @@
             { title: this.$t("weight_bill_(KG)"), value: 'total_weight_bill', removable: true , visible: this.ability_warehouse_category_operation.allow_weight },
             { title: this.$t("pu_(DH)"), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
             { title: this.$t("total_price_(DH)"), value: 'total_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
-            { title: this.$t("type_package"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
+            { title: this.$t("package_type"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
             { title: this.$t("nbr_caisses"), value: 'total_package_count', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
             { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.ability_warehouse_category_operation.allow_warehouse },
             { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false,visible:true }

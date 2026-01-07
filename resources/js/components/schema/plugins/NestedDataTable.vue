@@ -18,6 +18,16 @@
             <template v-slot:[`item.unit_price`]="{ item }">
                 {{ main.formatDisplayNumber(item.unit_price) }}
             </template>
+            <template v-slot:[`item.total_package_count`]="{ item }">
+                <v-chip prepend-icon="mdi-package-variant-closed" :color="item.total_package_count?'blue':main.not_aviable_color" class="ma-1">
+                    {{ main.formatDisplayNumberNonFloat(item.total_package_count) }}
+                </v-chip>
+            </template>
+            <template v-slot:[`item.package_type_id`]="{ item }">
+                <v-chip prepend-icon="mdi-package-variant" :color="item.package_type_id?'success':main.not_aviable_color" class="ma-1">
+                     {{ main.getPackageName(item.package_type_id) }} 
+                </v-chip>
+            </template>
             <template v-slot:[`item.classification`]="{ item }">
                 <v-chip :color="item.classification.color" class="ma-1">
                      {{ item.classification.name }} 
@@ -27,7 +37,7 @@
                 <v-chip v-if="item.warehouse != 'N/A'"  color="green" class="ma-1">
                     <v-icon class="mr-1">mdi-package-variant-closed-plus</v-icon> {{ item.warehouse }} 
                 </v-chip>
-                <v-chip v-else  color="gray" class="ma-1">
+                <v-chip v-else  :color="main.not_aviable_color" class="ma-1">
                     <v-icon class="mr-1">mdi-cube-off-outline</v-icon> <div v-html="$t('non_stockable_p')"></div> 
                 </v-chip>
             </template>
@@ -35,7 +45,7 @@
                 <v-chip v-if="item.product_family != 'N/A'"  color="green" class="ma-1">
                      {{ item.product_family }} 
                 </v-chip>
-                <v-chip v-else  color="grey" class="ma-1">
+                <v-chip v-else :color="main.not_aviable_color" class="ma-1">
                     <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
                 </v-chip>
             </template>
@@ -70,6 +80,7 @@
                         unit_price:e.unit_price,
                         total_price:e.total_price,
                         total_package_count:e.total_package_count,
+                        package_type_id:e.package_type_id,
                     }
                 })
             },
@@ -87,7 +98,8 @@
                         total_weight : e.total_weight,
                         unit_price : e.unit_price,
                         total_price :  e.total_price,
-                        total_package_count : e.total_package_count,
+                        total_package_count: e.total_package_count,
+                        package_type_id:e.package_type_id,
                     }
                 })
             }

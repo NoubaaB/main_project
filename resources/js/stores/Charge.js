@@ -235,7 +235,10 @@ export const useCharge = defineStore("charge", {
             let non_warehouse_stockable_operations = state.filtred_charge_fetch_items.flatMap(e => e.non_warehouse_stockable_operations)
             let warehouse_stockable_tracking_number_operations = state.filtred_charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations)
 
-            return [...non_warehouse_stockable_operations , ...warehouse_stockable_tracking_number_operations]  
+            return [...non_warehouse_stockable_operations , ...warehouse_stockable_tracking_number_operations] 
+        },
+        get_fetched_operations_cloned: (state) => {
+            return [...state.non_warehouse_stockable_operations, ...state.warehouse_stockable_tracking_number_operations]
         },
         get_fetched_warehouse_category_operation_list: (state) => {
             let warehouse_category_operations = []
@@ -323,6 +326,33 @@ export const useCharge = defineStore("charge", {
         get_formulas_list: (state) => {
             let formulas = state.formula.getList.filter(e => e.type == "charge");
             return formulas;
-        }
+        },
+        stockables: (state) => {
+            let data = state.get_fetched_operations_cloned.map(e => {
+                let color = "";
+                let obj = "";
+                switch (e.stockable_type) {
+                    case "FishType":
+                        color = "blue";
+                        obj = state.getFishTypes.find(t => t.id == e.stockable_id);
+                        break;
+                    case "GuanoType":
+                        color = "grey-darken-4";
+                        obj = state.getGuanoTypes.find(t => t.id == e.stockable_id);
+                        break;
+                    case "PackageType":
+                        color = "success";
+                        obj = state.getPackageTypes.find(t => t.id == e.stockable_id);
+                        break;
+                }
+                return {
+                    name: obj != null ? obj[`name_${state.main.lang.code}`] : i18n.global.t("n/a"),
+                    stockable_id: e.stockable_id,
+                    stockable_type: e.stockable_type,
+                    color
+                }
+            })
+            return _.uniqBy(data, o => `${o.stockable_id}|${o.stockable_type}`);
+        },
     },
 });

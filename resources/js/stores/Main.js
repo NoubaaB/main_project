@@ -12,6 +12,7 @@ export const useMain = defineStore("main", {
         return {
             menu_drawer: false,
             command_drawer: false,
+            not_aviable_color: "grey",
             currency: "Dh",
             date_format: "DD/MM/YYYY",
             snackbar: {
@@ -48,9 +49,12 @@ export const useMain = defineStore("main", {
                 // },
             ],
             lang: null,
+            product_ids:[],
+            warehouse_ids:[],
             package_type:usePackageType(),
             guano_type:useGuanoType(),
             fish_type:useFishType(),
+            charge:useCharge(),
             fish_family:useFishFamily(),
             warehouse:useWarehouse()
         };
@@ -70,18 +74,18 @@ export const useMain = defineStore("main", {
             //initialize the charge store with data from localStorage
             let charge = localStorage.getItem("charge") || '{}';
             if (charge == '{}') {
-                useCharge().add_charge();  
+                this.charge.add_charge();  
             } else {
-                Object.assign(useCharge().charge, JSON.parse(charge));
+                Object.assign(this.charge.charge, JSON.parse(charge));
             }
 
             //initialize the charges store with data from localStorage
             let charges = localStorage.getItem("charges") || '[]';
-            useCharge().charges = JSON.parse(charges);
+            this.charge.charges = JSON.parse(charges);
             
             //other settings
-            useCharge().input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
-            useCharge().showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
+            this.charge.input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
+            this.charge.showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
         },
         fetchData: async function (date_start, date_end, api_url, api_url_prop) {
             try {
@@ -152,7 +156,7 @@ export const useMain = defineStore("main", {
             let type = null
             switch (stockable_type) {
                 case "PackageType":
-                    type = this.getPackages.find(e => e.id == stockable_id);
+                    type = this.getPackageTypes.find(e => e.id == stockable_id);
                     break;
                 case "FishType":
                     type = this.getFishTypes.find(e => e.id == stockable_id);
@@ -168,6 +172,10 @@ export const useMain = defineStore("main", {
             } else {
                 return "N/A"
             }
+        },
+        getPackageName: function (package_type_id) {
+            const package_type = this.getPackageTypes.find(package_type => package_type.id === package_type_id);
+            return package_type ? package_type[`name_${this.lang.code}`] : 'N/A';
         },
         getWarehouseName: function (warehouse_id) {
             const warehouse = this.getWarehouses.find(warehouse => warehouse.id === warehouse_id);
@@ -196,7 +204,7 @@ export const useMain = defineStore("main", {
                     "grey"
                     return;
             }
-        }
+        },
     },
     getters: {
         color_theme: (state) => {
@@ -224,7 +232,7 @@ export const useMain = defineStore("main", {
         getFishTypes: (state) => {
             return state.fish_type.getList;
         },
-        getPackages: (state) => {
+        getPackageTypes: (state) => {
             return state.package_type.getList;
         },
         getGuanoTypes: (state) => {

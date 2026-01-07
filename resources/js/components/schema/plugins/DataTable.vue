@@ -196,6 +196,69 @@
               </v-autocomplete>
           </v-col>
         </v-row>
+        <v-row class="mx-1">
+          <v-col cols="6" class="border border-dotted border-md rounded-xl mb-3">
+            <v-row>
+              <v-col cols="12" class="text-center ">
+                {{ $t('advanced_filters') }}
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6" v-for="col_key in advanced_filters_keys" :key="col_key">
+                <v-autocomplete
+                  v-if="advanced_filters[col_key] !== undefined"
+                  v-model="advanced_filters[col_key]"
+                  :items="filterOptions(col_key)"
+                  item-title="title"
+                  item-value="value"
+                  multiple
+                  chips
+                  closable-chips
+                  clearable
+                  density="compact"
+                  hide-details
+                  :placeholder="$t(col_key)"
+                  variant="outlined"
+                  rounded
+                  class="text-info header-filter"
+                  :prepend-inner-icon="advanced_filters[col_key].length>0? 'mdi-filter' :'mdi-filter-outline'"
+                >
+                  <template v-slot:chip="{ props, item }">
+                    <v-chip
+                      v-bind="props"
+                      class="text-white"
+                      color="info accent-4"
+                      closable
+                      variant="tonal"
+                    >
+                      {{ item.title }}
+                    </v-chip>
+                  </template>
+                  <template v-slot:item="{ props, item }">
+                    <v-list-item
+                      v-bind="props"
+                      @click="props.onClick"
+                      class="text-info"
+                      :title="item.title"
+                    >
+                      <template v-slot:prepend="{ isSelected, select }">
+                        <v-list-item-action start>
+                          <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                        </v-list-item-action>
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-autocomplete>
+
+              </v-col>
+            </v-row>
+          </v-col>
+          <v-expand-transition>
+            <v-col cols="*" v-if="type_invoice == 'export'">
+              <v-btn>testament</v-btn>
+            </v-col>
+          </v-expand-transition>
+        </v-row>
       </template>
 
       <!-- expand button column -->
@@ -234,9 +297,9 @@
       </template>
 
     <template v-slot:expanded-row="{ item }">
-      <tr>
-        <td :colspan="7" class="py-2">
-          <v-sheet rounded="lg" border>
+      <tr >
+        <td :colspan="8" class="py-2 row_color">
+          <v-sheet class="table_size" rounded="lg" border>
             <NestedDataTable
             :detail_headers="detail_headers"
             :item="item"
@@ -354,7 +417,7 @@
                   clearable
                   density="compact"
                   hide-details
-                  placeholder="Filter"
+                  :placeholder="`${$t('filter_by')} ${col.title}`"
                   variant="outlined"
                   rounded
                   class="text-info header-filter"
@@ -436,6 +499,7 @@ import { useMain } from '@/stores/Main';
 import * as XLSX from 'xlsx';
 import { nextTick } from 'vue';
 import { Parser } from 'expr-eval';
+import _ from 'lodash';
 
 const NULL_VALUE = '__NULL__';
 
@@ -444,8 +508,11 @@ export default {
   name: 'VirtualTableNativeReorder',
   props: {
     relations: Object,
+    advanced_relations: Object,
     date: Object,
     filters: Object,
+    advanced_filters: Object,
+    advanced_filters_keys: Array,
     items: Array,
     sigma: Array,
     invoice_prop: String,
@@ -478,14 +545,9 @@ export default {
 
       //invoice
       invoice_date: new Date(),
-      invoice_type:false,
       invoice_expression: "1 == 1",
       invoice_filters: [],
-      type_invoice:{
-                    name:"local",
-                    color:"success",
-                    icon:"mdi-truck"
-                  },
+      type_invoice:"local",
     }
   },
 
@@ -541,12 +603,12 @@ export default {
           name:"local",
           color:"blue",
           icon:"mdi-truck"
-        },        
+        },
         {
           name:"export",
           color:"warning",
           icon:"mdi-truck-delivery"
-        },        
+        },
       ]
     },
     // original visible headers by prop order
@@ -559,27 +621,44 @@ export default {
       return this.headerOrder.filter(h => !this.hiddenHeaderKeys.includes(h.key))
     },
 
+    /* ----------------
+       FILTERED ITEMS (includes column filters, advanced nested filters, invoice filters)
+       ---------------- */
     filteredItems () {
-      return this.items.filter(row =>
-        Object.entries(this.filters).every(([key, selected]) => {
-          if (!selected.length) return true
-          const val = row[key]
+      return this.items
+        // 1️⃣ Column filters (existing behaviour, extended for NULL_VALUE)
+        .filter(row =>
+          Object.entries(this.filters).every(([key, selected]) => {
+            if (!selected.length) return true
+            const val = row[key]
 
-          if (val == null) return selected.includes(NULL_VALUE)
+            // explicit null / missing value
+            if (val == null) return selected.includes(NULL_VALUE)
 
-          if (Array.isArray(val)) {
-            return val.some(v => selected.includes(v)) ||
-                   (val.length === 0 && selected.includes(NULL_VALUE))
-          }
-          return selected.includes(val)
+            // arrays (e.g., supplier_ids, tracking_numbers)
+            if (Array.isArray(val)) {
+              // match if any array element is selected OR if array is empty and N/A selected
+              return val.some(v => selected.includes(v)) ||
+                     (val.length === 0 && selected.includes(NULL_VALUE))
+            }
+
+            // scalar compare
+            return selected.includes(val)
+          })
+        )
+
+        // 2️⃣ Advanced nested filters (ANY match inside nested array; supports NULL_VALUE)
+        .filter(row => this.applyAdvancedFilters(row))
+
+        // 3️⃣ Invoice expression filters (existing behaviour)
+        .filter(e => {
+          const expr = this.invoice_filters.join(' or ')
+          if (!expr.length) return true
+          return this.parser.evaluate(expr, {
+            invoice_id: e.invoice_id,
+            allow_invoice: e.allow_invoice
+          })
         })
-      ).filter(e => {
-        let invoice_expression = this.invoice_filters.join(' or ');
-        if (invoice_expression.length == 0) {
-          return true
-        }
-        return this.parser.evaluate( invoice_expression, {invoice_id : e.invoice_id , allow_invoice : e.allow_invoice})
-      })
     },
 
     sortedFilteredItems () {
@@ -743,9 +822,14 @@ export default {
       )
     },
 
+    /* ----------------
+       Build rows to scan for options while excluding a single column/advanced key
+       This respects both column filters and advanced filters (except the excluded key)
+       ---------------- */
     itemsFilteredExcept (exceptKey) {
-      return this.items.filter(row =>
-        Object.entries(this.filters).every(([key, selected]) => {
+      return this.items.filter(row => {
+        // Column filters (exclude exceptKey)
+        const colOk = Object.entries(this.filters).every(([key, selected]) => {
           if (key === exceptKey || !selected.length) return true
           const val = row[key]
           if (val == null) return selected.includes(NULL_VALUE)
@@ -755,13 +839,34 @@ export default {
           }
           return selected.includes(val)
         })
-      )
+        if (!colOk) return false
+
+        // Advanced filters (exclude exceptKey)
+        if (this.advanced_filters && this.advanced_filters_keys?.length) {
+          const advOk = this.advanced_filters_keys.every(key => {
+            if (key === exceptKey) return true
+            const selected = this.advanced_filters[key]
+            if (!Array.isArray(selected) || selected.length === 0) return true
+            // use shared helper: get values for this advanced key for this row
+            const relation = this.advanced_relations?.[key]
+            if (!relation) return true
+
+            const values = this.getValuesForAdvancedKey(row, relation, key) // array of concrete tokens
+            const hasNoValues = values.length === 0
+            const selectedHasNA = selected.includes(NULL_VALUE)
+            const matchesConcrete = values.some(v => selected.includes(v))
+            return matchesConcrete || (selectedHasNA && hasNoValues)
+          })
+          if (!advOk) return false
+        }
+
+        return true
+      })
     },
 
     filterOptions (key) {
       const values = new Set()
       let hasNull = false
-
       this.itemsFilteredExcept(key).forEach(row => {
         const v = row[key]
         if (v == null || (Array.isArray(v) && !v.length)) hasNull = true
@@ -770,8 +875,35 @@ export default {
       })
 
       const options = []
-      if (hasNull) options.push({ title: 'N/A', value: NULL_VALUE })
+      if (hasNull) options.push({ title: this.$t("n/a"), value: NULL_VALUE })
 
+      // --- Advanced relation (nested array) options ---
+      if (this.advanced_relations?.[key]) {
+        // getAdvancedFilterOptions will also compute N/A when appropriate
+        const adv = this.getAdvancedFilterOptions(key)
+        // ensure we don't duplicate N/A
+        const merged = []
+        const seen = new Set()
+        adv.forEach(o => {
+          const id = String(o.value)
+          if (!seen.has(id)) {
+            merged.push(o)
+            seen.add(id)
+          }
+        })
+        // merge any N/A already in `options` at front
+        if (options.length && merged.length && String(merged[0].value) === String(NULL_VALUE)) {
+          // merged already has N/A → return merged (which is already properly ordered)
+          return merged
+        }
+        // otherwise prepend N/A (if present) to merged
+        if (options.length && (!merged.length || String(merged[0].value) !== String(NULL_VALUE))) {
+          merged.unshift(options[0])
+        }
+        return merged
+      }
+
+      // --- Normal relations ---
       if (this.relations?.[key]) {
         const { source, label } = this.relations[key]
         const list = Array.isArray(source) ? source : (this[source] || [])
@@ -785,6 +917,168 @@ export default {
       }
 
       return options.sort((a, b) => String(a.title).localeCompare(String(b.title)))
+    },
+
+    /* ---------------- Advanced nested-filter helpers ---------------- */
+
+    // Safely return nested array at a path (e.g. 'warehouse_stockable_tracking_number_operations')
+    getNestedArray (row, path) {
+      const value = row?.[path]
+      return Array.isArray(value) ? value : []
+    },
+
+    // Extract stockable object from a nested operation record when present.
+    // Returns object with at least { stockable_type, stockable_id } or null.
+    getStockableFromNested (nestedItem) {
+      // common pattern from your example:
+      // nestedItem.warehouse_stockable_tracking_number?.warehouse_stockable
+      if (nestedItem?.warehouse_stockable_tracking_number?.warehouse_stockable) {
+        return nestedItem.warehouse_stockable_tracking_number.warehouse_stockable
+      }
+      // maybe non-warehouse path stores it as nestedItem.warehouse_stockable
+      if (nestedItem?.warehouse_stockable) return nestedItem.warehouse_stockable
+      // maybe nestedItem.stockable exists
+      if (nestedItem?.stockable) return nestedItem.stockable
+      // fallback: sometimes fields are directly on nestedItem
+      if (nestedItem?.stockable_type || nestedItem?.stockable_id) {
+        return {
+          stockable_type: nestedItem.stockable_type,
+          stockable_id: nestedItem.stockable_id
+        }
+      }
+      return null
+    },
+
+    // Return an array of concrete values for an advanced key for a specific row.
+    // For simple keys (warehouse_id) it returns numbers.
+    // For stockable_type -> returns strings like 'GuanoType'
+    // For stockable_id -> returns composite strings like 'GuanoType__4' (so they are unambiguous).
+    getValuesForAdvancedKey (row, relation, key) {
+      const values = []
+
+      // relation may have `path` (string) or `paths` (array)
+      const paths = relation?.paths || (relation?.path ? [relation.path] : [])
+
+      if (!paths.length) return values
+
+      for (const p of paths) {
+        const nestedArr = this.getNestedArray(row, p)
+        if (!nestedArr.length) continue
+
+        for (const item of nestedArr) {
+          // stockable special keys
+          if (key === 'stockable_type' || key === 'stockable_id') {
+            const stockable = this.getStockableFromNested(item)
+            if (!stockable) continue
+            const type = stockable.stockable_type
+            const id = stockable.stockable_id ?? stockable.id ?? null
+            if (key === 'stockable_type') {
+              if (type != null) values.push(String(type))
+            } else { // stockable_id
+              if (id != null && type != null) {
+                values.push(this.main.getStockableName(id,type))
+              } else if (id != null) {
+                // fallback: id without type (less precise)
+                values.push(`${String(id)}`)
+              }
+            }
+          } else {
+            // default behaviour: read item[key] (same as warehouse_id etc)
+            if (item && item[key] != null) values.push(item[key])
+          }
+        }
+      }
+
+      // remove duplicates and return
+      return Array.from(new Set(values))
+    },
+
+    // Apply all advanced filters (each key in advanced_filters_keys)
+    // Supports NULL_VALUE (N/A) to match rows with no nested-values
+    applyAdvancedFilters (row) {
+      if (!this.advanced_filters || !this.advanced_filters_keys?.length) {
+        return true
+      }
+
+      return this.advanced_filters_keys.every(key => {
+        const selected = this.advanced_filters[key]
+        if (!Array.isArray(selected) || selected.length === 0) return true
+
+        const relation = this.advanced_relations?.[key]
+        if (!relation) return true
+
+        const values = this.getValuesForAdvancedKey(row, relation, key)
+        const hasNoValues = values.length === 0
+
+        const selectedHasNA = selected.includes(NULL_VALUE)
+
+        const matchesConcrete = values.some(v => selected.includes(v))
+
+        return matchesConcrete || (selectedHasNA && hasNoValues)
+      })
+    },
+
+    // Build options for advanced filter autocomplete (uses relation.source and label when present)
+    // Adds N/A option when any row (after other column & advanced filters) lacks nested values
+    getAdvancedFilterOptions (key) {
+      const relation = this.advanced_relations?.[key]
+      if (!relation) return []
+
+      const paths = relation?.paths || (relation?.path ? [relation.path] : [])
+      const usedValues = new Set()
+      let hasNA = false
+
+      // Use itemsFilteredExcept(key) to respect other filters when computing options
+      const rowsToScan = this.itemsFilteredExcept(key)
+
+      rowsToScan.forEach(row => {
+        const vals = this.getValuesForAdvancedKey(row, relation, key)
+        if (!vals.length) {
+          hasNA = true
+        } else {
+          vals.forEach(v => usedValues.add(v))
+        }
+      })
+
+      // If relation has a `source` (like warehouses), prefer mapping IDs -> labels
+      if (relation.source && relation.label) {
+        const list = Array.isArray(relation.source) ? relation.source : (this[relation.source] || [])
+        const mapped = list
+          .filter(i => usedValues.has(i.id))
+          .map(i => ({ title: i[relation.label], value: i.id }))
+          .sort((a, b) => String(a.title).localeCompare(String(b.title)))
+
+        if (hasNA) mapped.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
+        return mapped
+      }
+
+      // For special stockable keys build human-friendly titles
+      if (key === 'stockable_type') {
+        const arr = Array.from(usedValues).map(v => ({ title: this.$t(v), value: this.$t(v) }))
+        .sort((a, b) => String(a.title).localeCompare(String(b.title)))
+        if (hasNA) arr.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
+        return arr
+      }
+
+      if (key === 'stockable_id') {
+        // values are composite like "GuanoType__4" or maybe "4" (fallback)
+        const arr = Array.from(usedValues).map(composite => {
+          if (String(composite).includes('__')) {
+            const [type, id] = String(composite).split('__')
+            return { title: `${type} #${id}`, value: composite }
+          } else {
+            return { title: `${composite}`, value: composite }
+          }
+        }).sort((a, b) => String(a.title).localeCompare(String(b.title)))
+        if (hasNA) arr.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
+        return arr
+      }
+
+      // Default: convert usedValues to simple options
+      const defaultArr = Array.from(usedValues).map(v => ({ title: String(v), value: v }))
+        .sort((a, b) => String(a.title).localeCompare(String(b.title)))
+      if (hasNA) defaultArr.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
+      return defaultArr
     },
 
     /* Sorting helpers (unchanged) */
@@ -1103,10 +1397,12 @@ export default {
 </script>
 
 <style scoped>
-.row-colored{
-  background-color: rgba(90, 185, 253, 0.516) !important;
+.table_size{
+    width: 86vw !important;
 }
-
+.row_color{
+  background-color: rgba(90, 185, 253, 0.1) !important;
+}
 /* Ensure table expands horizontally to force a horizontal scrollbar when needed */
 .table-scope table {
   min-width: max-content;

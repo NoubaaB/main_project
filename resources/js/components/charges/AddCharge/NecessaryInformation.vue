@@ -140,6 +140,7 @@
                   :error-messages="v$._charge.charge.tracking_numbers.$errors.map(e => e.$message)"
                   @blur="v$._charge.charge.tracking_numbers.$touch()"
                   :label="$t('tracking_numbers')"
+                  placeholder="ex :   --- --- --- --- ---"
                   multiple
                   chips
                   density="compact"
@@ -178,6 +179,7 @@
                   variant="outlined"
                   rounded
                   hide-details
+                  placeholder="ex :   --- --- --- --- ---"
                   clearable
                   @keydown.enter.prevent="addNewOnpTrackingNumber"
                   color="info"
@@ -436,7 +438,11 @@ export default {
     addNewTrackingNumber(event) {
       let inputValue = event.target.value.trim()
       if (inputValue && !this._charge.charge.tracking_numbers.includes(inputValue)) {
-        this._charge.charge.tracking_numbers.push(inputValue)
+        if (inputValue.search(" ")>0) {
+          this._charge.charge.tracking_numbers.push(...inputValue.split(" "))
+        } else {
+          this._charge.charge.tracking_numbers.push(inputValue)
+        }
       }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
@@ -448,8 +454,11 @@ export default {
     addNewOnpTrackingNumber(event) {
       let inputValue = event.target.value.trim()
       if (inputValue && !this._charge.charge.tracking_onp_numbers.includes(inputValue)) {
-        this._charge.charge.tracking_onp_numbers.push(inputValue)
-      }
+        if (inputValue.search(" ")>0) {
+          this._charge.charge.tracking_onp_numbers.push(...inputValue.split(" "))
+        } else {
+          this._charge.charge.tracking_onp_numbers.push(inputValue)      }
+        }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';

@@ -61,7 +61,10 @@
 
     <DataTable
      :relations="relations"
+     :advanced_relations="advanced_relations"
      :filters="filters"
+     :advanced_filters="advanced_filters"
+     :advanced_filters_keys="advanced_filters_keys"
      :items="items"
      :sigma="sigma"
      :invoice_prop="invoice_prop"
@@ -101,14 +104,21 @@
         </template>
 
         <template v-slot:[`item.supplier_ids`]="{ item }">
-          <v-chip
-            v-for="id in item.supplier_ids || [null]"
-            :key="id ?? 'na'"
-            color="deep-purple"
-            class="ma-1"
-          >
-            {{ suppliers.find(s => s.id === id)?.name || 'N/A' }}
-          </v-chip>
+          <template v-if="item.supplier_ids.length>0">
+            <v-chip
+              v-for="id in item.supplier_ids || [null]"
+              :key="id ?? 'na'"
+              color="deep-purple"
+              class="ma-1"
+            >
+              {{ suppliers.find(s => s.id === id)?.name || $t("n/a") }}
+            </v-chip>
+          </template>
+          <template v-else >
+                <v-chip :color="main.not_aviable_color" class="ma-1">
+                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
+                </v-chip>
+          </template>
         </template>
         
         <template v-slot:[`item.charge_category_id`]="{ item }">
@@ -119,19 +129,19 @@
 
         <template v-slot:[`item.origin_id`]="{ item }">
           <v-chip color="cyan" class="ma-1">
-            {{ origins.find(o => o.id === item.origin_id)?.name || 'N/A' }}
+            {{ origins.find(o => o.id === item.origin_id)?.name || $t("n/a") }}
           </v-chip>
         </template>
 
         <template v-slot:[`item.ship_id`]="{ item }">
           <v-chip color="grey" class="ma-1">
-            {{ ships.find(s => s.id === item.ship_id)?.name || 'N/A' }}
+            {{ ships.find(s => s.id === item.ship_id)?.name || $t("n/a") }}
           </v-chip>
         </template>
 
         <template v-slot:[`item.fishery_id`]="{ item }">
           <v-chip color="amber" class="ma-1">
-            {{ fisheries.find(f => f.id === item.fishery_id)?.name || 'N/A' }}
+            {{ fisheries.find(f => f.id === item.fishery_id)?.name || $t("n/a") }}
           </v-chip>
         </template>
 
@@ -181,32 +191,38 @@
   import { useShip } from '@/stores/Ship';
   import { useChargeCategory } from '@/stores/ChargeCategory';
   import { useCharge } from '@/stores/Charge';
+  import { useWarehouse } from '@/stores/Warehouse';
+  import { useFishFamily } from '@/stores/FishFamily';
   export default {
-    components: {
-      DataTable,
-      FixedChartWarehouseCategoryOpration,
-      CustomChartWarehouseCategoryOpration
-    },
-    data:function(){
-      return {
-        filters: {
-          date: [],
-          charge_category_id: [],
-          tracking_numbers: [],
-          tracking_onp_numbers: [],
-          supplier_ids: [],
-          origin_id: [],
-          ship_id: [],
-          fishery_id: []
-        },
-        date: {
-          start: new Date(2024, 10, 1),
-          end: new Date(2025, 11, 17)
-        },
-      }
-  },
-    mounted: function () {
-      console.log("Mounted ListCharge.vue",this.charge.get_charts_formulas);
+      components: {
+        DataTable,
+        FixedChartWarehouseCategoryOpration,
+        CustomChartWarehouseCategoryOpration
+      },
+      data:function(){
+        return {
+          filters: {
+            date: [],
+            charge_category_id: [],
+            tracking_numbers: [],
+            tracking_onp_numbers: [],
+            supplier_ids: [],
+            origin_id: [],
+            ship_id: [],
+            fishery_id: [],
+          },
+          advanced_filters: {
+            warehouse_id: [],
+            stockable_type: [],
+            stockable_id: [],
+            fish_family_id:[]
+          },
+          advanced_filters_keys:["warehouse_id","stockable_type","stockable_id","fish_family_id"],
+          date: {
+            start: new Date(2024, 10, 1),
+            end: new Date(2025, 11, 17)
+          },
+        }
     },
     computed:{
         main: () => useMain(),
@@ -214,20 +230,13 @@
         origins: () => useOrigin().getList,
         fisheries: () => useFishery().getList,
         ships: () => useShip().getList,
+        warehouses: () => useWarehouse().getList,
         charge: () => useCharge(),
         fetchCharge: function(){
           return this.charge.fetchCharge
         },
-        items: function(){
-            return _(this.charge.charge_fetch_items)
-                  .map(g => ({
-                    ...g,
-                    warehouse_stockable_tracking_number_operations: _.filter(g.warehouse_stockable_tracking_number_operations, i => i.stockable_type != "GuanoType-"),
-                    non_warehouse_stockable_operations: _.filter(g.non_warehouse_stockable_operations, i => i.stockable_type != "GuanoType-")
-
-                  }))
-                  .filter(g => g.warehouse_stockable_tracking_number_operations.length != 0 || g.non_warehouse_stockable_operations.length != 0 )
-                  .value();
+        items: function () {
+            return this.charge.charge_fetch_items
         },
         sigma: function(){
           return ['total_price','total_weight'];
@@ -236,6 +245,7 @@
           return "allow_invoice";
         },
         charge_categories: () => useChargeCategory().getList,
+        fish_families : ()=> useFishFamily().getList,
         relations:function(){
           return {
             supplier_ids: { source: this.suppliers, label: 'name' },
@@ -245,6 +255,19 @@
             charge_category_id: { source: this.charge_categories, label: 'name' }
           }
         },
+        advanced_relations:function(){
+          return {
+            // warehouse id (single path, uses warehouses source)
+            warehouse_id: { path: 'warehouse_stockable_tracking_number_operations', source: this.warehouses, label: "name" },
+
+            // stockable filters: scan two nested arrays and extract stockable.* fields
+            // no external `source` because we compute options dynamically
+            stockable_type: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] },
+            stockable_id: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] },
+            fish_family_id: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'],source: this.fish_families,  label: `name_${this.main.lang.code}` }
+          }
+        },
+        
         headers:function(){
           return [
             { key: 'data-table-expand', align: 'center', visible: true },
@@ -271,6 +294,7 @@
             { align : "center" , title: this.$t("total_weight_on_kg"), key: 'total_weight' , visible:true },
             { align : "center" , title: this.$t("unit_price_currency",{currency:this.main.currency}), key: 'unit_price' , visible:true },
             { align : "center" , title: this.$t("total_price_on",{currency:this.main.currency}), key: 'total_price' , visible:true },
+            { align : "center" , title: this.$t("package_type"), key: 'package_type_id' , visible:true },
             { align : "center" , title: this.$t("total_package_count_un"), key: 'total_package_count' , visible:true },
           ]
         }
