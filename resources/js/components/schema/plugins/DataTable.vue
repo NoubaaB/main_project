@@ -201,7 +201,7 @@
           <v-col cols="6" class="border border-dotted border-md rounded-xl mb-3">
             <v-row>
               <v-col cols="12" class="text-center ">
-                <v-btn @click="advanced_filter_btn = !advanced_filter_btn" :prepend-icon="advanced_filter_btn ? 'mdi-chevron-up' : 'mdi-chevron-down'" block rounded color="blue" density="compact">
+                <v-btn @click="advanced_filter_btn = !advanced_filter_btn" :prepend-icon="advanced_filter_btn ? 'mdi-chevron-up' : 'mdi-chevron-down'" block rounded color="info" density="compact">
                   {{ $t('advanced_filters') }}
                 </v-btn>
               </v-col>
@@ -270,7 +270,7 @@
       <template v-slot:[`item.data-table-expand`]="{ internalItem, isExpanded, toggleExpand }">
         <v-btn
           class="text-center"
-          :color="isExpanded(internalItem)?'orange':'blue'"
+          :color="isExpanded(internalItem)?'orange':'info'"
           size="x-small"
           variant="tonal"
           :icon="isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
@@ -501,6 +501,7 @@
 
 <script>
 import { useMain } from '@/stores/Main';
+import { useFishType } from '@/stores/FishType';
 import * as XLSX from 'xlsx';
 import { nextTick } from 'vue';
 import { Parser } from 'expr-eval';
@@ -578,6 +579,7 @@ export default {
   computed: {
     main: () => useMain(),
     parser: () => new Parser(),
+    fish_types: () => useFishType().getList,
     invoices_selected: function () {
       return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice).map(i => i.id);
     },
@@ -586,7 +588,7 @@ export default {
         {
           name: this.$t('overhead_costs'),
           value: "(allow_invoice == 0)",
-          color:"blue",
+          color:"info",
           icon:"mdi-printer-pos-cancel"
         },
         {
@@ -607,7 +609,7 @@ export default {
       return [
         {
           name:"local",
-          color:"blue",
+          color:"info",
           icon:"mdi-truck"
         },
         {
@@ -987,6 +989,26 @@ export default {
                 // fallback: id without type (less precise)
                 values.push(`${String(id)}`)
               }
+            }
+          } else if (key === 'fish_family_id') {
+            // NEW: Resolve fish_family_id from stockable objects when stockable_type == 'FishType'
+            // 1) Try to extract the stockable object
+            const stockable = this.getStockableFromNested(item)
+            if (stockable) {
+              const type = stockable.stockable_type
+              const id = stockable.stockable_id ?? stockable.id ?? null
+              if (type === 'FishType' && id != null) {
+                // lookup fish type object in fish_types store and read its fish_family_id
+                const fishTypeObj = (this.fish_types || []).find(ft => ft.id === id)
+                if (fishTypeObj && (fishTypeObj.fish_family_id != null)) {
+                  values.push(Number(fishTypeObj.fish_family_id))
+                  continue
+                }
+              }
+            }
+            // 2) Fallback: nested item may directly include fish_family_id
+            if (item && item.fish_family_id != null) {
+              values.push(Number(item.fish_family_id))
             }
           } else {
             // default behaviour: read item[key] (same as warehouse_id etc)

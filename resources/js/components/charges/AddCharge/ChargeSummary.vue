@@ -17,7 +17,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon color="yellow" class="text-blue">mdi-lightbulb-alert</v-icon>
+                    <v-icon color="yellow" class="text-info">mdi-lightbulb-alert</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">

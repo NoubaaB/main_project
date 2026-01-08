@@ -27,7 +27,7 @@
             :title="text" 
             :value="text" 
             rounded="xl" 
-            color="blue"
+            color="info"
             :exact="true"
             :to="{'name':url}"
             ></v-list-item>
@@ -40,7 +40,7 @@
                 :prepend-icon="icon"
                 :title="text"
                 rounded="xl"
-                color="blue"
+                color="info"
                 :exact="true"
               ></v-list-item>
             </template>
@@ -52,7 +52,7 @@
                 :prepend-icon="_icon"
                 :value="_text"
                 rounded="xl"
-                color="blue"
+                color="info"
                 :to="{'name':_url}"
                 :exact="true"
               ></v-list-item>
@@ -66,7 +66,7 @@
 
         <v-list density="compact" nav class="px-0">
           <v-sheet
-            :class="main.is_dark ? 'bg-grey-darken-3':'bg-blue-lighten-5'"
+            :class="main.is_dark ? 'bg-grey-darken-3':'bg-info-lighten-5'"
             class="mx-auto my-auto rounded-lg px-2 py-2"
           >
           <div class="d-flex align-center hide-menu">
@@ -86,7 +86,7 @@
             <v-btn
             variant="text"
             icon="mdi-power"
-            color="blue"
+            color="info"
             size="large"
             @click.prevent="logout()"
             rounded="lg"

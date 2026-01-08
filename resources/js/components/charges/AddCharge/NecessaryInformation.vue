@@ -20,7 +20,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon class="text-blue">mdi-numeric-1-circle-outline</v-icon>
+                    <v-icon class="text-info">mdi-numeric-1-circle-outline</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">
@@ -97,7 +97,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon class="text-blue">mdi-numeric-2-circle-outline</v-icon>
+                    <v-icon class="text-info">mdi-numeric-2-circle-outline</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">

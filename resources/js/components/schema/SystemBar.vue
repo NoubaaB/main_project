@@ -167,7 +167,7 @@
                     <v-menu transition="scroll-y-transition">
                         <template v-slot:activator="{ props }">
                             <v-btn
-                                color="blue"
+                                color="info"
                                 variant="tonal"
                                 v-bind="props"
                                 icon="mdi-translate"
@@ -197,9 +197,9 @@
                         true-icon="mdi-white-balance-sunny"
                         false-icon="mdi-weather-night"
                         hide-details
-                        color="light-blue-darken-3"
+                        color="light-info-darken-3"
                         class="text-white mx-1"
-                        base-color="blue"
+                        base-color="info"
                         inset
                     >
                     </v-switch>

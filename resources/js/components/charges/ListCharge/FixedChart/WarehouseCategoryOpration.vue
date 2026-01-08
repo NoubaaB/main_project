@@ -24,7 +24,7 @@
   
           <div class="kpi-row d-flex align-center justify-space-between" :class="{'disabled-text': !ability_warehouse_category_operation.allow_weight}">
             <div class="d-flex align-center">
-              <v-icon small class="mr-1" color="blue lighten-1">mdi-weight-kilogram</v-icon>
+              <v-icon small class="mr-1" color="info lighten-1">mdi-weight-kilogram</v-icon>
               <div class="kpi-label">{{$t("weight")}}</div>
             </div>
             <div class="kpi-value">{{ main.formatDisplayNumber(filterDumpValue(summary.total_weight,ability_warehouse_category_operation.allow_weight)) }} <small>Kg</small></div>
@@ -176,7 +176,7 @@ export default {
           colors.push('#00e396'); // Price - Green
       }
       if (this.ability_warehouse_category_operation.allow_weight) {
-          colors.push('#2196F3'); // Weight - Blue
+          colors.push('#2196F3'); // Weight - info
       }
       if (this.ability_warehouse_category_operation.allow_price) {
           colors.push('#feb019'); // Avg Price - Orange

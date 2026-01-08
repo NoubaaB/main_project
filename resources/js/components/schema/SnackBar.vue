@@ -19,7 +19,7 @@
         </v-row>
         <template v-slot:actions>
         <v-btn
-            color="blue"
+            color="info"
             variant="text"
             @click="charge.snackbar_action_command = false"
         >

@@ -19,7 +19,7 @@
                 {{ main.formatDisplayNumber(item.unit_price) }}
             </template>
             <template v-slot:[`item.total_package_count`]="{ item }">
-                <v-chip prepend-icon="mdi-package-variant-closed" :color="item.total_package_count?'blue':main.not_aviable_color" class="ma-1">
+                <v-chip prepend-icon="mdi-package-variant-closed" :color="item.total_package_count?'info':main.not_aviable_color" class="ma-1">
                     {{ main.formatDisplayNumberNonFloat(item.total_package_count) }}
                 </v-chip>
             </template>

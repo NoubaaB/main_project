@@ -60,9 +60,9 @@
                     </v-chip>
                 </v-col>
                 <v-col v-if="ability_warehouse_category_operation.allow_weight">
-                    <v-chip color="blue">
+                    <v-chip color="info">
                         <span class="mr-2" >
-                            <v-icon small class="mr-1" color="blue lighten-1">mdi-weight-kilogram</v-icon>
+                            <v-icon small class="mr-1" color="info lighten-1">mdi-weight-kilogram</v-icon>
                             <span >{{$t("weight")}}</span>
                         </span>
                         <strong >{{ main.formatDisplayNumber(summary.total_weight) }} (Kg)</strong>
@@ -267,7 +267,7 @@
                     colors.push('#00e396'); // Price - Green
                 }
                 if (this.ability_warehouse_category_operation.allow_weight) {
-                    colors.push('#2196F3'); // Weight - Blue
+                    colors.push('#2196F3'); // Weight - info
                 }
                 if (this.ability_warehouse_category_operation.allow_price) {
                     colors.push('#feb019'); // Avg Price - Orange

@@ -76,7 +76,7 @@
                 :key="m.id || i"
                 :class="['message-row', m.role === 'agent' ? 'agent' : 'user']"
               >
-                <div :class="['elevation-5', m.typing ?'bubble-no-padding': 'bubble', m.role === 'agent' ? '' : 'bg-blue']">
+                <div :class="['elevation-5', m.typing ?'bubble-no-padding': 'bubble', m.role === 'agent' ? '' : 'bg-info']">
                   <div class="bubble-text">
                     <!-- Typing indicator -->
                     <template v-if="m.typing">
@@ -550,7 +550,7 @@ export default {
   }
 
   .my-gradient-div {
-    /* Use a Vuetify blue color and set the end to transparent */
+    /* Use a Vuetify info color and set the end to transparent */
     background-image: linear-gradient(to bottom, rgba(98, 182, 255, 0.3) 1%, transparent) !important;
   }
 </style>

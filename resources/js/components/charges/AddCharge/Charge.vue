@@ -62,7 +62,7 @@
               <div class="px-2 d-block text-center">
                 <v-row class="pa-0">
                   <v-col class="pa-0">
-                    <v-icon class="text-blue">{{`mdi-numeric-${number}-circle-outline`}}</v-icon>
+                    <v-icon class="text-info">{{`mdi-numeric-${number}-circle-outline`}}</v-icon>
                   </v-col>
                 </v-row>
                 <v-row class="pa-0">
