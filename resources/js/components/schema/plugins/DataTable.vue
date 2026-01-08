@@ -87,6 +87,7 @@
                       rounded
                       readonly
                       color="info"
+                      class="text-info"
                       type="text" 
                       :model-value="main.formateDate(invoice_date)" 
                       v-on="inputEvents"
@@ -200,61 +201,65 @@
           <v-col cols="6" class="border border-dotted border-md rounded-xl mb-3">
             <v-row>
               <v-col cols="12" class="text-center ">
-                {{ $t('advanced_filters') }}
+                <v-btn @click="advanced_filter_btn = !advanced_filter_btn" :prepend-icon="advanced_filter_btn ? 'mdi-chevron-up' : 'mdi-chevron-down'" block rounded color="blue" density="compact">
+                  {{ $t('advanced_filters') }}
+                </v-btn>
               </v-col>
             </v-row>
-            <v-row>
-              <v-col cols="6" v-for="col_key in advanced_filters_keys" :key="col_key">
-                <v-autocomplete
-                  v-if="advanced_filters[col_key] !== undefined"
-                  v-model="advanced_filters[col_key]"
-                  :items="filterOptions(col_key)"
-                  item-title="title"
-                  item-value="value"
-                  multiple
-                  chips
-                  closable-chips
-                  clearable
-                  density="compact"
-                  hide-details
-                  :placeholder="$t(col_key)"
-                  variant="outlined"
-                  rounded
-                  class="text-info header-filter"
-                  :prepend-inner-icon="advanced_filters[col_key].length>0? 'mdi-filter' :'mdi-filter-outline'"
-                >
-                  <template v-slot:chip="{ props, item }">
-                    <v-chip
-                      v-bind="props"
-                      class="text-white"
-                      color="info accent-4"
-                      closable
-                      variant="tonal"
-                    >
-                      {{ item.title }}
-                    </v-chip>
-                  </template>
-                  <template v-slot:item="{ props, item }">
-                    <v-list-item
-                      v-bind="props"
-                      @click="props.onClick"
-                      class="text-info"
-                      :title="item.title"
-                    >
-                      <template v-slot:prepend="{ isSelected, select }">
-                        <v-list-item-action start>
-                          <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
-                        </v-list-item-action>
-                      </template>
-                    </v-list-item>
-                  </template>
-                </v-autocomplete>
-
-              </v-col>
-            </v-row>
+            <v-expand-transition>
+              <v-row v-show="advanced_filter_btn">
+                <v-col cols="6"  v-for="col_key in advanced_filters_keys" :key="col_key">
+                  <v-autocomplete
+                    v-if="advanced_filters[col_key] !== undefined"
+                    v-model="advanced_filters[col_key]"
+                    :items="filterOptions(col_key)"
+                    item-title="title"
+                    item-value="value"
+                    multiple
+                    chips
+                    closable-chips
+                    clearable
+                    density="compact"
+                    hide-details
+                    :placeholder="$t(col_key)"
+                    variant="outlined"
+                    rounded
+                    class="text-info header-filter"
+                    :prepend-inner-icon="advanced_filters[col_key].length>0? 'mdi-filter' :'mdi-filter-outline'"
+                  >
+                    <template v-slot:chip="{ props, item }">
+                      <v-chip
+                        v-bind="props"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item="{ props, item }">
+                      <v-list-item
+                        v-bind="props"
+                        @click="props.onClick"
+                        class="text-info"
+                        :title="item.title"
+                      >
+                        <template v-slot:prepend="{ isSelected, select }">
+                          <v-list-item-action start>
+                            <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                          </v-list-item-action>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+              </v-row>
+            </v-expand-transition>
           </v-col>
+          <div cols="1" class="mx-1"></div>
           <v-expand-transition>
-            <v-col cols="*" v-if="type_invoice == 'export'">
+            <v-col cols="5.5" class="border border-dotted border-md rounded-xl mb-3" v-show="type_invoice == 'export'">
               <v-btn>testament</v-btn>
             </v-col>
           </v-expand-transition>
@@ -548,6 +553,7 @@ export default {
       invoice_expression: "1 == 1",
       invoice_filters: [],
       type_invoice:"local",
+      advanced_filter_btn:false
     }
   },
 

@@ -17,6 +17,7 @@
                   rounded
                   @keydown.enter.prevent="submit"
                   color="info"
+                  class="text-info"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -94,6 +95,7 @@
                   :error-messages="v$.charge_detail.stockable_id.$errors.map(e => e.$message)"
                   @blur="v$.charge_detail.stockable_id.$touch()"
                   color="info"
+                  class="text-info"
                   ref="charge_focus_input"
                   >
                     <!-- Custom Chips Slot -->
@@ -123,6 +125,7 @@
                   details
                   :error-messages="v$.charge_detail.stockable_id.$errors.map(e => e.$message)"
                   @blur="v$.charge_detail.stockable_id.$touch()"
+                  class="text-info"
                   ref="charge_focus_input"
                 >
                 </v-textarea>
@@ -141,6 +144,7 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
+                  class="text-info"
                   color="info"
                   :hide-details="v$.charge_detail.warehouse_id.$errors.length==0"
                   :error-messages="v$.charge_detail.warehouse_id.$errors.map(e => e.$message)"
@@ -172,6 +176,7 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
+                  class="text-info"
                   color="info"
                   :hide-details="v$.charge_detail.total_weight.$errors.length==0"
                   :error-messages="v$.charge_detail.total_weight.$errors.map(e => e.$message)"
@@ -190,6 +195,7 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
+                  class="text-info"
                   color="info"
                   :hide-details="v$.charge_detail.unit_price.$errors.length==0"
                   :error-messages="v$.charge_detail.unit_price.$errors.map(e => e.$message)"
@@ -209,6 +215,7 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
+                  class="text-info"
                   color="info"
                   :hide-details="v$.charge_detail.total_weight_bill.$errors.length==0"
                   :error-messages="v$.charge_detail.total_weight_bill.$errors.map(e => e.$message)"
@@ -228,6 +235,7 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
+                  class="text-info"
                   color="info"
                   :hide-details="v$.charge_detail.total_price.$errors.length==0"
                   :error-messages="v$.charge_detail.total_price.$errors.map(e => e.$message)"
@@ -249,6 +257,7 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
+                  class="text-info"
                   color="info"
                   :hide-details="v$.charge_detail.package_type_id.$errors.length==0"
                   :error-messages="v$.charge_detail.package_type_id.$errors.map(e => e.$message)"
@@ -281,6 +290,7 @@
                   variant="outlined"
                   rounded
                   @keydown.enter.prevent="submit"
+                  class="text-info"
                   color="info"
                   :hide-details="v$.charge_detail.total_package_count.$errors.length==0"
                   :error-messages="v$.charge_detail.total_package_count.$errors.map(e => e.$message)"

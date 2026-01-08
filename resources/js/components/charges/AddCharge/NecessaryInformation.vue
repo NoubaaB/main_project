@@ -52,6 +52,7 @@
                 variant="outlined"
                 rounded
                 color="info"
+                class="text-info"
                 >
                   <!-- Custom Chips Slot -->
                   <template #chip="{ item, index }">
@@ -149,6 +150,7 @@
                   clearable
                   @keydown.enter.prevent="addNewTrackingNumber"
                   color="info"
+                  class="text-info"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -183,6 +185,7 @@
                   clearable
                   @keydown.enter.prevent="addNewOnpTrackingNumber"
                   color="info"
+                  class="text-info"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -221,6 +224,7 @@
                   rounded
                   clearable
                   color="info"
+                  class="text-info"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -256,6 +260,7 @@
                   :label="$t('fishery')"
                   :item-title="`name_${main.lang.short}`"
                   item-value="id"
+                  class="text-info"
                 >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -289,6 +294,7 @@
                   :label="$t('origin')"
                   item-title="name"
                   item-value="id"
+                  class="text-info"
                 >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">

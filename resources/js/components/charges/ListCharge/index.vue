@@ -58,7 +58,6 @@
         </v-col>
       </v-row>
     </v-card-text>
-
     <DataTable
      :relations="relations"
      :advanced_relations="advanced_relations"
@@ -153,14 +152,39 @@
           {{ main.formatDisplayNumber(item.total_price) }}
         </template>
 
+        <template v-slot:[`item.actions`]="{ item }">
+          <v-btn color="warning" class="mx-1" icon="mdi-pencil" size="x-small" variant="tonal" @click="editItem(item)"
+          v-tooltip:top="$t('edit_item')"
+          ></v-btn>
+          <v-btn color="success" class="mx-1" icon="mdi-eye" size="x-small" variant="tonal" @click="editItem(item)"
+          v-tooltip:top="$t('view_item')"
+          ></v-btn>
+          <v-btn color="red" class="mx-1" icon="mdi-delete" size="x-small" variant="tonal" @click="editItem(item)"
+          v-tooltip:top="$t('delete_item')"
+          ></v-btn>
+        </template>
+
         <template v-slot:[`item.allow_invoice`]="{ item }">
           <template v-if="item.allow_invoice">
             <v-chip
-              :color="item.invoice_id == null ? 'green' : 'warning'"
+              v-if="item.invoice_id == null"
+              color="green"
+              @click="print_invoice(item)"
               class="ma-1"
+              v-tooltip:top="$t('print_invoice')"
             >
               <v-icon>
-                {{ item.invoice_id == null ? "mdi-printer-check" : "mdi-printer-pos-cog" }}
+                {{"mdi-printer-check" }}
+              </v-icon>
+            </v-chip>
+            <v-chip
+              v-else
+              color="warning'"
+              class="ma-1"
+              v-tooltip:top="$t('invoice_on_pending')"
+            >
+              <v-icon>
+                {{ "mdi-printer-pos-cog" }}
               </v-icon>
             </v-chip>
           </template>
@@ -168,6 +192,7 @@
             <v-chip
               color="gray"
               class="ma-1"
+              v-tooltip:top="$t('no_nvoice')"
             >
               <v-icon>
                 mdi-printer-pos-cancel
@@ -282,6 +307,7 @@
             { align : "center" , title: this.$t("origin"), key: 'origin_id' , visible:true },
             { align : "center" , title: this.$t("fishery"), key: 'fishery_id' , visible:false },
             { align : "center" , title: this.$t("status"), key: 'allow_invoice' , visible:true },
+            { align : "center" , title: this.$t("actions"), key: 'actions' , visible:true ,sortable: false },
             
           ]
         },
@@ -302,7 +328,19 @@
     methods:{
       update_filtred_items_to_source: function (items) {
         this.charge.filtred_charge_fetch_items = items;
-      }
+      },
+      editItem: function (item) {
+        console.log("item",item)
+      },
+      viewItem: function (item) {
+        console.log("item",item)
+      },
+      deleteItem: function (item) {
+        console.log("item",item)
+      },
+      print_invoice: function (item) {
+        console.log("item",item)
+      },
     }
   }
 </script>
