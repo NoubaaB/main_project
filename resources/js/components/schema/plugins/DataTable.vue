@@ -20,7 +20,6 @@
       height="650"
       :loading="loading"
       :rowProps="rowProps"
-      
     >
       <template v-slot:top>
         <v-row class="mx-1">
@@ -39,8 +38,8 @@
               {{ $t("reset_header") }} ({{ hiddenHeaderKeys.length }})
             </v-btn>
           </v-col>
+
           <v-col class="text-center" cols="2">
-            <!-- EXPORT BUTTON -->
             <v-btn
               color="success"
               variant="tonal"
@@ -55,8 +54,8 @@
               {{ $t('export') }} ({{ items_selected.length }})
             </v-btn>
           </v-col>
+
           <v-col class="text-center" cols="2">
-            <!-- INVOICE BUTTON -->
             <v-btn
               color="amber"
               variant="tonal"
@@ -71,132 +70,135 @@
               {{ $t('invoice') }} ({{ invoices_selected.length }})
             </v-btn>
           </v-col>
+
           <v-col class="text-center" cols="2">
-                <DatePicker
-                  :is-dark="main.is_dark"
-                  :max-date="new Date()"
-                  v-model="invoice_date"
-                  :locale="main.lang.short"
-                  mode="date"
+            <DatePicker
+              :is-dark="main.is_dark"
+              :max-date="new Date()"
+              v-model="invoice_date"
+              :locale="main.lang.short"
+              mode="date"
+            >
+              <template #default="{ inputEvents }">
+                <v-text-field
+                  :label="$t('invoice_date')"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  readonly
+                  color="info"
+                  class="text-info"
+                  type="text"
+                  :model-value="main.formateDate(invoice_date)"
+                  v-on="inputEvents"
+                  append-inner-icon="mdi-calendar"
+                />
+              </template>
+            </DatePicker>
+          </v-col>
+
+          <v-col class="text-center" cols="2">
+            <v-autocomplete
+              v-model="type_invoice"
+              :items="type_invoice_items"
+              chips
+              item-title="name"
+              item-value="name"
+              density="compact"
+              hide-details
+              :placeholder="$t('type_invoice')"
+              variant="outlined"
+              rounded
+              class="text-info header-filter"
+              prepend-inner-icon="mdi-printer-pos-star"
+            >
+              <template v-slot:chip="{ props, item }">
+                <v-chip
+                  v-bind="props"
+                  class="text-white"
+                  :prepend-icon="item.raw.icon"
+                  :base-color="item.raw.color"
+                  :bg-color="item.raw.color"
+                  :color="item.raw.color"
+                  variant="tonal"
                 >
-                  <template #default="{ inputEvents }">
-                    <v-text-field
-                      :label="$t('invoice_date')"
-                      density="compact"
-                      variant="outlined"
-                      rounded
-                      readonly
-                      color="info"
-                      class="text-info"
-                      type="text" 
-                      :model-value="main.formateDate(invoice_date)" 
-                      v-on="inputEvents"
-                      append-inner-icon="mdi-calendar"
-                      >
-                    </v-text-field>
+                  {{ $t(item.title) }}
+                </v-chip>
+              </template>
+              <template v-slot:item="{ props, item }">
+                <v-list-item
+                  v-bind="props"
+                  class="text-info"
+                  :title="$t(item.title)"
+                  :append-icon="item.raw.icon"
+                  :base-color="item.raw.color"
+                  :bg-color="item.raw.color"
+                  :color="item.raw.color"
+                >
+                  <template v-slot:prepend="{ isSelected, select }">
+                    <v-list-item-action start>
+                      <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                    </v-list-item-action>
                   </template>
-                </DatePicker>            
+                </v-list-item>
+              </template>
+            </v-autocomplete>
           </v-col>
-          <v-col class="text-center" cols="2">
-              <v-autocomplete
-                v-model="type_invoice"
-                :items="type_invoice_items"
-                chips
-                item-title="name"
-                item-value="name"
-                density="compact"
-                hide-details
-                :placeholder="$t('type_invoice')"
-                variant="outlined"
-                rounded
-                class="text-info header-filter"
-                prepend-inner-icon="mdi-printer-pos-star"
-              >
-                <template v-slot:chip="{ props, item }">
-                  <v-chip
-                    v-bind="props"
-                    class="text-white"
-                    :prepend-icon="item.raw.icon"
-                    :base-color="item.raw.color"
-                    :bg-color="item.raw.color"
-                    :color="item.raw.color"
-                    variant="tonal"
-                  >
-                    {{ $t(item.title) }}
-                  </v-chip>
-                </template>
-                <template v-slot:item="{ props, item }">
-                  <v-list-item
-                    v-bind="props"
-                    class="text-info"
-                    :title="$t(item.title)"
-                    :append-icon="item.raw.icon"
-                    :base-color="item.raw.color"
-                    :bg-color="item.raw.color"
-                    :color="item.raw.color"
-                  >
-                    <template v-slot:prepend="{ isSelected, select }">
-                      <v-list-item-action start>
-                        <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
-                      </v-list-item-action>
-                    </template>
-                  </v-list-item>
-                </template>
-              </v-autocomplete>
-          </v-col>
+
           <v-col>
-              <v-autocomplete
-                v-model="invoice_filters"
-                :items="invoice_filters_items"
-                item-title="name"
-                item-value="value"
-                multiple
-                chips
-                closable-chips
-                clearable
-                density="compact"
-                hide-details
-                :placeholder="$t('filter_invoices')"
-                variant="outlined"
-                rounded
-                class="text-info header-filter"
-                :prepend-inner-icon="invoice_filters.length>0? 'mdi-filter' :'mdi-filter-outline'"
-              >
-                <template v-slot:chip="{ props, item }">
-                  <v-chip
-                    v-bind="props"
-                    class="text-white"
-                    :prepend-icon="item.raw.icon"
-                    :base-color="item.raw.color"
-                    :bg-color="item.raw.color"
-                    :color="item.raw.color"
-                    closable
-                    variant="tonal"
-                  >
-                    {{ item.title }}
-                  </v-chip>
-                </template>
-                <template v-slot:item="{ props, item }">
-                  <v-list-item
-                    v-bind="props"
-                    @click="props.onClick"
-                    class="text-info"
-                    :title="item.title"
-                    :append-icon="item.raw.icon"
-                    :base-color="item.raw.color"
-                    :bg-color="item.raw.color"
-                    :color="item.raw.color"
-                  >
-                    <template v-slot:prepend="{ isSelected, select }">
-                      <v-list-item-action start>
-                        <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
-                      </v-list-item-action>
-                    </template>
-                  </v-list-item>
-                </template>
-              </v-autocomplete>
+            <v-autocomplete
+              v-model="invoice_filters"
+              :items="invoice_filters_items"
+              item-title="name"
+              item-value="value"
+              multiple
+              chips
+              closable-chips
+              clearable
+              density="compact"
+              hide-details
+              :placeholder="$t('filter_invoices')"
+              variant="outlined"
+              rounded
+              class="text-info header-filter"
+              :prepend-inner-icon="invoice_filters.length>0? 'mdi-filter' :'mdi-filter-outline'"
+            >
+              <template v-slot:chip="{ props, item }">
+                <v-chip
+                  v-bind="props"
+                  class="text-white"
+                  :prepend-icon="item.raw.icon"
+                  :base-color="item.raw.color"
+                  :bg-color="item.raw.color"
+                  :color="item.raw.color"
+                  closable
+                  variant="tonal"
+                >
+                  {{ item.title }}
+                </v-chip>
+              </template>
+              <template v-slot:item="{ props, item }">
+                <v-list-item
+                  v-bind="props"
+                  @click="props.onClick"
+                  class="text-info"
+                  :title="item.title"
+                  :append-icon="item.raw.icon"
+                  :base-color="item.raw.color"
+                  :bg-color="item.raw.color"
+                  :color="item.raw.color"
+                >
+                  <template v-slot:prepend="{ isSelected, select }">
+                    <v-list-item-action start>
+                      <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                    </v-list-item-action>
+                  </template>
+                </v-list-item>
+              </template>
+            </v-autocomplete>
           </v-col>
         </v-row>
+
         <v-row class="mx-1">
           <v-col cols="6" class="border border-dotted border-md rounded-xl mb-3">
             <v-row>
@@ -206,13 +208,15 @@
                 </v-btn>
               </v-col>
             </v-row>
+
             <v-expand-transition>
               <v-row v-show="advanced_filter_btn">
-                <v-col cols="6"  v-for="col_key in advanced_filters_keys" :key="col_key">
+                <!-- Advanced filters columns -->
+                <v-col cols="6" v-for="col_key in advanced_filters_keys" :key="col_key">
                   <v-autocomplete
                     v-if="advanced_filters[col_key] !== undefined"
                     v-model="advanced_filters[col_key]"
-                    :items="filterOptions(col_key)"
+                    :items="advancedFilterOptions(col_key)"
                     item-title="title"
                     item-value="value"
                     multiple
@@ -257,7 +261,9 @@
               </v-row>
             </v-expand-transition>
           </v-col>
+
           <div cols="1" class="mx-1"></div>
+
           <v-expand-transition>
             <v-col cols="5.5" class="border border-dotted border-md rounded-xl mb-3" v-show="type_invoice == 'export'">
               <v-btn>testament</v-btn>
@@ -276,8 +282,7 @@
           :icon="isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
           slim
           @click="toggleExpand(internalItem)"
-        >
-        </v-btn>
+        />
       </template>
 
       <template #loader>
@@ -301,28 +306,26 @@
         </div>
       </template>
 
-    <template v-slot:expanded-row="{ item }">
-      <tr >
-        <td :colspan="8" class="py-2 row_color">
-          <v-sheet class="table_size" rounded="lg" border>
-            <NestedDataTable
-            :detail_headers="detail_headers"
-            :item="item"
-            />
-          </v-sheet>
-        </td>
-      </tr>
-
-    </template>
+      <template v-slot:expanded-row="{ item }">
+        <tr >
+          <td :colspan="8" class="py-2 row_color">
+            <v-sheet class="table_size" rounded="lg" border>
+              <NestedDataTable
+                :detail_headers="detail_headers"
+                :item="item"
+              />
+            </v-sheet>
+          </td>
+        </tr>
+      </template>
 
       <!-- FILTER HEADER with native drag & drop -->
       <template #headers>
         <tr>
-          <!-- SELECT ALL CHECKBOX TH (kept first and not draggable) -->
           <th class="pa-1 header-th select-th">
             <v-checkbox
-              :model-value="items_selected.length === filteredItems.length && filteredItems.length > 0"
-              :indeterminate="items_selected.length > 0 && items_selected.length !== filteredItems.length"
+              :model-value="items_selected.length === filteredForSelection.length && filteredForSelection.length > 0"
+              :indeterminate="items_selected.length > 0 && items_selected.length !== filteredForSelection.length"
               @update:model-value="selectAll"
               color="info"
               class="pt-3 ma-0"
@@ -331,7 +334,6 @@
             />
           </th>
 
-          <!-- Render THs according to headerOrder (excluding select column) -->
           <th
             v-for="(col, idx) in headerOrder.filter(h => h.key !== 'data-table-select')"
             :key="idx"
@@ -340,11 +342,8 @@
             @drop.prevent="onDrop($event, col.key)"
             :class="{ 'drag-over': dragOverKey === col.key }"
           >
-            <!-- header-top contains a small drag handle icon which is draggable.
-                 Drag is initiated from the handle to avoid interfering with buttons/inputs. -->
             <div class="header-top d-flex align-center justify-space-between flex-nowrap mb-1">
               <div class="header-title d-flex align-center flex-nowrap">
-                <!-- DRAG HANDLE (draggable) -->
                 <span
                   class="drag-handle me-2"
                   role="button"
@@ -357,7 +356,6 @@
                   <v-icon small class="me-1">mdi-drag</v-icon>
                 </span>
 
-                <!-- sort button (small) -->
                 <v-btn
                   v-if="col.key != 'data-table-expand'"
                   variant="text"
@@ -385,7 +383,6 @@
               </div>
 
               <div class="header-actions d-flex align-center flex-shrink-0">
-                <!-- pin / unpin column -->
                 <v-btn
                   variant="text"
                   icon
@@ -400,14 +397,12 @@
                   </v-icon>
                 </v-btn>
 
-                <!-- remove header -->
                 <v-btn v-if="col.key != 'data-table-expand'" variant="text" icon size="x-small" class="ml-1" :disabled="loading" @click.stop="removeHeader(col.key)" :title="$t('remove_column')">
                   <v-icon small color="error">mdi-close</v-icon>
                 </v-btn>
               </div>
             </div>
 
-            <!-- BOTTOM: filter / total -->
             <div class="header-bottom">
               <div class="filter-wrap text-center" :class="{ 'filter-has': filters[col.key] !== undefined }">
                 <v-autocomplete
@@ -511,7 +506,7 @@ const NULL_VALUE = '__NULL__';
 
 import NestedDataTable from "./NestedDataTable.vue";
 export default {
-  name: 'VirtualTableNativeReorder',
+  name: 'DataTable',
   props: {
     relations: Object,
     advanced_relations: Object,
@@ -537,15 +532,12 @@ export default {
 
       hiddenHeaderKeys: [],
       defaultHeaderKeys: [],
-      // pinnedHeaderKeys: ['data-table-select'],
       pinnedHeaderKeys: ['data-table-select','data-table-expand'],
       sortOrders: [],
       pinnedCss: '',
 
-      // ORDER of header objects used to render table columns (this is what we reorder)
       headerOrder: [],
 
-      // drag state
       draggingKey: null,
       dragOverKey: null,
 
@@ -580,26 +572,27 @@ export default {
     main: () => useMain(),
     parser: () => new Parser(),
     fish_types: () => useFishType().getList,
+
     invoices_selected: function () {
       return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice).map(i => i.id);
     },
     invoice_filters_items: function () {
       return [
         {
-          name: this.$t('overhead_costs'),
+          name: this.$t('non_posting_invoice'),
           value: "(allow_invoice == 0)",
           color:"info",
           icon:"mdi-printer-pos-cancel"
         },
         {
-          name: this.$t('pending_invoice'),
-          value: "(allow_invoice == 1 and invoice_id)",
+          name: this.$t('final_invoice'),
+          value: "(allow_invoice == 1 and invoice_id == 1)",
           color:"success",
           icon:"mdi-printer-check"
         },
         {
-          name: this.$t('outstanding_invoices'),
-          value: "(allow_invoice == 1 and not invoice_id)",
+          name: this.$t('uninvoiced'),
+          value: "(allow_invoice == 1 and invoice_id == 0)",
           color:"warning",
           icon:"mdi-printer-pos-cog"
         },
@@ -619,58 +612,83 @@ export default {
         },
       ]
     },
-    // original visible headers by prop order
+
     visibleHeaders () {
       return this.headers.filter(h => !this.hiddenHeaderKeys.includes(h.key))
     },
 
-    // headerOrder filtered for visibility (source used by table)
     orderedVisibleHeaders () {
       return this.headerOrder.filter(h => !this.hiddenHeaderKeys.includes(h.key))
     },
 
-    /* ----------------
-       FILTERED ITEMS (includes column filters, advanced nested filters, invoice filters)
-       ---------------- */
-    filteredItems () {
-      return this.items
-        // 1️⃣ Column filters (existing behaviour, extended for NULL_VALUE)
-        .filter(row =>
-          Object.entries(this.filters).every(([key, selected]) => {
-            if (!selected.length) return true
-            const val = row[key]
+    /* BASE FILTERS */
+    baseFilteredItems () {
+      const base = (this.items || []).filter(row =>
+        Object.entries(this.filters || {}).every(([key, selected]) => {
+          if (!selected || !selected.length) return true
+          const val = row[key]
 
-            // explicit null / missing value
-            if (val == null) return selected.includes(NULL_VALUE)
+          if (val == null) return selected.includes(NULL_VALUE)
 
-            // arrays (e.g., supplier_ids, tracking_numbers)
-            if (Array.isArray(val)) {
-              // match if any array element is selected OR if array is empty and N/A selected
-              return val.some(v => selected.includes(v)) ||
-                     (val.length === 0 && selected.includes(NULL_VALUE))
-            }
+          if (Array.isArray(val)) {
+            return val.some(v => selected.includes(v)) ||
+                   (val.length === 0 && selected.includes(NULL_VALUE))
+          }
 
-            // scalar compare
-            return selected.includes(val)
-          })
-        )
-
-        // 2️⃣ Advanced nested filters (ANY match inside nested array; supports NULL_VALUE)
-        .filter(row => this.applyAdvancedFilters(row))
-
-        // 3️⃣ Invoice expression filters (existing behaviour)
-        .filter(e => {
-          const expr = this.invoice_filters.join(' or ')
-          if (!expr.length) return true
-          return this.parser.evaluate(expr, {
-            invoice_id: e.invoice_id,
-            allow_invoice: e.allow_invoice
-          })
+          return selected.includes(val)
         })
+      )
+
+      return base.filter(e => {
+        const expr = (this.invoice_filters || []).join(' or ')
+        if (!expr.length) return true
+        return this.parser.evaluate(expr, {
+          invoice_id: e.invoice_id == null ? 0 : e.invoice_id,
+          allow_invoice: e.allow_invoice
+        })
+      })
+    },
+
+    /* PROCESSED ITEMS: advanced filters applied and nested arrays pruned */
+    processedItems () {
+      const advanced = this.advanced_filters || {}
+      const advKeys = Object.keys(advanced).filter(k => advanced[k] && advanced[k].length)
+      if (!advKeys.length) return this.baseFilteredItems.map(r => ({ ...r }))
+
+      const pathsToScan = []
+      advKeys.forEach(k => {
+        const rel = this.advanced_relations?.[k]
+        if (!rel) return
+        if (rel.paths && Array.isArray(rel.paths)) rel.paths.forEach(p => { if (!pathsToScan.includes(p)) pathsToScan.push(p) })
+        if (rel.path && !pathsToScan.includes(rel.path)) pathsToScan.push(rel.path)
+      })
+
+      if (!pathsToScan.length) pathsToScan.push('warehouse_stockable_tracking_number_operations','non_warehouse_stockable_operations')
+
+      const result = []
+
+      for (const row of this.baseFilteredItems) {
+        const cloned = { ...row }
+        let hadAnyMatch = false
+        for (const p of pathsToScan) {
+          const arr = Array.isArray(row[p]) ? row[p] : []
+          const matched = arr.filter(nested => this._nestedMatchesAdvancedFilters(nested, advanced))
+          cloned[p] = matched
+          if (matched.length) hadAnyMatch = true
+        }
+        if (hadAnyMatch) result.push(cloned)
+      }
+
+      return result
+    },
+
+    filteredForSelection () {
+      return this.processedItems
     },
 
     sortedFilteredItems () {
-      if (!this.sortOrders.length) return this.filteredItems
+      const arr = this.processedItems.slice()
+      if (!this.sortOrders.length) return arr
 
       const orders = this.sortOrders.slice()
 
@@ -689,8 +707,6 @@ export default {
         if (val == null) return ''
         return String(val)
       }
-
-      const arr = this.filteredItems.slice()
 
       arr.sort((a, b) => {
         for (const { key, dir } of orders) {
@@ -719,8 +735,8 @@ export default {
   },
 
   watch: {
-    filteredItems(value){
-      this.$emit("sync_items",value);
+    processedItems (value) {
+      this.$emit('sync_items', value)
     },
     hiddenHeaderKeys () {
       this.debouncedComputePinnedCss()
@@ -757,7 +773,6 @@ export default {
       this.loading = true
       this.items_selected = []
 
-
       this.fetchData(this.date.start, this.date.end)
       .catch(err => {
         console.error(`Error fetching ${this.api_url}`, err)
@@ -767,7 +782,6 @@ export default {
       });
     },
 
-    // ---- Sync headerOrder keeping previous user order where possible ----
     syncHeaderOrder () {
       const currentKeys = this.headerOrder.map(h => h.key)
       const headerMap = {}
@@ -779,7 +793,6 @@ export default {
       this.visibleHeaders.forEach(h => {
         if (!newOrder.find(x => x.key === h.key)) newOrder.push(h)
       })
-      // ensure select column exists and is first if present
       const selectIdx = newOrder.findIndex(h => h.key === 'data-table-select')
       if (selectIdx > 0) {
         const sel = newOrder.splice(selectIdx, 1)[0]
@@ -807,38 +820,50 @@ export default {
 
     selectAll () {
       this.items_selected =
-        this.items_selected.length === this.filteredItems.length
+        this.items_selected.length === this.filteredForSelection.length
           ? []
-          : this.filteredItems.map(i => i.id)
+          : this.filteredForSelection.map(i => i.id)
     },
 
-    get_total (key) {
-      return this.main.formatDisplayNumber(
-        this.filteredItems.reduce((a, b) => a + (+b[key] || 0), 0)
-      )
+    get_total(key) {
+      const sigma_allowed = this.sigma || [];
+      let sigma = sigma_allowed.find(s => s.name == key);
+      const paths = sigma.paths || [];
+
+      const total = _.sum(
+        _.map(this.sortedFilteredItems || [], item => { 
+          const total = _.sum(
+            paths.map(path =>
+              _.sumBy(_.get(item, path, []), o => +o[key] || 0)
+            )
+          );
+
+          // overwrite parent value
+          item[key] = total;
+          return total;
+        })
+      );
+
+      return this.main.formatDisplayNumber(total);
+
     },
 
     get_total_invoice () {
       return this.main.formatDisplayNumber(
-        this.filteredItems.filter(e=>e.allow_invoice).reduce((a, b) => a + (+b.total_price || 0), 0)
+        this.processedItems.filter(e=>e.allow_invoice && e.invoice_id != null).reduce((a, b) => a + (+b.total_price || 0), 0)
       )
     },
 
     get_total_none_invoice () {
       return this.main.formatDisplayNumber(
-        this.filteredItems.filter(e=>!e.allow_invoice).reduce((a, b) => a + (+b.total_price || 0), 0)
+        this.processedItems.filter(e=>e.allow_invoice && e.invoice_id == null).reduce((a, b) => a + (+b.total_price || 0), 0)
       )
     },
 
-    /* ----------------
-       Build rows to scan for options while excluding a single column/advanced key
-       This respects both column filters and advanced filters (except the excluded key)
-       ---------------- */
     itemsFilteredExcept (exceptKey) {
       return this.items.filter(row => {
-        // Column filters (exclude exceptKey)
-        const colOk = Object.entries(this.filters).every(([key, selected]) => {
-          if (key === exceptKey || !selected.length) return true
+        const colOk = Object.entries(this.filters || {}).every(([key, selected]) => {
+          if (key === exceptKey || !selected || !selected.length) return true
           const val = row[key]
           if (val == null) return selected.includes(NULL_VALUE)
           if (Array.isArray(val)) {
@@ -848,26 +873,6 @@ export default {
           return selected.includes(val)
         })
         if (!colOk) return false
-
-        // Advanced filters (exclude exceptKey)
-        if (this.advanced_filters && this.advanced_filters_keys?.length) {
-          const advOk = this.advanced_filters_keys.every(key => {
-            if (key === exceptKey) return true
-            const selected = this.advanced_filters[key]
-            if (!Array.isArray(selected) || selected.length === 0) return true
-            // use shared helper: get values for this advanced key for this row
-            const relation = this.advanced_relations?.[key]
-            if (!relation) return true
-
-            const values = this.getValuesForAdvancedKey(row, relation, key) // array of concrete tokens
-            const hasNoValues = values.length === 0
-            const selectedHasNA = selected.includes(NULL_VALUE)
-            const matchesConcrete = values.some(v => selected.includes(v))
-            return matchesConcrete || (selectedHasNA && hasNoValues)
-          })
-          if (!advOk) return false
-        }
-
         return true
       })
     },
@@ -885,33 +890,6 @@ export default {
       const options = []
       if (hasNull) options.push({ title: this.$t("n/a"), value: NULL_VALUE })
 
-      // --- Advanced relation (nested array) options ---
-      if (this.advanced_relations?.[key]) {
-        // getAdvancedFilterOptions will also compute N/A when appropriate
-        const adv = this.getAdvancedFilterOptions(key)
-        // ensure we don't duplicate N/A
-        const merged = []
-        const seen = new Set()
-        adv.forEach(o => {
-          const id = String(o.value)
-          if (!seen.has(id)) {
-            merged.push(o)
-            seen.add(id)
-          }
-        })
-        // merge any N/A already in `options` at front
-        if (options.length && merged.length && String(merged[0].value) === String(NULL_VALUE)) {
-          // merged already has N/A → return merged (which is already properly ordered)
-          return merged
-        }
-        // otherwise prepend N/A (if present) to merged
-        if (options.length && (!merged.length || String(merged[0].value) !== String(NULL_VALUE))) {
-          merged.unshift(options[0])
-        }
-        return merged
-      }
-
-      // --- Normal relations ---
       if (this.relations?.[key]) {
         const { source, label } = this.relations[key]
         const list = Array.isArray(source) ? source : (this[source] || [])
@@ -927,189 +905,199 @@ export default {
       return options.sort((a, b) => String(a.title).localeCompare(String(b.title)))
     },
 
-    /* ---------------- Advanced nested-filter helpers ---------------- */
-
-    // Safely return nested array at a path (e.g. 'warehouse_stockable_tracking_number_operations')
-    getNestedArray (row, path) {
-      const value = row?.[path]
-      return Array.isArray(value) ? value : []
+    normalizeStockableType (type) {
+      if (!type && type !== 0) return type
+      if (typeof type !== 'string') return type
+      const parts = type.split('\\')
+      return parts[parts.length - 1]
     },
 
-    // Extract stockable object from a nested operation record when present.
-    // Returns object with at least { stockable_type, stockable_id } or null.
     getStockableFromNested (nestedItem) {
-      // common pattern from your example:
-      // nestedItem.warehouse_stockable_tracking_number?.warehouse_stockable
-      if (nestedItem?.warehouse_stockable_tracking_number?.warehouse_stockable) {
-        return nestedItem.warehouse_stockable_tracking_number.warehouse_stockable
-      }
-      // maybe non-warehouse path stores it as nestedItem.warehouse_stockable
-      if (nestedItem?.warehouse_stockable) return nestedItem.warehouse_stockable
-      // maybe nestedItem.stockable exists
-      if (nestedItem?.stockable) return nestedItem.stockable
-      // fallback: sometimes fields are directly on nestedItem
-      if (nestedItem?.stockable_type || nestedItem?.stockable_id) {
+      if (!nestedItem) return null
+
+      const wstn = nestedItem.warehouse_stockable_tracking_number
+      if (wstn && wstn.warehouse_stockable) {
+        const ws = wstn.warehouse_stockable
         return {
-          stockable_type: nestedItem.stockable_type,
+          stockable_type: this.normalizeStockableType(ws.stockable_type ?? ws.type ?? nestedItem.stockable_type),
+          stockable_id: ws.stockable_id ?? ws.id ?? nestedItem.stockable_id
+        }
+      }
+
+      if (nestedItem.warehouse_stockable) {
+        const ws = nestedItem.warehouse_stockable
+        return {
+          stockable_type: this.normalizeStockableType(ws.stockable_type ?? ws.type ?? nestedItem.stockable_type),
+          stockable_id: ws.stockable_id ?? ws.id ?? nestedItem.stockable_id
+        }
+      }
+
+      if (nestedItem.stockable) {
+        const s = nestedItem.stockable
+        return {
+          stockable_type: this.normalizeStockableType(s.stockable_type ?? s.type ?? nestedItem.stockable_type),
+          stockable_id: s.stockable_id ?? s.id ?? nestedItem.stockable_id
+        }
+      }
+
+      if (nestedItem.stockable_type || nestedItem.stockable_id) {
+        return {
+          stockable_type: this.normalizeStockableType(nestedItem.stockable_type),
           stockable_id: nestedItem.stockable_id
         }
       }
+
       return null
     },
 
-    // Return an array of concrete values for an advanced key for a specific row.
-    // For simple keys (warehouse_id) it returns numbers.
-    // For stockable_type -> returns strings like 'GuanoType'
-    // For stockable_id -> returns composite strings like 'GuanoType__4' (so they are unambiguous).
-    getValuesForAdvancedKey (row, relation, key) {
-      const values = []
+    // Resolve fish_family_id from a stockable (only for FishType)
+    resolveFishFamilyIdFromStockable (stockable) {
+      if (!stockable) return null
+      const stype = this.normalizeStockableType(stockable.stockable_type)
+      const sid = stockable.stockable_id
+      if (!stype || !sid) return null
+      if (stype !== 'FishType') return null
+      // lookup fish_types store
+      const ft = (this.fish_types || []).find(x => String(x.id) === String(sid))
+      if (!ft) return null
+      return ft.fish_family_id ?? ft.family_id ?? null
+    },
 
-      // relation may have `path` (string) or `paths` (array)
-      const paths = relation?.paths || (relation?.path ? [relation.path] : [])
+    _nestedMatchesAdvancedFilters (nested, advancedFilters) {
+      const activeKeys = Object.keys(advancedFilters || {}).filter(k => advancedFilters[k] && advancedFilters[k].length)
+      if (!activeKeys.length) return true
 
-      if (!paths.length) return values
+      const stockable = this.getStockableFromNested(nested)
+      const stype = stockable ? this.normalizeStockableType(stockable.stockable_type) : this.normalizeStockableType(nested.stockable_type)
+      const sId = stockable ? stockable.stockable_id : nested.stockable_id
+      // Resolve fish family using fish_types lookup if stockable is FishType
+      const fishFamilyFromStockable = this.resolveFishFamilyIdFromStockable(stockable) || nested.fish_family_id
 
-      for (const p of paths) {
-        const nestedArr = this.getNestedArray(row, p)
-        if (!nestedArr.length) continue
+      return activeKeys.every(key => {
+        const selected = advancedFilters[key]
+        if (!selected || !selected.length) return true
 
-        for (const item of nestedArr) {
-          // stockable special keys
-          if (key === 'stockable_type' || key === 'stockable_id') {
-            const stockable = this.getStockableFromNested(item)
-            if (!stockable) continue
-            const type = stockable.stockable_type
-            const id = stockable.stockable_id ?? stockable.id ?? null
-            if (key === 'stockable_type') {
-              if (type != null) values.push(String(type))
-            } else { // stockable_id
-              if (id != null && type != null) {
-                values.push(this.main.getStockableName(id,type))
-              } else if (id != null) {
-                // fallback: id without type (less precise)
-                values.push(`${String(id)}`)
+        if (key === 'warehouse_id') {
+          const wid = nested.warehouse_id ?? nested.warehouse_stockable_tracking_number?.warehouse_id ?? nested.warehouse_id
+          return selected.includes(wid)
+        }
+
+        if (key === 'stockable_type') {
+          if (!stype) return false
+          const normalizedSelected = selected.map(s => this.normalizeStockableType(s))
+          return normalizedSelected.includes(stype)
+        }
+
+        if (key === 'stockable_id') {
+          return selected.some(sel => {
+            if (typeof sel === 'string' && sel.includes('__')) {
+              const [selType, selId] = sel.split('__')
+              const normSelType = this.normalizeStockableType(selType)
+              return (String(normSelType) === String(stype)) && (String(selId) === String(sId))
+            }
+            return String(sel) === String(sId)
+          })
+        }
+
+        if (key === 'fish_family_id') {
+          if (!stype) return false
+          if (this.normalizeStockableType(stype) !== 'FishType') return false
+          if (fishFamilyFromStockable == null) return false
+          return selected.some(ff => String(ff) === String(fishFamilyFromStockable))
+        }
+
+        return true
+      })
+    },
+
+    advancedFilterOptions (key) {
+      const rel = this.advanced_relations?.[key]
+      const valuesMap = new Map()
+
+      const sourceRows = this.itemsFilteredExcept(key)
+      const paths = (rel && (rel.paths || (rel.path ? [rel.path] : [])))
+        || ['warehouse_stockable_tracking_number_operations','non_warehouse_stockable_operations']
+
+      sourceRows.forEach(row => {
+        paths.forEach(p => {
+          const arr = Array.isArray(row[p]) ? row[p] : []
+          arr.forEach(nested => {
+            const stockable = this.getStockableFromNested(nested)
+
+            if (key === 'warehouse_id') {
+              const wid = nested.warehouse_id ?? nested.warehouse_stockable_tracking_number?.warehouse_id
+              if (wid != null && !valuesMap.has(wid)) {
+                const label = (() => {
+                  if (rel?.source && Array.isArray(rel.source)) {
+                    const found = rel.source.find(x => x.id === wid)
+                    if (found) return found[rel.label] ?? found.name ?? String(wid)
+                  }
+                  return String(wid)
+                })()
+                valuesMap.set(wid, label)
               }
             }
-          } else if (key === 'fish_family_id') {
-            // NEW: Resolve fish_family_id from stockable objects when stockable_type == 'FishType'
-            // 1) Try to extract the stockable object
-            const stockable = this.getStockableFromNested(item)
-            if (stockable) {
-              const type = stockable.stockable_type
-              const id = stockable.stockable_id ?? stockable.id ?? null
-              if (type === 'FishType' && id != null) {
-                // lookup fish type object in fish_types store and read its fish_family_id
-                const fishTypeObj = (this.fish_types || []).find(ft => ft.id === id)
-                if (fishTypeObj && (fishTypeObj.fish_family_id != null)) {
-                  values.push(Number(fishTypeObj.fish_family_id))
-                  continue
+
+            if (key === 'stockable_type') {
+              const st = this.normalizeStockableType(stockable?.stockable_type ?? nested.stockable_type)
+              if (st != null && !valuesMap.has(st)) {
+                valuesMap.set(st, String(st))
+              }
+            }
+
+            if (key === 'stockable_id') {
+              const stype = this.normalizeStockableType(stockable?.stockable_type ?? nested.stockable_type)
+              const sid = stockable?.stockable_id ?? nested.stockable_id
+              if (stype != null && sid != null) {
+                const combined = `${stype}__${sid}`
+                if (!valuesMap.has(combined)) {
+                  let friendly = `${stype} ${sid}`
+                  if (stype === 'FishType') {
+                    const ft = this.fish_types.find(f => String(f.id) === String(sid))
+                    if (ft) friendly = ft[`name_${this.main.lang.code}`]
+                  }
+                  valuesMap.set(combined, `${friendly}`)
                 }
               }
             }
-            // 2) Fallback: nested item may directly include fish_family_id
-            if (item && item.fish_family_id != null) {
-              values.push(Number(item.fish_family_id))
+
+            if (key === 'fish_family_id') {
+              // get fish family id by resolving fish type record
+              const resolvedFishFamily = (() => {
+                const stock = stockable || null
+                const stype = this.normalizeStockableType(stock ? stock.stockable_type : nested.stockable_type)
+                if (stype !== 'FishType') return null
+                // sid:
+                const sid = stock ? stock.stockable_id : nested.stockable_id
+                if (!sid) return null
+                const ft = (this.fish_types || []).find(x => String(x.id) === String(sid))
+                if (!ft) return null
+                return ft.fish_family_id ?? ft.family_id ?? null
+              })()
+
+              if (resolvedFishFamily != null && !valuesMap.has(resolvedFishFamily)) {
+                if (rel?.source && Array.isArray(rel.source)) {
+                  const found = rel.source.find(x => x.id === resolvedFishFamily)
+                  const title = found ? (rel.label ? found[rel.label] : found.name) : String(resolvedFishFamily)
+                  valuesMap.set(resolvedFishFamily, title)
+                } else {
+                  valuesMap.set(resolvedFishFamily, String(resolvedFishFamily))
+                }
+              }
             }
-          } else {
-            // default behaviour: read item[key] (same as warehouse_id etc)
-            if (item && item[key] != null) values.push(item[key])
-          }
-        }
-      }
-
-      // remove duplicates and return
-      return Array.from(new Set(values))
-    },
-
-    // Apply all advanced filters (each key in advanced_filters_keys)
-    // Supports NULL_VALUE (N/A) to match rows with no nested-values
-    applyAdvancedFilters (row) {
-      if (!this.advanced_filters || !this.advanced_filters_keys?.length) {
-        return true
-      }
-
-      return this.advanced_filters_keys.every(key => {
-        const selected = this.advanced_filters[key]
-        if (!Array.isArray(selected) || selected.length === 0) return true
-
-        const relation = this.advanced_relations?.[key]
-        if (!relation) return true
-
-        const values = this.getValuesForAdvancedKey(row, relation, key)
-        const hasNoValues = values.length === 0
-
-        const selectedHasNA = selected.includes(NULL_VALUE)
-
-        const matchesConcrete = values.some(v => selected.includes(v))
-
-        return matchesConcrete || (selectedHasNA && hasNoValues)
-      })
-    },
-
-    // Build options for advanced filter autocomplete (uses relation.source and label when present)
-    // Adds N/A option when any row (after other column & advanced filters) lacks nested values
-    getAdvancedFilterOptions (key) {
-      const relation = this.advanced_relations?.[key]
-      if (!relation) return []
-
-      const paths = relation?.paths || (relation?.path ? [relation.path] : [])
-      const usedValues = new Set()
-      let hasNA = false
-
-      // Use itemsFilteredExcept(key) to respect other filters when computing options
-      const rowsToScan = this.itemsFilteredExcept(key)
-
-      rowsToScan.forEach(row => {
-        const vals = this.getValuesForAdvancedKey(row, relation, key)
-        if (!vals.length) {
-          hasNA = true
-        } else {
-          vals.forEach(v => usedValues.add(v))
-        }
+          })
+        })
       })
 
-      // If relation has a `source` (like warehouses), prefer mapping IDs -> labels
-      if (relation.source && relation.label) {
-        const list = Array.isArray(relation.source) ? relation.source : (this[relation.source] || [])
-        const mapped = list
-          .filter(i => usedValues.has(i.id))
-          .map(i => ({ title: i[relation.label], value: i.id }))
-          .sort((a, b) => String(a.title).localeCompare(String(b.title)))
-
-        if (hasNA) mapped.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
-        return mapped
+      const options = []
+      for (const [value, title] of valuesMap.entries()) {
+        options.push({ title, value })
       }
-
-      // For special stockable keys build human-friendly titles
-      if (key === 'stockable_type') {
-        const arr = Array.from(usedValues).map(v => ({ title: this.$t(v), value: this.$t(v) }))
-        .sort((a, b) => String(a.title).localeCompare(String(b.title)))
-        if (hasNA) arr.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
-        return arr
-      }
-
-      if (key === 'stockable_id') {
-        // values are composite like "GuanoType__4" or maybe "4" (fallback)
-        const arr = Array.from(usedValues).map(composite => {
-          if (String(composite).includes('__')) {
-            const [type, id] = String(composite).split('__')
-            return { title: `${type} #${id}`, value: composite }
-          } else {
-            return { title: `${composite}`, value: composite }
-          }
-        }).sort((a, b) => String(a.title).localeCompare(String(b.title)))
-        if (hasNA) arr.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
-        return arr
-      }
-
-      // Default: convert usedValues to simple options
-      const defaultArr = Array.from(usedValues).map(v => ({ title: String(v), value: v }))
-        .sort((a, b) => String(a.title).localeCompare(String(b.title)))
-      if (hasNA) defaultArr.unshift({ title: this.$t("n/a"), value: NULL_VALUE })
-      return defaultArr
+      options.sort((a, b) => String(a.title).localeCompare(String(b.title)))
+      return options
     },
 
-    /* Sorting helpers (unchanged) */
+    /* Sorting helpers, pinning, drag/drop, excel export, etc. (unchanged) */
     sortDir (key) {
       const o = this.sortOrders.find(s => s.key === key)
       return o ? o.dir : null
@@ -1134,7 +1122,6 @@ export default {
     },
     sortPriority (key) { return this.sortIndex(key) },
 
-    /* Pin / CSS (unchanged) */
     togglePin (key) {
       const i = this.pinnedHeaderKeys.indexOf(key)
       if (i === -1) this.pinnedHeaderKeys.push(key)
@@ -1160,7 +1147,6 @@ export default {
       const headerShadow = isDark ? '2px 0 12px rgba(0,0,0,0.6)' : '2px 0 8px rgba(0,0,0,0.06)'
       const bodyShadow = isDark ? '1px 0 8px rgba(0,0,0,0.45)' : '1px 0 6px rgba(0,0,0,0.03)'
 
-      // visible keys in DOM order based on orderedVisibleHeaders
       const visibleKeys = this.orderedVisibleHeaders.map(h => h.key)
 
       const pinnedDomEntries = []
@@ -1196,8 +1182,7 @@ export default {
             border-right: 1px solid rgba(0,0,0,0.06);
           }
           `
-                  // Body cell (tbody)
-                  css += `
+        css += `
           .table-scope tbody tr td:nth-child(${nth}) {
             position: sticky;
             left: ${left}px;
@@ -1208,14 +1193,8 @@ export default {
             border-right: 1px solid rgba(0,0,0,0.03);
           }
         `
-        css += `
-          theader:{
-            position:absolute
-          }
-        `
         cumLeft += entry.width;
         cumRight -= 0;
-        // cumRight -= entry.width - 56;
       }
 
       css += `
@@ -1241,34 +1220,25 @@ export default {
       }
     })(),
 
-    /* ---------------- Native Drag & Drop handlers ---------------- */
-
     onDragStart (evt, key) {
-      // disallow dragging select column
       if (key === 'data-table-select') {
         evt.preventDefault(); return
       }
-      // store the dragged key
       try {
         evt.dataTransfer.effectAllowed = 'move'
         evt.dataTransfer.setData('text/plain', key)
-      } catch (e) {
-        // some browsers require try/catch
-      }
+      } catch (e) {}
       this.draggingKey = key
-      // add a 'dragging' class for visual feedback if desired
       const el = evt.currentTarget
       if (el) el.classList.add('dragging')
     },
 
     onDragOver (evt, targetKey) {
-      // show visual indicator only when dragging a different header
       const srcKey = this.draggingKey || (evt.dataTransfer && evt.dataTransfer.getData && evt.dataTransfer.getData('text/plain'))
       if (!srcKey || srcKey === targetKey) {
         this.dragOverKey = null
         return
       }
-      // don't allow dropping ONTO select col (we render select separately)
       if (targetKey === 'data-table-select') { this.dragOverKey = null; return }
       this.dragOverKey = targetKey
     },
@@ -1281,7 +1251,6 @@ export default {
         this.draggingKey = null
         return
       }
-      // find indices in headerOrder
       const srcIdx = this.headerOrder.findIndex(h => h.key === srcKey)
       const tgtIdx = this.headerOrder.findIndex(h => h.key === targetKey)
       if (srcIdx === -1 || tgtIdx === -1) {
@@ -1289,13 +1258,10 @@ export default {
         this.draggingKey = null
         return
       }
-      // move src to position of target (insert before target)
       const [item] = this.headerOrder.splice(srcIdx, 1)
-      // re-compute tgtIdx if srcIdx < tgtIdx (because removal shifts indices)
       const adjustedTgtIdx = srcIdx < tgtIdx ? tgtIdx  : tgtIdx
       this.headerOrder.splice(adjustedTgtIdx, 0, item)
 
-      // ensure select column remains first (if present)
       const si = this.headerOrder.findIndex(h => h.key === 'data-table-select')
       if (si > 0) {
         const s = this.headerOrder.splice(si, 1)[0]
@@ -1304,8 +1270,6 @@ export default {
 
       this.dragOverKey = null
       this.draggingKey = null
-
-      // recompute pinned css after DOM updates
       this.$nextTick(() => this.computePinnedCss())
     },
 
@@ -1315,8 +1279,6 @@ export default {
       const el = evt.currentTarget
       if (el) el.classList.remove('dragging')
     },
-
-    /* ---------------- Excel export & helpers (unchanged) ---------------- */
 
     resolveDisplayValue (row, key) {
       const val = row[key]
@@ -1345,7 +1307,7 @@ export default {
         return
       }
 
-      const selectedRows = this.items.filter(i => this.items_selected.includes(i.id))
+      const selectedRows = this.processedItems.filter(i => this.items_selected.includes(i.id))
       const cols = this.orderedVisibleHeaders.filter(
         h => h.key !== 'data-table-select' && h.key !== 'data-table-expand'
       )
@@ -1404,8 +1366,8 @@ export default {
       }
     },
     allowed_sigma(key) {
-      const sigma_allowed = this.sigma;
-      if (sigma_allowed.includes(key)) {
+      const sigma_allowed = this.sigma || [];
+      if (sigma_allowed.find(s=>s.name == key)) {
         return key;
       }
       return null;
@@ -1431,71 +1393,49 @@ export default {
 .row_color{
   background-color: rgba(90, 185, 253, 0.1) !important;
 }
-/* Ensure table expands horizontally to force a horizontal scrollbar when needed */
 .table-scope table {
   min-width: max-content;
 }
-
-/* Keep header cells from wrapping and keep layout inline */
 .header-th { vertical-align: top; }
-
-/* Select checkbox column */
 .select-th {
   min-width: 56px;
   max-width: 56px;
   width: 56px;
   white-space: nowrap;
 }
-
-/* Top row: title + actions inline, never wrap */
 .header-top {
   gap: 8px;
   align-items: center;
 }
-
-/* Title text: prevent wrapping, show ellipsis if too long */
 .header-title-text {
   white-space: nowrap;
   text-overflow: ellipsis;
   display: inline-block;
   max-width: 220px;
 }
-
-/* Filter / autocomplete: no-wrap and ellipsis */
 .header-bottom .header-filter,
 .header-bottom .header-total {
   white-space: nowrap;
   text-overflow: ellipsis;
   max-width: 260px;
 }
-
-/* Ensure action buttons don't expand */
 .header-actions {
   flex: 0 0 auto;
 }
-
-/* Make sure header wrapper doesn't wrap into multiple lines */
 .flex-nowrap {
   flex-wrap: nowrap !important;
 }
-
 th {
   min-width: 80px;
 }
-
-/* Smooth left transitions when pinning/unpinning */
 .table-scope thead tr th, .table-scope tbody tr td {
   transition: left 0.12s;
   will-change: left;
 }
-
-/* Ensure pinned cells overlay other cells when needed */
 .table-scope thead tr th[style*="position: sticky"], .table-scope tbody tr td[style*="position: sticky"] {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
-
-/* drag visuals */
 .drag-handle {
   display: inline-flex;
   align-items: center;
@@ -1503,17 +1443,14 @@ th {
   user-select: none;
 }
 .drag-handle:active { cursor: grabbing; }
-
 .dragging {
   opacity: 0.7;
 }
-
 .drag-over {
   outline: 3px dashed rgba(16, 110, 234, 0.22);
   outline-offset: -6px;
   transition: outline 0.08s;
 }
-
 .bg-v-d-t-v{
   background-color: rgba(49, 164, 251, 0.081);
 }

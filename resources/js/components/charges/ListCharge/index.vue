@@ -18,46 +18,21 @@
           />
           <div class="text-center mt-3" role="group" aria-label="Date range">
             <!-- Start date chip -->
-            <v-chip
-              color="info"
-              variant="tonal"
-              class="mr-2"
-            >
+            <v-chip color="info" variant="tonal" class="mr-2">
               <v-icon left small class="mr-2">mdi-calendar-start</v-icon>
               <span>{{ main.formateDate(date.start) }}</span>
             </v-chip>
             <v-divider vertical></v-divider>
             <!-- End date chip -->
-            <v-chip
-              color="indigo"
-              variant="tonal"
-              class="ml-2"
-            >
+            <v-chip color="indigo" variant="tonal" class="ml-2">
               <span>{{ main.formateDate(date.end) }}</span>
               <v-icon left small class="ml-2">mdi-calendar-end</v-icon>
             </v-chip>
           </div>
-
-        </v-col>
-        <v-col style="overflow-y: auto; max-height: 47vh !important;">
-            <div class="d-flex align-content-end flex-wrap " >
-              <CustomChartWarehouseCategoryOpration v-for="formula in charge.get_formulas_list" :key="formula.id" :formula="formula"/>
-            </div>
-            <div class="d-flex align-content-end flex-wrap " >
-                <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_fetched_warehouse_category_operation_list"
-                 :key="warehouse_category_operation.id" 
-                 :id="warehouse_category_operation.id"
-                 :data="warehouse_category_operation"
-                 :date="date"
-                 /> 
-                 <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_placeholder_warehouse_category_operation_list"
-                 :key="warehouse_category_operation.id" 
-                 :id="warehouse_category_operation.id"
-                 />
-            </div>
         </v-col>
       </v-row>
     </v-card-text>
+
     <DataTable
      :relations="relations"
      :advanced_relations="advanced_relations"
@@ -73,7 +48,7 @@
      :fetchData="fetchCharge"
      @sync_items="update_filtred_items_to_source"
      >
-        <!-- CELLS -->
+        <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">
           <v-chip class="text-info">
             {{ main.formateDate(item.date) }}
@@ -167,24 +142,24 @@
         <template v-slot:[`item.allow_invoice`]="{ item }">
           <template v-if="item.allow_invoice">
             <v-chip
-              v-if="item.invoice_id == null"
+              v-if="item.invoice_id != null"
               color="green"
               @click="print_invoice(item)"
               class="ma-1"
               v-tooltip:top="$t('print_invoice')"
             >
               <v-icon>
-                {{"mdi-printer-check" }}
+                mdi-printer-check
               </v-icon>
             </v-chip>
             <v-chip
               v-else
-              color="warning'"
+              color="warning"
               class="ma-1"
-              v-tooltip:top="$t('invoice_on_pending')"
+              v-tooltip:top="$t('uninvoiced')"
             >
               <v-icon>
-                {{ "mdi-printer-pos-cog" }}
+                mdi-printer-pos-cog
               </v-icon>
             </v-chip>
           </template>
@@ -192,7 +167,7 @@
             <v-chip
               color="gray"
               class="ma-1"
-              v-tooltip:top="$t('no_nvoice')"
+              v-tooltip:top="$t('non_posting_invoice')"
             >
               <v-icon>
                 mdi-printer-pos-cancel
@@ -237,10 +212,10 @@
             fishery_id: [],
           },
           advanced_filters: {
-            warehouse_id: [],
-            stockable_type: [],
-            stockable_id: [],
-            fish_family_id:[]
+            warehouse_id: [],     // array of warehouse ids
+            stockable_type: [],   // array of strings (types)
+            stockable_id: [],     // array of strings in form "Type__id" (see DataTable)
+            fish_family_id:[]     // array of fish family ids
           },
           advanced_filters_keys:["warehouse_id","stockable_type","stockable_id","fish_family_id"],
           date: {
@@ -264,7 +239,17 @@
             return this.charge.charge_fetch_items
         },
         sigma: function(){
-          return ['total_price','total_weight'];
+          return [
+            {
+              name: 'total_price',
+              paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] 
+              
+            },
+            {
+              name: 'total_weight',
+              paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations']
+            }
+          ];
         },
         invoice_prop: function(){
           return "allow_invoice";
@@ -286,10 +271,10 @@
             warehouse_id: { path: 'warehouse_stockable_tracking_number_operations', source: this.warehouses, label: "name" },
 
             // stockable filters: scan two nested arrays and extract stockable.* fields
-            // no external `source` because we compute options dynamically
             stockable_type: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] },
             stockable_id: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] },
-            fish_family_id: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'],source: this.fish_families,  label: `name_${this.main.lang.code}` }
+            // fish family uses fish_families as source for labels
+            fish_family_id: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'], source: this.fish_families,  label: `name_${this.main.lang.code}` }
           }
         },
         
