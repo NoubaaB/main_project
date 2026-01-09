@@ -497,6 +497,8 @@
 <script>
 import { useMain } from '@/stores/Main';
 import { useFishType } from '@/stores/FishType';
+import { useGuanoType } from '@/stores/GuanoType';
+import { usePackageType } from '@/stores/PackageType';
 import * as XLSX from 'xlsx';
 import { nextTick } from 'vue';
 import { Parser } from 'expr-eval';
@@ -572,6 +574,8 @@ export default {
     main: () => useMain(),
     parser: () => new Parser(),
     fish_types: () => useFishType().getList,
+    guano_types: () => useGuanoType().getList,
+    package_types: () => usePackageType().getList,
 
     invoices_selected: function () {
       return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice).map(i => i.id);
@@ -1049,12 +1053,23 @@ export default {
               const stype = this.normalizeStockableType(stockable?.stockable_type ?? nested.stockable_type)
               const sid = stockable?.stockable_id ?? nested.stockable_id
               if (stype != null && sid != null) {
-                const combined = `${stype}__${sid}`
+                const combined = `${stype}__${sid}`;
                 if (!valuesMap.has(combined)) {
-                  let friendly = `${stype} ${sid}`
-                  if (stype === 'FishType') {
-                    const ft = this.fish_types.find(f => String(f.id) === String(sid))
-                    if (ft) friendly = ft[`name_${this.main.lang.code}`]
+                  let friendly = `${stype} ${sid}`;
+                  let ft = {};
+                  switch (stype) {
+                    case "FishType":
+                      ft = this.fish_types.find(f => String(f.id) === String(sid))
+                      if (ft) friendly = ft[`name_${this.main.lang.code}`]                      
+                    break;
+                    case "GuanoType":
+                      ft = this.guano_types.find(f => String(f.id) === String(sid))
+                      if (ft) friendly = ft[`name_${this.main.lang.code}`]                      
+                    break;
+                    case "PackageType":
+                      ft = this.package_types.find(f => String(f.id) === String(sid))
+                      if (ft) friendly = ft[`name_${this.main.lang.code}`]                      
+                    break;
                   }
                   valuesMap.set(combined, `${friendly}`)
                 }

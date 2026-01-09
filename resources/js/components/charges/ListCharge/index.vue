@@ -30,6 +30,23 @@
             </v-chip>
           </div>
         </v-col>
+        <v-col style="overflow-y: auto; max-height: 47vh !important;">
+            <div class="d-flex align-content-end flex-wrap " >
+              <CustomChartWarehouseCategoryOpration v-for="formula in charge.get_formulas_list" :key="formula.id" :formula="formula"/>
+            </div>
+            <div class="d-flex align-content-end flex-wrap " >
+                <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_fetched_warehouse_category_operation_list"
+                 :key="warehouse_category_operation.id" 
+                 :id="warehouse_category_operation.id"
+                 :data="warehouse_category_operation"
+                 :date="date"
+                 /> 
+                 <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_placeholder_warehouse_category_operation_list"
+                 :key="warehouse_category_operation.id" 
+                 :id="warehouse_category_operation.id"
+                 />
+            </div>
+        </v-col>        
       </v-row>
     </v-card-text>
 
