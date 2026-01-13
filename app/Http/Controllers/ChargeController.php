@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\charge;
 use App\Models\FishType;
+use App\Models\GuanoType;
+use App\Models\PackageType;
 use App\Models\Warehouse;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -74,7 +76,7 @@ class ChargeController extends Controller
                             $charge->non_warehouse_stockable_operations()->create($charge_detail);
                         }else{
                             $warehouse = Warehouse::find($charge_detail["warehouse_id"]);
-                            $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class], fn($query) => $query->where('stockable_id', $charge_detail["stockable_id"]))
+                            $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class, GuanoType::class , PackageType::class], fn($query) => $query->where('stockable_id', $charge_detail["stockable_id"]))
                                 ->first();
     
                             if (isset($warehouse_stockable) == false) {
@@ -85,7 +87,7 @@ class ChargeController extends Controller
                                     "total_package_count" => 0.00,
                                     "warehouse_id" => $warehouse->id,
                                     "stockable_id" => $charge_detail["stockable_id"],
-                                    "stockable_type" => FishType::class
+                                    "stockable_type" => $charge_detail["stockable_type"]
                                 ]);
                             }
     
@@ -109,7 +111,7 @@ class ChargeController extends Controller
                                 "unit_price" => $charge_detail['unit_price'],
                                 "total_weight" => $charge_detail['total_weight'],
                                 "total_price" => $charge_detail['total_price'],
-                                "stockable_type" => get_class($stockable),
+                                "stockable_type" => $charge_detail["stockable_type"],
                                 "stockable_id" => $stockable->id,
                                 "total_package_count" => $charge_detail['total_package_count'],
                                 "package_type_id" => $charge_detail['package_type_id'] ?? null,

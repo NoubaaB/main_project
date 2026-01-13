@@ -230,7 +230,7 @@
                   v-model="charge_detail.total_price"
                   :label="$t('total_price') + ' (Dh)'"
                   type="number"
-                  readonly
+                  :readonly="!!ability_warehouse_category_operation.allow_weight"
                   density="compact"
                   variant="outlined"
                   rounded
@@ -591,6 +591,10 @@
           this._charge.remove_charge_detail(this.warehouse_category_operation.id , charge_detail_id);
         },
         submit: function () {
+          this.charge_detail.total_weight = this.charge_detail.total_weight == null ? 0.00 : this.charge_detail.total_weight 
+          this.charge_detail.total_weight_bill = this.charge_detail.total_weight_bill == null ? 0.00 : this.charge_detail.total_weight_bill 
+          this.charge_detail.total_price = this.charge_detail.total_price == null ? 0.00 : this.charge_detail.total_price 
+          this.charge_detail.total_package_count= this.charge_detail.total_package_count== null ? 0.00 : this.charge_detail.total_package_count
           if (this.is_editing) {
             this._charge.edit_charge_detail(this.warehouse_category_operation.id , this.charge_detail);
             this.is_editing = false;

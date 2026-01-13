@@ -147,7 +147,6 @@ export const useCharge = defineStore("charge", {
             localStorage.setItem("charge", JSON.stringify(this.charge));
             localStorage.setItem("charges", JSON.stringify(this.charges));
             localStorage.setItem("showAdditionalInfo", this.showAdditionalInfo);
-            console.log("UpdateCharge",this.charge);
         },
         archive: function () {
             this.charge.is_archived = true;

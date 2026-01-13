@@ -388,7 +388,7 @@ import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
 import { useChargeCategory } from '@/stores/ChargeCategory';
 import { useVuelidate } from '@vuelidate/core';
-import { required , minValue } from '@vuelidate/validators';
+import { required , requiredIf } from '@vuelidate/validators';
 
 export default {
   data: function () {
@@ -404,12 +404,11 @@ export default {
         charge: {
           charge_category_id: { required },
           date: { required },
-          tracking_numbers: { required },
-          supplier_ids: { required },
-          fishery_id: { required },
-          origin_id: { required },
-          total_price: { required , minValue : minValue(1) },
-          total_weight: { required , minValue : minValue(1) },
+          tracking_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_numbers) },
+          tracking_onp_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_onp_numbers) },
+          supplier_ids: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_supplier_process_id) },
+          fishery_id: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_fishery_id) },
+          origin_id: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_origin_id) },
         }
       }
     }

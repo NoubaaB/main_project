@@ -7,6 +7,8 @@ import { useGuanoType } from "./GuanoType";
 import { useFishType } from "./FishType";
 import { useFishFamily } from "./FishFamily";
 import { useWarehouse } from "./Warehouse";
+import i18n  from '@/plugins/i18n';
+
 export const useMain = defineStore("main", {
     state: () => {
         return {
