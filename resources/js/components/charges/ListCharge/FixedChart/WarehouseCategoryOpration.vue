@@ -43,7 +43,7 @@
               <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
               <div class="kpi-label">{{$t("avg_price")}}</div>
             </div>
-            <div class="kpi-value">{{ main.formatDisplayNumber(filterDumpValue(summary.unit_price,ability_warehouse_category_operation.allow_price)) }} <small>{{main.currency}}/Kg</small></div>
+            <div class="kpi-value">{{ main.formatDisplayNumber(filterDumpValue(summary.unit_price,(ability_warehouse_category_operation.allow_price && ability_warehouse_category_operation.allow_weight))) }} <small>{{main.currency}}/Kg</small></div>
           </div>
 
         </div>
