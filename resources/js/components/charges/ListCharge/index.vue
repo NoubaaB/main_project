@@ -56,6 +56,8 @@
      :filters="filters"
      :advanced_filters="advanced_filters"
      :advanced_filters_keys="advanced_filters_keys"
+     :invoicer="suppliers"
+     :invoicer_name_prop="invoicer_name_prop"
      :items="items"
      :sigma="sigma"
      :invoice_prop="invoice_prop"
@@ -234,7 +236,8 @@
             stockable_id: [],     // array of strings in form "Type__id" (see DataTable)
             fish_family_id:[]     // array of fish family ids
           },
-          advanced_filters_keys:["warehouse_id","stockable_type","stockable_id","fish_family_id"],
+          advanced_filters_keys: ["warehouse_id", "stockable_type", "stockable_id", "fish_family_id"],
+          invoicer_name_prop:"supplier_ids",
           date: {
             start: new Date(2024, 10, 1),
             end: new Date(2025, 11, 17)

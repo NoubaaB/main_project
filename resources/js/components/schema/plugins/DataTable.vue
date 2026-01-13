@@ -15,6 +15,8 @@
       :items="sortedFilteredItems"
       item-key="id"
       show-select
+      show-expand
+      v-model:expanded="items_expanded" 
       density="compact"
       fixed-header
       height="650"
@@ -44,14 +46,25 @@
               color="success"
               variant="tonal"
               small
-              rounded
-              class="ml-2"
-              :disabled="items_selected.length === 0 || loading"
+              :disabled="items_selected_length === 0 || loading"
+              class="rounded-s-xl"
+              :title="$t('export_total_items_to_excel')"
+              prepend-icon="mdi-table"
               @click="exportToExcel"
-              :title="$t('export_selected_to_excel')"
             >
-              <v-icon class="mr-1">mdi-file-excel</v-icon>
-              {{ $t('export') }} ({{ items_selected.length }})
+             ({{ items_selected_length }})
+            </v-btn>
+            <v-divider color="black" class="px-1" vertical></v-divider>
+            <v-btn
+              color="teal"
+              variant="tonal"
+              small
+              :disabled="items_selected_length === 0 || loading"
+              class="rounded-e-xl"
+              prepend-icon="mdi-table-multiple"
+              @click="exportToExcelDetail"
+            >
+             ({{ items_selected_details_length }})
             </v-btn>
           </v-col>
 
@@ -62,18 +75,19 @@
               small
               rounded
               class="ml-2"
-              :disabled="invoices_selected.length === 0 || loading"
+              :disabled="invoices_selected_length === 0 || loading"
               @click="submitToinvoice"
-              :title="$t('export_selected_to_excel')"
+              :title="$t('view_invoices')"
             >
               <v-icon class="mr-1">mdi-file-excel</v-icon>
-              {{ $t('invoice') }} ({{ invoices_selected.length }})
+              {{ $t('invoice') }} ({{ invoices_selected_length }})
             </v-btn>
           </v-col>
 
           <v-col class="text-center" cols="2">
             <DatePicker
               :is-dark="main.is_dark"
+              :min-date="min_date"
               :max-date="new Date()"
               v-model="invoice_date"
               :locale="main.lang.short"
@@ -264,11 +278,102 @@
 
           <div cols="1" class="mx-1"></div>
 
-          <v-expand-transition>
-            <v-col cols="5.5" class="border border-dotted border-md rounded-xl mb-3" v-show="type_invoice == 'export'">
-              <v-btn>testament</v-btn>
-            </v-col>
-          </v-expand-transition>
+          <v-col cols="5.5" class="border border-dotted border-md rounded-xl mb-3" >
+            <v-row>
+              <v-col cols="12" class="text-center ">
+                <v-btn @click="setup_invoice_btn = !setup_invoice_btn" :disabled="invoices_selected_length == 0" :prepend-icon="setup_invoice_btn ? 'mdi-chevron-up' : 'mdi-chevron-down'" block rounded color="info" density="compact">
+                  {{ $t('setup_invoice') }}
+                </v-btn>
+              </v-col>
+            </v-row>
+            <v-expand-transition>
+              <v-row v-show="setup_invoice_btn">
+                <template v-if="type_invoice == 'export'">
+                  test
+                </template>
+                <template v-else>
+                  <v-col cols="3">
+                    <v-autocomplete
+                      v-model="invoice_invoicer_ids"
+                      :items="get_invoice_invoicers_ids"
+                      item-title="name"
+                      item-value="id"
+                      multiple
+                      chips
+                      closable-chips
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="$t('select_invoicers')"
+                      :placeholder="$t('select_invoicers')"
+                      variant="outlined"
+                      rounded
+                      class="text-info header-filter"
+                      prepend-inner-icon="mdi-account-multiple"
+                    >
+                      <template v-slot:chip="{ props, item }">
+                        <v-chip
+                          v-bind="props"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                      <template v-slot:item="{ props, item }">
+                        <v-list-item
+                          v-bind="props"
+                          @click="props.onClick"
+                          class="text-info"
+                          :title="item.title"
+                        >
+                          <template v-slot:prepend="{ isSelected, select }">
+                            <v-list-item-action start>
+                              <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                            </v-list-item-action>
+                          </template>
+                        </v-list-item>
+                      </template>
+                    </v-autocomplete>
+                  </v-col>
+                  <v-col cols="3">
+                    <v-autocomplete
+                      v-model="invoice_tracking_numbers"
+                      :items="invoice_tracking_numbers"
+                      :label="$t('invoice_tracking_number')"
+                      placeholder="ex :   --- --- --- --- ---"
+                      multiple
+                      chips
+                      density="compact"
+                      variant="outlined"
+                      rounded
+                      clearable
+                      @keydown.enter.prevent="addNewInvoiceTrackingNumber"
+                      color="info"
+                      class="text-info"
+                      >
+                        <!-- Custom Chips Slot -->
+                        <template #chip="{ item, index }">
+                          <v-chip
+                            :key="index"
+                            class="text-white"
+                            color="info accent-4"
+                            closable
+                            variant="tonal"
+                            @click:close="_charge.charge.tracking_numbers = _charge.charge.tracking_numbers.filter(num => num !== item.value)"
+                          >
+                            {{ item.title }}
+                          </v-chip>
+                        </template>
+                    </v-autocomplete>
+
+                  </v-col>
+                </template>
+              </v-row>
+            </v-expand-transition>
+          </v-col>
         </v-row>
       </template>
 
@@ -306,8 +411,8 @@
         </div>
       </template>
 
-      <template v-slot:expanded-row="{ item }">
-        <tr >
+      <template v-slot:expanded-row="{internalItem, item,isExpanded }">
+        <tr v-if="isExpanded(internalItem)">
           <td :colspan="8" class="py-2 row_color">
             <v-sheet class="table_size" rounded="lg" border>
               <NestedDataTable
@@ -324,8 +429,8 @@
         <tr>
           <th class="pa-1 header-th select-th">
             <v-checkbox
-              :model-value="items_selected.length === filteredForSelection.length && filteredForSelection.length > 0"
-              :indeterminate="items_selected.length > 0 && items_selected.length !== filteredForSelection.length"
+              :model-value="items_selected_length === filteredForSelection.length && filteredForSelection.length > 0"
+              :indeterminate="items_selected_length > 0 && items_selected_length !== filteredForSelection.length"
               @update:model-value="selectAll"
               color="info"
               class="pt-3 ma-0"
@@ -379,7 +484,13 @@
                   </template>
                 </v-btn>
 
-                <span class="header-title-text ml-1">{{ col.title }}</span>
+                <span class="header-title-text ml-1" v-if="col.key == 'data-table-expand'">
+                  <v-checkbox-btn
+                    v-model="open_all"
+                    color="info"
+                  />
+                </span>
+                <span class="header-title-text ml-1" v-else>{{ col.title }}</span>
               </div>
 
               <div class="header-actions d-flex align-center flex-shrink-0">
@@ -516,6 +627,8 @@ export default {
     filters: Object,
     advanced_filters: Object,
     advanced_filters_keys: Array,
+    invoicer: Array,
+    invoicer_name_prop: String,
     items: Array,
     sigma: Array,
     invoice_prop: String,
@@ -530,7 +643,9 @@ export default {
   data () {
     return {
       items_selected: [],
+      items_expanded: [],
       loading: false,
+      open_all: false,
 
       hiddenHeaderKeys: [],
       defaultHeaderKeys: [],
@@ -548,7 +663,11 @@ export default {
       invoice_expression: "1 == 1",
       invoice_filters: [],
       type_invoice:"local",
-      advanced_filter_btn:false
+      invoice_invoicer_ids:[],
+      invoice_tracking_number:"",
+      invoice_tracking_numbers:[],
+      advanced_filter_btn:false,
+      setup_invoice_btn:false
     }
   },
 
@@ -576,9 +695,32 @@ export default {
     fish_types: () => useFishType().getList,
     guano_types: () => useGuanoType().getList,
     package_types: () => usePackageType().getList,
-
+    invoices_selected_length: function () {
+      return this.invoices_selected.length;
+    },
+    items_selected_length: function () {
+      return this.items_selected.length;
+    },
+    items_selected_details_length() {
+      return this.items.reduce((a, i) => a + (this.items_selected.includes(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
+    },
     invoices_selected: function () {
       return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice).map(i => i.id);
+    },
+    min_date: function () {
+      let date = _(this.invoices_selected.flatMap(i => this.items.find(item=> item.id == i))).sortBy("date").first()?.date;
+      if (date) return new Date(date);
+      return new Date();
+    },
+    get_invoice_invoicers_ids: function () {
+      let invoicers_id = this.invoices_selected.flatMap(i => this.items.find(item=> item.id == i)[this.invoicer_name_prop]);
+      return _.uniq(invoicers_id).map(i => {
+        const invoicer = this.invoicer.find(invoicer_id => invoicer_id.id == i);
+        return {
+          id : i,
+          name: invoicer?.name || this.$t("n/a"),
+        }
+      })
     },
     invoice_filters_items: function () {
       return [
@@ -742,6 +884,13 @@ export default {
     processedItems (value) {
       this.$emit('sync_items', value)
     },
+    open_all: function (value) {
+      if (value == true) {
+        this.items_expanded.push(...this.sortedFilteredItems.map(i => i.id));
+      } else {
+        this.items_expanded = [];
+      }
+    },
     hiddenHeaderKeys () {
       this.debouncedComputePinnedCss()
       this.syncHeaderOrder()
@@ -824,7 +973,7 @@ export default {
 
     selectAll () {
       this.items_selected =
-        this.items_selected.length === this.filteredForSelection.length
+        this.items_selected_length === this.filteredForSelection.length
           ? []
           : this.filteredForSelection.map(i => i.id)
     },
@@ -1318,7 +1467,7 @@ export default {
     },
 
     exportToExcel () {
-      if (!this.items_selected || !this.items_selected.length) {
+      if (!this.items_selected || !this.items_selected_length) {
         console.warn('No rows selected to export')
         return
       }
@@ -1333,12 +1482,7 @@ export default {
         headerTitles,
         ...selectedRows.map(row => cols.map(h => {
           if (h.key === 'date') {
-            const raw = row[h.key]
-            if (raw == null || raw === '') return ''
-            if (raw instanceof Date) return raw
-            const m = moment(raw)
-            if (m.isValid()) return m.toDate()
-            return String(raw)
+            return row[h.key]
           }
           const v = this.resolveDisplayValue(row, h.key)
           if (v === '') return ''
@@ -1364,19 +1508,18 @@ export default {
           } else {
             const m = moment(cell.v)
             if (cell.v && typeof cell.v === 'string' && m.isValid()) {
-              cell.v = m.toDate()
               cell.t = 'd'
               cell.z = this.main.date_format
             }
           }
-        }
+        } 
       }
 
       const filename = `export_charge_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
       XLSX.writeFile(wb, filename)
     },
     submitToinvoice: function () {
-      if (!this.invoices_selected || !this.invoices_selected.length) {
+      if (!this.invoices_selected || !this.invoices_selected_length) {
         console.warn('No rows selected to export')
         return
       }
@@ -1397,7 +1540,186 @@ export default {
       return {
         style:  {"background-color": "rgba(90, 185, 253, 0.1)"},
       }
+    },
+    addNewInvoiceTrackingNumber: function (event) {
+      let inputValue = event.target.value.trim()
+      if (inputValue && !this.invoice_tracking_numbers.includes(inputValue)) {
+        if (inputValue.search(" ")>0) {
+          this.invoice_tracking_numbers.push(...inputValue.split(" "))
+        } else {
+          this.invoice_tracking_numbers.push(inputValue)
+        }
+      }
+      inputValue = "";
+      event.target.value = '';
+    },
+
+    /* ------------------------- NEW: exportToExcelDetail ------------------------- */
+    exportToExcelDetail () {
+      if (!this.items_selected || !this.items_selected_length) {
+        console.warn('No rows selected for detailed export')
+        return
+      }
+
+      const selectedParents = this.processedItems.filter(i => this.items_selected.includes(i.id))
+      const DETAIL_PATHS = [
+        'warehouse_stockable_tracking_number_operations',
+        'non_warehouse_stockable_operations'
+      ]
+
+      const rows = []
+
+      selectedParents.forEach(parent => {
+        DETAIL_PATHS.forEach(path => {
+          const nestedArr = Array.isArray(parent[path]) ? parent[path] : []
+
+          nestedArr.forEach(nested => {
+            const stockable = this.getStockableFromNested(nested)
+            const stockableType = stockable ? this.normalizeStockableType(stockable.stockable_type) : this.normalizeStockableType(nested.stockable_type)
+            const stockableId = stockable?.stockable_id ?? nested.stockable_id ?? null
+
+            // resolve friendly names
+            let stockableName = ''
+            let fishFamilyName = ''
+
+            if (stockableType === 'FishType') {
+              const ft = (this.fish_types || []).find(f => String(f.id) === String(stockableId))
+              if (ft) {
+                stockableName = ft[`name_${this.main.lang.code}`] ?? ft.name ?? String(stockableId)
+                const fishFamilyId = ft.fish_family_id ?? ft.family_id ?? null
+                if (fishFamilyId != null) {
+                  const familySource = this.advanced_relations?.fish_family_id?.source
+                  if (Array.isArray(familySource)) {
+                    const found = familySource.find(x => String(x.id) === String(fishFamilyId))
+                    fishFamilyName = found ? (this.advanced_relations?.fish_family_id?.label ? found[this.advanced_relations.fish_family_id.label] : found.name) : String(fishFamilyId)
+                  } else {
+                    fishFamilyName = String(fishFamilyId)
+                  }
+                }
+              }
+            } else if (stockableType === 'GuanoType') {
+              const gt = (this.guano_types || []).find(g => String(g.id) === String(stockableId))
+              if (gt) stockableName = gt[`name_${this.main.lang.code}`] ?? gt.name ?? String(stockableId)
+            } else if (stockableType === 'PackageType') {
+              const pt = (this.package_types || []).find(p => String(p.id) === String(stockableId))
+              if (pt) stockableName = pt[`name_${this.main.lang.code}`] ?? pt.name ?? String(stockableId)
+            } else {
+              // fallback to provided fields
+              stockableName = nested.stockable_name ?? nested.stockable?.name ?? String(stockableId ?? '')
+            }
+
+            const warehouseId = nested.warehouse_id ?? nested.warehouse_stockable_tracking_number?.warehouse_id ?? ''
+            const wstnTracking = Array.isArray(nested.warehouse_stockable_tracking_number?.tracking_numbers) ? nested.warehouse_stockable_tracking_number.tracking_numbers.join(',') : ''
+
+            rows.push({
+              parent: parent,
+              path: path,
+              nested: nested,
+              resolved: {
+                stockable_type: stockableType ?? nested.stockable_type ?? '',
+                stockable_id: stockableId ?? '',
+                stockable_name: stockableName ?? '',
+                fish_family: fishFamilyName ?? '',
+                warehouse_id: warehouseId,
+                warehouse_tracking_numbers: wstnTracking
+              }
+            })
+          })
+        })
+      })
+
+      if (!rows.length) {
+        console.warn('No nested data found to export')
+        return
+      }
+
+      // Parent header titles (use visible headers real titles)
+      const parentCols = this.orderedVisibleHeaders.filter(h => h.key !== 'data-table-select' && h.key !== 'data-table-expand')
+      const parentTitles = parentCols.map(h => h.title ?? h.key)
+
+      // Detail headers: use detail_headers prop to get real titles in correct order
+      const detailKeys = (this.detail_headers || []).map(h => h.key)
+      const detailTitles = (this.detail_headers || []).map(h => h.title ?? h.key)
+
+      // Final headers
+      const headerTitles = [...parentTitles, ...detailTitles]
+
+      // Build AoA rows
+      const aoa = [headerTitles]
+
+      rows.forEach(({ parent, path, nested, resolved }) => {
+        const parentValues = parentCols.map(h => {
+          if (h.key === 'date') {
+            return parent[h.key]
+          }
+          const v = this.resolveDisplayValue(parent, h.key)
+          if (v === '') return ''
+          const num = parseFloat(v)
+          if (!Number.isNaN(num) && String(v).trim() !== '') return num
+          return String(v)
+        })
+
+        const detailValues = detailKeys.map(k => {
+          switch (k) {
+            case 'classification':
+              return nested.stockable_type ? this.$t(nested.stockable_type) : ''
+            case 'product':
+              return resolved.stockable_name || this.main.getStockableName(nested.stockable_id, nested.stockable_type) || ''
+            case 'product_family':
+              return resolved.fish_family || this.main.getStockableFishFamily(nested.stockable_id, nested.stockable_type) || ''
+            case 'warehouse':
+              return this.main.getWarehouseName(resolved.warehouse_id) || ''
+            case 'package_type_id':
+              return this.main.getPackageName(nested.package_type_id) || ''
+            case 'total_package_count':
+              return Number(nested.total_package_count) || 0
+            case 'unit_price':
+              return Number(nested.unit_price) || 0
+            case 'total_weight':
+              return Number(nested.total_weight) || 0
+            case 'total_price':
+              return Number(nested.total_price) || 0
+            case 'id':
+              return nested.id || ''
+            case 'date':
+              return nested.date || ''
+            default:
+              // fallback to resolved or nested properties
+              return resolved[k] ?? nested[k] ?? ''
+          }
+        })
+
+        aoa.push([...parentValues, ...detailValues])
+      })
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa)
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Detail Export')
+
+      const dateColIndex = parentCols.findIndex(h => h.key === 'date')
+      if (dateColIndex !== -1) {
+        for (let r = 1; r <= selectedParents.length; r++) {
+          const cellRef = XLSX.utils.encode_cell({ c: dateColIndex, r })
+          const cell = ws[cellRef]
+          if (!cell) continue
+          if (cell.v instanceof Date) {
+            cell.t = 'd'
+            cell.z = this.main.date_format
+          } else {
+            const m = moment(cell.v)
+            if (cell.v && typeof cell.v === 'string' && m.isValid()) {
+              cell.t = 'd'
+              cell.z = this.main.date_format
+            }
+          }
+        } 
+      }
+
+      const filename = `export_charge_detail_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
+      XLSX.writeFile(wb, filename)
     }
+    /* ------------------------- END exportToExcelDetail ------------------------- */
   }
 }
 </script>
