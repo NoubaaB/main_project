@@ -1194,8 +1194,7 @@ export default {
             if (key === 'stockable_type') {
               const st = this.normalizeStockableType(stockable?.stockable_type ?? nested.stockable_type)
               if (st != null && !valuesMap.has(st)) {
-                let name = this.$t(st);
-                valuesMap.set(name, String(name))
+                valuesMap.set(st, String(this.$t(st)))
               }
             }
 
