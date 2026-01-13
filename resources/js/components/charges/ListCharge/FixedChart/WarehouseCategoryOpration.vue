@@ -38,7 +38,7 @@
             <div class="kpi-value">{{ main.formatDisplayNumberNonFloat(filterDumpValue(summary.total_package_count,ability_warehouse_category_operation.allow_package_type)) }} <small>Un</small></div>
           </div>
   
-          <div class="kpi-row d-flex align-center justify-space-between" :class="{'disabled-text': !ability_warehouse_category_operation.allow_price}">
+          <div class="kpi-row d-flex align-center justify-space-between" :class="{'disabled-text': !(ability_warehouse_category_operation.allow_price && ability_warehouse_category_operation.allow_weight)}">
             <div class="d-flex align-center">
               <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
               <div class="kpi-label">{{$t("avg_price")}}</div>
@@ -160,7 +160,7 @@ export default {
           data: this.seriesData.map(d => Number(d.total_weight || 0))
         });
       }
-      if(this.ability_warehouse_category_operation.allow_price){
+      if(this.ability_warehouse_category_operation.allow_price && this.ability_warehouse_category_operation.allow_weight){
         data.push({
           name: this.$t('avg_price'),
           type: 'line',

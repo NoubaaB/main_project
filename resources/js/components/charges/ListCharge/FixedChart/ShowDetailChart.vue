@@ -77,7 +77,7 @@
                         <strong >{{ main.formatDisplayNumberNonFloat(summary.total_package_count) }} (Un)</strong>
                     </v-chip>
                 </v-col>
-                <v-col v-if="ability_warehouse_category_operation.allow_price">
+                <v-col v-if="ability_warehouse_category_operation.allow_price && ability_warehouse_category_operation.allow_weight">
                     <v-chip color="orange">
                         <span class="mr-2" >
                             <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
@@ -252,7 +252,7 @@
                         data: this.getDataSeries("total_weight",false)
                     });
                 }
-                if (this.ability_warehouse_category_operation.allow_price) {
+                if (this.ability_warehouse_category_operation.allow_price && this.ability_warehouse_category_operation.allow_weight) {
                     data.push({
                         name: this.$t("avg_price"),
                         type: 'line',
