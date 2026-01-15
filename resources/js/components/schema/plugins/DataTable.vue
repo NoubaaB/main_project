@@ -75,12 +75,12 @@
               small
               rounded
               class="ml-2"
-              :disabled="invoices_selected_length === 0 || loading"
+              :disabled="invoices_print_selected_length === 0 || loading"
               @click="submitToinvoice"
               :title="$t('view_invoices')"
             >
               <v-icon class="mr-1">mdi-file-excel</v-icon>
-              {{ $t('invoice') }} ({{ invoices_selected_length }})
+              {{ $t('invoice') }} ({{ invoices_print_selected_length }})
             </v-btn>
           </v-col>
 
@@ -287,91 +287,104 @@
               </v-col>
             </v-row>
             <v-expand-transition>
-              <v-row v-show="setup_invoice_btn">
-                <template v-if="type_invoice == 'export'">
-                  test
-                </template>
-                <template v-else>
-                  <v-col cols="3">
-                    <v-autocomplete
-                      v-model="invoice_invoicer_ids"
-                      :items="get_invoice_invoicers_ids"
-                      item-title="name"
-                      item-value="id"
-                      multiple
-                      chips
-                      closable-chips
-                      clearable
-                      density="compact"
-                      hide-details
-                      :label="$t('select_invoicers')"
-                      :placeholder="$t('select_invoicers')"
-                      variant="outlined"
-                      rounded
-                      class="text-info header-filter"
-                      prepend-inner-icon="mdi-account-multiple"
-                    >
-                      <template v-slot:chip="{ props, item }">
-                        <v-chip
-                          v-bind="props"
-                          class="text-white"
-                          color="info accent-4"
-                          closable
-                          variant="tonal"
-                        >
-                          {{ item.title }}
-                        </v-chip>
-                      </template>
-                      <template v-slot:item="{ props, item }">
-                        <v-list-item
-                          v-bind="props"
-                          @click="props.onClick"
-                          class="text-info"
-                          :title="item.title"
-                        >
-                          <template v-slot:prepend="{ isSelected, select }">
-                            <v-list-item-action start>
-                              <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
-                            </v-list-item-action>
-                          </template>
-                        </v-list-item>
-                      </template>
-                    </v-autocomplete>
-                  </v-col>
-                  <v-col cols="3">
-                    <v-autocomplete
-                      v-model="invoice_tracking_numbers"
-                      :items="invoice_tracking_numbers"
-                      :label="$t('invoice_tracking_number')"
-                      placeholder="ex :   --- --- --- --- ---"
-                      multiple
-                      chips
-                      density="compact"
-                      variant="outlined"
-                      rounded
-                      clearable
-                      @keydown.enter.prevent="addNewInvoiceTrackingNumber"
-                      color="info"
-                      class="text-info"
+              <div v-show="setup_invoice_btn && invoices_selected_length > 0 ">
+                <v-row>
+                  <template v-if="type_invoice == 'export'">
+                    test
+                  </template>
+                  <template v-else>
+                    <v-col cols="6">
+                      <v-autocomplete
+                        v-model="invoice_invoicer_ids"
+                        :items="get_invoice_invoicers_ids"
+                        item-title="name"
+                        item-value="id"
+                        multiple
+                        chips
+                        closable-chips
+                        clearable
+                        density="compact"
+                        hide-details
+                        :label="$t(select_invoicer)"
+                        :placeholder="$t(select_invoicer)"
+                        variant="outlined"
+                        rounded
+                        class="text-info header-filter"
+                        prepend-inner-icon="mdi-account-multiple"
                       >
-                        <!-- Custom Chips Slot -->
-                        <template #chip="{ item, index }">
+                        <template v-slot:chip="{ props, item }">
                           <v-chip
-                            :key="index"
+                            v-bind="props"
                             class="text-white"
                             color="info accent-4"
                             closable
                             variant="tonal"
-                            @click:close="_charge.charge.tracking_numbers = _charge.charge.tracking_numbers.filter(num => num !== item.value)"
                           >
                             {{ item.title }}
                           </v-chip>
                         </template>
-                    </v-autocomplete>
-
+                        <template v-slot:item="{ props, item }">
+                          <v-list-item
+                            v-bind="props"
+                            @click="props.onClick"
+                            class="text-info"
+                            :title="item.title"
+                          >
+                            <template v-slot:prepend="{ isSelected, select }">
+                              <v-list-item-action start>
+                                <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                              </v-list-item-action>
+                            </template>
+                          </v-list-item>
+                        </template>
+                      </v-autocomplete>
+                    </v-col>
+                    <v-col cols="6">
+                      <v-autocomplete
+                        v-model="invoice_tracking_numbers"
+                        :items="invoice_tracking_numbers"
+                        :label="$t('invoice_tracking_number')"
+                        placeholder="ex :   --- --- --- --- ---"
+                        multiple
+                        chips
+                        density="compact"
+                        variant="outlined"
+                        rounded
+                        clearable
+                        @keydown.enter.prevent="addNewInvoiceTrackingNumber"
+                        color="info"
+                        class="text-info"
+                        >
+                          <!-- Custom Chips Slot -->
+                          <template #chip="{ item, index }">
+                            <v-chip
+                              :key="index"
+                              class="text-white"
+                              color="info accent-4"
+                              closable
+                              variant="tonal"
+                              @click:close="_charge.charge.tracking_numbers = _charge.charge.tracking_numbers.filter(num => num !== item.value)"
+                            >
+                              {{ item.title }}
+                            </v-chip>
+                          </template>
+                      </v-autocomplete>
+                    </v-col>
+                  </template>
+                </v-row>
+                <v-row>
+                  <v-col class="text-center">
+                    <v-btn prepend-icon="mdi-send-check" block rounded color="warning" variant="tonal" :disabled="v$.$invalid" @click="submitInvoice" >
+                      {{ $t("submit_invoice") }}
+                    </v-btn>
                   </v-col>
-                </template>
-              </v-row>
+                  <v-col class="text-center">
+                    <v-btn prepend-icon="mdi-close" block rounded color="amber" variant="outlined" @click="cancelInvoice">
+                      {{ $t("cancel_invoice") }}
+                    </v-btn>
+                  </v-col>
+                </v-row>
+              </div>
             </v-expand-transition>
           </v-col>
         </v-row>
@@ -590,18 +603,6 @@
       </template>
     </v-data-table-virtual>
 
-    <!-- LOADER OVERLAY -->
-    <v-overlay
-      :model-value="loading"
-      class="align-center justify-center"
-      contained
-      scrim="info"
-    >
-      <div class="text-center">
-        <v-progress-circular indeterminate size="48" width="4" color="info" />
-        <div class="mt-3 text-info font-weight-medium">{{ $t('loading_data') }}</div>
-      </div>
-    </v-overlay>
   </div>
 </template>
 
@@ -614,6 +615,8 @@ import * as XLSX from 'xlsx';
 import { nextTick } from 'vue';
 import { Parser } from 'expr-eval';
 import _ from 'lodash';
+import useVuelidate from '@vuelidate/core';
+import { required, numeric, requiredIf } from '@vuelidate/validators';
 
 const NULL_VALUE = '__NULL__';
 
@@ -629,6 +632,7 @@ export default {
     advanced_filters_keys: Array,
     invoicer: Array,
     invoicer_name_prop: String,
+    select_invoicer: String,
     items: Array,
     sigma: Array,
     invoice_prop: String,
@@ -642,6 +646,8 @@ export default {
   emits: ['sync_items'],
   data () {
     return {
+      v$: useVuelidate(),
+
       items_selected: [],
       items_expanded: [],
       loading: false,
@@ -664,13 +670,22 @@ export default {
       invoice_filters: [],
       type_invoice:"local",
       invoice_invoicer_ids:[],
-      invoice_tracking_number:"",
       invoice_tracking_numbers:[],
+      invoice_tracking_number:"",
       advanced_filter_btn:false,
       setup_invoice_btn:false
     }
   },
-
+  validations: function () {
+    return {
+      invoice_invoicer_ids: {
+        required,
+      },
+      invoice_tracking_numbers: {
+        required,
+      },
+    }
+  },
   mounted() {
     this.defaultHeaderKeys = this.headers.map(h => h.key)
     this.hiddenHeaderKeys = this.headers.filter(h => h.visible === false).map(h => h.key)
@@ -698,14 +713,20 @@ export default {
     invoices_selected_length: function () {
       return this.invoices_selected.length;
     },
+    invoices_print_selected_length: function () {
+      return this.invoices_print_selected.length;
+    },
     items_selected_length: function () {
       return this.items_selected.length;
     },
-    items_selected_details_length() {
+    items_selected_details_length : function () {
       return this.items.reduce((a, i) => a + (this.items_selected.includes(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
     },
     invoices_selected: function () {
       return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice).map(i => i.id);
+    },
+    invoices_print_selected: function () {
+      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id != null).map(i => i.id);
     },
     min_date: function () {
       let date = _(this.invoices_selected.flatMap(i => this.items.find(item=> item.id == i))).sortBy("date").first()?.date;
@@ -714,13 +735,17 @@ export default {
     },
     get_invoice_invoicers_ids: function () {
       let invoicers_id = this.invoices_selected.flatMap(i => this.items.find(item=> item.id == i)[this.invoicer_name_prop]);
-      return _.uniq(invoicers_id).map(i => {
+
+      let ids = _.uniq(invoicers_id).map(i => {
         const invoicer = this.invoicer.find(invoicer_id => invoicer_id.id == i);
         return {
-          id : i,
+          id: i,
           name: invoicer?.name || this.$t("n/a"),
         }
-      })
+      });
+
+      this.invoice_invoicer_ids = ids;
+      return ids;
     },
     invoice_filters_items: function () {
       return [
@@ -933,6 +958,14 @@ export default {
         this.loading = false
         this.$nextTick(() => this.computePinnedCss())
       });
+    },
+
+    cancelInvoice: function () {
+      this.items_selected = [];
+    },
+    
+    submitInvoice: function () {
+      
     },
 
     syncHeaderOrder () {
@@ -1536,6 +1569,16 @@ export default {
           style:  {"background-color": "rgba(255, 130, 58, 0.516)"},
         }
       }
+      if (item.item.allow_invoice == true && item.item.invoice_id != null) {
+        return {
+          style:  {"background-color": "rgba(0, 227, 150, 0.2)"},
+        }
+      }
+      if (item.item.allow_invoice == false) {
+        return {
+          style:  {"background-color": "rgba(104, 104, 104, 0.2)"},
+        }
+      }
       return {
         style:  {"background-color": "rgba(90, 185, 253, 0.1)"},
       }
@@ -1543,8 +1586,13 @@ export default {
     addNewInvoiceTrackingNumber: function (event) {
       let inputValue = event.target.value.trim()
       if (inputValue && !this.invoice_tracking_numbers.includes(inputValue)) {
-        if (inputValue.search(" ")>0) {
-          this.invoice_tracking_numbers.push(...inputValue.split(" "))
+        if (inputValue.search(" ") > 0) {
+          let inputs = inputValue.split(" ");
+          inputs.forEach(input => {
+            if (!this.invoice_tracking_numbers.find(n => n == input)) {
+              this.invoice_tracking_numbers.push(input)
+            }
+          })
         } else {
           this.invoice_tracking_numbers.push(inputValue)
         }

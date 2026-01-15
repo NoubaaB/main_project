@@ -58,6 +58,7 @@
      :advanced_filters_keys="advanced_filters_keys"
      :invoicer="suppliers"
      :invoicer_name_prop="invoicer_name_prop"
+     :select_invoicer="select_invoicer"
      :items="items"
      :sigma="sigma"
      :invoice_prop="invoice_prop"
@@ -238,6 +239,7 @@
           },
           advanced_filters_keys: ["warehouse_id", "stockable_type", "stockable_id", "fish_family_id"],
           invoicer_name_prop:"supplier_ids",
+          select_invoicer:"select_suppliers",
           date: {
             start: new Date(2024, 10, 1),
             end: new Date(2025, 11, 17)

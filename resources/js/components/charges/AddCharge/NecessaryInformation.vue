@@ -444,7 +444,12 @@ export default {
       let inputValue = event.target.value.trim()
       if (inputValue && !this._charge.charge.tracking_numbers.includes(inputValue)) {
         if (inputValue.search(" ")>0) {
-          this._charge.charge.tracking_numbers.push(...inputValue.split(" "))
+          let inputs = inputValue.split(" ");
+          inputs.forEach(input => {
+            if (!this._charge.charge.tracking_numbers.find(n => n == input)) {
+              this._charge.charge.tracking_numbers.push(input)
+            }
+          })
         } else {
           this._charge.charge.tracking_numbers.push(inputValue)
         }
@@ -460,7 +465,12 @@ export default {
       let inputValue = event.target.value.trim()
       if (inputValue && !this._charge.charge.tracking_onp_numbers.includes(inputValue)) {
         if (inputValue.search(" ")>0) {
-          this._charge.charge.tracking_onp_numbers.push(...inputValue.split(" "))
+          let inputs = inputValue.split(" ");
+          inputs.forEach(input => {
+            if (!this._charge.charge.tracking_onp_numbers.find(n => n == input)) {
+              this._charge.charge.tracking_onp_numbers.push(input)
+            }
+          })
         } else {
           this._charge.charge.tracking_onp_numbers.push(inputValue)      }
         }
