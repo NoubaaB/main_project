@@ -7,6 +7,7 @@ use App\Models\charge;
 use App\Models\FishType;
 use App\Models\GuanoType;
 use App\Models\PackageType;
+use App\Models\SupplierInvoice;
 use App\Models\Warehouse;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -140,6 +141,7 @@ class ChargeController extends Controller
         $charges = Charge::whereBetween('date', [$date_start, $date_end])
             ->with(['suppliers', 'non_warehouse_stockable_operations', 'warehouse_stockable_tracking_number_operations'])
             ->orderBy("date")->get();
-        return response()->json(["charges" => $charges], 200);
+        $tracking_numbers = SupplierInvoice::generateNextTrackingNumbers();
+        return response()->json(["charges" => $charges, "tracking_numbers"=> $tracking_numbers], 200);
     }
 }

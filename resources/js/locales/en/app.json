@@ -226,6 +226,7 @@
     "ai_assistant":"AI assistant",
     "entries_short":"Et",
     "invoice":"Invoice",
+    "supplier_invoice_created":"Supplier Invoice Has Been Created N°:{tracking_numbers}",
     "remove_filters":"Remove Filters",
     "not_invoice":"Remove Filters",
     "invoice_display_all_items":"All Items",

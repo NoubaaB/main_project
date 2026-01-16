@@ -1,27 +1,27 @@
 <template>
     <v-snackbar
         class="absolute_index"
-        v-model="charge.snackbar_action_command"
+        v-model="main.snackbar.action_command"
         location="top"
         :color="main.color_theme_reverse"
-        :timeout="2000"
+        :timeout="8000"
         rounded="pill"
     >
         <v-row>
-            <v-col cols="2">
-                <v-icon :color="charge.snackbar_action_command_icon_color">
-                    {{ charge.snackbar_action_command_icon  }}
+            <v-col cols="1">
+                <v-icon :color="main.snackbar.action_command_icon_color">
+                    {{ main.snackbar.action_command_icon  }}
                 </v-icon>
             </v-col>
             <v-col>
-                {{ charge.snackbar_action_command_text }}
+                {{ main.snackbar.action_command_text }}
             </v-col>
         </v-row>
         <template v-slot:actions>
         <v-btn
             color="info"
             variant="text"
-            @click="charge.snackbar_action_command = false"
+            @click="main.snackbar.action_command = false"
         >
             {{ $t("close") }}
         </v-btn>
@@ -29,13 +29,9 @@
     </v-snackbar>
 </template>
 <script>
-import { useCharge } from '@/stores/Charge';
 import { useMain } from '@/stores/Main';
 export default {
     computed: {
-        charge: function () {
-            return useCharge();
-        },
         main: function () {
             return useMain();
         }

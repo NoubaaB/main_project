@@ -50,8 +50,9 @@ class SupplierInvoiceController extends Controller
         Charge::whereIn("id",$data["charge_ids"])
         ->where('allow_invoice', true)
         ->update(["invoice_id"=>$supplier_invoice->id]);
+        $tracking_numbers = SupplierInvoice::generateNextTrackingNumbers();
 
-        return response()->json(["supplier_invoice"=>$supplier_invoice],200);
+        return response()->json(["supplier_invoice"=>$supplier_invoice, "tracking_numbers"=> $tracking_numbers],200);
     }
 
     /**

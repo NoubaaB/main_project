@@ -631,6 +631,7 @@ export default {
     advanced_filters: Object,
     advanced_filters_keys: Array,
     invoicer: Array,
+    invoice: Object,
     invoicer_name_prop: String,
     select_invoicer: String,
     items: Array,
@@ -668,13 +669,6 @@ export default {
       //invoice
       invoice_expression: "1 == 1",
       invoice_filters: [],
-      invoice: {
-        date:new Date(),
-        type_invoice:"local",
-        invoice_invoicer_ids:[],
-        tracking_numbers: [],
-        charge_ids : []
-      },
       invoice_tracking_number:"",
       advanced_filter_btn:false,
       setup_invoice_btn:false
@@ -956,7 +950,7 @@ export default {
       this.loading = true
       this.items_selected = []
 
-      this.fetchData(this.date.start, this.date.end)
+      await this.fetchData(this.date.start, this.date.end)
       .catch(err => {
         console.error(`Error fetching ${this.api_url}`, err)
       }).finally(() => {
@@ -973,6 +967,7 @@ export default {
       this.invoice.date = moment(this.invoice.date).format("YYYY-MM-DD");
       this.invoice.charge_ids = this.invoices_selected;
       await this.PostInvoice(this.invoice);
+      this.items_selected = [];
     },
 
     syncHeaderOrder () {

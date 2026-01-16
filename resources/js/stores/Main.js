@@ -58,7 +58,13 @@ export const useMain = defineStore("main", {
             fish_type:useFishType(),
             charge:useCharge(),
             fish_family:useFishFamily(),
-            warehouse:useWarehouse()
+            warehouse: useWarehouse(),
+            snackbar: {
+                action_command:false,
+                action_command_icon_color:"",
+                action_command_icon:"",
+                action_command_text:""
+            }
         };
     },
     actions: {
@@ -97,7 +103,7 @@ export const useMain = defineStore("main", {
                         date_end: moment(date_end).format('YYYY-MM-DD')
                     }
                 })
-                return res.data[api_url_prop] || []
+                return res.data
             } catch (err) {
                 console.error(`Error fetching ${api_url}`, err)
             } 

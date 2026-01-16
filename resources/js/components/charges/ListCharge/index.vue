@@ -57,6 +57,7 @@
      :advanced_filters="advanced_filters"
      :advanced_filters_keys="advanced_filters_keys"
      :invoicer="suppliers"
+     :invoice="charge.invoice"
      :invoicer_name_prop="invoicer_name_prop"
      :select_invoicer="select_invoicer"
      :items="items"

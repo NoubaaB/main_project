@@ -15,8 +15,8 @@ export const useCharge = defineStore("charge", {
     state: () => {
         return {
             api_url: "/api/get_charges",
-            api_url_prop: "charges",
             loading:false,
+            tracking_numbers:[],
             showAdditionalInfo: false,
             main: useMain(),
             fish_type: useFishType(),
@@ -38,6 +38,13 @@ export const useCharge = defineStore("charge", {
             filtred_charge_fetch_items: [],
             warehouse_stockable_tracking_number_operations: [],
             non_warehouse_stockable_operations: [],
+            invoice: {
+                date: new Date(),
+                type_invoice: "local",
+                invoice_invoicer_ids: [],
+                tracking_numbers: [],
+                charge_ids: []
+            }
         };
     },
     actions: {
@@ -132,7 +139,9 @@ export const useCharge = defineStore("charge", {
         },
         fetchCharge: async function (date_start, date_end) {
             this.loading = true;
-            this.charge_fetch_items = await this.main.fetchData(date_start, date_end, this.api_url, this.api_url_prop)
+            let response = await this.main.fetchData(date_start, date_end, this.api_url)
+            this.charge_fetch_items = response.charges;
+            this.invoice.tracking_numbers = response.tracking_numbers;
             this.non_warehouse_stockable_operations = this.charge_fetch_items.flatMap(e => e.non_warehouse_stockable_operations.map(ee => { ee.charge_category_id = e.charge_category_id; return ee }))
             this.warehouse_stockable_tracking_number_operations = this.charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations.map(ee => { ee.charge_category_id = e.charge_category_id; return ee }))
             this.loading = false;
@@ -140,10 +149,25 @@ export const useCharge = defineStore("charge", {
         PostInvoice: async function (supplier_invoice) {
             this.loading = true;
             let response = await axios.post("/api/supplier_invoice", supplier_invoice);
-            response.data.supplier_invoice.charge_ids.forEach(charge_id=> {
+            response.data.supplier_invoice.charge_ids.forEach(charge_id => {
                 let item = this.charge_fetch_items.find(i => i.id == charge_id);
-                if (item) item.invoice_id = response.data.supplier_invoice.id
-            })
+                if (item) item.invoice_id = response.data.supplier_invoice.id;
+            });
+            this.invoice = {
+                date: new Date(),
+                type_invoice: "local",
+                invoice_invoicer_ids: [],
+                tracking_numbers: response.data.tracking_numbers,
+                charge_ids: []
+            };
+            this.main.snackbar = {
+                action_command: true,
+                action_command_icon_color: "success",
+                action_command_icon: "mdi-printer-check",
+                action_command_text: i18n.global.t('supplier_invoice_created', {
+                                    tracking_numbers: this.invoice.tracking_numbers.toString()
+                                    })
+            };
             this.loading = false;
         },
         UpdateCharge: function () {
