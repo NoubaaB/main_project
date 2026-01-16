@@ -89,7 +89,7 @@
               :is-dark="main.is_dark"
               :min-date="min_date"
               :max-date="new Date()"
-              v-model="invoice_date"
+              v-model="invoice.date"
               :locale="main.lang.short"
               mode="date"
             >
@@ -103,7 +103,7 @@
                   color="info"
                   class="text-info"
                   type="text"
-                  :model-value="main.formateDate(invoice_date)"
+                  :model-value="main.formateDate(invoice.date)"
                   v-on="inputEvents"
                   append-inner-icon="mdi-calendar"
                 />
@@ -113,7 +113,7 @@
 
           <v-col class="text-center" cols="2">
             <v-autocomplete
-              v-model="type_invoice"
+              v-model="invoice.type_invoice"
               :items="type_invoice_items"
               chips
               item-title="name"
@@ -289,13 +289,13 @@
             <v-expand-transition>
               <div v-show="setup_invoice_btn && invoices_selected_length > 0 ">
                 <v-row>
-                  <template v-if="type_invoice == 'export'">
+                  <template v-if="invoice.type_invoice == 'export'">
                     test
                   </template>
                   <template v-else>
                     <v-col cols="6">
                       <v-autocomplete
-                        v-model="invoice_invoicer_ids"
+                        v-model="invoice.invoice_invoicer_ids"
                         :items="get_invoice_invoicers_ids"
                         item-title="name"
                         item-value="id"
@@ -341,8 +341,8 @@
                     </v-col>
                     <v-col cols="6">
                       <v-autocomplete
-                        v-model="invoice_tracking_numbers"
-                        :items="invoice_tracking_numbers"
+                        v-model="invoice.tracking_numbers"
+                        :items="invoice.tracking_numbers"
                         :label="$t('invoice_tracking_number')"
                         placeholder="ex :   --- --- --- --- ---"
                         multiple
@@ -363,7 +363,7 @@
                               color="info accent-4"
                               closable
                               variant="tonal"
-                              @click:close="_charge.charge.tracking_numbers = _charge.charge.tracking_numbers.filter(num => num !== item.value)"
+                              @click:close="invoice.tracking_numbers.tracking_numbers = invoice.tracking_numbers.tracking_numbers.filter(num => num !== item.value)"
                             >
                               {{ item.title }}
                             </v-chip>
@@ -637,6 +637,7 @@ export default {
     sigma: Array,
     invoice_prop: String,
     fetchData: Function,
+    PostInvoice: Function,
     headers: { type: Array, required: true },
     detail_headers: { type: Array, required: true }
   },
@@ -665,12 +666,15 @@ export default {
       dragOverKey: null,
 
       //invoice
-      invoice_date: new Date(),
       invoice_expression: "1 == 1",
       invoice_filters: [],
-      type_invoice:"local",
-      invoice_invoicer_ids:[],
-      invoice_tracking_numbers:[],
+      invoice: {
+        date:new Date(),
+        type_invoice:"local",
+        invoice_invoicer_ids:[],
+        tracking_numbers: [],
+        charge_ids : []
+      },
       invoice_tracking_number:"",
       advanced_filter_btn:false,
       setup_invoice_btn:false
@@ -678,12 +682,14 @@ export default {
   },
   validations: function () {
     return {
-      invoice_invoicer_ids: {
-        required,
-      },
-      invoice_tracking_numbers: {
-        required,
-      },
+      invoice: {
+        invoice_invoicer_ids: {
+          required,
+        },
+        tracking_numbers: {
+          required,
+        },
+      }
     }
   },
   mounted() {
@@ -743,8 +749,7 @@ export default {
           name: invoicer?.name || this.$t("n/a"),
         }
       });
-
-      this.invoice_invoicer_ids = ids;
+      this.invoice.invoice_invoicer_ids = ids.map(e=>e.id);
       return ids;
     },
     invoice_filters_items: function () {
@@ -964,8 +969,10 @@ export default {
       this.items_selected = [];
     },
     
-    submitInvoice: function () {
-      
+    submitInvoice: async function () {
+      this.invoice.date = moment(this.invoice.date).format("YYYY-MM-DD");
+      this.invoice.charge_ids = this.invoices_selected;
+      await this.PostInvoice(this.invoice);
     },
 
     syncHeaderOrder () {
@@ -1585,16 +1592,16 @@ export default {
     },
     addNewInvoiceTrackingNumber: function (event) {
       let inputValue = event.target.value.trim()
-      if (inputValue && !this.invoice_tracking_numbers.includes(inputValue)) {
+      if (inputValue && !this.invoice.tracking_numbers.includes(inputValue)) {
         if (inputValue.search(" ") > 0) {
           let inputs = inputValue.split(" ");
           inputs.forEach(input => {
-            if (!this.invoice_tracking_numbers.find(n => n == input)) {
-              this.invoice_tracking_numbers.push(input)
+            if (!this.invoice.tracking_numbers.find(n => n == input)) {
+              this.invoice.tracking_numbers.push(input)
             }
           })
         } else {
-          this.invoice_tracking_numbers.push(inputValue)
+          this.invoice.tracking_numbers.push(inputValue)
         }
       }
       inputValue = "";

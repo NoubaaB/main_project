@@ -66,6 +66,7 @@
      :headers="headers"
      :detail_headers="detail_headers"
      :fetchData="fetchCharge"
+     :PostInvoice="PostInvoice"
      @sync_items="update_filtred_items_to_source"
      >
         <!-- CELLS (same as before) -->
@@ -241,8 +242,8 @@
           invoicer_name_prop:"supplier_ids",
           select_invoicer:"select_suppliers",
           date: {
-            start: new Date(2024, 10, 1),
-            end: new Date(2025, 11, 17)
+            start: new Date(2023, 2, 1),
+            end: new Date(2023, 11, 17)
           },
         }
     },
@@ -256,6 +257,9 @@
         charge: () => useCharge(),
         fetchCharge: function(){
           return this.charge.fetchCharge
+        },
+        PostInvoice: function(){
+          return this.charge.PostInvoice
         },
         items: function () {
             return this.charge.charge_fetch_items

@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Http\Request;
+use App\Models\SupplierInvoice;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\SupplierInvoiceController;
 
 #region AI routes
 Route::post('/ai-assistant', [App\Http\Controllers\AIAssistantController::class, 'ask']);
@@ -30,6 +32,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
         Route::post("charge", [ChargeController::class, "charge"]);
+        Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
         Route::get("get_charges", [ChargeController::class, "get_charges"]);
     #endregion
     });

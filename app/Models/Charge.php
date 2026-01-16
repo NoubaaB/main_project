@@ -8,16 +8,17 @@ use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\Supplier;
 use App\Models\ChargeCategory;
+use App\Models\SupplierInvoice;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\NonWarehouseStockableOperation;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\NonWarehouseStockableOperation;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\WarehouseStockableTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\WarehouseStockableTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Charge extends Model
 {
@@ -91,6 +92,10 @@ class Charge extends Model
 
     function supplier_process() : BelongsTo {
         return $this->belongsTo(Supplier::class, 'supplier_process_id'); 
+    }
+
+    function supplier_invoice() : BelongsTo {
+        return $this->belongsTo(SupplierInvoice::class, "invoice_id");
     }
 
     protected function supplierIds(): Attribute
