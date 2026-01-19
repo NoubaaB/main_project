@@ -723,7 +723,7 @@ export default {
       return this.items.reduce((a, i) => a + (this.items_selected.includes(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
     },
     invoices_selected: function () {
-      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice).map(i => i.id);
+      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id == null).map(i => i.id);
     },
     invoices_print_selected: function () {
       return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id != null).map(i => i.id);

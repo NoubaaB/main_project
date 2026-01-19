@@ -11,7 +11,7 @@
     <!-- system bar end -->
     
     <!-- main start -->
-    <v-container max-width="1400" class="ma-auto" :class="{'py-15':auth.is_auth,'py-5':!auth.is_auth}" style="position: relative">
+    <v-container max-width="1400" :class="{'py-15':auth.is_auth,'py-5':!auth.is_auth}" style="position: relative">
   <router-view v-slot="{ Component }">
     <!-- keep-alive only when route.meta.keepAlive is true -->
     <keep-alive>

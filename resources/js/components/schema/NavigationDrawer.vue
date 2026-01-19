@@ -33,7 +33,7 @@
             ></v-list-item>
           
           <v-list-group v-else :value="text">
-            <template v-slot:activator="{ props }">
+            <template v-slot:activator="{ isOpen , props }">
               <v-list-item
                 class="my-2"
                 v-bind="props"
@@ -41,6 +41,8 @@
                 :title="text"
                 rounded="xl"
                 color="info"
+                :active="isOpen"
+                :class-active="isOpen"
                 :exact="true"
               ></v-list-item>
             </template>
@@ -129,7 +131,7 @@
                 ['mdi-sticker-plus-outline', this.$t("add_charge"),"add_charge"],
                 ['mdi-view-list-outline', this.$t("list_charge"),"list_charge"],
               ]],
-              ['mdi-food-fork-drink', this.$t('commands'),[
+              ['mdi-pencil', this.$t('commands'),[
                 ['mdi-pencil-plus', this.$t("main"),"error404"],
                 ['mdi-pencil-plus', this.$t("create_command"),"error404"],
                 ['mdi-view-list', this.$t("list_command"),"error404"],

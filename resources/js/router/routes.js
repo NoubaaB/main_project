@@ -66,6 +66,17 @@ const routes = [
                             },
                         ]
                     },
+                    {
+                        path: "/supplier_invoice",
+                        name: "supplier_invoice",
+                        children: [
+                            {
+                                path: "view_supplier_invoice",
+                                name: "view_supplier_invoice",
+                                component: () => import("@/components/SupplierInvoice/ViewSupplierInvoice/index.vue")
+                            },
+                        ]
+                    },
                 ]
             },
             {
