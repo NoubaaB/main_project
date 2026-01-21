@@ -16,6 +16,8 @@ export const useMain = defineStore("main", {
             command_drawer: false,
             not_aviable_color: "grey",
             currency: "Dh",
+            currency_unit: "Dirham",
+            currency_subunit: "Centime",
             date_format: "DD/MM/YYYY",
             snackbar: {
                 show: false,
@@ -119,6 +121,18 @@ export const useMain = defineStore("main", {
         },
         formateDateCustom: function (date,format) {
             return moment(date).format(format);
+        },
+        capitalize: function (str) {
+            return str
+                .split(' ')
+                .map(w =>
+                    w
+                        .split('-')
+                        .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+                        .join('-')
+                )
+                .join(' ');
+  
         },
         formatDisplayNumber: function (num) {
             if (isNaN(num) || num === null || num === undefined) {

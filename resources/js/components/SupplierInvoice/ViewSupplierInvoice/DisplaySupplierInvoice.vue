@@ -148,14 +148,13 @@
                 <v-col cols="7" class="border-dotted border-md rounded-lg ml-3 border-info text-blue text-center">
                     <v-row >
                         <v-col class="text-light-blue-lighten-1 ">
-                            Arrêtée la présente facture à la somme :
+                            {{ $t("present invoice") }} :
                         </v-col>
                     </v-row>
                     <v-divider variant="dotted" thickness="2"></v-divider>
                     <v-row>
                         <v-col class="text-light-blue-darken-4">
-                            Deux Cent Trente-quatre Mille Trois Cent Quatre-vingt-cinq
-                            Dirham(s) Et Vingt Centime(s)
+                            {{convertSumPriceToWord}}
                         </v-col>
                     </v-row>
                 </v-col>
@@ -164,10 +163,10 @@
                         <v-col>
                             <v-row class="text-center">
                                 <v-col class="bg-light-blue-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-left">
-                                    <div class="font-weight-regular text-subtitle-2">Total En Dhs :</div>
+                                    <div class="font-weight-regular text-subtitle-2">{{ $t("total_price") }} {{ this.main.currency }}s :</div>
                                 </v-col>
                                 <v-col class="bg-light-blue-lighten-5 rounded-te-lg py-0 pl-0 pr-2">
-                                    <strong>234 385.20 Dhs</strong>
+                                    <strong>234 385.20 {{ this.main.currency }}s</strong>
                                 </v-col>
                             </v-row>
                             <v-row>
@@ -177,7 +176,7 @@
                             </v-row>
                             <v-row class="text-center">
                                 <v-col class="bg-light-blue-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-left text-white">
-                                    <div class="font-weight-regular text-subtitle-2">Total En Kg :</div>
+                                    <div class="font-weight-regular text-subtitle-2">{{ $t("weight_invoice") }} Kg :</div>
                                 </v-col>
                                 <v-col class="bg-light-blue-lighten-5 rounded-be-lg py-0 pl-0 pr-2 ">
                                     <strong>111 798.00 Kg</strong>
@@ -228,6 +227,7 @@
     import { useTruck } from '@/stores/Truck';
     import { useMain } from '@/stores/Main';
     import { useSupplierInvoice } from '@/stores/SupplierInvoice';
+    import writtenNumber from 'written-number';
     export default {
         props:{
           items : Array,  
@@ -293,6 +293,29 @@
                     { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },                
                 ]
             },
+            convertSumPriceToWord: function () {
+                let number = 120.10;
+
+                // compute using total Subunit to avoid subunit === 100 edge-case
+                const totalSubunit = Math.round(Math.abs(number) * 100);
+                const unit = Math.floor(totalSubunit / 100);
+                const subunit = totalSubunit % 100;
+
+                // build words with written-number (keeps user's lang)
+                const unitWords = writtenNumber(unit, { lang: this.main.lang.code });
+
+                // if no centimes, return only the unit part
+                if (subunit === 0) {
+                    return `${this.main.capitalize(unitWords)} ${this.main.currency_unit}(s)`.trim();
+                }
+
+                // otherwise include centimes
+                const subunitWords = writtenNumber(subunit, { lang: this.main.lang.code });
+                return `${this.main.capitalize(unitWords)} ${this.main.currency_unit}(s) ${this.$t('and')} 
+                ${this.main.capitalize(subunitWords)} ${this.main.currency_subunit}(s)`
+                .trim();
+
+            },
             // displayedHeaders: respects visibility and columnOrder (uses this.headers)
             displayedHeaders() {
                 const visible = (this.headers || []).filter(h => h.visible !== false);
@@ -352,7 +375,6 @@
                 }
                 return cur;
             },
-
             // number formatting: thousands (space) + 2 decimals
             formatNumber(n) {
                 if (n === null || n === undefined || n === '') return '';
