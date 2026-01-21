@@ -16,18 +16,18 @@
     
                 </v-col>
                 <v-col cols="*" class="bg-white text-light-blue-darken-4 text-center-h-v invoice-title">
-                    INVOICE
+                    {{ $t('invoice') }}
                 </v-col>
             </v-row>
         </div>
         <!-- HEADER -->
 
-        <div class="wrap-title">
+        <div class="title-wrap">
             <v-row no-gutters>
                 <v-col>
                     <v-row >
-                        <v-col class="text-center text-light-blue-darken-4">
-                            <strong class="mx-3" v-for="n in 9" :key="n">▷</strong>
+                        <v-col class="text-center text-light-blue-darken-4 d-flex">
+                            <div class="ml-5 bg-light-blue-darken-4 chevron" v-for="n in 10" :key="n" ></div>
                         </v-col>
                     </v-row>
                     <v-row >
@@ -35,14 +35,14 @@
                             <v-row no-gutters>
                                 <v-col class="text-black">
                                     <strong>
-                                        Societé : IGLO FISH
+                                        {{ $t('company') }} : IGLO FISH
                                     </strong>
                                 </v-col>
                             </v-row>
                             <v-row no-gutters>
                                 <v-col class="text-black">
                                     <strong>
-                                        Adresse : LAAYOUNE
+                                        {{ $t("address") }} : LAAYOUNE
                                     </strong>
                                 </v-col>
                             </v-row>
@@ -52,7 +52,7 @@
                 <v-col >
                     <v-row  class="text-center-h-v text-center bg-light-blue-lighten-2 rounded-s-xl">
                         <v-col>
-                            Facture N° :
+                            {{$t('invoice_n°') }}:
                             <strong>
                              2500047
                             </strong>
@@ -61,7 +61,7 @@
                             │
                         </v-col>
                         <v-col>
-                            Date :
+                            {{ $t("date") }} :
                             <strong>
                              03/08/2025
                             </strong>
@@ -76,28 +76,131 @@
             </v-row>
             <div class="title_doughnut_top"></div>
         </div>
+        <!-- TITLE -->
+        
         <div class="content-wrap">
             <img class="invoice_body" src="/storage/images/invoice_body.png"/>
-            test
-            <table class="wrap-table text-black">
-                <tr>
-                    <th v-for="n in 7" :key="n">th</th>
-                </tr>
-                <tr>
-                    <td v-for="n in 7" :key="n">td</td>
-                </tr>
-            </table>
-            <div class="wrap-summary">
+            <!-- START: Invoice table -->
+            <div class="invoice-table-wrap">
+                <div class="table-scroll">
+                    <table class="invoice-table" role="table">
+                        <thead>
+                            <tr role="row" class="bg-light-blue-darken-4">
+                            <th
+                                v-for="(h, idx) in displayedHeaders"
+                                :key="h.key"
+                                :draggable="true"
+                                @dragstart="onHeaderDragStart($event, idx)"
+                                @dragover="onHeaderDragOver($event, idx)"
+                                @dragleave="onHeaderDragLeave($event, idx)"
+                                @drop="onHeaderDrop($event, idx)"
+                                :class="['col-header', { dragging: draggingIndex === idx, 'drag-over': dragOverIndex === idx }]"
+                                :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
+                            >
+                                <div class="header-cell">
+                                <div class="header-title text-center-h-v" @click="toggleSort(h.key)">
+                                    <span class="header-text">{{ h.title }}</span>
+                                    <span class="sort-indicator" v-if="sortKey === h.key">
+                                        <v-icon>{{ sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending' }}</v-icon>
+                                    </span>
+                                </div>
 
-            <div class="summary_doughnut_top"></div>
+                                <div class="drag-handle" title="Drag to reorder" @mousedown.stop>
+                                    <v-icon>mdi-drag</v-icon>
+                                </div>
+
+                                <div
+                                    class="resize-handle"
+                                    @mousedown.prevent="onResizeMouseDown($event, h.key)"
+                                    title="Drag to resize"
+                                ></div>
+                                </div>
+                            </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr v-for="(row, rIdx) in sortedItems" :key="rIdx" role="row">
+                            <td
+                                v-for="h in displayedHeaders"
+                                :key="h.key"
+                                :class="{ numeric: isNumericKey(h.key) }"
+                                :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
+                            >
+                                <strong class="cell-content text-center-h-v">{{ formatCell(row, h.key) }}</strong>
+                            </td>
+                            </tr>
+
+                            <!-- filler rows to mimic printed invoice spacing -->
+                            <tr v-for="n in emptyRows" :key="'empty-'+n">
+                                <td v-for="h in displayedHeaders" :key="h.key + '-e'">&nbsp;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- END: Invoice table -->
+            <v-row
+            class="flex-nowrap"
+            no-gutters
+            v-if="allow_summary"
+            >
+                <v-col cols="7" class="border-dotted border-md rounded-lg ml-3 border-info text-blue text-center">
+                    <v-row >
+                        <v-col class="text-light-blue-lighten-1 ">
+                            Arrêtée la présente facture à la somme :
+                        </v-col>
+                    </v-row>
+                    <v-divider variant="dotted" thickness="2"></v-divider>
+                    <v-row>
+                        <v-col class="text-light-blue-darken-4">
+                            Deux Cent Trente-quatre Mille Trois Cent Quatre-vingt-cinq
+                            Dirham(s) Et Vingt Centime(s)
+                        </v-col>
+                    </v-row>
+                </v-col>
+                <v-col class="text-black text-center-h-v">
+                    <v-row class="ma-1">
+                        <v-col>
+                            <v-row class="text-center">
+                                <v-col class="bg-light-blue-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-left">
+                                    <div class="font-weight-regular text-subtitle-2">Total En Dhs :</div>
+                                </v-col>
+                                <v-col class="bg-light-blue-lighten-5 rounded-te-lg py-0 pl-0 pr-2">
+                                    <strong>234 385.20 Dhs</strong>
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col class="px-0 py-1">
+                                    <v-divider color="info" class="mx-2" variant="dotted" thickness="2"></v-divider>
+                                </v-col>
+                            </v-row>
+                            <v-row class="text-center">
+                                <v-col class="bg-light-blue-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-left text-white">
+                                    <div class="font-weight-regular text-subtitle-2">Total En Kg :</div>
+                                </v-col>
+                                <v-col class="bg-light-blue-lighten-5 rounded-be-lg py-0 pl-0 pr-2 ">
+                                    <strong>111 798.00 Kg</strong>
+                                </v-col>
+                            </v-row>
+                        </v-col>
+                    </v-row>
+                </v-col>
+            </v-row>
+            <v-chip  v-if="pagination.allow" variant="tonal" class="mx-3" size="x-small" color="grey">
+                {{pagination.page}}/{{pagination.total_pages}}
+            </v-chip>
+            <div class="wrap-summary">
+                <div class="summary_doughnut_top"></div>
             </div>
         </div>
+
         <!-- FOOTER -->
         <div class="footer-wrap">
             <v-row no-gutters class="footer-wrap-divided bg-light-blue-lighten-2">
                 <v-col cols="4" class="bg-white text-light-blue-darken-4 text-center px-8 invoice-director">
                     <div class="mb-2">
-                        La Direction
+                        {{ $t("director") }}
                     </div>
                     <v-divider opacity=".7" thickness="2" class="mb-8 text-light-blue-darken-4"></v-divider>
                     <v-divider opacity=".5" thickness="2" variant="dashed" class="text-light-blue-lighten-2 mx-5"></v-divider>
@@ -122,8 +225,233 @@
 </template>
 
 <script>
+    import { useTruck } from '@/stores/Truck';
+    import { useMain } from '@/stores/Main';
+    import { useSupplierInvoice } from '@/stores/SupplierInvoice';
     export default {
-        
+        props:{
+          items : Array,  
+          pagination : Object,  
+          emptyRows : Number,  
+          pageIndex : Number,  
+          allow_summary : Boolean,  
+        },
+        data() {
+            return {
+                // column order and widths
+                columnOrder: [],
+                columnWidths: {},
+
+                // sorting
+                sortKey: null,
+                sortDesc: false,
+
+                // header-drag state
+                draggingIndex: null,
+                dragOverIndex: null,
+
+                // resizing state
+                isResizing: false,
+                resizingKey: null,
+                resizeStartX: 0,
+                resizeStartWidth: 0,
+                _mouseMoveHandler: null,
+                _mouseUpHandler: null,
+
+                // config
+                defaultWidth: 90,   // fallback column width in px
+            }
+        },
+        mounted() {
+            // initialize widths/order on mount
+            if (typeof this.initColumns === 'function') this.initColumns();
+            // defensive global mouseup (stops drag/resizing if mouse released outside)
+            this._globalMouseUp = (e) => {
+                if (this.isResizing) this.onResizeMouseUp(e);
+                this.draggingIndex = null;
+                this.dragOverIndex = null;
+            };
+            window.addEventListener('mouseup', this._globalMouseUp);
+        },
+        beforeUnmount() {
+            if (this._mouseMoveHandler) window.removeEventListener('mousemove', this._mouseMoveHandler);
+            if (this._mouseUpHandler) window.removeEventListener('mouseup', this._mouseUpHandler);
+            if (this._globalMouseUp) window.removeEventListener('mouseup', this._globalMouseUp);
+        },
+        computed: {
+            truck: () => useTruck(),
+            main: () => useMain(),
+            supplierInvoice: () => useSupplierInvoice(),
+            headers:function(){
+                return [
+                    { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
+                    { align : "center" , title: this.$t("registration_plate"), key: 'truck_id' , visible:true },
+                    { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
+                    { align : "center" , title: this.$t("stockable"), key: 'stockable' , visible:false },
+                    { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
+                    { align : "center" , title: this.$t("unit_price_currency",{currency:this.main.currency}), key: 'unit_price', visible: true },
+                    { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },                
+                ]
+            },
+            // displayedHeaders: respects visibility and columnOrder (uses this.headers)
+            displayedHeaders() {
+                const visible = (this.headers || []).filter(h => h.visible !== false);
+                if (!this.columnOrder || this.columnOrder.length === 0) {
+                this.columnOrder = visible.map(h => h.key);
+                }
+                const byKey = visible.reduce((acc, h) => { acc[h.key] = h; return acc; }, {});
+                const mapped = [];
+                this.columnOrder.forEach(k => { if (byKey[k]) mapped.push(byKey[k]); });
+                visible.forEach(h => { if (!this.columnOrder.includes(h.key)) mapped.push(h); });
+                return mapped;
+            },
+
+            // sortedItems: sort by sortKey / sortDesc (uses this.items)
+            sortedItems() {
+                const arr = (this.items || []).slice();
+                if (!this.sortKey) return arr;
+                const key = this.sortKey;
+                const desc = this.sortDesc;
+                arr.sort((a, b) => {
+                const va = this.getCellValue(a, key);
+                const vb = this.getCellValue(b, key);
+
+                // numeric compare
+                if (typeof va === 'number' && typeof vb === 'number') return desc ? vb - va : va - vb;
+                const na = Number(va), nb = Number(vb);
+                if (!isNaN(na) && !isNaN(nb)) return desc ? nb - na : na - nb;
+
+                // ISO date-ish compare
+                if (typeof va === 'string' && typeof vb === 'string' &&
+                    /^\d{4}-\d{2}-\d{2}/.test(va) && /^\d{4}-\d{2}-\d{2}/.test(vb)) {
+                    return desc ? vb.localeCompare(va) : va.localeCompare(vb);
+                }
+
+                const sa = (va === null || va === undefined) ? '' : String(va);
+                const sb = (vb === null || vb === undefined) ? '' : String(vb);
+                return desc ? sb.localeCompare(sa) : sa.localeCompare(sb);
+                });
+                return arr;
+            }
+
+        },
+        methods:{
+            initColumns() {
+                const visibleKeys = (this.headers || []).filter(h => h.visible !== false).map(h => h.key);
+                if (!this.columnOrder || this.columnOrder.length === 0) this.columnOrder = [...visibleKeys];
+                visibleKeys.forEach(k => { if (!this.columnWidths[k]) this.columnWidths[k] = this.defaultWidth; });
+            },
+
+            // helper to support nested keys 'parent.child'
+            getCellValue(row, key) {
+                const parts = String(key).split('.');
+                let cur = row;
+                for (const p of parts) {
+                if (cur === null || cur === undefined) return null;
+                cur = cur[p];
+                }
+                return cur;
+            },
+
+            // number formatting: thousands (space) + 2 decimals
+            formatNumber(n) {
+                if (n === null || n === undefined || n === '') return '';
+                const num = Number(n);
+                if (isNaN(num)) return String(n);
+                const s = num.toFixed(2);
+                const parts = s.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                return parts.join('.');
+            },
+
+            isNumericKey(key) {
+                // tweak predicate to match your numeric column keys
+                const numericCandidates = ['quantity','qty','unit_price','total_price','total','amount','weight','montant','pu'];
+                return numericCandidates.includes(key) || /price|qty|amount|weight|montant|pu/i.test(key);
+            },
+
+            formatCell(row, key) {
+                const v = this.getCellValue(row, key);
+                if (this.isNumericKey(key)) return this.formatNumber(v);
+                if (Array.isArray(v)) return v.join(', ');
+                if (v && typeof v === 'object') {
+                if ('name' in v) return v.name;
+                if ('stockable_id' in v) return v.stockable_id;
+                return JSON.stringify(v);
+                }
+                return v !== undefined && v !== null ? v : '';
+            },
+
+            // sorting toggle
+            toggleSort(key) {
+                if (this.sortKey === key) this.sortDesc = !this.sortDesc;
+                else { this.sortKey = key; this.sortDesc = false; }
+            },
+
+            // drag-to-reorder handlers (HTML5 drag)
+            onHeaderDragStart(e, index) {
+                this.draggingIndex = index;
+                try { e.dataTransfer.setData('text/plain', String(index)); } catch (err) {}
+                e.dataTransfer.effectAllowed = 'move';
+            },
+            onHeaderDragOver(e, index) {
+                e.preventDefault();
+                if (this.dragOverIndex !== index) this.dragOverIndex = index;
+            },
+            onHeaderDragLeave(e, index) {
+                if (this.dragOverIndex === index) this.dragOverIndex = null;
+            },
+            onHeaderDrop(e, index) {
+                e.preventDefault();
+                const from = this.draggingIndex !== null ? this.draggingIndex : parseInt(e.dataTransfer.getData('text/plain') || -1, 10);
+                const to = index;
+                if (from === -1 || from === null) { this.draggingIndex = null; this.dragOverIndex = null; return; }
+                const keys = this.displayedHeaders.map(h => h.key);
+                const keyFrom = keys[from];
+                const keyTo = keys[to];
+                if (keyFrom && keyTo && keyFrom !== keyTo) {
+                const current = [...this.columnOrder];
+                const removeIdx = current.indexOf(keyFrom);
+                if (removeIdx !== -1) current.splice(removeIdx, 1);
+                const insertIdx = Math.max(0, current.indexOf(keyTo));
+                current.splice(insertIdx, 0, keyFrom);
+                this.columnOrder = current;
+                }
+                this.draggingIndex = null;
+                this.dragOverIndex = null;
+            },
+
+            // resizing logic
+            onResizeMouseDown(e, key) {
+                this.isResizing = true;
+                this.resizingKey = key;
+                this.resizeStartX = e.clientX;
+                this.resizeStartWidth = Number(this.columnWidths[key] || this.defaultWidth);
+                this._mouseMoveHandler = (ev) => { this.onResizeMouseMove(ev); };
+                this._mouseUpHandler = (ev) => { this.onResizeMouseUp(ev); };
+                window.addEventListener('mousemove', this._mouseMoveHandler);
+                window.addEventListener('mouseup', this._mouseUpHandler);
+            },
+            onResizeMouseMove(e) {
+                if (!this.isResizing || !this.resizingKey) return;
+                const delta = e.clientX - this.resizeStartX;
+                const newWidth = Math.max(60, Math.round(this.resizeStartWidth + delta));
+                // reactive assign
+                this.columnWidths = Object.assign({}, this.columnWidths, { [this.resizingKey]: newWidth });
+            },
+            onResizeMouseUp() {
+                this.isResizing = false;
+                this.resizingKey = null;
+                if (this._mouseMoveHandler) { window.removeEventListener('mousemove', this._mouseMoveHandler); this._mouseMoveHandler = null; }
+                if (this._mouseUpHandler) { window.removeEventListener('mouseup', this._mouseUpHandler); this._mouseUpHandler = null; }
+            },
+
+            // utility
+            resetColumnOrder() {
+                this.columnOrder = (this.headers || []).filter(h => h.visible !== false).map(h => h.key);
+            }
+
+        }
     }
 </script>
 
@@ -135,8 +463,8 @@
             - var(--header-wrap-divided-height) 
             - var(--header-wrap-strick-height) 
             - var(--header-wrap-strick-height) 
-            - var(--wrap-title-height) 
-            - var(--wrap-title-margin-top-height)
+            - var(--title-wrap-height) 
+            - var(--title-wrap-margin-top-height)
         ); // 
         position: relative;
     }
@@ -148,9 +476,10 @@
         background-color: white;
     }
 
-    .wrap-title{
-        height: var(--wrap-title-height);
-        margin-top: var(--wrap-title-margin-top-height);
+    .title-wrap{
+        height: var(--title-wrap-height);
+        margin-top: var(--title-wrap-margin-top-height);
+        position: relative;
     }
 
     //stylish header-wrap
@@ -214,9 +543,9 @@
         border: 22px solid rgba(135, 207, 235, 0.1529411765);
         height: 3.5cm !important;
         width: 3.5cm;
-        position: relative;
-        left: -1.5cm;
-        top: -2cm;
+        position: absolute;
+        right: 19cm;
+        top: 1cm;
         z-index: 0;
     }
 
@@ -225,9 +554,9 @@
         border: 22px solid rgba(135, 207, 235, 0.1529411765);
         height: 3.5cm !important;
         width: 3.5cm;
-        position: relative;
+        position: absolute;
         left: 19cm;
-        top: 13cm;
+        bottom: 2cm;
         z-index: 0;
     }
 
@@ -242,4 +571,69 @@
         right: 15%;
         pointer-events: none;    
     }
+
+    .chevron {
+        --s: 4px;
+        height: 25px;
+        aspect-ratio: 3 / 5;
+        clip-path: polygon(0 0, var(--s) 0, 100% 50%, var(--s) 100%, 0 100%, calc(100% - var(--s)) 50%);
+    }
+    
+
+/* Table container */
+.invoice-table-wrap { padding: 0.5rem 1rem 0rem 1rem; z-index: 1; position: relative; }
+
+/* scroll */
+.table-scroll { overflow-x: hidden; max-width: calc(var(--invoice-width) - 2rem); border-top-left-radius: 0.5cm;border-top-right-radius: 0.5cm; background: transparent; }
+
+/* table base */
+table.invoice-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
+
+/* header look (dark-blue) */
+table.invoice-table thead th {
+  position: relative; user-select: none; vertical-align: middle;
+  color:#fff; font-weight:900; border-bottom:3px solid #fff;
+  white-space: nowrap; overflow:hidden; box-shadow: inset 0 -2px 0 rgba(255,255,255,0.08);
+}
+table.invoice-table thead th:first-child { border-top-left-radius: 8px; }
+table.invoice-table thead th:last-child  { border-top-right-radius: 8px; }
+
+.col-header.dragging { opacity: 0.6; }
+.col-header.drag-over { outline: 2px dashed rgba(0,0,0,0.15); }
+
+.header-cell { display:flex; align-items:center; gap:8px; position:relative; }
+.header-title { flex:1; cursor:pointer; display:flex; align-items:center; gap:8px; }
+.sort-indicator { font-size:0.9em; opacity:0.95; margin-left:1px; }
+
+.drag-handle { cursor:grab; padding:4px 9px; border-radius:4px; font-size:0.95em; user-select:none; }
+
+/* resize handle */
+.resize-handle { position:absolute; right:0; top:0; bottom:0; width:10px; cursor:col-resize; z-index:1; }
+
+/* striping & body rows */
+table.invoice-table tbody tr { background: transparent; }
+table.invoice-table tbody tr:nth-child(odd) td { background: rgba(135,207,235,0.12); }
+table.invoice-table tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0); }
+
+table.invoice-table tbody td {
+    border-bottom: 1px solid rgba(87, 202, 241, 0.915); vertical-align: middle;
+    
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* numeric alignment */
+td.numeric, th.numeric { text-align: right; padding-right: 16px; }
+
+/* cell content */
+.cell-content { overflow:hidden; color: black; text-overflow:ellipsis; white-space:nowrap; }
+
+/* filler empty rows appearance */
+table.invoice-table tbody tr td:empty { height: 26px; }
+
+/* responsive tweaks */
+@media (max-width: 900px) {
+  .invoice-table { font-size: 11px; }
+  table.invoice-table thead th, table.invoice-table tbody td { padding: 8px 10px; }
+}
+
 </style>

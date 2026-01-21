@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use App\Models\PasswordReset;
 use App\Models\Ship;
 use App\Models\Supplier;
+use App\Models\Truck;
 use App\Models\Warehouse;
 use App\Models\WarehouseCategoryOperation;
 use Illuminate\Http\JsonResponse;
@@ -209,6 +210,7 @@ class AuthController extends Controller implements HasMiddleware
         $charge_categories = ChargeCategory::all();
         $warehouse_category_operations = WarehouseCategoryOperation::all();
         $formulas = Formula::all();
+        $trucks = Truck::all();
         return [
             "suppliers" => $suppliers,
             "ships" => $ships,
@@ -221,7 +223,8 @@ class AuthController extends Controller implements HasMiddleware
             "warehouse_category_operations" => $warehouse_category_operations,
             "fisheries" => $fisheries,
             "origins" => $origins,
-            "formulas" => $formulas
+            "formulas" => $formulas,
+            "trucks" => $trucks
         ];
     }
 }
