@@ -21,7 +21,7 @@
           />
       </div>
     </v-col>
-    <v-col cols="4" class="invoice-width">
+    <v-col cols="4">
       <DisplayInvoiceContoller :toPDF="toPDF"/>
     </v-col>
   </v-row>
@@ -41,7 +41,7 @@
     computed: {
       supplierInvoice: () => useSupplierInvoice(),
       items: function () {
-        return Array.from({ length: 73 }, () => (
+        return Array.from({ length: 60 }, () => (
           {
             date: "2025-10-01",
             truck_id: 5,

@@ -149,13 +149,13 @@
             no-gutters
             v-if="allow_summary"
             >
-                <v-col cols="7" class="border-dotted border-md rounded-lg ml-3 border-info text-blue text-center">
+                <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-50 border-info text-blue text-center">
                     <v-row >
                         <v-col class="text-light-blue-lighten-1 numeric-font">
                             {{ $t("present invoice") }} :
                         </v-col>
                     </v-row>
-                    <v-divider variant="dotted" thickness="2"></v-divider>
+                    <v-divider opacity="0.5" variant="dashed" thickness="1"></v-divider>
                     <v-row>
                         <v-col class="text-light-blue-darken-4 numeric-font">
                             {{convertSumPriceToWord}}
@@ -175,7 +175,7 @@
                             </v-row>
                             <v-row>
                                 <v-col class="px-0 py-1">
-                                    <v-divider color="info" class="mx-2" variant="dotted" thickness="2"></v-divider>
+                                    <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2"></v-divider>
                                 </v-col>
                             </v-row>
                             <v-row class="text-center">
@@ -648,7 +648,7 @@ table.invoice-table thead th:last-child  { border-top-right-radius: 8px; }
 
 .sort-indicator { font-size:0.9em; opacity:0.95; margin-left:1px; }
 
-.drag-handle { cursor:grab; padding:4px 9px; border-radius:4px; font-size:0.95em; user-select:none; }
+.drag-handle { cursor:grab; padding:4px 9px; border-radius:px; font-size:0.95em; user-select:none; }
 
 /* resize handle */
 .resize-handle { position:absolute; right:0; top:0; bottom:0; width:10px; cursor:col-resize; z-index:1; }
@@ -658,7 +658,7 @@ table.invoice-table tbody tr { background: transparent; }
 table.invoice-table tbody tr:nth-child(odd) td { background: rgba(135,207,235,0.12); }
 table.invoice-table tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0); }
 
-table.invoice-table tbody td {
+table.invoice-table tbody tr:not(:last-child) td  {
     border-bottom: 1px solid rgba(87, 202, 241, 0.915); vertical-align: middle;
     
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
