@@ -41,7 +41,7 @@
     computed: {
       supplierInvoice: () => useSupplierInvoice(),
       items: function () {
-        return Array.from({ length: 60 }, () => (
+        return Array.from({ length: 32 }, () => (
           {
             date: "2025-10-01",
             truck_id: 5,

@@ -69,8 +69,8 @@
                         </v-col>
                     </v-row>
                     <v-row >
-                        <v-col class="text-light-blue-lighten-2 d-flex">
-                            <h1 class="mx-1" v-for="n in 23" :key="n" ><i>/</i></h1>
+                        <v-col class="text-center text-light-blue-darken-4 d-flex ">
+                            <div class="bg-light-blue-lighten-2 sparkle" v-for="n in 13" :key="n" ></div>
                         </v-col>
                     </v-row>
                 </v-col>
@@ -82,7 +82,7 @@
         <div class="content-wrap">
             <img class="invoice-body" src="/storage/images/invoice_body.png"/>
             <!-- START: Invoice table -->
-            <div class="invoice-table-wrap">
+            <div class="invoice-table-wrap mt-0 pt-0">
                 <div class="table-scroll">
                     <table class="invoice-table" role="table">
                         <thead>
@@ -149,7 +149,7 @@
             no-gutters
             v-if="allow_summary"
             >
-                <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-50 border-info text-blue text-center">
+                <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-75 border-info text-blue text-center">
                     <v-row >
                         <v-col class="text-light-blue-lighten-1 numeric-font">
                             {{ $t("present invoice") }} :
@@ -191,7 +191,9 @@
                 </v-col>
             </v-row>
             <v-chip  v-if="pagination.allow" variant="tonal" class="mx-3" size="x-small" color="grey">
-                {{pagination.page}}/{{pagination.total_pages}}
+                <span class="text-grey-darken-1">
+                    {{pagination.page}}/{{pagination.total_pages}}
+                </span>
             </v-chip>
             <div class="wrap-summary">
                 <div class="summary_doughnut_top"></div>
@@ -610,6 +612,13 @@
         width: 15px;
         aspect-ratio: 3/2;
         clip-path: polygon(var(--p) 0,100% 0,calc(100% - var(--p)) 100%,0 100%);
+    }
+
+
+    .sparkle {
+        width: 30px; /* adjust to control the size */
+        aspect-ratio: 1;
+        clip-path: polygon(100% 50%,calc(85.36% - 14.03px) calc(85.36% - 14.03px),50% 100%,calc(14.64% - -14.03px) calc(85.36% - 14.03px),0% 50%,calc(14.64% - -14.03px) calc(14.64% - -14.03px),50% 0%,calc(85.36% - 14.03px) calc(14.64% - -14.03px));
     }
     
     .numeric-font{
