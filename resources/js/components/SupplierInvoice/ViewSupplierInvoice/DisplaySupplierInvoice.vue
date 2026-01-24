@@ -484,7 +484,7 @@
     }
 </script>
 
-<style >
+<style scoped >
     .content-wrap{
         height: calc(
             var(--invoice-height) 

@@ -125,7 +125,7 @@
           },
           links: function () {
            return [
-              ['mdi-human-male-board-poll', this.$t("general"),null,"index"],
+              ['mdi-human-male-board-poll', this.$t("general"),null,"view_supplier_invoice"],
               ['mdi-robot', this.$t("ai_prompt"),null,"ai_prompt"],
               ['mdi-warehouse', this.$t('charges'),[
                 ['mdi-sticker-plus-outline', this.$t("add_charge"),"add_charge"],

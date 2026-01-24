@@ -37,24 +37,29 @@ const routes = [
                     {
                         path: "/",
                         name: "index",
+                        keeplive: true,
                         component: () => import("@/components/ai_prompt/index.vue") //create origin component later
                     },
                     {
                         path: "/ai_prompt",
                         name: "ai_prompt",
+                        keeplive: true,
                         component: () => import("@/components/ai_prompt/index.vue")
                     },
                     {
                         path: "/command",
                         name: "command",
+                        keeplive: true,
                         redirect: { name: "command.list" },
                     },
                     {
                         path: "/charges",
+                        keeplive: true,
                         name: "charges",
                         children: [
                             {
                                 path: "add_charge",
+                                keeplive: true,
                                 name: "add_charge",
                                 component: () => import("@/components/charges/AddCharge/index.vue")
                             },
@@ -68,10 +73,12 @@ const routes = [
                     },
                     {
                         path: "/supplier_invoice",
+                        keeplive: true,
                         name: "supplier_invoice",
                         children: [
                             {
                                 path: "view_supplier_invoice",
+                                keeplive: true,
                                 name: "view_supplier_invoice",
                                 component: () => import("@/components/SupplierInvoice/ViewSupplierInvoice/index.vue")
                             },

@@ -686,17 +686,16 @@ export default {
       }
     }
   },
-  activated:function(){
-    this.initialHeader();
-  },
   mounted() {
-    this._fetchData(this.date.start , this.date.end)
-  },
-
-  beforeUnmount () {
-    const root = this.$refs.tableRoot
-    if (root) root.removeEventListener('scroll', this.debouncedComputePinnedCss)
-    window.removeEventListener('resize', this.debouncedComputePinnedCss)
+      this.defaultHeaderKeys = this.headers.map(h => h.key)
+      this.hiddenHeaderKeys = this.headers.filter(h => h.visible === false).map(h => h.key)
+      this.syncHeaderOrder()
+      this._fetchData(this.date.start , this.date.end)
+      const root = this.$refs.tableRoot
+      if (root) {
+        root.addEventListener('scroll', this.debouncedComputePinnedCss)
+        window.addEventListener('resize', this.debouncedComputePinnedCss)
+      }
   },
 
   computed: {
@@ -952,17 +951,6 @@ export default {
         this.loading = false
         this.$nextTick(() => this.computePinnedCss())
       });
-    },
-
-    initialHeader : function(){
-      this.defaultHeaderKeys = this.headers.map(h => h.key)
-      this.hiddenHeaderKeys = this.headers.filter(h => h.visible === false).map(h => h.key)
-      this.syncHeaderOrder()
-      const root = this.$refs.tableRoot
-      if (root) {
-        root.addEventListener('scroll', this.debouncedComputePinnedCss)
-        window.addEventListener('resize', this.debouncedComputePinnedCss)
-      }
     },
 
     cancelInvoice: function () {

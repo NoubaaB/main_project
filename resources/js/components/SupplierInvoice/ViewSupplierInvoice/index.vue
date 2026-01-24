@@ -95,7 +95,7 @@
     }
   }
 </script>
-<style>
+<style scoped>
   .invoice-width{
     width : var(--invoice-width)!important
   }
