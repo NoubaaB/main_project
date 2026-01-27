@@ -171,9 +171,9 @@
                         <v-col>
                             <v-row class="text-center">
                                 <v-col class="bg-light-blue-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
-                                    <div class="font-weight-bold text-subtitle-2 capitalize-text">{{ $t("total_price") }} :</div>
+                                    <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_price") }} :</div>
                                 </v-col>
-                                <v-col class="bg-light-blue-lighten-5 rounded-te-lg py-0 pl-0 pr-2">
+                                <v-col class="bg-light-blue-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
                                     <strong>{{total.price}} {{ this.main.currency }}<small>(s)</small></strong>
                                 </v-col>
                             </v-row>
@@ -184,9 +184,9 @@
                             </v-row>
                             <v-row class="text-center">
                                 <v-col class="bg-light-blue-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
-                                    <div class="font-weight-bold text-subtitle-2 capitalize-text">{{ $t("total_weight") }} :</div>
+                                    <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
                                 </v-col>
-                                <v-col class="bg-light-blue-lighten-5 rounded-be-lg py-0 pl-0 pr-2 ">
+                                <v-col class="bg-light-blue-lighten-5 rounded-be-lg py-0 pl-0 pr-2 text-left pl-5">
                                     <strong>{{total.weight}} Kg</strong>
                                 </v-col>
                             </v-row>
