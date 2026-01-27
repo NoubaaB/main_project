@@ -7,6 +7,7 @@
         :key="index"
         :is_show="is_show"
         :items="item"
+        :total="total"
         :allow_summary="allow_summary(index,item.length)"
         :pagination="itemPagination(index)" 
         :emptyRows="emptyRows(item.length)"
@@ -15,6 +16,7 @@
         v-if="checkChunkLatestItems"
         :is_show="is_show"
         :items="[]"
+        :total="total"
         :allow_summary="allow_summary(0,0)"
         :pagination="itemPagination(chunkItems.length)" 
         :emptyRows="emptyRows(0)"
@@ -22,13 +24,14 @@
       </div>
     </v-col>
     <v-col cols="4">
-      <DisplayInvoiceContoller :toPDF="toPDF"/>
+      <DisplayInvoiceContoller :nbrRows="nbrRows" :pagination="itemPagination()" :toEXCEL="toEXCEL" :toPDF="toPDF"/>
     </v-col>
   </v-row>
 </template>
 
 <script>
   import { useSupplierInvoice } from '@/stores/SupplierInvoice';
+  import { useMain } from '@/stores/Main';
   import SupplierInvoice from './DisplaySupplierInvoice.vue';
   import DisplayInvoiceContoller from './DisplayInvoiceContoller.vue';
   export default {
@@ -40,21 +43,12 @@
     },
     computed: {
       supplierInvoice: () => useSupplierInvoice(),
+      main: () => useMain(),
       items: function () {
-        return Array.from({ length: 32 }, () => (
-          {
-            date: "2025-10-01",
-            truck_id: 5,
-            tracking_numbers: ["100001","10002"],
-            stockable: {
-                stockable_id: 4,
-                stockable_type : "FishType"
-            },
-            total_weight: 200,
-            unit_price: 5,
-            total_price: 1000
-          }
-        ));
+        if (this.supplierInvoice.items.length) return this.supplierInvoice.items; return this.supplierInvoice.getItems;
+      },
+      nbrRows: function () {
+        return this.items.length;
       },
       chunkItems: function () {
         const result = [];
@@ -64,8 +58,15 @@
         return result;
       },
       checkChunkLatestItems: function () {
+        if(this.chunkItems.length === 0) return false;
         return this.chunkItems[this.chunkItems.length - 1].length > this.supplierInvoice.active_page_rows_nbr;
       },
+      total: function () { 
+        return {
+          price: this.main.formatDisplayNumber(this.items.reduce((acc, item) => acc + parseFloat(item.total_price), 0).toFixed(2)),
+          weight: this.main.formatDisplayNumber(this.items.reduce((acc, item) => acc + parseFloat(item.total_weight), 0).toFixed(2)),
+        }
+      }
     },
     methods:{
       emptyRows: function (items_length) {
@@ -78,7 +79,7 @@
         }
         return 0;
       },
-      itemPagination: function (index) {
+      itemPagination: function (index=1) {
         let length = this.chunkItems.length + (this.checkChunkLatestItems ? 1 : 0)
         return {
           allow: (length > 1),
@@ -91,6 +92,9 @@
       },
       toPDF: function () {
           this.is_show = !this.is_show;
+      },
+      toEXCEL: function () {
+          console.log("export to excel")
       }
     }
   }

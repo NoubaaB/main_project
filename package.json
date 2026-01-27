@@ -29,6 +29,7 @@
         "vue3-apexcharts": "^1.5.3"
     },
     "dependencies": {
+        "@cheprasov/qrcode": "^0.1.0",
         "@mdi/font": "7.4.47",
         "@popperjs/core": "^2.11.8",
         "@takuma-ru/vue-swipe-modal": "^5.0.0",

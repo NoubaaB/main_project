@@ -34,7 +34,7 @@
                         </v-col>
                     </v-row>
                     <v-row >
-                        <v-col style="margin-left : 1cm">
+                        <v-col class="ml-5">
                             <v-row no-gutters>
                                 <v-col class="text-black">
                                     <h3>
@@ -70,7 +70,11 @@
                     </v-row>
                     <v-row >
                         <v-col class="text-center text-light-blue-darken-4 d-flex ">
-                            <div class="bg-light-blue-lighten-2 sparkle" v-for="n in 13" :key="n" ></div>
+                            <div cols="1" class="text-center ml-3" v-if="supplierInvoice.allow_qr_code">
+                                <div class="corner-only" v-html="qr_code_generate">
+                                </div>
+                            </div>
+                            <div v-else class="bg-light-blue-lighten-2 sparkle" v-for="n in 13" :key="n" ></div>
                         </v-col>
                     </v-row>
                 </v-col>
@@ -80,7 +84,7 @@
         <!-- TITLE -->
         
         <div class="content-wrap">
-            <img class="invoice-body" src="/storage/images/invoice_body.png"/>
+            <img class="invoice-body" src="/storage/images/invoice_body.png" v-if="supplierInvoice.allow_bg_image"/>
             <!-- START: Invoice table -->
             <div class="invoice-table-wrap mt-0 pt-0">
                 <div class="table-scroll">
@@ -169,8 +173,8 @@
                                 <v-col class="bg-light-blue-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
                                     <div class="font-weight-bold text-subtitle-2 ">{{ $t("total_price") }} :</div>
                                 </v-col>
-                                <v-col class="bg-light-blue-lighten-5 rounded-te-lg numeric-font py-0 pl-0 pr-2">
-                                    <strong>234 385.20 {{ this.main.currency }}<small>(s)</small></strong>
+                                <v-col class="bg-light-blue-lighten-5 rounded-te-lg py-0 pl-0 pr-2">
+                                    <strong>{{total.price}} {{ this.main.currency }}<small>(s)</small></strong>
                                 </v-col>
                             </v-row>
                             <v-row>
@@ -182,8 +186,8 @@
                                 <v-col class="bg-light-blue-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
                                     <div class="font-weight-bold text-subtitle-2">{{ $t("total_weight") }} :</div>
                                 </v-col>
-                                <v-col class="bg-light-blue-lighten-5 rounded-be-lg numeric-font py-0 pl-0 pr-2 ">
-                                    <strong>111 798.00 Kg</strong>
+                                <v-col class="bg-light-blue-lighten-5 rounded-be-lg py-0 pl-0 pr-2 ">
+                                    <strong>{{total.weight}} Kg</strong>
                                 </v-col>
                             </v-row>
                         </v-col>
@@ -234,10 +238,13 @@
     import { useMain } from '@/stores/Main';
     import { useSupplierInvoice } from '@/stores/SupplierInvoice';
     import writtenNumber from 'written-number';
+    import { QRCodeSVG } from '@cheprasov/qrcode';
+
     export default {
         props:{
           items : Array,  
           pagination : Object,  
+          total : Object,  
           emptyRows : Number,  
           pageIndex : Number,  
           allow_summary : Boolean,  
@@ -289,16 +296,21 @@
             truck: () => useTruck(),
             main: () => useMain(),
             supplierInvoice: () => useSupplierInvoice(),
-            headers:function(){
-                return [
-                    { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
-                    { align : "center" , title: this.$t("registration_plate"), key: 'truck_id' , visible:true },
-                    { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
-                    { align : "center" , title: this.$t("stockable"), key: 'stockable' , visible:false },
-                    { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
-                    { align : "center" , title: this.$t("unit_price_currency",{currency:this.main.currency}), key: 'unit_price', visible: true },
-                    { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },                
-                ]
+            qr_code_generate: function () {
+                const qrSVG = new QRCodeSVG('0001', {
+                    level: 'H',
+                    padding: 0,
+                    fgColor: '#1c9ff8',
+                    image: {
+                        source: '/storage/images/invoice_body.png',
+                        width: '20%',
+                        height: '20%',
+                        x: 'center',
+                        y: 'center',
+                    },
+                });
+                const dataUrlWithSVGQRCode = qrSVG.toDataUrl();
+                return qrSVG.toString();
             },
             convertSumPriceToWord: function () {
                 let number = 234385.20;
@@ -323,9 +335,9 @@
                 .trim();
 
             },
-            // displayedHeaders: respects visibility and columnOrder (uses this.headers)
+            // displayedHeaders: respects visibility and columnOrder (uses this.supplierInvoice.getHeaders)
             displayedHeaders() {
-                const visible = (this.headers || []).filter(h => h.visible !== false);
+                const visible = (this.supplierInvoice.getHeaders || []).filter(h => h.visible !== false);
                 if (!this.columnOrder || this.columnOrder.length === 0) {
                 this.columnOrder = visible.map(h => h.key);
                 }
@@ -367,7 +379,7 @@
         },
         methods:{
             initColumns() {
-                const visibleKeys = (this.headers || []).filter(h => h.visible !== false).map(h => h.key);
+                const visibleKeys = (this.supplierInvoice.getHeaders || []).filter(h => h.visible !== false).map(h => h.key);
                 if (!this.columnOrder || this.columnOrder.length === 0) this.columnOrder = [...visibleKeys];
                 visibleKeys.forEach(k => { if (!this.columnWidths[k]) this.columnWidths[k] = this.defaultWidth; });
             },
@@ -477,7 +489,7 @@
 
             // utility
             resetColumnOrder() {
-                this.columnOrder = (this.headers || []).filter(h => h.visible !== false).map(h => h.key);
+                this.columnOrder = (this.supplierInvoice.getHeaders || []).filter(h => h.visible !== false).map(h => h.key);
             }
 
         }
@@ -623,6 +635,21 @@
     
     .numeric-font{
         font-family: 'Roboto Condensed' !important;
+    }
+
+    .corner-only {
+        --s: 15px; /* size of the corners */
+        border: 2px solid #1d83d1; 
+        position: absolute;
+        bottom: 0.5vh;
+        right: 3vh;
+        padding: 5px;
+        width: 4vw !important;
+        height: 4vw !important;
+        mask: 
+            conic-gradient(#000 0 0) content-box,
+            conic-gradient(at var(--s) var(--s),#0000 75%,#000 0) 
+            0 0/calc(100% - var(--s)) calc(100% - var(--s));
     }
 
 /* Table container */
