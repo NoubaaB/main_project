@@ -171,7 +171,7 @@
                         <v-col>
                             <v-row class="text-center">
                                 <v-col class="bg-light-blue-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
-                                    <div class="font-weight-bold text-subtitle-2 ">{{ $t("total_price") }} :</div>
+                                    <div class="font-weight-bold text-subtitle-2 capitalize-text">{{ $t("total_price") }} :</div>
                                 </v-col>
                                 <v-col class="bg-light-blue-lighten-5 rounded-te-lg py-0 pl-0 pr-2">
                                     <strong>{{total.price}} {{ this.main.currency }}<small>(s)</small></strong>
@@ -184,7 +184,7 @@
                             </v-row>
                             <v-row class="text-center">
                                 <v-col class="bg-light-blue-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
-                                    <div class="font-weight-bold text-subtitle-2">{{ $t("total_weight") }} :</div>
+                                    <div class="font-weight-bold text-subtitle-2 capitalize-text">{{ $t("total_weight") }} :</div>
                                 </v-col>
                                 <v-col class="bg-light-blue-lighten-5 rounded-be-lg py-0 pl-0 pr-2 ">
                                     <strong>{{total.weight}} Kg</strong>
@@ -650,6 +650,10 @@
             conic-gradient(#000 0 0) content-box,
             conic-gradient(at var(--s) var(--s),#0000 75%,#000 0) 
             0 0/calc(100% - var(--s)) calc(100% - var(--s));
+    }
+
+    .capitalize-text {
+    text-transform: capitalize;
     }
 
 /* Table container */
