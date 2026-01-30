@@ -208,7 +208,7 @@
               <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_weight">
                 <v-text-field
                   v-model="charge_detail.total_weight_bill"
-                  :label="$t('total_weight_bill') + ' (Kg)'"
+                  :label="$t('total_weight_invoice') + ' (Kg)'"
                   type="number"
                   min="0"
                   density="compact"
@@ -399,7 +399,7 @@
                     {{ _main.formatDisplayNumber(item.total_weight) }}
                   </div>
                 </template>
-                <template v-slot:[`item.total_weight_bill`]="{ item }">
+                <template v-slot:[`item.total_weight_invoice`]="{ item }">
                   <div class="font-weight-medium">
                     {{ _main.formatDisplayNumber(item.total_weight_bill) }}
                   </div>
@@ -574,7 +574,7 @@
           return [
             { title: this.$t("type_article"), value: 'stockable_id', removable: true ,visible:true },
             { title: this.$t("weight_(KG)"), value: 'total_weight', removable: true, visible: this.ability_warehouse_category_operation.allow_weight },
-            { title: this.$t("weight_bill_(KG)"), value: 'total_weight_bill', removable: true , visible: this.ability_warehouse_category_operation.allow_weight },
+            { title: this.$t("weight_invoice_(KG)"), value: 'total_weight_bill', removable: true , visible: this.ability_warehouse_category_operation.allow_weight },
             { title: this.$t("pu_(DH)"), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
             { title: this.$t("total_price_(DH)"), value: 'total_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
             { title: this.$t("package_type"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },

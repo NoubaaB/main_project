@@ -52,6 +52,8 @@
 
     <DataTable
      :relations="relations"
+     :show_expand="true"
+     :is_neasted="true"
      :advanced_relations="advanced_relations"
      :filters="filters"
      :advanced_filters="advanced_filters"
@@ -67,6 +69,8 @@
      :headers="headers"
      :detail_headers="detail_headers"
      :fetchData="fetchCharge"
+     :_invoices_print_selected="_invoices_print_selected"
+     :_exportToExcel="_exportToExcel"
      :PostInvoice="PostInvoice"
      @sync_items="update_filtred_items_to_source"
      >
@@ -141,6 +145,19 @@
           </v-chip>
         </template>
 
+      <template v-slot:expanded-row="{internalItem, item,isExpanded }" v-if="detail_headers">
+        <tr v-if="isExpanded(internalItem)">
+          <td :colspan="8" class="py-2 row_color">
+            <v-sheet class="table_size" rounded="lg" border>
+              <NestedDataTable
+                :detail_headers="detail_headers"
+                :item="item"
+              />
+            </v-sheet>
+          </td>
+        </tr>
+      </template>
+
         <template v-slot:[`item.total_weight`]="{ item }">
           {{ main.formatDisplayNumber(item.total_weight) }}
         </template>
@@ -150,15 +167,32 @@
         </template>
 
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn color="warning" class="mx-1" icon="mdi-pencil" size="x-small" variant="tonal" @click="editItem(item)"
-          v-tooltip:top="$t('edit_item')"
-          ></v-btn>
-          <v-btn color="success" class="mx-1" icon="mdi-eye" size="x-small" variant="tonal" @click="editItem(item)"
-          v-tooltip:top="$t('view_item')"
-          ></v-btn>
-          <v-btn color="red" class="mx-1" icon="mdi-delete" size="x-small" variant="tonal" @click="editItem(item)"
-          v-tooltip:top="$t('delete_item')"
-          ></v-btn>
+          <v-menu>
+            <template v-slot:activator="{ props }">
+              <v-btn
+                icon="mdi-dots-vertical"
+                size="x-small"
+                variant="outlined"
+                color="info"
+                v-bind="props"
+              ></v-btn>
+
+            </template>
+
+            <v-list slim density="compact" lines>
+              <v-list-item  prepend-icon="mdi-pencil" @click="editItem(item)">
+                <v-list-item-title color="warning" size="x-small" variant="tonal" v-tooltip:top="$t('edit_item')">{{$t('edit_item')}}</v-list-item-title>
+              </v-list-item>
+              <v-divider></v-divider>
+              <v-list-item  prepend-icon="mdi-eye" @click="editItem(item)">
+                <v-list-item-title color="success" size="x-small" variant="tonal" v-tooltip:top="$t('view_item')">{{$t('view_item')}}</v-list-item-title>
+              </v-list-item>
+              <v-divider></v-divider>
+              <v-list-item prepend-icon="mdi-delete" @click="editItem(item)">
+                <v-list-item-title color="red" size="x-small" variant="tonal" v-tooltip:top="$t('delete_item')">{{$t('delete_item')}}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
         </template>
 
         <template v-slot:[`item.allow_invoice`]="{ item }">
@@ -202,7 +236,10 @@
 </template>
 
 <script>
-  import DataTable from '../../schema/plugins/DataTable.vue';
+  import DataTable from '@/components/schema/plugins/DataTable.vue';
+  import NestedDataTable from "@/components/schema/plugins/NestedDataTable.vue";
+  import * as XLSX from 'xlsx';
+
   import FixedChartWarehouseCategoryOpration from './FixedChart/WarehouseCategoryOpration.vue';
   import CustomChartWarehouseCategoryOpration from './CustomChart/WarehouseCategoryOpration.vue';
 
@@ -218,6 +255,7 @@
   export default {
       components: {
         DataTable,
+        NestedDataTable,
         FixedChartWarehouseCategoryOpration,
         CustomChartWarehouseCategoryOpration
       },
@@ -340,6 +378,61 @@
     methods:{
       update_filtred_items_to_source: function (items) {
         this.charge.filtred_charge_fetch_items = items;
+      },
+      _invoices_print_selected: function (that) {
+        return that.items.filter(i => that.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id != null).map(i => i.id);
+      },
+      _exportToExcel: function (that) {
+        if (!that.items_selected || !that.items_selected_length) {
+          console.warn('No rows selected to export')
+          return
+        }
+
+        const selectedRows = that.processedItems.filter(i => that.items_selected.includes(i.id))
+        const cols = that.orderedVisibleHeaders.filter(
+          h => h.key !== 'data-table-select' && h.key !== 'data-table-expand'
+        )
+        const headerTitles = cols.map(h => h.title ?? h.key)
+
+        const dataAoA = [
+          headerTitles,
+          ...selectedRows.map(row => cols.map(h => {
+            if (h.key === 'date') {
+              return row[h.key]
+            }
+            const v = that.resolveDisplayValue(row, h.key)
+            if (v === '') return ''
+            const num = parseFloat(v)
+            if (!Number.isNaN(num) && String(v).trim() !== '') return num
+            return String(v)
+          }))
+        ]
+
+        const ws = XLSX.utils.aoa_to_sheet(dataAoA)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Export')
+
+        const dateColIndex = cols.findIndex(h => h.key === 'date')
+        if (dateColIndex !== -1) {
+          for (let r = 1; r <= selectedRows.length; r++) {
+            const cellRef = XLSX.utils.encode_cell({ c: dateColIndex, r })
+            const cell = ws[cellRef]
+            if (!cell) continue
+            if (cell.v instanceof Date) {
+              cell.t = 'd'
+              cell.z = that.main.date_format
+            } else {
+              const m = moment(cell.v)
+              if (cell.v && typeof cell.v === 'string' && m.isValid()) {
+                cell.t = 'd'
+                cell.z = that.main.date_format
+              }
+            }
+          } 
+        }
+
+        const filename = `export_charge_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
+        XLSX.writeFile(wb, filename)
       },
       editItem: function (item) {
         console.log("item",item)

@@ -11,10 +11,27 @@ const baseRecord = {
     stockable: "MAQ SS",
     stockable_type: "FishType",
     total_weight: 200,
-    unit_price: 5,
+    unit_price: 5.2,
     total_price: 1000
 };
 
+/*
+invoice : {
+    id: 1,
+    date: "2025-02-05",
+    supplier_ids: [8,5],
+    itemes : [{
+        date: "2025-10-01",
+        truck_id: 5,
+        tracking_numbers: ["100001", "10002"],
+        stockable: "MAQ SS",
+        stockable_type: "FishType",
+        total_weight: 200,
+        unit_price: 5,
+        total_price: 1000
+    }]
+}
+*/
 /* ============================================
    Value pools (used for random generation)
    ============================================ */
@@ -25,7 +42,7 @@ const pools = {
     stockable: ["MAQ SS", "SARDINE", "ANCHOVY"],
     stockable_type: ["FishType"],
     total_weight: [100, 150, 200, 250],
-    unit_price: [4, 5, 6]
+    unit_price: [4.4, 5.3, 6.05,7.1]
 };
 
 /* ============================================

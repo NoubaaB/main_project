@@ -15,7 +15,7 @@
       :items="sortedFilteredItems"
       item-key="id"
       show-select
-      show-expand
+      :show-expand="show_expand"
       v-model:expanded="items_expanded" 
       density="compact"
       fixed-header
@@ -47,15 +47,16 @@
               variant="tonal"
               small
               :disabled="items_selected_length === 0 || loading"
-              class="rounded-s-xl"
+              :class="`${is_neasted ? 'rounded-s-xl' : 'rounded-xl'}`"
               :title="$t('export_total_items_to_excel')"
               prepend-icon="mdi-table"
               @click="exportToExcel"
             >
              ({{ items_selected_length }})
             </v-btn>
-            <v-divider color="black" class="px-1" vertical></v-divider>
+            <v-divider v-if="is_neasted" color="black" class="px-1" vertical></v-divider>
             <v-btn
+              v-if="is_neasted"
               color="teal"
               variant="tonal"
               small
@@ -84,7 +85,7 @@
             </v-btn>
           </v-col>
 
-          <v-col class="text-center" cols="2">
+          <v-col class="text-center" cols="2" v-if="invoice">
             <DatePicker
               :is-dark="main.is_dark"
               :min-date="min_date"
@@ -111,7 +112,7 @@
             </DatePicker>
           </v-col>
 
-          <v-col class="text-center" cols="2">
+          <v-col class="text-center" cols="2" v-if="invoice">
             <v-autocomplete
               v-model="invoice.type_invoice"
               :items="type_invoice_items"
@@ -159,7 +160,7 @@
             </v-autocomplete>
           </v-col>
 
-          <v-col>
+          <v-col v-if="advanced_relations">
             <v-autocomplete
               v-model="invoice_filters"
               :items="invoice_filters_items"
@@ -214,7 +215,7 @@
         </v-row>
 
         <v-row class="mx-1">
-          <v-col cols="6" class="border border-dotted border-md rounded-xl mb-3">
+          <v-col cols="6" class="border border-dotted border-md rounded-xl mb-3" v-if="advanced_relations">
             <v-row>
               <v-col cols="12" class="text-center ">
                 <v-btn @click="advanced_filter_btn = !advanced_filter_btn" :prepend-icon="advanced_filter_btn ? 'mdi-chevron-up' : 'mdi-chevron-down'" block rounded color="info" density="compact">
@@ -278,7 +279,7 @@
 
           <div cols="1" class="mx-1"></div>
 
-          <v-col cols="5.5" class="border border-dotted border-md rounded-xl mb-3" >
+          <v-col cols="5.5" class="border border-dotted border-md rounded-xl mb-3" v-if="invoice" >
             <v-row>
               <v-col cols="12" class="text-center ">
                 <v-btn @click="setup_invoice_btn = !setup_invoice_btn" :disabled="invoices_selected_length == 0" :prepend-icon="setup_invoice_btn ? 'mdi-chevron-up' : 'mdi-chevron-down'" block rounded color="info" density="compact">
@@ -407,16 +408,6 @@
         <v-progress-linear color="info" indeterminate></v-progress-linear>
       </template>
 
-      <!-- ROW SELECT -->
-      <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
-        <v-checkbox-btn
-          v-if="internalItem.raw.allow_invoice"
-          :model-value="isSelected(internalItem)"
-          color="info"
-          @update:model-value="toggleSelect(internalItem)"
-        />
-      </template>
-
       <template v-slot:no-data>
         <div class="text-orange">
           <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2" />
@@ -424,7 +415,7 @@
         </div>
       </template>
 
-      <template v-slot:expanded-row="{internalItem, item,isExpanded }">
+      <template v-slot:expanded-row="{internalItem, item,isExpanded }" >
         <tr v-if="isExpanded(internalItem)">
           <td :colspan="8" class="py-2 row_color">
             <v-sheet class="table_size" rounded="lg" border>
@@ -638,9 +629,13 @@ export default {
     sigma: Array,
     invoice_prop: String,
     fetchData: Function,
+    show_expand: Boolean,
+    is_neasted: Boolean,
     PostInvoice: Function,
+    _invoices_print_selected: Function,
+    _exportToExcel: Function,
     headers: { type: Array, required: true },
-    detail_headers: { type: Array, required: true }
+    detail_headers: { type: Array }
   },
   components: {
     NestedDataTable
@@ -714,13 +709,16 @@ export default {
       return this.items_selected.length;
     },
     items_selected_details_length : function () {
-      return this.items.reduce((a, i) => a + (this.items_selected.includes(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
+      if (this.is_neasted) {
+        return this.items.reduce((a, i) => a + (this.items_selected.includes(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
+      }
+      return 0;
     },
     invoices_selected: function () {
       return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id == null).map(i => i.id);
     },
     invoices_print_selected: function () {
-      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id != null).map(i => i.id);
+      return this._invoices_print_selected(this)
     },
     min_date: function () {
       let date = _(this.invoices_selected.flatMap(i => this.items.find(item=> item.id == i))).sortBy("date").first()?.date;
@@ -750,7 +748,7 @@ export default {
         },
         {
           name: this.$t('final_invoice'),
-          value: "(allow_invoice == 1 and invoice_id == 1)",
+          value: "(allow_invoice == 1 and invoice_id >= 1)",
           color:"success",
           icon:"mdi-printer-check"
         },
@@ -1495,56 +1493,7 @@ export default {
     },
 
     exportToExcel () {
-      if (!this.items_selected || !this.items_selected_length) {
-        console.warn('No rows selected to export')
-        return
-      }
-
-      const selectedRows = this.processedItems.filter(i => this.items_selected.includes(i.id))
-      const cols = this.orderedVisibleHeaders.filter(
-        h => h.key !== 'data-table-select' && h.key !== 'data-table-expand'
-      )
-      const headerTitles = cols.map(h => h.title ?? h.key)
-
-      const dataAoA = [
-        headerTitles,
-        ...selectedRows.map(row => cols.map(h => {
-          if (h.key === 'date') {
-            return row[h.key]
-          }
-          const v = this.resolveDisplayValue(row, h.key)
-          if (v === '') return ''
-          const num = parseFloat(v)
-          if (!Number.isNaN(num) && String(v).trim() !== '') return num
-          return String(v)
-        }))
-      ]
-
-      const ws = XLSX.utils.aoa_to_sheet(dataAoA)
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Export')
-
-      const dateColIndex = cols.findIndex(h => h.key === 'date')
-      if (dateColIndex !== -1) {
-        for (let r = 1; r <= selectedRows.length; r++) {
-          const cellRef = XLSX.utils.encode_cell({ c: dateColIndex, r })
-          const cell = ws[cellRef]
-          if (!cell) continue
-          if (cell.v instanceof Date) {
-            cell.t = 'd'
-            cell.z = this.main.date_format
-          } else {
-            const m = moment(cell.v)
-            if (cell.v && typeof cell.v === 'string' && m.isValid()) {
-              cell.t = 'd'
-              cell.z = this.main.date_format
-            }
-          }
-        } 
-      }
-
-      const filename = `export_charge_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
-      XLSX.writeFile(wb, filename)
+      this._exportToExcel(this)
     },
     submitToinvoice: function () {
       if (!this.invoices_selected || !this.invoices_selected_length) {
@@ -1836,3 +1785,4 @@ th {
   background-color: rgba(49, 164, 251, 0.081);
 }
 </style>
+<!-- 2025-01-28 -->

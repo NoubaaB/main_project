@@ -82,6 +82,12 @@ const routes = [
                                 name: "view_supplier_invoice",
                                 component: () => import("@/components/SupplierInvoice/ViewSupplierInvoice/index.vue")
                             },
+                            {
+                                path: "list_supplier_invoice",
+                                name: "list_supplier_invoice",
+                                keeplive: true,
+                                component: () => import("@/components/SupplierInvoice/ListSupplierInvoice/index.vue")
+                            },
                         ]
                     },
                 ]

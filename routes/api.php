@@ -32,8 +32,10 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
         Route::post("charge", [ChargeController::class, "charge"]);
+        Route::get("charges/get_charges", [ChargeController::class, "get_charges"]);
         Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
-        Route::get("get_charges", [ChargeController::class, "get_charges"]);
+        Route::get("supplier_invoice", [SupplierInvoiceController::class, "index"]);
+        Route::get("supplier_invoice/get_supplier_invoice", [SupplierInvoiceController::class, "get_supplier_invoice"]);
     #endregion
     });
 #endregion

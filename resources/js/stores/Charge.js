@@ -14,7 +14,7 @@ import i18n  from '@/plugins/i18n';
 export const useCharge = defineStore("charge", {
     state: () => {
         return {
-            api_url: "/api/get_charges",
+            api_url: "/api/charges/get_charges",
             loading:false,
             tracking_numbers:[],
             showAdditionalInfo: false,
@@ -165,7 +165,7 @@ export const useCharge = defineStore("charge", {
                 action_command_icon_color: "success",
                 action_command_icon: "mdi-printer-check",
                 action_command_text: i18n.global.t('supplier_invoice_created', {
-                                    tracking_numbers: this.invoice.tracking_numbers.toString()
+                                        tracking_numbers: response.data.supplier_invoice.tracking_numbers.toString()
                                     })
             };
             this.loading = false;

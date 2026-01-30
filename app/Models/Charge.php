@@ -40,6 +40,7 @@ class Charge extends Model
         'total_weight' => 'float',
         'total_package_count' => 'float',
     ];
+
     protected static function boot()
     {
         parent::boot();

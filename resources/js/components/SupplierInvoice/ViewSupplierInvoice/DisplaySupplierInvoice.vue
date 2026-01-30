@@ -313,8 +313,7 @@
                 return qrSVG.toString();
             },
             convertSumPriceToWord: function () {
-                let number = 234385.20;
-
+                let number = this.total._price;
                 // compute using total Subunit to avoid subunit === 100 edge-case
                 const totalSubunit = Math.round(Math.abs(number) * 100);
                 const unit = Math.floor(totalSubunit / 100);
@@ -653,7 +652,8 @@
     }
 
     .capitalize-text {
-    text-transform: capitalize;
+        text-transform: capitalize !important;
+        font-family: sans-serif !important;
     }
 
 /* Table container */

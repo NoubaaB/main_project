@@ -6,7 +6,7 @@
                         <v-btn v-print="printInvoice" rounded block @click="toPDF" prepend-icon="mdi-printer" color="red">{{$t("print")}}</v-btn>
                     </v-col>
                     <v-col>
-                        <v-btn v-print="printInvoice" rounded block @click="toEXCEL" prepend-icon="mdi-microsoft-excel" color="green">{{$t("export_to_excel")}}</v-btn>
+                        <v-btn rounded block @click="toEXCEL" prepend-icon="mdi-microsoft-excel" color="green">{{$t("export_to_excel")}}</v-btn>
                     </v-col>
                 </v-row>
                 <v-divider opacity="0.2" variant="dashed" thickness="2" color="info" class="my-5"></v-divider>
@@ -165,9 +165,11 @@ export default {
         data() {
             return {
                 printInvoice : {
-                id: "invoice",
-                popTitle: 'Supplier Invoice',
-                closeCallback : (vue) => {
+                    id: "invoice",
+                    priview: true,
+                    previewTitle: 'print Title',
+                    popTitle: 'good print',
+                    closeCallback : (vue) => {
                         this.toPDF()
                         console.log('closeCallback')
                     },

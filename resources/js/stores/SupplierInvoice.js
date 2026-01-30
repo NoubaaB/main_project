@@ -21,6 +21,10 @@ let headers = [
 export const useSupplierInvoice = defineStore("supplierInvoice", {
     state: () => {
         return {
+            loading:false,
+            api_url: "/api/supplier_invoice/get_supplier_invoice",
+            showAdditionalInfo: false,
+            main: main,
             list: [],
             model: {
                 name: "",
@@ -33,7 +37,11 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             allow_bg_image:true,
             use_simple_invoice: false,
             headers: headers,
-            items: []
+            items: [],
+            supplier_invoice: {},
+            supplier_invoices: [],
+            supplier_invoice_fetch_items: [],
+            filtred_supplier_invoice_fetch_items: [],
         };
     },
     actions: {
@@ -56,7 +64,13 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
         },
         getName: function (id) {
             return this.list.find(e => e.id == id).name;
-        }
+        },
+        fetchSupplierInvoice: async function (date_start, date_end) {
+            this.loading = true;
+            let response = await this.main.fetchData(date_start, date_end, this.api_url)
+            this.supplier_invoice_fetch_items = response.supplier_invoices;
+            this.loading = false;
+        },
     },
     getters: {
         getList: state => state.list,

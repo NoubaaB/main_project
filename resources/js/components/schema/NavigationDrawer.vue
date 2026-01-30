@@ -131,6 +131,9 @@
                 ['mdi-sticker-plus-outline', this.$t("add_charge"),"add_charge"],
                 ['mdi-view-list-outline', this.$t("list_charge"),"list_charge"],
               ]],
+              ['mdi-file-document-check', this.$t('invoics'),[
+                ['mdi-file-document-multiple', this.$t("list_supplier_invoice"),"list_supplier_invoice"],
+              ]],
               ['mdi-pencil', this.$t('commands'),[
                 ['mdi-pencil-plus', this.$t("main"),"error404"],
                 ['mdi-pencil-plus', this.$t("create_command"),"error404"],

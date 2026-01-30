@@ -17,7 +17,10 @@ return new class extends Migration
             $table->enum("type_invoice",["local","export"])->nullable();
             $table->json("tracking_numbers")->nullable();
             $table->json("supplier_ids")->nullable(); //type array
-            
+            $table->decimal("total_price", 15, 2)->default(0.00);
+            $table->decimal("total_weight", 15, 2)->default(0.00);
+            $table->integer("print_counter")->default(0);
+
             $table->timestamps();
             $table->softDeletes();
         });
