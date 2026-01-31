@@ -1,6 +1,6 @@
 <template>
     <v-container 
-    class="invoice-wrap pa-0"
+    class="invoice-wrap pa-0 _invoice_page"
     :class="{'border-dashed border-md border-info':is_show}"
     >
         <div class="header-wrap">
@@ -38,7 +38,7 @@
                             <v-row no-gutters>
                                 <v-col class="text-black">
                                     <h3>
-                                        {{ $t('company') }} : IGLO FISH
+                                        {{ $t('company') }} : {{supplier_invoice_detail.supplier_ids}}
                                     </h3>
                                 </v-col>
                             </v-row>
@@ -57,14 +57,14 @@
                         <v-col>
                             <h4>
                                 {{$t('invoice_n°') }}:
-                                 2500047
+                                 {{ supplier_invoice_detail.tracking_numbers }}
                             </h4>
                         </v-col>
                             <v-divider vertical class="mx-0 px-0 my-1" color="light-blue-lighten-1" thickness="2" opacity="1"></v-divider>
                         <v-col>
                             <h4>
                                 {{ $t("date") }} :
-                                 03/08/2025
+                                 {{ main.formateDate(supplier_invoice_detail.date) }}
                             </h4>
                         </v-col>
                     </v-row>
@@ -243,12 +243,14 @@
     export default {
         props:{
           items : Array,  
+          supplier_invoice_detail : Object,  
           pagination : Object,  
           total : Object,  
           emptyRows : Number,  
           pageIndex : Number,  
           allow_summary : Boolean,  
           is_show : Boolean,  
+          add_pages : Function,  
         },
         data() {
             return {
