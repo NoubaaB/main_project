@@ -1,9 +1,8 @@
 <template>
-  <div >
+  <div>
     <display-supplier-invoice 
     v-for="(item, index) in chunkItems"
     :key="index"
-    :is_show="is_show"
     :items="item"
     :supplier_invoice_detail="supplier_invoice_detail"
     :total="total"
@@ -13,7 +12,6 @@
       />
     <display-supplier-invoice 
     v-if="checkChunkLatestItems"
-    :is_show="is_show"
     :items="[]"
     :supplier_invoice_detail="supplier_invoice_detail"
     :total="total"
@@ -32,11 +30,6 @@
     components: { DisplaySupplierInvoice },
     props:{
       supplier_invoice_data:Object
-    },
-    data() {
-      return {
-        is_show: true,
-      };
     },
     computed: {
       supplierInvoice: () => useSupplierInvoice(),

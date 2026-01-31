@@ -248,8 +248,7 @@
           total : Object,  
           emptyRows : Number,  
           pageIndex : Number,  
-          allow_summary : Boolean,  
-          is_show : Boolean,  
+          allow_summary : Boolean,
           add_pages : Function,  
         },
         data() {
@@ -298,6 +297,9 @@
             truck: () => useTruck(),
             main: () => useMain(),
             supplierInvoice: () => useSupplierInvoice(),
+            is_show: function () {
+                return this.supplierInvoice.is_show;
+            },
             qr_code_generate: function () {
                 const qrSVG = new QRCodeSVG('0001', {
                     level: 'H',
@@ -720,5 +722,20 @@ table.invoice-table tbody tr td:empty { height: 26px; }
   .invoice-table { font-size: 11px; }
   table.invoice-table thead th, table.invoice-table tbody td { padding: 8px 10px; }
 }
-
+.rounded-s-xl{
+    border-top-left-radius: 24px !important;
+    border-bottom-left-radius: 24px !important;
+}
+.rounded-ts-lg {
+    border-top-left-radius: 8px !important;
+}
+.rounded-te-lg {
+    border-top-right-radius: 8px !important;
+}
+.rounded-bs-lg {
+    border-bottom-left-radius: 8px !important;
+}
+.rounded-bs-lg[data-v-043dbba6] {
+    border-bottom-left-radius: 8px !important;
+}
 </style>

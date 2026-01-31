@@ -167,9 +167,6 @@ export default {
             return {
                 printInvoice : {
                     id: "invoice",
-                    priview: true,
-                    previewTitle: 'print Title',
-                    popTitle: 'good print',
                     closeCallback : (vue) => {
                         this.toPDF()
                         console.log('closeCallback')
@@ -206,7 +203,7 @@ export default {
         },
         methods:{
             toPDF: function () {
-                this.is_show = !this.is_show;
+                this.supplierInvoice.is_show = !this.supplierInvoice.is_show;
             },
             toEXCEL: function () {
                 // defensive: ensure supplier_invoice is an array

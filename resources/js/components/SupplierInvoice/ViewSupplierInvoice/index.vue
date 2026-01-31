@@ -30,7 +30,7 @@
     }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss" scoped >
   .invoice-width{
     width : var(--invoice-width) !important;
     margin: 0px;

@@ -77,13 +77,13 @@ const CHARGE_CATEGORIES = ["Emballage", "Transport", "Manutention", "Autre"];
 export function generateRandomData(count = 5, opts = {}) {
     const {
         supplierNames = DEFAULT_SUPPLIERS,
-        suppliersPerRecordMax = 4,
+        suppliersPerRecordMax = 2,
         itemMin = 1,
         itemMax = 100,
         weightRange = [10, 2000],
         unitPriceRange = [2, 20],
         dateRange = [2024, 2026],
-        parentTracking = { min: 2, max: 3, length: 4, minNum: 1, maxNum: 9999 },
+        parentTracking = { min: 1, max: 2, length: 4, minNum: 1, maxNum: 9999 },
         itemTracking = { min: 1, max: 4, length: 6, minNum: 10000, maxNum: 999999 }
     } = opts;
 
