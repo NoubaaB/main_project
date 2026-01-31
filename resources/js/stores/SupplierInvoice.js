@@ -76,7 +76,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
         getList: state => state.list,
         getMinList: state => state.list.map(e => { return { id: e.id, name: e.name } }),
         invoice_headers: (state) => { 
-            return state.g_items.length > 0 ? [...state.headers, state.grouped_headers] : state.headers;
+            return state.g_items.length > 0 ? [...headers, state.grouped_headers] : headers;
         },
         getHeaders: (state) => {
             return state.headers
