@@ -1,5 +1,5 @@
 <template>
-  <div id="invoice" class="invoice-width">
+  <div >
     <display-supplier-invoice 
     v-for="(item, index) in chunkItems"
     :key="index"
@@ -29,7 +29,7 @@
   import { useMain } from '@/stores/Main';
   import DisplaySupplierInvoice from './DisplaySupplierInvoice.vue';
   export default {
-    components: { DisplaySupplierInvoice  },
+    components: { DisplaySupplierInvoice },
     props:{
       supplier_invoice_data:Object
     },
@@ -37,9 +37,6 @@
       return {
         is_show: true,
       };
-    },
-    mounted: function () {
-      let nbr = (this.checkChunkLatestItems ? 1 : 0) + this.chunkItems.length;
     },
     computed: {
       supplierInvoice: () => useSupplierInvoice(),
@@ -101,9 +98,3 @@
     }
   }
 </script>
-<style scoped>
-  .invoice-width{
-    width : var(--invoice-width)!important
-  }
-  
-</style>

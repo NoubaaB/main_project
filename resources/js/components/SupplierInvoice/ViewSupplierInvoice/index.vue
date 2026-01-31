@@ -1,11 +1,13 @@
 <template>
   <v-row>
     <v-col>
-      <SupplierInvoice 
-      v-for="supplier_invoice in supplier_invoices" 
-      :key="supplier_invoice.id" 
-      :supplier_invoice_data="supplier_invoice" 
-      />
+      <div id="invoice" class="invoice-width">
+        <SupplierInvoice 
+        v-for="supplier_invoice in supplier_invoices" 
+        :key="supplier_invoice.id" 
+        :supplier_invoice_data="supplier_invoice" 
+        />
+      </div>
     </v-col>
     <v-col cols="4">
       <SupplierInvoiceContoller />
@@ -19,9 +21,6 @@
   import SupplierInvoiceContoller from './SupplierInvoiceContoller.vue';
   export default {
       components: { SupplierInvoice , SupplierInvoiceContoller },
-      mounted() {
-        console.log('Mounted ViewSupplierInvoice',this.supplierInvoice.getItems);
-      },
       computed: {
         supplierInvoice: () => useSupplierInvoice(),
         supplier_invoices: function () {
@@ -32,5 +31,9 @@
 </script>
 
 <style lang="scss" scoped>
-
+  .invoice-width{
+    width : var(--invoice-width) !important;
+    margin: 0px;
+    padding: 0px;
+  }
 </style>
