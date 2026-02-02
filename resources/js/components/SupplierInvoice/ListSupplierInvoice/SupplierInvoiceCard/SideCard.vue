@@ -1,6 +1,6 @@
 <template>
     <div>
-
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Eius, reprehenderit!
     </div>
 </template>
 

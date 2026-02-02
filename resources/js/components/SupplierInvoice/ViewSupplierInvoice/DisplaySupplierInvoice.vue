@@ -644,11 +644,11 @@
         --s: 15px; /* size of the corners */
         border: 2px solid #1d83d1; 
         position: absolute;
-        bottom: 0.5vh;
-        right: 3vh;
+        bottom: 3px;
+        right: 20px;
         padding: 5px;
-        width: 4vw !important;
-        height: 4vw !important;
+        width: 70px !important;
+        height: 70px !important;
         mask: 
             conic-gradient(#000 0 0) content-box,
             conic-gradient(at var(--s) var(--s),#0000 75%,#000 0) 
