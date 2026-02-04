@@ -19,7 +19,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
     state: () => {
         return {
             loading:false,
-            api_url: "/api/supplier_invoice/get_supplier_invoice",
+            api_url: "/api/supplier_invoice",
             nbr_pages: 0,
             is_show: true,
             showAdditionalInfo: false,

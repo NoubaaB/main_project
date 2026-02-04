@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\Charge;
 use Illuminate\Http\Request;
 use App\Models\SupplierInvoice;
@@ -14,7 +15,13 @@ class SupplierInvoiceController extends Controller
      */
     public function index()
     {
-        //
+        $date_start = request()->query('date_start');
+        $date_end = request()->query('date_end');
+        $supplier_invoices = SupplierInvoice::whereBetween('date', [$date_start, $date_end])
+            ->with(['charges'])
+            ->orderBy("date")
+            ->get();
+        return response()->json(["supplier_invoices" => $supplier_invoices], 200);
     }
 
     /**
@@ -99,13 +106,41 @@ class SupplierInvoiceController extends Controller
         //
     }
 
-    function get_supplier_invoice() {
-        $date_start = request()->query('date_start');
-        $date_end = request()->query('date_end');
-        $supplier_invoices = SupplierInvoice::whereBetween('date', [$date_start, $date_end])
-            ->with(['charges'])
-            ->orderBy("date")
+    public function supplierInvoicesMonthly(Request $request)
+    {
+        $requestedYear = (int) $request->query('year', now()->year);
+        $metrice = $request->query('metrice');
+        $previousYear = $requestedYear - 1;
+
+        // Aggregate sums grouped by year + month
+        $rows = DB::table('supplier_invoices')
+            ->whereNotNull('date')
+            ->whereIn(DB::raw('YEAR(date)'), [$requestedYear, $previousYear])
+            ->selectRaw("YEAR(date) as year, MONTH(date) as month, SUM($metrice) as total")
+            ->groupBy('year', 'month')
             ->get();
-        return response()->json(["supplier_invoices" => $supplier_invoices], 200);
+
+        // initialize arrays with zeros for 12 months
+        $currentYearTotals = array_fill(0, 12, 0.00);
+        $previousYearTotals = array_fill(0, 12, 0.00);
+
+        foreach ($rows as $r) {
+            $monthIndex = ((int) $r->month) - 1;
+            $total = (float) $r->total;
+            if ((int) $r->year === $requestedYear) {
+                $currentYearTotals[$monthIndex] = round($total, 2);
+            } elseif ((int) $r->year === $previousYear) {
+                $previousYearTotals[$monthIndex] = round($total, 2);
+            }
+        }
+
+        return response()->json([
+            'currentYear' => $currentYearTotals,
+            'previousYear' => $previousYearTotals,
+            'years' => [
+                'current' => $requestedYear,
+                'previous' => $previousYear,
+            ],
+        ]);
     }
 }
