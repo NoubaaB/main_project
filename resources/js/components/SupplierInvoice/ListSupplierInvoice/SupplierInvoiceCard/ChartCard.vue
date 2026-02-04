@@ -65,7 +65,8 @@ export default {
   },
   data() {
     const currentYear = new Date().getFullYear();
-    const yearOptions = [...Array(6).keys()].map(i => currentYear-5 + i);
+    const length = new Date().getFullYear() - 2019;
+    const yearOptions = [...Array(length).keys()].map(i => currentYear-length+1 + i);
     return {
       selectedYear: currentYear,
       yearOptions: yearOptions,
@@ -73,7 +74,7 @@ export default {
       series: [],
       chartReady: false,
       selectMetrice: null,
-      formatter_metrice: null,
+      formatter_metrice: {},
     };
   },
   mounted() {
@@ -96,60 +97,47 @@ export default {
     },
     chartOptions: function () {
       return {
-        chart: {
-          background: 'transparent',
-          type: 'bar',
-          toolbar: { show: false },
-          animations: { enabled: true },
-        },
+        chart: { type: 'bar', toolbar: { show: false }, animations: { enabled: true } , background : "transparent" },
         theme: {
             mode: this.main.mode,
         },
         plotOptions: {
-          bar: {
-            horizontal: false,
-            columnWidth: '55%',
-            borderRadius: 5,
-            borderRadiusApplication: 'end'
+          bar: { horizontal: false, columnWidth: '40%', borderRadius: 6 }
+        },
+        dataLabels: { enabled: false },
+        stroke: { width: [0, 0, 3], curve: 'smooth' },
+        xaxis: {categories: this.months,  labels: { rotate: -15, style: { fontSize: '12px' } } },
+        yaxis: [
+          {
+            title: { text: `${this.formatter_metrice.text} (${this.formatter_metrice.formatter})` },
+            labels: {
+              formatter:  (val) => { return Number(val).toLocaleString() + ` ${this.formatter_metrice.formatter}`; }
+            }
           },
-        },
-        dataLabels: {
-          enabled: false,
-        },
-        stroke: {
-          show: true,
-          width: 1,
-        },
-        xaxis: {
-          categories: this.months,
-          labels: {
-            rotate: -15,
-            style: { fontSize: '12px' },
-          },
-        },
-        yaxis: {
-          title: { text: this.formatter_metrice },
-          labels: {
-            formatter: (val) => {
-              // format with thousand separators
-              return Number(val).toLocaleString() + ` ${this.formatter_metrice.formatter}`;
-            },
-          },
-        },
+          {
+            opposite: true,
+            title: { text: this.$t('growth') },
+            labels: {
+              formatter: function (val) { return (val === null ? '-' : Number(val).toLocaleString() + ' %'); }
+            }
+          }
+        ],
         tooltip: {
+          shared: true,
+          intersect: false,
           y: {
-            formatter:  (val) => {
-              return Number(val).toLocaleString() + ` ${this.formatter_metrice.formatter}`;
-            },
-          },
+            formatter:  (val, { seriesIndex }) => {
+              if (seriesIndex === 2) {
+                return (val === null || val === undefined) ? '-' : Number(val).toLocaleString() + ' %';
+              } else {
+                return Number(val).toLocaleString() + ` ${this.formatter_metrice.formatter}`;
+              }
+            }
+          }
         },
-        legend: {
-          position: 'top',
-          horizontalAlign: 'right',
-        },
-        fill: {
-          opacity: 1,
-        },
+        legend: { position: 'top', horizontalAlign: 'right' },
+        fill: { opacity: 1 },
+        markers: { size: 4 }
       }
     },
     getMonthsByLang : function() {
@@ -174,33 +162,49 @@ export default {
           params: { year: this.selectedYear , metrice : this.selectMetrice.value },
         });
         this.formatter_metrice = this.selectMetrice?.value == "total_price" ?
-        { text: this.$t("total_price_(DH)", { currency: this.main.currency }), formatter: this.main.currency } :
+        { text: this.$t("total_price"), formatter: this.main.currency } :
         { text: this.$t("total_weight"), formatter: "Kg" };
         const payload = response.data;
-        // ensure arrays are length 12
         const months = this.getMonthsByLang
-        const current = _.map(payload.currentYear || [], (v) => Number(v || 0));
-        const previous = _.map(payload.previousYear || [], (v) => Number(v || 0));
+        // ensure numeric arrays
+        const current = _.map(payload.currentYear || [], v => Number(v || 0));
+        const previous = _.map(payload.previousYear || [], v => Number(v || 0));
 
-        // Ensure length 12
-        const cur = _.concat(current).slice(0, 12);
-        const prev = _.concat(previous).slice(0, 12);
-        while (cur.length < 12) cur.push(0);
-        while (prev.length < 12) prev.push(0);
+        // normalize lengths
+        while (current.length < 12) current.push(0);
+        while (previous.length < 12) previous.push(0);
+
+        // compute growth client-side
+        const growth = [];
+        for (let i = 0; i < months.length; i++) {
+          const cur = Number(current[i] || 0);
+          const prev = Number(previous[i] || 0);
+          if (prev === 0) {
+            growth.push(null); // keep null to show gap / avoid infinite %
+          } else {
+            const raw = ((cur - prev) / prev) * 100;
+            // round to 2 decimals
+            const rounded = Math.round((raw + Number.EPSILON) * 100) / 100;
+            growth.push(rounded);
+          }
+        }
 
         this.months = months;
         this.series = [
-          { name: `${payload.years.current}`, data: cur },
-          { name: `${payload.years.previous}`, data: prev },
+          { name: `${payload.years.current}`, type: 'column', data: current },
+          { name: `${payload.years.previous}`, type: 'column', data: previous },
+          { name: this.$t("growth"), type: 'line', data: growth },
         ];
+
         this.chartReady = true;
       } catch (error) {
         console.error('Failed to load chart data', error);
-        this.chartReady = true; // avoid infinite loading; show empty chart state
+        this.chartReady = true;
         this.months = this._generateMonthLabels(year);
         this.series = [
-          { name: `${year}`, data: Array(12).fill(0) },
-          { name: `${year - 1}`, data: Array(12).fill(0) },
+          { name: `${year}`, type: 'column', data: Array(12).fill(0) },
+          { name: `${year - 1}`, type: 'column', data: Array(12).fill(0) },
+          { name: this.$t("growth"), type: 'line', data: Array(12).fill(null) },
         ];
       }
     },

@@ -208,6 +208,7 @@
     "supplier_invoice_list_description": "Supply Invoices Year-over-Year : (YOY)",
     "select_metrice": "Select metric",
     "charge_category": "Charge Category",
+    "growth": "Growth (%)",
     "ship":"Ship",
     "primary_matters": "Primary Matters",
     "production_matters": "Production Matters",
