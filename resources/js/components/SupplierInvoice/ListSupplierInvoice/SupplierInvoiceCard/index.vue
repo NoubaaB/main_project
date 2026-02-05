@@ -3,7 +3,7 @@
         <v-col>
             <ChartCard/>
         </v-col>
-        <v-col cols="3">
+        <v-col cols="3" class="mx-0 px-0">
             <SideCard/>
         </v-col>
     </v-row>

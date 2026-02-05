@@ -35,7 +35,7 @@
                 rounded
                 hide-details
                 :items="yearOptions"
-                v-model="selectedYear"
+                v-model="supplier_invoice.selectedYear"
                 :label="$t('year')"
                 @update:model-value="onYearChange"
             />
@@ -58,18 +58,14 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { useMain } from '@/stores/Main';
+import { useSupplierInvoice } from '@/stores/SupplierInvoice';
 export default {
   name: 'SupplierInvoicesMonthlyChart',
   components: {
     apexchart: VueApexCharts,
   },
   data() {
-    const currentYear = new Date().getFullYear();
-    const length = new Date().getFullYear() - 2019;
-    const yearOptions = [...Array(length).keys()].map(i => currentYear-length+1 + i);
     return {
-      selectedYear: currentYear,
-      yearOptions: yearOptions,
       months: [],
       series: [],
       chartReady: false,
@@ -79,10 +75,17 @@ export default {
   },
   mounted() {
     this.selectMetrice = this.metrices[0]
-    this.fetchData(this.selectedYear);
+    this.fetchData(this.supplier_invoice.selectedYear);
   },
   computed: {
     main: () => useMain(),
+    supplier_invoice: () => useSupplierInvoice(),
+    length: function () {
+      return new Date().getFullYear() - 2019;
+    },
+    yearOptions: function () {
+      return [...Array(this.length).keys()].map(i => new Date().getFullYear() - this.length + 1 + i);
+    },
     metrices: function () {
       return [
         {
@@ -102,7 +105,7 @@ export default {
             mode: this.main.mode,
         },
         plotOptions: {
-          bar: { horizontal: false, columnWidth: '40%', borderRadius: 6 }
+          bar: { horizontal: false, columnWidth: '54%', borderRadius: 6 , borderRadiusApplication: 'end' }
         },
         dataLabels: { enabled: false },
         stroke: { width: [0, 0, 3], curve: 'smooth' },
@@ -159,7 +162,7 @@ export default {
       try {
         this.chartReady = false;
         const response = await axios.get('/api/supplier_invoice/supplier-invoices-monthly', {
-          params: { year: this.selectedYear , metrice : this.selectMetrice.value },
+          params: { year: this.supplier_invoice.selectedYear , metrice : this.selectMetrice.value },
         });
         this.formatter_metrice = this.selectMetrice?.value == "total_price" ?
         { text: this.$t("total_price"), formatter: this.main.currency } :

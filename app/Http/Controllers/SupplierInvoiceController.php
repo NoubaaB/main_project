@@ -143,4 +143,140 @@ class SupplierInvoiceController extends Controller
             ],
         ]);
     }
+    public function supplierInvoicesMonthlyCards(Request $request)
+    {
+        $period = $request->query('period', Carbon::now()->format('Y-m')); // e.g. "2025-02"
+        // validate period
+        try {
+            $dt = Carbon::createFromFormat('Y-m', $period);
+        } catch (\Exception $e) {
+            $dt = Carbon::now();
+            $period = $dt->format('Y-m');
+        }
+
+        $year = (int) $dt->format('Y');
+        $month = (int) $dt->format('m');
+
+        $prevYear = $year - 1;
+        $prevMonth = $month; // same month previous year
+
+        // 1) overall totals for current period
+        $currentTotals = DB::table('supplier_invoices')
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->selectRaw('COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight')
+            ->first();
+
+        $previousTotals = DB::table('supplier_invoices')
+            ->whereYear('date', $prevYear)
+            ->whereMonth('date', $prevMonth)
+            ->selectRaw('COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight')
+            ->first();
+
+        // 2) top supplier by price for current period (extract first supplier id/name from supplier_ids JSON array)
+        // NOTE: this gets the first element of supplier_ids array. If supplier_ids is an array of IDs or names this will work.
+        $topCurrent = DB::table('supplier_invoices')
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->selectRaw(
+                "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
+                 COALESCE(SUM(total_price),0) as total_price,
+                 COALESCE(SUM(total_weight),0) as total_weight"
+            )
+            ->groupBy('supplier')
+            ->orderByDesc('total_price')
+            ->limit(1)
+            ->first();
+
+        $topPrevious = DB::table('supplier_invoices')
+            ->whereYear('date', $prevYear)
+            ->whereMonth('date', $prevMonth)
+            ->selectRaw(
+                "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
+                 COALESCE(SUM(total_price),0) as total_price,
+                 COALESCE(SUM(total_weight),0) as total_weight"
+            )
+            ->groupBy('supplier')
+            ->orderByDesc('total_price')
+            ->limit(1)
+            ->first();
+
+        // if no top found, normalize
+        $topSupplierName = $topCurrent->supplier ?? ($topPrevious->supplier ?? 'Unknown');
+        $topSupplierCurrent = [
+            'price' => $topCurrent->total_price ?? 0.0,
+            'weight' => $topCurrent->total_weight ?? 0.0,
+        ];
+        $topSupplierPrevious = [
+            'price' => $topPrevious->total_price ?? 0.0,
+            'weight' => $topPrevious->total_weight ?? 0.0,
+        ];
+
+        // 3) totals by type_invoice (local/export) for both periods
+        $typesCurrentRows = DB::table('supplier_invoices')
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->selectRaw("type_invoice, COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight")
+            ->groupBy('type_invoice')
+            ->get();
+
+        $typesPreviousRows = DB::table('supplier_invoices')
+            ->whereYear('date', $prevYear)
+            ->whereMonth('date', $prevMonth)
+            ->selectRaw("type_invoice, COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight")
+            ->groupBy('type_invoice')
+            ->get();
+
+        // normalize into structured arrays
+        $typesCurrent = [
+            'local' => ['price' => 0.0, 'weight' => 0.0],
+            'export' => ['price' => 0.0, 'weight' => 0.0],
+        ];
+        foreach ($typesCurrentRows as $r) {
+            $k = $r->type_invoice ?? 'local';
+            if (!isset($typesCurrent[$k])) $typesCurrent[$k] = ['price' => 0.0, 'weight' => 0.0];
+            $typesCurrent[$k] = ['price' => (float) $r->price, 'weight' => (float) $r->weight];
+        }
+
+        $typesPrevious = [
+            'local' => ['price' => 0.0, 'weight' => 0.0],
+            'export' => ['price' => 0.0, 'weight' => 0.0],
+        ];
+        foreach ($typesPreviousRows as $r) {
+            $k = $r->type_invoice ?? 'local';
+            if (!isset($typesPrevious[$k])) $typesPrevious[$k] = ['price' => 0.0, 'weight' => 0.0];
+            $typesPrevious[$k] = ['price' => (float) $r->price, 'weight' => (float) $r->weight];
+        }
+
+        // donut series: current prices distribution between local and export
+        $donutSeries = [
+            (float) ($typesCurrent['local']['price'] ?? 0.0),
+            (float) ($typesCurrent['export']['price'] ?? 0.0),
+        ];
+
+        return response()->json([
+            'period' => $period,
+            'current' => [
+                'price' => (float) ($currentTotals->price ?? 0.0),
+                'weight' => (float) ($currentTotals->weight ?? 0.0),
+            ],
+            'previous' => [
+                'price' => (float) ($previousTotals->price ?? 0.0),
+                'weight' => (float) ($previousTotals->weight ?? 0.0),
+            ],
+            'top_supplier' => [
+                'name' => $topSupplierName,
+                'current' => $topSupplierCurrent,
+                'previous' => $topSupplierPrevious,
+            ],
+            'types' => [
+                'current' => $typesCurrent,
+                'previous' => $typesPrevious,
+            ],
+            'donut' => [
+                'labels' => ['local', 'export'],
+                'series' => $donutSeries,
+            ],
+        ]);
+    }
 }

@@ -38,6 +38,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             headers: headers,
             items: generateRandomData(3),
             g_items: [],
+            selectedYear: new Date().getFullYear(),
             supplier_invoice: {},
             supplier_invoices: [],
             supplier_invoice_fetch_items: [],
