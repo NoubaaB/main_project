@@ -934,6 +934,11 @@ export default {
       handler (d) {
         if (d.start && d.end) this._fetchData()
       }
+    },
+    invoices_selected_length: function () {
+      if (this.invoices_selected_length) {
+        this.invoice.date = moment(_.max(this.invoices_selected.map(e => this.items.find(i=>i.id == e).date))).format("YYYY-MM-DD");
+      }
     }
   },
 

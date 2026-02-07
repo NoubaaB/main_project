@@ -71,6 +71,8 @@ export default {
       chartReady: false,
       selectMetrice: null,
       formatter_metrice: {},
+      previous_year: null,
+      current_year: null
     };
   },
   mounted() {
@@ -100,10 +102,11 @@ export default {
     },
     chartOptions: function () {
       return {
-        chart: { type: 'bar', toolbar: { show: false }, animations: { enabled: true } , background : "transparent" },
+        chart: { type: 'line',stacked: false, toolbar: { show: false }, animations: { enabled: true } , background : "transparent" },
         theme: {
             mode: this.main.mode,
         },
+        colors:["#2196F3","#00E396",'#FEB019'],
         plotOptions: {
           bar: { horizontal: false, columnWidth: '54%', borderRadius: 6 , borderRadiusApplication: 'end' }
         },
@@ -112,12 +115,22 @@ export default {
         xaxis: {categories: this.months,  labels: { rotate: -15, style: { fontSize: '12px' } } },
         yaxis: [
           {
+            seriesName:this.current_year,
             title: { text: `${this.formatter_metrice.text} (${this.formatter_metrice.formatter})` },
             labels: {
               formatter:  (val) => { return Number(val).toLocaleString() + ` ${this.formatter_metrice.formatter}`; }
             }
           },
           {
+            seriesName: this.previous_year,
+            show: false,
+            title: { text: `${this.formatter_metrice.text} (${this.formatter_metrice.formatter})` },
+            labels: {
+              formatter:  (val) => { return Number(val).toLocaleString() + ` ${this.formatter_metrice.formatter}`; }
+            }
+          },
+          {
+            seriesName:this.$t('growth'),
             opposite: true,
             title: { text: this.$t('growth') },
             labels: {
@@ -172,7 +185,8 @@ export default {
         // ensure numeric arrays
         const current = _.map(payload.currentYear || [], v => Number(v || 0));
         const previous = _.map(payload.previousYear || [], v => Number(v || 0));
-
+        this.current_year = payload.years.current;
+        this.previous_year = payload.years.previous;
         // normalize lengths
         while (current.length < 12) current.push(0);
         while (previous.length < 12) previous.push(0);
@@ -205,8 +219,8 @@ export default {
         this.chartReady = true;
         this.months = this._generateMonthLabels(year);
         this.series = [
-          { name: `${year}`, type: 'column', data: Array(12).fill(0) },
-          { name: `${year - 1}`, type: 'column', data: Array(12).fill(0) },
+          { name: this.current_year, type: 'column', data: Array(12).fill(null) },
+          { name: this.previous_year, type: 'column', data: Array(12).fill(null) },
           { name: this.$t("growth"), type: 'line', data: Array(12).fill(null) },
         ];
       }

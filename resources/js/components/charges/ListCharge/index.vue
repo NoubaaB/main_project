@@ -165,6 +165,15 @@
         <template v-slot:[`item.total_price`]="{ item }">
           {{ main.formatDisplayNumber(item.total_price) }}
         </template>
+        
+        <!-- ROW SELECT -->
+        <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
+          <v-checkbox-btn
+            :model-value="isSelected(internalItem)"
+            color="info"
+            @update:model-value="toggleSelect(internalItem)"
+          />
+        </template>
 
         <template v-slot:[`item.actions`]="{ item }">
           <v-menu>

@@ -726,6 +726,12 @@ class DatabaseSeeder extends Seeder
     
                 $suppliers = Supplier::find(collect(json_decode($data["providers"]))->pluck('id')->toArray());
                 $charge->suppliers()->attach($suppliers);
+
+                if (count(json_decode($data["providers"])) == 0) {
+                    $suppliers = Supplier::find(rand(1, 8));
+                    $charge->suppliers()->attach($suppliers);
+                }
+
                 foreach (json_decode($data["types_reception"]) as $item) {
                     $charge->non_warehouse_stockable_operations()->create([
                         "date" => $data["date_reception"],
@@ -759,6 +765,11 @@ class DatabaseSeeder extends Seeder
     
                 $suppliers = Supplier::find(collect(json_decode($data["providers"]))->pluck('id')->toArray());
                 $charge->suppliers()->attach($suppliers);
+                
+                if(count(json_decode($data["providers"])) == 0){
+                    $suppliers = Supplier::find(rand(1,8));
+                    $charge->suppliers()->attach($suppliers);
+                }
 
                 foreach (json_decode($data["types_production"]) as $item) {
                     $warehouse = Warehouse::find($item->chambre_id);
