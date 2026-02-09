@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Truck extends Model
 {
@@ -15,7 +16,11 @@ class Truck extends Model
 
     protected $guarded = [];
 
-    function charges() : HasMany {
-        return $this->hasMany(Charge::class);
+    function charges() : BelongsToMany {
+        return $this->belongsToMany(Charge::class , 'truck_charge');
+    }
+
+    function sells() : BelongsToMany {
+        return $this->belongsToMany(Truck::class, "truck_sell");
     }
 }

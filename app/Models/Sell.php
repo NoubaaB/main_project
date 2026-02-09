@@ -8,7 +8,7 @@ use App\Models\Origin;
 use App\Models\Fishery;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\WarehouseFishTrackingNumberOperation;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +22,10 @@ class Sell extends Model
     protected $with = ['warehouse_stockable_tracking_number_operations', 'clients'];
 
     protected $guarded = [];
+
+    protected $hidden = ['trucks'];
+
+    protected $appends = ['truck_ids'];
 
     protected $casts = [
         'date' => 'date:Y-m-d',
@@ -61,14 +65,19 @@ class Sell extends Model
             ->withPivot('sell_id', 'ship_id');
     }
 
-    function truck(): BelongsTo
+    function trucks(): BelongsToMany
     {
-        return $this->belongsTo(Truck::class);
+        return $this->belongsToMany(Truck::class, "truck_sell");
     }
 
     function origin(): BelongsTo
     {
         return $this->belongsTo(Origin::class, 'origin_id');
+    }
+
+    protected function truckIds(): Attribute
+    {
+        return Attribute::get(fn() => $this->trucks->pluck('id')->toArray());
     }
 
     function calc(): void

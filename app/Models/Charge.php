@@ -29,7 +29,9 @@ class Charge extends Model
 
     protected $guarded = [];
 
-    protected $appends = ['supplier_ids'];
+    protected $hidden = ['trucks'];
+
+    protected $appends = ['supplier_ids','truck_ids'];
 
     protected $casts = [
         'date' => 'date:Y-m-d',
@@ -83,8 +85,8 @@ class Charge extends Model
             ->withPivot('charge_id', 'ship_id');
     }
 
-    function truck() : BelongsTo {
-        return $this->belongsTo(Truck::class);
+    function trucks() : BelongsToMany {
+        return $this->belongsToMany(Truck::class,"truck_charge");
     }
 
     function origin() : BelongsTo {
@@ -102,6 +104,11 @@ class Charge extends Model
     protected function supplierIds(): Attribute
     {
         return Attribute::get(fn() => $this->suppliers->pluck('id')->toArray());
+    }
+
+    protected function truckIds(): Attribute
+    {
+        return Attribute::get(fn() => $this->trucks->pluck('id')->toArray());
     }
 
     //private functions

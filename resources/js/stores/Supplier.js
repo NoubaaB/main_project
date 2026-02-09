@@ -14,7 +14,7 @@ export const useSupplier = defineStore("supplier", {
                 logo: null,
                 state: true, // Default to true
             }
-        };
+        };  
     },
     actions: {
         addSupplier: function (supplier) {

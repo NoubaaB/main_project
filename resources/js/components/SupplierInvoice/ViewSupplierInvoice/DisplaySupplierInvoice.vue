@@ -45,7 +45,7 @@
                             <v-row no-gutters>
                                 <v-col class="text-black">
                                     <strong>
-                                        {{ $t("address") }} : LAAYOUNE
+                                        {{ $t("address") }} : {{supplier_invoice_detail.address}}
                                     </strong>
                                 </v-col>
                             </v-row>

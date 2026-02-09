@@ -145,19 +145,6 @@
           </v-chip>
         </template>
 
-      <template v-slot:expanded-row="{internalItem, item,isExpanded }" v-if="detail_headers">
-        <tr v-if="isExpanded(internalItem)">
-          <td :colspan="8" class="py-2 row_color">
-            <v-sheet class="table_size" rounded="lg" border>
-              <NestedDataTable
-                :detail_headers="detail_headers"
-                :item="item"
-              />
-            </v-sheet>
-          </td>
-        </tr>
-      </template>
-
         <template v-slot:[`item.total_weight`]="{ item }">
           {{ main.formatDisplayNumber(item.total_weight) }}
         </template>

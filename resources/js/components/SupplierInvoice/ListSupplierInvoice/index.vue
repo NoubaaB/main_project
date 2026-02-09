@@ -142,7 +142,6 @@
 <script>
   import DataTable from '@/components/schema/plugins/DataTable.vue';
   import SupplierInvoiceCard from './SupplierInvoiceCard';
-  import * as XLSX from 'xlsx';
   import { useMain } from '@/stores/Main';
   import { useSupplier } from '@/stores/Supplier';
   import { useSupplierInvoice } from '@/stores/SupplierInvoice';

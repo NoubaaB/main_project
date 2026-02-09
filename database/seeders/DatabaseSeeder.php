@@ -640,7 +640,12 @@ class DatabaseSeeder extends Seeder
                     "charge_category_id" => $charge_category_guano_production->id,
                     "ship_id" => null,
                 ]);
-
+                foreach (json_decode($data["matricules"]) as $truck) {
+                    $truck = Truck::where("registration_plate", $truck)->first();
+                    if($truck){
+                        $charge->trucks()->attach($truck);
+                    }
+                }
                 $suppliers = Supplier::find($data["provider_id"]);
                 $charge->suppliers()->attach($suppliers);
                 foreach (json_decode($data["types_sortie"]) as $item) {
@@ -731,7 +736,12 @@ class DatabaseSeeder extends Seeder
                     $suppliers = Supplier::find(rand(1, 8));
                     $charge->suppliers()->attach($suppliers);
                 }
-
+                foreach (json_decode($data["matricules"]) as $truck) {
+                    $truck = Truck::where("registration_plate", $truck)->first();
+                    if ($truck) {
+                        $charge->trucks()->attach($truck);
+                    }
+                }
                 foreach (json_decode($data["types_reception"]) as $item) {
                     $charge->non_warehouse_stockable_operations()->create([
                         "date" => $data["date_reception"],
@@ -762,7 +772,14 @@ class DatabaseSeeder extends Seeder
                     "charge_category_id" => $charge_category_congele->id,
                     "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
                 ]);
-    
+
+                foreach (json_decode($data["matricules"]) as $truck) {
+                    $truck = Truck::where("registration_plate", $truck)->first();
+                    if ($truck) {
+                        $charge->trucks()->attach($truck);
+                    }
+                }
+
                 $suppliers = Supplier::find(collect(json_decode($data["providers"]))->pluck('id')->toArray());
                 $charge->suppliers()->attach($suppliers);
                 
@@ -833,7 +850,12 @@ class DatabaseSeeder extends Seeder
                     "sell_category_id" => $sell_category->id,
                     "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
                 ]);
-    
+                foreach (json_decode($data["matricules"]) as $truck) {
+                    $truck = Truck::where("registration_plate", $truck)->first();
+                    if ($truck) {
+                        $sell->trucks()->attach($truck);
+                    }
+                }
                 $clients = Client::find([$data["provider_id"]]);
                 foreach (json_decode($data["types_production"]) as $item) {
                     $warehouse = Warehouse::find($item->chambre_id);
@@ -906,7 +928,12 @@ class DatabaseSeeder extends Seeder
                     "sell_category_id" => $sell_category_sortie_client->id,
                     "ship_id" => null,
                 ]);
-    
+                foreach (json_decode($data["matricules"]) as $truck) {
+                    $truck = Truck::where("registration_plate", $truck)->first();
+                    if ($truck) {
+                        $sell->trucks()->attach($truck);
+                    }
+                }
                 $clients = Client::find([$data["provider_id"]]);
                 $sell->clients()->attach($clients);
                 foreach (json_decode($data["types_sortie"]) as $item) {

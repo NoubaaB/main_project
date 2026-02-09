@@ -7,6 +7,9 @@ import { useGuanoType } from "./GuanoType";
 import { useFishType } from "./FishType";
 import { useFishFamily } from "./FishFamily";
 import { useWarehouse } from "./Warehouse";
+import { useChargeCategory } from "./ChargeCategory";
+import { useSupplier } from "./Supplier";
+import { useTruck } from "./Truck";
 import i18n  from '@/plugins/i18n';
 
 export const useMain = defineStore("main", {
@@ -61,6 +64,9 @@ export const useMain = defineStore("main", {
             charge:useCharge(),
             fish_family:useFishFamily(),
             warehouse: useWarehouse(),
+            charge_category: useChargeCategory(),
+            supplier: useSupplier(),
+            truck: useTruck(),
             snackbar: {
                 action_command:false,
                 action_command_icon_color:"",
@@ -195,6 +201,24 @@ export const useMain = defineStore("main", {
                 return "N/A"
             }
         },
+        getTruckNames: function (truck_ids) {
+            return truck_ids.map(truck_id => {
+                const truck = this.getTrucks.find(t => t.id === truck_id);
+                return truck ? truck.registration_plate : i18n.global.t("n/a");
+            })
+        },
+        getChargeCategoryName: function (charge_category_id) {
+            const charge_category = this.getChargeCataegories.find(charge_category => charge_category.id === charge_category_id);
+            return charge_category ? charge_category[`name_${this.lang.code}`] : i18n.global.t("n/a");
+        },
+        getSupplierName: function (supplier_id) {
+            const supplier = this.getSuppliers.find(supplier => supplier.id === supplier_id);
+            return supplier ? supplier.name : i18n.global.t("n/a");
+        },
+        getSupplierAddress: function (supplier_id) {
+            const supplier = this.getSuppliers.find(supplier => supplier.id === supplier_id);
+            return supplier ? supplier.address : i18n.global.t("n/a");
+        },
         getPackageName: function (package_type_id) {
             const package_type = this.getPackageTypes.find(package_type => package_type.id === package_type_id);
             return package_type ? package_type[`name_${this.lang.code}`] : 'N/A';
@@ -250,6 +274,15 @@ export const useMain = defineStore("main", {
             }
 
             return true; // Default to assuming a physical keyboard is present
+        },
+        getTrucks: (state) => {
+            return state.truck.getList;
+        },
+        getSuppliers: (state) => {
+            return state.supplier.getList;
+        },
+        getChargeCataegories: (state) => {
+            return state.charge_category.getList;
         },
         getFishTypes: (state) => {
             return state.fish_type.getList;

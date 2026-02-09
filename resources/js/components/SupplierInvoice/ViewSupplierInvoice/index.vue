@@ -20,13 +20,25 @@
   import SupplierInvoice from './SupplierInvoice.vue';
   import SupplierInvoiceContoller from './SupplierInvoiceContoller.vue';
   export default {
-      components: { SupplierInvoice , SupplierInvoiceContoller },
+  components: { SupplierInvoice, SupplierInvoiceContoller },
+      data:function(){
+        return {
+          supplier_invoices : []
+        }
+      },
+      mounted:function(){
+        this.get_supplier_invoices();
+      },
       computed: {
         supplierInvoice: () => useSupplierInvoice(),
-        supplier_invoices: function () {
-          return this.supplierInvoice.getItems;
-        },
       },
+      methods:{
+        get_supplier_invoices: async function () {
+          let data = await this.supplierInvoice.getSupplierInvoicesByIds(this.$route.query.ids)
+          console.log(data,this.supplierInvoice.getItems)
+          this.supplier_invoices = data;
+        },
+      }
     }
 </script>
 

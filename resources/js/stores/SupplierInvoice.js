@@ -73,6 +73,48 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             this.supplier_invoice_fetch_items = response.supplier_invoices;
             this.loading = false;
         },
+        getSupplierInvoicesByIds: async function (ids) {
+            try {
+                let res = await axios.get('/api/supplier_invoice/supplier-invoices-by-ids', {
+                    params: {
+                        ids
+                    }
+                });
+                let data = res.data.supplier_invoices.map(supplier_invoice => {
+                    return {
+                        id: supplier_invoice.id,
+                        date: supplier_invoice.date,
+                        type_invoice: supplier_invoice.type_invoice,
+                        items: supplier_invoice.charges.map(charge => 
+                        {
+                            let details = [...charge.non_warehouse_stockable_operations, ...charge.warehouse_stockable_tracking_number_operations];
+                            return details.map(detail => {
+                                return {
+                                    charge_category_id: this.main.getChargeCategoryName(charge.charge_category_id),
+                                    charge_id: charge.id,
+                                    date: charge.date,
+                                    stockable: this.main.getStockableName(detail.stockable_id, detail.stockable_type),
+                                    stockable_type: detail.stockable_type,
+                                    total_price: detail.total_price,
+                                    total_weight: detail.total_weight_bill,
+                                    tracking_numbers: charge.tracking_numbers,
+                                    truck_id: this.main.getTruckNames(charge.truck_ids),
+                                    unit_price: detail.unit_price,
+                                }
+                            });
+                        }).flat(),
+                        total_price: supplier_invoice.total_price,
+                        total_weight: supplier_invoice.total_weight,
+                        tracking_numbers: supplier_invoice.tracking_numbers,
+                        address: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierAddress(supplier_id)),
+                        supplier_ids: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierName(supplier_id)),
+                    }
+                });
+                return data;
+            } catch (error) {
+             console.log("error",error)   
+            }
+        }
     },
     getters: {
         getList: state => state.list,

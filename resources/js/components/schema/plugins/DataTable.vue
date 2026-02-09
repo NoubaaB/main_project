@@ -605,7 +605,7 @@ import { usePackageType } from '@/stores/PackageType';
 import * as XLSX from 'xlsx';
 import { nextTick } from 'vue';
 import { Parser } from 'expr-eval';
-import _ from 'lodash';
+import _, { stubTrue } from 'lodash';
 import useVuelidate from '@vuelidate/core';
 import { required, numeric, requiredIf } from '@vuelidate/validators';
 
@@ -1501,10 +1501,13 @@ export default {
       this._exportToExcel(this)
     },
     submitToinvoice: function () {
-      if (!this.invoices_selected || !this.invoices_selected_length) {
-        console.warn('No rows selected to export')
-        return
-      }
+      let invoices_ids = this.items.filter(i => this.items_selected.includes(i.id))
+        .filter(e => ('invoice_id' in e) ? e.invoice_id != null : true)
+        .map(e => ('invoice_id' in e) ? e.invoice_id : e.id); 
+      this.$router.push({
+        name: 'view_supplier_invoice',
+        query: { ids: invoices_ids }
+      })
     },
     allowed_sigma(key) {
       const sigma_allowed = this.sigma || [];
