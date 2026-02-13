@@ -23,6 +23,7 @@ return new class extends Migration
             $table->boolean("enable_fishery_id")->default(false);
             $table->boolean("enable_ship_id")->default(false);
             $table->boolean("enable_origin_id")->default(false);
+            $table->boolean("enable_truck_id")->default(false);
             $table->boolean("enable_supplier_process_id")->default(false);
 
             $table->timestamps();

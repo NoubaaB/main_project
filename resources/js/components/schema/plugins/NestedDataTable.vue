@@ -49,6 +49,24 @@
                     <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
                 </v-chip>
             </template>
+            <template v-slot:[`item.truck_ids`]="{ item }">
+                <template v-if="item.truck_ids.length>0">
+                    <v-chip
+                    v-for="id in item.truck_ids || [null]"
+                    :key="id ?? 'na'"
+                    color="pink"
+                    class="ma-1"
+                    >
+                    {{ main.getTruckNames(id) || $t("n/a") }}
+                    </v-chip>
+                </template>
+                <template v-else >
+                        <v-chip :color="main.not_aviable_color" class="ma-1">
+                            <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
+                        </v-chip>
+                </template>
+            </template>
+
         </v-data-table-virtual>
     </div>
 </template>
@@ -77,6 +95,7 @@
                         product_family : this.main.getStockableFishFamily(e.stockable_id,e.stockable_type),
                         warehouse : this.main.getWarehouseName(e.warehouse_id),
                         total_weight:e.total_weight,
+                        truck_ids:e.truck_ids,
                         unit_price:e.unit_price,
                         total_price:e.total_price,
                         total_package_count:e.total_package_count,
@@ -96,6 +115,7 @@
                         product_family : this.main.getStockableFishFamily(e.stockable_id,e.stockable_type),
                         warehouse : this.main.getWarehouseName(e.warehouse_id),
                         total_weight : e.total_weight,
+                        truck_ids : e.truck_ids,
                         unit_price : e.unit_price,
                         total_price :  e.total_price,
                         total_package_count: e.total_package_count,

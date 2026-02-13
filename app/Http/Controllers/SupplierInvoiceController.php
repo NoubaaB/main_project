@@ -282,7 +282,7 @@ class SupplierInvoiceController extends Controller
 
     public function supplierInvoicesByIds() {
         $ids = request()->query('ids');
-        $supplier_invoices = SupplierInvoice::find($ids);
+        $supplier_invoices = SupplierInvoice::findMany($ids);
         return response()->json(["supplier_invoices"=> $supplier_invoices],200);
     }
 }

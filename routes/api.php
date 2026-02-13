@@ -4,8 +4,10 @@ use Illuminate\Http\Request;
 use App\Models\SupplierInvoice;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TruckController;
 use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierInvoiceController;
 
 #region AI routes
@@ -29,6 +31,8 @@ Route::middleware(["auth:sanctum"])->group(
     function () {
         #region auth routes
         Route::get("me", [AuthController::class, "me"]); //get auth user with
+        Route::post("truck", [TruckController::class, "store"]);
+        Route::post("supplier", [SupplierController::class, "store"]);
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
         Route::post("charge", [ChargeController::class, "charge"]);

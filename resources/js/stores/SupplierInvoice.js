@@ -89,6 +89,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                         {
                             let details = [...charge.non_warehouse_stockable_operations, ...charge.warehouse_stockable_tracking_number_operations];
                             return details.map(detail => {
+                                const truck_ids = charge.truck_ids ? charge.truck_ids : detail.truck_ids;
                                 return {
                                     charge_category_id: this.main.getChargeCategoryName(charge.charge_category_id),
                                     charge_id: charge.id,
@@ -98,7 +99,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                                     total_price: detail.total_price,
                                     total_weight: detail.total_weight_bill,
                                     tracking_numbers: charge.tracking_numbers,
-                                    truck_id: this.main.getTruckNames(charge.truck_ids),
+                                    truck_id: this.main.getTruckNames(truck_ids),
                                     unit_price: detail.unit_price,
                                 }
                             });

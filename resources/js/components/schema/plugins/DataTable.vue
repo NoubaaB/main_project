@@ -364,7 +364,7 @@
                               color="info accent-4"
                               closable
                               variant="tonal"
-                              @click:close="invoice.tracking_numbers.tracking_numbers = invoice.tracking_numbers.tracking_numbers.filter(num => num !== item.value)"
+                              @click:close="invoice.tracking_numbers = invoice.tracking_numbers.filter(num => num !== item.value)"
                             >
                               {{ item.title }}
                             </v-chip>
@@ -605,9 +605,8 @@ import { usePackageType } from '@/stores/PackageType';
 import * as XLSX from 'xlsx';
 import { nextTick } from 'vue';
 import { Parser } from 'expr-eval';
-import _, { stubTrue } from 'lodash';
 import useVuelidate from '@vuelidate/core';
-import { required, numeric, requiredIf } from '@vuelidate/validators';
+import { required } from '@vuelidate/validators';
 
 const NULL_VALUE = '__NULL__';
 

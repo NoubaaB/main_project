@@ -17,8 +17,13 @@ export const useSupplier = defineStore("supplier", {
         };  
     },
     actions: {
-        addSupplier: function (supplier) {
-            this.list.push(supplier);
+        add: async function (name) {
+            return await axios.post("/api/supplier", {
+                name
+            }).then(res => {
+                this.list.push(res.data.supplier);
+                return res.data.supplier.id
+            })
         },
         deleteSupplier: function (supplier) {
             this.list = this.list.filter(e => e.id != supplier.id);

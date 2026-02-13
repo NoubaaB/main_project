@@ -217,6 +217,8 @@
                   item-title="name"
                   multiple
                   key="id"
+                  placeholder="ex :   Golden Logictics"
+                  @keydown.enter.prevent="addNewSupplier"
                   :label="$t('suppliers')"
                   chips
                   density="compact"
@@ -225,6 +227,8 @@
                   clearable
                   color="info"
                   class="text-info"
+                  :disabled="is_posting_suppliers"
+                  :loading="is_posting_suppliers"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -309,7 +313,49 @@
                     </template>              
                 </v-autocomplete>
               </v-col>
-
+  
+              <!-- Registratio Plate -->
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-if="_charge.getCharge.enable_truck_id"
+                  v-model="_charge.charge.truck_ids"
+                  :items="_truck.list"
+                  :rules="[!v$._charge.charge.truck_ids.$invalid ]"
+                  :hide-details="v$._charge.charge.truck_ids.$errors.length==0"
+                  :error-messages="v$._charge.charge.truck_ids.$errors.map(e => e.$message)"
+                  @blur="v$._charge.charge.truck_ids.$touch()"
+                  item-value="id"
+                  item-title="registration_plate"
+                  multiple
+                  key="id"
+                  :label="$t('truck_id')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  clearable
+                  placeholder="ex :   11111-A-11"
+                  @keydown.enter.prevent="addNewTruck"
+                  color="info"
+                  class="text-info"
+                  :disabled="is_posting_trucks"
+                  :loading="is_posting_trucks"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="_charge.charge.truck_ids = _charge.charge.truck_ids.filter(num => num !== item.value)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </v-col>
             </v-row>
           </v-expand-transition>
 
@@ -384,6 +430,7 @@
 import { useMain } from '@/stores/Main';
 import { useCharge } from '@/stores/Charge';
 import { useSupplier } from '@/stores/Supplier';
+import { useTruck } from '@/stores/Truck';
 import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
 import { useChargeCategory } from '@/stores/ChargeCategory';
@@ -396,6 +443,8 @@ export default {
       v$ : useVuelidate(),
       dialog_note:false,
       searchInputTrackingNumbers: '',
+      is_posting_suppliers: false,
+      is_posting_trucks: false
     }
   },
   validations() {
@@ -407,6 +456,7 @@ export default {
           tracking_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_numbers) },
           tracking_onp_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_onp_numbers) },
           supplier_ids: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_supplier_process_id) },
+          truck_ids: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_truck_id) },
           fishery_id: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_fishery_id) },
           origin_id: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_origin_id) },
         }
@@ -434,6 +484,9 @@ export default {
     },
     _origin() {
       return useOrigin();
+    },
+    _truck() {
+      return useTruck();
     },
   },
   methods: {
@@ -474,6 +527,54 @@ export default {
         } else {
           this._charge.charge.tracking_onp_numbers.push(inputValue)      }
         }
+      this.searchInputTrackingNumbers = "";
+      inputValue = "";
+      event.target.value = '';
+    },
+    addNewSupplier: async function (event) {
+      this.is_posting_suppliers = true;
+      let inputValue = event.target.value.trim()
+      if (inputValue && !this._charge.charge.supplier_ids.includes(inputValue)) {
+        let supplier = this._supplier.list.find(n => n.name == inputValue);
+        if (supplier == undefined && this._charge.charge.supplier_ids.find(n => n == supplier?.id) == undefined) {
+          let supplier_id = await this._supplier.add(inputValue);
+          this.is_posting_suppliers = false;
+          this._charge.charge.supplier_ids.push(supplier_id);
+        } else if (supplier && this._charge.charge.supplier_ids.find(n => n == supplier?.id) == undefined) {
+          this._charge.charge.supplier_ids.push(supplier.id);
+        }
+      }
+      this.searchInputTrackingNumbers = "";
+      inputValue = "";
+      event.target.value = '';
+    },
+    addNewTruck: async function (event) {
+      this.is_posting_trucks = true;
+      let inputValue = event.target.value.trim()
+      if (inputValue && !this._charge.charge.truck_ids.includes(inputValue)) {
+        if (inputValue.search(" ")>0) {
+          let inputs = inputValue.split(" ");
+          await inputs.forEach(async input => {
+            let truck = this._truck.list.find(n => n.registration_plate == input)
+            if (truck == undefined && this._charge.charge.truck_ids.find(n => n == truck?.id) == undefined) {
+              let truck_id = await this._truck.add(input);
+              this.is_posting_trucks = false;
+              this._charge.charge.truck_ids.push(truck_id);
+            } else if(truck && this._charge.charge.truck_ids.find(n => n != truck?.id)) {
+              this._charge.charge.truck_ids.push(truck.id);
+            }
+          })
+        } else {
+          let truck = this._truck.list.find(n => n.registration_plate == inputValue);
+          if (truck == undefined && this._charge.charge.truck_ids.find(n => n == truck?.id) == undefined) {
+            let truck_id = await this._truck.add(inputValue);
+            this.is_posting_trucks = false;
+            this._charge.charge.truck_ids.push(truck_id);
+          } else if (truck && this._charge.charge.truck_ids.find(n => n == truck?.id) == undefined) {
+            this._charge.charge.truck_ids.push(truck.id);
+          }
+        }
+      }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';

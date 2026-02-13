@@ -3,14 +3,17 @@
 namespace App\Models;
 
 use App\Models\PackageType;
+use App\Models\Truck;
+use App\Models\WarehouseCategoryOperation;
 use App\Models\WarehouseDetailCategory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\WarehouseStockableTrackingNumber;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WarehouseStockableTrackingNumberOperation extends Model
 {
@@ -18,7 +21,9 @@ class WarehouseStockableTrackingNumberOperation extends Model
     use HasFactory, SoftDeletes;
 
     protected $guarded = [];
-    
+
+    protected $hidden = ['trucks'];
+
     protected $casts = [
         'unit_price'   => 'float',
         'total_price'  => 'float',
@@ -27,7 +32,7 @@ class WarehouseStockableTrackingNumberOperation extends Model
         'total_weight_bill' => 'float',
     ];
 
-    protected $appends = ['warehouse_id'];
+    protected $appends = ['warehouse_id', 'truck_ids'];
 
     protected static function boot()
     {
@@ -75,6 +80,16 @@ class WarehouseStockableTrackingNumberOperation extends Model
 
     function warehouse_category_operation() : BelongsTo {
         return $this->belongsTo(WarehouseCategoryOperation::class);
+    }
+
+    function trucks(): BelongsToMany
+    {
+        return $this->belongsToMany(Truck::class, "truck_warehouse_stockable_tracking_number_operation");
+    }
+
+    protected function truckIds(): Attribute
+    {
+        return Attribute::get(fn() => $this->trucks->pluck('id')->toArray());
     }
 
     function checkDateInS(): void

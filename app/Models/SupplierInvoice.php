@@ -21,7 +21,7 @@ class SupplierInvoice extends Model
         "supplier_ids"=>"array"
     ];
 
-    protected $appends = ['charge_ids'];
+    protected $appends = ['charge_ids','truck_ids'];
 
     function charges() : HasMany {
         return $this->hasMany(Charge::class,"invoice_id");
@@ -30,6 +30,11 @@ class SupplierInvoice extends Model
     protected function chargeIds(): Attribute
     {
         return Attribute::get(fn() => $this->charges->pluck('id')->toArray());
+    }
+
+    protected function truckIds(): Attribute
+    {
+        return Attribute::get(fn() => $this->charges->flatmap(fn($charge)=> $charge->trucks->pluck('id')->toArray())->toArray());
     }
 
     /**

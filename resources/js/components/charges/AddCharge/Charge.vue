@@ -298,6 +298,48 @@
                   >
                 </v-text-field>
               </v-col>
+
+              <!-- number of Registratio Plate -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_detail_truck_id">
+                <v-autocomplete
+                  v-model="charge_detail.truck_ids"
+                  :items="_main.getTrucks"
+                  :rules="[!v$.charge_detail.truck_ids.$invalid ]"
+                  :hide-details="v$.charge_detail.truck_ids.$errors.length==0"
+                  :error-messages="v$.charge_detail.truck_ids.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.truck_ids.$touch()"
+                  item-value="id"
+                  item-title="registration_plate"
+                  multiple
+                  key="id"
+                  :label="$t('truck_id')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  clearable
+                  placeholder="ex :   11111-A-11"
+                  @keydown.enter.prevent="addNewTruck"
+                  color="info"
+                  class="text-info"
+                  :disabled="is_posting_trucks"
+                  :loading="is_posting_trucks"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="charge_detail.truck_ids = charge_detail.truck_ids.filter(num => num !== item.value)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </v-col>
               <v-col>
                 <v-btn
                   :disabled="v$.$invalid"
@@ -429,6 +471,14 @@
                     {{ _main.getWarehouseName(item.warehouse_id) }}
                   </v-chip>
                 </template>
+                <template v-slot:[`item.truck_ids`]="{ item }">
+                  <v-chip color="indigo" v-if="item.truck_ids.length>0">
+                    {{ _main.getTruckNames(item.truck_ids) }}
+                  </v-chip>
+                  <v-chip :color="_main.not_aviable_color" v-else>
+                    {{ $t('n/a') }}
+                  </v-chip>
+                </template>
                 <template v-slot:no-data>
                   <div class="text-orange">
                     <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2"></v-icon>
@@ -447,8 +497,9 @@
     import { useMain } from '@/stores/Main';
     import {useWarehouseCategoryOperation} from '@/stores/WarehouseCategoryOperation';
     import useVuelidate from '@vuelidate/core';
-    import { required, numeric, requiredIf } from '@vuelidate/validators';
+    import { required, numeric, minLength, requiredIf } from '@vuelidate/validators';
     import { useFishType } from "@/stores/FishType";
+    import { useTruck } from "@/stores/Truck";
     import { usePackageType } from "@/stores/PackageType";
     import { useGuanoType } from "@/stores/GuanoType";
     
@@ -469,6 +520,7 @@
           selected: [],
           v$: useVuelidate(),
           is_editing: false,
+          is_posting_trucks: false,
           header_initial_length: 0,
           charge_detail: {
               id: uuidv4(),
@@ -481,6 +533,7 @@
               stockable_type: null,
               warehouse_category_operation_id: null,
               warehouse_id: null,
+              truck_ids: [],
               package_type_id: null,
           },
           type_detail:null
@@ -495,6 +548,9 @@
               warehouse_id: {
                 requiredIf: requiredIf(() =>this.ability_warehouse_category_operation.allow_warehouse),
                 numeric,
+              },
+              truck_ids: {
+                minLength : minLength(0),
               },
               total_weight: {
                 required: requiredIf(() =>this.ability_warehouse_category_operation.allow_weight),
@@ -537,6 +593,9 @@
         _fish_type() {
           return useFishType();
         },
+        _truck() {
+          return useTruck();
+        },
         _package_type() {
           return usePackageType();
         },
@@ -575,14 +634,47 @@
             { title: this.$t("type_article"), value: 'stockable_id', removable: true ,visible:true },
             { title: this.$t("weight_(KG)"), value: 'total_weight', removable: true, visible: this.ability_warehouse_category_operation.allow_weight },
             { title: this.$t("weight_invoice_(KG)"), value: 'total_weight_bill', removable: true , visible: this.ability_warehouse_category_operation.allow_weight },
-            { title: this.$t("pu_(DH)"), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
-            { title: this.$t("total_price_(DH)"), value: 'total_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
+            { title: this.$t("pu_(DH)",{currency : this._main.currency}), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
+            { title: this.$t("total_price_(DH)",{currency : this._main.currency}), value: 'total_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
             { title: this.$t("package_type"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
             { title: this.$t("nbr_caisses"), value: 'total_package_count', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
             { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.ability_warehouse_category_operation.allow_warehouse },
+            { title: this.$t("truck_id"), value: 'truck_ids', removable: true , visible: this.ability_warehouse_category_operation.allow_detail_truck_id },
             { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false,visible:true }
           ]
         },
+        addNewTruck: async function (event) {
+          this.is_posting_trucks = true;
+          let inputValue = event.target.value.trim()
+          if (inputValue && !this.charge_detail.truck_ids.includes(inputValue)) {
+            if (inputValue.search(" ")>0) {
+              let inputs = inputValue.split(" ");
+              await inputs.forEach(async input => {
+                let truck = this._truck.list.find(n => n.registration_plate == input)
+                if (truck == undefined && this.charge_detail.truck_ids.find(n => n == truck?.id) == undefined) {
+                  let truck_id = await this._truck.add(input);
+                  this.is_posting_trucks = false;
+                  this.charge_detail.truck_ids.push(truck_id);
+                } else if(truck && this.charge_detail.truck_ids.find(n => n != truck?.id)) {
+                  this.charge_detail.truck_ids.push(truck.id);
+                }
+              })
+            } else {
+              let truck = this._truck.list.find(n => n.registration_plate == inputValue);
+              if (truck == undefined && this.charge_detail.truck_ids.find(n => n == truck?.id) == undefined) {
+                let truck_id = await this._truck.add(inputValue);
+                this.is_posting_trucks = false;
+                this.charge_detail.truck_ids.push(truck_id);
+              } else if (truck && this.charge_detail.truck_ids.find(n => n == truck?.id) == undefined) {
+                this.charge_detail.truck_ids.push(truck.id);
+              }
+            }
+          }
+          this.searchInputTrackingNumbers = "";
+          inputValue = "";
+          event.target.value = '';
+        },
+
         update: function () {
           this._charge.update_charge_detail();
           this.is_editing = false;
@@ -616,6 +708,7 @@
               stockable_type: this.charge_detail.stockable_type,
               warehouse_category_operation_id: this.warehouse_category_operation.id,
               warehouse_id: null,
+              truck_ids: [],
               package_type_id: null,
           };
           this.v$.$reset();

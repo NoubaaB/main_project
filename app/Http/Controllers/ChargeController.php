@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\charge;
+use App\Http\Controllers\Controller;
+use App\Models\Charge;
 use App\Models\FishType;
 use App\Models\GuanoType;
 use App\Models\PackageType;
 use App\Models\SupplierInvoice;
 use App\Models\Warehouse;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ChargeController extends Controller
 {
@@ -38,6 +39,8 @@ class ChargeController extends Controller
             'note' => 'string|max:500|nullable',
             'fishery_id' => 'required|exists:fisheries,id',
             'origin_id' => 'required|exists:origins,id',
+            'truck_ids' => 'sometimes|array',
+            'truck_ids' => 'sometimes|exists:trucks,id',
             'charge_category_id' => 'required|exists:charge_categories,id',
             'supplier_ids' => 'required|array',
             'supplier_ids.*' => 'exists:suppliers,id',
@@ -45,6 +48,8 @@ class ChargeController extends Controller
             'warehouse_category_operations.*.id' => 'required|exists:warehouse_category_operations,id',
             'warehouse_category_operations.*.charge_details.*' => 'array',
             'warehouse_category_operations.*.charge_details.*.warehouse_category_operation_id' => 'required|exists:warehouse_category_operations,id',
+            'warehouse_category_operations.*.charge_details.*.truck_ids' => 'sometimes|array',
+            'warehouse_category_operations.*.charge_details.*.truck_ids' => 'sometimes|exists:trucks,id',
             'warehouse_category_operations.*.charge_details.*.total_weight' => 'nullable|numeric|min:0',
             'warehouse_category_operations.*.charge_details.*.total_weight_bill' => 'nullable|numeric|min:0',
             'warehouse_category_operations.*.charge_details.*.total_price' => 'nullable|numeric|min:0',
@@ -66,15 +71,26 @@ class ChargeController extends Controller
             'origin_id' => $data['origin_id'],
             'charge_category_id' => $data['charge_category_id'],
         ]);
+        if(isset($data["truck_ids"])){
+            $charge->trucks()->attach($data['truck_ids']);
+        }
 
         // ✅ 2. Create warehouse_category_operations children (details)
         if (isset($data['warehouse_category_operations'])) {
             foreach ($data['warehouse_category_operations'] as $warehouse_category_operation) {
                 if(isset($warehouse_category_operation["charge_details"])){
                     foreach ($warehouse_category_operation["charge_details"] as $charge_detail) {
+                        $truck_ids=[];
+                        if(isset($charge_detail["truck_ids"])){
+                            $truck_ids = $charge_detail["truck_ids"];
+                            unset($charge_detail["truck_ids"]);
+                        }
                         if($charge_detail["warehouse_id"] == null){
                             unset($charge_detail["warehouse_id"]);
-                            $charge->non_warehouse_stockable_operations()->create($charge_detail);
+                            $non_warehouse_stockable_operation = $charge->non_warehouse_stockable_operations()->create($charge_detail);
+                            if(count($truck_ids)>0){
+                                $non_warehouse_stockable_operation->trucks()->attach($truck_ids);
+                            }
                         }else{
                             $warehouse = Warehouse::find($charge_detail["warehouse_id"]);
                             $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class, GuanoType::class , PackageType::class], fn($query) => $query->where('stockable_id', $charge_detail["stockable_id"]))

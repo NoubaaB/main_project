@@ -202,10 +202,14 @@ export const useMain = defineStore("main", {
             }
         },
         getTruckNames: function (truck_ids) {
-            return truck_ids.map(truck_id => {
-                const truck = this.getTrucks.find(t => t.id === truck_id);
-                return truck ? truck.registration_plate : i18n.global.t("n/a");
-            })
+            if (typeof truck_ids == "objectobjectobject") {
+                return truck_ids.map(truck_id => {
+                    const truck = this.getTrucks.find(t => t.id === truck_id);
+                    return truck ? truck.registration_plate : i18n.global.t("n/a");
+                }).toString()
+            }
+            const truck = this.getTrucks.find(t => t.id === truck_ids);
+            return truck ? truck.registration_plate : i18n.global.t("n/a");
         },
         getChargeCategoryName: function (charge_category_id) {
             const charge_category = this.getChargeCataegories.find(charge_category => charge_category.id === charge_category_id);

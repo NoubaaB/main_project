@@ -65,6 +65,7 @@ export const useCharge = defineStore("charge", {
                 origin_id: null,
                 fishery_id: null,
                 supplier_ids: [],
+                truck_ids: [],
                 charge_category_id: this.charge_category.getList[0]?.id || 1,
                 daily_charge_id: null,
                 warehouse_category_operations: [

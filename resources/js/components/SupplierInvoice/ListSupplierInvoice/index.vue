@@ -88,6 +88,24 @@
           </template>
         </template>
 
+        <template v-slot:[`item.truck_ids`]="{ item }">
+          <template v-if="item.truck_ids.length>0">
+            <v-chip
+              v-for="id in item.truck_ids || [null]"
+              :key="id ?? 'na'"
+              color="pink"
+              class="ma-1"
+            >
+              {{ trucks.find(s => s.id === id)?.registration_plate || $t("n/a") }}
+            </v-chip>
+          </template>
+          <template v-else >
+                <v-chip :color="main.not_aviable_color" class="ma-1">
+                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
+                </v-chip>
+          </template>
+        </template>
+
         <!-- ROW SELECT -->
         <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
           <v-checkbox-btn
@@ -144,6 +162,7 @@
   import SupplierInvoiceCard from './SupplierInvoiceCard';
   import { useMain } from '@/stores/Main';
   import { useSupplier } from '@/stores/Supplier';
+  import { useTruck } from '@/stores/Truck';
   import { useSupplierInvoice } from '@/stores/SupplierInvoice';
   export default {
       components: {
@@ -157,6 +176,7 @@
             charge_category_id: [],
             tracking_numbers: [],
             supplier_ids: [],
+            truck_ids: [],
           },
           invoicer_name_prop:"supplier_ids",
           select_invoicer:"select_suppliers",
@@ -170,6 +190,7 @@
         main: () => useMain(),
         supplier_invoice: () => useSupplierInvoice(),
         suppliers: () => useSupplier().getList,
+        trucks: () => useTruck().getList,
         fetchSupplierInvoice: function(){
           return this.supplier_invoice.fetchSupplierInvoice
         },
@@ -195,6 +216,7 @@
         relations:function(){
           return {
             supplier_ids: { source: this.suppliers, label: 'name' },
+            truck_ids: { source: this.trucks, label: 'registration_plate' },
           }
         },
         
@@ -203,6 +225,7 @@
             { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
             { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
             { align : "center" , title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
+            { align : "center" , title: this.$t("truck_id"), key: 'truck_ids' , visible:true },
             { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
             { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },
             { align : "center" , title: this.$t("actions"), key: 'actions' , visible:true ,sortable: false },

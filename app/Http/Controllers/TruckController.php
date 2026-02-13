@@ -29,6 +29,11 @@ class TruckController extends Controller
     public function store(Request $request)
     {
         //
+        $data = $request->validate([
+            "registration_plate"=>"required|string|max:13|min:5"
+        ]);
+        $truck = Truck::create($data);
+        return response()->json(["truck"=>$truck],200);
     }
 
     /**

@@ -22,7 +22,8 @@ return new class extends Migration
             $table->boolean("allow_price")->default(true);
             $table->boolean("allow_package_type")->default(true);
             $table->boolean("allow_warehouse")->default(true);
-            
+            $table->boolean("allow_detail_truck_id")->default(false);
+
             $table->enum("operation_type",["charge","sells","both"])->default("both");
             $table->enum("warehouse_type",["FishType","GuanoType","PackageType"])->nullable();
 

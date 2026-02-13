@@ -29,6 +29,11 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         //
+        $data = $request->validate([
+            "name" => "required|string|max:100|min:2"
+        ]);
+        $supplier = Supplier::create($data);
+        return response()->json(["supplier" => $supplier], 200);
     }
 
     /**

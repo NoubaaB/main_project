@@ -272,6 +272,7 @@ class DatabaseSeeder extends Seeder
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
+            "enable_truck_id" => true,
             "enable_supplier_process_id" => true,
             "enable_tracking_onp_numbers" => true
         ]);
@@ -286,6 +287,7 @@ class DatabaseSeeder extends Seeder
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
+            "enable_truck_id" => true,
             "enable_supplier_process_id" => true,
             "enable_tracking_onp_numbers" => true
         ]);
@@ -299,6 +301,7 @@ class DatabaseSeeder extends Seeder
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
+            "enable_truck_id" => true,
             "enable_supplier_process_id" => true,
             "enable_tracking_onp_numbers" => true
         ]);
@@ -314,6 +317,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight"=>true,
             "allow_price"=>true,
             "allow_package_type"=>false,
+            "allow_detail_truck_id"=>true,
             "allow_warehouse"=>false
         ]);
 
@@ -326,6 +330,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
+            "allow_detail_truck_id" => true,
             "allow_warehouse" => true
         ]);
 
@@ -338,6 +343,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
+            "allow_detail_truck_id" => false,
             "allow_warehouse" => true
         ]);
 
@@ -350,6 +356,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
+            "allow_detail_truck_id" => true,
             "allow_warehouse" => true
         ]);
 
@@ -362,6 +369,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => false,
             "allow_package_type" => false,
+            "allow_detail_truck_id" => false,
             "allow_warehouse" => true
         ]);
 
@@ -374,6 +382,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
+            "allow_detail_truck_id" => true,
             "allow_warehouse" => true
         ]);
 
@@ -386,6 +395,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
+            "allow_detail_truck_id" => true,
             "allow_warehouse" => false
         ]);
 
@@ -398,6 +408,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
+            "allow_detail_truck_id" => true,
             "allow_warehouse" => false
         ]);
 
@@ -410,6 +421,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
+            "allow_detail_truck_id" => true,
             "allow_warehouse" => false
         ]);
 
@@ -422,6 +434,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => false,
             "allow_price" => true,
             "allow_package_type" => true,
+            "allow_detail_truck_id" => true,
             "allow_warehouse" => true
         ]);
 
@@ -434,6 +447,7 @@ class DatabaseSeeder extends Seeder
             "allow_weight" => false,
             "allow_price" => true,
             "allow_package_type" => false,
+            "allow_detail_truck_id" => false,
             "allow_warehouse" => false
         ]);
 
@@ -705,6 +719,7 @@ class DatabaseSeeder extends Seeder
                         "date" => $charge->date,
                         "unit_price" => $item->pu,
                         "total_weight" => $item->weight,
+                        "total_weight_bill" => $item->weight,
                         "total_price" => $item->weight * $item->pu,
                         "warehouse_category_operation_id" => $warehouse_category_operation_guano_production->id,
                         "stockable_id" => $item_type_id,
@@ -751,6 +766,7 @@ class DatabaseSeeder extends Seeder
     
                         "unit_price" => $item->price,
                         "total_weight" => $item->weight,
+                        "total_weight_bill" => $item->weight,
                         "total_price" => ($item->price * $item->weight),
                         "total_package_count" => $item->type_id,
                         "warehouse_category_operation_id" => $warehouse_category_operation_frais_mp->id,
@@ -824,6 +840,7 @@ class DatabaseSeeder extends Seeder
                         "date" => $charge->date,
                         "unit_price" => $item->pu,
                         "total_weight" => $item->total_weight_container,
+                        "total_weight_bill" => $item->total_weight_container,
                         "total_price" => $item->total_weight_container * $item->pu,
                         "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
                         "package_type_id" => $item->container_id,
@@ -894,6 +911,7 @@ class DatabaseSeeder extends Seeder
                     "date" => $sell->date,
                     "unit_price" => $item->pu,
                     "total_weight" => $item->total_weight_container,
+                    "total_weight_bill" => $item->total_weight_container,
                     "total_price" => $item->total_weight_container * $item->pu,
                     "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
                     "package_type_id" => $item->container_id,
@@ -972,6 +990,7 @@ class DatabaseSeeder extends Seeder
                         "date" => $sell->date,
                         "unit_price" => $item->pu,
                         "total_weight" => $item->weight,
+                        "total_weight_bill" => $item->weight,
                         "total_price" => $item->weight * $item->pu,
                         "total_package_count" => round($item->weight / PackageType::find($item->container_id)->size, 2),
                         "package_type_id" => $item->container_id,

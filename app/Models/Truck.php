@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Models\Charge;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\NonWarehouseStockableOperation;
+use App\Models\Sell;
+use App\Models\WarehouseStockableTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Truck extends Model
 {
@@ -21,6 +24,16 @@ class Truck extends Model
     }
 
     function sells() : BelongsToMany {
-        return $this->belongsToMany(Truck::class, "truck_sell");
+        return $this->belongsToMany(Sell::class, "truck_sell");
+    }
+
+    function warehouse_stockable_tracking_number_operations(): BelongsToMany
+    {
+        return $this->belongsToMany(WarehouseStockableTrackingNumberOperation::class, "truck_warehouse_stockable_tracking_number_operation");
+    }
+
+    function non_warehouse_stockable_operations(): BelongsToMany
+    {
+        return $this->belongsToMany(NonWarehouseStockableOperation::class, "truck_non_warehouse_stockable_operation");
     }
 }

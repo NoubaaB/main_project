@@ -150,7 +150,6 @@
     import { useMain } from '@/stores/Main';
     import { useVuelidate } from '@vuelidate/core';
     import { required , minValue } from '@vuelidate/validators';
-import { get } from 'lodash';
 
     export default {
         data: function () {

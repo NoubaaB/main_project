@@ -14,8 +14,8 @@ export const useTruck = defineStore("truck", {
     },
     actions: {
         add: async function (name) {
-            return await axios.post("/api/trucks", {
-                name
+            return await axios.post("/api/truck", {
+                registration_plate:name
             }).then(res => {
                 this.list.push(res.data.truck);
                 return res.data.truck.id

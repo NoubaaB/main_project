@@ -120,6 +120,24 @@
                 </v-chip>
           </template>
         </template>
+
+        <template v-slot:[`item.truck_ids`]="{ item }">
+          <template v-if="item.truck_ids.length>0">
+            <v-chip
+              v-for="id in item.truck_ids || [null]"
+              :key="id ?? 'na'"
+              color="pink"
+              class="ma-1"
+            >
+              {{ trucks.find(s => s.id === id)?.registration_plate || $t("n/a") }}
+            </v-chip>
+          </template>
+          <template v-else >
+                <v-chip :color="main.not_aviable_color" class="ma-1">
+                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
+                </v-chip>
+          </template>
+        </template>
         
         <template v-slot:[`item.charge_category_id`]="{ item }">
           <v-chip  color="green" class="mx-1 mt-1">
@@ -233,7 +251,6 @@
 
 <script>
   import DataTable from '@/components/schema/plugins/DataTable.vue';
-  import NestedDataTable from "@/components/schema/plugins/NestedDataTable.vue";
   import * as XLSX from 'xlsx';
 
   import FixedChartWarehouseCategoryOpration from './FixedChart/WarehouseCategoryOpration.vue';
@@ -248,10 +265,10 @@
   import { useCharge } from '@/stores/Charge';
   import { useWarehouse } from '@/stores/Warehouse';
   import { useFishFamily } from '@/stores/FishFamily';
+  import { useTruck } from '@/stores/Truck';
   export default {
       components: {
         DataTable,
-        NestedDataTable,
         FixedChartWarehouseCategoryOpration,
         CustomChartWarehouseCategoryOpration
       },
@@ -263,6 +280,7 @@
             tracking_numbers: [],
             tracking_onp_numbers: [],
             supplier_ids: [],
+            truck_ids: [],
             origin_id: [],
             ship_id: [],
             fishery_id: [],
@@ -285,6 +303,7 @@
     computed:{
         main: () => useMain(),
         suppliers: () => useSupplier().getList,
+        trucks: () => useTruck().getList,
         origins: () => useOrigin().getList,
         fisheries: () => useFishery().getList,
         ships: () => useShip().getList,
@@ -320,6 +339,7 @@
         relations:function(){
           return {
             supplier_ids: { source: this.suppliers, label: 'name' },
+            truck_ids: { source: this.trucks, label: 'registration_plate' },
             ship_id: { source: this.ships, label: 'name' },
             origin_id: { source: this.origins, label: 'name' },
             fishery_id: { source: this.fisheries, label: 'name' },
@@ -344,10 +364,11 @@
             { key: 'data-table-expand', align: 'center', visible: true },
             { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
             { align : "center" , title: this.$t("category"), key: 'charge_category_id' , visible:true },
-            { align : "center" , title: this.$t("ship"), key: 'ship_id' , visible:false },
+            { align : "center" , title: this.$t("ship"), key: 'ship_id' , visible:true },
             { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
             { align : "center" , title: this.$t("tracking_onp_number_short"), key: 'tracking_onp_numbers' , visible:false },
             { align : "center" , title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
+            { align : "center" , title: this.$t("truck_id"), key: 'truck_ids' , visible:true },
             { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
             { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },
             { align : "center" , title: this.$t("origin"), key: 'origin_id' , visible:true },
@@ -363,6 +384,7 @@
             { align : "center" , title: this.$t("product"), key: 'product' , visible:true },
             { align : "center" , title: this.$t("product_family"), key: 'product_family' , visible:true },
             { align : "center" , title: this.$t("warehouse"), key: 'warehouse' , visible:true },
+            { align : "center" , title: this.$t("truck_id"), key: 'truck_ids' , visible:true },
             { align : "center" , title: this.$t("total_weight_on_kg"), key: 'total_weight' , visible:true },
             { align : "center" , title: this.$t("unit_price_currency",{currency:this.main.currency}), key: 'unit_price' , visible:true },
             { align : "center" , title: this.$t("total_price_on",{currency:this.main.currency}), key: 'total_price' , visible:true },

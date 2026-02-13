@@ -80,6 +80,7 @@
     "commands_in_queue": "Commands in Queue",
     "commands_in_serve": "Commands in Serve",
     "registration_command": "Registration Commands",
+    "registration_plate": "Registration Plate",
     "served_commands": "Served Commands",
     "Completed_commands": "Completed Commands",
     "command_item_total": "Total",
