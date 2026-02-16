@@ -28,9 +28,49 @@
               <v-icon left small class="ml-2">mdi-calendar-end</v-icon>
             </v-chip>
           </div>
+          <v-divider opacity="0.25" variant="dashed" thickness="1" class="my-5"></v-divider>
+          <div class="text-center mt-3" role="group" aria-label="select supplier">
+            <v-select
+                dense
+                color="info"
+                class="text-info"
+                density="compact"
+                variant="outlined"
+                rounded
+                item-value="value"
+                item-title="text"
+                hide-details
+                :items="supplier_invoice.typeCharts"
+                v-model="supplier_invoice.selectTypeChart"
+                :label="$t('select_type_chart')"
+            >
+              <template v-slot:chip="{ props, item }">
+                  <v-chip
+                  v-bind="props"
+                  class="text-white"
+                  color="info"
+                  variant="tonal"
+                  :prepend-icon="item.raw.chart_icon"
+                  >
+                  {{ $t(item.raw.text) }}
+                  </v-chip>
+              </template>
+              <template v-slot:item="{ props, item }">
+                  <v-list-item
+                  v-bind="props"
+                  @click="props.onClick"
+                  class="text-info"
+                  :title="$t(item.raw.text)"
+                  :prepend-icon="item.raw.chart_icon"
+                  color="info"
+                  >
+                  </v-list-item>
+              </template>
+            </v-select>
+          </div>
         </v-col>
         <v-col >
-            <SupplierInvoiceCard/>
+          <SupplierInvoiceCard/>
         </v-col>
       </v-row>
     </v-card-text>
@@ -182,7 +222,7 @@
           select_invoicer:"select_suppliers",
           date: {
             start: new Date(2024, 2, 1),
-            end: new Date(2026, 0, 30)
+            end: new Date()
           },
         }
     },

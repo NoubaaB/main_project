@@ -30,6 +30,20 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                 total_paid: 0.00,
                 total_non_paid: ""
             },
+            typeCharts: [
+                {
+                    value:"overview",
+                    text: "supplier_invoice_list_overview",
+                    chart_icon:"mdi-chart-box-multiple"
+                },
+                {
+                    value: "by_supplier_invoice",
+                    text: "by_supplier_invoice",
+                    chart_icon: "mdi-chart-box-outline"
+                }
+            ],
+            selected_supplier_id: null,
+            selectTypeChart:'overview',
             final_page_rows_nbr: 35,
             active_page_rows_nbr: 32,
             allow_qr_code:false,
@@ -134,32 +148,3 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
         }
     }
 });
-
-/*
-
-[
-    { 
-        id: 1, 
-        date: "2025-02-05", 
-        tracking_numbers: ["0001","00002"], 
-        supplier_ids: [8,5], 
-        items : [
-            { 
-                date: "2025-10-01", 
-                charge_id: 2, 
-                charge_category_id: "Emballage", 
-                truck_id: "15114-A-10", 
-                tracking_numbers: ["100001","10002"],
-                stockable: "MAQ SS", 
-                stockable_type: "FishType", 
-                total_weight: 200, 
-                unit_price: 5, 
-                total_price: 1000 
-            },
-        ],
-        total_price:0000, 
-        total_weight:0000 
-    },
-]
-
-*/

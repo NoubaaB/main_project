@@ -202,7 +202,7 @@ export const useMain = defineStore("main", {
             }
         },
         getTruckNames: function (truck_ids) {
-            if (typeof truck_ids == "objectobjectobject") {
+            if (typeof truck_ids == "object") {
                 return truck_ids.map(truck_id => {
                     const truck = this.getTrucks.find(t => t.id === truck_id);
                     return truck ? truck.registration_plate : i18n.global.t("n/a");

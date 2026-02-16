@@ -4,42 +4,65 @@
       <v-card-title class="d-flex justify-space-between align-center">
         <v-row>
         <v-col>
-          <div class="text-h6">{{$t("supplier_invoice_list_overview")}}</div>
-          <div class="text-subtitle-2">{{$t("supplier_invoice_list_description")}}</div>
+          <div class="text-h6">{{$t('progress_chart_for')}}<strong>{{ getSupplierName }}</strong></div>
+          <div class="text-subtitle-2" v-html="$t('by_supplier_invoice_list_description',{supplier_name:getSupplierName})"></div>
         </v-col>
-          <v-col cols="3">
-            <v-select
-                dense
-                color="info"
-                class="text-info"
-                density="compact"
-                variant="outlined"
-                rounded
-                item-value="value"
-                item-title="text"
-                hide-details
-                :items="metrices"
-                v-model="selectMetrice"
-                :label="$t('select_metrice')"
-                @update:model-value="onMetriceChange"
-                return-object
-            />
-          </v-col>
-          <v-col cols="3">
-            <v-select
-                dense
-                color="info"
-                class="text-info"
-                density="compact"
-                variant="outlined"
-                rounded
-                hide-details
-                :items="yearOptions"
-                v-model="supplier_invoice.selectedYear"
-                :label="$t('year')"
-                @update:model-value="onYearChange"
-            />
-          </v-col>
+        <v-col>
+          <v-row no-gutters class="mt-3">
+            <v-col cols="6">
+              <v-select
+                  dense
+                  color="info"
+                  class="text-info"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  item-value="value"
+                  item-title="text"
+                  hide-details
+                  :items="metrices"
+                  v-model="selectMetrice"
+                  :label="$t('select_metrice')"
+                  @update:model-value="onMetriceChange"
+                  return-object
+              />
+            </v-col>
+            <v-col cols="6">
+              <v-select
+                  dense
+                  color="info"
+                  class="text-info"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  hide-details
+                  :items="yearOptions"
+                  v-model="supplier_invoice.selectedYear"
+                  :label="$t('year')"
+                  @update:model-value="onYearChange"
+              />
+            </v-col>
+          </v-row>
+          <v-row no-gutters class="mt-3">
+            <v-col >
+              <v-select
+                  dense
+                  color="info"
+                  class="text-info"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  hide-details
+                  :items="main.getSuppliers"
+                  item-value="id"
+                  item-title="name"
+                  v-model="supplier_invoice.selected_supplier_id"
+                  :label="$t('suppliers')"
+                  @update:model-value="onYearChange"
+              />
+            </v-col>
+          </v-row>
+        </v-col>
         </v-row>
       </v-card-title>
 
@@ -59,6 +82,7 @@
 import VueApexCharts from 'vue3-apexcharts';
 import { useMain } from '@/stores/Main';
 import { useSupplierInvoice } from '@/stores/SupplierInvoice';
+import { _ } from 'core-js';
 export default {
   name: 'SupplierInvoicesMonthlyChart',
   components: {
@@ -77,6 +101,7 @@ export default {
   },
   mounted() {
     this.selectMetrice = this.metrices[0]
+    this.supplier_invoice.selected_supplier_id = _.first(this.main.getSuppliers).id;
     this.fetchData(this.supplier_invoice.selectedYear);
   },
   computed: {
@@ -84,6 +109,10 @@ export default {
     supplier_invoice: () => useSupplierInvoice(),
     length: function () {
       return new Date().getFullYear() - 2019;
+    },
+    getSupplierName: function () {
+      if (this.supplier_invoice.selected_supplier_id == null) return this.$t("n/a");
+      return this.main.getSuppliers.find(s => s.id == this.supplier_invoice.selected_supplier_id).name;
     },
     yearOptions: function () {
       return [...Array(this.length).keys()].map(i => new Date().getFullYear() - this.length + 1 + i);
@@ -174,8 +203,12 @@ export default {
     async fetchData() {
       try {
         this.chartReady = false;
-        const response = await axios.get('/api/supplier_invoice/supplier-invoices-monthly', {
-          params: { year: this.supplier_invoice.selectedYear , metrice : this.selectMetrice.value },
+        const response = await axios.get('/api/supplier_invoice/supplier-invoices-monthly-supplier', {
+          params: {
+            year: this.supplier_invoice.selectedYear,
+            metrice: this.selectMetrice.value,
+            supplier_id: this.supplier_invoice.selected_supplier_id
+          },
         });
         this.formatter_metrice = this.selectMetrice?.value == "total_price" ?
         { text: this.$t("total_price"), formatter: this.main.currency } :

@@ -303,7 +303,7 @@
               <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_detail_truck_id">
                 <v-autocomplete
                   v-model="charge_detail.truck_ids"
-                  :items="_main.getTrucks"
+                  :items="_main.getTrucks.filter(e=>_charge.charge.truck_ids.includes(e.id))"
                   :rules="[!v$.charge_detail.truck_ids.$invalid ]"
                   :hide-details="v$.charge_detail.truck_ids.$errors.length==0"
                   :error-messages="v$.charge_detail.truck_ids.$errors.map(e => e.$message)"
@@ -655,8 +655,10 @@
                   let truck_id = await this._truck.add(input);
                   this.is_posting_trucks = false;
                   this.charge_detail.truck_ids.push(truck_id);
+                  this._charge.charge.truck_ids.push(truck_id);
                 } else if(truck && this.charge_detail.truck_ids.find(n => n != truck?.id)) {
                   this.charge_detail.truck_ids.push(truck.id);
+                  this._charge.charge.truck_ids.push(truck_id);
                 }
               })
             } else {
@@ -665,8 +667,10 @@
                 let truck_id = await this._truck.add(inputValue);
                 this.is_posting_trucks = false;
                 this.charge_detail.truck_ids.push(truck_id);
+                this._charge.charge.truck_ids.push(truck_id);
               } else if (truck && this.charge_detail.truck_ids.find(n => n == truck?.id) == undefined) {
                 this.charge_detail.truck_ids.push(truck.id);
+                this._charge.charge.truck_ids.push(truck_id);
               }
             }
           }

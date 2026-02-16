@@ -40,7 +40,8 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
         Route::get("supplier_invoice", [SupplierInvoiceController::class, "index"]);
         Route::get("supplier_invoice/supplier-invoices-by-ids", [SupplierInvoiceController::class, "supplierInvoicesByIds"]);
-        Route::get("supplier_invoice/supplier-invoices-monthly", [SupplierInvoiceController::class, "supplierInvoicesMonthly"]);
+        Route::get("supplier_invoice/supplier-invoices-monthly-overview", [SupplierInvoiceController::class, "supplierInvoicesMonthlyOverview"]);
+        Route::get("supplier_invoice/supplier-invoices-monthly-supplier", [SupplierInvoiceController::class, "supplierInvoicesMonthlyForSupplier"]);
         Route::get("supplier_invoice/supplier-invoices-monthly-cards", [SupplierInvoiceController::class, "supplierInvoicesMonthlyCards"]);
     #endregion
     });

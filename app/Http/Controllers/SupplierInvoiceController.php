@@ -106,12 +106,51 @@ class SupplierInvoiceController extends Controller
         //
     }
 
-    public function supplierInvoicesMonthly(Request $request)
+    public function supplierInvoicesMonthlyForSupplier(Request $request)
+    {
+        $requestedYear = (int) $request->query('year', now()->year);
+        $metrice = $request->query('metrice');
+        $supplier_id = (int)$request->query('supplier_id');
+        $previousYear = $requestedYear - 1;
+
+        // Aggregate sums grouped by year + month
+        $rows = DB::table('supplier_invoices')
+            ->whereNotNull('date')
+            ->whereIn(DB::raw('YEAR(date)'), [$requestedYear, $previousYear])
+            ->whereJsonContains('supplier_ids', $supplier_id)
+            ->selectRaw("YEAR(date) as year, MONTH(date) as month, SUM($metrice) as total")
+            ->groupBy('year', 'month')
+            ->get();
+
+        // initialize arrays with zeros for 12 months
+        $currentYearTotals = array_fill(0, 12, 0.00);
+        $previousYearTotals = array_fill(0, 12, 0.00);
+
+        foreach ($rows as $r) {
+            $monthIndex = ((int) $r->month) - 1;
+            $total = (float) $r->total;
+            if ((int) $r->year === $requestedYear) {
+                $currentYearTotals[$monthIndex] = round($total, 2);
+            } elseif ((int) $r->year === $previousYear) {
+                $previousYearTotals[$monthIndex] = round($total, 2);
+            }
+        }
+
+        return response()->json([
+            'currentYear' => $currentYearTotals,
+            'previousYear' => $previousYearTotals,
+            'years' => [
+                'current' => $requestedYear,
+                'previous' => $previousYear,
+            ],
+        ]);
+    }
+
+    public function supplierInvoicesMonthlyOverview(Request $request)
     {
         $requestedYear = (int) $request->query('year', now()->year);
         $metrice = $request->query('metrice');
         $previousYear = $requestedYear - 1;
-
         // Aggregate sums grouped by year + month
         $rows = DB::table('supplier_invoices')
             ->whereNotNull('date')
@@ -143,6 +182,7 @@ class SupplierInvoiceController extends Controller
             ],
         ]);
     }
+    
     public function supplierInvoicesMonthlyCards(Request $request)
     {
         $period = $request->query('period', Carbon::now()->format('Y-m')); // e.g. "2025-02"
@@ -155,21 +195,17 @@ class SupplierInvoiceController extends Controller
         }
 
         $year = (int) $dt->format('Y');
-        $month = (int) $dt->format('m');
 
         $prevYear = $year - 1;
-        $prevMonth = $month; // same month previous year
 
         // 1) overall totals for current period
         $currentTotals = DB::table('supplier_invoices')
             ->whereYear('date', $year)
-            ->whereMonth('date', $month)
             ->selectRaw('COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight')
             ->first();
 
         $previousTotals = DB::table('supplier_invoices')
             ->whereYear('date', $prevYear)
-            ->whereMonth('date', $prevMonth)
             ->selectRaw('COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight')
             ->first();
 
@@ -177,7 +213,6 @@ class SupplierInvoiceController extends Controller
         // NOTE: this gets the first element of supplier_ids array. If supplier_ids is an array of IDs or names this will work.
         $topCurrent = DB::table('supplier_invoices')
             ->whereYear('date', $year)
-            ->whereMonth('date', $month)
             ->selectRaw(
                 "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
                  COALESCE(SUM(total_price),0) as total_price,
@@ -190,7 +225,6 @@ class SupplierInvoiceController extends Controller
 
         $topPrevious = DB::table('supplier_invoices')
             ->whereYear('date', $prevYear)
-            ->whereMonth('date', $prevMonth)
             ->selectRaw(
                 "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
                  COALESCE(SUM(total_price),0) as total_price,
@@ -215,14 +249,12 @@ class SupplierInvoiceController extends Controller
         // 3) totals by type_invoice (local/export) for both periods
         $typesCurrentRows = DB::table('supplier_invoices')
             ->whereYear('date', $year)
-            ->whereMonth('date', $month)
             ->selectRaw("type_invoice, COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight")
             ->groupBy('type_invoice')
             ->get();
 
         $typesPreviousRows = DB::table('supplier_invoices')
             ->whereYear('date', $prevYear)
-            ->whereMonth('date', $prevMonth)
             ->selectRaw("type_invoice, COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight")
             ->groupBy('type_invoice')
             ->get();
