@@ -9,7 +9,7 @@
         </v-col>
     </v-row>
 </template>
-
+    
 <script>
     import ChartCardOverview from './ChartCardOverview.vue';
     import ChartCardBySupplier from './ChartCardBySupplier.vue';

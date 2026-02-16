@@ -274,7 +274,6 @@
     },
     methods:{
       _invoices_print_selected: function (that) {
-        console.log("that",that.items_selected)
         return that.items_selected
       },
       _exportToExcel: function (that) {
