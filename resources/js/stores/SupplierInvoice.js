@@ -122,7 +122,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                         total_weight: supplier_invoice.total_weight,
                         tracking_numbers: supplier_invoice.tracking_numbers,
                         address: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierAddress(supplier_id)),
-                        supplier_ids: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierName(supplier_id)),
+                        supplier_ids: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierName(supplier_id)).toString().split("'")[0],
                     }
                 });
                 return data;

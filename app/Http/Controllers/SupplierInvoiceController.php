@@ -182,10 +182,12 @@ class SupplierInvoiceController extends Controller
             ],
         ]);
     }
-    
+
     public function supplierInvoicesMonthlyCards(Request $request)
     {
         $period = $request->query('period', Carbon::now()->format('Y-m')); // e.g. "2025-02"
+        $supplier_id = (int)$request->query('supplier_id', 0);
+
         // validate period
         try {
             $dt = Carbon::createFromFormat('Y-m', $period);
@@ -195,65 +197,102 @@ class SupplierInvoiceController extends Controller
         }
 
         $year = (int) $dt->format('Y');
-
         $prevYear = $year - 1;
 
-        // 1) overall totals for current period
+        // helper for optionally applying supplier filter
+        $applySupplierFilter = function ($query) use ($supplier_id) {
+            if ($supplier_id > 0) {
+                // if supplier_ids stores numeric ids, pass integer; if strings, pass string.
+                $query->whereJsonContains('supplier_ids', $supplier_id);
+            }
+            return $query;
+        };
+
+        // 1) overall totals for current & previous period (optionally filtered by supplier)
         $currentTotals = DB::table('supplier_invoices')
+            ->when($supplier_id > 0, fn($q) => $q->whereJsonContains('supplier_ids', $supplier_id))
             ->whereYear('date', $year)
             ->selectRaw('COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight')
             ->first();
 
         $previousTotals = DB::table('supplier_invoices')
+            ->when($supplier_id > 0, fn($q) => $q->whereJsonContains('supplier_ids', $supplier_id))
             ->whereYear('date', $prevYear)
             ->selectRaw('COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight')
             ->first();
 
-        // 2) top supplier by price for current period (extract first supplier id/name from supplier_ids JSON array)
-        // NOTE: this gets the first element of supplier_ids array. If supplier_ids is an array of IDs or names this will work.
-        $topCurrent = DB::table('supplier_invoices')
-            ->whereYear('date', $year)
-            ->selectRaw(
-                "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
+        // 2) top supplier by price for current & previous period
+        // If supplier_id provided -> compute totals for that supplier only and use that as "top".
+        if ($supplier_id > 0) {
+            $topCurrentRow = DB::table('supplier_invoices')
+                ->whereYear('date', $year)
+                ->whereJsonContains('supplier_ids', $supplier_id)
+                ->selectRaw('COALESCE(SUM(total_price),0) as total_price, COALESCE(SUM(total_weight),0) as total_weight')
+                ->first();
+
+            $topPreviousRow = DB::table('supplier_invoices')
+                ->whereYear('date', $prevYear)
+                ->whereJsonContains('supplier_ids', $supplier_id)
+                ->selectRaw('COALESCE(SUM(total_price),0) as total_price, COALESCE(SUM(total_weight),0) as total_weight')
+                ->first();
+
+            // use supplier_id as name (adjust if you have a suppliers table and want to lookup the display name)
+            $topSupplierName = (string) $supplier_id;
+            $topSupplierCurrent = [
+                'price' => (float) ($topCurrentRow->total_price ?? 0.0),
+                'weight' => (float) ($topCurrentRow->total_weight ?? 0.0),
+            ];
+            $topSupplierPrevious = [
+                'price' => (float) ($topPreviousRow->total_price ?? 0.0),
+                'weight' => (float) ($topPreviousRow->total_weight ?? 0.0),
+            ];
+        } else {
+            // original "top supplier" logic (extract first element of supplier_ids and group)
+            $topCurrent = DB::table('supplier_invoices')
+                ->whereYear('date', $year)
+                ->selectRaw(
+                    "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
                  COALESCE(SUM(total_price),0) as total_price,
                  COALESCE(SUM(total_weight),0) as total_weight"
-            )
-            ->groupBy('supplier')
-            ->orderByDesc('total_price')
-            ->limit(1)
-            ->first();
+                )
+                ->groupBy('supplier')
+                ->orderByDesc('total_price')
+                ->limit(1)
+                ->first();
 
-        $topPrevious = DB::table('supplier_invoices')
-            ->whereYear('date', $prevYear)
-            ->selectRaw(
-                "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
+            $topPrevious = DB::table('supplier_invoices')
+                ->whereYear('date', $prevYear)
+                ->selectRaw(
+                    "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(supplier_ids, '$[0]')), 'Unknown') as supplier,
                  COALESCE(SUM(total_price),0) as total_price,
                  COALESCE(SUM(total_weight),0) as total_weight"
-            )
-            ->groupBy('supplier')
-            ->orderByDesc('total_price')
-            ->limit(1)
-            ->first();
+                )
+                ->groupBy('supplier')
+                ->orderByDesc('total_price')
+                ->limit(1)
+                ->first();
 
-        // if no top found, normalize
-        $topSupplierName = $topCurrent->supplier ?? ($topPrevious->supplier ?? 'Unknown');
-        $topSupplierCurrent = [
-            'price' => $topCurrent->total_price ?? 0.0,
-            'weight' => $topCurrent->total_weight ?? 0.0,
-        ];
-        $topSupplierPrevious = [
-            'price' => $topPrevious->total_price ?? 0.0,
-            'weight' => $topPrevious->total_weight ?? 0.0,
-        ];
+            $topSupplierName = $topCurrent->supplier ?? ($topPrevious->supplier ?? 'Unknown');
+            $topSupplierCurrent = [
+                'price' => (float) ($topCurrent->total_price ?? 0.0),
+                'weight' => (float) ($topCurrent->total_weight ?? 0.0),
+            ];
+            $topSupplierPrevious = [
+                'price' => (float) ($topPrevious->total_price ?? 0.0),
+                'weight' => (float) ($topPrevious->total_weight ?? 0.0),
+            ];
+        }
 
-        // 3) totals by type_invoice (local/export) for both periods
+        // 3) totals by type_invoice (local/export) for both periods (optionally filtered by supplier)
         $typesCurrentRows = DB::table('supplier_invoices')
+            ->when($supplier_id > 0, fn($q) => $q->whereJsonContains('supplier_ids', $supplier_id))
             ->whereYear('date', $year)
             ->selectRaw("type_invoice, COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight")
             ->groupBy('type_invoice')
             ->get();
 
         $typesPreviousRows = DB::table('supplier_invoices')
+            ->when($supplier_id > 0, fn($q) => $q->whereJsonContains('supplier_ids', $supplier_id))
             ->whereYear('date', $prevYear)
             ->selectRaw("type_invoice, COALESCE(SUM(total_price),0) as price, COALESCE(SUM(total_weight),0) as weight")
             ->groupBy('type_invoice')
@@ -311,6 +350,7 @@ class SupplierInvoiceController extends Controller
             ],
         ]);
     }
+
 
     public function supplierInvoicesByIds() {
         $ids = request()->query('ids');

@@ -2,31 +2,32 @@
 
 namespace Database\Seeders;
 
+use App\Models\Charge;
+use App\Models\ChargeCategory;
+use App\Models\Client;
+use App\Models\Fishery;
+use App\Models\FishFamily;
+use App\Models\FishProcessType;
+use App\Models\FishType;
+use App\Models\FixedCharge;
+use App\Models\Formula;
+use App\Models\GuanoType;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Origin;
+use App\Models\PackageType;
 use App\Models\Role;
 use App\Models\Sell;
-use App\Models\Ship;
-use App\Models\User;
-use App\Models\Truck;
-use App\Models\Charge;
-use App\Models\Client;
-use App\Models\Origin;
-use App\Models\Fishery;
-use App\Models\FishType;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use App\Models\Supplier;
-use App\Models\GuanoType;
-use App\Models\Warehouse;
-use App\Support\CsvReader;
-use App\Models\FishFamily;
-use App\Models\FixedCharge;
-use App\Models\PackageType;
 use App\Models\SellCategory;
-use App\Models\ChargeCategory;
-use App\Models\FishProcessType;
-use App\Models\Formula;
-use Illuminate\Database\Seeder;
+use App\Models\Ship;
+use App\Models\Supplier;
+use App\Models\SupplierInvoice;
+use App\Models\Truck;
+use App\Models\User;
+use App\Models\Warehouse;
 use App\Models\WarehouseCategory;
 use App\Models\WarehouseCategoryOperation;
+use App\Support\CsvReader;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -1010,6 +1011,19 @@ class DatabaseSeeder extends Seeder
 
 
         Warehouse::each(fn($q)=>$q->calc());
+
+
+        Charge::each(function($charge){
+            $supplier_invoice = SupplierInvoice::create([
+                "date" => $charge->date,
+                "type_invoice" => "local",
+                "total_price" => $charge->total_price,
+                "total_weight" => $charge->total_weight,
+                "tracking_numbers" => SupplierInvoice::generateNextTrackingNumbers(),
+                "supplier_ids" => $charge->supplier_ids,
+            ]);        
+            $charge->update(["invoice_id" => $supplier_invoice->id]);
+        });
 
     }
 }

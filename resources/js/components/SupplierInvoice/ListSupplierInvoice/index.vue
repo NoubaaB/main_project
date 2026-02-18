@@ -294,6 +294,11 @@
       print_invoice: function (item) {
         console.log("item",item)
       },
+    },
+    watch: {
+      "supplier_invoice.selectTypeChart": function (item) {
+        if(item != "by_supplier_invoice") this.supplier_invoice.selected_supplier_id = null
+      }
     }
   }
 </script>

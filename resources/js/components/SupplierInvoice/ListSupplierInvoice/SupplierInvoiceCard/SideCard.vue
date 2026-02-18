@@ -3,7 +3,8 @@
     <!-- Each card is small, stacked, and fits narrow sidebar -->
     <v-card class="sidebar-card" elevation="1" outlined>
       <div class="card-header">
-        <div class="card-title">{{$t("top_supplier")}}</div>
+        <div class="card-title" v-if="supplier_invoice.selectTypeChart == 'by_supplier_invoice'">{{$t("supplier")}}</div>
+        <div class="card-title" v-else>{{$t("top_supplier")}}</div>
         <div class="card-sub">{{ get_supplier_name }}</div>
       </div>
 
@@ -154,7 +155,6 @@
 </template>
 
 <script>
-import axios from 'axios';
 import moment from 'moment';
 import VueApexCharts from 'vue3-apexcharts';
 import { useSupplierInvoice } from '@/stores/SupplierInvoice';
@@ -199,6 +199,9 @@ export default {
       if (newVal) {
         this.reload();
       }
+    },
+    "supplier_invoice.selected_supplier_id": function () {
+      this.reload();
     }
   },
   mounted() {
@@ -223,7 +226,14 @@ export default {
   methods: {
     async reload() {
       try {
-        const res = await axios.get('/api/supplier_invoice/supplier-invoices-monthly-cards', { params: { period: this.periodProp } });
+        const res = await axios.get('/api/supplier_invoice/supplier-invoices-monthly-cards',
+          {
+            params:
+            {
+              period: this.periodProp,
+              supplier_id: this.supplier_invoice.selected_supplier_id
+            }
+          });
         this.data = res.data;
         if (!this.data.donut || !Array.isArray(this.data.donut.series)) {
           this.data.donut = { labels: this.data.donut.labels.map(e=>this.$t(e)), series: [0, 0] };
@@ -255,7 +265,7 @@ export default {
       this.growth.local = compute(this.data.types.current.local.price, this.data.types.previous.local.price);
       this.growth.export = compute(this.data.types.current.export.price, this.data.types.previous.export.price);
     },
-  }
+  }  
 };
 </script>
 
