@@ -1,5 +1,4 @@
 <template>
-  <div>
     <display-supplier-invoice 
     v-for="(item, index) in chunkItems"
     :key="index"
@@ -19,7 +18,6 @@
     :pagination="itemPagination(chunkItems.length)" 
     :emptyRows="emptyRows(0)"
       />
-  </div>
 </template>
 
 <script>

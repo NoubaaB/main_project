@@ -104,6 +104,16 @@ class SupplierInvoiceController extends Controller
     public function destroy(SupplierInvoice $supplierInvoice)
     {
         //
+        $ids = request()->query('ids');
+        $supplier_invoices = SupplierInvoice::findMany($ids);
+        foreach($supplier_invoices as $invoice) {
+            // detach invoice_id from related charges
+            Charge::whereIn("id", $invoice->charge_ids)->update(['invoice_id' => null]);
+            $invoice->delete();
+        }
+        return response()->json([
+            'message' => 'Supplier Invoices deleted successfully',
+        ], 200); 
     }
 
     public function supplierInvoicesMonthlyForSupplier(Request $request)

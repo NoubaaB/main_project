@@ -160,4 +160,15 @@ class ChargeController extends Controller
         $tracking_numbers = SupplierInvoice::generateNextTrackingNumbers();
         return response()->json(["charges" => $charges, "tracking_numbers"=> $tracking_numbers], 200);
     }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Charge $charge)
+    {
+        //
+        $ids = request()->query('ids');
+        $status = Charge::whereIn("id", $ids)->delete();
+        return response()->json(["message" => $status ? "Deleted successfully" : "No records deleted"], 200);
+    }
 }

@@ -73,6 +73,7 @@
      :_exportToExcel="_exportToExcel"
      :PostInvoice="PostInvoice"
      @sync_items="update_filtred_items_to_source"
+     @delete_items="delete_items"
      >
         <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">
@@ -181,7 +182,7 @@
         </template>
 
         <template v-slot:[`item.actions`]="{ item }">
-          <v-menu>
+          <v-menu location="bottom" transition="scale-transition">
             <template v-slot:activator="{ props }">
               <v-btn
                 icon="mdi-dots-vertical"
@@ -193,16 +194,20 @@
 
             </template>
 
-            <v-list slim density="compact" lines>
-              <v-list-item  prepend-icon="mdi-pencil" @click="editItem(item)">
-                <v-list-item-title color="warning" size="x-small" variant="tonal" v-tooltip:top="$t('edit_item')">{{$t('edit_item')}}</v-list-item-title>
-              </v-list-item>
-              <v-divider></v-divider>
+            <v-list slim density="compact" class="my-0 py-0" lines>
               <v-list-item  prepend-icon="mdi-eye" @click="editItem(item)">
                 <v-list-item-title color="success" size="x-small" variant="tonal" v-tooltip:top="$t('view_item')">{{$t('view_item')}}</v-list-item-title>
               </v-list-item>
               <v-divider></v-divider>
-              <v-list-item prepend-icon="mdi-delete" @click="editItem(item)">
+              <v-list-item  prepend-icon="mdi-file-document-check" @click="invoiceItem(item)" v-if="item.invoice_id">
+                <v-list-item-title color="indigo" size="x-small" variant="tonal" v-tooltip:top="$t('invoice_item')">{{$t('invoice_item')}}</v-list-item-title>
+              </v-list-item>
+              <v-divider></v-divider>
+              <v-list-item  prepend-icon="mdi-pencil" @click="editItem(item)" v-if="item.invoice_id == null">
+                <v-list-item-title color="warning" size="x-small" variant="tonal" v-tooltip:top="$t('edit_item')">{{$t('edit_item')}}</v-list-item-title>
+              </v-list-item>
+              <v-divider></v-divider>
+              <v-list-item prepend-icon="mdi-delete" @click="editItem(item)" v-if="item.invoice_id == null">
                 <v-list-item-title color="red" size="x-small" variant="tonal" v-tooltip:top="$t('delete_item')">{{$t('delete_item')}}</v-list-item-title>
               </v-list-item>
             </v-list>
@@ -394,6 +399,9 @@
         }
     },
     methods:{
+      delete_items: function (ids) {
+        this.charge.delete(ids);
+      },
       update_filtred_items_to_source: function (items) {
         this.charge.filtred_charge_fetch_items = items;
       },
@@ -454,6 +462,13 @@
       },
       editItem: function (item) {
         console.log("item",item)
+      },
+      invoiceItem: function (item) {
+        console.log("item", item)
+        this.$router.push({
+          name: 'view_supplier_invoice',
+          query: { ids: [item.invoice_id] }
+        })
       },
       viewItem: function (item) {
         console.log("item",item)

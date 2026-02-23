@@ -35,7 +35,6 @@
       methods:{
         get_supplier_invoices: async function () {
           let data = await this.supplierInvoice.getSupplierInvoicesByIds(this.$route.query.ids)
-          console.log(data,this.supplierInvoice.getItems)
           this.supplier_invoices = data;
         },
       }

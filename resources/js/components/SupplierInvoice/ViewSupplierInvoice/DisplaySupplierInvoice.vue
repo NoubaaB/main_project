@@ -518,6 +518,7 @@
         width: var(--invoice-width);
         overflow: hidden;
         background-color: white;
+        size:a4;
     }
 
     .title-wrap{

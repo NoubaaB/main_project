@@ -24,10 +24,9 @@
       :rowProps="rowProps"
     >
       <template v-slot:top>
-        <v-row class="mx-1">
-          <v-col class="text-center" cols="2">
+        <v-row class="mx-1" no-gutters>
+          <v-col class="text-center"  v-if="hiddenHeaderKeys.length>0" cols="1">
             <v-btn
-              v-if="hiddenHeaderKeys.length>0"
               small
               rounded
               color="info"
@@ -37,7 +36,7 @@
               :title="$t('reset_hidden_headers')"
             >
               <v-icon class="mr-1">mdi-table-headers-eye</v-icon>
-              {{ $t("reset_header") }} ({{ hiddenHeaderKeys.length }})
+             ({{ hiddenHeaderKeys.length }})
             </v-btn>
           </v-col>
 
@@ -45,7 +44,6 @@
             <v-btn
               color="success"
               variant="tonal"
-              small
               :disabled="items_selected_length === 0 || loading"
               :class="`${is_neasted ? 'rounded-s-xl' : 'rounded-xl'}`"
               :title="$t('export_total_items_to_excel')"
@@ -59,13 +57,29 @@
               v-if="is_neasted"
               color="teal"
               variant="tonal"
-              small
               :disabled="items_selected_length === 0 || loading"
               class="rounded-e-xl"
               prepend-icon="mdi-table-multiple"
+              :title="$t('export_total_items_details_to_excel')"
               @click="exportToExcelDetail"
             >
              ({{ items_selected_details_length }})
+            </v-btn>
+          </v-col>
+
+          <v-col class="text-center" cols="2">
+            <v-btn
+              color="red"
+              variant="tonal"
+              small
+              rounded
+              class="ml-2"
+              :disabled="invoices_delete_selected_length === 0 || loading"
+              @click="deleteItems"
+              :title="$t('delete')"
+            >
+              <v-icon class="mr-1">mdi-delete-forever</v-icon>
+              {{ $t('delete') }} ({{ invoices_delete_selected_length }})
             </v-btn>
           </v-col>
 
@@ -80,12 +94,12 @@
               @click="submitToinvoice"
               :title="$t('view_invoices')"
             >
-              <v-icon class="mr-1">mdi-file-excel</v-icon>
+              <v-icon class="mr-1">mdi-file-document-check</v-icon>
               {{ $t('invoice') }} ({{ invoices_print_selected_length }})
             </v-btn>
           </v-col>
 
-          <v-col class="text-center" cols="2" v-if="invoice">
+          <v-col class="text-center" cols="*" v-if="invoice">
             <DatePicker
               :is-dark="main.is_dark"
               :min-date="min_date"
@@ -160,7 +174,7 @@
             </v-autocomplete>
           </v-col>
 
-          <v-col v-if="advanced_relations">
+          <v-col cols="2" v-if="advanced_relations">
             <v-autocomplete
               v-model="invoice_filters"
               :items="invoice_filters_items"
@@ -639,7 +653,7 @@ export default {
   components: {
     NestedDataTable
   },
-  emits: ['sync_items'],
+  emits: ['sync_items','delete_items'],
   data () {
     return {
       v$: useVuelidate(),
@@ -651,7 +665,7 @@ export default {
 
       hiddenHeaderKeys: [],
       defaultHeaderKeys: [],
-      pinnedHeaderKeys: ['data-table-select','data-table-expand'],
+      pinnedHeaderKeys: ['data-table-select','data-table-expand','actions'],
       sortOrders: [],
       pinnedCss: '',
 
@@ -703,6 +717,9 @@ export default {
     },
     invoices_print_selected_length: function () {
       return this.invoices_print_selected.length;
+    },
+    invoices_delete_selected_length: function () {
+      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).length;
     },
     items_selected_length: function () {
       return this.items_selected.length;
@@ -1508,6 +1525,11 @@ export default {
         query: { ids: invoices_ids }
       })
     },
+    deleteItems: function () {
+      let ids = this.items.filter(i => this.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).map(e => e.id);
+      this.$emit('delete_items', ids);
+      this.items_selected = [];
+    },
     allowed_sigma(key) {
       const sigma_allowed = this.sigma || [];
       if (sigma_allowed.find(s=>s.name == key)) {
@@ -1526,13 +1548,19 @@ export default {
           style:  {"background-color": "rgba(0, 227, 150, 0.2)"},
         }
       }
-      if (item.item.allow_invoice == false) {
+      if (  item.item.allow_invoice == false) {
         return {
           style:  {"background-color": "rgba(104, 104, 104, 0.2)"},
         }
       }
-      return {
-        style:  {"background-color": "rgba(90, 185, 253, 0.1)"},
+      if ("invoice_id" in item.item  == false) {
+        return {
+          style:  {"background-color": "rgba(90, 185, 253, 0.1)"},
+        }
+      } else {
+        return {
+          style:  {"background-color": "rgba(254, 176, 25, 0.5)"},
+        }
       }
     },
     addNewInvoiceTrackingNumber: function (event) {

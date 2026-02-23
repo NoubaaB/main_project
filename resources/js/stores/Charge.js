@@ -80,6 +80,14 @@ export const useCharge = defineStore("charge", {
             }))
             console.log("this.charge", this.charge);
         },
+        delete: async function (ids) {
+            let res = await axios.delete('/api/charge', {
+                params: {
+                    ids
+                }
+            });
+            this.charge_fetch_items = this.charge_fetch_items.filter(e => ids.includes(e.id) == false);
+        },
         get_first_non_disabled_warehouse_category_operation: function () {
             const warehouse_category_operation_ids = this.charge.warehouse_category_operations?.map((warehouse_category_operation) => warehouse_category_operation.id)|| [];
             return this.warehouse_category_operation.getList.filter((operation) => !warehouse_category_operation_ids.includes(operation.id))[0];

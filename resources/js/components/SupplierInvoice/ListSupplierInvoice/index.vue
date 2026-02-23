@@ -91,6 +91,7 @@
      :headers="headers"
      :fetchData="fetchSupplierInvoice"
      @sync_items="update_filtred_items_to_source"
+     @delete_items="delete_items"
      >
         <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">
@@ -186,7 +187,7 @@
                 <v-list-item-title color="success" size="x-small" variant="tonal" v-tooltip:top="$t('view_item')">{{$t('view_item')}}</v-list-item-title>
               </v-list-item>
               <v-divider></v-divider>
-              <v-list-item prepend-icon="mdi-delete" @click="editItem(item)">
+              <v-list-item prepend-icon="mdi-delete" @click="deleteItem(item)">
                 <v-list-item-title color="red" size="x-small" variant="tonal" v-tooltip:top="$t('delete_item')">{{$t('delete_item')}}</v-list-item-title>
               </v-list-item>
             </v-list>
@@ -204,6 +205,8 @@
   import { useSupplier } from '@/stores/Supplier';
   import { useTruck } from '@/stores/Truck';
   import { useSupplierInvoice } from '@/stores/SupplierInvoice';
+  import * as XLSX from 'xlsx';
+    
   export default {
       components: {
         DataTable,
@@ -263,7 +266,7 @@
         headers:function(){
           return [
             { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
-            { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
+            { align : "center" , title: this.$t("supplier_invoice_number_short"), key: 'tracking_numbers' , visible:true },
             { align : "center" , title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
             { align : "center" , title: this.$t("truck_id"), key: 'truck_ids' , visible:true },
             { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
@@ -277,10 +280,165 @@
         return that.items_selected
       },
       _exportToExcel: function (that) {
-        
+        let data = this.supplier_invoice.formatedSupplierInvoiceData(this.items.filter(i=>that.items_selected.includes(i.id)))
+        // defensive: ensure supplier_invoice is an array
+        const invoices = Array.isArray(data)
+            ? _.cloneDeep(data)
+            : (data ? [_.cloneDeep(data)] : []);
+
+        if (!invoices.length) {
+            console.warn('this.supplier_invoice is empty or undefined — nothing to export');
+            return;
+        }
+
+        // 1) compute invoice totals from items (safe Number conversions)
+        invoices.forEach((inv) => {
+            const items = Array.isArray(inv.items) ? inv.items : [];
+
+            // compute total_weight digit-by-digit
+            const totalWeight = items.reduce((acc, it) => {
+            const v = Number(it.total_weight ?? 0);
+            return acc + (Number.isFinite(v) ? v : 0);
+            }, 0);
+
+            // compute total_price digit-by-digit (use provided total_price or compute weight * unit_price)
+            const totalPrice = items.reduce((acc, it) => {
+            const w = Number(it.total_weight ?? 0);
+            const u = Number(it.unit_price ?? 0);
+            const itemTotal = Number(it.total_price ?? (w * u));
+            return acc + (Number.isFinite(itemTotal) ? itemTotal : 0);
+            }, 0);
+
+            inv.total_weight = totalWeight;
+            inv.total_price = totalPrice;
+        });
+
+        // 2) Flatten items into rows (use exact property names)
+        const itemRows = _.flatMap(invoices, (inv) => {
+            const invoice_tracking_numbers = Array.isArray(inv.tracking_numbers) ? inv.tracking_numbers.join(', ') : (inv.tracking_numbers ?? '');
+            const supplier_ids = Array.isArray(inv.supplier_ids) ? inv.supplier_ids.join(', ') : (inv.supplier_ids ?? '');
+            const invoice_id = inv.id ?? '';
+            const invoice_date = inv.date ? moment(inv.date).format('YYYY-MM-DD') : '';
+
+            const items = Array.isArray(inv.items) ? inv.items : [];
+            return items.map((it, idx) => ({
+            // invoice-prefixed to avoid collisions but keep original names for translation
+            invoice_id,
+            invoice_date,
+            invoice_tracking_numbers,
+            supplier_ids,
+
+            // item properties kept exactly as provided
+            date: it.date ? moment(it.date).format('YYYY-MM-DD') : '',
+            charge_id: it.charge_id ?? '',
+            charge_category_id: it.charge_category_id ?? '',
+            truck_id: it.truck_id ?? '',
+            tracking_numbers: Array.isArray(it.tracking_numbers) ? it.tracking_numbers.join(', ') : (it.tracking_numbers ?? ''),
+            stockable: it.stockable ?? '',
+            stockable_type: it.stockable_type ?? '',
+            total_weight: Number(it.total_weight ?? 0),
+            unit_price: Number(it.unit_price ?? 0),
+            total_price: Number(it.total_price ?? ( (Number(it.total_weight ?? 0)) * (Number(it.unit_price ?? 0)) ))
+            }));
+        });
+
+        // 3) Build invoice summary rows (invoice-prefixed keys)
+        const invoiceRows = invoices.map((inv) => ({
+            invoice_id: inv.id ?? '',
+            invoice_date: inv.date ? moment(inv.date).format('YYYY-MM-DD') : '',
+            invoice_tracking_numbers: Array.isArray(inv.tracking_numbers) ? inv.tracking_numbers.join(', ') : (inv.tracking_numbers ?? ''),
+            supplier_ids: Array.isArray(inv.supplier_ids) ? inv.supplier_ids.join(', ') : (inv.supplier_ids ?? ''),
+            total_weight: Number(inv.total_weight ?? 0),
+            total_price: Number(inv.total_price ?? 0)
+        }));
+
+        // 4) Keys / column order (use exact property names)
+        const itemKeys = [
+            'invoice_id', 'invoice_date', 'invoice_tracking_numbers', 'supplier_ids',
+            'date', 'charge_id', 'charge_category_id', 'truck_id', 'tracking_numbers',
+            'stockable', 'stockable_type', 'total_weight', 'unit_price', 'total_price'
+        ];
+        const invoiceKeys = ['invoice_id', 'invoice_date', 'invoice_tracking_numbers', 'supplier_ids', 'total_weight', 'total_price'];
+
+        // 5) Create worksheets
+        const wsItems = XLSX.utils.json_to_sheet(itemRows, { header: itemKeys });
+        const wsInvoices = XLSX.utils.json_to_sheet(invoiceRows, { header: invoiceKeys });
+
+        // 6) Translate headers using this.$t(originalPropertyName)
+        const translateKey = (k) => {
+            if (k.startsWith('invoice_')) return this.$t(k.replace(/^invoice_/, ''));
+            return this.$t(k);
+        };
+
+        const setTranslatedHeaders = (ws, keys) => {
+            // header row is the first row in sheet; overwrite header cells with translations
+            for (let c = 0; c < keys.length; c++) {
+            const cellRef = XLSX.utils.encode_cell({ c, r: 0 });
+            ws[cellRef] = ws[cellRef] || { t: 's', v: '' };
+            ws[cellRef].v = String(translateKey(keys[c]) ?? keys[c]);
+            ws[cellRef].t = 's';
+            }
+        };
+
+        setTranslatedHeaders(wsItems, itemKeys);
+        setTranslatedHeaders(wsInvoices, invoiceKeys);
+
+        // 7) Force numeric types for numeric keys
+        const forceNumeric = (ws, keys, numericKeys) => {
+            if (!ws || !ws['!ref']) return;
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            const keyIndex = {};
+            keys.forEach((k, i) => keyIndex[k] = i);
+
+            for (let r = range.s.r + 1; r <= range.e.r; ++r) {
+            numericKeys.forEach((k) => {
+                const c = keyIndex[k];
+                if (c === undefined) return;
+                const cellRef = XLSX.utils.encode_cell({ c, r });
+                const cell = ws[cellRef];
+                if (cell && cell.v !== '' && cell.v !== undefined && cell.v !== null) {
+                const parsed = Number(cell.v);
+                if (!Number.isNaN(parsed)) {
+                    cell.t = 'n';
+                    cell.v = parsed;
+                }
+                }
+            });
+            }
+        };
+
+        forceNumeric(wsItems, itemKeys, ['total_weight', 'unit_price', 'total_price']);
+        forceNumeric(wsInvoices, invoiceKeys, ['total_weight', 'total_price']);
+
+        // 8) Set reasonable column widths
+        wsItems['!cols'] = itemKeys.map((k) => {
+            if (k.includes('id')) return { wch: 12 };
+            if (k.includes('date')) return { wch: 12 };
+            if (k.includes('tracking')) return { wch: 30 };
+            if (k.includes('weight') || k.includes('price') || k === 'unit_price') return { wch: 14 };
+            return { wch: 18 };
+        });
+        wsInvoices['!cols'] = invoiceKeys.map((k) => {
+            if (k.includes('id')) return { wch: 12 };
+            if (k.includes('date')) return { wch: 12 };
+            if (k.includes('tracking')) return { wch: 30 };
+            if (k.includes('weight') || k.includes('price')) return { wch: 14 };
+            return { wch: 18 };
+        });
+
+        // 9) Create workbook and write file
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, wsItems, 'Items');
+        XLSX.utils.book_append_sheet(wb, wsInvoices, 'Invoices');
+
+        const filename = `supplier_invoices_${moment().format('YYYYMMDD_HHmmss')}.xlsx`;
+        XLSX.writeFile(wb, filename);
       },
       update_filtred_items_to_source: function (items) {
         this.supplier_invoice.filtred_supplier_invoice_fetch_items = items;
+      },
+      delete_items: function (ids) {
+        this.supplier_invoice.delete(ids);
       },
       editItem: function (item) {
         console.log("item",item)
@@ -289,6 +447,7 @@
         console.log("item",item)
       },
       deleteItem: function (item) {
+        this.supplier_invoice.delete([item.id]);
         console.log("item",item)
       },
       print_invoice: function (item) {

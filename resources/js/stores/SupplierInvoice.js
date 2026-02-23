@@ -69,8 +69,13 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                 return res.data.supplierInvoice.id
             })
         },
-        delete: function (supplierInvoice) {
-            this.list = this.list.filter(e => e.id != supplierInvoice.id);
+        delete: async function (ids) {
+            let res = await axios.delete('/api/supplier_invoice', {
+                params: {
+                    ids
+                }
+            });
+            this.supplier_invoice_fetch_items = this.supplier_invoice_fetch_items.filter(e => ids.includes(e.id) == false);
         },
         update: function (supplierInvoice) {
             console.log("supplierInvoice", supplierInvoice)
@@ -94,41 +99,43 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                         ids
                     }
                 });
-                let data = res.data.supplier_invoices.map(supplier_invoice => {
-                    return {
-                        id: supplier_invoice.id,
-                        date: supplier_invoice.date,
-                        type_invoice: supplier_invoice.type_invoice,
-                        items: supplier_invoice.charges.map(charge => 
-                        {
-                            let details = [...charge.non_warehouse_stockable_operations, ...charge.warehouse_stockable_tracking_number_operations];
-                            return details.map(detail => {
-                                const truck_ids = charge.truck_ids ? charge.truck_ids : detail.truck_ids;
-                                return {
-                                    charge_category_id: this.main.getChargeCategoryName(charge.charge_category_id),
-                                    charge_id: charge.id,
-                                    date: charge.date,
-                                    stockable: this.main.getStockableName(detail.stockable_id, detail.stockable_type),
-                                    stockable_type: detail.stockable_type,
-                                    total_price: detail.total_price,
-                                    total_weight: detail.total_weight_bill,
-                                    tracking_numbers: charge.tracking_numbers,
-                                    truck_id: this.main.getTruckNames(truck_ids),
-                                    unit_price: detail.unit_price,
-                                }
-                            });
-                        }).flat(),
-                        total_price: supplier_invoice.total_price,
-                        total_weight: supplier_invoice.total_weight,
-                        tracking_numbers: supplier_invoice.tracking_numbers,
-                        address: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierAddress(supplier_id)),
-                        supplier_ids: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierName(supplier_id)).toString().split("'")[0],
-                    }
-                });
+                let data = this.formatedSupplierInvoiceData(res.data.supplier_invoices);
                 return data;
             } catch (error) {
              console.log("error",error)   
             }
+        },
+        formatedSupplierInvoiceData: function (data) {
+            return data.map(supplier_invoice => {
+                return {
+                    id: supplier_invoice.id,
+                    date: supplier_invoice.date,
+                    type_invoice: supplier_invoice.type_invoice,
+                    items: supplier_invoice.charges.map(charge => {
+                        let details = [...charge.non_warehouse_stockable_operations, ...charge.warehouse_stockable_tracking_number_operations];
+                        return details.map(detail => {
+                            const truck_ids = charge.truck_ids ? charge.truck_ids : detail.truck_ids;
+                            return {
+                                charge_category_id: this.main.getChargeCategoryName(charge.charge_category_id),
+                                charge_id: charge.id,
+                                date: charge.date,
+                                stockable: this.main.getStockableName(detail.stockable_id, detail.stockable_type),
+                                stockable_type: detail.stockable_type,
+                                total_price: detail.total_price,
+                                total_weight: detail.total_weight_bill,
+                                tracking_numbers: charge.tracking_numbers,
+                                truck_id: this.main.getTruckNames(truck_ids),
+                                unit_price: detail.unit_price,
+                            }
+                        });
+                    }).flat(),
+                    total_price: supplier_invoice.total_price,
+                    total_weight: supplier_invoice.total_weight,
+                    tracking_numbers: supplier_invoice.tracking_numbers,
+                    address: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierAddress(supplier_id)),
+                    supplier_ids: supplier_invoice.supplier_ids.map(supplier_id => this.main.getSupplierName(supplier_id)).toString().split("'")[0],
+                }
+            });
         }
     },
     getters: {

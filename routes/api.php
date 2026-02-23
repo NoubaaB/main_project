@@ -36,9 +36,11 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
         Route::post("charge", [ChargeController::class, "charge"]);
+        Route::delete("charge", [ChargeController::class, "destroy"]);
         Route::get("charges/get_charges", [ChargeController::class, "get_charges"]);
         Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
         Route::get("supplier_invoice", [SupplierInvoiceController::class, "index"]);
+        Route::delete("supplier_invoice", [SupplierInvoiceController::class, "destroy"]);
         Route::get("supplier_invoice/supplier-invoices-by-ids", [SupplierInvoiceController::class, "supplierInvoicesByIds"]);
         Route::get("supplier_invoice/supplier-invoices-monthly-overview", [SupplierInvoiceController::class, "supplierInvoicesMonthlyOverview"]);
         Route::get("supplier_invoice/supplier-invoices-monthly-supplier", [SupplierInvoiceController::class, "supplierInvoicesMonthlyForSupplier"]);
