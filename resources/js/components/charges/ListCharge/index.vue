@@ -73,7 +73,8 @@
      :_exportToExcel="_exportToExcel"
      :PostInvoice="PostInvoice"
      @sync_items="update_filtred_items_to_source"
-     @delete_items="delete_items"
+     :delete_items="delete_items"
+     :get_invoices_delete_selected_length="get_invoices_delete_selected_length"
      >
         <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">
@@ -300,8 +301,8 @@
           invoicer_name_prop:"supplier_ids",
           select_invoicer:"select_suppliers",
           date: {
-            start: new Date(2023, 2, 1),
-            end: new Date(2023, 11, 17)
+            start: new Date(2024, 2, 1),
+            end: new Date()
           },
         }
     },
@@ -404,6 +405,14 @@
       },
       update_filtred_items_to_source: function (items) {
         this.charge.filtred_charge_fetch_items = items;
+      },
+      get_invoices_delete_selected_length: function (that) {
+        return that.items.filter(i => that.items_selected.includes(i.id))
+        .filter(e => e.allow_invoice == true && e.invoice_id == null).length;
+      },
+      delete_items: function (that) {
+        let ids = that.items.filter(i => that.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).map(e => e.id);
+        this.supplier_invoice.delete(ids);
       },
       _invoices_print_selected: function (that) {
         return that.items.filter(i => that.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id != null).map(i => i.id);

@@ -143,7 +143,7 @@
                 <v-row>
                     <v-col>
                         <v-chip prepend-icon="mdi-table-settings" color="info">
-                            {{ invoices_length }} {{ $t("invoices") }}
+                            {{ supplierInvoice.invoices_length }} {{ $t("invoices") }}
                         </v-chip>
                     </v-col>
                     <v-col>
@@ -183,9 +183,6 @@ export default {
             /* keys available for grouping */
             groupableKeys() {
                 return this.supplierInvoice.getHeaders.map(m=>m.key);
-            },
-            invoices_length: function () {
-                return this.supplier_invoice.length;
             },
             lines: function () {
                 return this.supplier_invoice.flatMap(e=>e.items)

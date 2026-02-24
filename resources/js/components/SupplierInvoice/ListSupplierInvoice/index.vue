@@ -91,7 +91,8 @@
      :headers="headers"
      :fetchData="fetchSupplierInvoice"
      @sync_items="update_filtred_items_to_source"
-     @delete_items="delete_items"
+     :delete_items="delete_items"
+     :get_invoices_delete_selected_length="get_invoices_delete_selected_length"
      >
         <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">
@@ -437,7 +438,11 @@
       update_filtred_items_to_source: function (items) {
         this.supplier_invoice.filtred_supplier_invoice_fetch_items = items;
       },
-      delete_items: function (ids) {
+      get_invoices_delete_selected_length: function (that) {
+        return that.items.filter(i => that.items_selected.includes(i.id)).length;
+      },
+      delete_items: function (that) {
+        let ids = that.items.filter(i => that.items_selected.includes(i.id)).map(e => e.id);
         this.supplier_invoice.delete(ids);
       },
       editItem: function (item) {
@@ -448,7 +453,6 @@
       },
       deleteItem: function (item) {
         this.supplier_invoice.delete([item.id]);
-        console.log("item",item)
       },
       print_invoice: function (item) {
         console.log("item",item)

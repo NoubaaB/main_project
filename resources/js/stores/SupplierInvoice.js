@@ -21,6 +21,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             loading:false,
             api_url: "/api/supplier_invoice",
             nbr_pages: 0,
+            invoices_length: 0,
             is_show: true,
             showAdditionalInfo: false,
             main: main,
@@ -70,6 +71,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             })
         },
         delete: async function (ids) {
+            console.log("ids", ids)
             let res = await axios.delete('/api/supplier_invoice', {
                 params: {
                     ids
@@ -100,12 +102,17 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                     }
                 });
                 let data = this.formatedSupplierInvoiceData(res.data.supplier_invoices);
+
                 return data;
             } catch (error) {
              console.log("error",error)   
             }
         },
         formatedSupplierInvoiceData: function (data) {
+            setTimeout(() => {
+                this.nbr_pages = document.getElementsByClassName('_invoice_page').length;
+                this.invoices_length = data.length;
+            }, 100);
             return data.map(supplier_invoice => {
                 return {
                     id: supplier_invoice.id,
@@ -148,9 +155,6 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             return state.headers
         },
         getItems: function (state) {
-            setTimeout(() => {
-                this.nbr_pages = document.getElementsByClassName('_invoice_page').length;
-            }, 0);
             return state.g_items.length == 0 ? state.items : state.g_items;
         }
     }

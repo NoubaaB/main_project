@@ -642,9 +642,11 @@ export default {
     sigma: Array,
     invoice_prop: String,
     fetchData: Function,
+    get_invoices_delete_selected_length: Function,
     show_expand: Boolean,
     is_neasted: Boolean,
     PostInvoice: Function,
+    delete_items: Function,
     _invoices_print_selected: Function,
     _exportToExcel: Function,
     headers: { type: Array, required: true },
@@ -653,7 +655,7 @@ export default {
   components: {
     NestedDataTable
   },
-  emits: ['sync_items','delete_items'],
+  emits: ['sync_items'],
   data () {
     return {
       v$: useVuelidate(),
@@ -719,7 +721,7 @@ export default {
       return this.invoices_print_selected.length;
     },
     invoices_delete_selected_length: function () {
-      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).length;
+        return this.get_invoices_delete_selected_length(this)
     },
     items_selected_length: function () {
       return this.items_selected.length;
@@ -1526,8 +1528,7 @@ export default {
       })
     },
     deleteItems: function () {
-      let ids = this.items.filter(i => this.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).map(e => e.id);
-      this.$emit('delete_items', ids);
+      this.delete_items(this);
       this.items_selected = [];
     },
     allowed_sigma(key) {
