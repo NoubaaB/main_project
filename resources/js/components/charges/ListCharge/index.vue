@@ -470,10 +470,12 @@
         XLSX.writeFile(wb, filename)
       },
       editItem: function (item) {
-        console.log("item",item)
+        this.$router.push({
+          name: 'edit_charge',
+          params: { id: item.id }
+        })
       },
       invoiceItem: function (item) {
-        console.log("item", item)
         this.$router.push({
           name: 'view_supplier_invoice',
           query: { ids: [item.invoice_id] }

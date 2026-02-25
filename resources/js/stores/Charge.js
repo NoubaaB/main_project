@@ -155,6 +155,24 @@ export const useCharge = defineStore("charge", {
             this.warehouse_stockable_tracking_number_operations = this.charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations.map(ee => { ee.charge_category_id = e.charge_category_id; return ee }))
             this.loading = false;
         },
+        fetchChargeById: async function (id) {
+            let response = await axios.get(`/api/charge/${id}`);
+                this.charge.id = response.data.charge.id;
+                this.charge.is_archived = false;
+                this.charge.date = response.data.charge.date; // Default to today
+                this.charge.trackingNumbersInput = "";
+                this.charge.tracking_numbers = response.data.charge.tracking_numbers;
+                this.charge.note = response.data.charge.note;
+                this.charge.tracking_onp_numbers = response.data.charge.tracking_onp_numbers;
+                this.charge.total_price = response.data.charge.total_price;
+                this.charge.total_weight = response.data.charge.total_weight;
+                this.charge.origin_id = response.data.charge.origin_id;
+                this.charge.fishery_id = response.data.charge.fishery_id;
+                this.charge.supplier_ids = response.data.charge.suppliers.map(s => s.id);
+                this.charge.truck_ids = response.data.charge.truck_ids;
+                this.charge.charge_category_id = response.data.charge.charge_category_id;
+                this.charge.daily_charge_id = null;
+        },
         PostInvoice: async function (supplier_invoice) {
             this.loading = true;
             let response = await axios.post("/api/supplier_invoice", supplier_invoice);

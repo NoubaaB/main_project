@@ -28,6 +28,15 @@ class ChargeController extends Controller
         return $modelClass::find($stockable_id);
     }
 
+    /**
+     * Display the specified resource.
+     */
+    public function show(Charge $charge)
+    {
+        //
+        return response()->json(["charge"=>$charge->load(['suppliers', 'non_warehouse_stockable_operations', 'warehouse_stockable_tracking_number_operations'])], 200);
+    }
+
     public function charge(Request $request)
     {
         $data  = $request->validate([

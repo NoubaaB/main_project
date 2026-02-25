@@ -52,7 +52,7 @@ class AIAssistantController extends Controller
             - Do not include markdown, explanations, or extra text — only return the raw SQL query.
             - Ensure the query is syntactically correct and executable.
             - select only the necessary tables and columns to answer the question and select also relationships tables if you uses.
-
+            - consider tha the i used softdelete in many tables so you must exclude deleted data by using 'where deleted_at is null' in your query if you use tables that have softdelete.
             User question: {$question}, and use previous conversation that you and user have made to understand the context : {$messages}.
         ";
 

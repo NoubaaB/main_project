@@ -64,6 +64,12 @@ const routes = [
                                 component: () => import("@/components/charges/AddCharge/index.vue")
                             },
                             {
+                                path: "edit_charge/:id",
+                                keeplive: false,
+                                name: "edit_charge",
+                                component: () => import("@/components/charges/AddCharge/index.vue")
+                            },
+                            {
                                 path: "list_charge",
                                 name: "list_charge",
                                 keeplive:true,

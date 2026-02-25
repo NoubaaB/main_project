@@ -2,6 +2,7 @@
     <v-card-title class="text-center">
         {{$t("authentication_form")}}
     </v-card-title>
+
     <v-form @submit.prevent="submit">
         <div class="mx-3 text-subtitle-1 text-medium-emphasis">{{$t('email')}}</div>
         
@@ -62,6 +63,11 @@
         {{ $t("authentication") }}
         </v-btn>
     </v-form>
+    <div class="text-right">
+        <v-chip class="pulse-powered-by-ai" color="info" prepend-icon="mdi-robot" variant="tonal">
+            {{ $t('powered_by_ai') }}
+        </v-chip>
+    </div>
 </template>
 
 <script>
@@ -131,5 +137,21 @@
 </script>
 
 <style lang="scss" scoped>
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(228, 242, 253, 1);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(228, 242, 253, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(228, 242, 253, 0);
+  }
+}
+
+/* 2. Style the element and apply the animation */
+.pulse-powered-by-ai {
+  animation: pulse 2s infinite; /* Apply the animation: name, duration, repetition */
+}
 
 </style>

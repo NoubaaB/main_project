@@ -23,6 +23,8 @@ return new class extends Migration
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('This table records supplier invoices. It has many charges and belongs to many suppliers. It has many tracking numbers.');
         });
     }
 

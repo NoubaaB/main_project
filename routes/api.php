@@ -1,12 +1,9 @@
 <?php
 
-use Illuminate\Http\Request;
-use App\Models\SupplierInvoice;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TruckController;
 use App\Http\Controllers\ChargeController;
-use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierInvoiceController;
 
@@ -36,6 +33,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
         Route::post("charge", [ChargeController::class, "charge"]);
+        Route::get("charge/{charge}", [ChargeController::class, "show"]);
         Route::delete("charge", [ChargeController::class, "destroy"]);
         Route::get("charges/get_charges", [ChargeController::class, "get_charges"]);
         Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
