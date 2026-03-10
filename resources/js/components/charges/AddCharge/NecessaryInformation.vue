@@ -7,7 +7,7 @@
             </v-col>
             <v-divider class="text-info" vertical></v-divider>
             <v-col class="text-left">
-              <h2 class="d-inline">{{ $t("charge_creation_interface") }}</h2>
+              <h2 class="d-inline">{{ $t("charge_create_interface") }}</h2>
             </v-col>
           </v-row>
         </v-card-title>

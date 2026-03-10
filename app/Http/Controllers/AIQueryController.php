@@ -17,8 +17,8 @@ class AIQueryController extends Controller
     private $ai_agent = null;
 
     public function __construct() {
-        // $this->ai_agent = new GeminiService();
-        $this->ai_agent = new CustomService();
+        $this->ai_agent = new GeminiService();
+        // $this->ai_agent = new CustomService();
     }
     
     public function ask(Request $request)

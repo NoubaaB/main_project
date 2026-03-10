@@ -5,6 +5,7 @@ import { useMain } from "./Main";
 import { useFishType } from "./FishType";
 import { usePackageType } from "./PackageType";
 import { useGuanoType } from "./GuanoType";
+import { useSupplierInvoice } from "./SupplierInvoice";
 import { useWarehouse } from "./Warehouse";
 import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useChargeCategory } from "./ChargeCategory";
@@ -22,6 +23,7 @@ export const useCharge = defineStore("charge", {
             fish_type: useFishType(),
             package_type: usePackageType(),
             guano_type: useGuanoType(),
+            supplier_invoice: useSupplierInvoice(),
             warehouse: useWarehouse(),
             charge_category: useChargeCategory(),
             warehouse_category_operation: useWarehouseCategoryOperation(),
@@ -32,6 +34,7 @@ export const useCharge = defineStore("charge", {
                 total_weight:0.00,
                 total_price:0.00,
             },
+            edit_charge: {},
             charge: {},
             charges: [],
             charge_fetch_items: [],
@@ -155,30 +158,49 @@ export const useCharge = defineStore("charge", {
             this.warehouse_stockable_tracking_number_operations = this.charge_fetch_items.flatMap(e => e.warehouse_stockable_tracking_number_operations.map(ee => { ee.charge_category_id = e.charge_category_id; return ee }))
             this.loading = false;
         },
-        fetchChargeById: async function (id) {
-            let response = await axios.get(`/api/charge/${id}`);
-                this.charge.id = response.data.charge.id;
-                this.charge.is_archived = false;
-                this.charge.date = response.data.charge.date; // Default to today
-                this.charge.trackingNumbersInput = "";
-                this.charge.tracking_numbers = response.data.charge.tracking_numbers;
-                this.charge.note = response.data.charge.note;
-                this.charge.tracking_onp_numbers = response.data.charge.tracking_onp_numbers;
-                this.charge.total_price = response.data.charge.total_price;
-                this.charge.total_weight = response.data.charge.total_weight;
-                this.charge.origin_id = response.data.charge.origin_id;
-                this.charge.fishery_id = response.data.charge.fishery_id;
-                this.charge.supplier_ids = response.data.charge.suppliers.map(s => s.id);
-                this.charge.truck_ids = response.data.charge.truck_ids;
-                this.charge.charge_category_id = response.data.charge.charge_category_id;
-                this.charge.daily_charge_id = null;
+        fetchChargeById:  function (id) {
+            axios.get(`/api/charge/${id}`).then(response => {
+                this.edit_charge.id = response.data.charge.id;
+                this.edit_charge.is_archived = false;
+                this.edit_charge.date = response.data.charge.date; // Default to today
+                this.edit_charge.trackingNumbersInput = "";
+                this.edit_charge.tracking_numbers = response.data.charge.tracking_numbers;
+                this.edit_charge.note = response.data.charge.note;
+                this.edit_charge.tracking_onp_numbers = response.data.charge.tracking_onp_numbers;
+                this.edit_charge.origin_id = response.data.charge.origin_id;
+                this.edit_charge.fishery_id = response.data.charge.fishery_id;
+                this.edit_charge.supplier_ids = response.data.charge.suppliers.map(s => s.id);
+                this.edit_charge.truck_ids = response.data.charge.truck_ids;
+                this.edit_charge.charge_category_id = response.data.charge.charge_category_id;
+                this.edit_charge.daily_charge_id = null;
+                this.edit_charge.total_price = response.data.charge.total_price;
+                this.edit_charge.total_weight = response.data.charge.total_weight;
+                this.edit_charge.warehouse_category_operations = [
+                    {
+                        id: 1,
+                        charge_details: [],
+                        charge_id: this.edit_charge.id,
+                        total_weight: 0.00,
+                        total_price: 0.00,
+                    }
+                ];
+            });
         },
         PostInvoice: async function (supplier_invoice) {
             this.loading = true;
             let response = await axios.post("/api/supplier_invoice", supplier_invoice);
             response.data.supplier_invoice.charge_ids.forEach(charge_id => {
                 let item = this.charge_fetch_items.find(i => i.id == charge_id);
-                if (item) item.invoice_id = response.data.supplier_invoice.id;
+                if (item) {
+                    item.invoice_id = response.data.supplier_invoice.id;
+                    item.supplier_invoice_tracking_number = response.data.supplier_invoice.tracking_numbers;
+                    let invoice = this.supplier_invoice.supplier_invoice_fetch_items.find(i => i.id == response.data.supplier_invoice.id)
+                    if (invoice) {
+                        invoice = response.data.supplier_invoice; // Update the invoice in the supplier invoice store to update the tracking numbers and other details related to the invoice
+                    } else {
+                        this.supplier_invoice.supplier_invoice_fetch_items.push(response.data.supplier_invoice);
+                    }
+                }
             });
             this.invoice = {
                 date: new Date(),
@@ -207,6 +229,22 @@ export const useCharge = defineStore("charge", {
             localStorage.setItem("charge", JSON.stringify(this.charge));
             localStorage.setItem("charges", JSON.stringify(this.charges));
             localStorage.setItem("showAdditionalInfo", this.showAdditionalInfo);
+        },
+        undoInvoiceItem: async function (item_id) {
+            try {
+                let res  = await axios.get(`/api/supplier_invoice/undo-invoice-item/${item_id}`);
+                let item = this.charge_fetch_items.find(i => i.id == item_id);
+                if (item) item.invoice_id = null;
+                let charge_item = this.charge.warehouse_category_operations.flatMap(o => o.charge_details).find(d => d.id == item_id);
+                if (charge_item) charge_item.invoice_id = null;
+                this.main.add_snackbar({
+                    show: true,
+                    message: i18n.global.t("undo_charge_from_invoice_item_successfully", { supply_number: res.data.supplier_invoice_tracking_numbers.toString(), charge_number: item.tracking_numbers.toString()}),
+                    color: "success"
+                });
+            } catch (error) {
+                console.log("error", error)
+            }
         },
         archive: function () {
             this.charge.is_archived = true;

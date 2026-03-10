@@ -180,11 +180,7 @@
             </template>
 
             <v-list slim density="compact" lines>
-              <v-list-item  prepend-icon="mdi-pencil" @click="editItem(item)">
-                <v-list-item-title color="warning" size="x-small" variant="tonal" v-tooltip:top="$t('edit_item')">{{$t('edit_item')}}</v-list-item-title>
-              </v-list-item>
-              <v-divider></v-divider>
-              <v-list-item  prepend-icon="mdi-eye" @click="editItem(item)">
+              <v-list-item  prepend-icon="mdi-eye" @click="viewItem(item.id)">
                 <v-list-item-title color="success" size="x-small" variant="tonal" v-tooltip:top="$t('view_item')">{{$t('view_item')}}</v-list-item-title>
               </v-list-item>
               <v-divider></v-divider>
@@ -445,17 +441,14 @@
         let ids = that.items.filter(i => that.items_selected.includes(i.id)).map(e => e.id);
         this.supplier_invoice.delete(ids);
       },
-      editItem: function (item) {
-        console.log("item",item)
-      },
-      viewItem: function (item) {
-        console.log("item",item)
+      viewItem: function (id) { 
+        this.$router.push({
+          name: 'view_supplier_invoice',
+          query: { ids: [id] }
+        })
       },
       deleteItem: function (item) {
         this.supplier_invoice.delete([item.id]);
-      },
-      print_invoice: function (item) {
-        console.log("item",item)
       },
     },
     watch: {

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('sells', function (Blueprint $table) {
             $table->id();
             $table->date("date")->nullable();
-            $table->json("tracking_numbers")->nullable();
+            $table->json("tracking_numbers")->default("[]");
             $table->string("note", 500)->nullable();
 
             $table->decimal("total_price",15,2)->default(0.00);

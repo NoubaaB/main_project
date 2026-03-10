@@ -18,8 +18,8 @@ class AIAssistantController extends Controller
 
     public function __construct()
     {
-        // $this->ai_agent = new GeminiService();
-        $this->ai_agent = new CustomService();
+        $this->ai_agent = new GeminiService();
+        // $this->ai_agent = new CustomService();
     }
 
     public function ask(Request $request)

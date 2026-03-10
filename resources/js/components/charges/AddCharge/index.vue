@@ -28,9 +28,6 @@
         Charge,
         ChargeSummary
       },
-      mounted: function () {
-         if(this.$route.params.id) this._charge.fetchChargeById(this.$route.params.id);  
-      },
       data: function() {
         return {
           form: null,

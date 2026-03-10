@@ -106,13 +106,15 @@ class SupplierInvoiceController extends Controller
         //
         $ids = request()->query('ids');
         $supplier_invoices = SupplierInvoice::findMany($ids);
+        $supplier_invoice_tracking_numbers = [];
         foreach($supplier_invoices as $invoice) {
             // detach invoice_id from related charges
             Charge::whereIn("id", $invoice->charge_ids)->update(['invoice_id' => null]);
             $invoice->delete();
+            $supplier_invoice_tracking_numbers = array_merge($supplier_invoice_tracking_numbers, $invoice->tracking_numbers);
         }
         return response()->json([
-            'message' => 'Supplier Invoices deleted successfully',
+            'supplier_invoice_tracking_numbers' => $supplier_invoice_tracking_numbers,
         ], 200); 
     }
 
@@ -366,5 +368,27 @@ class SupplierInvoiceController extends Controller
         $ids = request()->query('ids');
         $supplier_invoices = SupplierInvoice::findMany($ids);
         return response()->json(["supplier_invoices"=> $supplier_invoices],200);
+    }
+
+    public function undoSupplierInvoiceItem(Charge $charge) {
+        $supplier_invoice = $charge->supplier_invoice;
+        $charge->update(['invoice_id' => null]);
+        $row = DB::table('charges')
+            ->whereIn("id", $charge->supplier_invoice->charge_ids)
+            ->where('allow_invoice', true)
+            ->whereNull('invoice_id')
+            ->selectRaw('COALESCE(SUM(total_price),0) as total_price, COALESCE(SUM(total_weight),0) as total_weight')
+            ->first();
+        if($row->total_price > 0){
+            $supplier_invoice->update([
+                "total_price"=> $row->total_price,
+                "total_weight"=> $row->total_weight,
+            ]);
+        }else{
+            $supplier_invoice->delete();
+        }
+
+        return response()->json(["supplier_invoice_tracking_numbers" => $supplier_invoice->tracking_numbers], 200);
+        
     }
 }

@@ -67,7 +67,7 @@ const routes = [
                                 path: "edit_charge/:id",
                                 keeplive: false,
                                 name: "edit_charge",
-                                component: () => import("@/components/charges/AddCharge/index.vue")
+                                component: () => import("@/components/charges/EditCharge/index.vue")
                             },
                             {
                                 path: "list_charge",

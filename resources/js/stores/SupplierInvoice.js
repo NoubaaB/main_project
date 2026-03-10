@@ -2,19 +2,10 @@ import axios from "axios";
 import { defineStore } from "pinia";
 import i18n  from '@/plugins/i18n';
 import { useMain } from "./Main";
+import { useCharge } from "./Charge";
 import { generateRandomData } from "./RandomData.js";
+import { rest } from "lodash";
 
-let main = useMain();
-let headers = [
-    { align: "center", title: i18n.global.t("date"), key: 'date', visible: true },
-    { align: "center", title: i18n.global.t("truck_id"), key: 'truck_id', visible: true },
-    { align: "center", title: i18n.global.t("tracking_number_short"), key: 'tracking_numbers', visible: true },
-    { align: "center", title: i18n.global.t("charge_category_id_short"), key: 'charge_category_id', visible: true },
-    { align: "center", title: i18n.global.t("stockable"), key: 'stockable', visible: false },
-    { align: "center", title: i18n.global.t("weight_kg"), key: 'total_weight', visible: true },
-    { align: "center", title: i18n.global.t("unit_price_currency", { currency: main.currency }), key: 'unit_price', visible: true },
-    { align: "center", title: i18n.global.t("price_dh", { currency: main.currency }), key: 'total_price', visible: true },
-];
 export const useSupplierInvoice = defineStore("supplierInvoice", {
     state: () => {
         return {
@@ -24,7 +15,8 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             invoices_length: 0,
             is_show: true,
             showAdditionalInfo: false,
-            main: main,
+            main: useMain(),
+            charge: useCharge(),
             list: [],
             model: {
                 name: "",
@@ -50,7 +42,26 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             allow_qr_code:false,
             allow_bg_image:true,
             use_simple_invoice: false,
-            headers: headers,
+            _headers: [
+                    { align: "center", title: i18n.global.t("date"), key: 'date', visible: true },
+                    { align: "center", title: i18n.global.t("truck_id"), key: 'truck_id', visible: true },
+                    { align: "center", title: i18n.global.t("tracking_number_short"), key: 'tracking_numbers', visible: true },
+                    { align: "center", title: i18n.global.t("charge_category_id_short"), key: 'charge_category_id', visible: true },
+                    { align: "center", title: i18n.global.t("stockable"), key: 'stockable', visible: false },
+                    { align: "center", title: i18n.global.t("weight_kg"), key: 'total_weight', visible: true },
+                    { align: "center", title: i18n.global.t("unit_price_currency", { currency: useMain().currency }), key: 'unit_price', visible: true },
+                    { align: "center", title: i18n.global.t("price_dh", { currency: useMain().currency }), key: 'total_price', visible: true },
+                ],
+            headers: [
+                    { align: "center", title: i18n.global.t("date"), key: 'date', visible: true },
+                    { align: "center", title: i18n.global.t("truck_id"), key: 'truck_id', visible: true },
+                    { align: "center", title: i18n.global.t("tracking_number_short"), key: 'tracking_numbers', visible: true },
+                    { align: "center", title: i18n.global.t("charge_category_id_short"), key: 'charge_category_id', visible: true },
+                    { align: "center", title: i18n.global.t("stockable"), key: 'stockable', visible: false },
+                    { align: "center", title: i18n.global.t("weight_kg"), key: 'total_weight', visible: true },
+                    { align: "center", title: i18n.global.t("unit_price_currency", { currency: useMain().currency }), key: 'unit_price', visible: true },
+                    { align: "center", title: i18n.global.t("price_dh", { currency: useMain().currency }), key: 'total_price', visible: true },
+                ],
             items: generateRandomData(3),
             g_items: [],
             selectedYear: new Date().getFullYear(),
@@ -71,13 +82,24 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             })
         },
         delete: async function (ids) {
-            console.log("ids", ids)
             let res = await axios.delete('/api/supplier_invoice', {
                 params: {
                     ids
                 }
             });
+            this.main.add_snackbar({
+                show: true,
+                message: i18n.global.t("delete_suppilier_invoice", { supply_number: res.data.supplier_invoice_tracking_numbers.toString() }),
+                color: "success"
+            });
             this.supplier_invoice_fetch_items = this.supplier_invoice_fetch_items.filter(e => ids.includes(e.id) == false);
+            let charges = this.charge.charge_fetch_items.filter(e => ids.includes(e.invoice_id));
+            console.log("charges", charges)
+            charges.forEach(charge => {
+                    charge.invoice_id = null;
+                    charge.supplier_invoice_tracking_number = [];
+                }
+            );
         },
         update: function (supplierInvoice) {
             console.log("supplierInvoice", supplierInvoice)
@@ -149,7 +171,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
         getList: state => state.list,
         getMinList: state => state.list.map(e => { return { id: e.id, name: e.name } }),
         invoice_headers: (state) => { 
-            return state.g_items.length > 0 ? [...headers, state.grouped_headers] : headers;
+            return state.g_items.length > 0 ? [..._headers, state.grouped_headers] : _headers;
         },
         getHeaders: (state) => {
             return state.headers

@@ -105,6 +105,25 @@
           </v-chip>
         </template>
 
+        <template v-slot:[`item.supplier_invoice_tracking_number`]="{ item }">
+          <v-chip
+            v-for="v in item.supplier_invoice_tracking_number"
+            :key="v"
+            color="brown-darken-1"
+            class="ma-1"
+          >
+            {{ v }}
+          </v-chip>
+          <v-chip
+            v-if="item.supplier_invoice_tracking_number.length == 0"
+            color="brown-darken-1"
+            class="ma-1"
+          >
+            {{ $t("n/a") }}
+          </v-chip>
+          
+        </template>
+
         <template v-slot:[`item.supplier_ids`]="{ item }">
           <template v-if="item.supplier_ids.length>0">
             <v-chip
@@ -196,20 +215,20 @@
             </template>
 
             <v-list slim density="compact" class="my-0 py-0" lines>
-              <v-list-item  prepend-icon="mdi-eye" @click="editItem(item)">
-                <v-list-item-title color="success" size="x-small" variant="tonal" v-tooltip:top="$t('view_item')">{{$t('view_item')}}</v-list-item-title>
+              <v-list-item class="text-green"  prepend-icon="mdi-file-document-check" @click="invoiceItem(item)" v-if="item.invoice_id">
+                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('invoice_item')">{{$t('invoice_item')}}</v-list-item-title>
               </v-list-item>
               <v-divider></v-divider>
-              <v-list-item  prepend-icon="mdi-file-document-check" @click="invoiceItem(item)" v-if="item.invoice_id">
-                <v-list-item-title color="indigo" size="x-small" variant="tonal" v-tooltip:top="$t('invoice_item')">{{$t('invoice_item')}}</v-list-item-title>
+              <v-list-item class="text-red"  prepend-icon="mdi-file-document-remove" @click="undoInvoiceItem(item)" v-if="item.invoice_id">
+                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('invoice_item')">{{$t('undo_invoice_item')}}</v-list-item-title>
               </v-list-item>
               <v-divider></v-divider>
-              <v-list-item  prepend-icon="mdi-pencil" @click="editItem(item)" v-if="item.invoice_id == null">
-                <v-list-item-title color="warning" size="x-small" variant="tonal" v-tooltip:top="$t('edit_item')">{{$t('edit_item')}}</v-list-item-title>
+              <v-list-item class="text-orange" prepend-icon="mdi-pencil" @click="editItem(item)" v-if="item.invoice_id == null">
+                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('edit_item')">{{$t('edit_item')}}</v-list-item-title>
               </v-list-item>
               <v-divider></v-divider>
-              <v-list-item prepend-icon="mdi-delete" @click="editItem(item)" v-if="item.invoice_id == null">
-                <v-list-item-title color="red" size="x-small" variant="tonal" v-tooltip:top="$t('delete_item')">{{$t('delete_item')}}</v-list-item-title>
+              <v-list-item class="text-red" prepend-icon="mdi-delete" @click="deleteItem(item)" v-if="item.invoice_id == null">
+                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('delete_item')">{{$t('delete_item')}}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -285,6 +304,7 @@
             charge_category_id: [],
             tracking_numbers: [],
             tracking_onp_numbers: [],
+            supplier_invoice_tracking_number: [],
             supplier_ids: [],
             truck_ids: [],
             origin_id: [],
@@ -373,6 +393,7 @@
             { align : "center" , title: this.$t("ship"), key: 'ship_id' , visible:true },
             { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
             { align : "center" , title: this.$t("tracking_onp_number_short"), key: 'tracking_onp_numbers' , visible:false },
+            { align : "center" , title: this.$t("supplier_invoice_number_short"), key: 'supplier_invoice_tracking_number' , visible:true },
             { align : "center" , title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
             { align : "center" , title: this.$t("truck_id"), key: 'truck_ids' , visible:true },
             { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
@@ -480,6 +501,9 @@
           name: 'view_supplier_invoice',
           query: { ids: [item.invoice_id] }
         })
+      },
+      undoInvoiceItem: function (item) {
+        this.charge.undoInvoiceItem(item.id);
       },
       viewItem: function (item) {
         console.log("item",item)
