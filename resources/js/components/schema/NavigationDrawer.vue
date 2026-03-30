@@ -4,14 +4,17 @@
       temporary 
       class="mx-auto pa-2">
       <v-sheet
-        class="pa-4"
+        class="pa-4 text-center"
       >
         <v-avatar
           class="mb-4"
-          color="grey-darken-1"
-          size="64"
-          image="/storage/images/user.png"
-        ></v-avatar>
+          color="blue-lighten-5"
+          size="70"
+        >
+          <v-icon size="50" class="auth-animated-title text-center">
+            mdi-account
+          </v-icon>
+        </v-avatar>
 
         <div>john@google.com</div>
       </v-sheet>
@@ -73,10 +76,14 @@
           >
           <div class="d-flex align-center hide-menu">
             <v-avatar
-              color="grey-darken-1"
+              class="mb-4"
+              color="blue-lighten-5"
               size="40"
-              image="/storage/images/user.png"
-            ></v-avatar>
+            >
+              <v-icon size="30" class="auth-animated-title">
+                mdi-account
+              </v-icon>
+            </v-avatar>
             <div class="ml-3 d-block">
               <div class="font-weight-black">
                 {{auth.user.name}}
@@ -156,5 +163,23 @@
 <style lang="scss" scoped>
   .v-list-group__items .v-list-item{
     padding-inline-start: calc(-24px + var(--indent-padding)) !important;
+  }
+  .auth-animated-title {
+    background-color: linear-gradient(
+      270deg,
+      #1565c0,
+      #6dc7ff,
+      #2979ff,
+      #1565c0
+    );
+    background-size: 300% 300%;
+    animation: gradientMove 6s ease-in-out infinite;
+  }
+
+  /* Gradient sweep */
+  @keyframes gradientMove {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 </style>

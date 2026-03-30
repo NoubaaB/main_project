@@ -4,13 +4,13 @@
       <div class="fab-container" aria-hidden="false">
         <v-btn
           class="fab pulse"
-          :style="{ backgroundColor: '#1c9ff8', color: 'white' }"
+          :style="{ backgroundColor: '#6dc7ff47', color: 'white' }"
           rounded
-          elevation="12"
+          elevation="30"
           aria-label="Open assistant"
           @click="toggleAssistant"
         >
-          <v-icon size="28">mdi-robot</v-icon>
+          <v-icon class="auth-animated-title" size="28">mdi-robot</v-icon>
         </v-btn>
       </div>
 
@@ -26,7 +26,7 @@
           :aria-label="$t('ai_assistant')"
         >
           <header class="chat-header my-gradient-div ">
-            <div class="header-left">
+            <div class="header-left text-white">
               <v-icon size="20">mdi-robot</v-icon>
               <div class="header-title">
                 <div class="title">{{$t('assistant')}}</div>
@@ -51,18 +51,19 @@
                 size="x-small"
                 variant="tonal"
                 @click="closeAssistant"
-                :aria-label="'Minimize chat'"
+                :title="$t('minimize_chat')"
                 class="mr-2"
+                color="white"
               >
                 <v-icon>mdi-minus</v-icon>
               </v-btn>
               <v-btn
                 icon
-                color="red"
+                color="amber"
                 size="x-small"
                 variant="tonal"
                 @click="clearAssistantMessage"
-                :aria-label="'Close chat'"
+                :title="$t('clear_messages')"
               >
                 <v-icon>mdi-notification-clear-all</v-icon>
               </v-btn>
@@ -397,8 +398,6 @@ export default {
     justify-content: space-between;
     gap: 12px;
     padding: 12px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    background: linear-gradient(180deg, rgba(25, 118, 210, 0.06), transparent);
   }
   .header-left {
     display: flex;
@@ -551,6 +550,44 @@ export default {
 
   .my-gradient-div {
     /* Use a Vuetify info color and set the end to transparent */
-    background-image: linear-gradient(to bottom, rgba(98, 182, 255, 0.3) 1%, transparent) !important;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1.55rem;
+  letter-spacing: 1px;
+  background: linear-gradient(
+    270deg,
+    #2289ff,
+    #6dc7ff,
+    #619bff,
+    #2085f8
+  );
+  background-size: 300% 300%;
+  animation: gradientMove 6s ease-in-out infinite;
   }
+
+  /* Gradient sweep */
+  @keyframes gradientMove {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+.auth-animated-title {
+  background-color: linear-gradient(
+    270deg,
+    #1565c0,
+    #6dc7ff,
+    #2979ff,
+    #1565c0
+  );
+  background-size: 300% 300%;
+  animation: gradientMove 6s ease-in-out infinite;
+}
+
+/* Gradient sweep */
+@keyframes gradientMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 </style>

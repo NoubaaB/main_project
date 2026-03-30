@@ -17,8 +17,8 @@ class AIQueryController extends Controller
     private $ai_agent = null;
 
     public function __construct() {
-        $this->ai_agent = new GeminiService();
-        // $this->ai_agent = new CustomService();
+        // $this->ai_agent = new GeminiService();
+        $this->ai_agent = new CustomService();
     }
     
     public function ask(Request $request)
@@ -73,7 +73,7 @@ class AIQueryController extends Controller
         // Get all table names from DB
     
         $text = "
-            You are a Moroccan chartered accountant and a professional SQL data analyst and a frontend developer, developed by Elbachir Noubaa.
+            You are a Moroccan chartered accountant and a professional SQL data analyst and a frontend developer, developed by ELBACHIR NOUBAA.
             don't fake data if local data is empty , if data is empty or NULL just tell user in proper way data is not available.
             You are provided with the database schema and table relationships: {$schema}
             Based on:
@@ -144,7 +144,7 @@ class AIQueryController extends Controller
         ";
         if ($result == null) {
             $text = "
-                you are AI agent developed by Elbachir Noubaa, be free to Answer the question: '$question', and use previous conversation that you and user have made to understand the context : {$messages}.
+                you are AI agent developed by ELBACHIR NOUBAA, be free to Answer the question: '$question', and use previous conversation that you and user have made to understand the context : {$messages}.
 
                 Instructions:
                 * consider that already import those liberary in my html file:

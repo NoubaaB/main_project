@@ -13,7 +13,7 @@
                 ></v-app-bar-nav-icon>
 
                 <v-toolbar-title class="text-center" single-line>
-                    <v-btn variant="plain" to="/">
+                    <v-btn class="auth-animated-title" variant="plain" to="/">
                         {{
                             $t("title_logo")
                         }}
@@ -31,6 +31,7 @@
                                 v-bind="props"
                                 icon
                                 class="mt-1 mx-3"
+                                v-if="auth.is_auth"
                             >
                                 <v-badge
                                 v-if="_charge.charges.length > 0"
@@ -283,5 +284,30 @@
 <style>
 .v-input{
     flex:unset;
+}
+.auth-animated-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1.55rem;
+  letter-spacing: 1px;
+  background: linear-gradient(
+    270deg,
+    #1565c0,
+    #6dc7ff,
+    #2979ff,
+    #1565c0
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientMove 6s ease-in-out infinite;
+}
+
+/* Gradient sweep */
+@keyframes gradientMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 </style>

@@ -4,7 +4,6 @@ import i18n  from '@/plugins/i18n';
 import { useMain } from "./Main";
 import { useCharge } from "./Charge";
 import { generateRandomData } from "./RandomData.js";
-import { rest } from "lodash";
 
 export const useSupplierInvoice = defineStore("supplierInvoice", {
     state: () => {
@@ -171,7 +170,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
         getList: state => state.list,
         getMinList: state => state.list.map(e => { return { id: e.id, name: e.name } }),
         invoice_headers: (state) => { 
-            return state.g_items.length > 0 ? [..._headers, state.grouped_headers] : _headers;
+            return state.g_items.length > 0 ? [...state._headers, state.grouped_headers] : state._headers;
         },
         getHeaders: (state) => {
             return state.headers

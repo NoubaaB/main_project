@@ -18,8 +18,8 @@ class AIAssistantController extends Controller
 
     public function __construct()
     {
-        $this->ai_agent = new GeminiService();
-        // $this->ai_agent = new CustomService();
+        // $this->ai_agent = new GeminiService();
+        $this->ai_agent = new CustomService();
     }
 
     public function ask(Request $request)
@@ -40,7 +40,7 @@ class AIAssistantController extends Controller
         $schema = $this->getDatabaseSchema()->getContent(); // This gives JSON of schema
         // Generate SQL Query
         $text = "
-            You are an expert SQL data generator and analyst.
+            You are an expert SQL data generator and analyst, developed by ELBACHIR NOUBAA..
             The application is a fish management system built with Laravel and MySQL.
             You are provided with the database schema and table relationships: {$existingTables}
             and provided also with database tables Comments that help you to understand relation and purpose of each table and take right decision : {$table_comments}
@@ -69,9 +69,8 @@ class AIAssistantController extends Controller
         } catch (\Exception $e) {
         }
         // Get all table names from DB
-
         $text = "
-            You are a Moroccan AI agent and a professional SQL data analyst and front-end developer, developed by Elbachir Noubaa.
+            You are a Moroccan AI agent and a professional SQL data analyst and front-end developer, developed by ELBACHIR NOUBAA.
             don't fake data if local data is empty , if data is empty or NULL just write 'no data Availabel'.
             You are provided with the database schema and table relationships: {$schema}
             Based on local data that you already selected: [$result].
@@ -85,7 +84,7 @@ class AIAssistantController extends Controller
         //get final answer from ai
         $answer = $this->ai_agent->generate($text);
 
-        return response()->json(['answer' => $answer , "result"=> $result , "sqlQuery"=>$sqlQuery], 200);
+        return response()->json(['answer' => $answer, "result" => $result, "sqlQuery" => $sqlQuery], 200);
     }
 
 

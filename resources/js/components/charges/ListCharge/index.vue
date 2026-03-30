@@ -348,11 +348,13 @@
           return [
             {
               name: 'total_price',
+              icon: 'mdi-cash',
               paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] 
               
             },
             {
               name: 'total_weight',
+              icon: 'mdi-weight-kilogram',
               paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations']
             }
           ];

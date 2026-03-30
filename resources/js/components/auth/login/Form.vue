@@ -1,10 +1,23 @@
 <template>
-    <v-card-title class="text-center">
-        {{$t("authentication_form")}}
+  <div class="border-dashed border-sm rounded-lg border-opacity-75 border-info auth-animated-icon pa-1">
+    <v-card-title class="text-center ">
+        <v-row>
+            <v-col class="auth-title-col">
+                <div class="auth-title-wrapper">
+                  <v-icon class="auth-animated-title" size="150">mdi-fingerprint</v-icon>
+                </div>
+            </v-col>
+        </v-row>
+        <v-row class="mb-5">
+            <v-col class="auth-title-col">
+                <div >
+                    <span class="auth-animated-title">{{$t("authentication_form")}}</span>
+                </div>
+            </v-col>
+        </v-row>
     </v-card-title>
 
-    <v-form @submit.prevent="submit">
-        <div class="mx-3 text-subtitle-1 text-medium-emphasis">{{$t('email')}}</div>
+    <v-form @submit.prevent="submit" class="pa-2">
         
         <v-text-field
             v-model="auth.model.email"
@@ -23,7 +36,6 @@
             :label="$t('enter_your_e_mail')"
         ></v-text-field>
 
-        <div class="mx-3 text-subtitle-1 text-medium-emphasis">{{$t('password')}}</div>
 
         <v-text-field
             v-model="auth.model.password"
@@ -63,11 +75,12 @@
         {{ $t("authentication") }}
         </v-btn>
     </v-form>
-    <div class="text-right">
-        <v-chip class="pulse-powered-by-ai" color="info" prepend-icon="mdi-robot" variant="tonal">
-            {{ $t('powered_by_ai') }}
-        </v-chip>
-    </div>
+  </div>
+  <div class="text-right pt-3">
+      <v-chip class="pulse-powered-by-ai" color="info" prepend-icon="mdi-robot" variant="tonal">
+          {{ $t('powered_by_ai') }}
+      </v-chip>
+  </div>
 </template>
 
 <script>
@@ -137,9 +150,77 @@
 </script>
 
 <style lang="scss" scoped>
+
+/* ── Animated Auth Title ── */
+.auth-title-col {
+  padding-top: 12px;
+  padding-bottom: 4px;
+}
+
+.auth-title-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: floatTitle 3s ease-in-out infinite;
+}
+
+.auth-lock-icon {
+  animation: colorShift 6s ease-in-out infinite;
+}
+
+.auth-animated-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1.55rem;
+  letter-spacing: 1px;
+  background: linear-gradient(
+    270deg,
+    #1565c0,
+    #6dc7ff,
+    #2979ff,
+    #1565c0
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientMove 6s ease-in-out infinite;
+}
+
+/* Gradient sweep */
+@keyframes gradientMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Gentle float */
+@keyframes floatTitle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* Icon color cycle */
+@keyframes colorShift {
+  0%   { color: #1565c0; }
+  50%  { color: #0043bf; }
+  100% { color: #1565c0; }
+}
+
+e-col {
+  padding-top: 12px;
+  padding-bottom: 4px;
+}
+
+.auth-animated-icon {
+  background-color: #6dc7ff2d;
+}
+
+/* ── Powered By AI Pulse ── */
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(228, 242, 253, 1);
+    box-shadow: 0 0 0 0 rgba(2, 143, 251, 0.5);
   }
   70% {
     box-shadow: 0 0 0 15px rgba(228, 242, 253, 0);
@@ -149,9 +230,7 @@
   }
 }
 
-/* 2. Style the element and apply the animation */
 .pulse-powered-by-ai {
-  animation: pulse 2s infinite; /* Apply the animation: name, duration, repetition */
+  animation: pulse 2s infinite;
 }
-
 </style>

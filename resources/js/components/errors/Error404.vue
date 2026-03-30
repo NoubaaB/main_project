@@ -4,6 +4,7 @@
     :title="$t('page_not_found')"
     :text="$t('page_not_found_text')"
     image="/storage/images/error-404.png"
+    class="mt-10"
     >
         <template v-slot:actions>
             <v-btn

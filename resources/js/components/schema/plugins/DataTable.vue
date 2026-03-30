@@ -19,6 +19,7 @@
       v-model:expanded="items_expanded" 
       density="compact"
       fixed-header
+      fixed-footer
       height="650"
       :loading="loading"
       :rowProps="rowProps"
@@ -537,7 +538,7 @@
                 <v-autocomplete
                   v-if="filters[col.key] !== undefined"
                   v-model="filters[col.key]"
-                  :items="filterOptions(col.key)"
+                  :items="cachedFilterOptions[col.key] || []"
                   item-title="title"
                   item-value="value"
                   multiple
@@ -578,21 +579,20 @@
                     </v-list-item>
                   </template>
                 </v-autocomplete>
-
                 <v-chip v-else-if="allowed_sigma(col.key)" color="info" class="mt-1 header-total">
                   <v-icon>mdi-sigma</v-icon> =
-                  {{ get_total(col.key) }}
+                  {{ cachedSigma[col.key] || 0 }}
                 </v-chip>
                 <div v-if="invoice_prop == col.key" >
                   <v-chip color="success" class="mt-1 header-total">
                     <v-icon>mdi-sigma</v-icon> =
-                    {{ get_total_invoice() }}
+                    {{ cachedInvoiceTotals.invoiced || 0 }}
                     <v-icon class="ml-1">mdi-printer-check</v-icon>
                   </v-chip>
                   <v-divider class="mt-1"></v-divider>
                   <v-chip color="warning" class="mt-1 header-total">
                     <v-icon>mdi-sigma</v-icon> =
-                    {{ get_total_none_invoice() }}
+                    {{ cachedInvoiceTotals.none_invoiced || 0 }}
                     <v-icon class="ml-1">mdi-printer-pos-cog</v-icon>
                   </v-chip>
                 </div>
@@ -607,7 +607,35 @@
         <slot :name="name" v-bind="slotProps" />
       </template>
     </v-data-table-virtual>
-
+    <v-row class="mr-5 ml-5 mb-5 mt-1 border-dashed border-sm rounded-lg border-opacity-75 border-info auth-animated-icon bg-summary">
+      <v-col class="text-center mx-15" v-for="sigma_col in sigma" :key="sigma_col.name">
+        <div class="text-info">{{$t(sigma_col.name)}}</div>
+        <v-divider class="mt-1" color="light-blue-lighten-1" thickness="1" opacity="0.5" variant="dashed"></v-divider>    
+        <v-chip v-if="allowed_sigma(sigma_col.name)" color="info" class="mt-1 header-total">
+          <v-icon>mdi-sigma</v-icon> =
+          {{ cachedSigma[sigma_col.name] || 0 }}
+          <v-icon class="ml-1">{{sigma_col.icon}}</v-icon>
+        </v-chip>
+      </v-col>
+      <v-col class="text-center mx-15">
+        <div class="text-success">{{$t('invoice')}}</div>
+        <v-divider class="mt-1" color="success" thickness="1" opacity="0.5" variant="dashed"></v-divider>
+        <v-chip color="success" class="mt-1 header-total">
+          <v-icon>mdi-sigma</v-icon> =
+          {{ cachedInvoiceTotals.invoiced || 0 }}
+          <v-icon class="ml-1">mdi-printer-check</v-icon>
+        </v-chip>
+      </v-col>
+      <v-col class="text-center mx-15">
+        <div class="text-warning">{{$t('uninvoiced')}}</div>
+        <v-divider class="mt-1" color="warning" thickness="1" opacity="0.5" variant="dashed"></v-divider>
+        <v-chip color="warning" class="mt-1 header-total">
+          <v-icon>mdi-sigma</v-icon> =
+          {{ cachedInvoiceTotals.none_invoiced || 0 }}
+          <v-icon class="ml-1">mdi-printer-pos-cog</v-icon>
+        </v-chip>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
@@ -726,14 +754,17 @@ export default {
     items_selected_length: function () {
       return this.items_selected.length;
     },
+    items_selected_set: function() {
+      return new Set(this.items_selected);
+    },
     items_selected_details_length : function () {
       if (this.is_neasted) {
-        return this.items.reduce((a, i) => a + (this.items_selected.includes(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
+        return this.items.reduce((a, i) => a + (this.items_selected_set.has(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
       }
       return 0;
     },
     invoices_selected: function () {
-      return this.items.filter(i => this.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id == null).map(i => i.id);
+      return this.items.filter(i => this.items_selected_set.has(i.id)).filter(e => e.allow_invoice && e.invoice_id == null).map(i => i.id);
     },
     invoices_print_selected: function () {
       return this._invoices_print_selected(this)
@@ -906,6 +937,62 @@ export default {
       })
 
       return arr
+    },
+
+    cachedSigma() {
+      const result = {}
+      const sigma_allowed = this.sigma || []
+      const items = this.sortedFilteredItems || []
+      
+      sigma_allowed.forEach(s => {
+        const key = s.name
+        const paths = s.paths || []
+        
+        let total = 0
+        for(let i=0; i<items.length; i++) {
+          let rowTotal = 0
+          for(let p=0; p<paths.length; p++) {
+             const nestedArray = _.get(items[i], paths[p], [])
+             for(let n=0; n<nestedArray.length; n++) {
+                rowTotal += (+nestedArray[n][key] || 0)
+             }
+          }
+          items[i][key] = rowTotal
+          total += rowTotal
+        }
+        result[key] = this.main.formatDisplayNumber(total)
+      })
+      
+      return result
+    },
+
+    cachedInvoiceTotals() {
+      let invoiced = 0
+      let none_invoiced = 0
+      
+      const items = this.processedItems || []
+      for(let i=0; i<items.length; i++) {
+         if (items[i].allow_invoice) {
+            if (items[i].invoice_id != null) invoiced += (+items[i].total_price || 0)
+            else none_invoiced += (+items[i].total_price || 0)
+         }
+      }
+      
+      return {
+         invoiced: this.main.formatDisplayNumber(invoiced),
+         none_invoiced: this.main.formatDisplayNumber(none_invoiced)
+      }
+    },
+
+    cachedFilterOptions() {
+      const result = {}
+      this.headers.forEach(h => {
+         const key = h.key
+         if (this.filters && this.filters[key] !== undefined) {
+            result[key] = this.filterOptions(key)
+         }
+      })
+      return result
     },
 
     pinnedStyleHtml () {
@@ -1519,7 +1606,7 @@ export default {
       this._exportToExcel(this)
     },
     submitToinvoice: function () {
-      let invoices_ids = this.items.filter(i => this.items_selected.includes(i.id))
+      let invoices_ids = this.items.filter(i => this.items_selected_set.has(i.id))
         .filter(e => ('invoice_id' in e) ? e.invoice_id != null : true)
         .map(e => ('invoice_id' in e) ? e.invoice_id : e.id); 
       this.$router.push({
@@ -1539,7 +1626,7 @@ export default {
       return null;
     },
     rowProps: function (item) {
-      if (this.items_selected.find(e=>e == item.item.id)) {
+      if (this.items_selected_set.has(item.item.id)) {
         return {
           style:  {"background-color": "rgba(255, 130, 58, 0.516)"},
         }
@@ -1589,7 +1676,7 @@ export default {
         return
       }
 
-      const selectedParents = this.processedItems.filter(i => this.items_selected.includes(i.id))
+      const selectedParents = this.processedItems.filter(i => this.items_selected_set.has(i.id))
       const DETAIL_PATHS = [
         'warehouse_stockable_tracking_number_operations',
         'non_warehouse_stockable_operations'
@@ -1819,5 +1906,10 @@ th {
 }
 .bg-v-d-t-v{
   background-color: rgba(49, 164, 251, 0.081);
+}
+.bg-summary{
+        background-color: #6fc4f52d;
+        background-image: linear-gradient(#0596f021 1px, transparent 1px), linear-gradient(90deg, #0596f021 1px, transparent 1px);
+        background-size: 20px 20px;
 }
 </style>
