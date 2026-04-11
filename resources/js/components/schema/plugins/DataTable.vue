@@ -13,7 +13,7 @@
       v-model="items_selected"
       :headers="orderedVisibleHeaders"
       :items="sortedFilteredItems"
-      item-key="id"
+      item-value="id"
       show-select
       :show-expand="show_expand"
       v-model:expanded="items_expanded" 
@@ -84,7 +84,7 @@
             </v-btn>
           </v-col>
 
-          <v-col class="text-center" cols="2">
+          <v-col class="text-center" cols="2" v-if="show_invoice">
             <v-btn
               color="amber"
               variant="tonal"
@@ -175,7 +175,7 @@
             </v-autocomplete>
           </v-col>
 
-          <v-col cols="2" v-if="advanced_relations">
+          <v-col cols="2" v-if="advanced_relations && show_invoice">
             <v-autocomplete
               v-model="invoice_filters"
               :items="invoice_filters_items"
@@ -602,8 +602,17 @@
         </tr>
       </template>
 
-      <!-- PASS CUSTOM SLOTS -->
-      <template v-for="(_, name) in $slots" :key="name" v-slot:[name]="slotProps">
+      <!-- ROW SELECT CHECKBOX (built-in, works for all consumers) -->
+      <template v-slot:[`item.data-table-select`]="{ item }">
+        <v-checkbox-btn
+          :model-value="items_selected_set.has(item.id)"
+          color="info"
+          @update:model-value="toggleRowSelect(item.id)"
+        />
+      </template>
+
+      <!-- PASS CUSTOM SLOTS (except data-table-select which is handled above) -->
+      <template v-for="(_, name) in filteredSlots" :key="name" v-slot:[name]="slotProps">
         <slot :name="name" v-bind="slotProps" />
       </template>
     </v-data-table-virtual>
@@ -617,7 +626,7 @@
           <v-icon class="ml-1">{{sigma_col.icon}}</v-icon>
         </v-chip>
       </v-col>
-      <v-col class="text-center mx-15">
+      <v-col class="text-center mx-15" v-if="show_invoice">
         <div class="text-success">{{$t('invoice')}}</div>
         <v-divider class="mt-1" color="success" thickness="1" opacity="0.5" variant="dashed"></v-divider>
         <v-chip color="success" class="mt-1 header-total">
@@ -626,7 +635,7 @@
           <v-icon class="ml-1">mdi-printer-check</v-icon>
         </v-chip>
       </v-col>
-      <v-col class="text-center mx-15">
+      <v-col class="text-center mx-15" v-if="show_invoice">
         <div class="text-warning">{{$t('uninvoiced')}}</div>
         <v-divider class="mt-1" color="warning" thickness="1" opacity="0.5" variant="dashed"></v-divider>
         <v-chip color="warning" class="mt-1 header-total">
@@ -672,7 +681,9 @@ export default {
     fetchData: Function,
     get_invoices_delete_selected_length: Function,
     show_expand: Boolean,
+    allow_invoice: Boolean,
     is_neasted: Boolean,
+    show_invoice: { type: Boolean, default: true },
     PostInvoice: Function,
     delete_items: Function,
     _invoices_print_selected: Function,
@@ -757,11 +768,23 @@ export default {
     items_selected_set: function() {
       return new Set(this.items_selected);
     },
+    filteredSlots: function() {
+      const result = {};
+      for (const name in this.$slots) {
+        if (name !== 'item.data-table-select') {
+          result[name] = this.$slots[name];
+        }
+      }
+      return result;
+    },
     items_selected_details_length : function () {
       if (this.is_neasted) {
         return this.items.reduce((a, i) => a + (this.items_selected_set.has(i.id) ? i.warehouse_stockable_tracking_number_operations.length + i.non_warehouse_stockable_operations.length : 0), 0)
       }
       return 0;
+    },
+    none_invoices_selected: function () {
+      return this.items.filter(i => this.items_selected_set.has(i.id)).filter(e => e.allow_invoice && e.invoice_id == null).map(i => i.id);
     },
     invoices_selected: function () {
       return this.items.filter(i => this.items_selected_set.has(i.id)).filter(e => e.allow_invoice && e.invoice_id == null).map(i => i.id);
@@ -1041,6 +1064,7 @@ export default {
       }
     },
     invoices_selected_length: function () {
+      if(this.allow_invoice == false) return 0;
       if (this.invoices_selected_length) {
         this.invoice.date = moment(_.max(this.invoices_selected.map(e => this.items.find(i=>i.id == e).date))).format("YYYY-MM-DD");
       }
@@ -1113,6 +1137,15 @@ export default {
         this.items_selected_length === this.filteredForSelection.length
           ? []
           : this.filteredForSelection.map(i => i.id)
+    },
+
+    toggleRowSelect(id) {
+      const idx = this.items_selected.indexOf(id);
+      if (idx === -1) {
+        this.items_selected.push(id);
+      } else {
+        this.items_selected.splice(idx, 1);
+      }
     },
 
     get_total(key) {
@@ -1615,7 +1648,7 @@ export default {
       })
     },
     deleteItems: function () {
-      this.delete_items(this);
+      this.delete_items(this.none_invoices_selected);
       this.items_selected = [];
     },
     allowed_sigma(key) {

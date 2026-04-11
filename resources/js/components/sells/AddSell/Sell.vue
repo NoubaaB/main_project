@@ -1,0 +1,987 @@
+<template>
+    <v-card class="ma-auto rounded-lg">
+        <v-card-title>
+          <v-row class="mt-1">
+            <v-col cols="6">
+              <span>
+                <v-autocomplete
+                  v-model="warehouse_category_operation.id"
+                  :items="_sell.unique_warehouse_category_operations_list"
+                  item-value="id"
+                  :item-title="`name_${_main.lang.code}`"
+                  :disabled="is_editing"
+                  :label="$t('warehouse_category_operation')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  color="info"
+                  class="text-info"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        variant="tonal"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item="{ props, item }">
+                      <v-list-item
+                        v-bind="props"
+                        :disabled="is_used_warehouse_category_operation(item.raw.id)"
+                        :title="item.raw[`name_${_main.lang.code}`]"
+                      ></v-list-item>
+                    </template>
+
+                </v-autocomplete>
+              </span>
+            </v-col>
+            <v-col class="text-end">
+              <v-btn
+                class="pa-2"
+                size="small"
+                color="red"
+                icon="mdi-close"
+                variant="outlined"
+                @click="delete_warehouse_category_operation"
+              ></v-btn>
+            </v-col>
+          </v-row>
+        </v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col class="d-flex align-center">
+              <div class="flex-grow-1">
+                <v-divider class="border-opacity-25" color="info"></v-divider>
+              </div>
+              <div class="px-2 d-block text-center">
+                <v-row class="pa-0">
+                  <v-col class="pa-0">
+                    <v-icon class="text-info">{{`mdi-numeric-${number}-circle-outline`}}</v-icon>
+                  </v-col>
+                </v-row>
+                <v-row class="pa-0">
+                  <v-col class="pa-0">
+                    <span>{{$t("add_details")}}</span>
+                  </v-col>
+                </v-row>
+              </div>
+              <div class="flex-grow-1">
+                <v-divider class="border-opacity-25" color="info"></v-divider>
+              </div>
+            </v-col>
+          </v-row>
+          <v-row class="pt-2">
+              <!-- 1. select warehouse (FIRST) -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_warehouse">
+                <v-autocomplete
+                  v-model="sell_detail.warehouse_id"
+                  :items="getWarehouse"
+                  item-value="id"
+                  item-title="name"
+                  :label="$t('warehouse_name')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  class="text-info"
+                  color="info"
+                  :hide-details="v$.sell_detail.warehouse_id.$errors.length==0"
+                  :error-messages="v$.sell_detail.warehouse_id.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.warehouse_id.$touch()"
+                  :loading="stock_loading"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="sell_detail.warehouse_id = null"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </v-col>
+
+              <!-- 2. select Type Article (SECOND — disabled until warehouse selected) -->
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-if="type_detail != null"
+                  v-model="sell_detail.stockable_id"
+                  :items="articles_in_stock"
+                  item-value="id"
+                  :item-title="`name_${_main.lang.code}`"
+                  :label="$t('type_article')"
+                  :disabled="!sell_detail.warehouse_id && ability_warehouse_category_operation?.allow_warehouse"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  :hide-details="v$.sell_detail.stockable_id.$errors.length==0"
+                  :error-messages="v$.sell_detail.stockable_id.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.stockable_id.$touch()"
+                  color="info"
+                  class="text-info"
+                  ref="Sell_focus_input"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="sell_detail.stockable_id = null"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                    <!-- Show stock qty per article in dropdown -->
+                    <template v-slot:item="{ props, item }">
+                      <v-list-item v-bind="props" :title="undefined">
+                        <v-list-item-title class="d-flex align-center">
+                          <span>{{ item.raw[`name_${_main.lang.code}`] }}</span>
+                          <v-spacer></v-spacer>
+                          <v-chip
+                            size="x-small"
+                            color="success"
+                            variant="tonal"
+                            class="ms-2 font-weight-bold"
+                          >
+                            <v-icon start size="12">mdi-package-variant</v-icon>
+                            {{ _main.formatDisplayNumber(getArticleStock(item.raw.id)) }} Kg
+                          </v-chip>
+                        </v-list-item-title>
+                      </v-list-item>
+                    </template>
+                    <!-- Hint when warehouse not selected -->
+                    <template v-slot:no-data>
+                      <v-list-item v-if="!sell_detail.warehouse_id && ability_warehouse_category_operation?.allow_warehouse">
+                        <v-list-item-title class="text-medium-emphasis text-body-2">
+                          <v-icon start size="small" color="warning">mdi-alert-outline</v-icon>
+                          {{ $t('select_warehouse_first') }}
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item v-else>
+                        <v-list-item-title class="text-medium-emphasis text-body-2">
+                          <v-icon start size="small" color="error">mdi-package-variant-remove</v-icon>
+                          {{ $t('no_articles_in_stock') }}
+                        </v-list-item-title>
+                      </v-list-item>
+                    </template>
+                </v-autocomplete>
+                <v-textarea
+                  v-else
+                  color="info"
+                  density="compact"
+                  variant="outlined"
+                  counter="250"
+                  rounded
+                  :label="$t('article_description')"
+                  v-model="sell_detail.stockable_id"
+                  @keydown.enter.prevent="submit"
+                  details
+                  :error-messages="v$.sell_detail.stockable_id.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.stockable_id.$touch()"
+                  class="text-info"
+                  ref="Sell_focus_input"
+                >
+                </v-textarea>
+              </v-col>
+
+              <!-- Stock availability indicator -->
+              <v-col cols="12" v-if="sell_detail.warehouse_id && sell_detail.stockable_id && ability_warehouse_category_operation?.allow_warehouse">
+                <v-alert
+                  v-if="stock_loading"
+                  type="info"
+                  density="compact"
+                  variant="tonal"
+                  rounded="lg"
+                  class="mb-0"
+                >
+                  <v-progress-circular size="16" width="2" indeterminate class="me-2"></v-progress-circular>
+                  {{ $t('loading_stock') }}
+                </v-alert>
+                <v-alert
+                  v-else-if="selected_article_stock !== null"
+                  :type="selected_article_stock > 0 ? 'success' : 'error'"
+                  density="compact"
+                  variant="tonal"
+                  rounded="lg"
+                  class="mb-0"
+                  :icon="selected_article_stock > 0 ? 'mdi-package-variant' : 'mdi-package-variant-remove'"
+                >
+                  <template v-if="selected_article_stock > 0">
+                    <strong>{{ $t('available_in_stock') }}:</strong>
+                    {{ _main.formatDisplayNumber(selected_article_stock) }} Kg
+                    <template v-if="sell_detail.total_weight > 0">
+                      &mdash;
+                      <span :class="weight_exceeds_stock ? 'text-error font-weight-bold' : 'text-success'">
+                        {{ $t('remaining') }}: {{ _main.formatDisplayNumber(remaining_stock) }} Kg
+                      </span>
+                    </template>
+                  </template>
+                  <template v-else>
+                    <strong>{{ $t('out_of_stock') }}</strong>
+                  </template>
+                </v-alert>
+              </v-col>
+              
+              <!-- total_weight -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_weight">
+                <v-text-field
+                  v-model="sell_detail.total_weight"
+                  :label="weightFieldLabel"
+                  type="number"
+                  :min="0"
+                  :max="selected_article_stock > 0 ? selected_article_stock : undefined"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  class="text-info"
+                  :color="weight_exceeds_stock ? 'error' : 'info'"
+                  :hide-details="v$.sell_detail.total_weight.$errors.length==0 && !weight_exceeds_stock"
+                  :error-messages="weight_exceeds_stock ? [$t('exceeds_stock', { qty: _main.formatDisplayNumber(selected_article_stock) })] : v$.sell_detail.total_weight.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.total_weight.$touch()"
+                  >
+                  <template v-slot:append-inner v-if="selected_article_stock > 0 && sell_detail.total_weight > 0">
+                    <v-chip
+                      size="x-small"
+                      :color="weight_exceeds_stock ? 'error' : 'success'"
+                      variant="tonal"
+                    >
+                      {{ Math.round((sell_detail.total_weight / selected_article_stock) * 100) }}%
+                    </v-chip>
+                  </template>
+                </v-text-field>
+              </v-col>
+
+              <!-- unit price -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_price">
+                <v-text-field
+                  v-model="sell_detail.unit_price"
+                  :label="$t('pu') + ' (Dh)'"
+                  type="number"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  class="text-info"
+                  color="info"
+                  :hide-details="v$.sell_detail.unit_price.$errors.length==0"
+                  :error-messages="v$.sell_detail.unit_price.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.unit_price.$touch()"
+                  >
+                </v-text-field>
+              </v-col>
+
+              <!-- total_weight bill -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_weight">
+                <v-text-field
+                  v-model="sell_detail.total_weight_bill"
+                  :label="$t('total_weight_invoice') + ' (Kg)'"
+                  type="number"
+                  min="0"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  class="text-info"
+                  color="info"
+                  :hide-details="v$.sell_detail.total_weight_bill.$errors.length==0"
+                  :error-messages="v$.sell_detail.total_weight_bill.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.total_weight_bill.$touch()"
+                  >
+                </v-text-field>
+              </v-col>
+
+              <!-- total price -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_price">
+                <v-text-field
+                  v-model="sell_detail.total_price"
+                  :label="$t('total_price') + ' (Dh)'"
+                  type="number"
+                  :readonly="!!ability_warehouse_category_operation?.allow_weight"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  class="text-info"
+                  color="info"
+                  :hide-details="v$.sell_detail.total_price.$errors.length==0"
+                  :error-messages="v$.sell_detail.total_price.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.total_price.$touch()"
+                  >
+                </v-text-field>
+              </v-col>
+
+              <!-- select package_type type -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_package_type">
+                <v-autocomplete
+                  v-model="sell_detail.package_type_id"
+                  :items="_sell.getPackages"
+                  item-value="id"
+                  :item-title="`name_${_main.lang.code}`"
+                  :label="$t('package_type')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  class="text-info"
+                  color="info"
+                  :hide-details="v$.sell_detail.package_type_id.$errors.length==0"
+                  :error-messages="v$.sell_detail.package_type_id.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.package_type_id.$touch()"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="sell_detail.package_type_id = null"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </v-col>
+
+              <!-- number of packages -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_package_type">
+                <v-text-field
+                  v-model="sell_detail.total_package_count"
+                  :label="$t('nbr_boxes')"
+                  type="number"
+                  readonly
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  @keydown.enter.prevent="submit"
+                  class="text-info"
+                  color="info"
+                  :hide-details="v$.sell_detail.total_package_count.$errors.length==0"
+                  :error-messages="v$.sell_detail.total_package_count.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.total_package_count.$touch()"                  
+                  >
+                </v-text-field>
+              </v-col>
+
+              <!-- number of Registratio Plate -->
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_detail_truck_id">
+                <v-autocomplete
+                  v-model="sell_detail.truck_ids"
+                  :items="_main.getTrucks.filter(e=>_sell.sell.truck_ids.includes(e.id))"
+                  :rules="[!v$.sell_detail.truck_ids.$invalid ]"
+                  :hide-details="v$.sell_detail.truck_ids.$errors.length==0"
+                  :error-messages="v$.sell_detail.truck_ids.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.truck_ids.$touch()"
+                  item-value="id"
+                  item-title="registration_plate"
+                  multiple
+                  key="id"
+                  :label="$t('truck_id')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  clearable
+                  placeholder="ex :   11111-A-11"
+                  @keydown.enter.prevent="addNewTruck"
+                  color="info"
+                  class="text-info"
+                  :disabled="is_posting_trucks"
+                  :loading="is_posting_trucks"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="info accent-4"
+                        closable
+                        variant="tonal"
+                        @click:close="sell_detail.truck_ids = sell_detail.truck_ids.filter(num => num !== item.value)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </v-col>
+              <v-col>
+                <v-btn
+                  :disabled="v$.$invalid || weight_exceeds_stock"
+                  :color="`${is_editing ? 'amber' : 'green'}`"
+                  variant="tonal"
+                  rounded="pill"
+                  block
+                  @click="submit"
+                >
+                  {{is_editing ? $t("edit_article") : $t("add_article") }}
+                </v-btn>
+              </v-col>
+          </v-row>
+
+            <v-row>
+              <v-data-table-virtual
+                :headers="headers"
+                :items="warehouse_category_operation.sell_details"
+                tabindex="0"
+                item-value="id"
+                density="compact"
+                item-key="id"
+                hover
+                hide-default-footer
+              >
+                <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+                  <tr>
+                    <template v-for="column in columns" :key="column.key">
+                      <th>
+                        <div class="d-flex align-center">
+                          <span
+                            class="me-2 cursor-pointer"
+                            @click="toggleSort(column)"
+                            v-text="column.title"
+                          ></span>
+
+                          <v-icon
+                            v-if="isSorted(column)"
+                            :icon="getSortIcon(column)"
+                            color="medium-emphasis"
+                          ></v-icon>
+
+                          <v-icon
+                            v-if="column.removable"
+                            color="medium-emphasis"
+                            icon="$close"
+                            @click="remove_header(column.key)"
+                          ></v-icon>
+                        </div>
+                      </th>
+                    </template>
+                  </tr>
+                </template>
+
+                <template v-slot:top>
+                  <v-expand-transition>
+                    <div class="my-3" v-if="headers.length < header_initial_length">
+                      <v-btn
+                        rounded="lg"
+                        size="small"
+                        text="Reset"
+                        variant="tonal"
+                        block
+                        color="info"
+                        @click="onClickReset"
+                      ></v-btn>
+
+                      <v-divider></v-divider>
+                    </div>
+                  </v-expand-transition>
+                </template>
+                <!-- Custom select-all checkbox slot -->
+                <template v-slot:[`header.data-table-select`]="{ allSelected, selectAll }">
+                  <v-checkbox
+                    :model-value="allSelected"
+                    @update:model-value="selectAll"
+                    :indeterminate="selected.length > 0 && !allSelected"
+                    color="info"
+                    class="px-0"
+                    hide-details
+                  ></v-checkbox>
+                </template>
+
+                <template v-slot:[`item.actions`]="{ item }">
+                  <div class="d-flex ga-2 justify-end" v-if="item.id != sell_detail.id">
+                    <v-icon color="amber" icon="mdi-pencil" size="small" @click="edit(item.id)"></v-icon>
+
+                    <v-icon color="red" icon="mdi-delete" size="small" @click="remove(item.id)"></v-icon>
+                  </div>
+                </template>
+
+                <template v-slot:[`item.stockable_id`]="{ item }">
+                  <v-chip :color="stockable_color">
+                    {{ _main.getStockableName(item.stockable_id,item.stockable_type) }}
+                  </v-chip>
+                </template>
+                <template v-slot:[`item.total_weight`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.total_weight) }}
+                  </div>
+                </template>
+                <template v-slot:[`item.total_weight_invoice`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.total_weight_bill) }}
+                  </div>
+                </template>
+                <template v-slot:[`item.unit_price`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.unit_price) }}
+                  </div>
+                </template>
+                <template v-slot:[`item.total_price`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{ _main.formatDisplayNumber(item.total_price) }}
+                  </div>
+                </template>
+                <template v-slot:[`item.package_type_id`]="{ item }">
+                  <v-chip color="secondary">
+                    {{ _sell.getPackageName(item.package_type_id) }}
+                  </v-chip>
+                </template>
+                <template v-slot:[`item.total_package_count`]="{ item }">
+                  <div class="font-weight-medium">
+                    {{item.total_package_count}}
+                  </div>
+                </template>
+                <template v-slot:[`item.warehouse_id`]="{ item }">
+                  <v-chip color="indigo">
+                    {{ _main.getWarehouseName(item.warehouse_id) }}
+                  </v-chip>
+                </template>
+                <template v-slot:[`item.truck_ids`]="{ item }">
+                  <v-chip color="indigo" v-if="item.truck_ids.length>0">
+                    {{ _main.getTruckNames(item.truck_ids) }}
+                  </v-chip>
+                  <v-chip :color="_main.not_aviable_color" v-else>
+                    {{ $t('n/a') }}
+                  </v-chip>
+                </template>
+                <template v-slot:no-data>
+                  <div class="text-orange">
+                    <v-icon icon="mdi-database-alert-outline" size="large" class="mx-2"></v-icon>
+                    <span>No data available</span>
+                  </div>
+                </template>
+              </v-data-table-virtual>
+            </v-row>
+        </v-card-text>
+      </v-card>
+</template>
+
+<script>
+    import axios from 'axios';
+    import { v4 as uuidv4 } from 'uuid';
+    import { useSell } from '@/stores/Sell';
+    import { useMain } from '@/stores/Main';
+    import {useWarehouseCategoryOperation} from '@/stores/WarehouseCategoryOperation';
+    import useVuelidate from '@vuelidate/core';
+    import { required, numeric, minLength, requiredIf } from '@vuelidate/validators';
+    import { useFishType } from "@/stores/FishType";
+    import { useTruck } from "@/stores/Truck";
+    import { usePackageType } from "@/stores/PackageType";
+    import { useGuanoType } from "@/stores/GuanoType";
+    
+    export default {
+      props: {
+        warehouse_category_operation: {
+          type: Object,
+          required: true
+        },
+        number: {
+          type: Number,
+          required: true
+        }
+      },
+      data: function () {
+        return {
+          headers: [],
+          selected: [],
+          v$: useVuelidate(),
+          is_editing: false,
+          is_posting_trucks: false,
+          header_initial_length: 0,
+          warehouse_stock: [],
+          stock_loading: false,
+          sell_detail: {
+              id: uuidv4(),
+              total_weight: null,
+              total_weight_bill: null,
+              unit_price: null,
+              total_price: null,
+              total_package_count: null,
+              stockable_id: null,
+              stockable_type: null,
+              warehouse_category_operation_id: null,
+              warehouse_id: null,
+              truck_ids: [],
+              package_type_id: null,
+          },
+          type_detail:null
+        };    
+      },
+      validations: function () {
+        return {
+          sell_detail: {
+              stockable_id: {
+                required,
+              },
+              warehouse_id: {
+                requiredIf: requiredIf(() =>this.ability_warehouse_category_operation?.allow_warehouse),
+                numeric,
+              },
+              truck_ids: {
+                minLength : minLength(0),
+              },
+              total_weight: {
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_weight),
+                numeric,
+              },
+              unit_price: {
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_price),
+                numeric,
+              },
+              total_weight_bill: {
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_weight),
+                numeric,
+              },
+              total_price: {
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_price),
+                numeric,
+              },
+              package_type_id: {
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_package_type),
+                numeric,
+              },
+              total_package_count: {
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_package_type),
+                numeric,
+              }
+          }
+        }
+      },
+      mounted() {
+        this.getTypeDetail()
+        this.init_headers();
+      },
+      computed: {
+        _sell() {
+          return useSell();
+        },
+        _main() {
+          return useMain();
+        },
+        _fish_type() {
+          return useFishType();
+        },
+        _truck() {
+          return useTruck();
+        },
+        _package_type() {
+          return usePackageType();
+        },
+        _guano_type() {
+          return useGuanoType();
+        },
+        _warehouse_category_operation() {
+          return useWarehouseCategoryOperation();
+        },
+        store_warehouse_category_operation: function () {
+          return this._warehouse_category_operation.getList.find(e => e.id == this.warehouse_category_operation.id);
+        },
+        getWarehouse() {
+          return this._sell.getWarehouses.filter(e => e.warehouse_type == this.store_warehouse_category_operation.warehouse_type);
+        },
+        ability_warehouse_category_operation : function(){
+          return this._warehouse_category_operation.getList.find(e => e.id == this.warehouse_category_operation.id);
+        },
+        stockable_color: function () {
+          let warehouse_type = this._warehouse_category_operation.getList.find(e => e.id == this.warehouse_category_operation.id)?.warehouse_type;
+          switch (warehouse_type) {
+            case "PackageType":
+                return "teal";
+            case "FishType":
+                return "info";
+            case "GuanoType":
+                return "brown";
+            default:
+              return "grey";
+          }
+        },
+        selected_article_stock: function () {
+          if (!this.sell_detail.warehouse_id || !this.sell_detail.stockable_id || this.warehouse_stock.length === 0) return null;
+          const stockableType = this.sell_detail.stockable_type;
+          const match = this.warehouse_stock.find(
+            s => s.stockable_id === this.sell_detail.stockable_id && s.stockable_type === stockableType
+          );
+          return match ? match.available_weight : 0;
+        },
+        weight_exceeds_stock: function () {
+          if (this.selected_article_stock === null || this.selected_article_stock <= 0) return false;
+          return +this.sell_detail.total_weight > this.selected_article_stock;
+        },
+        remaining_stock: function () {
+          if (this.selected_article_stock === null || this.selected_article_stock <= 0) return 0;
+          return Math.max(this.selected_article_stock - (+this.sell_detail.total_weight || 0), 0);
+        },
+        articles_in_stock: function () {
+          if (!this.type_detail) return [];
+          // If no warehouse selected or no stock data, show all articles
+          if (!this.sell_detail.warehouse_id || this.warehouse_stock.length === 0) return this.type_detail;
+          // Filter: only articles with available_weight > 0
+          return this.type_detail.filter(article => {
+            const stock = this.getArticleStock(article.id);
+            return stock !== null && stock > 0;
+          });
+        },
+        weightFieldLabel: function () {
+          if (this.selected_article_stock !== null && this.selected_article_stock > 0) {
+            return this.$t('weight') + ' (Kg) — ' + this.$t('stock_available', { qty: this._main.formatDisplayNumber(this.selected_article_stock) });
+          }
+          return this.$t('weight') + ' (Kg)';
+        }
+      },
+      methods:{
+        DEFAULT_HEADERS () {
+          return [
+            { title: this.$t("type_article"), value: 'stockable_id', removable: true ,visible:true },
+            { title: this.$t("weight_(KG)"), value: 'total_weight', removable: true, visible: this.ability_warehouse_category_operation?.allow_weight },
+            { title: this.$t("weight_invoice_(KG)"), value: 'total_weight_bill', removable: true , visible: this.ability_warehouse_category_operation?.allow_weight },
+            { title: this.$t("pu_(DH)",{currency : this._main.currency}), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation?.allow_price },
+            { title: this.$t("total_price_(DH)",{currency : this._main.currency}), value: 'total_price', removable: true , visible: this.ability_warehouse_category_operation?.allow_price },
+            { title: this.$t("package_type"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation?.allow_package_type },
+            { title: this.$t("nbr_caisses"), value: 'total_package_count', removable: true , visible: this.ability_warehouse_category_operation?.allow_package_type },
+            { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.ability_warehouse_category_operation?.allow_warehouse },
+            { title: this.$t("truck_id"), value: 'truck_ids', removable: true , visible: this.ability_warehouse_category_operation?.allow_detail_truck_id },
+            { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false,visible:true }
+          ]
+        },
+        addNewTruck: async function (event) {
+          this.is_posting_trucks = true;
+          let inputValue = event.target.value.trim()
+          if (inputValue && !this.sell_detail.truck_ids.includes(inputValue)) {
+            if (inputValue.search(" ")>0) {
+              let inputs = inputValue.split(" ");
+              await inputs.forEach(async input => {
+                let truck = this._truck.list.find(n => n.registration_plate == input)
+                if (truck == undefined && this.sell_detail.truck_ids.find(n => n == truck?.id) == undefined) {
+                  let truck_id = await this._truck.add(input);
+                  this.is_posting_trucks = false;
+                  this.sell_detail.truck_ids.push(truck_id);
+                  this._sell.sell.truck_ids.push(truck_id);
+                } else if(truck && this.sell_detail.truck_ids.find(n => n != truck?.id)) {
+                  this.sell_detail.truck_ids.push(truck.id);
+                  this._sell.sell.truck_ids.push(truck_id);
+                }
+              })
+            } else {
+              let truck = this._truck.list.find(n => n.registration_plate == inputValue);
+              if (truck == undefined && this.sell_detail.truck_ids.find(n => n == truck?.id) == undefined) {
+                let truck_id = await this._truck.add(inputValue);
+                this.is_posting_trucks = false;
+                this.sell_detail.truck_ids.push(truck_id);
+                this._sell.sell.truck_ids.push(truck_id);
+              } else if (truck && this.sell_detail.truck_ids.find(n => n == truck?.id) == undefined) {
+                this.sell_detail.truck_ids.push(truck.id);
+                this._sell.sell.truck_ids.push(truck_id);
+              }
+            }
+          }
+          this.searchInputTrackingNumbers = "";
+          inputValue = "";
+          event.target.value = '';
+        },
+
+        update: function () {
+          this._sell.update_sell_detail();
+          this.is_editing = false;
+        },
+        remove: function (sell_detail_id) {
+          this._sell.remove_sell_detail(this.warehouse_category_operation.id , sell_detail_id);
+        },
+        submit: function () {
+          this.sell_detail.total_weight = this.sell_detail.total_weight == null ? 0.00 : this.sell_detail.total_weight 
+          this.sell_detail.total_weight_bill = this.sell_detail.total_weight_bill == null ? 0.00 : this.sell_detail.total_weight_bill 
+          this.sell_detail.total_price = this.sell_detail.total_price == null ? 0.00 : this.sell_detail.total_price 
+          this.sell_detail.total_package_count= this.sell_detail.total_package_count== null ? 0.00 : this.sell_detail.total_package_count
+          if (this.is_editing) {
+            this._sell.edit_sell_detail(this.warehouse_category_operation.id , this.sell_detail);
+            this.is_editing = false;
+          } else {
+            this._sell.add_sell_detail(this.warehouse_category_operation.id , this.sell_detail);
+          }
+          this.reset_sell_detail();
+          this.$refs.Sell_focus_input?.focus()
+        },
+        reset_sell_detail: function () {
+          this.sell_detail = {
+              id: uuidv4(),
+              total_weight: null,
+              total_weight_bill: null,
+              unit_price: null,
+              total_price: null,
+              total_package_count: null,
+              stockable_id: null,
+              stockable_type: this.sell_detail.stockable_type,
+              warehouse_category_operation_id: this.warehouse_category_operation.id,
+              warehouse_id: null,
+              truck_ids: [],
+              package_type_id: null,
+          };
+          this.v$.$reset();
+          this.is_editing = false;
+        },
+        edit: function (id) {
+          this.is_editing = true;
+          this.sell_detail = JSON.parse(JSON.stringify(this.warehouse_category_operation.sell_details.find(e => e.id == id)));
+        },
+        onClickReset : function() {
+          this.headers = this.DEFAULT_HEADERS().filter(header => header.visible == true);
+        },
+        remove_header: function (key) {
+          this.headers = this.headers.filter(header => header.value !== key);
+        },
+        delete_warehouse_category_operation: function () {
+          this._sell.delete_warehouse_category_operation(this.warehouse_category_operation);
+        },
+        getTypeDetail: function () {
+          let warehouse_type = this._warehouse_category_operation
+            .getList.find(e => e.id == this.warehouse_category_operation.id)?.warehouse_type;
+          this.sell_detail.warehouse_category_operation_id = this.warehouse_category_operation.id;
+          this.sell_detail.stockable_id = null;
+          this.sell_detail.stockable_type = warehouse_type;
+          switch (warehouse_type) {
+            case "PackageType":
+                this.type_detail = this._package_type.getList;
+                break;
+            case "FishType":
+                this.type_detail = this._fish_type.getList;
+                break;
+            case "GuanoType":
+                this.type_detail = this._guano_type.getList;
+                break;
+            default:
+              this.type_detail = null;
+          }
+        },
+        fetchWarehouseStock: async function (warehouseId) {
+          if (!warehouseId) {
+            this.warehouse_stock = [];
+            return;
+          }
+          this.stock_loading = true;
+          try {
+            const response = await axios.get(`/api/warehouses/${warehouseId}/stock-summary`);
+            this.warehouse_stock = response.data.stock || [];
+          } catch (e) {
+            console.error('Error fetching warehouse stock:', e);
+            this.warehouse_stock = [];
+          }
+          this.stock_loading = false;
+        },
+        getArticleStock: function (stockableId) {
+          if (this.warehouse_stock.length === 0) return null;
+          const stockableType = this.sell_detail.stockable_type;
+          const match = this.warehouse_stock.find(
+            s => s.stockable_id === stockableId && s.stockable_type === stockableType
+          );
+          return match ? match.available_weight : 0;
+        },
+        init_headers: function () {
+          let headers = this.DEFAULT_HEADERS().filter(header => header.visible == true);
+          this.header_initial_length = headers.length;
+          this.headers = headers;
+        },
+        is_used_warehouse_category_operation: function(id){
+          return this._sell.sell.warehouse_category_operations.some(e => e.id == id);
+        },
+        re_caclulate: function () {
+          this.warehouse_category_operation.total_price = +this.warehouse_category_operation.sell_details.reduce((acc, detail) => {
+            return acc + (+detail.total_price || 0);
+          }, 0);
+          this.warehouse_category_operation.total_weight = +this.warehouse_category_operation.sell_details.reduce((acc, detail) => {
+            return acc + (+detail.total_weight || 0);
+          }, 0);
+        },
+        checkTypeInDetails: function () {
+          this.warehouse_category_operation.sell_details.forEach(detail => {
+            detail.stockable_type = this.sell_detail.stockable_type;
+            let type = null;
+            let first = null
+            switch (detail.stockable_type) {
+                case "PackageType":
+                    type = this._sell.getPackages.find(e => e.id == detail.stockable_id);
+                    first = _.first(this._sell.getPackages);
+                    break;
+                case "FishType":
+                    type = this._sell.getFishTypes.find(e => e.id == detail.stockable_id);
+                    first = _.first(this._sell.getFishTypes);                    
+                    break;
+                case "GuanoType":
+                    type = this._sell.getGuanoTypes.find(e => e.id == detail.stockable_id);
+                    first = _.first(this._sell.getPackages);
+                    break;
+                default:
+                  detail.stockable_id = this.$t("add_description");
+                  return;
+            }
+            if (!!type) {
+              detail.stockable_id = type.id;
+            } else {
+              detail.stockable_id = first.id;
+            }
+          });
+        }
+      },
+      watch: {
+        "sell_detail.unit_price": function () {
+          this.sell_detail.unit_price = +this.sell_detail.unit_price;
+          this.sell_detail.total_price = +this.sell_detail.total_weight * this.sell_detail.unit_price;
+          this.re_caclulate();
+        },
+        "sell_detail.total_weight": function (value) {
+          this.sell_detail.total_weight = +value;
+          this.sell_detail.total_weight_bill = +value;
+          this.sell_detail.total_price = +this._main.formatNumber(this.sell_detail.total_weight * this.sell_detail.unit_price);
+          this.re_caclulate();
+        },
+        "sell_detail.total_weight_bill": function (value) {
+          if (this.sell_detail.package_type_id && value > 0) {
+            this.sell_detail.total_package_count = +(value / this._sell.getPackageSize(this.sell_detail.package_type_id,value)).toFixed(1);
+          } else {
+            this.sell_detail.total_package_count = 0;  
+          }
+        },
+        "sell_detail.package_type_id": function (value) {
+          if (this.sell_detail.package_type_id && value > 0) {
+            this.sell_detail.total_package_count = +(this.sell_detail.total_weight_bill / this._sell.getPackageSize(value,this.sell_detail.total_weight_bill)).toFixed(1);
+          } else {
+            this.sell_detail.total_package_count = 0;  
+          }
+        },
+        "sell_detail.warehouse_id": function (newVal, oldVal) {
+          // Reset article selection when warehouse changes
+          if (oldVal !== null && oldVal !== newVal) {
+            this.sell_detail.stockable_id = null;
+          }
+          this.fetchWarehouseStock(newVal);
+        },
+        "warehouse_category_operation.id": {
+          handler: function () {
+            this.getTypeDetail();
+            this.init_headers();
+            this.checkTypeInDetails();
+            // this._sell.disable_used_warehouse_category_operations();
+          },
+          deep: true,
+          immediate: true,
+        }
+      },
+    }
+</script>

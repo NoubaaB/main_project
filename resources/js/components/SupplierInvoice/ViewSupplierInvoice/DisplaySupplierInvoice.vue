@@ -10,7 +10,7 @@
             </v-row>
             <v-row no-gutters class="header-wrap-divided bg-light-blue-lighten-2 ">
                 <v-col cols="4" class="bg-light-blue-darken-4 text-center-h-v pl-3">
-                    <img class="header-img" src="/storage/images/invoice_title.png"/>
+                    <img class="header-img" :src="'/storage/images/invoice_title.png'"/>
                 </v-col>
                 <v-col cols="2" class="bg-light-blue-darken-4 header-cursev-dark">
                     
@@ -84,7 +84,7 @@
         <!-- TITLE -->
         
         <div class="content-wrap">
-            <img class="invoice-body" src="/storage/images/invoice_body.png" v-if="supplierInvoice.allow_bg_image"/>
+            <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="supplierInvoice.allow_bg_image"/>
             <!-- START: Invoice table -->
             <div class="invoice-table-wrap mt-0 pt-0">
                 <div class="table-scroll">

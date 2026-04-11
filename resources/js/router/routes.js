@@ -14,7 +14,7 @@ const routes = [
             }
         ],
     },
-    
+
     {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
@@ -72,8 +72,38 @@ const routes = [
                             {
                                 path: "list_charge",
                                 name: "list_charge",
-                                keeplive:true,
+                                keeplive: true,
                                 component: () => import("@/components/charges/ListCharge/index.vue")
+                            },
+                            {
+                                path: "view_charge/:id",
+                                name: "view_charge",
+                                keeplive: false,
+                                component: () => import("@/components/charges/ViewCharge/index.vue")
+                            },
+                            {
+                                path: "audit_trail/:id",
+                                name: "charge_audit_trail",
+                                keeplive: false,
+                                component: () => import("@/components/charges/AuditTrail/index.vue")
+                            },
+                        ]
+                    },
+                    {
+                        path: '/production',
+                        name: 'production',
+                        children: [
+                            {
+                                path: 'kanban',
+                                name: 'production_kanban',
+                                keeplive: true,
+                                component: () => import('@/components/production/KanbanProduction/index.vue')
+                            },
+                            {
+                                path: 'list',
+                                name: 'production_list',
+                                keeplive: true,
+                                component: () => import('@/components/production/ListProduction/index.vue')
                             },
                         ]
                     },
@@ -84,15 +114,68 @@ const routes = [
                         children: [
                             {
                                 path: "view_supplier_invoice",
-                                keeplive: true,
                                 name: "view_supplier_invoice",
                                 component: () => import("@/components/SupplierInvoice/ViewSupplierInvoice/index.vue")
                             },
                             {
                                 path: "list_supplier_invoice",
                                 name: "list_supplier_invoice",
-                                keeplive: true,
                                 component: () => import("@/components/SupplierInvoice/ListSupplierInvoice/index.vue")
+                            },
+                        ]
+                    },
+                    {
+                        path: "/warehouses",
+                        name: "warehouses",
+                        keeplive: true,
+                        component: () => import("@/components/warehouses/index.vue")
+                    },
+                    {
+                        path: "/inventory",
+                        name: "inventory",
+                        keeplive: true,
+                        component: () => import("@/components/warehouses/Inventory.vue")
+                    },
+                    {
+                        path: "/inventory-history",
+                        name: "inventory_history",
+                        keeplive: true,
+                        component: () => import("@/components/warehouses/InventoryHistory.vue")
+                    },
+                    {
+                        path: "/parameters",
+                        name: "parameters",
+                        children: [
+                            {
+                                path: "warehouse-management",
+                                name: "warehouse_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/WarehouseManagement/index.vue")
+                            },
+                            {
+                                path: "fish-management",
+                                name: "fish_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/FishManagement/index.vue")
+                            },
+                        ]
+                    },
+                    {
+                        path: "/sells",
+                        keeplive: true,
+                        name: "sells",
+                        children: [
+                            {
+                                path: "add_sell",
+                                keeplive: true,
+                                name: "add_sell",
+                                component: () => import("@/components/sells/AddSell/index.vue")
+                            },
+                            {
+                                path: "list_sell",
+                                name: "list_sell",
+                                keeplive: true,
+                                component: () => import("@/components/sells/ListSell/index.vue")
                             },
                         ]
                     },

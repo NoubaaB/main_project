@@ -10,7 +10,7 @@
                   item-value="id"
                   :item-title="`name_${_main.lang.code}`"
                   :disabled="is_editing"
-                  :label="$t('warehouse_category_operation')"
+                  :label="$t('warehouse_detail_category')"
                   chips
                   density="compact"
                   variant="outlined"
@@ -132,7 +132,7 @@
               </v-col>
 
               <!-- select warehouse -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_warehouse">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_warehouse">
                 <v-autocomplete
                   v-model="charge_detail.warehouse_id"
                   :items="getWarehouse"
@@ -167,7 +167,7 @@
               </v-col>
               
               <!-- total_weight -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_weight">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_weight">
                 <v-text-field
                   v-model="charge_detail.total_weight"
                   :label="$t('weight') + ' (Kg)'"
@@ -186,7 +186,7 @@
               </v-col>
 
               <!-- unit price -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_price">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_price">
                 <v-text-field
                   v-model="charge_detail.unit_price"
                   :label="$t('pu') + ' (Dh)'"
@@ -205,7 +205,7 @@
               </v-col>
 
               <!-- total_weight bill -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_weight">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_weight">
                 <v-text-field
                   v-model="charge_detail.total_weight_bill"
                   :label="$t('total_weight_invoice') + ' (Kg)'"
@@ -225,12 +225,12 @@
               </v-col>
 
               <!-- total price -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_price">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_price">
                 <v-text-field
                   v-model="charge_detail.total_price"
                   :label="$t('total_price') + ' (Dh)'"
                   type="number"
-                  :readonly="!!ability_warehouse_category_operation.allow_weight"
+                  :readonly="!!ability_warehouse_category_operation?.allow_weight"
                   density="compact"
                   variant="outlined"
                   rounded
@@ -245,7 +245,7 @@
               </v-col>
 
               <!-- select package_type type -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_package_type">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_package_type">
                 <v-autocomplete
                   v-model="charge_detail.package_type_id"
                   :items="_charge.getPackages"
@@ -280,7 +280,7 @@
               </v-col>
 
               <!-- number of packages -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_package_type">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_package_type">
                 <v-text-field
                   v-model="charge_detail.total_package_count"
                   :label="$t('nbr_boxes')"
@@ -300,7 +300,7 @@
               </v-col>
 
               <!-- number of Registratio Plate -->
-              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation.allow_detail_truck_id">
+              <v-col cols="12" md="6" v-if="ability_warehouse_category_operation?.allow_detail_truck_id">
                 <v-autocomplete
                   v-model="charge_detail.truck_ids"
                   :items="_main.getTrucks.filter(e=>_charge.charge.truck_ids.includes(e.id))"
@@ -546,34 +546,34 @@
                 required,
               },
               warehouse_id: {
-                requiredIf: requiredIf(() =>this.ability_warehouse_category_operation.allow_warehouse),
+                requiredIf: requiredIf(() =>this.ability_warehouse_category_operation?.allow_warehouse),
                 numeric,
               },
               truck_ids: {
                 minLength : minLength(0),
               },
               total_weight: {
-                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_weight),
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_weight),
                 numeric,
               },
               unit_price: {
-                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_price),
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_price),
                 numeric,
               },
               total_weight_bill: {
-                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_weight),
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_weight),
                 numeric,
               },
               total_price: {
-                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_price),
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_price),
                 numeric,
               },
               package_type_id: {
-                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_package_type),
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_package_type),
                 numeric,
               },
               total_package_count: {
-                required: requiredIf(() =>this.ability_warehouse_category_operation.allow_package_type),
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_package_type),
                 numeric,
               }
           }
@@ -632,14 +632,14 @@
         DEFAULT_HEADERS () {
           return [
             { title: this.$t("type_article"), value: 'stockable_id', removable: true ,visible:true },
-            { title: this.$t("weight_(KG)"), value: 'total_weight', removable: true, visible: this.ability_warehouse_category_operation.allow_weight },
-            { title: this.$t("weight_invoice_(KG)"), value: 'total_weight_bill', removable: true , visible: this.ability_warehouse_category_operation.allow_weight },
-            { title: this.$t("pu_(DH)",{currency : this._main.currency}), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
-            { title: this.$t("total_price_(DH)",{currency : this._main.currency}), value: 'total_price', removable: true , visible: this.ability_warehouse_category_operation.allow_price },
-            { title: this.$t("package_type"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
-            { title: this.$t("nbr_caisses"), value: 'total_package_count', removable: true , visible: this.ability_warehouse_category_operation.allow_package_type },
-            { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.ability_warehouse_category_operation.allow_warehouse },
-            { title: this.$t("truck_id"), value: 'truck_ids', removable: true , visible: this.ability_warehouse_category_operation.allow_detail_truck_id },
+            { title: this.$t("weight_(KG)"), value: 'total_weight', removable: true, visible: this.ability_warehouse_category_operation?.allow_weight },
+            { title: this.$t("weight_invoice_(KG)"), value: 'total_weight_bill', removable: true , visible: this.ability_warehouse_category_operation?.allow_weight },
+            { title: this.$t("pu_(DH)",{currency : this._main.currency}), value: 'unit_price', removable: true , visible: this.ability_warehouse_category_operation?.allow_price },
+            { title: this.$t("total_price_(DH)",{currency : this._main.currency}), value: 'total_price', removable: true , visible: this.ability_warehouse_category_operation?.allow_price },
+            { title: this.$t("package_type"), value: 'package_type_id', removable: true , visible: this.ability_warehouse_category_operation?.allow_package_type },
+            { title: this.$t("nbr_caisses"), value: 'total_package_count', removable: true , visible: this.ability_warehouse_category_operation?.allow_package_type },
+            { title: this.$t("warehouse_name"), value: 'warehouse_id', removable: true , visible: this.ability_warehouse_category_operation?.allow_warehouse },
+            { title: this.$t("truck_id"), value: 'truck_ids', removable: true , visible: this.ability_warehouse_category_operation?.allow_detail_truck_id },
             { title: this.$t("actions"), value: 'actions', align: 'end', sortable: false, removable: false,visible:true }
           ]
         },
@@ -742,7 +742,9 @@
                 this.type_detail = this._package_type.getList;
                 break;
             case "FishType":
-                this.type_detail = this._fish_type.getList;
+              let type = this._charge.warehouse_category_operation?.getList?.find(e => e.id == this.warehouse_category_operation.id)?.production_role;
+              console.log("type",type)
+                this.type_detail = this._fish_type.getList.filter(e=>e.type == type);
                 break;
             case "GuanoType":
                 this.type_detail = this._guano_type.getList;

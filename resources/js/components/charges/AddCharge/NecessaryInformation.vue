@@ -491,7 +491,22 @@ export default {
   },
   methods: {
     submit: function () {
-      this._charge.submitCharge();
+      this._charge.submitCharge(this.$router);
+    },
+    getYearPrefix() {
+      const d = this._charge.charge.date;
+      if (!d) return '';
+      const date = new Date(d);
+      const yy = String(date.getFullYear()).slice(-2);
+      return yy;
+    },
+    prefixWithYear(value) {
+      const yy = this.getYearPrefix();
+      if (!yy) return value;
+      const prefix = yy + '-';
+      // Don't double-prefix if it already starts with "YY-"
+      if (value.startsWith(prefix)) return value;
+      return prefix + value;
     },
     addNewTrackingNumber(event) {
       let inputValue = event.target.value.trim()
@@ -499,12 +514,16 @@ export default {
         if (inputValue.search(" ")>0) {
           let inputs = inputValue.split(" ");
           inputs.forEach(input => {
-            if (!this._charge.charge.tracking_numbers.find(n => n == input)) {
-              this._charge.charge.tracking_numbers.push(input)
+            const prefixed = this.prefixWithYear(input);
+            if (!this._charge.charge.tracking_numbers.find(n => n == prefixed)) {
+              this._charge.charge.tracking_numbers.push(prefixed)
             }
           })
         } else {
-          this._charge.charge.tracking_numbers.push(inputValue)
+          const prefixed = this.prefixWithYear(inputValue);
+          if (!this._charge.charge.tracking_numbers.includes(prefixed)) {
+            this._charge.charge.tracking_numbers.push(prefixed)
+          }
         }
       }
       this.searchInputTrackingNumbers = "";
@@ -520,13 +539,18 @@ export default {
         if (inputValue.search(" ")>0) {
           let inputs = inputValue.split(" ");
           inputs.forEach(input => {
-            if (!this._charge.charge.tracking_onp_numbers.find(n => n == input)) {
-              this._charge.charge.tracking_onp_numbers.push(input)
+            const prefixed = this.prefixWithYear(input);
+            if (!this._charge.charge.tracking_onp_numbers.find(n => n == prefixed)) {
+              this._charge.charge.tracking_onp_numbers.push(prefixed)
             }
           })
         } else {
-          this._charge.charge.tracking_onp_numbers.push(inputValue)      }
+          const prefixed = this.prefixWithYear(inputValue);
+          if (!this._charge.charge.tracking_onp_numbers.includes(prefixed)) {
+            this._charge.charge.tracking_onp_numbers.push(prefixed)
+          }
         }
+      }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';

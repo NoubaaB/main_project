@@ -11,8 +11,11 @@ import { useWarehouseCategoryOperation } from "./WarehouseCategoryOperation";
 import { useFishery } from "./Fishery";
 import { useOrigin } from "./Origin";
 import { useChargeCategory } from "./ChargeCategory";
+import { useSellCategory } from "./SellCategory";
+import { useClient } from "./Client";
 import { useFormula } from "./Formula";
 import { useTruck } from "./Truck";
+import { useFishProcessType } from "./FishProcessType";
 export const useAuth = defineStore("Auth", {
   state: () => {
     return {
@@ -38,8 +41,11 @@ export const useAuth = defineStore("Auth", {
       fishery: useFishery(),
       origin: useOrigin(),
       charge_category: useChargeCategory(),
+      sell_category: useSellCategory(),
+      client: useClient(),
       formula: useFormula(),
       truck: useTruck(),
+      fish_process_type: useFishProcessType(),
     };
   },
   actions: {
@@ -76,10 +82,13 @@ export const useAuth = defineStore("Auth", {
       this.warehouse.list = response.data.warehouses;
       this.warehouse_category_operation.list = response.data.warehouse_category_operations;
       this.charge_category.list = response.data.charge_categories;
+      this.sell_category.list = response.data.sell_categories;
+      this.client.list = response.data.clients;
       this.fishery.list = response.data.fisheries;
       this.origin.list = response.data.origins;
       this.formula.list = response.data.formulas;
       this.truck.list = response.data.trucks;
+      this.fish_process_type.list = response.data.fish_process_types || [];
     },
     set_user: function (user) {
       this.user = user;

@@ -13,7 +13,7 @@
             v-model.range="date"
             mode="date"
             :locale="main.lang.short"
-            expanded 
+            expanded
           />
           <div class="text-center mt-3" role="group" aria-label="Date range">
             <!-- Start date chip -->
@@ -125,7 +125,7 @@
           </template>
           <template v-else >
                 <v-chip :color="main.not_aviable_color" class="ma-1">
-                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
+                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }}
                 </v-chip>
           </template>
         </template>
@@ -143,20 +143,12 @@
           </template>
           <template v-else >
                 <v-chip :color="main.not_aviable_color" class="ma-1">
-                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
+                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }}
                 </v-chip>
           </template>
         </template>
 
-        <!-- ROW SELECT -->
-        <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
-          <v-checkbox-btn
-            :model-value="isSelected(internalItem)"
-            color="info"
-            @update:model-value="toggleSelect(internalItem)"
-          />
-        </template>
-        
+
 
         <template v-slot:[`item.total_weight`]="{ item }">
           {{ main.formatDisplayNumber(item.total_weight) }}
@@ -203,7 +195,7 @@
   import { useTruck } from '@/stores/Truck';
   import { useSupplierInvoice } from '@/stores/SupplierInvoice';
   import * as XLSX from 'xlsx';
-    
+
   export default {
       components: {
         DataTable,
@@ -241,8 +233,8 @@
           return [
             {
               name: 'total_price',
-              paths: ['charges'] 
-              
+              paths: ['charges']
+
             },
             {
               name: 'total_weight',
@@ -259,7 +251,7 @@
             truck_ids: { source: this.trucks, label: 'registration_plate' },
           }
         },
-        
+
         headers:function(){
           return [
             { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
@@ -441,7 +433,7 @@
         let ids = that.items.filter(i => that.items_selected.includes(i.id)).map(e => e.id);
         this.supplier_invoice.delete(ids);
       },
-      viewItem: function (id) { 
+      viewItem: function (id) {
         this.$router.push({
           name: 'view_supplier_invoice',
           query: { ids: [id] }

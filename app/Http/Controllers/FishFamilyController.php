@@ -8,58 +8,56 @@ use Illuminate\Http\Request;
 class FishFamilyController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of fish families.
      */
     public function index()
     {
-        //
+        $families = FishFamily::withCount('fish_types')->get();
+        return response()->json(['fish_families' => $families], 200);
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * Store a newly created fish family.
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name_fr' => 'required|string|max:255|unique:fish_families,name_fr',
+            'name_en' => 'required|string|max:255|unique:fish_families,name_en',
+            'name_es' => 'required|string|max:255|unique:fish_families,name_es',
+        ]);
+
+        $family = FishFamily::create($data);
+
+        return response()->json(['fish_family' => $family], 201);
     }
 
     /**
-     * Display the specified resource.
+     * Update the specified fish family.
      */
-    public function show(FishFamily $fishFamily)
+    public function update(Request $request, $id)
     {
-        //
+        $family = FishFamily::findOrFail($id);
+
+        $data = $request->validate([
+            'name_fr' => 'required|string|max:255|unique:fish_families,name_fr,' . $id,
+            'name_en' => 'required|string|max:255|unique:fish_families,name_en,' . $id,
+            'name_es' => 'required|string|max:255|unique:fish_families,name_es,' . $id,
+        ]);
+
+        $family->update($data);
+
+        return response()->json(['fish_family' => $family], 200);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Remove the specified fish family.
      */
-    public function edit(FishFamily $fishFamily)
+    public function destroy($id)
     {
-        //
-    }
+        $family = FishFamily::findOrFail($id);
+        $family->delete();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, FishFamily $fishFamily)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(FishFamily $fishFamily)
-    {
-        //
+        return response()->json(['message' => 'Fish family deleted'], 200);
     }
 }

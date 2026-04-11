@@ -38,6 +38,10 @@ class NonWarehouseStockableOperation extends Model
         return $this->belongsTo(Charge::class);
     }
 
+    function sell() : BelongsTo {
+        return $this->belongsTo(\App\Models\Sell::class);
+    }
+
     //can be FishType or GuanoType or PackageType
     function stockable() : MorphTo {
         return $this->morphTo();

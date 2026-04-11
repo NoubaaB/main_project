@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\WarehouseStockable;
 use App\Models\WarehouseCategory;
+use App\Models\WarehouseSejourRate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,6 +23,8 @@ class Warehouse extends Model
         'total_price'  => 'float',
         'total_weight' => 'float',
         'total_package_count' => 'float',
+        'has_sejour' => 'boolean',
+        'operation_service_fee' => 'float',
     ];
 
     function warehouse_stockables() : HasMany {
@@ -30,6 +33,10 @@ class Warehouse extends Model
 
     function warehouse_category() : BelongsTo {
         return $this->belongsTo(WarehouseCategory::class);
+    }
+
+    function sejour_rates() : HasMany {
+        return $this->hasMany(WarehouseSejourRate::class)->orderBy('start_date');
     }
 
     function calc() : array {

@@ -8,7 +8,10 @@ use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\PackageType;
 use App\Models\FishType;
+use App\Models\FishProcessType;
 use App\Models\ChargeCategory;
+use App\Models\SellCategory;
+use App\Models\Client;
 use App\Models\FishFamily;
 use App\Models\Formula;
 use App\Models\GuanoType;
@@ -208,18 +211,24 @@ class AuthController extends Controller implements HasMiddleware
         $fisheries = Fishery::all();
         $origins = Origin::all();
         $charge_categories = ChargeCategory::all();
+        $sell_categories = SellCategory::all();
+        $clients = Client::all();
         $warehouse_category_operations = WarehouseCategoryOperation::all();
         $formulas = Formula::all();
         $trucks = Truck::all();
+        $fish_process_types = FishProcessType::all();
         return [
             "suppliers" => $suppliers,
             "ships" => $ships,
             "fish_types" => $fish_types,
             "fish_families" => $fish_families,
+            "fish_process_types" => $fish_process_types,
             "package_types" => $package_types,
             "guano_types" => $guano_types,
             "warehouses" => $warehouses,
             "charge_categories" => $charge_categories,
+            "sell_categories" => $sell_categories,
+            "clients" => $clients,
             "warehouse_category_operations" => $warehouse_category_operations,
             "fisheries" => $fisheries,
             "origins" => $origins,

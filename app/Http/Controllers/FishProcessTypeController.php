@@ -8,58 +8,56 @@ use Illuminate\Http\Request;
 class FishProcessTypeController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of fish process types with fish_types count.
      */
     public function index()
     {
-        //
+        $processTypes = FishProcessType::withCount('fish_types')->get();
+        return response()->json(['fish_process_types' => $processTypes], 200);
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * Store a newly created fish process type (used by autocomplete create-on-enter).
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:fish_process_types,name',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $processType = FishProcessType::create($data);
+        $processType->loadCount('fish_types');
+
+        return response()->json(['fish_process_type' => $processType], 201);
     }
 
     /**
-     * Display the specified resource.
+     * Update the specified fish process type.
      */
-    public function show(FishProcessType $fishProcessType)
+    public function update(Request $request, $id)
     {
-        //
+        $processType = FishProcessType::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:fish_process_types,name,' . $id,
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $processType->update($data);
+        $processType->loadCount('fish_types');
+
+        return response()->json(['fish_process_type' => $processType], 200);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Remove the specified fish process type.
      */
-    public function edit(FishProcessType $fishProcessType)
+    public function destroy($id)
     {
-        //
-    }
+        $processType = FishProcessType::findOrFail($id);
+        $processType->delete();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, FishProcessType $fishProcessType)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(FishProcessType $fishProcessType)
-    {
-        //
+        return response()->json(['message' => 'Fish process type deleted'], 200);
     }
 }

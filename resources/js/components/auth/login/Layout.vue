@@ -5,7 +5,7 @@
                 <v-row>
                     <v-col class="text-center">
                         <v-img
-                            alt="login image"
+                            :alt="$t('login_image')"
                             class="hidden-xs"
                             src="/storage/images/login.svg"
                         ></v-img>

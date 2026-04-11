@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Charge;
+use App\Models\ChargeAuditLog;
 use App\Models\FishType;
 use App\Models\GuanoType;
 use App\Models\PackageType;
@@ -12,6 +13,7 @@ use App\Models\Warehouse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class ChargeController extends Controller
@@ -21,7 +23,7 @@ class ChargeController extends Controller
     {
 
         $modelClass = 'App\\Models\\' . Str::studly($stockable_type);
-        if (! class_exists($modelClass)) {
+        if (!class_exists($modelClass)) {
             return false;
         }
 
@@ -34,12 +36,12 @@ class ChargeController extends Controller
     public function show(Charge $charge)
     {
         //
-        return response()->json(["charge"=>$charge->load(['suppliers', 'non_warehouse_stockable_operations', 'warehouse_stockable_tracking_number_operations'])], 200);
+        return response()->json(["charge" => $charge->load(['suppliers', 'non_warehouse_stockable_operations', 'warehouse_stockable_tracking_number_operations'])], 200);
     }
 
     public function charge(Request $request)
     {
-        $data  = $request->validate([
+        $data = $request->validate([
             'date' => 'required|date',
             'tracking_numbers' => 'required|array',
             'tracking_numbers.*' => 'string|max:50',
@@ -48,8 +50,7 @@ class ChargeController extends Controller
             'note' => 'string|max:500|nullable',
             'fishery_id' => 'required|exists:fisheries,id',
             'origin_id' => 'required|exists:origins,id',
-            'truck_ids' => 'sometimes|array',
-            'truck_ids' => 'sometimes|exists:trucks,id',
+            'truck_ids' => 'sometimes|array|exists:trucks,id',
             'charge_category_id' => 'required|exists:charge_categories,id',
             'supplier_ids' => 'required|array',
             'supplier_ids.*' => 'exists:suppliers,id',
@@ -57,8 +58,7 @@ class ChargeController extends Controller
             'warehouse_category_operations.*.id' => 'required|exists:warehouse_category_operations,id',
             'warehouse_category_operations.*.charge_details.*' => 'array',
             'warehouse_category_operations.*.charge_details.*.warehouse_category_operation_id' => 'required|exists:warehouse_category_operations,id',
-            'warehouse_category_operations.*.charge_details.*.truck_ids' => 'sometimes|array',
-            'warehouse_category_operations.*.charge_details.*.truck_ids' => 'sometimes|exists:trucks,id',
+            'warehouse_category_operations.*.charge_details.*.truck_ids' => 'sometimes|array|exists:trucks,id',
             'warehouse_category_operations.*.charge_details.*.total_weight' => 'nullable|numeric|min:0',
             'warehouse_category_operations.*.charge_details.*.total_weight_bill' => 'nullable|numeric|min:0',
             'warehouse_category_operations.*.charge_details.*.total_price' => 'nullable|numeric|min:0',
@@ -79,32 +79,48 @@ class ChargeController extends Controller
             'fishery_id' => $data['fishery_id'],
             'origin_id' => $data['origin_id'],
             'charge_category_id' => $data['charge_category_id'],
+            'created_by' => Auth::id(),
+            'updated_by' => Auth::id(),
         ]);
-        if(isset($data["truck_ids"])){
+
+        // Audit log: created
+        ChargeAuditLog::create([
+            'charge_id' => $charge->id,
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user()->name ?? 'System',
+            'action' => 'created',
+            'changes' => [
+                'date' => ['old' => null, 'new' => $charge->date?->format('Y-m-d')],
+                'tracking_numbers' => ['old' => null, 'new' => $charge->tracking_numbers],
+                'tracking_onp_numbers' => ['old' => null, 'new' => $charge->tracking_onp_numbers],
+                'note' => ['old' => null, 'new' => $charge->note],
+            ],
+        ]);
+        if (isset($data["truck_ids"])) {
             $charge->trucks()->attach($data['truck_ids']);
         }
 
         // ✅ 2. Create warehouse_category_operations children (details)
         if (isset($data['warehouse_category_operations'])) {
             foreach ($data['warehouse_category_operations'] as $warehouse_category_operation) {
-                if(isset($warehouse_category_operation["charge_details"])){
+                if (isset($warehouse_category_operation["charge_details"])) {
                     foreach ($warehouse_category_operation["charge_details"] as $charge_detail) {
-                        $truck_ids=[];
-                        if(isset($charge_detail["truck_ids"])){
+                        $truck_ids = [];
+                        if (isset($charge_detail["truck_ids"])) {
                             $truck_ids = $charge_detail["truck_ids"];
                             unset($charge_detail["truck_ids"]);
                         }
-                        if($charge_detail["warehouse_id"] == null){
+                        if ($charge_detail["warehouse_id"] == null) {
                             unset($charge_detail["warehouse_id"]);
                             $non_warehouse_stockable_operation = $charge->non_warehouse_stockable_operations()->create($charge_detail);
-                            if(count($truck_ids)>0){
+                            if (count($truck_ids) > 0) {
                                 $non_warehouse_stockable_operation->trucks()->attach($truck_ids);
                             }
-                        }else{
+                        } else {
                             $warehouse = Warehouse::find($charge_detail["warehouse_id"]);
-                            $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class, GuanoType::class , PackageType::class], fn($query) => $query->where('stockable_id', $charge_detail["stockable_id"]))
+                            $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [FishType::class, GuanoType::class, PackageType::class], fn($query) => $query->where('stockable_id', $charge_detail["stockable_id"]))
                                 ->first();
-    
+
                             if (isset($warehouse_stockable) == false) {
                                 $warehouse_stockable = $warehouse->warehouse_stockables()->create([
                                     "unit_price" => 0.00,
@@ -116,7 +132,7 @@ class ChargeController extends Controller
                                     "stockable_type" => $charge_detail["stockable_type"]
                                 ]);
                             }
-    
+
                             $warehouse_stockable_tracking_number = null;
                             if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data["tracking_numbers"])->count() != 1) {
                                 $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data["tracking_numbers"]);
@@ -129,12 +145,12 @@ class ChargeController extends Controller
                                 "total_package_count" => 0.00,
                                 "warehouse_stockable_id" => $warehouse_stockable->id,
                             ]);
-    
-                            $stockable = $this->passes($charge_detail['stockable_type'], $charge_detail['stockable_id']) ;
+
+                            $stockable = $this->passes($charge_detail['stockable_type'], $charge_detail['stockable_id']);
                             $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
                                 "type_operation" => "in",
                                 "date" => $charge->date,
-                                "unit_price" => $charge_detail['unit_price'],
+                                "unit_price" => isset($charge_detail['unit_price']) ? $charge_detail['unit_price'] : 0,
                                 "total_weight" => $charge_detail['total_weight'],
                                 "total_price" => $charge_detail['total_price'],
                                 "stockable_type" => $charge_detail["stockable_type"],
@@ -167,7 +183,21 @@ class ChargeController extends Controller
             ->with(['suppliers', 'non_warehouse_stockable_operations', 'warehouse_stockable_tracking_number_operations'])
             ->orderBy("date")->get();
         $tracking_numbers = SupplierInvoice::generateNextTrackingNumbers();
-        return response()->json(["charges" => $charges, "tracking_numbers"=> $tracking_numbers], 200);
+        return response()->json(["charges" => $charges, "tracking_numbers" => $tracking_numbers], 200);
+    }
+
+    public function get_production_charges(): JsonResponse
+    {
+        $date_start = request()->query('date_start');
+        $date_end   = request()->query('date_end');
+
+        $charges = Charge::whereBetween('date', [$date_start, $date_end])
+            ->whereHas('charge_category', fn($q) => $q->where('is_production', true))
+            ->with(['suppliers', 'charge_category', 'non_warehouse_stockable_operations', 'warehouse_stockable_tracking_number_operations'])
+            ->orderBy('date')
+            ->get();
+
+        return response()->json(["charges" => $charges], 200);
     }
 
     /**
@@ -175,9 +205,26 @@ class ChargeController extends Controller
      */
     public function destroy(Charge $charge)
     {
-        //
         $ids = request()->query('ids');
         $status = Charge::whereIn("id", $ids)->delete();
         return response()->json(["message" => $status ? "Deleted successfully" : "No records deleted"], 200);
+    }
+
+    /**
+     * Get audit trail for a specific charge.
+     */
+    public function getAuditLogs(Charge $charge): JsonResponse
+    {
+        $logs = $charge->audit_logs()->get();
+        return response()->json([
+            'charge' => [
+                'id' => $charge->id,
+                'date' => $charge->date?->format('Y-m-d'),
+                'tracking_numbers' => $charge->tracking_numbers,
+                'created_by_name' => $charge->created_by_name,
+                'created_at' => $charge->created_at,
+            ],
+            'logs' => $logs,
+        ], 200);
     }
 }

@@ -3,63 +3,66 @@
 namespace App\Http\Controllers;
 
 use App\Models\WarehouseCategory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class WarehouseCategoryController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * GET /api/warehouse-categories
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        //
+        $categories = WarehouseCategory::withCount('warehouse')->get();
+        return response()->json(['categories' => $categories], 200);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * POST /api/warehouse-categories
      */
-    public function create()
+    public function store(Request $request): JsonResponse
     {
-        //
+        $data = $request->validate([
+            'name' => 'required|string|max:50|unique:warehouse_categories,name',
+            'description' => 'nullable|string|max:250',
+        ]);
+
+        $category = WarehouseCategory::create($data);
+
+        return response()->json([
+            'message' => 'Category created successfully',
+            'category' => $category,
+        ], 201);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * PUT /api/warehouse-categories/{id}
      */
-    public function store(Request $request)
+    public function update(Request $request, $id): JsonResponse
     {
-        //
+        $category = WarehouseCategory::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:50|unique:warehouse_categories,name,' . $category->id,
+            'description' => 'nullable|string|max:250',
+        ]);
+
+        $category->update($data);
+
+        return response()->json([
+            'message' => 'Category updated successfully',
+            'category' => $category->fresh(),
+        ], 200);
     }
 
     /**
-     * Display the specified resource.
+     * DELETE /api/warehouse-categories/{id}
      */
-    public function show(WarehouseCategory $warehouseCategory)
+    public function destroy($id): JsonResponse
     {
-        //
-    }
+        $category = WarehouseCategory::findOrFail($id);
+        $category->delete();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(WarehouseCategory $warehouseCategory)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, WarehouseCategory $warehouseCategory)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(WarehouseCategory $warehouseCategory)
-    {
-        //
+        return response()->json(['message' => 'Category deleted successfully'], 200);
     }
 }

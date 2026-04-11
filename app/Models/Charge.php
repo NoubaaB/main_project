@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ChargeAuditLog;
 use App\Models\ChargeCategory;
 use App\Models\Fishery;
 use App\Models\NonWarehouseStockableOperation;
@@ -10,6 +11,7 @@ use App\Models\Ship;
 use App\Models\Supplier;
 use App\Models\SupplierInvoice;
 use App\Models\Truck;
+use App\Models\User;
 use App\Models\WarehouseStockableTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,7 +34,7 @@ class Charge extends Model
 
     protected $hidden = ['trucks'];
 
-    protected $appends = ['supplier_ids','truck_ids', 'supplier_invoice_tracking_number'];
+    protected $appends = ['supplier_ids','truck_ids', 'supplier_invoice_tracking_number', 'created_by_name', 'audit_logs_count'];
 
     protected $casts = [
         'date' => 'date:Y-m-d',
@@ -98,6 +100,18 @@ class Charge extends Model
         return $this->belongsTo(Supplier::class, 'supplier_process_id'); 
     }
 
+    function creator() : BelongsTo {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    function updater() : BelongsTo {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    function audit_logs() : HasMany {
+        return $this->hasMany(ChargeAuditLog::class)->orderByDesc('created_at');
+    }
+
     function supplier_invoice() : BelongsTo {
         return $this->belongsTo(SupplierInvoice::class, "invoice_id");
     }
@@ -119,6 +133,16 @@ class Charge extends Model
             return Attribute::get(fn() => json_decode($supplier_invoice_tracking_number->tracking_numbers, true));
         }
         return Attribute::get(fn() => []);
+    }
+
+    protected function createdByName(): Attribute
+    {
+        return Attribute::get(fn() => $this->creator?->name ?? null);
+    }
+
+    protected function auditLogsCount(): Attribute
+    {
+        return Attribute::get(fn() => $this->audit_logs()->count());
     }
 
     //private functions

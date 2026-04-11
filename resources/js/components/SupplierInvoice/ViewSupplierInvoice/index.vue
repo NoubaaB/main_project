@@ -2,10 +2,10 @@
   <v-row>
     <v-col>
       <div id="invoice" class="invoice-width">
-        <SupplierInvoice 
-        v-for="supplier_invoice in supplier_invoices" 
-        :key="supplier_invoice.id" 
-        :supplier_invoice_data="supplier_invoice" 
+        <SupplierInvoice
+        v-for="supplier_invoice in supplier_invoices"
+        :key="supplier_invoice.id"
+        :supplier_invoice_data="supplier_invoice"
         />
       </div>
     </v-col>
@@ -26,6 +26,9 @@
           supplier_invoices : []
         }
       },
+      activated:function(){
+        this.get_supplier_invoices();
+      },
       mounted:function(){
         this.get_supplier_invoices();
       },
@@ -33,7 +36,8 @@
         supplierInvoice: () => useSupplierInvoice(),
       },
       methods:{
-        get_supplier_invoices: async function () {
+          get_supplier_invoices: async function () {
+                      console.log("this.$route.query.ids",this.$route.query.ids)
           let data = await this.supplierInvoice.getSupplierInvoicesByIds(this.$route.query.ids)
           this.supplier_invoices = data;
         },

@@ -10,12 +10,15 @@ import { useWarehouse } from "./Warehouse";
 import { useChargeCategory } from "./ChargeCategory";
 import { useSupplier } from "./Supplier";
 import { useTruck } from "./Truck";
+import { useSellCategory } from "./SellCategory";
+import { useClient } from "./Client";
 import i18n  from '@/plugins/i18n';
 
 export const useMain = defineStore("main", {
     state: () => {
         return {
             menu_drawer: false,
+            sidebar_mini: false,
             command_drawer: false,
             not_aviable_color: "grey",
             currency: "Dh",
@@ -66,6 +69,7 @@ export const useMain = defineStore("main", {
             warehouse: useWarehouse(),
             charge_category: useChargeCategory(),
             supplier: useSupplier(),
+            client: useClient(),
             truck: useTruck(),
             snackbar: {
                 action_command:false,
@@ -90,7 +94,7 @@ export const useMain = defineStore("main", {
             //initialize the charge store with data from localStorage
             let charge = localStorage.getItem("charge") || '{}';
             if (charge == '{}') {
-                this.charge.add_charge();  
+                this.charge.add_charge();
             } else {
                 Object.assign(this.charge.charge, JSON.parse(charge));
             }
@@ -98,7 +102,7 @@ export const useMain = defineStore("main", {
             //initialize the charges store with data from localStorage
             let charges = localStorage.getItem("charges") || '[]';
             this.charge.charges = JSON.parse(charges);
-            
+
             //other settings
             this.charge.input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
             this.charge.showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
@@ -114,7 +118,7 @@ export const useMain = defineStore("main", {
                 return res.data
             } catch (err) {
                 console.error(`Error fetching ${api_url}`, err)
-            } 
+            }
         },
         formatNumber: function (num) {
             if (isNaN(num) || num === null || num === undefined) {
@@ -138,7 +142,7 @@ export const useMain = defineStore("main", {
                         .join('-')
                 )
                 .join(' ');
-  
+
         },
         formatDisplayNumber: function (num) {
             if (isNaN(num) || num === null || num === undefined) {
@@ -215,9 +219,17 @@ export const useMain = defineStore("main", {
             const charge_category = this.getChargeCataegories.find(charge_category => charge_category.id === charge_category_id);
             return charge_category ? charge_category[`name_${this.lang.code}`] : i18n.global.t("n/a");
         },
+        getSellCategoryName: function (sell_category_id) {
+            const sell_category = this.getSellCataegories.find(sell_category => sell_category.id === sell_category_id);
+            return sell_category ? sell_category[`name_${this.lang.code}`] : i18n.global.t("n/a");
+        },
         getSupplierName: function (supplier_id) {
             const supplier = this.getSuppliers.find(supplier => supplier.id === supplier_id);
             return supplier ? supplier.name : i18n.global.t("n/a");
+        },
+        getClientName: function (client_id) {
+            const client = this.getClients.find(client => client.id === client_id);
+            return client ? client.name : i18n.global.t("n/a");
         },
         getSupplierAddress: function (supplier_id) {
             const supplier = this.getSuppliers.find(supplier => supplier.id === supplier_id);
@@ -245,11 +257,11 @@ export const useMain = defineStore("main", {
         getClassificationColor: function (stockable_type) {
             switch (stockable_type) {
                 case "FishType":
-                    return "blue";            
+                    return "blue";
                 case "GuanoType":
-                    return "gray";            
+                    return "gray";
                 case "PackageType":
-                    return "green";            
+                    return "green";
                 default:
                     "grey"
                     return;
@@ -285,8 +297,14 @@ export const useMain = defineStore("main", {
         getSuppliers: (state) => {
             return state.supplier.getList;
         },
+        getClients: (state) => {
+            return state.client.getList;
+        },
         getChargeCataegories: (state) => {
             return state.charge_category.getList;
+        },
+        getSellCataegories: (state) => {
+            return state.sell_category.getList;
         },
         getFishTypes: (state) => {
             return state.fish_type.getList;

@@ -59,6 +59,7 @@
      :advanced_filters="advanced_filters"
      :advanced_filters_keys="advanced_filters_keys"
      :invoicer="suppliers"
+     :allow_invoice="allow_invoice"
      :invoice="charge.invoice"
      :invoicer_name_prop="invoicer_name_prop"
      :select_invoicer="select_invoicer"
@@ -192,46 +193,101 @@
           {{ main.formatDisplayNumber(item.total_price) }}
         </template>
         
-        <!-- ROW SELECT -->
-        <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
-          <v-checkbox-btn
-            :model-value="isSelected(internalItem)"
-            color="info"
-            @update:model-value="toggleSelect(internalItem)"
-          />
-        </template>
+
 
         <template v-slot:[`item.actions`]="{ item }">
-          <v-menu location="bottom" transition="scale-transition">
-            <template v-slot:activator="{ props }">
-              <v-btn
-                icon="mdi-dots-vertical"
-                size="x-small"
-                variant="outlined"
-                color="info"
-                v-bind="props"
-              ></v-btn>
+          <div class="d-flex align-center ga-1">
+            <!-- Audit trail icon -->
+            <v-btn
+              icon
+              size="x-small"
+              variant="tonal"
+              :color="item.audit_logs_count > 0 ? 'warning' : 'grey'"
+              :disabled="item.audit_logs_count === 0"
+              @click="viewAuditTrail(item)"
+              class="vc-action-btn"
+              :title="$t('audit_trail')"
+            >
+              <v-icon size="16">mdi-history</v-icon>
+            </v-btn>
 
-            </template>
+            <v-menu location="bottom end" transition="scale-transition" :close-on-content-click="true">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  icon="mdi-dots-vertical"
+                  size="x-small"
+                  variant="tonal"
+                  color="info"
+                  v-bind="props"
+                  class="vc-action-btn"
+                ></v-btn>
+              </template>
 
-            <v-list slim density="compact" class="my-0 py-0" lines>
-              <v-list-item class="text-green"  prepend-icon="mdi-file-document-check" @click="invoiceItem(item)" v-if="item.invoice_id">
-                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('invoice_item')">{{$t('invoice_item')}}</v-list-item-title>
-              </v-list-item>
-              <v-divider></v-divider>
-              <v-list-item class="text-red"  prepend-icon="mdi-file-document-remove" @click="undoInvoiceItem(item)" v-if="item.invoice_id">
-                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('invoice_item')">{{$t('undo_invoice_item')}}</v-list-item-title>
-              </v-list-item>
-              <v-divider></v-divider>
-              <v-list-item class="text-orange" prepend-icon="mdi-pencil" @click="editItem(item)" v-if="item.invoice_id == null">
-                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('edit_item')">{{$t('edit_item')}}</v-list-item-title>
-              </v-list-item>
-              <v-divider></v-divider>
-              <v-list-item class="text-red" prepend-icon="mdi-delete" @click="deleteItem(item)" v-if="item.invoice_id == null">
-                <v-list-item-title size="x-small" variant="tonal" v-tooltip:top="$t('delete_item')">{{$t('delete_item')}}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
+              <v-card class="rounded-lg vc-action-menu" min-width="200" variant="flat">
+                <v-list slim density="compact" class="pa-1" lines>
+                  <!-- View -->
+                  <v-list-item
+                    class="rounded-lg vc-action-item"
+                    prepend-icon="mdi-eye-outline"
+                    @click="viewItem(item)"
+                  >
+                    <v-list-item-title class="text-caption font-weight-bold text-info">{{ $t('view_charge') }}</v-list-item-title>
+                  </v-list-item>
+
+                  <!-- Audit Trail -->
+                  <v-list-item
+                    class="rounded-lg vc-action-item"
+                    prepend-icon="mdi-history"
+                    @click="viewAuditTrail(item)"
+                  >
+                    <v-list-item-title class="text-caption font-weight-bold text-warning">{{ $t('audit_trail') }}</v-list-item-title>
+                  </v-list-item>
+
+                  <!-- Invoice -->
+                  <v-list-item
+                    v-if="item.invoice_id"
+                    class="rounded-lg vc-action-item"
+                    prepend-icon="mdi-file-document-check-outline"
+                    @click="invoiceItem(item)"
+                  >
+                    <v-list-item-title class="text-caption font-weight-bold text-green">{{ $t('invoice_item') }}</v-list-item-title>
+                  </v-list-item>
+
+                  <!-- Undo Invoice -->
+                  <v-list-item
+                    v-if="item.invoice_id"
+                    class="rounded-lg vc-action-item"
+                    prepend-icon="mdi-file-document-remove-outline"
+                    @click="undoInvoiceItem(item)"
+                  >
+                    <v-list-item-title class="text-caption font-weight-bold text-red">{{ $t('undo_invoice_item') }}</v-list-item-title>
+                  </v-list-item>
+
+                  <v-divider v-if="item.invoice_id == null" class="mx-2 my-1"></v-divider>
+
+                  <!-- Edit -->
+                  <v-list-item
+                    v-if="item.invoice_id == null"
+                    class="rounded-lg vc-action-item"
+                    prepend-icon="mdi-pencil-outline"
+                    @click="editItem(item)"
+                  >
+                    <v-list-item-title class="text-caption font-weight-bold text-orange">{{ $t('edit_item') }}</v-list-item-title>
+                  </v-list-item>
+
+                  <!-- Delete -->
+                  <v-list-item
+                    v-if="item.invoice_id == null"
+                    class="rounded-lg vc-action-item"
+                    prepend-icon="mdi-delete-outline"
+                    @click="deleteItem(item)"
+                  >
+                    <v-list-item-title class="text-caption font-weight-bold text-red">{{ $t('delete_item') }}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-menu>
+          </div>
         </template>
 
         <template v-slot:[`item.allow_invoice`]="{ item }">
@@ -324,6 +380,7 @@
             start: new Date(2024, 2, 1),
             end: new Date()
           },
+          allow_invoice:true,
         }
     },
     computed:{
@@ -426,6 +483,9 @@
       delete_items: function (ids) {
         this.charge.delete(ids);
       },
+      viewAuditTrail: function (item) {
+        this.$router.push({ name: 'charge_audit_trail', params: { id: item.id } });
+      },
       update_filtred_items_to_source: function (items) {
         this.charge.filtred_charge_fetch_items = items;
       },
@@ -433,7 +493,7 @@
         return that.items.filter(i => that.items_selected.includes(i.id))
         .filter(e => e.allow_invoice == true && e.invoice_id == null).length;
       },
-      delete_items: function (that) {
+      delete_invoices: function (that) {
         let ids = that.items.filter(i => that.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).map(e => e.id);
         this.supplier_invoice.delete(ids);
       },
@@ -508,7 +568,10 @@
         this.charge.undoInvoiceItem(item.id);
       },
       viewItem: function (item) {
-        console.log("item",item)
+        this.$router.push({
+          name: 'view_charge',
+          params: { id: item.id }
+        })
       },
       deleteItem: function (item) {
         console.log("item",item)
@@ -519,3 +582,24 @@
     }
   }
 </script>
+
+<style scoped>
+.vc-action-btn {
+  transition: transform .15s;
+}
+.vc-action-btn:hover {
+  transform: scale(1.1);
+}
+.vc-action-menu {
+  box-shadow: 0 8px 24px rgba(0,0,0,.1) !important;
+}
+.vc-action-item {
+  padding: 6px 12px !important;
+  min-height: 36px !important;
+  margin-bottom: 2px;
+  transition: background .12s;
+}
+.vc-action-item:hover {
+  background: rgba(var(--v-border-color), .06);
+}
+</style>

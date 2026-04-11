@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -23,9 +22,10 @@ return new class extends Migration
             $table->boolean("allow_package_type")->default(true);
             $table->boolean("allow_warehouse")->default(true);
             $table->boolean("allow_detail_truck_id")->default(false);
+            $table->enum("production_role", ["fresh", "frozen", "guano"])->nullable();
 
-            $table->enum("operation_type",["charge","sells","both"])->default("both");
-            $table->enum("warehouse_type",["FishType","GuanoType","PackageType"])->nullable();
+            $table->enum("operation_type", ["charge", "sells", "both"])->default("both");
+            $table->enum("warehouse_type", ["FishType", "GuanoType", "PackageType"])->nullable();
 
             $table->timestamps();
             $table->softDeletes();

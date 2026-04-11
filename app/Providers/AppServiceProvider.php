@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
             'Charge'  => \App\Models\Charge::class,
             'Sell'  => \App\Models\Sell::class,
             'User'  => \App\Models\User::class,
+            'InventoryAdjustment' => \App\Models\InventoryAdjustment::class,
         ]);
     }
 }
