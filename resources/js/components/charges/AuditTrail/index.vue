@@ -13,7 +13,7 @@
         <div>
           <div class="at-hero-title">{{ $t('audit_trail') }}</div>
           <div class="text-white-darken-2 text-caption" style="opacity:.7">
-            {{ $t('charge') }} #{{ chargeId }} — {{ chargeInfo.tracking_numbers?.join(', ') || '' }}
+            {{ $t('charge') }} #{{ chargeId }} — {{ chargeInfo.reception_tracking_number?.join(', ') || '' }}
           </div>
         </div>
       </div>

@@ -477,6 +477,55 @@ class WarehouseController extends Controller
         return response()->json(['stock' => $stock], 200);
     }
 
+    /**
+     * GET /api/warehouses/{warehouse}/article-tracking-numbers
+     * Returns per-tracking-number stock for a specific article in a warehouse.
+     * Used by AddSell to let users pick which tracking number (lot) to sell from.
+     */
+    public function articleTrackingNumbers(Request $request, Warehouse $warehouse): JsonResponse
+    {
+        $stockableType = $request->query('stockable_type');
+        $stockableId   = $request->query('stockable_id');
+
+        if (!$stockableType || !$stockableId) {
+            return response()->json(['tracking_numbers' => []], 200);
+        }
+
+        // Resolve full model class from short name (FishType -> App\Models\FishType)
+        $fullType = 'App\\Models\\' . $stockableType;
+
+        $warehouse->load([
+            'warehouse_stockables' => function ($q) use ($fullType, $stockableId) {
+                $q->where('stockable_type', $fullType)
+                  ->where('stockable_id', $stockableId);
+            },
+            'warehouse_stockables.warehouse_stockable_tracking_numbers.warehouse_stockable_tracking_number_operations',
+        ]);
+
+        $results = [];
+
+        foreach ($warehouse->warehouse_stockables as $ws) {
+            foreach ($ws->warehouse_stockable_tracking_numbers as $tn) {
+                $balance = $this->calculateBalance($tn->warehouse_stockable_tracking_number_operations);
+                $remainingWeight = round(max($balance['weight'], 0), 2);
+                $remainingPackages = round(max($balance['packages'], 0), 2);
+
+                // Only include tracking numbers with positive stock
+                if ($remainingWeight <= 0) continue;
+
+                $results[] = [
+                    'tracking_number_id' => $tn->id,
+                    'tracking_numbers'   => $tn->tracking_numbers,
+                    'available_weight'   => $remainingWeight,
+                    'available_packages' => $remainingPackages,
+                    'date_entered'       => $tn->date_in_warehouse,
+                ];
+            }
+        }
+
+        return response()->json(['tracking_numbers' => $results], 200);
+    }
+
     // ─────────────────────────────────────────
     //  Private Helpers
     // ─────────────────────────────────────────
@@ -565,7 +614,7 @@ class WarehouseController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => 'required|string|max:50|unique:warehouses,name',
+            'name' => 'nullable|string|max:50|unique:warehouses,name',
             'description' => 'nullable|string|max:250',
             'warehouse_type' => 'nullable|in:FishType,GuanoType,PackageType',
             'warehouse_category_id' => 'nullable|exists:warehouse_categories,id',
@@ -587,7 +636,7 @@ class WarehouseController extends Controller
     public function update(Request $request, Warehouse $warehouse): JsonResponse
     {
         $data = $request->validate([
-            'name' => 'required|string|max:50|unique:warehouses,name,' . $warehouse->id,
+            'name' => 'nullable|string|max:50|unique:warehouses,name,' . $warehouse->id,
             'description' => 'nullable|string|max:250',
             'warehouse_type' => 'nullable|in:FishType,GuanoType,PackageType',
             'warehouse_category_id' => 'nullable|exists:warehouse_categories,id',

@@ -27,7 +27,8 @@ export const useSellCategory = defineStore("sell_category", {
             console.log("sell_catgeory", sell_catgeory)
         },
         get_sell_category_name_by_id: function (id) {
-            return this.list.find(c => c.id == id).description;
+            const category = this.list.find(c => c.id == id);
+            return category ? category.description : 'N/A';
         }
     },
     getters: {

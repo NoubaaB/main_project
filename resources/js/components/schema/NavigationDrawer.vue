@@ -165,27 +165,32 @@ export default {
           ['mdi-sticker-plus-outline', this.$t("add_charge"), "add_charge"],
           ['mdi-view-list-outline', this.$t("list_charge"), "list_charge"],
         ]],
+        ['mdi-factory', this.$t('production'), [
+          ['mdi-view-column-outline', this.$t("production_kanban"), "production_kanban"],
+          ['mdi-format-list-bulleted', this.$t("production_list"), "production_list"],
+          ['mdi-chart-waterfall', this.$t("production_yield"), "production_yield"],
+        ]],
         ['mdi-cash-register', this.$t('sells'), [
           ['mdi-sticker-plus-outline', this.$t("add_sell"), "add_sell"],
           ['mdi-view-list-outline', this.$t("list_sell"), "list_sell"],
         ]],
+        ['mdi-account-hard-hat', this.$t('workforce'), [
+          ['mdi-account-multiple', this.$t("workforce_management"), "workforce_management"],
+          ['mdi-account-tie', this.$t("corporal_management"), "corporal_management"],
+          ['mdi-sitemap-outline', this.$t("section_management"), "section_management"],
+          ['mdi-calendar-month', this.$t("fortnight_management"), "fortnight_management"],
+          ['mdi-chart-bar', this.$t("workforce_statistics"), "workforce_statistics"],
+        ]],
         ['mdi-file-document-check', this.$t('invoics'), [
           ['mdi-file-document-multiple', this.$t("list_supplier_invoice"), "list_supplier_invoice"],
-        ]],
-        ['mdi-factory', this.$t('production'), [
-          ['mdi-view-column-outline', this.$t("production_kanban"), "production_kanban"],
-          ['mdi-format-list-bulleted', this.$t("production_list"), "production_list"],
-        ]],
-        ['mdi-pencil', this.$t('commands'), [
-          ['mdi-pencil-plus', this.$t("main"), "error404"],
-          ['mdi-pencil-plus', this.$t("create_command"), "error404"],
-          ['mdi-view-list', this.$t("list_command"), "error404"],
-          ['mdi-playlist-remove', this.$t("cancelled_command"), "error404"],
-          ['mdi-poll', this.$t("statistics_command"), "error404"],
         ]],
         ['mdi-cog-outline', this.$t('parameters'), [
           ['mdi-warehouse', this.$t("warehouse_management"), "warehouse_management"],
           ['mdi-fish', this.$t("fish_management"), "fish_management"],
+          ['mdi-shape-outline', this.$t("charge_category_management"), "charge_category_management"],
+          ['mdi-cog-transfer-outline', this.$t("wco_management"), "wco_management"],
+          ['mdi-tag-multiple-outline', this.$t("sell_category_management"), "sell_category_management"],
+          ['mdi-cog-outline', this.$t("production_category_management"), "production_category_management"],
         ]],
       ];
     },

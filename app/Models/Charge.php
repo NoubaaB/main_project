@@ -38,8 +38,9 @@ class Charge extends Model
 
     protected $casts = [
         'date' => 'date:Y-m-d',
-        'tracking_numbers' => 'array',
+        'reception_tracking_number' => 'array',
         'tracking_onp_numbers' => 'array',
+        'production_tracking_numbers' => 'array',
         'note' => 'string',
         'total_price'  => 'float',
         'total_weight' => 'float',
@@ -110,6 +111,10 @@ class Charge extends Model
 
     function audit_logs() : HasMany {
         return $this->hasMany(ChargeAuditLog::class)->orderByDesc('created_at');
+    }
+
+    function production() {
+        return $this->hasOne(Production::class);
     }
 
     function supplier_invoice() : BelongsTo {

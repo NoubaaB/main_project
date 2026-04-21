@@ -2,185 +2,176 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Charge;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\FishProcessType;
-use App\Models\FishType;
-use App\Models\WarehouseCategoryOperation;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
-use Illuminate\Http\JsonResponse;
 
 class ProductionYieldController extends Controller
 {
     /**
-     * Calculate production yield (rendement) as time-series grouped by fish process type.
+     * Production Yield Chart Data
      *
-     * Query params:
-     *   date_start, date_end, period (daily|monthly|yearly)
-     *
-     * Returns time-series: for each date bucket × process type → frais, congele, yield
+     * Aggregates daily weights from warehouse & non-warehouse operations,
+     * grouped by fish_process_type, and calculates production + workforce yields.
      */
-    public function getYield(): JsonResponse
+    public function index(Request $request)
     {
-        $date_start = request()->query('date_start');
-        $date_end   = request()->query('date_end');
-        $period     = request()->query('period', 'daily'); // daily | monthly | yearly
+        $request->validate([
+            'date_from' => 'required|date',
+            'date_to'   => 'required|date|after_or_equal:date_from',
+        ]);
 
-        // Get production/reception warehouse_category_operation IDs
-        $productionWcoIds = WarehouseCategoryOperation::where('is_production', true)
-            ->where('warehouse_type', 'FishType')
-            ->pluck('id')
-            ->toArray();
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
 
-        $receptionWcoIds = WarehouseCategoryOperation::where('is_production', false)
-            ->where('warehouse_type', 'FishType')
-            ->pluck('id')
-            ->toArray();
+        // ── 1. Fish Process Types lookup ──
+        $processTypes = FishProcessType::whereNull('deleted_at')->get()->keyBy('id');
 
-        // Pre-load fish_process_type_id map
-        $fishTypeProcessMap = FishType::whereNotNull('fish_process_type_id')
-            ->pluck('fish_process_type_id', 'id')
-            ->toArray();
-
-        // Get all production charges in the date range
-        $charges = Charge::whereBetween('date', [$date_start, $date_end])
-            ->whereHas('charge_category', fn($q) => $q->where('is_production', true))
-            ->with(['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'])
-            ->orderBy('date')
+        // ── 2. Warehouse operations: weight by date + fish_process_type ──
+        $warehouseOps = DB::table('warehouse_stockable_tracking_number_operations as wop')
+            ->join('fish_types as ft', function ($j) {
+                $j->on('wop.stockable_id', '=', 'ft.id')
+                  ->where('wop.stockable_type', '=', 'App\\Models\\FishType');
+            })
+            ->leftJoin('warehouse_category_operations as wco', 'wop.warehouse_category_operation_id', '=', 'wco.id')
+            ->whereNull('wop.deleted_at')
+            ->whereNull('ft.deleted_at')
+            ->where('wop.type_operation', 'in')
+            ->whereBetween('wop.date', [$dateFrom, $dateTo])
+            ->select(
+                'wop.date',
+                'ft.fish_process_type_id',
+                'ft.type as fish_type',
+                'wco.production_role',
+                DB::raw('SUM(wop.total_weight) as total_weight')
+            )
+            ->groupBy('wop.date', 'ft.fish_process_type_id', 'ft.type', 'wco.production_role')
             ->get();
 
-        // Build raw data: date → process_type_id → { frais, congele }
-        $rawData = [];
+        // ── 3. Non-warehouse operations: weight by date + fish_process_type ──
+        $nonWarehouseOps = DB::table('non_warehouse_stockable_operations as nwop')
+            ->join('fish_types as ft', function ($j) {
+                $j->on('nwop.stockable_id', '=', 'ft.id')
+                  ->where('nwop.stockable_type', '=', 'App\\Models\\FishType');
+            })
+            ->leftJoin('warehouse_category_operations as wco', 'nwop.warehouse_category_operation_id', '=', 'wco.id')
+            ->whereNull('nwop.deleted_at')
+            ->whereNull('ft.deleted_at')
+            ->whereBetween('nwop.date', [$dateFrom, $dateTo])
+            ->select(
+                'nwop.date',
+                'ft.fish_process_type_id',
+                'ft.type as fish_type',
+                'wco.production_role',
+                DB::raw('SUM(nwop.total_weight) as total_weight')
+            )
+            ->groupBy('nwop.date', 'ft.fish_process_type_id', 'ft.type', 'wco.production_role')
+            ->get();
 
-        foreach ($charges as $charge) {
-            $dateKey = $this->getDateKey($charge->date, $period);
+        // ── 4. Fortnight activities: cost by date ──
+        $fortnightCosts = DB::table('fortnight_activities')
+            ->whereBetween('date', [$dateFrom, $dateTo])
+            ->select('date', DB::raw('SUM(price) as total_cost'))
+            ->groupBy('date')
+            ->pluck('total_cost', 'date')
+            ->toArray();
 
-            $allOps = array_merge(
-                $charge->warehouse_stockable_tracking_number_operations->toArray(),
-                $charge->non_warehouse_stockable_operations->toArray()
-            );
+        // ── 5. Aggregate into daily structure ──
+        $dailyData = [];
 
-            foreach ($allOps as $op) {
-                if (($op['stockable_type'] ?? '') !== 'FishType') continue;
+        $allOps = $warehouseOps->concat($nonWarehouseOps);
 
-                $processTypeId = $fishTypeProcessMap[$op['stockable_id']] ?? null;
-                if (!$processTypeId) continue;
+        foreach ($allOps as $row) {
+            $date = $row->date;
+            $processTypeId = $row->fish_process_type_id;
+            $fishType = $row->fish_type;
+            $productionRole = $row->production_role;
+            $weight = (float) $row->total_weight;
 
-                $wcoId = $op['warehouse_category_operation_id'] ?? null;
+            if (!$processTypeId) continue;
 
-                if (!isset($rawData[$dateKey])) {
-                    $rawData[$dateKey] = [];
-                }
-                if (!isset($rawData[$dateKey][$processTypeId])) {
-                    $rawData[$dateKey][$processTypeId] = ['frais' => 0, 'congele' => 0];
-                }
+            $processName = $processTypes->has($processTypeId)
+                ? $processTypes[$processTypeId]->name
+                : "Unknown #{$processTypeId}";
 
-                $weight = $op['total_weight'] ?? 0;
+            // Build series key: e.g., "Fresh - Entier", "Frozen - Entier"
+            $typeLabel = ucfirst($fishType ?? 'other');
+            $seriesKey = "{$typeLabel} - {$processName}";
 
-                if (in_array($wcoId, $productionWcoIds)) {
-                    $rawData[$dateKey][$processTypeId]['congele'] += $weight;
-                } elseif (in_array($wcoId, $receptionWcoIds)) {
-                    $rawData[$dateKey][$processTypeId]['frais'] += $weight;
-                }
+            if (!isset($dailyData[$date])) {
+                $dailyData[$date] = [
+                    'series' => [],
+                    'fresh_weight' => 0,
+                    'frozen_weight' => 0,
+                ];
+            }
+
+            $dailyData[$date]['series'][$seriesKey] = ($dailyData[$date]['series'][$seriesKey] ?? 0) + $weight;
+
+            // Accumulate by production role for yield calculation
+            if ($productionRole === 'fresh') {
+                $dailyData[$date]['fresh_weight'] += $weight;
+            } elseif ($productionRole === 'frozen') {
+                $dailyData[$date]['frozen_weight'] += $weight;
             }
         }
 
-        // Build date range (all buckets, even if empty)
-        $dates = $this->generateDateBuckets($date_start, $date_end, $period);
+        // ── 6. Build sorted dates + series arrays ──
+        ksort($dailyData);
+        $dates = array_keys($dailyData);
 
-        // Collect all process type IDs present in data
-        $allProcessTypeIds = [];
-        foreach ($rawData as $dateData) {
-            foreach (array_keys($dateData) as $ptId) {
-                $allProcessTypeIds[$ptId] = true;
+        // Collect all unique series keys
+        $allSeriesKeys = [];
+        foreach ($dailyData as $d) {
+            foreach (array_keys($d['series']) as $k) {
+                $allSeriesKeys[$k] = true;
             }
         }
-        $allProcessTypeIds = array_keys($allProcessTypeIds);
+        $allSeriesKeys = array_keys($allSeriesKeys);
+        sort($allSeriesKeys);
 
-        // Load process type names
-        $processTypes = FishProcessType::whereIn('id', $allProcessTypeIds)->get()->keyBy('id');
-
-        // Build series per process type
-        $series = [];
-        foreach ($allProcessTypeIds as $ptId) {
-            $ptName = $processTypes[$ptId]->name ?? 'Unknown';
-            $fraisData = [];
-            $congeleData = [];
-            $yieldData = [];
-
-            foreach ($dates as $dateKey) {
-                $frais   = round($rawData[$dateKey][$ptId]['frais'] ?? 0, 2);
-                $congele = round($rawData[$dateKey][$ptId]['congele'] ?? 0, 2);
-                $yield   = $frais > 0 ? round(($congele / $frais) * 100, 2) : 0;
-
-                $fraisData[]   = $frais;
-                $congeleData[] = $congele;
-                $yieldData[]   = $yield;
+        // Build column series
+        $seriesColumns = [];
+        foreach ($allSeriesKeys as $key) {
+            $seriesColumns[$key] = [];
+            foreach ($dates as $date) {
+                $seriesColumns[$key][] = round($dailyData[$date]['series'][$key] ?? 0, 2);
             }
-
-            $series[] = [
-                'id'              => $ptId,
-                'name'            => $ptName,
-                'frais_weights'   => $fraisData,
-                'congele_weights' => $congeleData,
-                'yields'          => $yieldData,
-            ];
         }
+
+        // Build yield lines
+        $productionYield = [];
+        $workforceYield = [];
+
+        foreach ($dates as $date) {
+            $freshW = $dailyData[$date]['fresh_weight'];
+            $frozenW = $dailyData[$date]['frozen_weight'];
+
+            // Production yield: frozen out / fresh in * 100
+            $productionYield[] = $freshW > 0 ? round(($frozenW / $freshW) * 100, 1) : null;
+
+            // Workforce yield: fortnight cost / fresh weight = DH/KG
+            $cost = (float) ($fortnightCosts[$date] ?? 0);
+            $workforceYield[] = $freshW > 0 ? round($cost / $freshW, 2) : null;
+        }
+
+        // ── 7. Summary totals ──
+        $totalFresh = array_sum(array_column(array_values($dailyData), 'fresh_weight'));
+        $totalFrozen = array_sum(array_column(array_values($dailyData), 'frozen_weight'));
+        $totalFortnightCost = array_sum($fortnightCosts);
 
         return response()->json([
-            'dates'     => $dates,
-            'series'    => $series,
-            'period'    => $period,
-        ], 200);
-    }
-
-    /**
-     * Convert a date to a bucket key based on the period.
-     */
-    private function getDateKey($date, string $period): string
-    {
-        $carbon = Carbon::parse($date);
-        return match ($period) {
-            'monthly' => $carbon->format('Y-m'),
-            'yearly'  => $carbon->format('Y'),
-            default   => $carbon->format('Y-m-d'), // daily
-        };
-    }
-
-    /**
-     * Generate all date bucket keys for the given range.
-     */
-    private function generateDateBuckets(string $start, string $end, string $period): array
-    {
-        $startDate = Carbon::parse($start);
-        $endDate   = Carbon::parse($end);
-        $buckets   = [];
-
-        switch ($period) {
-            case 'monthly':
-                $cursor = $startDate->copy()->startOfMonth();
-                while ($cursor->lte($endDate)) {
-                    $buckets[] = $cursor->format('Y-m');
-                    $cursor->addMonth();
-                }
-                break;
-
-            case 'yearly':
-                $cursor = $startDate->copy()->startOfYear();
-                while ($cursor->lte($endDate)) {
-                    $buckets[] = $cursor->format('Y');
-                    $cursor->addYear();
-                }
-                break;
-
-            default: // daily
-                $carbonPeriod = CarbonPeriod::create($startDate, $endDate);
-                foreach ($carbonPeriod as $day) {
-                    $buckets[] = $day->format('Y-m-d');
-                }
-                break;
-        }
-
-        return $buckets;
+            'dates'             => $dates,
+            'series_columns'    => $seriesColumns,
+            'production_yield'  => $productionYield,
+            'workforce_yield'   => $workforceYield,
+            'summary'           => [
+                'total_fresh_weight'  => round($totalFresh, 2),
+                'total_frozen_weight' => round($totalFrozen, 2),
+                'avg_production_yield' => $totalFresh > 0 ? round(($totalFrozen / $totalFresh) * 100, 1) : 0,
+                'total_workforce_cost' => round($totalFortnightCost, 2),
+                'avg_workforce_yield'  => $totalFresh > 0 ? round($totalFortnightCost / $totalFresh, 2) : 0,
+            ],
+        ]);
     }
 }

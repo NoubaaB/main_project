@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('charges', function (Blueprint $table) {
             $table->id();
             $table->date("date")->nullable();
-            $table->json("tracking_numbers")->default("[]");
+            $table->json("reception_tracking_number")->default("[]");
             $table->json("tracking_onp_numbers")->default("[]");
+            $table->json("production_tracking_numbers")->default("[]");
             
             $table->string("note",500)->nullable();
             $table->decimal("total_price",15,2)->default(0.00);
@@ -31,6 +32,8 @@ return new class extends Migration
             $table->foreignId('supplier_process_id')->nullable()->index()
             ->comment('References the suppliers table to identify the local that merchandise treated in.');
             $table->foreignId('charge_category_id')->nullable()->index();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
 
             $table->timestamps();
             $table->softDeletes();

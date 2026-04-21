@@ -27,6 +27,7 @@ class User extends Authenticatable
         'email',
         'role',
         'password',
+        'allowed_ai_crud',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'allowed_ai_crud' => 'array',
         ];
     }
 

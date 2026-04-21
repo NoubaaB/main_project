@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { useCharge } from "./Charge";
+import { useSell } from "./Sell";
 import annyang from "annyang";
 import moment from "moment";
 import { usePackageType } from "./PackageType";
@@ -103,9 +104,32 @@ export const useMain = defineStore("main", {
             let charges = localStorage.getItem("charges") || '[]';
             this.charge.charges = JSON.parse(charges);
 
-            //other settings
+            //other charge settings
             this.charge.input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
-            this.charge.showAdditionalInfo = localStorage.getItem("showAdditionalInfo") == "true";
+            this.charge.showAdditionalInfo = localStorage.getItem("charge_showAdditionalInfo") == "true";
+
+            //initialize the sell store with data from localStorage
+            try {
+                const _sell = useSell();
+                let sell = localStorage.getItem("sell") || '{}';
+                let parsedSell = JSON.parse(sell);
+                if (parsedSell && parsedSell.id && Array.isArray(parsedSell.warehouse_category_operations)) {
+                    Object.assign(_sell.sell, parsedSell);
+                } else {
+                    _sell.add_sell();
+                }
+
+                //initialize the sells store with data from localStorage
+                let sells = localStorage.getItem("sells") || '[]';
+                _sell.sells = JSON.parse(sells);
+
+                //other sell settings
+                _sell.showAdditionalInfo = localStorage.getItem("sell_showAdditionalInfo") == "true";
+            } catch (e) {
+                console.error("Error initializing sell from localStorage:", e);
+                const _sell = useSell();
+                _sell.add_sell();
+            }
         },
         fetchData: async function (date_start, date_end, api_url, api_url_prop) {
             try {

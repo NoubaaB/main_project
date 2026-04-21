@@ -18,9 +18,13 @@ export function loadExternalContent(htmlString, containerId, retries = 0) {
     // Clear previous content
     container.innerHTML = '';
 
+    // Sanitize: strip Vue event bindings (@click, v-on:click, etc.) that can't work via innerHTML
+    let sanitized = htmlString.replace(/\s(@|v-on:)[a-z.-]+(?:\.[\w.]+)*\s*=\s*"[^"]*"/gi, '');
+    sanitized = sanitized.replace(/\s(@|v-on:)[a-z.-]+(?:\.[\w.]+)*\s*=\s*'[^']*'/gi, '');
+
     // Create a temporary DOM element
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlString;
+    tempDiv.innerHTML = sanitized;
 
     // Move everything except scripts
     const fragment = document.createDocumentFragment();

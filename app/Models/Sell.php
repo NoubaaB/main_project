@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Client;
 use App\Models\Fishery;
 use App\Models\Origin;
+use App\Models\SellAuditLog;
 use App\Models\SellCategory;
 use App\Models\Ship;
 use App\Models\Truck;
@@ -30,7 +31,7 @@ class Sell extends Model
 
     protected $hidden = ['trucks'];
 
-    protected $appends = ['truck_ids', 'client_ids'];
+    protected $appends = ['truck_ids', 'client_ids', 'audit_logs_count', 'allow_invoice'];
 
     protected $casts = [
         'date' => 'date:Y-m-d',
@@ -94,6 +95,21 @@ class Sell extends Model
     protected function clientIds(): Attribute
     {
         return Attribute::get(fn() => $this->clients->pluck('id')->toArray());
+    }
+
+    function audit_logs(): HasMany
+    {
+        return $this->hasMany(SellAuditLog::class)->orderByDesc('created_at');
+    }
+
+    protected function auditLogsCount(): Attribute
+    {
+        return Attribute::get(fn() => $this->audit_logs()->count());
+    }
+
+    protected function allowInvoice(): Attribute
+    {
+        return Attribute::get(fn() => true);
     }
 
     function calc(): void

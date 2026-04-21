@@ -16,6 +16,7 @@ import { useClient } from "./Client";
 import { useFormula } from "./Formula";
 import { useTruck } from "./Truck";
 import { useFishProcessType } from "./FishProcessType";
+import { useArchive } from "./Archive";
 export const useAuth = defineStore("Auth", {
   state: () => {
     return {
@@ -55,6 +56,9 @@ export const useAuth = defineStore("Auth", {
         this.user = response.data.user;
         //init local store
         this.init_local_store(response);
+        // Load per-user archives
+        const archive = useArchive();
+        archive.loadForUser(this.user.id);
       })
     },
     login: async function () {
@@ -68,6 +72,9 @@ export const useAuth = defineStore("Auth", {
         this.token = response.data.token;
         localStorage.setItem('token', this.token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+        // Load per-user archives
+        const archive = useArchive();
+        archive.loadForUser(this.user.id);
         //get data
         return response.data;
       });

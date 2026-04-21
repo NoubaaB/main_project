@@ -133,14 +133,15 @@
               <!-- Tracking Numbers -->
               <v-col cols="12" md="6">
                 <v-autocomplete
-                  v-if="_charge.getCharge.enable_tracking_numbers"
-                  v-model="_charge.edit_charge.tracking_numbers"
-                  :items="_charge.edit_charge.tracking_numbers"
-                  :rules="[!v$._charge.edit_charge.tracking_numbers.$invalid ]"
-                  :hide-details="v$._charge.edit_charge.tracking_numbers.$errors.length==0"
-                  :error-messages="v$._charge.edit_charge.tracking_numbers.$errors.map(e => e.$message)"
-                  @blur="v$._charge.edit_charge.tracking_numbers.$touch()"
-                  :label="$t('tracking_numbers')"
+                  ref="trackingNumberInput"
+                  v-if="_charge.getCharge.enable_reception_tracking_number"
+                  v-model="_charge.edit_charge.reception_tracking_number"
+                  :items="_charge.edit_charge.reception_tracking_number"
+                  :rules="[!v$._charge.edit_charge.reception_tracking_number.$invalid ]"
+                  :hide-details="v$._charge.edit_charge.reception_tracking_number.$errors.length==0"
+                  :error-messages="v$._charge.edit_charge.reception_tracking_number.$errors.map(e => e.$message)"
+                  @blur="v$._charge.edit_charge.reception_tracking_number.$touch()"
+                  :label="$t('reception_tracking_number')"
                   placeholder="ex :   --- --- --- --- ---"
                   multiple
                   chips
@@ -151,6 +152,8 @@
                   @keydown.enter.prevent="addNewTrackingNumber"
                   color="info"
                   class="text-info"
+                  :disabled="is_checking_tracking"
+                  :loading="is_checking_tracking"
                   >
                     <!-- Custom Chips Slot -->
                     <template #chip="{ item, index }">
@@ -160,7 +163,7 @@
                         color="info accent-4"
                         closable
                         variant="tonal"
-                        @click:close="_charge.edit_charge.tracking_numbers = _charge.edit_charge.tracking_numbers.filter(num => num !== item.value)"
+                        @click:close="_charge.edit_charge.reception_tracking_number = _charge.edit_charge.reception_tracking_number.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -196,6 +199,43 @@
                         closable
                         variant="tonal"
                         @click:close="_charge.edit_charge.tracking_onp_numbers = _charge.edit_charge.tracking_onp_numbers.filter(num => num !== item.value)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                </v-autocomplete>
+              </v-col>
+
+              <!-- Production Numbers -->
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-if="_charge.getCharge.enable_production_tracking_numbers"
+                  v-model="_charge.edit_charge.production_tracking_numbers"
+                  :items="_charge.edit_charge.production_tracking_numbers"
+                  :label="$t('production_tracking_numbers')"
+                  multiple
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  hide-details
+                  placeholder="ex :   --- --- --- --- ---"
+                  clearable
+                  @keydown.enter.prevent="addNewProductionTrackingNumber"
+                  color="info"
+                  class="text-info"
+                  :disabled="is_checking_production_tracking"
+                  :loading="is_checking_production_tracking"
+                  >
+                    <!-- Custom Chips Slot -->
+                    <template #chip="{ item, index }">
+                      <v-chip
+                        :key="index"
+                        class="text-white"
+                        color="teal"
+                        closable
+                        variant="tonal"
+                        @click:close="_charge.edit_charge.production_tracking_numbers = _charge.edit_charge.production_tracking_numbers.filter(num => num !== item.value)"
                       >
                         {{ item.title }}
                       </v-chip>
@@ -434,7 +474,9 @@ export default {
       dialog_note:false,
       searchInputTrackingNumbers: '',
       is_posting_suppliers: false,
-      is_posting_trucks: false
+      is_posting_trucks: false,
+      is_checking_tracking: false,
+      is_checking_production_tracking: false
     }
   },
   validations() {
@@ -443,8 +485,9 @@ export default {
         edit_charge: {
           charge_category_id: { required },
           date: { required },
-          tracking_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_numbers) },
+          reception_tracking_number: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_reception_tracking_number) },
           tracking_onp_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_onp_numbers) },
+          production_tracking_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_production_tracking_numbers) },
           supplier_ids: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_supplier_process_id) },
           truck_ids: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_truck_id) },
           fishery_id: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_fishery_id) },
@@ -481,25 +524,48 @@ export default {
   },
   methods: {
     submit: function () {
-      this._charge.submitCharge();
+      this._charge.submitEditCharge(this.$router);
     },
-    addNewTrackingNumber(event) {
+    addNewTrackingNumber: async function (event) {
       let inputValue = event.target.value.trim()
-      if (inputValue && !this._charge.edit_charge.tracking_numbers.includes(inputValue)) {
-        if (inputValue.search(" ")>0) {
-          let inputs = inputValue.split(" ");
-          inputs.forEach(input => {
-            if (!this._charge.edit_charge.tracking_numbers.find(n => n == input)) {
-              this._charge.edit_charge.tracking_numbers.push(input)
-            }
-          })
-        } else {
-          this._charge.edit_charge.tracking_numbers.push(inputValue)
+      if (inputValue && !this._charge.edit_charge.reception_tracking_number.includes(inputValue)) {
+        const numbersToAdd = inputValue.search(" ") > 0 ? inputValue.split(" ") : [inputValue];
+        for (const input of numbersToAdd) {
+          if (this._charge.edit_charge.reception_tracking_number.find(n => n == input)) continue;
+          // Check uniqueness against backend (exclude current charge)
+          this.is_checking_tracking = true;
+          const result = await this._charge.checkTrackingNumberUnique(
+            input,
+            this._charge.edit_charge.charge_category_id,
+            this._charge.edit_charge.id
+          );
+          this.is_checking_tracking = false;
+          if (!result.unique) {
+            const c = result.charge;
+            this.main.add_snackbar({
+              show: true,
+              message: this.$t('tracking_number_exists', { tracking_number: input })
+                + ' — ' + this.$t('tracking_number_duplicate_details', {
+                  tracking_numbers: (c.reception_tracking_number || []).join(', '),
+                  date: this.main.formateDate(c.date),
+                  provider: (c.suppliers || []).join(', ') || this.$t('n/a'),
+                  weight: this.main.formatDisplayNumber(c.total_weight),
+                  price: this.main.formatDisplayNumber(c.total_price),
+                  currency: this.main.currency
+                }),
+              color: 'warning'
+            });
+            continue;
+          }
+          this._charge.edit_charge.reception_tracking_number.push(input);
         }
       }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';
+      this.$nextTick(() => {
+        this.$refs.trackingNumberInput?.focus();
+      });
     },
     removeTrackingNumber(item) {
       this._charge.edit_charge.charge_category_id = null;
@@ -517,6 +583,45 @@ export default {
         } else {
           this._charge.edit_charge.tracking_onp_numbers.push(inputValue)      }
         }
+      this.searchInputTrackingNumbers = "";
+      inputValue = "";
+      event.target.value = '';
+    },
+    addNewProductionTrackingNumber: async function (event) {
+      let inputValue = event.target.value.trim()
+      if (inputValue && !this._charge.edit_charge.production_tracking_numbers.includes(inputValue)) {
+        const numbersToAdd = inputValue.search(" ") > 0 ? inputValue.split(" ") : [inputValue];
+        for (const input of numbersToAdd) {
+          const prefixed = this.prefixWithYear(input);
+          if (this._charge.edit_charge.production_tracking_numbers.find(n => n == prefixed)) continue;
+          // Check uniqueness against backend
+          this.is_checking_production_tracking = true;
+          const result = await this._charge.checkProductionTrackingNumberUnique(
+            prefixed,
+            this._charge.edit_charge.charge_category_id,
+            this._charge.edit_charge.id
+          );
+          this.is_checking_production_tracking = false;
+          if (!result.unique) {
+            const c = result.charge;
+            this.main.add_snackbar({
+              show: true,
+              message: this.$t('production_tracking_number_exists', { tracking_number: prefixed })
+                + ' — ' + this.$t('production_tracking_number_duplicate_details', {
+                  production_tracking_numbers: (c.production_tracking_numbers || []).join(', '),
+                  date: this.main.formateDate(c.date),
+                  provider: (c.suppliers || []).join(', ') || this.$t('n/a'),
+                  weight: this.main.formatDisplayNumber(c.total_weight),
+                  price: this.main.formatDisplayNumber(c.total_price),
+                  currency: this.main.currency
+                }),
+              color: 'warning'
+            });
+            continue;
+          }
+          this._charge.edit_charge.production_tracking_numbers.push(prefixed);
+        }
+      }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';

@@ -93,6 +93,7 @@
      @sync_items="update_filtred_items_to_source"
      :delete_items="delete_items"
      :get_invoices_delete_selected_length="get_invoices_delete_selected_length"
+     :listen_models="['SupplierInvoice', 'Charge']"
      >
         <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">

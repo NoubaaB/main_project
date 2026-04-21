@@ -21,8 +21,11 @@ return new class extends Migration
             $table->decimal("total_weight_bill",15,2)->default(0.00);
             $table->decimal("total_price",15,2)->default(0.00);
             $table->decimal("total_package_count",15,2)->default(0.00);
+            $table->string('description', 500)->nullable();
 
             $table->foreignId('charge_id')->nullable()->index();
+            $table->foreignId('sell_id')->nullable()->index();
+            $table->foreignId('production_id')->nullable()->index();
             $table->foreignId('package_type_id')->nullable()->index();
             $table->foreignId('warehouse_category_operation_id')->nullable()->index("CWC_IDX");
             $table->nullableMorphs('stockable', "STK_IDX"); //fish_type or package_type or guano_type

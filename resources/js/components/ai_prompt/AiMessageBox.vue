@@ -28,18 +28,28 @@
       class="aimb-content"
       ref="contentBox"
     ></div>
+
+    <!-- Export Excel button (shown when message contains table data) -->
+    <div v-if="!isLoading && hasTable" class="aimb-export-bar">
+      <button class="aimb-export-btn" @click="exportToExcel" :title="$t('export_excel')">
+        <v-icon size="14" class="me-1">mdi-file-excel-outline</v-icon>
+        {{ $t('export_excel') }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script>
 import { loadExternalContent } from '@/helpers/dynamic-loader';
 import { useAIPrompt } from "@/stores/AIPrompt";
+import * as XLSX from 'xlsx';
 
 export default {
   props: ['msg', 'index'],
   data() {
     return {
       isLoading: true,
+      hasTable: false,
     };
   },
   computed: {
@@ -57,10 +67,13 @@ export default {
       this.$nextTick(() => {
         loadExternalContent(this.msg.text, `_ai_message_${this.index}`);
 
-        // Add delegated click listener for dynamic AI buttons
+        // Check if rendered content contains a table
         const container = this.$refs.contentBox;
         if (container) {
           container.addEventListener('click', this.handleContentClick);
+          this.$nextTick(() => {
+            this.hasTable = container.querySelector('table') !== null;
+          });
         }
       });
     });
@@ -72,14 +85,72 @@ export default {
     }
   },
   methods: {
+    exportToExcel() {
+      const container = this.$refs.contentBox;
+      if (!container) return;
+
+      const tables = container.querySelectorAll('table');
+      if (!tables.length) return;
+
+      const wb = XLSX.utils.book_new();
+
+      tables.forEach((table, idx) => {
+        const ws = XLSX.utils.table_to_sheet(table);
+        const sheetName = tables.length === 1 ? 'Data' : `Sheet${idx + 1}`;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+      XLSX.writeFile(wb, `ai_export_${timestamp}.xlsx`);
+    },
     handleContentClick(e) {
-      const btn = e.target.closest('.ai-nav-btn');
-      if (btn) {
-        const route = btn.getAttribute('data-route');
+      // Handle .ai-nav-btn navigation buttons
+      const navBtn = e.target.closest('.ai-nav-btn');
+      if (navBtn) {
+        const route = navBtn.getAttribute('data-route');
         if (route) {
           e.preventDefault();
+          e.stopPropagation();
           this.$router.push(route);
+          return;
         }
+      }
+
+      // Handle .ai-confirm-btn (confirm action plan)
+      const confirmBtn = e.target.closest('.ai-confirm-btn');
+      if (confirmBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.$emit('confirm-action');
+        return;
+      }
+
+      // Handle .ai-cancel-btn (cancel action plan)
+      const cancelBtn = e.target.closest('.ai-cancel-btn');
+      if (cancelBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.$emit('cancel-action');
+        return;
+      }
+
+      // Handle standard <a> links
+      const anchor = e.target.closest('a');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href');
+      if (!href) return;
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const url = new URL(href, window.location.origin);
+        if (url.origin === window.location.origin) {
+          this.$router.push(url.pathname + url.search + url.hash);
+        } else {
+          window.open(href, '_blank', 'noopener');
+        }
+      } catch {
+        this.$router.push(href);
       }
     }
   }
@@ -358,5 +429,37 @@ export default {
 @keyframes aimb-spin {
   0% { transform: translate(-50%, -50%) rotate(0deg); }
   100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Export Excel Bar */
+.aimb-export-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.aimb-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: rgba(76, 175, 80, 0.08);
+  color: #4CAF50;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+}
+
+.aimb-export-btn:hover {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.5);
+  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.2);
+  transform: translateY(-1px);
 }
 </style>

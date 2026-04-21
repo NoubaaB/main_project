@@ -26,6 +26,8 @@ return new class extends Migration
             $table->decimal("total_package_count",15,2)->default(0.00);
 
             $table->foreignId('warehouse_stockable_id')->nullable()->index("WS_IDX");
+            $table->float('custom_wap')->nullable()
+                ->comment('Manual override for Weighted Average Price');
 
             $table->timestamps();
             $table->softDeletes();

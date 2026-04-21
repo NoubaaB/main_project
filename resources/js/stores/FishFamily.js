@@ -5,11 +5,9 @@ export const useFishFamily = defineStore("fish_families", {
         return {
             list: [],
             model: {
-                name: "",
-                scientific_name: "",
-                image: "",
-                description: "",
-                fish_familly_id:null
+                name_fr: "",
+                name_en: "",
+                name_es: "",
             }
         };
     },
@@ -21,7 +19,8 @@ export const useFishFamily = defineStore("fish_families", {
             this.list = this.list.filter(e => e.id != fish_family.id);
         },
         updateFishFamily: function (fish_family) {
-            console.log("fish_family", fish_family)
+            const index = this.list.findIndex(e => e.id === fish_family.id);
+            if (index !== -1) this.list.splice(index, 1, fish_family);
         },
     },
     getters: {

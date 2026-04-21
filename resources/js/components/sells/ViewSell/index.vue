@@ -360,6 +360,7 @@ export default {
     truck()   { return useTruck(); },
     wcOp()    { return useWarehouseCategoryOperation(); },
     Sell()  { return this._sell.view_sell; },
+    sell()  { return this.Sell; },
 
     // Column definitions
     columnDefs() {

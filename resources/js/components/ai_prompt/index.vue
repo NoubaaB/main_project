@@ -32,7 +32,7 @@
     </div>
 
     <!-- Chat Body -->
-    <div class="aiq-chat-body" ref="chatBody">
+    <div class="aiq-chat-body" ref="chatBody" @scroll="onScroll">
       <!-- Welcome message if empty -->
       <div v-if="ai_prompt.messages.length === 0" class="aiq-welcome">
         <div class="aiq-welcome-icon">
@@ -58,17 +58,36 @@
         </div>
       </div>
 
+      <!-- Load more indicator -->
+      <div v-if="ai_prompt.query_loading_history" class="aiq-loading-more">
+        <v-progress-circular size="20" width="2" indeterminate color="primary" />
+      </div>
+
       <!-- Messages -->
       <div
         v-for="(msg, index) in ai_prompt.messages"
-        :key="index"
+        :key="msg.id || index"
         :class="['aiq-msg-row', msg.sender !== 'AI' ? 'aiq-msg-user' : 'aiq-msg-ai']"
       >
         <!-- User message -->
         <template v-if="msg.sender !== 'AI'">
           <div class="aiq-bubble-user">
             <div class="aiq-bubble-user-text">{{ msg.text }}</div>
-            <div class="aiq-bubble-time-user">{{ formatTime() }}</div>
+            <div
+              class="aiq-bubble-footer"
+              @mouseenter="hoveredMsgId = msg.id"
+              @mouseleave="hoveredMsgId = null"
+            >
+            <button
+              v-if="hoveredMsgId === msg.id"
+              class="aiq-action-btn aiq-action-delete-user"
+              @click.stop="deleteMessage(msg.id)"
+              :title="$t('delete')"
+            >
+              <v-icon size="12">mdi-delete-outline</v-icon>
+            </button>
+            <span class="aiq-bubble-time-user my-1">{{ formatMsgTime(msg.ts) }}</span>
+            </div>
           </div>
           <div class="aiq-user-avatar">
             <v-icon size="14" color="white">mdi-account</v-icon>
@@ -78,6 +97,40 @@
         <!-- AI message -->
         <template v-else>
           <AiMessageBox :msg="msg" :index="index" />
+          <!-- AI message footer with reactions + delete -->
+          <div
+            class="aiq-ai-footer"
+            @mouseenter="hoveredMsgId = msg.id"
+            @mouseleave="hoveredMsgId = null"
+          >
+            <span class="aiq-ai-time">{{ formatMsgTime(msg.ts) }}</span>
+            <button
+              v-if="hoveredMsgId === msg.id || msg.reaction === 'like'"
+              class="aiq-action-btn"
+              :class="{ 'aiq-action-active': msg.reaction === 'like' }"
+              @click.stop="reactMessage(msg.id, 'like')"
+              :title="$t('helpful')"
+            >
+              <v-icon size="13">{{ msg.reaction === 'like' ? 'mdi-thumb-up' : 'mdi-thumb-up-outline' }}</v-icon>
+            </button>
+            <button
+              v-if="hoveredMsgId === msg.id || msg.reaction === 'dislike'"
+              class="aiq-action-btn"
+              :class="{ 'aiq-action-active aiq-action-dislike': msg.reaction === 'dislike' }"
+              @click.stop="reactMessage(msg.id, 'dislike')"
+              :title="$t('not_helpful')"
+            >
+              <v-icon size="13">{{ msg.reaction === 'dislike' ? 'mdi-thumb-down' : 'mdi-thumb-down-outline' }}</v-icon>
+            </button>
+            <button
+              v-if="hoveredMsgId === msg.id"
+              class="aiq-action-btn aiq-action-delete-ai"
+              @click.stop="deleteMessage(msg.id)"
+              :title="$t('delete')"
+            >
+              <v-icon size="13">mdi-delete-outline</v-icon>
+            </button>
+          </div>
         </template>
       </div>
 
@@ -99,22 +152,61 @@
       </div>
     </div>
 
+    <!-- Floating scroll-to-bottom button -->
+    <transition name="aiq-fab-fade">
+      <button
+        v-if="!isAtBottom"
+        class="aiq-scroll-bottom-fab"
+        @click="scrollToBottom(true)"
+      >
+        <v-icon size="20" color="white">mdi-chevron-down</v-icon>
+      </button>
+    </transition>
+
     <!-- Input Area -->
     <div class="aiq-input-area">
+      <!-- Excel file attachment indicators -->
+      <div v-if="excelFiles.length" class="aiq-excel-badges">
+        <div v-for="(f, idx) in excelFiles" :key="idx" class="aiq-excel-badge">
+          <v-icon size="14" color="#4CAF50">mdi-file-excel</v-icon>
+          <span class="aiq-excel-name">{{ f.name }}</span>
+          <button class="aiq-excel-remove" @click="removeExcel(idx)" :title="$t('remove')">
+            <v-icon size="12">mdi-close</v-icon>
+          </button>
+        </div>
+      </div>
       <div class="aiq-input-wrapper">
         <v-icon class="aiq-input-icon" size="20">mdi-lightbulb-on-outline</v-icon>
         <input
+          ref="messageInput"
           v-model="newMessage"
-          :placeholder="$t('type_a_message') || 'Ask about your data...'"
+          :placeholder="excelFiles.length ? $t('describe_what_to_do_with_excel') : ($t('type_a_message') || 'Ask about your data...')"
           class="aiq-input"
           @keyup.enter="sendMessage"
           :disabled="loading"
         />
+        <input
+          ref="excelInput"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          multiple
+          style="display:none"
+          @change="onExcelSelected"
+        />
+        <button
+          class="aiq-excel-btn"
+          @click="$refs.excelInput.click()"
+          :disabled="loading"
+          :title="$t('import_excel')"
+          :class="{ 'aiq-excel-btn-active': excelFiles.length }"
+        >
+          <v-icon size="16">mdi-file-excel-outline</v-icon>
+        </button>
         <button
           class="aiq-send-btn"
           @click="sendMessage"
-          :disabled="loading || !newMessage.trim()"
-          :class="{ 'aiq-send-active': newMessage.trim() && !loading }"
+          :disabled="loading || (!newMessage.trim() && !excelFiles.length)"
+          :class="{ 'aiq-send-active': (newMessage.trim() || excelFiles.length) && !loading }"
         >
           <v-icon v-if="loading" size="18" class="aiq-spin">mdi-loading</v-icon>
           <v-icon v-else size="18">mdi-send-variant</v-icon>
@@ -139,6 +231,10 @@ export default {
     return {
       newMessage: "",
       loading: false,
+      excelFiles: [],
+      excelParsedData: [],
+      hoveredMsgId: null,
+      isAtBottom: true,
       quickQuestions: [
         { text: "Total charges this month?", icon: "mdi-cash-multiple" },
         { text: "Top 5 suppliers by weight?", icon: "mdi-podium-gold" },
@@ -151,44 +247,129 @@ export default {
     ai_prompt() { return useAIPrompt(); },
     main() { return useMain(); },
   },
+  mounted() {
+    this.ai_prompt.loadQueryHistory().then(() => {
+      this.$nextTick(() => this.scrollToBottom());
+    });
+  },
   methods: {
     formatTime() {
       const d = new Date();
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    },
+    formatMsgTime(ts) {
+      if (!ts) return this.formatTime();
+      const d = new Date(ts);
       return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     },
     askQuestion(q) {
       this.newMessage = q;
       this.sendMessage();
     },
-    async sendMessage() {
-      if (!this.newMessage.trim()) return;
-      this.loading = true;
-      let message = this.newMessage;
-      this.newMessage = "";
+    async onExcelSelected(event) {
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
+
       try {
-        const res = await this.ai_prompt.sendMessage(message);
-        if (!res?.answer) {
-          console.warn('No answer received');
+        const XLSX = (await import('xlsx')).default || (await import('xlsx'));
+
+        for (const file of files) {
+          const data = await this.readFileAsArrayBuffer(file);
+          const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+          if (jsonData.length === 0) continue;
+
+          const headers = jsonData[0] || [];
+          const rows = jsonData.slice(1).filter(r => r.some(c => c !== null && c !== undefined && c !== ''));
+
+          this.excelFiles.push({ name: file.name });
+          this.excelParsedData.push({ name: file.name, headers, rows });
+        }
+      } catch (e) {
+        console.error('Excel parse error:', e);
+      }
+
+      // Reset file input
+      if (this.$refs.excelInput) this.$refs.excelInput.value = '';
+    },
+    readFileAsArrayBuffer(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    },
+    removeExcel(index) {
+      this.excelFiles.splice(index, 1);
+      this.excelParsedData.splice(index, 1);
+    },
+    async sendMessage() {
+      if (!this.newMessage.trim() && !this.excelParsedData.length) return;
+      this.loading = true;
+      let message = this.newMessage || 'Analyze the attached Excel file(s)';
+      this.newMessage = "";
+
+      try {
+        if (this.excelParsedData.length) {
+          await this.ai_prompt.sendMessageWithExcel(message, this.excelParsedData);
+          this.excelFiles = [];
+          this.excelParsedData = [];
+        } else {
+          const res = await this.ai_prompt.sendMessage(message);
+          if (!res?.answer) {
+            console.warn('No answer received');
+          }
         }
       } catch (err) {
         console.error("Error:", err);
       } finally {
         this.loading = false;
-        this.$nextTick(() => this.scrollToBottom());
+        this.$nextTick(() => {
+          this.scrollToBottom(true);
+          this.$refs.messageInput?.focus();
+        });
       }
     },
-    scrollToBottom() {
+    deleteMessage(msgId) {
+      this.ai_prompt.deleteQueryMessage(msgId);
+      this.hoveredMsgId = null;
+    },
+    reactMessage(msgId, reaction) {
+      this.ai_prompt.reactQueryMessage(msgId, reaction);
+    },
+    scrollToBottom(force) {
       const el = this.$refs.chatBody;
-      if (el) {
-        this.$nextTick(() => { el.scrollTop = el.scrollHeight; });
+      if (el && (force || this.isAtBottom)) {
+        this.$nextTick(() => {
+          el.scrollTop = el.scrollHeight;
+          this.isAtBottom = true;
+        });
+      }
+    },
+    checkIsAtBottom() {
+      const el = this.$refs.chatBody;
+      if (!el) return;
+      this.isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    },
+    onScroll() {
+      this.checkIsAtBottom();
+      const el = this.$refs.chatBody;
+      if (el && el.scrollTop < 60 && this.ai_prompt.query_has_more && !this.ai_prompt.query_loading_history) {
+        const oldHeight = el.scrollHeight;
+        this.ai_prompt.loadMoreQueryHistory().then(() => {
+          this.$nextTick(() => {
+            el.scrollTop = el.scrollHeight - oldHeight;
+          });
+        });
       }
     },
     clearChat() {
-      this.ai_prompt.messages = [];
+      this.ai_prompt.clearQueryHistory();
     },
-  },
-  updated() {
-    this.scrollToBottom();
   },
 };
 </script>
@@ -196,6 +377,7 @@ export default {
 <style scoped>
 /* ── Page Layout ── */
 .aiq-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 140px); /* Safely offset layout paddings/margins to prevent body scroll */
@@ -294,11 +476,90 @@ export default {
   box-shadow: 0 4px 14px rgba(33,150,243,0.25);
 }
 .aiq-bubble-user-text { font-size: 13.5px; line-height: 1.5; }
-.aiq-bubble-time-user { font-size: 10px; opacity: 0.5; text-align: right; margin-top: 4px; }
+.aiq-bubble-time-user { font-size: 10px; opacity: 0.5; }
+.aiq-bubble-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 4px;
+}
 .aiq-user-avatar {
   width: 26px; height: 26px; border-radius: 50%;
   background: linear-gradient(135deg, #1565C0, #1E88E5);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* ── AI Footer (reactions + delete) ── */
+.aiq-ai-footer {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0 0 54px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.aiq-ai-footer:hover { opacity: 1; }
+.aiq-ai-time { font-size: 10px; color: var(--aiq-text-muted); font-weight: 500; }
+
+/* ── Action Buttons ── */
+.aiq-action-btn {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  color: var(--aiq-text-muted);
+  transition: all 0.2s;
+  padding: 0;
+}
+.aiq-action-btn:hover {
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+}
+.aiq-action-active {
+  color: #2196F3 !important;
+}
+.aiq-action-dislike {
+  color: #F44336 !important;
+}
+.aiq-action-delete-user {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+.aiq-action-delete-user:hover {
+  background: rgba(244, 67, 54, 0.2) !important;
+  color: #F44336 !important;
+}
+.aiq-action-delete-ai:hover {
+  background: rgba(244, 67, 54, 0.1) !important;
+  color: #F44336 !important;
+}
+
+/* ── Floating Scroll-to-Bottom Button ── */
+.aiq-scroll-bottom-fab {
+  position: absolute;
+  bottom: 130px;
+  right: 36px;
+  z-index: 10;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1976D2, #2196F3);
+  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.aiq-scroll-bottom-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.55);
+}
+.aiq-fab-fade-enter-active,
+.aiq-fab-fade-leave-active {
+  transition: opacity 0.25s, transform 0.25s;
+}
+.aiq-fab-fade-enter-from,
+.aiq-fab-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.8);
+}
+
+/* ── Loading More ── */
+.aiq-loading-more {
+  display: flex; justify-content: center; padding: 12px 0;
 }
 
 /* ── Typing ── */
@@ -380,4 +641,67 @@ export default {
 }
 .aiq-spin { animation: aiq-spin-r 0.8s linear infinite; }
 @keyframes aiq-spin-r { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+/* ── Excel Import ── */
+.aiq-excel-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 8px;
+}
+.aiq-excel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+  border-radius: 20px;
+  padding: 4px 10px 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4CAF50;
+  animation: aiq-msg-in 0.3s ease;
+}
+.aiq-excel-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--aiq-text);
+  font-weight: 500;
+}
+.aiq-excel-remove {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+.aiq-excel-remove:hover {
+  background: rgba(244, 67, 54, 0.2);
+  transform: scale(1.15);
+}
+.aiq-excel-btn {
+  width: 34px; height: 34px; min-width: 34px; border-radius: 50%;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(76, 175, 80, 0.06);
+  color: var(--aiq-text-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+.aiq-excel-btn:hover {
+  background: rgba(76, 175, 80, 0.12);
+  color: #4CAF50;
+}
+.aiq-excel-btn:disabled { cursor: not-allowed; opacity: 0.35; }
+.aiq-excel-btn-active {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2), 0 0 12px rgba(76, 175, 80, 0.15);
+}
 </style>

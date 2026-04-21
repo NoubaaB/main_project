@@ -22,7 +22,7 @@ class FishProcessTypeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255|unique:fish_process_types,name',
+            'name' => 'nullable|string|max:255|unique:fish_process_types,name',
             'description' => 'nullable|string|max:500',
         ]);
 
@@ -40,7 +40,7 @@ class FishProcessTypeController extends Controller
         $processType = FishProcessType::findOrFail($id);
 
         $data = $request->validate([
-            'name' => 'required|string|max:255|unique:fish_process_types,name,' . $id,
+            'name' => 'nullable|string|max:255|unique:fish_process_types,name,' . $id,
             'description' => 'nullable|string|max:500',
         ]);
 

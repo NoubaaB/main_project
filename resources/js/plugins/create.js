@@ -28,6 +28,13 @@ export async function registerPlugins(app) {
                 methods,
             }
         );
+
+    // Prevent Vue dev warnings from crashing browser extension console interceptors
+    // that try to String() reactive proxy objects
+    app.config.warnHandler = (msg, instance, trace) => {
+        // Log only the string message, avoiding reactive proxy serialization
+        console.log('[Vue warn]:', msg);
+    };
     if (localStorage.getItem("token")) {
         await useAuth().attemp().then(res => {
             return res;

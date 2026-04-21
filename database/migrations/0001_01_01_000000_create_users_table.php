@@ -18,7 +18,19 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->foreignId('role_id')->nullable()->index();
-
+            $table->json('allowed_ai_crud')->default(
+                json_encode([
+                    'Section' => ['create', 'read', 'update', 'delete'],
+                    'Activity' => ['create', 'read', 'update', 'delete'],
+                    'Workforce' => ['create', 'read', 'update', 'delete'],
+                    'Corporal' => ['create', 'read', 'update', 'delete'],
+                    'FortnightActivity' => ['create', 'read', 'update', 'delete'],
+                    'Charge' => ['create', 'read', 'update', 'delete'],
+                    'Payment' => ['create', 'read', 'update', 'delete'],
+                    'Supplier' => ['create', 'read', 'update', 'delete'],
+                    'Ship' => ['create', 'read', 'update', 'delete'],
+                ])
+            );
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();

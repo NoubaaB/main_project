@@ -168,26 +168,72 @@
                     </button>
                   </span>
                 </div>
+                <!-- Export Excel (when message has table) -->
+                <div
+                  v-if="!m.typing && m.role === 'agent' && isTableMessage(m)"
+                  class="ai-export-bar"
+                >
+                  <button class="ai-export-btn" @click.stop="exportBubbleExcel($event, m)" :title="$t('export_excel')">
+                    <v-icon size="13" class="me-1">mdi-file-excel-outline</v-icon>
+                    {{ $t('export_excel') }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Floating scroll-to-bottom button -->
+          <transition name="ai-fab-scroll-fade">
+            <button
+              v-if="!isAtBottom"
+              class="ai-scroll-bottom-fab"
+              @click="scrollToBottom(true)"
+            >
+              <v-icon size="18" color="white">mdi-chevron-down</v-icon>
+            </button>
+          </transition>
         </div>
 
         <!-- Input area -->
         <div class="ai-chat-input-area">
+          <!-- Excel file attachment indicator -->
+          <div v-if="excelFile" class="ai-excel-badge">
+            <v-icon size="14" color="#4CAF50">mdi-file-excel</v-icon>
+            <span class="ai-excel-name">{{ excelFile.name }}</span>
+            <button class="ai-excel-remove" @click="removeExcel" :title="$t('remove')">
+              <v-icon size="12">mdi-close</v-icon>
+            </button>
+          </div>
           <div class="ai-input-wrapper">
             <input
+              ref="messageInput"
               v-model="input"
-              :placeholder="$t('type_a_message')"
+              :placeholder="excelFile ? $t('describe_what_to_do_with_excel') : $t('type_a_message')"
               class="ai-chat-input"
               @keyup.enter="send"
               :disabled="loading"
             />
+            <input
+              ref="excelInput"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              style="display:none"
+              @change="onExcelSelected"
+            />
+            <button
+              class="ai-excel-btn"
+              @click="$refs.excelInput.click()"
+              :disabled="loading"
+              :title="$t('import_excel')"
+              :class="{ 'ai-excel-btn-active': excelFile }"
+            >
+              <v-icon size="16">mdi-file-excel-outline</v-icon>
+            </button>
             <button
               class="ai-send-btn"
               @click="send"
-              :disabled="loading || !input.trim()"
-              :class="{ 'ai-send-active': input.trim() && !loading }"
+              :disabled="loading || (!input.trim() && !excelFile)"
+              :class="{ 'ai-send-active': (input.trim() || excelFile) && !loading }"
             >
               <v-icon v-if="loading" size="18" class="ai-spin">mdi-loading</v-icon>
               <v-icon v-else size="18">mdi-send-variant</v-icon>
@@ -206,6 +252,7 @@
 <script>
 import { useAIPrompt } from '@/stores/AIPrompt';
 import { useMain } from '@/stores/Main';
+import * as XLSX from 'xlsx';
 
 export default {
   data() {
@@ -217,6 +264,9 @@ export default {
       typingPlaceholder: null,
       scrollRestorationPending: false,
       hoveredMsgId: null,
+      isAtBottom: true,
+      excelFile: null,
+      excelData: null,
     };
   },
   computed: {
@@ -240,7 +290,7 @@ export default {
       this.isOpen = !this.isOpen;
       if (this.isOpen) {
         this.loadHistoryIfNeeded();
-        this.$nextTick(() => this.scrollToBottom());
+        this.$nextTick(() => this.scrollToBottom(true));
       }
     },
     closeAssistant() {
@@ -260,7 +310,7 @@ export default {
       if (!this.ai_prompt.history_loaded) {
         await this.ai_prompt.loadChatHistory();
         this.initChat();
-        this.$nextTick(() => this.scrollToBottom());
+        this.$nextTick(() => this.scrollToBottom(true));
       }
     },
     async loadMore() {
@@ -278,6 +328,8 @@ export default {
     onScroll() {
       const container = this.$refs.messagesContainer;
       if (!container) return;
+      // Track if user is at bottom
+      this.isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
       // When scrolled to top, trigger load more
       if (container.scrollTop <= 10 && this.ai_prompt.has_more && !this.ai_prompt.loading_history) {
         this.loadMore();
@@ -294,12 +346,37 @@ export default {
       const t = m.text.toLowerCase();
       return t.includes('apexchart') || t.includes('aichart') || t.includes('new apexcharts');
     },
-    scrollToBottom() {
+    isTableMessage(m) {
+      if (!m.text || m.typing) return false;
+      return m.text.includes('<table') || m.text.includes('&lt;table');
+    },
+    exportBubbleExcel(event, m) {
+      // Find the bubble element that contains the text
+      const bubble = event.target.closest('.ai-msg-bubble');
+      if (!bubble) return;
+      const tables = bubble.querySelectorAll('table');
+      if (!tables.length) return;
+
+      const wb = XLSX.utils.book_new();
+      tables.forEach((table, idx) => {
+        const ws = XLSX.utils.table_to_sheet(table);
+        const sheetName = tables.length === 1 ? 'Data' : `Sheet${idx + 1}`;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+
+      const now = new Date();
+      const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+      XLSX.writeFile(wb, `ai_export_${ts}.xlsx`);
+    },
+    scrollToBottom(force) {
       const el = this.$refs.messagesContainer;
       if (!el) return;
-      this.$nextTick(() => {
-        el.scrollTop = el.scrollHeight;
-      });
+      if (force || this.isAtBottom) {
+        this.$nextTick(() => {
+          el.scrollTop = el.scrollHeight;
+          this.isAtBottom = true;
+        });
+      }
     },
     async send() {
       const text = (this.input || '').trim();
@@ -314,7 +391,7 @@ export default {
 
       this.ai_prompt.add_assistant_messages(userMsg);
       this.input = '';
-      this.$nextTick(() => this.scrollToBottom());
+      this.$nextTick(() => this.scrollToBottom(true));
 
       this.typingPlaceholder = {
         id: 'typing_' + Date.now() + '_' + Math.random(),
@@ -328,7 +405,14 @@ export default {
       this.loading = true;
 
       try {
-        await this.ai_prompt.askAssistant(userMsg.text);
+        if (this.excelData) {
+          // Send with Excel data
+          await this.ai_prompt.askWithExcel(userMsg.text, this.excelData);
+          this.excelFile = null;
+          this.excelData = null;
+        } else {
+          await this.ai_prompt.askAssistant(userMsg.text);
+        }
       } catch (err) {
         const errMsg = {
           id: Date.now() + Math.random(),
@@ -345,7 +429,10 @@ export default {
         this.typingPlaceholder = null;
         this.sending = false;
         this.loading = false;
-        this.$nextTick(() => this.scrollToBottom());
+        this.$nextTick(() => {
+          this.scrollToBottom(true);
+          this.$refs.messageInput?.focus();
+        });
       }
     },
     handleBubbleClick(event) {
@@ -384,6 +471,51 @@ export default {
     },
     reactMessage(msgId, reaction) {
       this.ai_prompt.react_to_message(msgId, reaction);
+    },
+    onExcelSelected(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      this.excelFile = file;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+          if (jsonData.length < 2) {
+            this.main.add_snackbar({ show: true, message: this.$t('excel_empty_error'), color: 'warning' });
+            this.excelFile = null;
+            this.excelData = null;
+            return;
+          }
+
+          const headers = jsonData[0].map(h => String(h).trim());
+          const rows = jsonData.slice(1).filter(r => r.some(c => c !== ''));
+
+          this.excelData = {
+            headers,
+            rows,
+            filename: file.name,
+            sheet_name: sheetName,
+          };
+        } catch (err) {
+          console.error('Excel parse error:', err);
+          this.main.add_snackbar({ show: true, message: this.$t('excel_parse_error'), color: 'error' });
+          this.excelFile = null;
+          this.excelData = null;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      // Reset input so same file can be re-selected
+      event.target.value = '';
+    },
+    removeExcel() {
+      this.excelFile = null;
+      this.excelData = null;
     },
   },
   mounted() {
@@ -671,6 +803,7 @@ export default {
 
 /* ---------- Chat Body ---------- */
 .ai-chat-body {
+  position: relative;
   flex: 1;
   overflow: hidden;
   background: var(--ai-body-bg);
@@ -1160,5 +1293,134 @@ export default {
   border-color: rgba(33, 150, 243, 0.3);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+}
+
+/* ---------- Excel Import ---------- */
+.ai-excel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--ai-send-idle-bg);
+  color: #4CAF50;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.ai-excel-btn:hover {
+  background: rgba(76, 175, 80, 0.15);
+  transform: scale(1.05);
+}
+.ai-excel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ai-excel-btn-active {
+  background: rgba(76, 175, 80, 0.15) !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+}
+
+.ai-excel-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin: 0 12px 4px;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #4CAF50;
+}
+.ai-excel-name {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-excel-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+.ai-excel-remove:hover {
+  background: rgba(244, 67, 54, 0.15);
+  color: #F44336;
+}
+/* ---------- Floating Scroll-to-Bottom Button ---------- */
+.ai-scroll-bottom-fab {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1976D2, #2196F3);
+  box-shadow: 0 3px 12px rgba(33, 150, 243, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ai-scroll-bottom-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 18px rgba(33, 150, 243, 0.55);
+}
+.ai-fab-scroll-fade-enter-active,
+.ai-fab-scroll-fade-leave-active {
+  transition: opacity 0.25s, transform 0.25s;
+}
+.ai-fab-scroll-fade-enter-from,
+.ai-fab-scroll-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.8);
+}
+
+/* Export Excel in bubble */
+.ai-export-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.ai-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: rgba(76, 175, 80, 0.08);
+  color: #4CAF50;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.ai-export-btn:hover {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.5);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+  transform: translateY(-1px);
 }
 </style>

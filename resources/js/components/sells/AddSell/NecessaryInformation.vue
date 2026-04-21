@@ -129,234 +129,233 @@
           </v-row>
 
           <v-expand-transition>
-            <v-row v-show="_sell.showAdditionalInfo" class="pt-2">
-              <!-- Tracking Numbers -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_sell.getSell.enable_tracking_numbers"
-                  v-model="_sell.sell.tracking_numbers"
-                  :items="_sell.sell.tracking_numbers"
-                  :rules="[!v$._sell.sell.tracking_numbers.$invalid ]"
-                  :hide-details="v$._sell.sell.tracking_numbers.$errors.length==0"
-                  :error-messages="v$._sell.sell.tracking_numbers.$errors.map(e => e.$message)"
-                  @blur="v$._sell.sell.tracking_numbers.$touch()"
-                  :label="$t('tracking_numbers')"
-                  placeholder="ex :   --- --- --- --- ---"
-                  multiple
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  clearable
-                  @keydown.enter.prevent="addNewTrackingNumber"
-                  color="info"
-                  class="text-info"
-                  >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_sell.sell.tracking_numbers = _sell.sell.tracking_numbers.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-              <!-- Tracking ONP Numbers -->
+            <div v-show="_sell.showAdditionalInfo" class="pt-2">
+              <div class="d-flex flex-wrap" style="gap: 0; margin: 0 -12px;">
+                <!-- Tracking Numbers -->
+                <div v-if="_sell.getSell.enable_tracking_numbers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    ref="trackingNumberInput"
+                    v-model="_sell.sell.tracking_numbers"
+                    :items="_sell.sell.tracking_numbers"
+                    :rules="[!v$._sell.sell.tracking_numbers.$invalid ]"
+                    :hide-details="v$._sell.sell.tracking_numbers.$errors.length==0"
+                    :error-messages="v$._sell.sell.tracking_numbers.$errors.map(e => e.$message)"
+                    @blur="v$._sell.sell.tracking_numbers.$touch()"
+                    :label="$t('tracking_numbers')"
+                    placeholder="ex :   --- --- --- --- ---"
+                    multiple
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    clearable
+                    @keydown.enter.prevent="addNewTrackingNumber"
+                    color="info"
+                    class="text-info"
+                    :disabled="is_checking_tracking"
+                    :loading="is_checking_tracking"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_sell.sell.tracking_numbers = _sell.sell.tracking_numbers.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
 
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_sell.getSell.enable_tracking_onp_numbers"
-                  v-model="_sell.sell.tracking_onp_numbers"
-                  :items="_sell.sell.tracking_onp_numbers"
-                  :label="$t('tracking_onp_numbers')"
-                  multiple
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  hide-details
-                  placeholder="ex :   --- --- --- --- ---"
-                  clearable
-                  @keydown.enter.prevent="addNewOnpTrackingNumber"
-                  color="info"
-                  class="text-info"
+                <!-- Tracking ONP Numbers -->
+                <div v-if="_sell.getSell.enable_tracking_onp_numbers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    v-model="_sell.sell.tracking_onp_numbers"
+                    :items="_sell.sell.tracking_onp_numbers"
+                    :label="$t('tracking_onp_numbers')"
+                    multiple
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    hide-details
+                    placeholder="ex :   --- --- --- --- ---"
+                    clearable
+                    @keydown.enter.prevent="addNewOnpTrackingNumber"
+                    color="info"
+                    class="text-info"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_sell.sell.tracking_onp_numbers = _sell.sell.tracking_onp_numbers.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Client -->
+                <div v-if="_sell.getSell.enable_client_process_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    v-model="_sell.sell.client_ids"
+                    :items="_client.list"
+                    :rules="[!v$._sell.sell.client_ids.$invalid ]"
+                    :hide-details="v$._sell.sell.client_ids.$errors.length==0"
+                    :error-messages="v$._sell.sell.client_ids.$errors.map(e => e.$message)"
+                    @blur="v$._sell.sell.client_ids.$touch()"
+                    item-value="id"
+                    item-title="name"
+                    multiple
+                    key="id"
+                    placeholder="ex :   Golden Logictics"
+                    @keydown.enter.prevent="addNewClient"
+                    :label="$t('clients')"
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    clearable
+                    color="info"
+                    class="text-info"
+                    :disabled="is_posting_clients"
+                    :loading="is_posting_clients"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_sell.sell.client_ids = _sell.sell.client_ids.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Fishery -->
+                <div v-if="_sell.getSell.enable_fishery_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    :rules="[!v$._sell.sell.fishery_id.$invalid ]"
+                    :hide-details="v$._sell.sell.fishery_id.$errors.length==0"
+                    :error-messages="v$._sell.sell.fishery_id.$errors.map(e => e.$message)"
+                    @blur="v$._sell.sell.fishery_id.$touch()"
+                    density="compact"
+                    color="info"
+                    variant="outlined"
+                    rounded
+                    chips
+                    v-model="_sell.sell.fishery_id"
+                    :items="_fishery.getList"
+                    :label="$t('fishery')"
+                    :item-title="`name_${main.lang.short}`"
+                    item-value="id"
+                    class="text-info"
                   >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_sell.sell.tracking_onp_numbers = _sell.sell.tracking_onp_numbers.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-  
-              <!-- client -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_sell.getSell.enable_client_process_id"
-                  v-model="_sell.sell.client_ids"
-                  :items="_client.list"
-                  :rules="[!v$._sell.sell.client_ids.$invalid ]"
-                  :hide-details="v$._sell.sell.client_ids.$errors.length==0"
-                  :error-messages="v$._sell.sell.client_ids.$errors.map(e => e.$message)"
-                  @blur="v$._sell.sell.client_ids.$touch()"
-                  item-value="id"
-                  item-title="name"
-                  multiple
-                  key="id"
-                  placeholder="ex :   Golden Logictics"
-                  @keydown.enter.prevent="addNewClient"
-                  :label="$t('clients')"
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  clearable
-                  color="info"
-                  class="text-info"
-                  :disabled="is_posting_clients"
-                  :loading="is_posting_clients"
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          variant="tonal"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Origin -->
+                <div v-if="_sell.getSell.enable_origin_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    :rules="[!v$._sell.sell.origin_id.$invalid ]"
+                    :hide-details="v$._sell.sell.origin_id.$errors.length==0"
+                    :error-messages="v$._sell.sell.origin_id.$errors.map(e => e.$message)"
+                    @blur="v$._sell.sell.origin_id.$touch()"
+                    density="compact"
+                    color="info"
+                    variant="outlined"
+                    rounded
+                    chips
+                    v-model="_sell.sell.origin_id"
+                    :items="_origin.getList"
+                    :label="$t('origin')"
+                    item-title="name"
+                    item-value="id"
+                    class="text-info"
                   >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_sell.sell.client_ids = _sell.sell.client_ids.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-      
-              <!-- Fishery -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_sell.getSell.enable_fishery_id"
-                  :rules="[!v$._sell.sell.fishery_id.$invalid ]"
-                  :hide-details="v$._sell.sell.fishery_id.$errors.length==0"
-                  :error-messages="v$._sell.sell.fishery_id.$errors.map(e => e.$message)"
-                  @blur="v$._sell.sell.fishery_id.$touch()"
-                  density="compact"
-                  color="info"
-                  variant="outlined"
-                  rounded
-                  chips
-                  v-model="_sell.sell.fishery_id"
-                  :items="_fishery.getList"
-                  :label="$t('fishery')"
-                  :item-title="`name_${main.lang.short}`"
-                  item-value="id"
-                  class="text-info"
-                >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        variant="tonal"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-      
-              <!-- Origin -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_sell.getSell.enable_origin_id"
-                  :rules="[!v$._sell.sell.origin_id.$invalid ]"
-                  :hide-details="v$._sell.sell.origin_id.$errors.length==0"
-                  :error-messages="v$._sell.sell.origin_id.$errors.map(e => e.$message)"
-                  @blur="v$._sell.sell.origin_id.$touch()"
-                  density="compact"
-                  color="info"
-                  variant="outlined"
-                  rounded
-                  chips
-                  v-model="_sell.sell.origin_id"
-                  :items="_origin.getList"
-                  :label="$t('origin')"
-                  item-title="name"
-                  item-value="id"
-                  class="text-info"
-                >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        variant="tonal"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>              
-                </v-autocomplete>
-              </v-col>
-  
-              <!-- Registratio Plate -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_sell.getSell.enable_truck_id"
-                  v-model="_sell.sell.truck_ids"
-                  :items="_truck.list"
-                  :rules="[!v$._sell.sell.truck_ids.$invalid ]"
-                  :hide-details="v$._sell.sell.truck_ids.$errors.length==0"
-                  :error-messages="v$._sell.sell.truck_ids.$errors.map(e => e.$message)"
-                  @blur="v$._sell.sell.truck_ids.$touch()"
-                  item-value="id"
-                  item-title="registration_plate"
-                  multiple
-                  key="id"
-                  :label="$t('truck_id')"
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  clearable
-                  placeholder="ex :   11111-A-11"
-                  @keydown.enter.prevent="addNewTruck"
-                  color="info"
-                  class="text-info"
-                  :disabled="is_posting_trucks"
-                  :loading="is_posting_trucks"
-                  >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_sell.sell.truck_ids = _sell.sell.truck_ids.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-            </v-row>
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          variant="tonal"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Registration Plate -->
+                <div v-if="_sell.getSell.enable_truck_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    v-model="_sell.sell.truck_ids"
+                    :items="_truck.list"
+                    :rules="[!v$._sell.sell.truck_ids.$invalid ]"
+                    :hide-details="v$._sell.sell.truck_ids.$errors.length==0"
+                    :error-messages="v$._sell.sell.truck_ids.$errors.map(e => e.$message)"
+                    @blur="v$._sell.sell.truck_ids.$touch()"
+                    item-value="id"
+                    item-title="registration_plate"
+                    multiple
+                    key="id"
+                    :label="$t('truck_id')"
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    clearable
+                    placeholder="ex :   11111-A-11"
+                    @keydown.enter.prevent="addNewTruck"
+                    color="info"
+                    class="text-info"
+                    :disabled="is_posting_trucks"
+                    :loading="is_posting_trucks"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_sell.sell.truck_ids = _sell.sell.truck_ids.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+              </div>
+            </div>
           </v-expand-transition>
 
         </v-card-text>
@@ -367,12 +366,8 @@
             <v-col>
               <v-btn :disabled="v$.$invalid" block variant="tonal" rounded color="info" @click="submit">{{$t('submit')}}</v-btn>
             </v-col>
-            <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
-            <v-col class="pr-1" v-if="_sell.sell.is_archived">
-              <v-btn block variant="tonal" rounded color="orange" class="rounded-e-lg" @click="update_archive">{{$t('update_archive')}}</v-btn>
-            </v-col>
-            <v-col class="pr-1" v-else>
-              <v-btn block variant="tonal" rounded color="green" class="rounded-e-lg" @click="archive">{{$t('archive')}}</v-btn>
+            <v-col class="pl-1">
+              <v-btn block variant="tonal" rounded color="teal" @click="archiveSell" prepend-icon="mdi-archive-arrow-down">{{$t('archive')}}</v-btn>
             </v-col>
             <v-col class="pl-1">
               <v-btn block variant="outlined" rounded color="orange" class="rounded-s-lg" @click="reset">{{$t('cancel')}}</v-btn>
@@ -434,6 +429,7 @@ import { useTruck } from '@/stores/Truck';
 import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
 import { useSellCategory } from '@/stores/SellCategory';
+import { useArchive } from '@/stores/Archive';
 import { useVuelidate } from '@vuelidate/core';
 import { required , requiredIf } from '@vuelidate/validators';
 
@@ -444,7 +440,8 @@ export default {
       dialog_note:false,
       searchInputTrackingNumbers: '',
       is_posting_clients: false,
-      is_posting_trucks: false
+      is_posting_trucks: false,
+      is_checking_tracking: false
     }
   },
   validations() {
@@ -493,23 +490,61 @@ export default {
     submit: function () {
       this._sell.submitSell(this.$router);
     },
-    addNewTrackingNumber(event) {
+    getYearPrefix() {
+      const d = this._sell.sell.date;
+      if (!d) return '';
+      const date = new Date(d);
+      const yy = String(date.getFullYear()).slice(-2);
+      return yy;
+    },
+    prefixWithYear(value) {
+      const yy = this.getYearPrefix();
+      if (!yy) return value;
+      const prefix = yy + '-';
+      // Don't double-prefix if it already starts with "YY-"
+      if (value.startsWith(prefix)) return value;
+      return prefix + value;
+    },
+    addNewTrackingNumber: async function (event) {
       let inputValue = event.target.value.trim()
       if (inputValue && !this._sell.sell.tracking_numbers.includes(inputValue)) {
-        if (inputValue.search(" ")>0) {
-          let inputs = inputValue.split(" ");
-          inputs.forEach(input => {
-            if (!this._sell.sell.tracking_numbers.find(n => n == input)) {
-              this._sell.sell.tracking_numbers.push(input)
-            }
-          })
-        } else {
-          this._sell.sell.tracking_numbers.push(inputValue)
+        const numbersToAdd = inputValue.search(" ") > 0 ? inputValue.split(" ") : [inputValue];
+        for (const input of numbersToAdd) {
+          const prefixed = this.prefixWithYear(input);
+          if (this._sell.sell.tracking_numbers.find(n => n == prefixed)) continue;
+          // Check uniqueness against backend
+          this.is_checking_tracking = true;
+          const result = await this._sell.checkTrackingNumberUnique(
+            prefixed,
+            this._sell.sell.sell_category_id
+          );
+          this.is_checking_tracking = false;
+          if (!result.unique) {
+            const s = result.sell;
+            this.main.add_snackbar({
+              show: true,
+              message: this.$t('tracking_number_exists', { tracking_number: prefixed })
+                + ' — ' + this.$t('sell_tracking_number_duplicate_details', {
+                  tracking_numbers: (s.tracking_numbers || []).join(', '),
+                  date: this.main.formateDate(s.date),
+                  client: (s.clients || []).join(', ') || this.$t('n/a'),
+                  weight: this.main.formatDisplayNumber(s.total_weight),
+                  price: this.main.formatDisplayNumber(s.total_price),
+                  currency: this.main.currency
+                }),
+              color: 'warning'
+            });
+            continue;
+          }
+          this._sell.sell.tracking_numbers.push(prefixed);
         }
       }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';
+      this.$nextTick(() => {
+        this.$refs.trackingNumberInput?.focus();
+      });
     },
     removeTrackingNumber(item) {
       this._sell.sell.sell_category_id = null;
@@ -520,13 +555,18 @@ export default {
         if (inputValue.search(" ")>0) {
           let inputs = inputValue.split(" ");
           inputs.forEach(input => {
-            if (!this._sell.sell.tracking_onp_numbers.find(n => n == input)) {
-              this._sell.sell.tracking_onp_numbers.push(input)
+            const prefixed = this.prefixWithYear(input);
+            if (!this._sell.sell.tracking_onp_numbers.find(n => n == prefixed)) {
+              this._sell.sell.tracking_onp_numbers.push(prefixed)
             }
           })
         } else {
-          this._sell.sell.tracking_onp_numbers.push(inputValue)      }
+          const prefixed = this.prefixWithYear(inputValue);
+          if (!this._sell.sell.tracking_onp_numbers.includes(prefixed)) {
+            this._sell.sell.tracking_onp_numbers.push(prefixed)
+          }
         }
+      }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';
@@ -585,13 +625,13 @@ export default {
     update: function(){
       this._sell.UpdateSell();
     },
-    archive: function () {
-      this._sell.archive();
-    },
-    update_archive: function () {
-      this._sell.update_archive();
-    },
+
     reset: function () {
+      this._sell.reset();
+    },
+    archiveSell: function () {
+      const archive = useArchive();
+      archive.archiveSell(this._sell.sell);
       this._sell.reset();
     },
   },

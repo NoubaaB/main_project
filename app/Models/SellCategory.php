@@ -17,6 +17,6 @@ class SellCategory extends Model
 
     function sells(): HasMany
     {
-        return $this->hasMany(Sell::class, 'type_sell_id');
+        return $this->hasMany(Sell::class, 'sell_category_id');
     }
 }

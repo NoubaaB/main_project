@@ -44,7 +44,7 @@
                 <v-chip size="x-small" color="white" variant="outlined" class="me-1">
                   <v-icon start size="11">mdi-calendar</v-icon>{{ main.formateDate(charge.date) }}
                 </v-chip>
-                <v-chip v-for="tn in (charge.tracking_numbers || [])" :key="tn" size="x-small" color="white" variant="outlined" class="me-1">
+                <v-chip v-for="tn in (charge.reception_tracking_number || [])" :key="tn" size="x-small" color="white" variant="outlined" class="me-1">
                   <v-icon start size="11">mdi-barcode</v-icon>{{ tn }}
                 </v-chip>
               </div>
@@ -52,6 +52,9 @@
             <v-col cols="auto" class="d-flex ga-2 flex-wrap">
               <v-btn color="white" variant="tonal" rounded="lg" size="small" @click="$router.push({ name: 'edit_charge', params: { id: charge.id } })">
                 <v-icon start size="16">mdi-pencil-outline</v-icon>{{ $t('edit_item') }}
+              </v-btn>
+              <v-btn color="red-lighten-2" variant="tonal" rounded="lg" size="small" @click="deleteCharge">
+                <v-icon start size="16">mdi-delete-outline</v-icon>{{ $t('delete_item') }}
               </v-btn>
               <v-btn color="white" variant="outlined" rounded="lg" size="small" @click="$router.push({ name: 'list_charge' })">
                 <v-icon start size="16">mdi-format-list-bulleted</v-icon>{{ $t('list_charge') }}
@@ -223,8 +226,8 @@
                             <td v-for="col in visibleColumns" :key="col.key">
                               <!-- Article -->
                               <template v-if="col.key === 'article'">
-                                <v-chip :color="getColor(item.stockable_type)" size="small" variant="tonal" class="font-weight-medium">
-                                  {{ main.getStockableName(item.stockable_id, item.stockable_type) }}
+                                <v-chip :color="item.description ? 'grey' : getColor(item.stockable_type)" size="small" variant="tonal" class="font-weight-medium">
+                                  {{ item.description ? item.description : main.getStockableName(item.stockable_id, item.stockable_type) }}
                                 </v-chip>
                               </template>
                               <!-- Weight -->
@@ -257,7 +260,8 @@
                               </template>
                               <!-- Type -->
                               <template v-else-if="col.key === 'type'">
-                                <v-chip :color="getColor(item.stockable_type)" size="x-small" variant="outlined">{{ item.stockable_type }}</v-chip>
+                                <v-chip v-if="item.stockable_type" :color="getColor(item.stockable_type)" size="x-small" variant="outlined">{{ item.stockable_type }}</v-chip>
+                                <v-chip v-else color="grey" size="x-small" variant="outlined">{{ $t('description') }}</v-chip>
                               </template>
                               <!-- Source -->
                               <template v-else-if="col.key === 'source'">
@@ -327,6 +331,7 @@ import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
 import { useTruck } from '@/stores/Truck';
 import { useWarehouseCategoryOperation } from '@/stores/WarehouseCategoryOperation';
+import { useNotification } from '@/stores/Notification';
 
 export default {
   beforeMount() {
@@ -364,7 +369,7 @@ export default {
     // Column definitions
     columnDefs() {
       return {
-        article:      { title: this.$t('type_article'),                                     minW: '140px', extract: item => this.main.getStockableName(item.stockable_id, item.stockable_type), format: v => v },
+        article:      { title: this.$t('type_article'),                                     minW: '140px', extract: item => item.description ? item.description : this.main.getStockableName(item.stockable_id, item.stockable_type), format: v => v },
         weight:       { title: this.$t('weight_(KG)'),                                      minW: '90px',  extract: item => this.main.formatDisplayNumber(item.total_weight), format: v => v + ' Kg' },
         weightBill:   { title: this.$t('weight_invoice_(KG)'),                               minW: '90px',  extract: item => this.main.formatDisplayNumber(item.total_weight_bill), format: v => v + ' Kg' },
         unitPrice:    { title: this.$t('pu_(DH)', { currency: this.main.currency }),          minW: '90px',  extract: item => this.main.formatDisplayNumber(item.unit_price), format: v => v + ' ' + this.main.currency },
@@ -433,8 +438,9 @@ export default {
         { icon: 'mdi-calendar', label: this.$t('date'), value: this.main.formateDate(this.charge.date) },
         { icon: 'mdi-tag-outline', label: this.$t('charge_category'), chips: this.catName ? [this.catName] : null, value: this.$t('n/a'), chipColor: 'info' },
       ];
-      if (this.charge.tracking_numbers?.length)     rows.push({ icon: 'mdi-barcode',          label: this.$t('tracking_numbers'),     chips: this.charge.tracking_numbers,                  chipColor: 'info' });
+      if (this.charge.reception_tracking_number?.length)     rows.push({ icon: 'mdi-barcode',          label: this.$t('reception_tracking_number'),     chips: this.charge.reception_tracking_number,                  chipColor: 'info' });
       if (this.charge.tracking_onp_numbers?.length)  rows.push({ icon: 'mdi-barcode-scan',     label: this.$t('tracking_onp_numbers'),  chips: this.charge.tracking_onp_numbers,               chipColor: 'teal' });
+      if (this.charge.production_tracking_numbers?.length)    rows.push({ icon: 'mdi-factory',           label: this.$t('production_tracking_numbers'),    chips: this.charge.production_tracking_numbers,                 chipColor: 'teal' });
       if (this.charge.suppliers?.length)             rows.push({ icon: 'mdi-truck-delivery',   label: this.$t('suppliers'),             chips: this.charge.suppliers.map(s => s.name),         chipColor: 'purple' });
       if (this.fisheryName) rows.push({ icon: 'mdi-fish',               label: this.$t('fishery'), chips: [this.fisheryName], chipColor: 'blue-grey' });
       if (this.originName)  rows.push({ icon: 'mdi-map-marker-outline', label: this.$t('origin'),  chips: [this.originName],  chipColor: 'deep-orange' });
@@ -458,6 +464,7 @@ export default {
       const map = {};
       this.allDetails.forEach(item => {
         const opId = item.warehouse_category_operation_id || 'none';
+        console.log(this.wcOp.getName(opId));
         if (!map[opId]) {
           map[opId] = {
             opId,
@@ -518,6 +525,40 @@ export default {
     },
     getGroupTotalPrice(group) {
       return this.getGroupFiltered(group).reduce((s, i) => s + (parseFloat(i.total_price) || 0), 0);
+    },
+    async deleteCharge() {
+      if (!this.charge?.id) return;
+
+      // Build rich notification from current charge data
+      const c = this.charge;
+      const fields = [];
+
+      if (c.date) {
+        fields.push({ label: this.$t('date'), value: this.main.formateDate(c.date), icon: 'mdi-calendar' });
+      }
+      if (c.reception_tracking_number?.length) {
+        fields.push({ label: this.$t('reception_tracking_number'), value: c.reception_tracking_number.join(', '), icon: 'mdi-barcode' });
+      }
+      if (c.production_tracking_numbers?.length) {
+        fields.push({ label: this.$t('production_tracking_numbers'), value: c.production_tracking_numbers.join(', '), icon: 'mdi-factory' });
+      }
+      if (c.suppliers?.length) {
+        fields.push({ label: this.$t('suppliers'), value: c.suppliers.map(s => s.name).join(', '), icon: 'mdi-truck-delivery' });
+      }
+      if (c.total_weight) {
+        fields.push({ label: this.$t('total_weight'), value: this.main.formatDisplayNumber(c.total_weight) + ' Kg', icon: 'mdi-weight-kilogram' });
+      }
+      if (c.total_price) {
+        fields.push({ label: this.$t('total_price'), value: this.main.formatDisplayNumber(c.total_price) + ' ' + this.main.currency, icon: 'mdi-cash' });
+      }
+
+      const notification = useNotification();
+      notification.notifyDeletion({ type: 'charges', icon: 'mdi-warehouse', color: 'error', fields });
+      this.main.add_snackbar({ show: true, message: this.$t('charges_deleted_successfully'), color: 'success' });
+
+      // Perform the actual delete (skip store notification since we handled it above)
+      await axios.delete('/api/charge', { params: { ids: [c.id] } });
+      this.$router.push({ name: 'list_charge' });
     },
   },
   watch: {

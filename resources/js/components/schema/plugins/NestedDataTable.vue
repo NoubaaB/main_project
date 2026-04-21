@@ -88,11 +88,11 @@
                     return {
                         id : e.id,
                         classification: {
-                            name: this.$t(e.stockable_type),
-                            color : this.main.getClassificationColor(e.stockable_type)
+                            name: e.stockable_type ? this.$t(e.stockable_type) : this.$t('description'),
+                            color : e.stockable_type ? this.main.getClassificationColor(e.stockable_type) : 'grey'
                         },
-                        product: this.main.getStockableName(e.stockable_id, e.stockable_type),
-                        product_family : this.main.getStockableFishFamily(e.stockable_id,e.stockable_type),
+                        product: e.description ? e.description : this.main.getStockableName(e.stockable_id, e.stockable_type),
+                        product_family : e.description ? 'N/A' : this.main.getStockableFishFamily(e.stockable_id,e.stockable_type),
                         warehouse : this.main.getWarehouseName(e.warehouse_id),
                         total_weight:e.total_weight,
                         truck_ids:e.truck_ids,
@@ -108,11 +108,11 @@
                     return {
                         id : e.id,
                         classification: {
-                            name: this.$t(e.stockable_type),
-                            color : this.main.getClassificationColor(e.stockable_type)
+                            name: e.stockable_type ? this.$t(e.stockable_type) : this.$t('description'),
+                            color : e.stockable_type ? this.main.getClassificationColor(e.stockable_type) : 'grey'
                         },
-                        product : this.main.getStockableName(e.stockable_id,e.stockable_type),
-                        product_family : this.main.getStockableFishFamily(e.stockable_id,e.stockable_type),
+                        product : e.description ? e.description : this.main.getStockableName(e.stockable_id,e.stockable_type),
+                        product_family : e.description ? 'N/A' : this.main.getStockableFishFamily(e.stockable_id,e.stockable_type),
                         warehouse : this.main.getWarehouseName(e.warehouse_id),
                         total_weight : e.total_weight,
                         truck_ids : e.truck_ids,

@@ -30,6 +30,10 @@
     font-size: large !important;
 }
 
+.v-text-field__prefix__text {
+    color: #2196F3 !important;
+}
+
 // .swipe-modal-content>.panel {
 //     overflow-y: hidden !important;
 // }
@@ -81,7 +85,7 @@ input[type="datetime-local"]::placeholder {
     /* Set placeholder text color */
 }
 
-.fab_speed_dial{
+.fab_speed_dial {
     right: 97% !important;
     top: 87.5% !important;
 }

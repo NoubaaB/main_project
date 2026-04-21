@@ -44,7 +44,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             _headers: [
                     { align: "center", title: i18n.global.t("date"), key: 'date', visible: true },
                     { align: "center", title: i18n.global.t("truck_id"), key: 'truck_id', visible: true },
-                    { align: "center", title: i18n.global.t("tracking_number_short"), key: 'tracking_numbers', visible: true },
+                    { align: "center", title: i18n.global.t("tracking_number_short"), key: 'reception_tracking_number', visible: true },
                     { align: "center", title: i18n.global.t("charge_category_id_short"), key: 'charge_category_id', visible: true },
                     { align: "center", title: i18n.global.t("stockable"), key: 'stockable', visible: false },
                     { align: "center", title: i18n.global.t("weight_kg"), key: 'total_weight', visible: true },
@@ -54,7 +54,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
             headers: [
                     { align: "center", title: i18n.global.t("date"), key: 'date', visible: true },
                     { align: "center", title: i18n.global.t("truck_id"), key: 'truck_id', visible: true },
-                    { align: "center", title: i18n.global.t("tracking_number_short"), key: 'tracking_numbers', visible: true },
+                    { align: "center", title: i18n.global.t("tracking_number_short"), key: 'reception_tracking_number', visible: true },
                     { align: "center", title: i18n.global.t("charge_category_id_short"), key: 'charge_category_id', visible: true },
                     { align: "center", title: i18n.global.t("stockable"), key: 'stockable', visible: false },
                     { align: "center", title: i18n.global.t("weight_kg"), key: 'total_weight', visible: true },
@@ -151,7 +151,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                                 stockable_type: detail.stockable_type,
                                 total_price: detail.total_price,
                                 total_weight: detail.total_weight_bill,
-                                tracking_numbers: charge.tracking_numbers,
+                                reception_tracking_number: charge.reception_tracking_number,
                                 truck_id: this.main.getTruckNames(truck_ids),
                                 unit_price: detail.unit_price,
                             }

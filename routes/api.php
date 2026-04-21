@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TruckController;
 use App\Http\Controllers\ChargeController;
@@ -27,6 +28,8 @@ Route::controller(AuthController::class)->group(function () {
 #region authentication routes
 Route::middleware(["auth:sanctum"])->group(
     function () {
+        // Broadcasting auth
+        Broadcast::routes();
         #region auth routes
         Route::get("me", [AuthController::class, "me"]); //get auth user with
         Route::post("truck", [TruckController::class, "store"]);
@@ -34,13 +37,42 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("logout", [AuthController::class, "logout"]);
         Route::post("update", [AuthController::class, "update"]);
         Route::post('/ai-assistant', [App\Http\Controllers\AIAssistantController::class, 'ask']);
+        Route::post('/ai-assistant/execute', [App\Http\Controllers\AIAssistantController::class, 'executeAction']);
+        Route::post('/ai-assistant/excel', [App\Http\Controllers\AIAssistantController::class, 'askWithExcel']);
         Route::post('/ask-db', [App\Http\Controllers\AIQueryController::class, 'ask']);
+        Route::post("charge/check-tracking-number", [ChargeController::class, "checkTrackingNumberUniqueness"]);
+        Route::post("charge/check-production-tracking-number", [ChargeController::class, "checkProductionTrackingNumberUniqueness"]);
         Route::post("charge", [ChargeController::class, "charge"]);
         Route::get("charge/{charge}", [ChargeController::class, "show"]);
+        Route::put("charge/{charge}", [ChargeController::class, "update"]);
         Route::delete("charge", [ChargeController::class, "destroy"]);
         Route::get("charges/get_charges", [ChargeController::class, "get_charges"]);
         Route::get("charges/get_production_charges", [ChargeController::class, "get_production_charges"]);
         Route::get("charge/{charge}/audit-logs", [ChargeController::class, "getAuditLogs"]);
+        Route::get("charge-categories", [App\Http\Controllers\ChargeCategoryController::class, "index"]);
+        Route::post("charge-categories", [App\Http\Controllers\ChargeCategoryController::class, "store"]);
+        Route::put("charge-categories/{chargeCategory}", [App\Http\Controllers\ChargeCategoryController::class, "update"]);
+        Route::delete("charge-categories/{chargeCategory}", [App\Http\Controllers\ChargeCategoryController::class, "destroy"]);
+
+        // Production
+        Route::get("productions", [App\Http\Controllers\ProductionController::class, "index"]);
+        Route::post("productions", [App\Http\Controllers\ProductionController::class, "store"]);
+        Route::get("productions/{production}", [App\Http\Controllers\ProductionController::class, "show"]);
+        Route::put("productions/{production}", [App\Http\Controllers\ProductionController::class, "update"]);
+        Route::delete("productions", [App\Http\Controllers\ProductionController::class, "destroy"]);
+        Route::post("productions/check-production-tracking-number", [App\Http\Controllers\ProductionController::class, "checkProductionTrackingNumberUniqueness"]);
+        Route::get("production-categories", [App\Http\Controllers\ProductionCategoryController::class, "index"]);
+        Route::post("production-categories", [App\Http\Controllers\ProductionCategoryController::class, "store"]);
+        Route::put("production-categories/{productionCategory}", [App\Http\Controllers\ProductionCategoryController::class, "update"]);
+        Route::delete("production-categories/{productionCategory}", [App\Http\Controllers\ProductionCategoryController::class, "destroy"]);
+        Route::get("sell-categories", [App\Http\Controllers\SellCategoryController::class, "index"]);
+        Route::post("sell-categories", [App\Http\Controllers\SellCategoryController::class, "store"]);
+        Route::put("sell-categories/{sellCategory}", [App\Http\Controllers\SellCategoryController::class, "update"]);
+        Route::delete("sell-categories/{sellCategory}", [App\Http\Controllers\SellCategoryController::class, "destroy"]);
+        Route::get("warehouse-category-operations", [App\Http\Controllers\WarehouseCategoryOperationController::class, "index"]);
+        Route::post("warehouse-category-operations", [App\Http\Controllers\WarehouseCategoryOperationController::class, "store"]);
+        Route::put("warehouse-category-operations/{id}", [App\Http\Controllers\WarehouseCategoryOperationController::class, "update"]);
+        Route::delete("warehouse-category-operations/{id}", [App\Http\Controllers\WarehouseCategoryOperationController::class, "destroy"]);
         Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
         Route::get("supplier_invoice", [SupplierInvoiceController::class, "index"]);
         Route::delete("supplier_invoice", [SupplierInvoiceController::class, "destroy"]);
@@ -55,11 +87,20 @@ Route::middleware(["auth:sanctum"])->group(
         Route::delete("chat-messages/{id}", [ChatMessageController::class, "destroy"]);
         Route::post("chat-messages/{id}/react", [ChatMessageController::class, "react"]);
 
+        // AI Query (full-page) messages
+        Route::get("ai-query-messages", [App\Http\Controllers\AiQueryMessageController::class, "index"]);
+        Route::post("ai-query-messages", [App\Http\Controllers\AiQueryMessageController::class, "store"]);
+        Route::delete("ai-query-messages", [App\Http\Controllers\AiQueryMessageController::class, "destroyAll"]);
+        Route::delete("ai-query-messages/{id}", [App\Http\Controllers\AiQueryMessageController::class, "destroy"]);
+        Route::post("ai-query-messages/{id}/react", [App\Http\Controllers\AiQueryMessageController::class, "react"]);
+
         // Sell routes
         Route::post("sell", [SellController::class, "sell"]);
         Route::get("sell/{sell}", [SellController::class, "show"]);
+        Route::put("sell/{sell}", [SellController::class, "update"]);
         Route::delete("sell", [SellController::class, "destroy"]);
         Route::get("sells/get_sells", [SellController::class, "get_sells"]);
+        Route::get("sell/{sell}/audit-logs", [SellController::class, "getAuditLogs"]);
 
         // Warehouse routes
         Route::get("warehouses/dashboard-stats", [WarehouseController::class, "dashboardStats"]);
@@ -117,7 +158,23 @@ Route::middleware(["auth:sanctum"])->group(
         Route::delete("fish-process-types/{id}", [App\Http\Controllers\FishProcessTypeController::class, "destroy"]);
 
         // Production Yield
-        Route::get("production-yield", [App\Http\Controllers\ProductionYieldController::class, "getYield"]);
+        Route::get("production-yield", [App\Http\Controllers\ProductionYieldController::class, "index"]);
+
+        // Workforce routes
+        Route::apiResource("corporals", App\Http\Controllers\CorporalController::class);
+        Route::apiResource("sections", App\Http\Controllers\SectionController::class);
+        Route::post("sections/{section}/corporals", [App\Http\Controllers\SectionController::class, "attachCorporals"]);
+        Route::delete("sections/{section}/corporals/{corporal}", [App\Http\Controllers\SectionController::class, "detachCorporal"]);
+        Route::apiResource("workforces", App\Http\Controllers\WorkforceController::class);
+        Route::get("fortnight-activities/summary", [App\Http\Controllers\FortnightActivityController::class, "summary"]);
+        Route::get("fortnight-activities/breakdown", [App\Http\Controllers\FortnightActivityController::class, "breakdown"]);
+        Route::get("fortnight-activities/export", [App\Http\Controllers\FortnightActivityController::class, "export"]);
+        Route::get("fortnight-activities/statistics", [App\Http\Controllers\FortnightActivityController::class, "statistics"]);
+        Route::post("fortnight-activities/bulk-delete", [App\Http\Controllers\FortnightActivityController::class, "bulkDeleteByDate"]);
+        Route::get("fortnight-activities", [App\Http\Controllers\FortnightActivityController::class, "index"]);
+        Route::post("fortnight-activities", [App\Http\Controllers\FortnightActivityController::class, "store"]);
+        Route::put("fortnight-activities/{fortnightActivity}", [App\Http\Controllers\FortnightActivityController::class, "update"]);
+        Route::delete("fortnight-activities/{fortnightActivity}", [App\Http\Controllers\FortnightActivityController::class, "destroy"]);
     #endregion
     });
 #endregion

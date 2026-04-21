@@ -120,11 +120,11 @@
                   counter="250"
                   rounded
                   :label="$t('article_description')"
-                  v-model="charge_detail.stockable_id"
+                  v-model="charge_detail.description"
                   @keydown.enter.prevent="submit"
                   details
-                  :error-messages="v$.charge_detail.stockable_id.$errors.map(e => e.$message)"
-                  @blur="v$.charge_detail.stockable_id.$touch()"
+                  :error-messages="v$.charge_detail.description.$errors.map(e => e.$message)"
+                  @blur="v$.charge_detail.description.$touch()"
                   class="text-info"
                   ref="charge_focus_input"
                 >
@@ -432,8 +432,8 @@
                 </template>
 
                 <template v-slot:[`item.stockable_id`]="{ item }">
-                  <v-chip :color="stockable_color">
-                    {{ _main.getStockableName(item.stockable_id,item.stockable_type) }}
+                  <v-chip :color="item.description ? 'grey' : stockable_color">
+                    {{ item.description ? item.description : _main.getStockableName(item.stockable_id,item.stockable_type) }}
                   </v-chip>
                 </template>
                 <template v-slot:[`item.total_weight`]="{ item }">
@@ -531,6 +531,7 @@
               total_package_count: null,
               stockable_id: null,
               stockable_type: null,
+              description: null,
               warehouse_category_operation_id: null,
               warehouse_id: null,
               truck_ids: [],
@@ -543,7 +544,10 @@
         return {
           charge_detail: {
               stockable_id: {
-                required,
+                required: requiredIf(() => this.type_detail != null),
+              },
+              description: {
+                required: requiredIf(() => this.type_detail == null),
               },
               warehouse_id: {
                 requiredIf: requiredIf(() =>this.ability_warehouse_category_operation?.allow_warehouse),
@@ -684,15 +688,20 @@
           this.is_editing = false;
         },
         remove: function (charge_detail_id) {
-          this._charge.remove_charge_detail(this.warehouse_category_operation.id , charge_detail_id);
+          this._charge.remove_charge_detail(this.warehouse_category_operation.id , charge_detail_id , false);
         },
         submit: function () {
           this.charge_detail.total_weight = this.charge_detail.total_weight == null ? 0.00 : this.charge_detail.total_weight 
           this.charge_detail.total_weight_bill = this.charge_detail.total_weight_bill == null ? 0.00 : this.charge_detail.total_weight_bill 
           this.charge_detail.total_price = this.charge_detail.total_price == null ? 0.00 : this.charge_detail.total_price 
           this.charge_detail.total_package_count= this.charge_detail.total_package_count== null ? 0.00 : this.charge_detail.total_package_count
+          // If stockable_type is null and description has a value, normalize
+          if (this.charge_detail.stockable_type == null && this.charge_detail.description) {
+            this.charge_detail.stockable_id = null;
+            this.charge_detail.stockable_type = null;
+          }
           if (this.is_editing) {
-            this._charge.edit_charge_detail(this.warehouse_category_operation.id , this.charge_detail);
+            this._charge.edit_charge_detail(this.warehouse_category_operation.id , this.charge_detail , false);
             this.is_editing = false;
           } else {
             this._charge.add_charge_detail(this.warehouse_category_operation.id , this.charge_detail);
@@ -710,6 +719,7 @@
               total_package_count: null,
               stockable_id: null,
               stockable_type: this.charge_detail.stockable_type,
+              description: null,
               warehouse_category_operation_id: this.warehouse_category_operation.id,
               warehouse_id: null,
               truck_ids: [],
@@ -729,7 +739,7 @@
           this.headers = this.headers.filter(header => header.value !== key);
         },
         delete_warehouse_category_operation: function () {
-          this._charge.delete_warehouse_category_operation(this.warehouse_category_operation);
+          this._charge.delete_warehouse_category_operation(this.warehouse_category_operation,false);
         },
         getTypeDetail: function () {
           let warehouse_type = this._warehouse_category_operation
@@ -830,11 +840,14 @@
             this.getTypeDetail();
             this.init_headers();
             this.checkTypeInDetails();
+            this.warehouse_category_operation.charge_details.forEach(detail => {
+              detail.warehouse_category_operation_id = this.warehouse_category_operation.id;
+            });
             // this._charge.disable_used_warehouse_category_operations();
           },
           deep: true,
           immediate: true,
-        }
+        },
       },
     }
 </script>

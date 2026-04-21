@@ -1,0 +1,310 @@
+<template>
+    <v-card>
+        <v-card-title class="text-h6 shadow-sm text-center">
+            <v-btn @click="close" block rounded color="deep-purple" variant="tonal">
+                <v-icon class="mr-5">mdi-close-circle-outline</v-icon>
+                {{ $t('close') }}
+                {{ categoryName }}
+            </v-btn>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text>
+            <v-row>
+                <v-col>
+                    <v-tabs
+                        v-model="type"
+                        color="deep-purple"
+                        height="60"
+                        grow
+                        align-tabs="center"
+                        slider-color="#f78166"
+                    >
+                        <v-tab value="day" class="rounded-ts-xl">
+                            <v-icon start>mdi-calendar-today</v-icon>
+                            {{ $t("daily") }}
+                        </v-tab>
+
+                        <v-tab value="month">
+                            <v-icon start>mdi-calendar-month</v-icon>
+                            {{ $t("monthly") }}
+                        </v-tab>
+
+                        <v-tab value="year" class="rounded-te-xl">
+                            <v-icon start>mdi-calendar</v-icon>
+                            {{ $t("yearly") }}
+                        </v-tab>
+                    </v-tabs>
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col>
+                    <ApexCharts
+                        type="area"
+                        :options="chartOptions"
+                        :series="series"
+                        height="350"
+                    />
+                </v-col>
+            </v-row>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card-actions>
+            <v-row no-gutters class="text-center mb-2 mt-1">
+                <v-col>
+                    <v-chip color="green">
+                        <span class="mr-2">
+                            <v-icon small class="mr-1" color="green lighten-1">mdi-cash</v-icon>
+                            <span>{{ $t("price") }}</span>
+                        </span>
+                        <strong>{{ main.formatDisplayNumber(summary.total_price) }} ({{ main.currency }})</strong>
+                    </v-chip>
+                </v-col>
+                <v-col>
+                    <v-chip color="info">
+                        <span class="mr-2">
+                            <v-icon small class="mr-1" color="info lighten-1">mdi-weight-kilogram</v-icon>
+                            <span>{{ $t("weight") }}</span>
+                        </span>
+                        <strong>{{ main.formatDisplayNumber(summary.total_weight) }} (Kg)</strong>
+                    </v-chip>
+                </v-col>
+                <v-col>
+                    <v-chip color="purple">
+                        <span class="mr-2">
+                            <v-icon small class="mr-1" color="green lighten-1">mdi-package-variant-closed</v-icon>
+                            <span>{{ $t("boxes") }}</span>
+                        </span>
+                        <strong>{{ main.formatDisplayNumberNonFloat(summary.total_package_count) }} (Un)</strong>
+                    </v-chip>
+                </v-col>
+                <v-col>
+                    <v-chip color="orange">
+                        <span class="mr-2">
+                            <v-icon small class="mr-1" color="orange lighten-1">mdi-percent</v-icon>
+                            <span>{{ $t("avg_price") }}</span>
+                        </span>
+                        <strong>{{ main.formatDisplayNumber(summary.unit_price) }} {{ main.currency }}/Kg</strong>
+                    </v-chip>
+                </v-col>
+            </v-row>
+        </v-card-actions>
+    </v-card>
+</template>
+
+<script>
+    import ApexCharts from 'vue3-apexcharts'
+    import _ from 'lodash';
+    import moment from 'moment';
+    import { useMain } from '@/stores/Main';
+    import locals from "@/locales/apexcharts_local.js";
+    export default {
+        components: { ApexCharts },
+        props: {
+            details: Array,
+            summary: Object,
+            categoryName: String,
+        },
+        data() {
+            return {
+                type: 'day',
+                tooltip_date_format: "DD/MM/YYYY",
+            }
+        },
+        watch: {
+            type() {
+                switch (this.type) {
+                    case "day":
+                        this.tooltip_date_format = "DD/MM/YYYY";
+                        break;
+                    case "month":
+                        this.tooltip_date_format = "MM/YYYY";
+                        break;
+                    case "year":
+                        this.tooltip_date_format = "YYYY";
+                        break;
+                }
+            }
+        },
+        computed: {
+            main: () => useMain(),
+            generateRange() {
+                const firstDate = _.minBy(this.details, o => new Date(o.date))?.date;
+                const latestDate = _.maxBy(this.details, o => new Date(o.date))?.date;
+                const s = moment.utc(firstDate), e = moment.utc(latestDate);
+                if (!s.isValid() || !e.isValid() || s.isAfter(e)) return [];
+
+                const fmt = this.type === 'month' ? 'YYYY-MM' : this.type === 'year' ? 'YYYY' : 'YYYY-MM-DD';
+                const unit = this.type === 'month' ? 'months' : this.type === 'year' ? 'years' : 'days';
+
+                const out = [];
+                for (let m = s.clone().startOf(this.type); m.isSameOrBefore(e.clone().endOf(this.type)); m.add(1, unit)) {
+                    out.push(m.format(fmt));
+                }
+                return out;
+            },
+            series() {
+                return [
+                    {
+                        name: this.$t("price"),
+                        type: 'column',
+                        data: this.getDataSeries("total_price", false)
+                    },
+                    {
+                        name: this.$t("weight"),
+                        type: 'area',
+                        data: this.getDataSeries("total_weight", false)
+                    },
+                    {
+                        name: this.$t("avg_price"),
+                        type: 'line',
+                        data: this.getDataSeries("unit_price", true)
+                    },
+                ];
+            },
+            chartOptions() {
+                return {
+                    chart: {
+                        type: 'line',
+                        locales: Object.entries(locals).map(([key, value]) => value),
+                        defaultLocale: this.main.lang.short,
+                        height: 350,
+                        stacked: false,
+                        events: {
+                            selection: function (chart, e) {
+                                console.log(new Date(e.xaxis.min))
+                            }
+                        },
+                    },
+                    labels: this.generateRange,
+                    theme: {
+                        mode: this.main.mode,
+                    },
+                    tooltip: {
+                        enabled: true,
+                        theme: this.main.mode,
+                        x: {
+                            show: true, formatter: (val) => this.main.formateDateCustom(val, this.tooltip_date_format)
+                        },
+                        y: {
+                            formatter: (val, { seriesIndex }) => {
+                                if (seriesIndex === 1) return `${this.main.formatDisplayNumber(val)} kg`
+                                return this.formatCurrency(val)
+                            }
+                        },
+                    },
+                    colors: ['#00e396', '#2196F3', '#feb019'],
+                    dataLabels: {
+                        enabled: false
+                    },
+                    stroke: {
+                        width: [0, 2, 3],
+                        curve: 'smooth',
+                        dashArray: [0, 0, 5]
+                    },
+                    plotOptions: {
+                        bar: {
+                            columnWidth: '50%'
+                        }
+                    },
+                    fill: {
+                        opacity: [1, 0.25, 1],
+                        gradient: {
+                            inverseColors: false,
+                            shade: 'light',
+                            type: "vertical",
+                            opacityFrom: 0.85,
+                            opacityTo: 0.55,
+                            stops: [100, 100, 100, 100]
+                        }
+                    },
+                    markers: {
+                        size: 0
+                    },
+                    legend: {
+                        position: 'top',
+                        horizontalAlign: 'left'
+                    },
+                    xaxis: {
+                        type: "datetime"
+                    },
+                    yaxis: [
+                        {
+                            seriesName: this.$t("price"),
+                            axisTicks: { show: true },
+                            axisBorder: { show: true, color: '#00e396' },
+                            labels: {
+                                style: { colors: '#00e396' },
+                                formatter: (value) => this.main.formatDisplayNumber(value)
+                            },
+                            title: {
+                                text: this.$t("total_price_on", { currency: this.main.currency }),
+                                style: { color: '#00e396' }
+                            },
+                            tooltip: { enabled: true },
+                        },
+                        {
+                            seriesName: this.$t("weight"),
+                            opposite: true,
+                            axisTicks: { show: true },
+                            axisBorder: { show: true, color: '#2196F3' },
+                            labels: {
+                                style: { colors: '#2196F3' },
+                                formatter: (value) => this.main.formatDisplayNumber(value)
+                            },
+                            title: {
+                                text: this.$t("total_weight_on_kg"),
+                                style: { color: '#2196F3' }
+                            },
+                            tooltip: { enabled: true },
+                        },
+                        {
+                            seriesName: this.$t("avg_price"),
+                            axisTicks: { show: true },
+                            axisBorder: { show: true, color: '#feb019' },
+                            labels: {
+                                style: { colors: '#feb019' },
+                                formatter: (value) => this.main.formatDisplayNumber(value)
+                            },
+                            title: {
+                                text: this.$t("unit_price_on", { currency: this.main.currency }),
+                                style: { color: '#feb019' }
+                            }
+                        },
+                    ],
+                }
+            },
+        },
+        methods: {
+            formatCurrency(v) {
+                return `${this.main.formatDisplayNumber(v)} ${this.main.currency}`
+            },
+            close() {
+                this.$emit('closeDialog');
+            },
+            getDataSeries(prop, is_divided = false) {
+                const periods = this.generateRange;
+                if (!periods.length) return [];
+
+                const fmt = this.type === 'month' ? 'YYYY-MM' : this.type === 'year' ? 'YYYY' : 'YYYY-MM-DD';
+
+                const grouped = _.groupBy(this.details, item => {
+                    const m = moment.utc(item.date);
+                    return m.isValid() ? m.format(fmt) : '__invalid__';
+                });
+
+                return periods.map(p => (
+                    _.sumBy(grouped[p] || [], it => {
+                        const n = Number(_.get(it, prop, 0));
+                        if (is_divided) {
+                            return (Number.isFinite(n) ? n : 0) / grouped[p].length;
+                        }
+                        return (Number.isFinite(n) ? n : 0);
+                    })
+                ));
+            }
+        }
+    }
+</script>
+
+<style lang="scss" scoped>
+</style>

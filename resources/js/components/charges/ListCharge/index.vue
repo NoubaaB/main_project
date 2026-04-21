@@ -76,6 +76,7 @@
      @sync_items="update_filtred_items_to_source"
      :delete_items="delete_items"
      :get_invoices_delete_selected_length="get_invoices_delete_selected_length"
+     :listen_models="['Charge']"
      >
         <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">
@@ -84,9 +85,9 @@
           </v-chip>
         </template>
 
-        <template v-slot:[`item.tracking_numbers`]="{ item }">
+        <template v-slot:[`item.reception_tracking_number`]="{ item }">
           <v-chip
-            v-for="v in item.tracking_numbers"
+            v-for="v in item.reception_tracking_number"
             :key="v"
             color="info"
             class="ma-1"
@@ -358,7 +359,7 @@
           filters: {
             date: [],
             charge_category_id: [],
-            tracking_numbers: [],
+            reception_tracking_number: [],
             tracking_onp_numbers: [],
             supplier_invoice_tracking_number: [],
             supplier_ids: [],
@@ -450,7 +451,7 @@
             { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
             { align : "center" , title: this.$t("category"), key: 'charge_category_id' , visible:true },
             { align : "center" , title: this.$t("ship"), key: 'ship_id' , visible:true },
-            { align : "center" , title: this.$t("tracking_number_short"), key: 'tracking_numbers' , visible:true },
+            { align : "center" , title: this.$t("tracking_number_short"), key: 'reception_tracking_number' , visible:true },
             { align : "center" , title: this.$t("tracking_onp_number_short"), key: 'tracking_onp_numbers' , visible:false },
             { align : "center" , title: this.$t("supplier_invoice_number_short"), key: 'supplier_invoice_tracking_number' , visible:true },
             { align : "center" , title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
@@ -574,7 +575,7 @@
         })
       },
       deleteItem: function (item) {
-        console.log("item",item)
+        this.charge.delete([item.id]);
       },
       print_invoice: function (item) {
         console.log("item",item)
@@ -603,3 +604,4 @@
   background: rgba(var(--v-border-color), .06);
 }
 </style>
+

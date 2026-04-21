@@ -24,6 +24,7 @@ return new class extends Migration {
 
             $table->foreignId('fish_family_id')->nullable()->index();
             $table->foreignId('fish_process_type_id')->nullable()->index();
+            $table->string('productivity_color')->nullable();
 
             $table->timestamps();
             $table->softDeletes();

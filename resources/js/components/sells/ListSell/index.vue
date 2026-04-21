@@ -31,21 +31,53 @@
           </div>
         </v-col>
         <v-col style="overflow-y: auto; max-height: 47vh !important;">
-            <div class="d-flex align-content-end flex-wrap " >
-              <CustomChartWarehouseCategoryOpration v-for="formula in sell.get_formulas_list" :key="formula.id" :formula="formula"/>
+            <!-- Toggle Buttons -->
+            <div class="d-flex justify-center mb-3">
+              <v-btn-toggle v-model="chartView" mandatory rounded="lg" density="compact" color="info" variant="outlined">
+                <v-btn value="operations" size="small">
+                  <v-icon start size="16">mdi-warehouse</v-icon>
+                  {{ $t('by_operations') }}
+                </v-btn>
+                <v-btn value="categories" size="small">
+                  <v-icon start size="16">mdi-tag-multiple-outline</v-icon>
+                  {{ $t('by_categories') }}
+                </v-btn>
+              </v-btn-toggle>
             </div>
-            <div class="d-flex align-content-end flex-wrap " >
+
+            <!-- Operations View (existing) -->
+            <template v-if="chartView === 'operations'">
+              <div class="d-flex align-content-end flex-wrap">
+                <CustomChartWarehouseCategoryOpration v-for="formula in sell.get_formulas_list" :key="formula.id" :formula="formula"/>
+              </div>
+              <div class="d-flex align-content-end flex-wrap">
                 <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in sell.get_fetched_warehouse_category_operation_list"
-                 :key="warehouse_category_operation.id" 
-                 :id="warehouse_category_operation.id"
-                 :data="warehouse_category_operation"
-                 :date="date"
-                 /> 
-                 <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in sell.get_placeholder_warehouse_category_operation_list"
-                 :key="warehouse_category_operation.id" 
-                 :id="warehouse_category_operation.id"
-                 />
-            </div>
+                  :key="warehouse_category_operation.id"
+                  :id="warehouse_category_operation.id"
+                  :data="warehouse_category_operation"
+                  :date="date"
+                />
+                <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in sell.get_placeholder_warehouse_category_operation_list"
+                  :key="warehouse_category_operation.id"
+                  :id="warehouse_category_operation.id"
+                />
+              </div>
+            </template>
+
+            <!-- Categories View (new) -->
+            <template v-if="chartView === 'categories'">
+              <div class="d-flex align-content-end flex-wrap">
+                <SellCategoryChart
+                  v-for="cat in sell.get_fetched_sell_category_list"
+                  :key="cat.id"
+                  :data="cat"
+                />
+              </div>
+              <div v-if="sell.get_fetched_sell_category_list.length === 0" class="text-center text-medium-emphasis pa-6">
+                <v-icon size="40" color="grey" class="mb-2">mdi-chart-box-outline</v-icon>
+                <div class="text-body-2">{{ $t('no_data_available') }}</div>
+              </div>
+            </template>
         </v-col>        
       </v-row>
     </v-card-text>
@@ -75,6 +107,7 @@
      @sync_items="update_filtred_items_to_source"
      :delete_items="delete_items"
      :get_invoices_delete_selected_length="get_invoices_delete_selected_length"
+     :listen_models="['Sell']"
      >
         <!-- CELLS (same as before) -->
         <template v-slot:[`item.date`]="{ item }">
@@ -107,7 +140,7 @@
 
         <template v-slot:[`item.client_invoice_tracking_number`]="{ item }">
           <v-chip
-            v-for="v in item.client_invoice_tracking_number"
+            v-for="v in (item.client_invoice_tracking_number || [])"
             :key="v"
             color="brown-darken-1"
             class="ma-1"
@@ -115,7 +148,7 @@
             {{ v }}
           </v-chip>
           <v-chip
-            v-if="item.client_invoice_tracking_number.length == 0"
+            v-if="!item.client_invoice_tracking_number || item.client_invoice_tracking_number.length == 0"
             color="brown-darken-1"
             class="ma-1"
           >
@@ -125,7 +158,7 @@
         </template>
 
         <template v-slot:[`item.client_ids`]="{ item }">
-          <template v-if="item.client_ids.length>0">
+          <template v-if="(item.client_ids || []).length>0">
             <v-chip
               v-for="id in item.client_ids || [null]"
               :key="id ?? 'na'"
@@ -143,7 +176,7 @@
         </template>
 
         <template v-slot:[`item.truck_ids`]="{ item }">
-          <template v-if="item.truck_ids.length>0">
+          <template v-if="(item.truck_ids || []).length>0">
             <v-chip
               v-for="id in item.truck_ids || [null]"
               :key="id ?? 'na'"
@@ -194,17 +227,32 @@
         
 
         <template v-slot:[`item.actions`]="{ item }">
-          <v-menu location="bottom end" transition="scale-transition" :close-on-content-click="true">
-            <template v-slot:activator="{ props }">
-              <v-btn
-                icon="mdi-dots-vertical"
-                size="x-small"
-                variant="tonal"
-                color="info"
-                v-bind="props"
-                class="vc-action-btn"
-              ></v-btn>
-            </template>
+          <div class="d-flex align-center ga-1">
+            <!-- Audit trail icon -->
+            <v-btn
+              icon
+              size="x-small"
+              variant="tonal"
+              :color="item.audit_logs_count > 0 ? 'warning' : 'grey'"
+              :disabled="item.audit_logs_count === 0"
+              @click="viewAuditTrail(item)"
+              class="vc-action-btn"
+              :title="$t('audit_trail')"
+            >
+              <v-icon size="16">mdi-history</v-icon>
+            </v-btn>
+
+            <v-menu location="bottom end" transition="scale-transition" :close-on-content-click="true">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  icon="mdi-dots-vertical"
+                  size="x-small"
+                  variant="tonal"
+                  color="info"
+                  v-bind="props"
+                  class="vc-action-btn"
+                ></v-btn>
+              </template>
 
             <v-card class="rounded-lg vc-action-menu" min-width="200" variant="flat">
               <v-list slim density="compact" class="pa-1" lines>
@@ -215,6 +263,15 @@
                   @click="viewItem(item)"
                 >
                   <v-list-item-title class="text-caption font-weight-bold text-info">{{ $t('view_sell') }}</v-list-item-title>
+                </v-list-item>
+
+                <!-- Audit Trail -->
+                <v-list-item
+                  class="rounded-lg vc-action-item"
+                  prepend-icon="mdi-history"
+                  @click="viewAuditTrail(item)"
+                >
+                  <v-list-item-title class="text-caption font-weight-bold text-warning">{{ $t('audit_trail') }}</v-list-item-title>
                 </v-list-item>
 
                 <!-- Invoice -->
@@ -261,6 +318,7 @@
               </v-list>
             </v-card>
           </v-menu>
+          </div>
         </template>
 
         <template v-slot:[`item.allow_invoice`]="{ item }">
@@ -309,6 +367,7 @@
 
   import FixedChartWarehouseCategoryOpration from './FixedChart/WarehouseCategoryOpration.vue';
   import CustomChartWarehouseCategoryOpration from './CustomChart/WarehouseCategoryOpration.vue';
+  import SellCategoryChart from './CategoryChart/SellCategoryChart.vue';
 
   import { useMain } from '@/stores/Main';
   import { useClient } from '@/stores/Client';
@@ -324,10 +383,12 @@
       components: {
         DataTable,
         FixedChartWarehouseCategoryOpration,
-        CustomChartWarehouseCategoryOpration
+        CustomChartWarehouseCategoryOpration,
+        SellCategoryChart
       },
       data:function(){
         return {
+          chartView: 'operations',
           filters: {
             date: [],
             sell_category_id: [],
@@ -459,12 +520,7 @@
         this.sell.filtred_sell_fetch_items = items;
       },
       get_invoices_delete_selected_length: function (that) {
-        return that.items.filter(i => that.items_selected.includes(i.id))
-        .filter(e => e.allow_invoice == true && e.invoice_id == null).length;
-      },
-      delete_items: function (that) {
-        let ids = that.items.filter(i => that.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).map(e => e.id);
-        this.client_invoice.delete(ids);
+        return that.items_selected.length;
       },
       _invoices_print_selected: function (that) {
         return that.items.filter(i => that.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id != null).map(i => i.id);
@@ -541,6 +597,9 @@
           name: 'view_sell',
           params: { id: item.id }
         })
+      },
+      viewAuditTrail: function (item) {
+        this.$router.push({ name: 'sell_audit_trail', params: { id: item.id } });
       },
       deleteItem: function (item) {
         console.log("item",item)

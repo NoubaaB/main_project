@@ -105,6 +105,24 @@ const routes = [
                                 keeplive: true,
                                 component: () => import('@/components/production/ListProduction/index.vue')
                             },
+                            {
+                                path: 'yield',
+                                name: 'production_yield',
+                                keeplive: true,
+                                component: () => import('@/components/production/ProductionYield/index.vue')
+                            },
+                            {
+                                path: 'add/:chargeId',
+                                name: 'add_production',
+                                keeplive: false,
+                                component: () => import('@/components/production/AddProduction/index.vue')
+                            },
+                            {
+                                path: 'view/:id',
+                                name: 'view_production',
+                                keeplive: false,
+                                component: () => import('@/components/production/ViewProduction/index.vue')
+                            },
                         ]
                     },
                     {
@@ -158,6 +176,66 @@ const routes = [
                                 keeplive: true,
                                 component: () => import("@/components/parameters/FishManagement/index.vue")
                             },
+                            {
+                                path: "charge-category-management",
+                                name: "charge_category_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/ChargeCategoryManagement/index.vue")
+                            },
+                            {
+                                path: "wco-management",
+                                name: "wco_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/WarehouseCategoryOperationManagement/index.vue")
+                            },
+                            {
+                                path: "sell-category-management",
+                                name: "sell_category_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/SellCategoryManagement/index.vue")
+                            },
+                            {
+                                path: "production-category-management",
+                                name: "production_category_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/ProductionCategoryManagement/index.vue")
+                            },
+                        ]
+                    },
+                    {
+                        path: '/workforce',
+                        name: 'workforce',
+                        children: [
+                            {
+                                path: 'management',
+                                name: 'workforce_management',
+                                keeplive: true,
+                                component: () => import('@/components/workforce/WorkforceManagement/index.vue')
+                            },
+                            {
+                                path: 'corporals',
+                                name: 'corporal_management',
+                                keeplive: true,
+                                component: () => import('@/components/workforce/CorporalManagement/index.vue')
+                            },
+                            {
+                                path: 'sections',
+                                name: 'section_management',
+                                keeplive: true,
+                                component: () => import('@/components/workforce/SectionManagement/index.vue')
+                            },
+                            {
+                                path: 'fortnight',
+                                name: 'fortnight_management',
+                                keeplive: true,
+                                component: () => import('@/components/workforce/FortnightManagement/index.vue')
+                            },
+                            {
+                                path: 'statistics',
+                                name: 'workforce_statistics',
+                                keeplive: true,
+                                component: () => import('@/components/workforce/WorkforceStatistics/index.vue')
+                            },
                         ]
                     },
                     {
@@ -176,6 +254,18 @@ const routes = [
                                 name: "list_sell",
                                 keeplive: true,
                                 component: () => import("@/components/sells/ListSell/index.vue")
+                            },
+                            {
+                                path: "view_sell/:id",
+                                name: "view_sell",
+                                keeplive: false,
+                                component: () => import("@/components/sells/ViewSell/index.vue")
+                            },
+                            {
+                                path: "audit_trail/:id",
+                                name: "sell_audit_trail",
+                                keeplive: false,
+                                component: () => import("@/components/sells/AuditTrail/index.vue")
                             },
                         ]
                     },

@@ -655,6 +655,7 @@ import { useGuanoType } from '@/stores/GuanoType';
 import { usePackageType } from '@/stores/PackageType';
 import * as XLSX from 'xlsx';
 import { nextTick } from 'vue';
+import mitt from '@/plugins/mitt.js';
 import { Parser } from 'expr-eval';
 import useVuelidate from '@vuelidate/core';
 import { required } from '@vuelidate/validators';
@@ -689,7 +690,8 @@ export default {
     _invoices_print_selected: Function,
     _exportToExcel: Function,
     headers: { type: Array, required: true },
-    detail_headers: { type: Array }
+    detail_headers: { type: Array },
+    listen_models: { type: Array, default: () => [] },
   },
   components: {
     NestedDataTable
@@ -744,6 +746,21 @@ export default {
       if (root) {
         root.addEventListener('scroll', this.debouncedComputePinnedCss)
         window.addEventListener('resize', this.debouncedComputePinnedCss)
+      }
+
+      // Listen for WebSocket model-changed events to auto-refetch
+      if (this.listen_models.length > 0) {
+        this._onModelChanged = (data) => {
+          if (this.listen_models.includes(data.model)) {
+            this._fetchData();
+          }
+        };
+        mitt.on('model-changed', this._onModelChanged);
+      }
+  },
+  beforeUnmount() {
+      if (this._onModelChanged) {
+        mitt.off('model-changed', this._onModelChanged);
       }
   },
 
@@ -1752,8 +1769,8 @@ export default {
               const pt = (this.package_types || []).find(p => String(p.id) === String(stockableId))
               if (pt) stockableName = pt[`name_${this.main.lang.code}`] ?? pt.name ?? String(stockableId)
             } else {
-              // fallback to provided fields
-              stockableName = nested.stockable_name ?? nested.stockable?.name ?? String(stockableId ?? '')
+              // fallback: use description if available, then provided fields
+              stockableName = nested.description ?? nested.stockable_name ?? nested.stockable?.name ?? String(stockableId ?? '')
             }
 
             const warehouseId = nested.warehouse_id ?? nested.warehouse_stockable_tracking_number?.warehouse_id ?? ''
@@ -1812,7 +1829,7 @@ export default {
             case 'classification':
               return nested.stockable_type ? this.$t(nested.stockable_type) : ''
             case 'product':
-              return resolved.stockable_name || this.main.getStockableName(nested.stockable_id, nested.stockable_type) || ''
+              return (nested.description ?? resolved.stockable_name) || this.main.getStockableName(nested.stockable_id, nested.stockable_type) || ''
             case 'product_family':
               return resolved.fish_family || this.main.getStockableFishFamily(nested.stockable_id, nested.stockable_type) || ''
             case 'warehouse':

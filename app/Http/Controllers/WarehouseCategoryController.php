@@ -23,7 +23,7 @@ class WarehouseCategoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => 'required|string|max:50|unique:warehouse_categories,name',
+            'name' => 'nullable|string|max:50|unique:warehouse_categories,name',
             'description' => 'nullable|string|max:250',
         ]);
 
@@ -43,7 +43,7 @@ class WarehouseCategoryController extends Controller
         $category = WarehouseCategory::findOrFail($id);
 
         $data = $request->validate([
-            'name' => 'required|string|max:50|unique:warehouse_categories,name,' . $category->id,
+            'name' => 'nullable|string|max:50|unique:warehouse_categories,name,' . $category->id,
             'description' => 'nullable|string|max:250',
         ]);
 

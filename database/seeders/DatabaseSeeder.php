@@ -269,7 +269,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Frais to production",
             "name_fr" => "Frais to production",
             "name_es" => "Frais to production",
-            "enable_tracking_numbers" => true,
+            "enable_reception_tracking_number" => true,
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
@@ -284,7 +284,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Frais",
             "name_fr" => "Frais",
             "name_es" => "Frais",
-            "enable_tracking_numbers" => true,
+            "enable_reception_tracking_number" => true,
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
@@ -299,7 +299,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Congele",
             "name_fr" => "Congele",
             "name_es" => "Congele",
-            "enable_tracking_numbers" => true,
+            "enable_reception_tracking_number" => true,
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
@@ -314,7 +314,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Guano Production",
             "name_fr" => "Guano Production",
             "name_es" => "Guano Production",
-            "enable_tracking_numbers" => true,
+            "enable_reception_tracking_number" => true,
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
@@ -329,7 +329,7 @@ class DatabaseSeeder extends Seeder
             "name_en" => "Guano Achat Revendu",
             "name_fr" => "Guano Achat Revendu",
             "name_es" => "Guano Achat Revendu",
-            "enable_tracking_numbers" => true,
+            "enable_reception_tracking_number" => true,
             "enable_fishery_id" => true,
             "enable_ship_id" => true,
             "enable_origin_id" => true,
@@ -377,7 +377,7 @@ class DatabaseSeeder extends Seeder
             "name_es" => "Congele Production Intern (Local)",
             "description" => "Frozen Production Fish Stocked in Warehouse",
             "warehouse_type" => "FishType",
-            "operation_type" => "charge",
+            "operation_type" => "production",
             "allow_weight" => true,
             "allow_price" => false,
             "allow_package_type" => true,
@@ -392,7 +392,7 @@ class DatabaseSeeder extends Seeder
             "name_es" => "Congele Production Extern",
             "description" => "Frozen Production Fish Stocked in External Warehouse's fish freezing plant",
             "warehouse_type" => "FishType",
-            "operation_type" => "charge",
+            "operation_type" => "production",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
@@ -422,7 +422,7 @@ class DatabaseSeeder extends Seeder
             "name_es" => "Guano Production",
             "description" => "fresh fish that goes to production and give second product as Guano Production , important to describe prodactivity yield",
             "warehouse_type" => "GuanoType",
-            "operation_type" => "charge",
+            "operation_type" => "production",
             "allow_weight" => true,
             "allow_price" => false,
             "allow_package_type" => false,
@@ -581,14 +581,14 @@ class DatabaseSeeder extends Seeder
         ]);
 
         #region sell warehouse_category_operations
-        // Sell-specific warehouse_category_operations (operation_type = "sells")
+        // Sell-specific warehouse_category_operations (operation_type = "sell")
         $warehouse_category_operation_vente_congele = WarehouseCategoryOperation::create([
             "name_fr" => "Vente Congelé",
             "name_en" => "Frozen Sale",
             "name_es" => "Venta Congelado",
             "description" => "Vente de poisson congelé (sortie stock)",
             "warehouse_type" => "FishType",
-            "operation_type" => "sells",
+            "operation_type" => "sell",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => true,
@@ -603,7 +603,7 @@ class DatabaseSeeder extends Seeder
             "name_es" => "Venta Fresco",
             "description" => "Vente de poisson frais (sortie stock)",
             "warehouse_type" => "FishType",
-            "operation_type" => "sells",
+            "operation_type" => "sell",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
@@ -618,7 +618,7 @@ class DatabaseSeeder extends Seeder
             "name_es" => "Venta Guano",
             "description" => "Vente de guano (sortie stock)",
             "warehouse_type" => "GuanoType",
-            "operation_type" => "sells",
+            "operation_type" => "sell",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
@@ -633,7 +633,7 @@ class DatabaseSeeder extends Seeder
             "name_es" => "Transporte Venta",
             "description" => "Frais de transport sur ventes",
             "warehouse_type" => null,
-            "operation_type" => "sells",
+            "operation_type" => "sell",
             "allow_weight" => true,
             "allow_price" => true,
             "allow_package_type" => false,
@@ -642,6 +642,54 @@ class DatabaseSeeder extends Seeder
             "production_role" => null
         ]);
         #endregion sell warehouse_category_operations
+
+        #region production warehouse_category_operations
+        // Production-specific warehouse_category_operations (operation_type = "production")
+        $warehouse_category_operation_production_congele = WarehouseCategoryOperation::create([
+            "name_fr" => "Congelé Production",
+            "name_en" => "Frozen Production",
+            "name_es" => "Congelado Producción",
+            "description" => "Poisson congelé issu de la production (entrée stock)",
+            "warehouse_type" => "FishType",
+            "operation_type" => "production",
+            "allow_weight" => true,
+            "allow_price" => false,
+            "allow_package_type" => true,
+            "allow_detail_truck_id" => false,
+            "allow_warehouse" => true,
+            "production_role" => "frozen"
+        ]);
+
+        $warehouse_category_operation_production_guano = WarehouseCategoryOperation::create([
+            "name_fr" => "Guano Production",
+            "name_en" => "Guano Production",
+            "name_es" => "Guano Producción",
+            "description" => "Guano issu de la production (sous-produit)",
+            "warehouse_type" => "GuanoType",
+            "operation_type" => "production",
+            "allow_weight" => true,
+            "allow_price" => false,
+            "allow_package_type" => false,
+            "allow_detail_truck_id" => false,
+            "allow_warehouse" => true,
+            "production_role" => "guano"
+        ]);
+
+        $warehouse_category_operation_production_emballage = WarehouseCategoryOperation::create([
+            "name_fr" => "Emballage Production",
+            "name_en" => "Production Packaging",
+            "name_es" => "Embalaje Producción",
+            "description" => "Emballage utilisé dans la production",
+            "warehouse_type" => "PackageType",
+            "operation_type" => "production",
+            "allow_weight" => false,
+            "allow_price" => true,
+            "allow_package_type" => true,
+            "allow_detail_truck_id" => false,
+            "allow_warehouse" => true,
+            "production_role" => null
+        ]);
+        #endregion production warehouse_category_operations
         #endregion sell_category
 
         #endregion Fixed Charges and Type Charges Seeders
@@ -832,7 +880,7 @@ class DatabaseSeeder extends Seeder
         foreach ($rows as $data) {
             $charge = Charge::create([
                 "date" => $data["date_sortie"],
-                "tracking_numbers" => [(string) $data["num_bon_sortie"]],
+                "reception_tracking_number" => [(string) $data["num_bon_sortie"]],
                 "origin_id" => null,
                 "fishery_id" => null,
                 "charge_category_id" => $charge_category_guano_production->id,
@@ -921,7 +969,7 @@ class DatabaseSeeder extends Seeder
         foreach ($rows as $data) {
             $charge = Charge::create([
                 "date" => $data["date_reception"],
-                "tracking_numbers" => json_decode($data["num_bon_receptions"]),
+                "reception_tracking_number" => json_decode($data["num_bon_receptions"]),
                 "origin_id" => $data["origin_id"],
                 "fishery_id" => $data["place_id"],
                 "charge_category_id" => $charge_category_frais->id,
@@ -966,7 +1014,7 @@ class DatabaseSeeder extends Seeder
         foreach ($rows as $data) {
             $charge = Charge::create([
                 "date" => $data["date_reception"],
-                "tracking_numbers" => json_decode($data["num_bon_receptions"]),
+                "reception_tracking_number" => json_decode($data["num_bon_receptions"]),
                 "origin_id" => $data["origin_id"],
                 "fishery_id" => $data["place_id"],
                 "charge_category_id" => $charge_category_congele->id,

@@ -2,7 +2,7 @@
     <v-card class="ma-auto rounded-lg">
         <v-row>
           <v-col>
-              <v-btn variant="tonal" block rounded color="info" @click="_charge.add_warehouse_category_operation">
+              <v-btn variant="tonal" block rounded color="info" @click="_charge.add_warehouse_category_operation(true)">
                 <v-icon class="mx-2">mdi-receipt-text-plus</v-icon>
                 {{$t("add_detail_charge")}}
               </v-btn>
@@ -171,7 +171,7 @@
               edit_charge: {
                 charge_type_id: { required },
                 date: { required },
-                tracking_numbers: { required },
+                reception_tracking_number: { required },
                 supplier_ids: { required },
                 fishery_id: { required },
                 origin_id: { required },

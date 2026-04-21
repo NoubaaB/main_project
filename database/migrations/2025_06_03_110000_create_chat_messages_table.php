@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->enum('role', ['user', 'agent']);
             $table->longText('text');
+            $table->string('reaction')->nullable(); // 'like', 'dislike', or null
             $table->timestamps();
 
             $table->index(['user_id', 'created_at']);

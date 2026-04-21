@@ -10,7 +10,7 @@
                   item-value="id"
                   :item-title="`name_${_main.lang.code}`"
                   :disabled="is_editing"
-                  :label="$t('warehouse_category_operation')"
+                  :label="$t('warehouse_detail_category')"
                   chips
                   density="compact"
                   variant="outlined"
@@ -201,7 +201,79 @@
                 </v-textarea>
               </v-col>
 
-              <!-- Stock availability indicator -->
+              <!-- 3. select Tracking Number (THIRD — only when warehouse + article selected) -->
+              <v-col cols="12" v-if="sell_detail.warehouse_id && sell_detail.stockable_id && ability_warehouse_category_operation?.allow_warehouse">
+                <v-autocomplete
+                  v-model="sell_detail.warehouse_stockable_tracking_number_id"
+                  :items="available_tracking_numbers"
+                  item-value="tracking_number_id"
+                  :item-title="tn => (tn.tracking_numbers || []).join(', ')"
+                  :label="$t('select_tracking_number')"
+                  :disabled="!sell_detail.stockable_id"
+                  :loading="stock_loading"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  color="info"
+                  class="text-info"
+                  clearable
+                  @click:clear="sell_detail.warehouse_stockable_tracking_number_id = null"
+                  :hide-details="v$.sell_detail.warehouse_stockable_tracking_number_id.$errors.length==0"
+                  :error-messages="v$.sell_detail.warehouse_stockable_tracking_number_id.$errors.map(e => e.$message)"
+                  @blur="v$.sell_detail.warehouse_stockable_tracking_number_id.$touch()"
+                >
+                  <!-- Custom chip -->
+                  <template #chip="{ item, index }">
+                    <v-chip
+                      :key="index"
+                      class="text-white"
+                      color="info accent-4"
+                      closable
+                      variant="tonal"
+                      @click:close="sell_detail.warehouse_stockable_tracking_number_id = null"
+                    >
+                      {{ (item.raw.tracking_numbers || []).join(', ') }}
+                      <v-icon end size="14" class="mx-1">mdi-weight-kilogram</v-icon>
+                      {{ _main.formatDisplayNumber(item.raw.display_weight) }} Kg
+                    </v-chip>
+                  </template>
+                  <!-- Dropdown item -->
+                  <template v-slot:item="{ props, item }">
+                    <v-list-item v-bind="props" :title="undefined">
+                      <v-list-item-title class="d-flex align-center">
+                        <span>{{ (item.raw.tracking_numbers || []).join(', ') }}</span>
+                        <v-spacer></v-spacer>
+                        <v-chip
+                          size="x-small"
+                          color="success"
+                          variant="tonal"
+                          class="ms-2 font-weight-bold"
+                        >
+                          <v-icon start size="12">mdi-weight-kilogram</v-icon>
+                          {{ _main.formatDisplayNumber(item.raw.display_weight) }} Kg
+                        </v-chip>
+                      </v-list-item-title>
+                    </v-list-item>
+                  </template>
+                  <template v-slot:no-data>
+                    <v-list-item v-if="stock_loading">
+                      <v-list-item-title class="text-medium-emphasis text-body-2">
+                        <v-progress-circular size="14" width="2" indeterminate class="me-2"></v-progress-circular>
+                        {{ $t('loading_stock') }}
+                      </v-list-item-title>
+                    </v-list-item>
+                    <v-list-item v-else>
+                      <v-list-item-title class="text-medium-emphasis text-body-2">
+                        <v-icon start size="small" color="warning">mdi-alert-outline</v-icon>
+                        {{ $t('no_tracking_numbers_available') }}
+                      </v-list-item-title>
+                    </v-list-item>
+                  </template>
+                </v-autocomplete>
+              </v-col>
+
+              <!-- Stock availability indicator (tracking-number-level when selected) -->
               <v-col cols="12" v-if="sell_detail.warehouse_id && sell_detail.stockable_id && ability_warehouse_category_operation?.allow_warehouse">
                 <v-alert
                   v-if="stock_loading"
@@ -214,6 +286,31 @@
                   <v-progress-circular size="16" width="2" indeterminate class="me-2"></v-progress-circular>
                   {{ $t('loading_stock') }}
                 </v-alert>
+                <!-- Tracking-number-level stock info -->
+                <v-alert
+                  v-else-if="sell_detail.warehouse_stockable_tracking_number_id && selected_tn_stock !== null"
+                  :type="selected_tn_stock > 0 ? 'success' : 'error'"
+                  density="compact"
+                  variant="tonal"
+                  rounded="lg"
+                  class="mb-0"
+                  :icon="selected_tn_stock > 0 ? 'mdi-package-variant' : 'mdi-package-variant-remove'"
+                >
+                  <template v-if="selected_tn_stock > 0">
+                    <strong>{{ $t('initial_stock') }}:</strong>
+                    {{ _main.formatDisplayNumber(selected_tn_stock) }} Kg
+                    <template v-if="sell_detail.total_weight > 0">
+                      &mdash;
+                      <span :class="tn_weight_exceeds ? 'text-error font-weight-bold' : 'text-success'">
+                        {{ $t('stock_after_sell') }}: {{ _main.formatDisplayNumber(tn_remaining_stock) }} Kg
+                      </span>
+                    </template>
+                  </template>
+                  <template v-else>
+                    <strong>{{ $t('out_of_stock') }}</strong>
+                  </template>
+                </v-alert>
+                <!-- Article-level stock info (fallback when no tracking number selected) -->
                 <v-alert
                   v-else-if="selected_article_stock !== null"
                   :type="selected_article_stock > 0 ? 'success' : 'error'"
@@ -426,7 +523,7 @@
               </v-col>
               <v-col>
                 <v-btn
-                  :disabled="v$.$invalid || weight_exceeds_stock"
+                  :disabled="v$.$invalid || weight_exceeds_stock || tn_weight_exceeds"
                   :color="`${is_editing ? 'amber' : 'green'}`"
                   variant="tonal"
                   rounded="pill"
@@ -608,7 +705,9 @@
           is_posting_trucks: false,
           header_initial_length: 0,
           warehouse_stock: [],
+          warehouse_stock_details: [],
           stock_loading: false,
+          session_deductions: {},
           sell_detail: {
               id: uuidv4(),
               total_weight: null,
@@ -620,6 +719,7 @@
               stockable_type: null,
               warehouse_category_operation_id: null,
               warehouse_id: null,
+              warehouse_stockable_tracking_number_id: null,
               truck_ids: [],
               package_type_id: null,
           },
@@ -662,6 +762,9 @@
               total_package_count: {
                 required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_package_type),
                 numeric,
+              },
+              warehouse_stockable_tracking_number_id: {
+                required: requiredIf(() =>this.ability_warehouse_category_operation?.allow_warehouse),
               }
           }
         }
@@ -669,6 +772,7 @@
       mounted() {
         this.getTypeDetail()
         this.init_headers();
+        this.restoreSessionDeductions();
       },
       computed: {
         _sell() {
@@ -716,11 +820,7 @@
         },
         selected_article_stock: function () {
           if (!this.sell_detail.warehouse_id || !this.sell_detail.stockable_id || this.warehouse_stock.length === 0) return null;
-          const stockableType = this.sell_detail.stockable_type;
-          const match = this.warehouse_stock.find(
-            s => s.stockable_id === this.sell_detail.stockable_id && s.stockable_type === stockableType
-          );
-          return match ? match.available_weight : 0;
+          return this.getArticleStock(this.sell_detail.stockable_id);
         },
         weight_exceeds_stock: function () {
           if (this.selected_article_stock === null || this.selected_article_stock <= 0) return false;
@@ -729,6 +829,34 @@
         remaining_stock: function () {
           if (this.selected_article_stock === null || this.selected_article_stock <= 0) return 0;
           return Math.max(this.selected_article_stock - (+this.sell_detail.total_weight || 0), 0);
+        },
+        // Tracking-number-level computed properties
+        available_tracking_numbers: function () {
+          if (!this.sell_detail.stockable_id || !this.sell_detail.stockable_type) return [];
+          // Filter warehouse_stock_details by the selected article
+          const filtered = this.warehouse_stock_details.filter(
+            tn => tn.stockable_id === this.sell_detail.stockable_id && tn.stockable_type === this.sell_detail.stockable_type
+          );
+          return filtered.map(tn => {
+            const deducted = this.session_deductions[tn.tracking_number_id] || 0;
+            const displayWeight = Math.max(tn.remaining_weight - deducted, 0);
+            return { ...tn, display_weight: displayWeight };
+          }).filter(tn => tn.display_weight > 0);
+        },
+        selected_tn_stock: function () {
+          if (!this.sell_detail.warehouse_stockable_tracking_number_id) return null;
+          const tn = this.available_tracking_numbers.find(
+            t => t.tracking_number_id === this.sell_detail.warehouse_stockable_tracking_number_id
+          );
+          return tn ? tn.display_weight : 0;
+        },
+        tn_remaining_stock: function () {
+          if (this.selected_tn_stock === null || this.selected_tn_stock <= 0) return 0;
+          return Math.max(this.selected_tn_stock - (+this.sell_detail.total_weight || 0), 0);
+        },
+        tn_weight_exceeds: function () {
+          if (this.selected_tn_stock === null || this.selected_tn_stock <= 0) return false;
+          return +this.sell_detail.total_weight > this.selected_tn_stock;
         },
         articles_in_stock: function () {
           if (!this.type_detail) return [];
@@ -741,6 +869,10 @@
           });
         },
         weightFieldLabel: function () {
+          // If tracking number is selected, show its stock
+          if (this.selected_tn_stock !== null && this.selected_tn_stock > 0) {
+            return this.$t('weight') + ' (Kg) — ' + this.$t('stock_available', { qty: this._main.formatDisplayNumber(this.selected_tn_stock) });
+          }
           if (this.selected_article_stock !== null && this.selected_article_stock > 0) {
             return this.$t('weight') + ' (Kg) — ' + this.$t('stock_available', { qty: this._main.formatDisplayNumber(this.selected_article_stock) });
           }
@@ -803,7 +935,19 @@
           this.is_editing = false;
         },
         remove: function (sell_detail_id) {
+          // Find the detail before removing to restore stock deduction
+          const detail = this.warehouse_category_operation.sell_details.find(d => d.id == sell_detail_id);
+          if (detail && detail.warehouse_stockable_tracking_number_id && +detail.total_weight > 0) {
+            const tnId = detail.warehouse_stockable_tracking_number_id;
+            const currentDeduction = this.session_deductions[tnId] || 0;
+            this.session_deductions = {
+              ...this.session_deductions,
+              [tnId]: Math.max(currentDeduction - (+detail.total_weight), 0)
+            };
+          }
           this._sell.remove_sell_detail(this.warehouse_category_operation.id , sell_detail_id);
+          this.re_caclulate();
+          this._sell.UpdateSell();
         },
         submit: function () {
           this.sell_detail.total_weight = this.sell_detail.total_weight == null ? 0.00 : this.sell_detail.total_weight 
@@ -816,6 +960,15 @@
           } else {
             this._sell.add_sell_detail(this.warehouse_category_operation.id , this.sell_detail);
           }
+          // Track session deduction for the tracking number
+          if (this.sell_detail.warehouse_stockable_tracking_number_id && +this.sell_detail.total_weight > 0) {
+            const tnId = this.sell_detail.warehouse_stockable_tracking_number_id;
+            const currentDeduction = this.session_deductions[tnId] || 0;
+            this.session_deductions = {
+              ...this.session_deductions,
+              [tnId]: currentDeduction + (+this.sell_detail.total_weight)
+            };
+          }
           this.reset_sell_detail();
           this.$refs.Sell_focus_input?.focus()
         },
@@ -827,10 +980,11 @@
               unit_price: null,
               total_price: null,
               total_package_count: null,
-              stockable_id: null,
+              stockable_id: this.sell_detail.stockable_id,
               stockable_type: this.sell_detail.stockable_type,
               warehouse_category_operation_id: this.warehouse_category_operation.id,
-              warehouse_id: null,
+              warehouse_id: this.sell_detail.warehouse_id,
+              warehouse_stockable_tracking_number_id: null,
               truck_ids: [],
               package_type_id: null,
           };
@@ -873,15 +1027,30 @@
         fetchWarehouseStock: async function (warehouseId) {
           if (!warehouseId) {
             this.warehouse_stock = [];
+            this.warehouse_stock_details = [];
             return;
           }
           this.stock_loading = true;
           try {
-            const response = await axios.get(`/api/warehouses/${warehouseId}/stock-summary`);
-            this.warehouse_stock = response.data.stock || [];
+            const response = await axios.get(`/api/warehouses/${warehouseId}/stock-details`);
+            const families = response.data.families || [];
+            // Flatten all tracking-number-level entries
+            const allArticles = families.flatMap(f => f.articles || []);
+            this.warehouse_stock_details = allArticles;
+            // Build article-level stock by grouping
+            const stockMap = {};
+            allArticles.forEach(a => {
+              const key = `${a.stockable_type}_${a.stockable_id}`;
+              if (!stockMap[key]) {
+                stockMap[key] = { stockable_type: a.stockable_type, stockable_id: a.stockable_id, available_weight: 0 };
+              }
+              stockMap[key].available_weight += a.remaining_weight;
+            });
+            this.warehouse_stock = Object.values(stockMap);
           } catch (e) {
             console.error('Error fetching warehouse stock:', e);
             this.warehouse_stock = [];
+            this.warehouse_stock_details = [];
           }
           this.stock_loading = false;
         },
@@ -891,7 +1060,16 @@
           const match = this.warehouse_stock.find(
             s => s.stockable_id === stockableId && s.stockable_type === stockableType
           );
-          return match ? match.available_weight : 0;
+          if (!match) return 0;
+          // Subtract session deductions for tracking numbers belonging to this article
+          const articleTNs = this.warehouse_stock_details.filter(
+            tn => tn.stockable_id === stockableId && tn.stockable_type === stockableType
+          );
+          let totalDeducted = 0;
+          articleTNs.forEach(tn => {
+            totalDeducted += (this.session_deductions[tn.tracking_number_id] || 0);
+          });
+          return Math.max(match.available_weight - totalDeducted, 0);
         },
         init_headers: function () {
           let headers = this.DEFAULT_HEADERS().filter(header => header.visible == true);
@@ -900,6 +1078,30 @@
         },
         is_used_warehouse_category_operation: function(id){
           return this._sell.sell.warehouse_category_operations.some(e => e.id == id);
+        },
+        restoreSessionDeductions: async function () {
+          const details = this.warehouse_category_operation.sell_details || [];
+          if (details.length === 0) return;
+
+          // Rebuild session_deductions from existing details
+          const deductions = {};
+          let warehouseId = null;
+          details.forEach(detail => {
+            if (detail.warehouse_stockable_tracking_number_id && +detail.total_weight > 0) {
+              const tnId = detail.warehouse_stockable_tracking_number_id;
+              deductions[tnId] = (deductions[tnId] || 0) + (+detail.total_weight);
+            }
+            if (detail.warehouse_id) {
+              warehouseId = detail.warehouse_id;
+            }
+          });
+          this.session_deductions = deductions;
+
+          // Fetch warehouse stock so availability display is accurate
+          if (warehouseId) {
+            this.sell_detail.warehouse_id = warehouseId;
+            await this.fetchWarehouseStock(warehouseId);
+          }
         },
         re_caclulate: function () {
           this.warehouse_category_operation.total_price = +this.warehouse_category_operation.sell_details.reduce((acc, detail) => {
@@ -966,11 +1168,18 @@
           }
         },
         "sell_detail.warehouse_id": function (newVal, oldVal) {
-          // Reset article selection when warehouse changes
+          // Reset article + tracking number selection when warehouse changes
           if (oldVal !== null && oldVal !== newVal) {
             this.sell_detail.stockable_id = null;
+            this.sell_detail.warehouse_stockable_tracking_number_id = null;
           }
           this.fetchWarehouseStock(newVal);
+        },
+        "sell_detail.stockable_id": function (newVal, oldVal) {
+          // Reset tracking number selection when article changes
+          if (oldVal !== null && oldVal !== newVal) {
+            this.sell_detail.warehouse_stockable_tracking_number_id = null;
+          }
         },
         "warehouse_category_operation.id": {
           handler: function () {

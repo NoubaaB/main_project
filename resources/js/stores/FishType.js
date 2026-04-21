@@ -5,11 +5,18 @@ export const useFishType = defineStore("fish_types", {
         return {
             list: [],
             model: {
-                name: "",
+                name_fr: "",
+                name_en: "",
+                name_es: "",
+                name_in_invoice: "",
                 scientific_name: "",
                 image: "",
                 description: "",
-                fish_familly_id:null
+                process: "",
+                type: null,
+                fish_family_id: null,
+                fish_process_type_id: null,
+                productivity_color: "#1E88E5",
             }
         };
     },
@@ -21,7 +28,8 @@ export const useFishType = defineStore("fish_types", {
             this.list = this.list.filter(e => e.id != fish_type.id);
         },
         updateFishType: function (fish_type) {
-            console.log("fish_type", fish_type)
+            const index = this.list.findIndex(e => e.id === fish_type.id);
+            if (index !== -1) this.list.splice(index, 1, fish_type);
         },
     },
     getters: {

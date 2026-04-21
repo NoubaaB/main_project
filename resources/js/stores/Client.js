@@ -29,6 +29,10 @@ export const useClient = defineStore("client", {
         },
         getName: function (id) {
             return this.list.find(e => e.id == id).name;
+        },
+        get_client_name_by_id: function (id) {
+            const client = this.list.find(c => c.id == id);
+            return client ? client.name : 'N/A';
         }
     },
     getters: {

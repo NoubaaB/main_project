@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->date("date")->nullable();
             $table->json("tracking_numbers")->default("[]");
+            $table->json("tracking_onp_numbers")->default("[]");
             $table->string("note", 500)->nullable();
 
             $table->decimal("total_price",15,2)->default(0.00);
@@ -25,6 +26,8 @@ return new class extends Migration
             $table->foreignId('ship_id')->nullable()->index();
             $table->foreignId('origin_id')->nullable()->index();
             $table->foreignId('sell_category_id')->nullable()->index();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
 
             $table->timestamps();
             $table->softDeletes();

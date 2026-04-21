@@ -34,9 +34,267 @@
 
             <!-- Right: Actions -->
             <div class="systembar-right">
-                <!-- Charges Archive Button -->
+                <!-- Archives Button -->
+                <v-btn
+                    v-if="auth.is_auth"
+                    icon
+                    variant="tonal"
+                    color="teal"
+                    size="36"
+                    class="systembar-action-btn"
+                    @click="archiveDialog = true"
+                    id="archive-btn"
+                >
+                    <v-badge
+                        v-if="_archive.totalCount > 0"
+                        :content="_archive.totalCount"
+                        color="amber"
+                        text-color="white"
+                        location="bottom end"
+                        offset-x="2"
+                        offset-y="2"
+                    >
+                        <v-icon size="19">mdi-archive-check</v-icon>
+                    </v-badge>
+                    <v-icon v-else size="19">mdi-archive-outline</v-icon>
+                    <v-tooltip activator="parent" location="bottom">{{ $t('archives') }}</v-tooltip>
+                </v-btn>
+
+                <!-- Archive Dialog -->
+                <v-dialog v-model="archiveDialog" max-width="960" scrollable>
+                    <v-card rounded="xl" :class="main.is_dark ? 'archive-dark' : 'archive-light'">
+                        <v-card-title class="d-flex align-center pa-4">
+                            <v-icon class="mr-2" size="24" color="teal">mdi-archive-check</v-icon>
+                            <span class="text-h6 font-weight-bold">{{ $t('archives') }}</span>
+                            <v-chip class="ml-2" size="small" color="teal" variant="tonal">{{ _archive.totalCount }}</v-chip>
+                            <v-spacer></v-spacer>
+                            <v-btn icon variant="text" size="small" @click="archiveDialog = false">
+                                <v-icon>mdi-close</v-icon>
+                            </v-btn>
+                        </v-card-title>
+                        <v-divider></v-divider>
+                        <v-tabs v-model="archiveTab" color="teal" grow density="compact">
+                            <v-tab value="charges">
+                                <v-icon start size="18">mdi-warehouse</v-icon>
+                                {{ $t('charges') }}
+                                <v-chip v-if="_archive.chargeCount > 0" class="ml-1" size="x-small" color="info" variant="tonal">{{ _archive.chargeCount }}</v-chip>
+                            </v-tab>
+                            <v-tab value="sells">
+                                <v-icon start size="18">mdi-cart-check</v-icon>
+                                {{ $t('sells') }}
+                                <v-chip v-if="_archive.sellCount > 0" class="ml-1" size="x-small" color="green" variant="tonal">{{ _archive.sellCount }}</v-chip>
+                            </v-tab>
+                            <v-tab value="productions">
+                                <v-icon start size="18">mdi-cog-outline</v-icon>
+                                {{ $t('productions') }}
+                                <v-chip v-if="_archive.productionCount > 0" class="ml-1" size="x-small" color="teal" variant="tonal">{{ _archive.productionCount }}</v-chip>
+                            </v-tab>
+                        </v-tabs>
+                        <v-divider></v-divider>
+                        <v-card-text class="pa-0" style="max-height: 60vh; overflow-y: auto;">
+                            <v-tabs-window v-model="archiveTab">
+                                <!-- ═══ Charges Tab ═══ -->
+                                <v-tabs-window-item value="charges">
+                                    <div v-if="_archive.charges.length > 0" class="pa-2">
+                                        <div class="d-flex align-center ga-2 pa-2">
+                                            <v-btn size="small" color="teal" variant="flat" rounded="lg" :disabled="selectedCharges.length === 0" @click="submitSelectedCharges" :loading="archiveLoading">
+                                                <v-icon start size="16">mdi-check-all</v-icon>
+                                                {{ $t('submit_selected') }} {{ selectedCharges.length > 0 ? `(${selectedCharges.length})` : '' }}
+                                            </v-btn>
+                                            <v-btn size="small" color="error" variant="tonal" rounded="lg" :disabled="selectedCharges.length === 0" @click="deleteSelectedCharges">
+                                                <v-icon start size="16">mdi-delete-outline</v-icon>
+                                                {{ $t('delete_selected') }} {{ selectedCharges.length > 0 ? `(${selectedCharges.length})` : '' }}
+                                            </v-btn>
+                                        </div>
+                                        <v-data-table
+                                            v-model="selectedCharges"
+                                            :headers="chargeHeaders"
+                                            :items="_archive.charges"
+                                            item-value="id"
+                                            show-select
+                                            density="compact"
+                                            hide-default-footer
+                                            class="archive-table"
+                                        >
+                                            <template v-slot:[`item.date`]="{ item }">
+                                                {{ main.formateDate(item.date) }}
+                                            </template>
+                                            <template v-slot:[`item.charge_category_id`]="{ item }">
+                                                <v-chip color="info" size="x-small" variant="tonal">{{ _charge_category.get_charge_category_name_by_id(item.charge_category_id) }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.reception_tracking_number`]="{ item }">
+                                                <v-chip v-for="tn in (item.reception_tracking_number || [])" :key="tn" size="x-small" color="secondary" variant="tonal" class="mr-1 mt-1">{{ tn }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.supplier_ids`]="{ item }">
+                                                <v-chip v-for="sid in (item.supplier_ids || [])" :key="sid" size="x-small" color="info" variant="tonal" class="mr-1 mt-1">{{ _supplier.get_supplier_name_by_id(sid) }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.total_weight`]="{ item }">
+                                                {{ main.formatDisplayNumber(item.total_weight) }}
+                                            </template>
+                                            <template v-slot:[`item.total_price`]="{ item }">
+                                                {{ main.formatDisplayNumber(item.total_price) }}
+                                            </template>
+                                            <template v-slot:[`item.actions`]="{ item }">
+                                                <div class="d-flex ga-1">
+                                                    <v-btn icon variant="text" size="x-small" color="amber" @click="editChargeArchive(item.id)">
+                                                        <v-icon size="16">mdi-pencil</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
+                                                    </v-btn>
+                                                    <v-btn icon variant="text" size="x-small" color="teal" @click="submitChargeArchive(item.id)" :loading="archiveLoading">
+                                                        <v-icon size="16">mdi-send-check</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('submit') }}</v-tooltip>
+                                                    </v-btn>
+                                                    <v-btn icon variant="text" size="x-small" color="red" @click="deleteChargeArchive(item.id)">
+                                                        <v-icon size="16">mdi-delete</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
+                                                    </v-btn>
+                                                </div>
+                                            </template>
+                                        </v-data-table>
+                                    </div>
+                                    <div v-else class="text-medium-emphasis d-flex flex-column align-center justify-center py-10">
+                                        <v-icon size="48" color="grey" class="mb-2">mdi-archive-off-outline</v-icon>
+                                        <span>{{ $t('no_archives') }}</span>
+                                    </div>
+                                </v-tabs-window-item>
+
+                                <!-- ═══ Sells Tab ═══ -->
+                                <v-tabs-window-item value="sells">
+                                    <div v-if="_archive.sells.length > 0" class="pa-2">
+                                        <div class="d-flex align-center ga-2 pa-2">
+                                            <v-btn size="small" color="green" variant="flat" rounded="lg" :disabled="selectedSells.length === 0" @click="submitSelectedSells" :loading="archiveLoading">
+                                                <v-icon start size="16">mdi-check-all</v-icon>
+                                                {{ $t('submit_selected') }} {{ selectedSells.length > 0 ? `(${selectedSells.length})` : '' }}
+                                            </v-btn>
+                                            <v-btn size="small" color="error" variant="tonal" rounded="lg" :disabled="selectedSells.length === 0" @click="deleteSelectedSells">
+                                                <v-icon start size="16">mdi-delete-outline</v-icon>
+                                                {{ $t('delete_selected') }} {{ selectedSells.length > 0 ? `(${selectedSells.length})` : '' }}
+                                            </v-btn>
+                                        </div>
+                                        <v-data-table
+                                            v-model="selectedSells"
+                                            :headers="sellHeaders"
+                                            :items="_archive.sells"
+                                            item-value="id"
+                                            show-select
+                                            density="compact"
+                                            hide-default-footer
+                                            class="archive-table"
+                                        >
+                                            <template v-slot:[`item.date`]="{ item }">
+                                                {{ main.formateDate(item.date) }}
+                                            </template>
+                                            <template v-slot:[`item.sell_category_id`]="{ item }">
+                                                <v-chip color="green" size="x-small" variant="tonal">{{ _sell_category.get_sell_category_name_by_id(item.sell_category_id) }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.tracking_numbers`]="{ item }">
+                                                <v-chip v-for="tn in (item.tracking_numbers || [])" :key="tn" size="x-small" color="secondary" variant="tonal" class="mr-1 mt-1">{{ tn }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.client_ids`]="{ item }">
+                                                <v-chip v-for="cid in (item.client_ids || [])" :key="cid" size="x-small" color="green" variant="tonal" class="mr-1 mt-1">{{ _client.get_client_name_by_id(cid) }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.total_weight`]="{ item }">
+                                                {{ main.formatDisplayNumber(item.total_weight) }}
+                                            </template>
+                                            <template v-slot:[`item.total_price`]="{ item }">
+                                                {{ main.formatDisplayNumber(item.total_price) }}
+                                            </template>
+                                            <template v-slot:[`item.actions`]="{ item }">
+                                                <div class="d-flex ga-1">
+                                                    <v-btn icon variant="text" size="x-small" color="amber" @click="editSellArchive(item.id)">
+                                                        <v-icon size="16">mdi-pencil</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
+                                                    </v-btn>
+                                                    <v-btn icon variant="text" size="x-small" color="green" @click="submitSellArchive(item.id)" :loading="archiveLoading">
+                                                        <v-icon size="16">mdi-send-check</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('submit') }}</v-tooltip>
+                                                    </v-btn>
+                                                    <v-btn icon variant="text" size="x-small" color="red" @click="deleteSellArchive(item.id)">
+                                                        <v-icon size="16">mdi-delete</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
+                                                    </v-btn>
+                                                </div>
+                                            </template>
+                                        </v-data-table>
+                                    </div>
+                                    <div v-else class="text-medium-emphasis d-flex flex-column align-center justify-center py-10">
+                                        <v-icon size="48" color="grey" class="mb-2">mdi-archive-off-outline</v-icon>
+                                        <span>{{ $t('no_archives') }}</span>
+                                    </div>
+                                </v-tabs-window-item>
+
+                                <!-- ═══ Productions Tab ═══ -->
+                                <v-tabs-window-item value="productions">
+                                    <div v-if="_archive.productions.length > 0" class="pa-2">
+                                        <div class="d-flex align-center ga-2 pa-2">
+                                            <v-btn size="small" color="teal" variant="flat" rounded="lg" :disabled="selectedProductions.length === 0" @click="submitSelectedProductions" :loading="archiveLoading">
+                                                <v-icon start size="16">mdi-check-all</v-icon>
+                                                {{ $t('submit_selected') }} {{ selectedProductions.length > 0 ? `(${selectedProductions.length})` : '' }}
+                                            </v-btn>
+                                            <v-btn size="small" color="error" variant="tonal" rounded="lg" :disabled="selectedProductions.length === 0" @click="deleteSelectedProductions">
+                                                <v-icon start size="16">mdi-delete-outline</v-icon>
+                                                {{ $t('delete_selected') }} {{ selectedProductions.length > 0 ? `(${selectedProductions.length})` : '' }}
+                                            </v-btn>
+                                        </div>
+                                        <v-data-table
+                                            v-model="selectedProductions"
+                                            :headers="productionHeaders"
+                                            :items="_archive.productions"
+                                            item-value="id"
+                                            show-select
+                                            density="compact"
+                                            hide-default-footer
+                                            class="archive-table"
+                                        >
+                                            <template v-slot:[`item.date`]="{ item }">
+                                                {{ main.formateDate(item.date) }}
+                                            </template>
+                                            <template v-slot:[`item.production_category_id`]="{ item }">
+                                                <v-chip color="teal" size="x-small" variant="tonal">{{ item.production_category_id }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.production_tracking_numbers`]="{ item }">
+                                                <v-chip v-for="tn in (item.production_tracking_numbers || [])" :key="tn" size="x-small" color="teal" variant="tonal" class="mr-1 mt-1">{{ tn }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.supplier_ids`]="{ item }">
+                                                <v-chip v-for="sid in (item.supplier_ids || [])" :key="sid" size="x-small" color="teal" variant="tonal" class="mr-1 mt-1">{{ _supplier.get_supplier_name_by_id(sid) }}</v-chip>
+                                            </template>
+                                            <template v-slot:[`item.total_weight`]="{ item }">
+                                                {{ main.formatDisplayNumber(item.total_weight) }}
+                                            </template>
+                                            <template v-slot:[`item.total_price`]="{ item }">
+                                                {{ main.formatDisplayNumber(item.total_price) }}
+                                            </template>
+                                            <template v-slot:[`item.actions`]="{ item }">
+                                                <div class="d-flex ga-1">
+                                                    <v-btn icon variant="text" size="x-small" color="amber" @click="editProductionArchive(item.id)">
+                                                        <v-icon size="16">mdi-pencil</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
+                                                    </v-btn>
+                                                    <v-btn icon variant="text" size="x-small" color="teal" @click="submitProductionArchive(item.id)" :loading="archiveLoading">
+                                                        <v-icon size="16">mdi-send-check</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('submit') }}</v-tooltip>
+                                                    </v-btn>
+                                                    <v-btn icon variant="text" size="x-small" color="red" @click="deleteProductionArchive(item.id)">
+                                                        <v-icon size="16">mdi-delete</v-icon>
+                                                        <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
+                                                    </v-btn>
+                                                </div>
+                                            </template>
+                                        </v-data-table>
+                                    </div>
+                                    <div v-else class="text-medium-emphasis d-flex flex-column align-center justify-center py-10">
+                                        <v-icon size="48" color="grey" class="mb-2">mdi-archive-off-outline</v-icon>
+                                        <span>{{ $t('no_archives') }}</span>
+                                    </div>
+                                </v-tabs-window-item>
+                            </v-tabs-window>
+                        </v-card-text>
+                    </v-card>
+                </v-dialog>
+
+                <!-- Online Users Button -->
                 <v-menu
-                    transition="scroll-y-transition"
+                    transition="scale-transition"
                     :close-on-content-click="false"
                     v-if="auth.is_auth"
                 >
@@ -45,148 +303,63 @@
                             v-bind="props"
                             icon
                             variant="tonal"
-                            color="teal"
+                            color="green"
                             size="36"
                             class="systembar-action-btn"
+                            id="online-users-btn"
                         >
                             <v-badge
-                                v-if="_charge.charges.length > 0"
-                                :content="_charge.charges.length"
-                                color="amber"
+                                v-if="_online.onlineCount > 0"
+                                :content="_online.onlineCount"
+                                color="green"
                                 text-color="white"
                                 location="bottom end"
                                 offset-x="2"
                                 offset-y="2"
                             >
-                                <v-icon size="19">mdi-file-document-multiple</v-icon>
+                                <v-icon size="19" :class="{ 'online-pulse-icon': _online.onlineCount > 0 }">mdi-account-group</v-icon>
                             </v-badge>
-                            <v-icon v-else size="19">mdi-file-document-multiple-outline</v-icon>
-                            <v-tooltip activator="parent" location="bottom">Charges Archive</v-tooltip>
+                            <v-icon v-else size="19">mdi-account-group-outline</v-icon>
+                            <v-tooltip activator="parent" location="bottom">{{ $t('online_users') }}</v-tooltip>
                         </v-btn>
                     </template>
                     <v-card
-                        class="charges-archive-panel mt-2"
+                        class="online-users-panel mt-2"
                         :class="main.is_dark ? 'archive-dark' : 'archive-light'"
-                        max-width="640"
-                        width="100%"
+                        min-width="260"
+                        max-width="340"
                         rounded="xl"
-                        elevation="16"
+                        elevation="12"
                     >
                         <v-card-title class="archive-title">
-                            <v-icon class="mr-2" size="20" color="info">mdi-archive-outline</v-icon>
-                            Charges Archived
+                            <v-icon class="mr-2" size="20" color="green">mdi-circle</v-icon>
+                            {{ $t('online_users') }} ({{ _online.onlineCount }})
                         </v-card-title>
                         <v-divider></v-divider>
-                        <v-card-text class="pa-4">
-                            <v-data-table
-                                v-model="selected"
-                                :headers="headers"
-                                :items="_charge.charges"
-                                tabindex="0"
-                                item-value="id"
-                                show-select
-                                density="compact"
-                                item-key="id"
-                                hide-default-footer
-                            >
-                                <template v-slot:[`header.data-table-select`]="{ allSelected, selectAll }">
-                                <v-checkbox
-                                    :model-value="allSelected"
-                                    @update:model-value="selectAll"
-                                    :indeterminate="selected.length > 0 && !allSelected"
-                                    color="info"
-                                    class="px-0"
-                                    hide-details
-                                ></v-checkbox>
-                                </template>
-                                <template v-slot:[`item.data-table-select`]="{ internalItem, isSelected, toggleSelect }">
-                                <v-checkbox-btn
-                                    :model-value="isSelected(internalItem)"
-                                    color="info"
-                                    @update:model-value="toggleSelect(internalItem)"
-                                ></v-checkbox-btn>
-                                </template>
-                                <template v-slot:no-data>
-                                    <div class="text-medium-emphasis d-flex align-center justify-center py-4">
-                                        <v-icon icon="mdi-database-alert-outline" size="20" class="mr-2"></v-icon>
-                                        <span>No data available</span>
-                                    </div>
-                                </template>
-                                <template v-slot:[`item.tracking_numbers`]="{ item }">
-                                    <v-chip color="secondary" size="small" v-for="tracking_number in item.tracking_numbers" :key="tracking_number" class="mx-1 mt-1">
-                                        {{ tracking_number }}
-                                    </v-chip>
-                                </template>
-                                <template v-slot:[`item.date`]="{ item }">
-                                    {{ main.formateDate(item.date) }}
-                                </template>
-                                <template v-slot:[`item.charge_category_id`]="{ item }">
-                                    <v-chip
-                                        color="info"
-                                        size="small"
-                                        class="mt-1"
-                                        :text="_charge_category.get_charge_category_name_by_id(item.charge_category_id)"
-                                    ></v-chip>
-                                </template>
-                                <template v-slot:[`item.supplier_ids`]="{ item }">
-                                    <v-responsive class="overflow-y-auto" max-height="280">
-                                        <v-chip
-                                            v-for="suppliers_id in item.supplier_ids"
-                                            color="info"
-                                            class="mt-1"
-                                            size="x-small"
-                                            :key="suppliers_id"
-                                            :text="_supplier.get_supplier_name_by_id(suppliers_id)"
-                                        ></v-chip>
-                                    </v-responsive>
-                                </template>
-                                <template v-slot:[`item.total_weight`]="{ item }">
-                                    {{ main.formatDisplayNumber(item.total_weight) }}
-                                </template>
-                                <template v-slot:[`item.total_price`]="{ item }">
-                                    {{ main.formatDisplayNumber(item.total_price) }}
-                                </template>
-                                <template v-slot:[`item.actions`]="{ item }">
-                                <div class="d-flex ga-2 justify-end">
-                                    <v-btn icon variant="text" size="x-small" color="amber" @click="edit(item.id)">
-                                        <v-icon size="16">mdi-pencil</v-icon>
-                                    </v-btn>
-                                    <v-btn icon variant="text" size="x-small" color="red" @click="remove(item.id)">
-                                        <v-icon size="16">mdi-delete</v-icon>
-                                    </v-btn>
-                                </div>
-                                </template>
-                            </v-data-table>
-                        </v-card-text>
-                        <v-divider></v-divider>
-                        <v-card-actions class="archive-actions pa-4">
-                            <v-btn
-                                :disabled="selected.length == 0"
-                                class="text-none"
-                                color="info"
-                                variant="flat"
+                        <v-list density="compact" class="pa-2" v-if="_online.otherUsers.length > 0">
+                            <v-list-item
+                                v-for="user in _online.otherUsers"
+                                :key="user.id"
+                                class="online-user-item"
                                 rounded="lg"
-                                size="small"
-                                min-width="120"
                             >
-                                <v-icon start size="16">mdi-check</v-icon>
-                                {{ `${selected.length == 0 ? '': `(${selected.length})`} ${$t('submit')}` }}
-                            </v-btn>
-                            <v-spacer></v-spacer>
-                            <v-btn
-                                :disabled="selected.length == 0"
-                                class="text-none"
-                                color="error"
-                                variant="tonal"
-                                rounded="lg"
-                                size="small"
-                                min-width="120"
-                                @click="delete_archived_charges"
-                            >
-                                <v-icon start size="16">mdi-delete-outline</v-icon>
-                                {{ `${selected.length == 0 ? '': `(${selected.length})`} ${$t('delete')}` }}
-                            </v-btn>
-                        </v-card-actions>
+                                <template v-slot:prepend>
+                                    <v-avatar size="30" color="green" class="mr-3">
+                                        <v-icon size="16" color="white">mdi-account</v-icon>
+                                    </v-avatar>
+                                </template>
+                                <v-list-item-title class="text-body-2 font-weight-medium">
+                                    {{ user.name }}
+                                </v-list-item-title>
+                                <template v-slot:append>
+                                    <v-icon size="10" color="green">mdi-circle</v-icon>
+                                </template>
+                            </v-list-item>
+                        </v-list>
+                        <div v-else class="text-medium-emphasis d-flex align-center justify-center py-6">
+                            <v-icon icon="mdi-account-off-outline" size="20" class="mr-2"></v-icon>
+                            <span>{{ $t('no_users_online') || 'No users online' }}</span>
+                        </div>
                     </v-card>
                 </v-menu>
 
@@ -271,13 +444,24 @@
     import { useCharge } from "@/stores/Charge";
     import { useSupplier } from "@/stores/Supplier";
     import { useChargeCategory } from "@/stores/ChargeCategory";
+    import { useSell } from "@/stores/Sell";
+    import { useClient } from "@/stores/Client";
+    import { useSellCategory } from "@/stores/SellCategory";
+    import { useOnlineUsers } from "@/stores/OnlineUsers";
+    import { useArchive } from "@/stores/Archive";
+    import { useProductionCategory } from "@/stores/ProductionCategory";
     import annyang from "annyang";
 
     export default {
         data:function(){
           return {
-            selected: [],
-          }  
+            archiveDialog: false,
+            archiveTab: 'charges',
+            archiveLoading: false,
+            selectedCharges: [],
+            selectedSells: [],
+            selectedProductions: [],
+          }
         },
         computed:{
             dashboard_waiter: function () {
@@ -298,21 +482,62 @@
             _charge_category: function () {
                 return useChargeCategory();
             },
+            _sell: function () {
+                return useSell();
+            },
+            _client: function () {
+                return useClient();
+            },
+            _online: function () {
+                return useOnlineUsers();
+            },
+            _sell_category: function () {
+                return useSellCategory();
+            },
             currentLangFlag: function () {
                 if (!this.main.lang) return 'https://flagcdn.com/24x18/gb.png';
                 return this.getLangFlag(this.main.lang.code);
             },
-            headers: function () {
+            _archive: function () {
+                return useArchive();
+            },
+            _production_category: function () {
+                return useProductionCategory();
+            },
+            chargeHeaders: function () {
                 return [
-                    { title: this.$t("charge.date"), value: "date" },
-                    { title: this.$t("charge.charge_category"), value: "charge_category_id" },
-                    { title: this.$t("charge.suppliers"), value: "supplier_ids" },
-                    { title: this.$t("charge.tracking_numbers"), value: "tracking_numbers" },
-                    { title: this.$t("charge.total_price"), value: "total_price" },
-                    { title: this.$t("charge.total_weight"), value: "total_weight" },
-                    { title: this.$t("charge.actions"), value: "actions", align: 'end', sortable: false }
+                    { title: this.$t('date'), value: 'date', width: '100px' },
+                    { title: this.$t('charge_category'), value: 'charge_category_id' },
+                    { title: this.$t('reception_tracking_number'), value: 'reception_tracking_number' },
+                    { title: this.$t('suppliers'), value: 'supplier_ids' },
+                    { title: this.$t('total_weight'), value: 'total_weight', width: '100px' },
+                    { title: this.$t('total_price'), value: 'total_price', width: '100px' },
+                    { title: this.$t('actions'), value: 'actions', align: 'end', sortable: false, width: '120px' },
                 ];
-            }
+            },
+            sellHeaders: function () {
+                return [
+                    { title: this.$t('date'), value: 'date', width: '100px' },
+                    { title: this.$t('sell_category'), value: 'sell_category_id' },
+                    { title: this.$t('tracking_numbers'), value: 'tracking_numbers' },
+                    { title: this.$t('clients'), value: 'client_ids' },
+                    { title: this.$t('total_weight'), value: 'total_weight', width: '100px' },
+                    { title: this.$t('total_price'), value: 'total_price', width: '100px' },
+                    { title: this.$t('actions'), value: 'actions', align: 'end', sortable: false, width: '120px' },
+                ];
+            },
+            productionHeaders: function () {
+                return [
+                    { title: this.$t('date'), value: 'date', width: '100px' },
+                    { title: this.$t('production_category'), value: 'production_category_id' },
+                    { title: this.$t('production_tracking_numbers'), value: 'production_tracking_numbers' },
+                    { title: this.$t('suppliers'), value: 'supplier_ids' },
+                    { title: this.$t('total_weight'), value: 'total_weight', width: '100px' },
+                    { title: this.$t('total_price'), value: 'total_price', width: '100px' },
+                    { title: this.$t('actions'), value: 'actions', align: 'end', sortable: false, width: '120px' },
+                ];
+            },
+
         },
         methods:{
             getLangFlag: function (code) {
@@ -342,16 +567,82 @@
                 annyang.setLanguage(lang.annyang);
                 this.main.lang = lang;
             },
-            edit: function (item_id) {
-                this._charge.edit_archived_charge(item_id);
+            // ─── Archive actions ───
+            editChargeArchive(id) {
+                this._archive.editChargeArchive(id, this.$router);
+                this.archiveDialog = false;
             },
-            remove: function (item_id) {
-                this.selected = [item_id];
-                this.delete_archived_charges();
+            async submitChargeArchive(id) {
+                this.archiveLoading = true;
+                await this._archive.submitCharge(id);
+                this.archiveLoading = false;
             },
-            delete_archived_charges: function () {
-                this._charge.deleteMany(this.selected);
+            deleteChargeArchive(id) {
+                this._archive.removeCharge(id);
+            },
+            async submitSelectedCharges() {
+                this.archiveLoading = true;
+                await this._archive.submitCharges([...this.selectedCharges]);
+                this.selectedCharges = [];
+                this.archiveLoading = false;
+            },
+            deleteSelectedCharges() {
+                this._archive.removeCharges([...this.selectedCharges]);
+                this.selectedCharges = [];
+            },
+            editSellArchive(id) {
+                this._archive.editSellArchive(id, this.$router);
+                this.archiveDialog = false;
+            },
+            async submitSellArchive(id) {
+                this.archiveLoading = true;
+                await this._archive.submitSell(id);
+                this.archiveLoading = false;
+            },
+            deleteSellArchive(id) {
+                this._archive.removeSell(id);
+            },
+            async submitSelectedSells() {
+                this.archiveLoading = true;
+                await this._archive.submitSells([...this.selectedSells]);
+                this.selectedSells = [];
+                this.archiveLoading = false;
+            },
+            deleteSelectedSells() {
+                this._archive.removeSells([...this.selectedSells]);
+                this.selectedSells = [];
+            },
+            editProductionArchive(id) {
+                this._archive.editProductionArchive(id, this.$router);
+                this.archiveDialog = false;
+            },
+            async submitProductionArchive(id) {
+                this.archiveLoading = true;
+                await this._archive.submitProduction(id);
+                this.archiveLoading = false;
+            },
+            deleteProductionArchive(id) {
+                this._archive.removeProduction(id);
+            },
+            async submitSelectedProductions() {
+                this.archiveLoading = true;
+                await this._archive.submitProductions([...this.selectedProductions]);
+                this.selectedProductions = [];
+                this.archiveLoading = false;
+            },
+            deleteSelectedProductions() {
+                this._archive.removeProductions([...this.selectedProductions]);
+                this.selectedProductions = [];
+            },
+
+        },
+        mounted() {
+            if (this.auth.is_auth) {
+                this._online.connect();
             }
+        },
+        beforeUnmount() {
+            this._online.disconnect();
         }
     }
 </script>
@@ -634,6 +925,29 @@
 .archive-actions {
     display: flex;
     gap: 8px;
+}
+
+/* ---------- Online Users ---------- */
+.online-pulse-icon {
+    animation: onlinePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes onlinePulse {
+    0%   { opacity: 1; transform: scale(1); }
+    50%  { opacity: 0.6; transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.online-users-panel {
+    overflow: hidden;
+}
+
+.online-user-item {
+    transition: background 0.2s ease;
+}
+
+.online-user-item:hover {
+    background: rgba(76, 175, 80, 0.06);
 }
 
 /* ---------- Responsive ---------- */

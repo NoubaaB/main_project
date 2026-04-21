@@ -109,6 +109,7 @@
         @sync_items="update_filtred_items_to_source"
         :delete_items="delete_items"
         :get_invoices_delete_selected_length="get_invoices_delete_selected_length"
+        :listen_models="['Charge']"
       >
         <!-- CELLS -->
         <template v-slot:[`item.date`]="{ item }">
@@ -123,6 +124,10 @@
 
         <template v-slot:[`item.tracking_onp_numbers`]="{ item }">
           <v-chip v-for="v in item.tracking_onp_numbers" :key="v" color="secondary" class="ma-1" size="small">{{ v }}</v-chip>
+        </template>
+
+        <template v-slot:[`item.production_tracking_numbers`]="{ item }">
+          <v-chip v-for="v in item.production_tracking_numbers" :key="v" color="teal" class="ma-1" size="small">{{ v }}</v-chip>
         </template>
 
         <template v-slot:[`item.supplier_ids`]="{ item }">
@@ -198,6 +203,13 @@
                 <v-list-item class="rounded-lg" prepend-icon="mdi-pencil-outline" @click="editItem(item)">
                   <v-list-item-title class="text-caption font-weight-bold text-orange">{{ $t('edit_item') }}</v-list-item-title>
                 </v-list-item>
+                <v-divider class="my-1"></v-divider>
+                <v-list-item v-if="!item.production" class="rounded-lg" prepend-icon="mdi-plus-circle-outline" @click="addProduction(item)">
+                  <v-list-item-title class="text-caption font-weight-bold text-teal">{{ $t('add_production') }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item v-if="item.production" class="rounded-lg" prepend-icon="mdi-cog-outline" @click="viewProduction(item)">
+                  <v-list-item-title class="text-caption font-weight-bold text-teal">{{ $t('view_production') }}</v-list-item-title>
+                </v-list-item>
               </v-list>
             </v-card>
           </v-menu>
@@ -240,6 +252,7 @@ export default {
         charge_category_id: [],
         tracking_numbers: [],
         tracking_onp_numbers: [],
+        production_tracking_numbers: [],
         supplier_ids: [],
         truck_ids: [],
         origin_id: [],
@@ -439,6 +452,7 @@ export default {
         { align: 'center', title: this.$t('category'), key: 'charge_category_id', visible: true },
         { align: 'center', title: this.$t('ship'), key: 'ship_id', visible: true },
         { align: 'center', title: this.$t('tracking_number_short'), key: 'tracking_numbers', visible: true },
+        { align: 'center', title: this.$t('production_tracking_numbers'), key: 'production_tracking_numbers', visible: true },
         { align: 'center', title: this.$t('suppliers'), key: 'supplier_ids', visible: true },
         { align: 'center', title: this.$t('truck_id'), key: 'truck_ids', visible: true },
         { align: 'center', title: this.$t('weight_kg'), key: 'total_weight', visible: true },
@@ -484,7 +498,7 @@ export default {
         const startStr = moment(this.date.start).format('YYYY-MM-DD');
         const endStr   = moment(this.date.end).format('YYYY-MM-DD');
         const res = await axios.get('/api/production-yield', {
-          params: { date_start: startStr, date_end: endStr, period: this.yieldPeriod },
+          params: { date_from: startStr, date_to: endStr, period: this.yieldPeriod },
         });
         this.yieldDates  = res.data.dates || [];
         this.yieldSeries = res.data.series || [];
@@ -551,6 +565,12 @@ export default {
     },
     editItem(item) {
       this.$router.push({ name: 'edit_charge', params: { id: item.id } });
+    },
+    addProduction(item) {
+      this.$router.push({ name: 'add_production', params: { chargeId: item.id } });
+    },
+    viewProduction(item) {
+      this.$router.push({ name: 'view_production', params: { id: item.production.id } });
     },
   },
 };

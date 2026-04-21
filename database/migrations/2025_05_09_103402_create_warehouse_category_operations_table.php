@@ -24,7 +24,7 @@ return new class extends Migration {
             $table->boolean("allow_detail_truck_id")->default(false);
             $table->enum("production_role", ["fresh", "frozen", "guano"])->nullable();
 
-            $table->enum("operation_type", ["charge", "sells", "both"])->default("both");
+            $table->enum("operation_type", ["charge", "sell", "both", "production"])->default("both");
             $table->enum("warehouse_type", ["FishType", "GuanoType", "PackageType"])->nullable();
 
             $table->timestamps();

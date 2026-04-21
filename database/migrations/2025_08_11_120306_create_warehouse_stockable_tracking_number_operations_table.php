@@ -24,6 +24,7 @@ return new class extends Migration
             $table->decimal("total_weight_bill",15,2)->default(0.00);
             $table->decimal("total_price",15,2)->default(0.00);
             $table->decimal("total_package_count",15,2)->default(0.00);
+            $table->string('description', 500)->nullable();
 
             $table->foreignId('package_type_id')->nullable()->index("PT_IDX");
             $table->foreignId('warehouse_stockable_tracking_number_id')->nullable()->index("SFTN_IDX");

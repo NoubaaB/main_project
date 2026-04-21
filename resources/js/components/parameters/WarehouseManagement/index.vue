@@ -28,80 +28,41 @@
       <v-window v-model="activeTab">
         <v-window-item value="warehouses">
           <div class="d-flex align-center ga-3 mb-3">
-            <v-text-field
-              v-model="warehouseSearch"
-              prepend-inner-icon="mdi-magnify"
-              :placeholder="$t('search_warehouse')"
-              variant="outlined"
-              density="compact"
-              rounded
-              color="info"
-              class="text-info"
-              hide-details
-              clearable
-              style="max-width:400px"
-            ></v-text-field>
             <v-spacer></v-spacer>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openWarehouseDialog(null)">
-              {{ $t('add_warehouse') }}
-            </v-btn>
+            <v-btn v-if="hasActiveWarehouseFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="warehouseColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
           </div>
-          <v-data-table
-            :headers="warehouseHeaders"
-            :items="warehouses"
-            :loading="loadingWarehouses"
-            :search="warehouseSearch"
-            density="comfortable"
-            class="rounded-lg"
-            hover
-          >
-            <template v-slot:[`item.has_sejour`]="{ item }">
-              <v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">
-                {{ item.has_sejour ? $t('yes') : $t('no') }}
-              </v-chip>
+          <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+            <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+              <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
-            <template v-slot:[`item.operation_service_fee`]="{ item }">
-              {{ item.has_sejour ? item.operation_service_fee + ' DH' : '—' }}
-            </template>
-            <template v-slot:[`item.category`]="{ item }">
-              <v-chip :color="categoryColor(item.category)" size="small" variant="tonal">{{ item.category || 'N/A' }}</v-chip>
-            </template>
+            <template v-slot:[`item.has_sejour`]="{ item }"><v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">{{ item.has_sejour ? $t('yes') : $t('no') }}</v-chip></template>
+            <template v-slot:[`item.operation_service_fee`]="{ item }">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '—' }}</template>
+            <template v-slot:[`item.category`]="{ item }"><v-chip :color="categoryColor(item.category)" size="small" variant="tonal">{{ item.category || 'N/A' }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openWarehouseDialog(item)" class="mr-1">
-                <v-icon size="16">mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteWarehouse(item)">
-                <v-icon size="16">mdi-delete</v-icon>
-              </v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="info" @click="openWarehouseDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteWarehouse(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
         </v-window-item>
 
         <!-- ============= CATEGORIES TAB ============= -->
         <v-window-item value="categories">
-          <div class="d-flex justify-end mb-3">
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openCategoryDialog(null)">
-              {{ $t('add_category') }}
-            </v-btn>
+          <div class="d-flex align-center ga-3 mb-3">
+            <v-spacer></v-spacer>
+            <v-btn v-if="hasActiveCategoryFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="categoryColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
           </div>
-          <v-data-table
-            :headers="categoryHeaders"
-            :items="categories"
-            :loading="loadingCategories"
-            density="comfortable"
-            class="rounded-lg"
-            hover
-          >
-            <template v-slot:[`item.warehouse_count`]="{ item }">
-              <v-chip color="info" size="small" variant="tonal">{{ item.warehouse_count || 0 }}</v-chip>
+          <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+            <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+              <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
+            <template v-slot:[`item.warehouse_count`]="{ item }"><v-chip color="info" size="small" variant="tonal">{{ item.warehouse_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openCategoryDialog(item)" class="mr-1">
-                <v-icon size="16">mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteCategory(item)">
-                <v-icon size="16">mdi-delete</v-icon>
-              </v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="info" @click="openCategoryDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteCategory(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
         </v-window-item>
@@ -227,7 +188,7 @@
                 v-if="selectedSejourWarehouse"
                 :headers="rateHeaders"
                 :items="sejourRates"
-                :loading="loadingRates"
+                :loading="loadingRates ? 'info' : false"
                 density="comfortable"
                 class="rounded-lg mb-6"
                 hover
@@ -337,20 +298,18 @@ export default {
   data() {
     return {
       activeTab: 'warehouses',
-      // Warehouses
       warehouses: [],
       loadingWarehouses: false,
       warehouseDialog: false,
       editingWarehouse: null,
       warehouseForm: { name: '', description: '', warehouse_type: null, warehouse_category_id: null, has_sejour: false, operation_service_fee: 0 },
-      warehouseSearch: '',
-      // Categories
+      warehouseColumnFilters: {},
       categories: [],
       loadingCategories: false,
       categoryDialog: false,
       editingCategory: null,
       categoryForm: { name: '', description: '' },
-      // Sejour Rates
+      categoryColumnFilters: {},
       selectedSejourWarehouse: null,
       sejourRates: [],
       loadingRates: false,
@@ -359,11 +318,9 @@ export default {
       rateDateRange: { start: new Date(), end: new Date() },
       rateOpenEnded: false,
       overlapError: false,
-      // Delete confirmation
       confirmDeleteDialog: false,
       deleteTarget: null,
-      deleteType: null,
-      // General
+      deleteEntityType: null,
       saving: false,
     };
   },
@@ -401,6 +358,21 @@ export default {
     sejourWarehouses() {
       return this.warehouses.filter(w => w.has_sejour);
     },
+    filteredWarehouses() {
+      return this.warehouses.filter(item => Object.entries(this.warehouseColumnFilters).every(([key, sel]) => {
+        if (!sel || !sel.length) return true;
+        const val = key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
+        return sel.includes(val);
+      }));
+    },
+    filteredCategories() {
+      return this.categories.filter(item => Object.entries(this.categoryColumnFilters).every(([key, sel]) => {
+        if (!sel || !sel.length) return true;
+        return sel.includes(String(item[key] ?? ''));
+      }));
+    },
+    hasActiveWarehouseFilters() { return Object.values(this.warehouseColumnFilters).some(f => f && f.length > 0); },
+    hasActiveCategoryFilters() { return Object.values(this.categoryColumnFilters).some(f => f && f.length > 0); },
   },
   mounted() {
     this.fetchWarehouses();
@@ -408,6 +380,19 @@ export default {
   },
   methods: {
     formatNum(v) { return this.main.formatDisplayNumber(v); },
+    getWarehouseColumnOptions(key) {
+      const set = new Set();
+      this.warehouses.forEach(item => {
+        const val = key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
+        set.add(val);
+      });
+      return [...set].sort();
+    },
+    getCategoryColumnOptions(key) {
+      const set = new Set();
+      this.categories.forEach(item => set.add(String(item[key] ?? '')));
+      return [...set].sort();
+    },
     formatWeightUnit(v) {
       const n = Number(v) || 1000;
       return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
@@ -452,7 +437,7 @@ export default {
     },
     async deleteWarehouse(item) {
       this.deleteTarget = item;
-      this.deleteType = 'warehouse';
+      this.deleteEntityType = 'warehouse';
       this.confirmDeleteDialog = true;
     },
 
@@ -488,7 +473,7 @@ export default {
     },
     async deleteCategory(item) {
       this.deleteTarget = item;
-      this.deleteType = 'category';
+      this.deleteEntityType = 'category';
       this.confirmDeleteDialog = true;
     },
 
@@ -559,7 +544,7 @@ export default {
     },
     async deleteRate(item) {
       this.deleteTarget = item;
-      this.deleteType = 'rate';
+      this.deleteEntityType = 'rate';
       this.confirmDeleteDialog = true;
     },
     async executeDelete() {
@@ -567,19 +552,19 @@ export default {
       const item = this.deleteTarget;
       if (!item) return;
       try {
-        if (this.deleteType === 'warehouse') {
+        if (this.deleteEntityType === 'warehouse') {
           await axios.delete(`/api/warehouses/${item.id}`);
           this.fetchWarehouses();
-        } else if (this.deleteType === 'category') {
+        } else if (this.deleteEntityType === 'category') {
           await axios.delete(`/api/warehouse-categories/${item.id}`);
           this.fetchCategories();
-        } else if (this.deleteType === 'rate') {
+        } else if (this.deleteEntityType === 'rate') {
           await axios.delete(`/api/warehouses/sejour-rates/${item.id}`);
           this.fetchSejourRates();
         }
       } catch (e) { console.error(e); }
       this.deleteTarget = null;
-      this.deleteType = null;
+      this.deleteEntityType = null;
     },
   },
 };
@@ -587,53 +572,23 @@ export default {
 
 <style scoped>
 .wm-card { border-radius: 20px !important; overflow: visible; position: relative; }
-.wm-hero {
-  background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%);
-  border-radius: inherit;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  height: 100px;
-}
+.wm-hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
 .wm-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
-.wm-hero-icon {
-  width: 52px; height: 52px; border-radius: 14px;
-  background: rgba(255,255,255,.18);
-  backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(255,255,255,.15);
-}
+.wm-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
 .wm-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }
-
-/* Séjour empty state */
-.sejour-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 60px 24px;
-  min-height: 400px;
-}
-.sejour-empty-icon {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: rgba(var(--v-theme-on-surface), .04);
-  border: 2px dashed rgba(var(--v-theme-on-surface), .12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: sejour-float 3s ease-in-out infinite;
-}
-@keyframes sejour-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-.sejour-empty-arrow {
-  animation: sejour-pulse 2s ease-in-out infinite;
-}
-@keyframes sejour-pulse {
-  0%, 100% { opacity: .3; transform: translateX(0); }
-  50% { opacity: 1; transform: translateX(-8px); }
-}
+.sejour-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 24px; min-height: 400px; }
+.sejour-empty-icon { width: 120px; height: 120px; border-radius: 50%; background: rgba(var(--v-theme-on-surface), .04); border: 2px dashed rgba(var(--v-theme-on-surface), .12); display: flex; align-items: center; justify-content: center; animation: sejour-float 3s ease-in-out infinite; }
+@keyframes sejour-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.sejour-empty-arrow { animation: sejour-pulse 2s ease-in-out infinite; }
+@keyframes sejour-pulse { 0%, 100% { opacity: .3; transform: translateX(0); } 50% { opacity: 1; transform: translateX(-8px); } }
+/* Column filter styles */
+.param-th { padding: 10px 8px 4px !important; }
+.param-th-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; opacity: .7; text-align: center; white-space: nowrap; }
+.param-filter-row th { padding: 0 4px 6px !important; }
+.param-filter-th { vertical-align: top; }
+.param-filter-input { min-width: 80px; }
+.param-filter-input :deep(.v-field) { font-size: 11px !important; min-height: 30px !important; border-radius: 8px !important; }
+.param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 26px !important; font-size: 11px; }
+.param-filter-input :deep(.v-field__clearable) { font-size: 14px; }
+.param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
 </style>

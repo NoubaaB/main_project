@@ -28,43 +28,19 @@
         <!-- ============= FISH FAMILIES TAB ============= -->
         <v-window-item value="families">
           <div class="d-flex align-center ga-3 mb-3">
-            <v-text-field
-              v-model="familySearch"
-              prepend-inner-icon="mdi-magnify"
-              :placeholder="$t('search')"
-              variant="outlined"
-              density="compact"
-              rounded
-              color="info"
-              class="text-info"
-              hide-details
-              clearable
-              style="max-width:400px"
-            ></v-text-field>
             <v-spacer></v-spacer>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openFamilyDialog(null)">
-              {{ $t('add_fish_family') }}
-            </v-btn>
+            <v-btn v-if="hasActiveFamilyFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="familyColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openFamilyDialog(null)">{{ $t('add_fish_family') }}</v-btn>
           </div>
-          <v-data-table
-            :headers="familyHeaders"
-            :items="families"
-            :loading="loadingFamilies"
-            :search="familySearch"
-            density="comfortable"
-            class="rounded-lg"
-            hover
-          >
-            <template v-slot:[`item.fish_types_count`]="{ item }">
-              <v-chip color="info" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip>
+          <v-data-table :headers="familyHeaders" :items="filteredFamilies" :loading="loadingFamilies ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+            <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+              <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="familyColumnFilters[col.key]" :items="getFamilyColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
+            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="info" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openFamilyDialog(item)" class="mr-1">
-                <v-icon size="16">mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteFamily(item)">
-                <v-icon size="16">mdi-delete</v-icon>
-              </v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="info" @click="openFamilyDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteFamily(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
         </v-window-item>
@@ -72,41 +48,25 @@
         <!-- ============= FISH TYPES TAB ============= -->
         <v-window-item value="types">
           <div class="d-flex align-center ga-3 mb-3">
-            <v-text-field
-              v-model="typeSearch"
-              prepend-inner-icon="mdi-magnify"
-              :placeholder="$t('search')"
-              variant="outlined"
-              density="compact"
-              rounded
-              color="info"
-              class="text-info"
-              hide-details
-              clearable
-              style="max-width:400px"
-            ></v-text-field>
             <v-spacer></v-spacer>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openTypeDialog(null)">
-              {{ $t('add_fish_type') }}
-            </v-btn>
+            <v-btn v-if="hasActiveTypeFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="typeColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openTypeDialog(null)">{{ $t('add_fish_type') }}</v-btn>
           </div>
-          <v-data-table
-            :headers="typeHeaders"
-            :items="fishTypes"
-            :loading="loadingTypes"
-            :search="typeSearch"
-            density="comfortable"
-            class="rounded-lg"
-            hover
-          >
+          <v-data-table :headers="typeHeaders" :items="filteredTypes" :loading="loadingTypes ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+            <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+              <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="typeColumnFilters[col.key]" :items="getTypeColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+            </template>
+            <template v-slot:[`item.type`]="{ item }">
+              <v-chip v-if="item.type" size="small" variant="tonal" :color="item.type === 'fresh' ? 'teal' : 'blue'">{{ $t(item.type) }}</v-chip>
+              <span v-else class="text-grey">—</span>
+            </template>
             <template v-slot:[`item.fish_family`]="{ item }">
               <v-chip v-if="item.fish_family" color="teal" size="small" variant="tonal">{{ item.fish_family['name_' + main.lang.short] || item.fish_family.name_en }}</v-chip>
               <span v-else class="text-grey">—</span>
             </template>
             <template v-slot:[`item.fish_process_type`]="{ item }">
-              <v-chip v-if="item.fish_process_type" size="small" variant="tonal" :color="item.productivity_color || 'info'">
-                {{ item.fish_process_type.name }}
-              </v-chip>
+              <v-chip v-if="item.fish_process_type" size="small" variant="tonal" :color="item.productivity_color || 'info'">{{ item.fish_process_type.name }}</v-chip>
               <span v-else class="text-grey">—</span>
             </template>
             <template v-slot:[`item.productivity_color`]="{ item }">
@@ -116,13 +76,13 @@
               </div>
               <span v-else class="text-grey">—</span>
             </template>
+            <template v-slot:[`item.image`]="{ item }">
+              <v-avatar v-if="item.image" size="32" rounded="lg"><v-img :src="item.image" :alt="item.name_en" cover></v-img></v-avatar>
+              <span v-else class="text-grey">—</span>
+            </template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openTypeDialog(item)" class="mr-1">
-                <v-icon size="16">mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteType(item)">
-                <v-icon size="16">mdi-delete</v-icon>
-              </v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="info" @click="openTypeDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteType(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
         </v-window-item>
@@ -130,43 +90,19 @@
         <!-- ============= PROCESS TYPES TAB ============= -->
         <v-window-item value="process_types">
           <div class="d-flex align-center ga-3 mb-3">
-            <v-text-field
-              v-model="processSearch"
-              prepend-inner-icon="mdi-magnify"
-              :placeholder="$t('search')"
-              variant="outlined"
-              density="compact"
-              rounded
-              color="info"
-              class="text-info"
-              hide-details
-              clearable
-              style="max-width:400px"
-            ></v-text-field>
             <v-spacer></v-spacer>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openProcessDialog(null)">
-              {{ $t('add_process_type') }}
-            </v-btn>
+            <v-btn v-if="hasActiveProcessFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="processColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openProcessDialog(null)">{{ $t('add_process_type') }}</v-btn>
           </div>
-          <v-data-table
-            :headers="processHeaders"
-            :items="processTypesList"
-            :loading="loadingProcessTypes"
-            :search="processSearch"
-            density="comfortable"
-            class="rounded-lg"
-            hover
-          >
-            <template v-slot:[`item.fish_types_count`]="{ item }">
-              <v-chip color="info" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip>
+          <v-data-table :headers="processHeaders" :items="filteredProcessTypes" :loading="loadingProcessTypes ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+            <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+              <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="processColumnFilters[col.key]" :items="getProcessColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
+            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="info" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openProcessDialog(item)" class="mr-1">
-                <v-icon size="16">mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteProcess(item)">
-                <v-icon size="16">mdi-delete</v-icon>
-              </v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="info" @click="openProcessDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteProcess(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
         </v-window-item>
@@ -237,7 +173,33 @@
                 </template>
               </v-autocomplete>
             </v-col>
-            <v-col cols="12">
+            <v-col cols="6">
+              <v-autocomplete
+                v-model="typeForm.type"
+                :items="fishTypeOptions"
+                item-title="label"
+                item-value="value"
+                :label="$t('fish_category_type')"
+                variant="outlined"
+                density="compact"
+                rounded
+                clearable
+                chips
+                color="info"
+                class="text-info"
+              >
+                <template #chip="{ item, index }">
+                  <v-chip :key="index" :color="item.raw.value === 'fresh' ? 'teal' : 'blue'" variant="tonal">{{ item.title }}</v-chip>
+                </template>
+              </v-autocomplete>
+            </v-col>
+            <v-col cols="6">
+              <v-text-field v-model="typeForm.process" :label="$t('fish_process')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+            </v-col>
+            <v-col cols="6">
+              <v-text-field v-model="typeForm.image" :label="$t('image_url')" variant="outlined" density="compact" rounded color="info" class="text-info" prepend-inner-icon="mdi-image-outline"></v-text-field>
+            </v-col>
+            <v-col cols="6">
               <v-textarea v-model="typeForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="info" class="text-info" rows="2"></v-textarea>
             </v-col>
           </v-row>
@@ -386,41 +348,35 @@ export default {
   data() {
     return {
       activeTab: 'families',
-      // Families
       families: [],
       loadingFamilies: false,
       familyDialog: false,
       editingFamily: null,
       familyForm: { name_fr: '', name_en: '', name_es: '' },
-      familySearch: '',
-      // Fish Types
+      familyColumnFilters: {},
       fishTypes: [],
       loadingTypes: false,
       typeDialog: false,
       editingType: null,
       typeForm: {
         name_fr: '', name_en: '', name_es: '', name_in_invoice: '',
-        scientific_name: '', description: '',
+        scientific_name: '', image: '', description: '', process: '', type: null,
         fish_family_id: null, fish_process_type_id: null,
         productivity_color: '#1E88E5',
       },
-      typeSearch: '',
-      // Process Types
+      typeColumnFilters: {},
       processTypesList: [],
       loadingProcessTypes: false,
       processDialog: false,
       editingProcess: null,
       processForm: { name: '', description: '' },
-      processSearch: '',
-      // Process Type autocomplete
+      processColumnFilters: {},
       processTypeSearch: '',
       creatingProcessType: false,
       processTypeCreatedMsg: '',
-      // Delete
       confirmDeleteDialog: false,
       deleteTarget: null,
-      deleteType: null,
-      // General
+      deleteEntityType: null,
       saving: false,
     };
   },
@@ -430,6 +386,12 @@ export default {
     fishFamilyStore() { return useFishFamily(); },
     fishTypeStore() { return useFishType(); },
     processTypes() { return this.fishProcessTypeStore.getList; },
+    fishTypeOptions() {
+      return [
+        { value: 'fresh', label: this.$t('fresh') },
+        { value: 'frozen', label: this.$t('frozen') },
+      ];
+    },
     familyHeaders() {
       return [
         { title: this.$t('name_fr'), key: 'name_fr', align: 'center' },
@@ -443,7 +405,9 @@ export default {
       return [
         { title: this.$t('name_fr'), key: 'name_fr', align: 'center' },
         { title: this.$t('name_in_invoice'), key: 'name_in_invoice', align: 'center' },
+        { title: this.$t('fish_category_type'), key: 'type', align: 'center' },
         { title: this.$t('fish_families'), key: 'fish_family', align: 'center' },
+        { title: this.$t('image'), key: 'image', align: 'center' },
         { title: this.$t('productivity_type'), key: 'fish_process_type', align: 'center' },
         { title: this.$t('productivity_color'), key: 'productivity_color', align: 'center' },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
@@ -457,6 +421,27 @@ export default {
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
     },
+    filteredFamilies() {
+      return this.families.filter(item => Object.entries(this.familyColumnFilters).every(([key, sel]) => {
+        if (!sel || !sel.length) return true;
+        return sel.includes(String(item[key] ?? ''));
+      }));
+    },
+    filteredTypes() {
+      return this.fishTypes.filter(item => Object.entries(this.typeColumnFilters).every(([key, sel]) => {
+        if (!sel || !sel.length) return true;
+        return sel.includes(this.getTypeCellValue(key, item));
+      }));
+    },
+    filteredProcessTypes() {
+      return this.processTypesList.filter(item => Object.entries(this.processColumnFilters).every(([key, sel]) => {
+        if (!sel || !sel.length) return true;
+        return sel.includes(String(item[key] ?? ''));
+      }));
+    },
+    hasActiveFamilyFilters() { return Object.values(this.familyColumnFilters).some(f => f && f.length > 0); },
+    hasActiveTypeFilters() { return Object.values(this.typeColumnFilters).some(f => f && f.length > 0); },
+    hasActiveProcessFilters() { return Object.values(this.processColumnFilters).some(f => f && f.length > 0); },
   },
   mounted() {
     this.fetchFamilies();
@@ -467,6 +452,15 @@ export default {
     familyTitle(item) {
       return item['name_' + this.main.lang.short] || item.name_en;
     },
+    getTypeCellValue(key, item) {
+      if (key === 'type') return item.type ? this.$t(item.type) : '—';
+      if (key === 'fish_family') return item.fish_family ? (item.fish_family['name_' + this.main.lang.short] || item.fish_family.name_en) : '—';
+      if (key === 'fish_process_type') return item.fish_process_type ? item.fish_process_type.name : '—';
+      return String(item[key] ?? '');
+    },
+    getFamilyColumnOptions(key) { const set = new Set(); this.families.forEach(i => set.add(String(i[key] ?? ''))); return [...set].sort(); },
+    getTypeColumnOptions(key) { const set = new Set(); this.fishTypes.forEach(i => set.add(this.getTypeCellValue(key, i))); return [...set].sort(); },
+    getProcessColumnOptions(key) { const set = new Set(); this.processTypesList.forEach(i => set.add(String(i[key] ?? ''))); return [...set].sort(); },
 
     // ── Fish Families ──
     async fetchFamilies() {
@@ -499,7 +493,7 @@ export default {
     },
     deleteFamily(item) {
       this.deleteTarget = item;
-      this.deleteType = 'family';
+      this.deleteEntityType = 'family';
       this.confirmDeleteDialog = true;
     },
 
@@ -521,7 +515,10 @@ export default {
           name_fr: item.name_fr, name_en: item.name_en, name_es: item.name_es,
           name_in_invoice: item.name_in_invoice,
           scientific_name: item.scientific_name || '',
+          image: item.image || '',
           description: item.description || '',
+          process: item.process || '',
+          type: item.type || null,
           fish_family_id: item.fish_family_id,
           fish_process_type_id: item.fish_process_type_id,
           productivity_color: item.productivity_color || '#1E88E5',
@@ -529,7 +526,7 @@ export default {
       } else {
         this.typeForm = {
           name_fr: '', name_en: '', name_es: '', name_in_invoice: '',
-          scientific_name: '', description: '',
+          scientific_name: '', image: '', description: '', process: '', type: null,
           fish_family_id: null, fish_process_type_id: null,
           productivity_color: '#1E88E5',
         };
@@ -552,7 +549,7 @@ export default {
     },
     deleteType(item) {
       this.deleteTarget = item;
-      this.deleteType = 'type';
+      this.deleteEntityType = 'type';
       this.confirmDeleteDialog = true;
     },
 
@@ -589,7 +586,7 @@ export default {
     },
     deleteProcess(item) {
       this.deleteTarget = item;
-      this.deleteType = 'process';
+      this.deleteEntityType = 'process';
       this.confirmDeleteDialog = true;
     },
 
@@ -625,20 +622,20 @@ export default {
       const item = this.deleteTarget;
       if (!item) return;
       try {
-        if (this.deleteType === 'family') {
+        if (this.deleteEntityType === 'family') {
           await axios.delete(`/api/fish-families/${item.id}`);
           this.fetchFamilies();
-        } else if (this.deleteType === 'type') {
+        } else if (this.deleteEntityType === 'type') {
           await axios.delete(`/api/fish-types/${item.id}`);
           this.fetchTypes();
           this.fetchFamilies();
-        } else if (this.deleteType === 'process') {
+        } else if (this.deleteEntityType === 'process') {
           await axios.delete(`/api/fish-process-types/${item.id}`);
           this.fetchProcessTypes();
         }
       } catch (e) { console.error(e); }
       this.deleteTarget = null;
-      this.deleteType = null;
+      this.deleteEntityType = null;
     },
   },
 };
@@ -646,33 +643,20 @@ export default {
 
 <style scoped>
 .fm-card { border-radius: 20px !important; overflow: visible; position: relative; font-family: 'Inter', sans-serif; }
-.fm-hero {
-  background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%);
-  border-radius: inherit;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  height: 100px;
-}
+.fm-hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
 .fm-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
-.fm-hero-icon {
-  width: 52px; height: 52px; border-radius: 14px;
-  background: rgba(255,255,255,.18);
-  backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(255,255,255,.15);
-}
+.fm-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
 .fm-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }
-
-.fm-color-dot {
-  width: 18px; height: 18px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,.12);
-  display: inline-block;
-  flex-shrink: 0;
-}
-.fm-color-btn {
-  text-transform: none;
-  font-weight: 500;
-  letter-spacing: 0;
-  min-height: 40px;
-}
+.fm-color-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0,0,0,.12); display: inline-block; flex-shrink: 0; }
+.fm-color-btn { text-transform: none; font-weight: 500; letter-spacing: 0; min-height: 40px; }
+/* Column filter styles */
+.param-th { padding: 10px 8px 4px !important; }
+.param-th-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; opacity: .7; text-align: center; white-space: nowrap; }
+.param-filter-row th { padding: 0 4px 6px !important; }
+.param-filter-th { vertical-align: top; }
+.param-filter-input { min-width: 80px; }
+.param-filter-input :deep(.v-field) { font-size: 11px !important; min-height: 30px !important; border-radius: 8px !important; }
+.param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 26px !important; font-size: 11px; }
+.param-filter-input :deep(.v-field__clearable) { font-size: 14px; }
+.param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
 </style>

@@ -129,234 +129,269 @@
           </v-row>
 
           <v-expand-transition>
-            <v-row v-show="_charge.showAdditionalInfo" class="pt-2">
-              <!-- Tracking Numbers -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_charge.getCharge.enable_tracking_numbers"
-                  v-model="_charge.charge.tracking_numbers"
-                  :items="_charge.charge.tracking_numbers"
-                  :rules="[!v$._charge.charge.tracking_numbers.$invalid ]"
-                  :hide-details="v$._charge.charge.tracking_numbers.$errors.length==0"
-                  :error-messages="v$._charge.charge.tracking_numbers.$errors.map(e => e.$message)"
-                  @blur="v$._charge.charge.tracking_numbers.$touch()"
-                  :label="$t('tracking_numbers')"
-                  placeholder="ex :   --- --- --- --- ---"
-                  multiple
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  clearable
-                  @keydown.enter.prevent="addNewTrackingNumber"
-                  color="info"
-                  class="text-info"
-                  >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_charge.charge.tracking_numbers = _charge.charge.tracking_numbers.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-              <!-- Tracking ONP Numbers -->
+            <div v-show="_charge.showAdditionalInfo" class="pt-2">
+              <div class="d-flex flex-wrap" style="gap: 0; margin: 0 -12px;">
+                <!-- Tracking Numbers -->
+                <div v-if="_charge.getCharge.enable_reception_tracking_number" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    ref="trackingNumberInput"
+                    v-model="_charge.charge.reception_tracking_number"
+                    :items="_charge.charge.reception_tracking_number"
+                    :rules="[!v$._charge.charge.reception_tracking_number.$invalid ]"
+                    :hide-details="v$._charge.charge.reception_tracking_number.$errors.length==0"
+                    :error-messages="v$._charge.charge.reception_tracking_number.$errors.map(e => e.$message)"
+                    @blur="v$._charge.charge.reception_tracking_number.$touch()"
+                    :label="$t('reception_tracking_number')"
+                    placeholder="ex :   --- --- --- --- ---"
+                    multiple
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    clearable
+                    @keydown.enter.prevent="addNewTrackingNumber"
+                    color="info"
+                    class="text-info"
+                    :disabled="is_checking_tracking"
+                    :loading="is_checking_tracking"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_charge.charge.reception_tracking_number = _charge.charge.reception_tracking_number.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
 
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_charge.getCharge.enable_tracking_onp_numbers"
-                  v-model="_charge.charge.tracking_onp_numbers"
-                  :items="_charge.charge.tracking_onp_numbers"
-                  :label="$t('tracking_onp_numbers')"
-                  multiple
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  hide-details
-                  placeholder="ex :   --- --- --- --- ---"
-                  clearable
-                  @keydown.enter.prevent="addNewOnpTrackingNumber"
-                  color="info"
-                  class="text-info"
+                <!-- Tracking ONP Numbers -->
+                <div v-if="_charge.getCharge.enable_tracking_onp_numbers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    v-model="_charge.charge.tracking_onp_numbers"
+                    :items="_charge.charge.tracking_onp_numbers"
+                    :label="$t('tracking_onp_numbers')"
+                    multiple
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    hide-details
+                    placeholder="ex :   --- --- --- --- ---"
+                    clearable
+                    @keydown.enter.prevent="addNewOnpTrackingNumber"
+                    color="info"
+                    class="text-info"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_charge.charge.tracking_onp_numbers = _charge.charge.tracking_onp_numbers.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Production Numbers -->
+                <div v-if="_charge.getCharge.enable_production_tracking_numbers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    v-model="_charge.charge.production_tracking_numbers"
+                    :items="_charge.charge.production_tracking_numbers"
+                    :label="$t('production_tracking_numbers')"
+                    multiple
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    hide-details
+                    placeholder="ex :   --- --- --- --- ---"
+                    clearable
+                    @keydown.enter.prevent="addNewProductionTrackingNumber"
+                    color="info"
+                    class="text-info"
+                    :disabled="is_checking_production_tracking"
+                    :loading="is_checking_production_tracking"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="teal"
+                          closable
+                          variant="tonal"
+                          @click:close="_charge.charge.production_tracking_numbers = _charge.charge.production_tracking_numbers.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Supplier -->
+                <div v-if="_charge.getCharge.enable_supplier_process_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    v-model="_charge.charge.supplier_ids"
+                    :items="_supplier.list"
+                    :rules="[!v$._charge.charge.supplier_ids.$invalid ]"
+                    :hide-details="v$._charge.charge.supplier_ids.$errors.length==0"
+                    :error-messages="v$._charge.charge.supplier_ids.$errors.map(e => e.$message)"
+                    @blur="v$._charge.charge.supplier_ids.$touch()"
+                    item-value="id"
+                    item-title="name"
+                    multiple
+                    key="id"
+                    placeholder="ex :   Golden Logictics"
+                    @keydown.enter.prevent="addNewSupplier"
+                    :label="$t('suppliers')"
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    clearable
+                    color="info"
+                    class="text-info"
+                    :disabled="is_posting_suppliers"
+                    :loading="is_posting_suppliers"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_charge.charge.supplier_ids = _charge.charge.supplier_ids.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Fishery -->
+                <div v-if="_charge.getCharge.enable_fishery_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    :rules="[!v$._charge.charge.fishery_id.$invalid ]"
+                    :hide-details="v$._charge.charge.fishery_id.$errors.length==0"
+                    :error-messages="v$._charge.charge.fishery_id.$errors.map(e => e.$message)"
+                    @blur="v$._charge.charge.fishery_id.$touch()"
+                    density="compact"
+                    color="info"
+                    variant="outlined"
+                    rounded
+                    chips
+                    v-model="_charge.charge.fishery_id"
+                    :items="_fishery.getList"
+                    :label="$t('fishery')"
+                    :item-title="`name_${main.lang.short}`"
+                    item-value="id"
+                    class="text-info"
                   >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_charge.charge.tracking_onp_numbers = _charge.charge.tracking_onp_numbers.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-  
-              <!-- Supplier -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_charge.getCharge.enable_supplier_process_id"
-                  v-model="_charge.charge.supplier_ids"
-                  :items="_supplier.list"
-                  :rules="[!v$._charge.charge.supplier_ids.$invalid ]"
-                  :hide-details="v$._charge.charge.supplier_ids.$errors.length==0"
-                  :error-messages="v$._charge.charge.supplier_ids.$errors.map(e => e.$message)"
-                  @blur="v$._charge.charge.supplier_ids.$touch()"
-                  item-value="id"
-                  item-title="name"
-                  multiple
-                  key="id"
-                  placeholder="ex :   Golden Logictics"
-                  @keydown.enter.prevent="addNewSupplier"
-                  :label="$t('suppliers')"
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  clearable
-                  color="info"
-                  class="text-info"
-                  :disabled="is_posting_suppliers"
-                  :loading="is_posting_suppliers"
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          variant="tonal"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Origin -->
+                <div v-if="_charge.getCharge.enable_origin_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    :rules="[!v$._charge.charge.origin_id.$invalid ]"
+                    :hide-details="v$._charge.charge.origin_id.$errors.length==0"
+                    :error-messages="v$._charge.charge.origin_id.$errors.map(e => e.$message)"
+                    @blur="v$._charge.charge.origin_id.$touch()"
+                    density="compact"
+                    color="info"
+                    variant="outlined"
+                    rounded
+                    chips
+                    v-model="_charge.charge.origin_id"
+                    :items="_origin.getList"
+                    :label="$t('origin')"
+                    item-title="name"
+                    item-value="id"
+                    class="text-info"
                   >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_charge.charge.supplier_ids = _charge.charge.supplier_ids.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-      
-              <!-- Fishery -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_charge.getCharge.enable_fishery_id"
-                  :rules="[!v$._charge.charge.fishery_id.$invalid ]"
-                  :hide-details="v$._charge.charge.fishery_id.$errors.length==0"
-                  :error-messages="v$._charge.charge.fishery_id.$errors.map(e => e.$message)"
-                  @blur="v$._charge.charge.fishery_id.$touch()"
-                  density="compact"
-                  color="info"
-                  variant="outlined"
-                  rounded
-                  chips
-                  v-model="_charge.charge.fishery_id"
-                  :items="_fishery.getList"
-                  :label="$t('fishery')"
-                  :item-title="`name_${main.lang.short}`"
-                  item-value="id"
-                  class="text-info"
-                >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        variant="tonal"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-      
-              <!-- Origin -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_charge.getCharge.enable_origin_id"
-                  :rules="[!v$._charge.charge.origin_id.$invalid ]"
-                  :hide-details="v$._charge.charge.origin_id.$errors.length==0"
-                  :error-messages="v$._charge.charge.origin_id.$errors.map(e => e.$message)"
-                  @blur="v$._charge.charge.origin_id.$touch()"
-                  density="compact"
-                  color="info"
-                  variant="outlined"
-                  rounded
-                  chips
-                  v-model="_charge.charge.origin_id"
-                  :items="_origin.getList"
-                  :label="$t('origin')"
-                  item-title="name"
-                  item-value="id"
-                  class="text-info"
-                >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        variant="tonal"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>              
-                </v-autocomplete>
-              </v-col>
-  
-              <!-- Registratio Plate -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-if="_charge.getCharge.enable_truck_id"
-                  v-model="_charge.charge.truck_ids"
-                  :items="_truck.list"
-                  :rules="[!v$._charge.charge.truck_ids.$invalid ]"
-                  :hide-details="v$._charge.charge.truck_ids.$errors.length==0"
-                  :error-messages="v$._charge.charge.truck_ids.$errors.map(e => e.$message)"
-                  @blur="v$._charge.charge.truck_ids.$touch()"
-                  item-value="id"
-                  item-title="registration_plate"
-                  multiple
-                  key="id"
-                  :label="$t('truck_id')"
-                  chips
-                  density="compact"
-                  variant="outlined"
-                  rounded
-                  clearable
-                  placeholder="ex :   11111-A-11"
-                  @keydown.enter.prevent="addNewTruck"
-                  color="info"
-                  class="text-info"
-                  :disabled="is_posting_trucks"
-                  :loading="is_posting_trucks"
-                  >
-                    <!-- Custom Chips Slot -->
-                    <template #chip="{ item, index }">
-                      <v-chip
-                        :key="index"
-                        class="text-white"
-                        color="info accent-4"
-                        closable
-                        variant="tonal"
-                        @click:close="_charge.charge.truck_ids = _charge.charge.truck_ids.filter(num => num !== item.value)"
-                      >
-                        {{ item.title }}
-                      </v-chip>
-                    </template>
-                </v-autocomplete>
-              </v-col>
-            </v-row>
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          variant="tonal"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+
+                <!-- Registration Plate -->
+                <div v-if="_charge.getCharge.enable_truck_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+                  <v-autocomplete
+                    v-model="_charge.charge.truck_ids"
+                    :items="_truck.list"
+                    :rules="[!v$._charge.charge.truck_ids.$invalid ]"
+                    :hide-details="v$._charge.charge.truck_ids.$errors.length==0"
+                    :error-messages="v$._charge.charge.truck_ids.$errors.map(e => e.$message)"
+                    @blur="v$._charge.charge.truck_ids.$touch()"
+                    item-value="id"
+                    item-title="registration_plate"
+                    multiple
+                    key="id"
+                    :label="$t('truck_id')"
+                    chips
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    clearable
+                    placeholder="ex :   11111-A-11"
+                    @keydown.enter.prevent="addNewTruck"
+                    color="info"
+                    class="text-info"
+                    :disabled="is_posting_trucks"
+                    :loading="is_posting_trucks"
+                    >
+                      <!-- Custom Chips Slot -->
+                      <template #chip="{ item, index }">
+                        <v-chip
+                          :key="index"
+                          class="text-white"
+                          color="info accent-4"
+                          closable
+                          variant="tonal"
+                          @click:close="_charge.charge.truck_ids = _charge.charge.truck_ids.filter(num => num !== item.value)"
+                        >
+                          {{ item.title }}
+                        </v-chip>
+                      </template>
+                  </v-autocomplete>
+                </div>
+              </div>
+            </div>
           </v-expand-transition>
 
         </v-card-text>
@@ -367,12 +402,8 @@
             <v-col>
               <v-btn :disabled="v$.$invalid" block variant="tonal" rounded color="info" @click="submit">{{$t('submit')}}</v-btn>
             </v-col>
-            <v-divider inset vertical class="border-opacity-25" color="info"></v-divider>
-            <v-col class="pr-1" v-if="_charge.charge.is_archived">
-              <v-btn block variant="tonal" rounded color="orange" class="rounded-e-lg" @click="update_archive">{{$t('update_archive')}}</v-btn>
-            </v-col>
-            <v-col class="pr-1" v-else>
-              <v-btn block variant="tonal" rounded color="green" class="rounded-e-lg" @click="archive">{{$t('archive')}}</v-btn>
+            <v-col class="pl-1">
+              <v-btn block variant="tonal" rounded color="teal" @click="archiveCharge" prepend-icon="mdi-archive-arrow-down">{{$t('archive')}}</v-btn>
             </v-col>
             <v-col class="pl-1">
               <v-btn block variant="outlined" rounded color="orange" class="rounded-s-lg" @click="reset">{{$t('cancel')}}</v-btn>
@@ -434,6 +465,7 @@ import { useTruck } from '@/stores/Truck';
 import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
 import { useChargeCategory } from '@/stores/ChargeCategory';
+import { useArchive } from '@/stores/Archive';
 import { useVuelidate } from '@vuelidate/core';
 import { required , requiredIf } from '@vuelidate/validators';
 
@@ -444,7 +476,9 @@ export default {
       dialog_note:false,
       searchInputTrackingNumbers: '',
       is_posting_suppliers: false,
-      is_posting_trucks: false
+      is_posting_trucks: false,
+      is_checking_tracking: false,
+      is_checking_production_tracking: false
     }
   },
   validations() {
@@ -453,8 +487,9 @@ export default {
         charge: {
           charge_category_id: { required },
           date: { required },
-          tracking_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_numbers) },
+          reception_tracking_number: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_reception_tracking_number) },
           tracking_onp_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_tracking_onp_numbers) },
+          production_tracking_numbers: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_production_tracking_numbers) },
           supplier_ids: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_supplier_process_id) },
           truck_ids: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_truck_id) },
           fishery_id: { requiredIf: requiredIf(() =>this._charge.getCharge.enable_fishery_id) },
@@ -508,27 +543,46 @@ export default {
       if (value.startsWith(prefix)) return value;
       return prefix + value;
     },
-    addNewTrackingNumber(event) {
+    addNewTrackingNumber: async function (event) {
       let inputValue = event.target.value.trim()
-      if (inputValue && !this._charge.charge.tracking_numbers.includes(inputValue)) {
-        if (inputValue.search(" ")>0) {
-          let inputs = inputValue.split(" ");
-          inputs.forEach(input => {
-            const prefixed = this.prefixWithYear(input);
-            if (!this._charge.charge.tracking_numbers.find(n => n == prefixed)) {
-              this._charge.charge.tracking_numbers.push(prefixed)
-            }
-          })
-        } else {
-          const prefixed = this.prefixWithYear(inputValue);
-          if (!this._charge.charge.tracking_numbers.includes(prefixed)) {
-            this._charge.charge.tracking_numbers.push(prefixed)
+      if (inputValue && !this._charge.charge.reception_tracking_number.includes(inputValue)) {
+        const numbersToAdd = inputValue.search(" ") > 0 ? inputValue.split(" ") : [inputValue];
+        for (const input of numbersToAdd) {
+          const prefixed = this.prefixWithYear(input);
+          if (this._charge.charge.reception_tracking_number.find(n => n == prefixed)) continue;
+          // Check uniqueness against backend
+          this.is_checking_tracking = true;
+          const result = await this._charge.checkTrackingNumberUnique(
+            prefixed,
+            this._charge.charge.charge_category_id
+          );
+          this.is_checking_tracking = false;
+          if (!result.unique) {
+            const c = result.charge;
+            this.main.add_snackbar({
+              show: true,
+              message: this.$t('tracking_number_exists', { tracking_number: prefixed })
+                + ' — ' + this.$t('tracking_number_duplicate_details', {
+                  tracking_numbers: (c.reception_tracking_number || []).join(', '),
+                  date: this.main.formateDate(c.date),
+                  provider: (c.suppliers || []).join(', ') || this.$t('n/a'),
+                  weight: this.main.formatDisplayNumber(c.total_weight),
+                  price: this.main.formatDisplayNumber(c.total_price),
+                  currency: this.main.currency
+                }),
+              color: 'warning'
+            });
+            continue;
           }
+          this._charge.charge.reception_tracking_number.push(prefixed);
         }
       }
       this.searchInputTrackingNumbers = "";
       inputValue = "";
       event.target.value = '';
+      this.$nextTick(() => {
+        this.$refs.trackingNumberInput?.focus();
+      });
     },
     removeTrackingNumber(item) {
       this._charge.charge.charge_category_id = null;
@@ -549,6 +603,44 @@ export default {
           if (!this._charge.charge.tracking_onp_numbers.includes(prefixed)) {
             this._charge.charge.tracking_onp_numbers.push(prefixed)
           }
+        }
+      }
+      this.searchInputTrackingNumbers = "";
+      inputValue = "";
+      event.target.value = '';
+    },
+    addNewProductionTrackingNumber: async function (event) {
+      let inputValue = event.target.value.trim()
+      if (inputValue && !this._charge.charge.production_tracking_numbers.includes(inputValue)) {
+        const numbersToAdd = inputValue.search(" ") > 0 ? inputValue.split(" ") : [inputValue];
+        for (const input of numbersToAdd) {
+          const prefixed = this.prefixWithYear(input);
+          if (this._charge.charge.production_tracking_numbers.find(n => n == prefixed)) continue;
+          // Check uniqueness against backend
+          this.is_checking_production_tracking = true;
+          const result = await this._charge.checkProductionTrackingNumberUnique(
+            prefixed,
+            this._charge.charge.charge_category_id
+          );
+          this.is_checking_production_tracking = false;
+          if (!result.unique) {
+            const c = result.charge;
+            this.main.add_snackbar({
+              show: true,
+              message: this.$t('production_tracking_number_exists', { tracking_number: prefixed })
+                + ' — ' + this.$t('production_tracking_number_duplicate_details', {
+                  production_tracking_numbers: (c.production_tracking_numbers || []).join(', '),
+                  date: this.main.formateDate(c.date),
+                  provider: (c.suppliers || []).join(', ') || this.$t('n/a'),
+                  weight: this.main.formatDisplayNumber(c.total_weight),
+                  price: this.main.formatDisplayNumber(c.total_price),
+                  currency: this.main.currency
+                }),
+              color: 'warning'
+            });
+            continue;
+          }
+          this._charge.charge.production_tracking_numbers.push(prefixed);
         }
       }
       this.searchInputTrackingNumbers = "";
@@ -609,13 +701,13 @@ export default {
     update: function(){
       this._charge.UpdateCharge();
     },
-    archive: function () {
-      this._charge.archive();
-    },
-    update_archive: function () {
-      this._charge.update_archive();
-    },
+
     reset: function () {
+      this._charge.reset();
+    },
+    archiveCharge: function () {
+      const archive = useArchive();
+      archive.archiveCharge(this._charge.charge);
       this._charge.reset();
     },
   },
