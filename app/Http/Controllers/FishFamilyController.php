@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\FishFamily;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class FishFamilyController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of fish families.
      */
@@ -28,7 +30,7 @@ class FishFamilyController extends Controller
         ]);
 
         $family = FishFamily::create($data);
-
+        $this->broadcastChange('FishFamily', 'created', $family->id, $family->toArray());
         return response()->json(['fish_family' => $family], 201);
     }
 
@@ -46,6 +48,7 @@ class FishFamilyController extends Controller
         ]);
 
         $family->update($data);
+        $this->broadcastChange('FishFamily', 'updated', $family->id, $family->toArray());
 
         return response()->json(['fish_family' => $family], 200);
     }
@@ -57,6 +60,7 @@ class FishFamilyController extends Controller
     {
         $family = FishFamily::findOrFail($id);
         $family->delete();
+        $this->broadcastChange('FishFamily', 'deleted', (int)$id);
 
         return response()->json(['message' => 'Fish family deleted'], 200);
     }

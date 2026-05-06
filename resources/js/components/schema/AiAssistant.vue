@@ -1,14 +1,20 @@
 <template>
   <div :class="['ai-assistant-root', isDark ? 'ai-theme-dark' : 'ai-theme-light']">
-    <!-- Floating action button -->
-    <div class="ai-fab-container" aria-hidden="false">
+    <!-- Floating action button (draggable, snap to corners) -->
+    <div
+      ref="fabContainer"
+      class="ai-fab-container"
+      :class="{ 'ai-fab-snapping': fabSnapping, 'ai-fab-dragging': fabDragging }"
+      :style="fabStyle"
+      aria-hidden="false"
+      @pointerdown.prevent="onFabPointerDown"
+    >
       <div class="ai-fab-glow"></div>
       <v-btn
         class="ai-fab"
         rounded
         elevation="0"
         aria-label="Open assistant"
-        @click="toggleAssistant"
       >
         <div class="ai-fab-inner">
           <v-icon size="26" color="white">{{ isOpen ? 'mdi-close' : 'mdi-robot-happy-outline' }}</v-icon>
@@ -267,6 +273,17 @@ export default {
       isAtBottom: true,
       excelFile: null,
       excelData: null,
+      // Drag state
+      fabX: null,
+      fabY: null,
+      fabDragging: false,
+      fabSnapping: false,
+      fabDragStartX: 0,
+      fabDragStartY: 0,
+      fabDragOffsetX: 0,
+      fabDragOffsetY: 0,
+      fabHasDragged: false,
+      fabCorner: 'bottom-right', // current snap corner
     };
   },
   computed: {
@@ -284,9 +301,17 @@ export default {
       }
       return base;
     },
+    fabStyle() {
+      if (this.fabX === null || this.fabY === null) return { bottom: '24px', right: '24px', top: 'auto', left: 'auto' };
+      return { left: this.fabX + 'px', top: this.fabY + 'px', right: 'auto', bottom: 'auto' };
+    },
   },
   methods: {
     toggleAssistant() {
+      // Snap to bottom-right when opening
+      if (!this.isOpen) {
+        this.snapToCorner('bottom-right');
+      }
       this.isOpen = !this.isOpen;
       if (this.isOpen) {
         this.loadHistoryIfNeeded();
@@ -295,6 +320,88 @@ export default {
     },
     closeAssistant() {
       this.isOpen = false;
+    },
+    // ---- Drag & Snap logic ----
+    onFabPointerDown(e) {
+      if (e.button !== 0) return; // left click only
+      const el = this.$refs.fabContainer;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      this.fabDragOffsetX = e.clientX - rect.left;
+      this.fabDragOffsetY = e.clientY - rect.top;
+      this.fabDragStartX = e.clientX;
+      this.fabDragStartY = e.clientY;
+      this.fabHasDragged = false;
+      this.fabSnapping = false;
+      document.addEventListener('pointermove', this._onFabPointerMove);
+      document.addEventListener('pointerup', this._onFabPointerUp);
+    },
+    _onFabPointerMove(e) {
+      const dx = e.clientX - this.fabDragStartX;
+      const dy = e.clientY - this.fabDragStartY;
+      if (!this.fabDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+        this.fabDragging = true;
+        this.fabHasDragged = true;
+        // Close chat when dragging
+        if (this.isOpen) this.isOpen = false;
+      }
+      if (this.fabDragging) {
+        const fabSize = 56;
+        const maxX = window.innerWidth - fabSize;
+        const maxY = window.innerHeight - fabSize;
+        this.fabX = Math.max(0, Math.min(e.clientX - this.fabDragOffsetX, maxX));
+        this.fabY = Math.max(0, Math.min(e.clientY - this.fabDragOffsetY, maxY));
+      }
+    },
+    _onFabPointerUp() {
+      document.removeEventListener('pointermove', this._onFabPointerMove);
+      document.removeEventListener('pointerup', this._onFabPointerUp);
+      if (this.fabDragging) {
+        this.fabDragging = false;
+        // Snap to nearest corner
+        const nearest = this.getNearestCorner(this.fabX, this.fabY);
+        this.snapToCorner(nearest);
+      } else {
+        // It was a click, not a drag
+        this.toggleAssistant();
+      }
+    },
+    getNearestCorner(x, y) {
+      const margin = 24;
+      const fabSize = 56;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const corners = {
+        'top-left':     { x: margin, y: margin },
+        'top-right':    { x: w - fabSize - margin, y: margin },
+        'bottom-left':  { x: margin, y: h - fabSize - margin },
+        'bottom-right': { x: w - fabSize - margin, y: h - fabSize - margin },
+      };
+      let nearest = 'bottom-right';
+      let minDist = Infinity;
+      for (const [corner, pos] of Object.entries(corners)) {
+        const dist = Math.hypot(x - pos.x, y - pos.y);
+        if (dist < minDist) { minDist = dist; nearest = corner; }
+      }
+      return nearest;
+    },
+    snapToCorner(corner) {
+      const margin = 24;
+      const fabSize = 56;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const positions = {
+        'top-left':     { x: margin, y: margin },
+        'top-right':    { x: w - fabSize - margin, y: margin },
+        'bottom-left':  { x: margin, y: h - fabSize - margin },
+        'bottom-right': { x: w - fabSize - margin, y: h - fabSize - margin },
+      };
+      const pos = positions[corner];
+      this.fabCorner = corner;
+      this.fabSnapping = true;
+      this.fabX = pos.x;
+      this.fabY = pos.y;
+      setTimeout(() => { this.fabSnapping = false; }, 350);
     },
     async clearAssistantMessage() {
       await this.ai_prompt.clearHistory();
@@ -417,7 +524,7 @@ export default {
         const errMsg = {
           id: Date.now() + Math.random(),
           role: 'agent',
-          text: 'Sorry — an error occurred. Please try again.',
+          text: 'Sorry - an error occurred. Please try again.',
           ts: Date.now(),
         };
         try {
@@ -519,28 +626,44 @@ export default {
     },
   },
   mounted() {
+    // Initialize FAB at bottom-right corner
+    this.$nextTick(() => {
+      const margin = 24;
+      const fabSize = 56;
+      this.fabX = window.innerWidth - fabSize - margin;
+      this.fabY = window.innerHeight - fabSize - margin;
+    });
+    // Update fab position on resize
+    this._onResize = () => {
+      if (!this.fabDragging) this.snapToCorner(this.fabCorner);
+    };
+    window.addEventListener('resize', this._onResize);
     if (this.isOpen) {
       this.loadHistoryIfNeeded();
       this.scrollToBottom();
     } else {
-      // Pre-load history in background
       this.ai_prompt.loadChatHistory().then(() => {
         this.initChat();
       });
     }
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this._onResize);
+    document.removeEventListener('pointermove', this._onFabPointerMove);
+    document.removeEventListener('pointerup', this._onFabPointerUp);
   },
 };
 </script>
 
 <style scoped>
 /* ============================================================
-   AI Assistant — Chat UI with Vuetify Info Color (#2196F3)
+   AI Assistant - Chat UI with Vuetify Info Color (#2196F3)
    Clean, beautiful design with dark/light theme support.
    ============================================================ */
 
 /* Vuetify info = #2196F3, info-darken-1 = #1976D2, info-lighten-1 = #42A5F5 */
 
-/* ---------- Theme Tokens – Dark ---------- */
+/* ---------- Theme Tokens - Dark ---------- */
 .ai-theme-dark {
   --ai-panel-bg: #121212;
   --ai-panel-border: rgba(255, 255, 255, 0.08);
@@ -582,7 +705,7 @@ export default {
   --ai-typing-border: rgba(255, 255, 255, 0.06);
 }
 
-/* ---------- Theme Tokens – Light ---------- */
+/* ---------- Theme Tokens - Light ---------- */
 .ai-theme-light {
   --ai-panel-bg: #ffffff;
   --ai-panel-border: rgba(0, 0, 0, 0.08);
@@ -627,12 +750,44 @@ export default {
 /* ---------- FAB Button ---------- */
 .ai-fab-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ai-fab-container.ai-fab-snapping {
+  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: ai-fab-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ai-fab-container.ai-fab-dragging {
+  cursor: grabbing;
+  transition: none !important;
+  animation: none !important;
+}
+
+.ai-fab-container.ai-fab-dragging .ai-fab-glow {
+  animation: none;
+  opacity: 0;
+}
+
+.ai-fab-container.ai-fab-dragging .ai-fab {
+  transform: scale(1.12) !important;
+  box-shadow:
+    0 12px 40px rgba(33, 150, 243, 0.5),
+    0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+@keyframes ai-fab-bounce {
+  0% { transform: scale(0.95); }
+  40% { transform: scale(1.08); }
+  70% { transform: scale(0.97); }
+  100% { transform: scale(1); }
 }
 
 .ai-fab-glow {
@@ -656,12 +811,13 @@ export default {
   box-shadow:
     0 6px 28px rgba(33, 150, 243, 0.4),
     0 2px 8px rgba(0, 0, 0, 0.12) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
   z-index: 1;
+  pointer-events: none;
 }
 
-.ai-fab:hover {
+.ai-fab-container:not(.ai-fab-dragging) .ai-fab:hover {
   transform: translateY(-3px) scale(1.06) !important;
   box-shadow:
     0 10px 36px rgba(33, 150, 243, 0.5),
@@ -1358,6 +1514,148 @@ export default {
   margin-left: auto;
 }
 .ai-excel-remove:hover {
+  background: rgba(244, 67, 54, 0.15);
+  color: #F44336;
+}
+/* ---------- Floating Scroll-to-Bottom Button ---------- */
+.ai-scroll-bottom-fab {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1976D2, #2196F3);
+  box-shadow: 0 3px 12px rgba(33, 150, 243, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ai-scroll-bottom-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 18px rgba(33, 150, 243, 0.55);
+}
+.ai-fab-scroll-fade-enter-active,
+.ai-fab-scroll-fade-leave-active {
+  transition: opacity 0.25s, transform 0.25s;
+}
+.ai-fab-scroll-fade-enter-from,
+.ai-fab-scroll-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.8);
+}
+
+/* Export Excel in bubble */
+.ai-export-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.ai-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: rgba(76, 175, 80, 0.08);
+  color: #4CAF50;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.ai-export-btn:hover {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.5);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+  transform: translateY(-1px);
+}
+
+.ai-speed-trigger-active {
+  background: rgba(33, 150, 243, 0.12) !important;
+  color: #2196F3 !important;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.25);
+}
+
+.ai-spin-45 {
+  transform: rotate(0deg);
+  transition: transform 0.25s ease;
+}
+
+/* Speed dial transition */
+.ai-speed-items-enter-active {
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ai-speed-items-leave-active {
+  transition: all 0.15s ease;
+}
+.ai-speed-items-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.8);
+}
+.ai-speed-items-leave-to {
+  opacity: 0;
+  transform: translateY(4px) scale(0.9);
+}
+
+/* ---------- Attachment Badges ---------- */
+.ai-attach-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin: 0 12px 4px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.ai-attach-excel {
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+}
+.ai-attach-image {
+  background: rgba(33, 150, 243, 0.08);
+  border: 1px solid rgba(33, 150, 243, 0.2);
+  color: #2196F3;
+}
+.ai-attach-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+.ai-attach-name {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-attach-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(128, 128, 128, 0.12);
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+.ai-attach-remove:hover {
   background: rgba(244, 67, 54, 0.15);
   color: #F44336;
 }

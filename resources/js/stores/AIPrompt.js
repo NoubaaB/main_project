@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+﻿import { defineStore } from "pinia";
 import { useAuth } from "./Auth";
 import { useMain } from "./Main";
 import { useCorporal } from "./Corporal";
@@ -85,12 +85,12 @@ export const useAIPrompt = defineStore("ai_prompt", {
         error: function () {
             console.log("inside error")
             this.messages.push({
-                text: "Sorry — an error occurred. Please try again.",
+                text: "Sorry , an error occurred. Please try again.",
                 sender: "AI"
             });
         },
 
-        // ── AI Query (full-page) message persistence ──
+        // -- AI Query (full-page) message persistence --
 
         loadQueryHistory: async function () {
             if (this.query_history_loaded || this.query_loading_history) return;
@@ -216,7 +216,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 const errMsg = {
                     id: Date.now() + Math.random(),
                     role: 'agent',
-                    text: 'Sorry — an error occurred. Please try again.',
+                    text: 'Sorry , an error occurred. Please try again.',
                     ts: Date.now(),
                 };
                 this.assistant_messages.push(errMsg)
@@ -246,7 +246,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 const errMsg = {
                     id: Date.now() + Math.random(),
                     role: 'agent',
-                    text: 'Sorry — failed to execute action. Please try again.',
+                    text: 'Sorry , failed to execute action. Please try again.',
                     ts: Date.now(),
                 };
                 this.assistant_messages.push(errMsg);
@@ -277,7 +277,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 const errMsg = {
                     id: Date.now() + Math.random(),
                     role: 'agent',
-                    text: 'Sorry — failed to process Excel data. Please try again.',
+                    text: 'Sorry , failed to process Excel data. Please try again.',
                     ts: Date.now(),
                 };
                 this.assistant_messages.push(errMsg);
@@ -298,7 +298,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
             const referenceModels = [
                 'Supplier', 'Ship', 'Client', 'Truck', 'FishType', 'FishFamily',
                 'FishProcessType', 'PackageType', 'GuanoType', 'Fishery', 'Origin',
-                'Warehouse', 'WarehouseCategory', 'ChargeCategory', 'SellCategory', 'Formula',
+                'Warehouse', 'WarehouseCategory', 'ChargeCategory', 'ShippingCategory', 'Formula',
             ];
 
             let needsAuthRefresh = false;
@@ -359,7 +359,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
             }
         },
 
-        // ── Persistence Actions ──
+        // -- Persistence Actions --
 
         /**
          * Load chat history from the API (first page).
@@ -454,3 +454,4 @@ export const useAIPrompt = defineStore("ai_prompt", {
         getList: state => state.list
     }
 });
+

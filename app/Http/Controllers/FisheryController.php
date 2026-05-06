@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fishery;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class FisheryController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of the resource.
      */

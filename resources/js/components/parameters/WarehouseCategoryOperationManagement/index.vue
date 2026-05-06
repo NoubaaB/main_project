@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <v-card class="wco-card" elevation="0">
     <!-- Hero Header -->
     <div class="wco-hero">
@@ -21,7 +21,7 @@
         <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="clearAllColumnFilters">
           {{ $t('clear_filters') }}
         </v-btn>
-        <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openDialog(null)">
+        <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openDialog(null)">
           {{ $t('add_wco') }}
         </v-btn>
       </div>
@@ -44,7 +44,7 @@
                 :items="getColumnOptions(col.key)"
                 density="compact"
                 variant="outlined"
-                color="info"
+                color="#a21ee5"
                 class="param-filter-input text-info"
                 hide-details
                 clearable
@@ -54,7 +54,7 @@
                 :placeholder="$t('filter')"
               >
                 <template #chip="{ item, props }">
-                  <v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip>
+                  <v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip>
                 </template>
               </v-autocomplete>
             </th>
@@ -78,20 +78,20 @@
         </template>
         <template v-slot:[`item.production_role`]="{ item }">
           <v-chip v-if="item.production_role" :color="productionRoleColor(item.production_role)" size="small" variant="tonal">{{ $t(item.production_role) }}</v-chip>
-          <span v-else class="text-grey">—</span>
+          <span v-else class="text-grey">-</span>
         </template>
         <template v-slot:[`item.operation_type`]="{ item }">
           <v-chip :color="operationTypeColor(item.operation_type)" size="small" variant="tonal">{{ $t(item.operation_type + '_type') }}</v-chip>
         </template>
         <template v-slot:[`item.warehouse_type`]="{ item }">
           <v-chip v-if="item.warehouse_type" :color="warehouseTypeColor(item.warehouse_type)" size="small" variant="tonal">{{ $t(item.warehouse_type) }}</v-chip>
-          <span v-else class="text-grey">—</span>
+          <span v-else class="text-grey">-</span>
         </template>
         <template v-slot:[`item.usage_count`]="{ item }">
-          <v-chip color="info" size="small" variant="tonal">{{ (item.warehouse_stockable_tracking_number_operations_count || 0) + (item.non_warehouse_stockable_operations_count || 0) }}</v-chip>
+          <v-chip color="#a21ee5" size="small" variant="tonal">{{ (item.warehouse_stockable_tracking_number_operations_count || 0) + (item.non_warehouse_stockable_operations_count || 0) }}</v-chip>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon size="x-small" variant="tonal" color="info" @click="openDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+          <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
           <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
         </template>
       </v-data-table>
@@ -101,26 +101,26 @@
     <v-dialog v-model="dialog" max-width="750" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-cog-transfer-outline</v-icon>
+          <v-icon color="#a21ee5" class="mr-2">mdi-cog-transfer-outline</v-icon>
           {{ editing ? $t('edit_wco') : $t('add_wco') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="info" class="mr-2" size="20">mdi-translate</v-icon>{{ $t('names') }}</div>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-translate</v-icon>{{ $t('names') }}</div>
           <v-row>
-            <v-col cols="4"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field></v-col>
-            <v-col cols="4"><v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field></v-col>
-            <v-col cols="4"><v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field></v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="info" class="text-info" rows="2"></v-textarea></v-col>
+            <v-col cols="4"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-text-field></v-col>
+            <v-col cols="4"><v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-text-field></v-col>
+            <v-col cols="4"><v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-text-field></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" rows="2"></v-textarea></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="info" class="mr-2" size="20">mdi-format-list-bulleted-type</v-icon>{{ $t('type') }}</div>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-format-list-bulleted-type</v-icon>{{ $t('type') }}</div>
           <v-row>
-            <v-col cols="4"><v-select v-model="form.production_role" :items="productionRoleOptions" :label="$t('production_role')" variant="outlined" density="compact" rounded color="info" class="text-info" clearable></v-select></v-col>
-            <v-col cols="4"><v-select v-model="form.operation_type" :items="operationTypeOptions" :label="$t('operation_type')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-select></v-col>
-            <v-col cols="4"><v-select v-model="form.warehouse_type" :items="warehouseTypeOptions" :label="$t('warehouse_type_label')" variant="outlined" density="compact" rounded color="info" class="text-info" clearable></v-select></v-col>
+            <v-col cols="4"><v-select v-model="form.production_role" :items="productionRoleOptions" :label="$t('production_role')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" clearable></v-select></v-col>
+            <v-col cols="4"><v-select v-model="form.operation_type" :items="operationTypeOptions" :label="$t('operation_type')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-select></v-col>
+            <v-col cols="4"><v-select v-model="form.warehouse_type" :items="warehouseTypeOptions" :label="$t('warehouse_type_label')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" clearable></v-select></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="info" class="mr-2" size="20">mdi-toggle-switch-outline</v-icon>{{ $t('enabled_fields') }}</div>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-toggle-switch-outline</v-icon>{{ $t('enabled_fields') }}</div>
           <v-row dense>
             <v-col cols="6" v-for="toggle in toggleFields" :key="toggle.key">
               <div class="wco-toggle-card" :class="{ 'wco-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
@@ -138,7 +138,7 @@
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
           <v-btn @click="dialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#a21ee5" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -160,6 +160,7 @@
 
 <script>
 import axios from 'axios';
+import mitt from '@/plugins/mitt';
 import { useMain } from '@/stores/Main';
 import { useWarehouseCategoryOperation } from '@/stores/WarehouseCategoryOperation';
 
@@ -217,7 +218,7 @@ export default {
     operationTypeOptions() {
       return [
         { title: this.$t('charge_type'), value: 'charge' },
-        { title: this.$t('sell_type'), value: 'sell' },
+        { title: this.$t('sell_type'), value: 'shipping' },
         { title: this.$t('both_type'), value: 'both' },
       ];
     },
@@ -240,16 +241,20 @@ export default {
       return Object.values(this.columnFilters).some(f => f && f.length > 0);
     },
   },
-  mounted() { this.fetchItems(); },
+  mounted() {
+    this.fetchItems();
+    mitt.on('model-changed', this._onModelChanged);
+  },
+  beforeUnmount() { mitt.off('model-changed', this._onModelChanged); },
   methods: {
     emptyForm() {
       return { name_fr: '', name_en: '', name_es: '', description: '', allow_weight: false, allow_price: true, allow_package_type: true, allow_warehouse: true, allow_detail_truck_id: false, production_role: null, operation_type: 'both', warehouse_type: null };
     },
     getCellDisplayValue(key, item) {
       if (this.booleanKeys.includes(key)) return item[key] ? this.$t('yes') : this.$t('no');
-      if (key === 'production_role') return item[key] ? this.$t(item[key]) : '—';
-      if (key === 'operation_type') return item[key] ? this.$t(item[key] + '_type') : '—';
-      if (key === 'warehouse_type') return item[key] ? this.$t(item[key]) : '—';
+      if (key === 'production_role') return item[key] ? this.$t(item[key]) : '-';
+      if (key === 'operation_type') return item[key] ? this.$t(item[key] + '_type') : '-';
+      if (key === 'warehouse_type') return item[key] ? this.$t(item[key]) : '-';
       if (key === 'usage_count') return String((item.warehouse_stockable_tracking_number_operations_count || 0) + (item.non_warehouse_stockable_operations_count || 0));
       return String(item[key] ?? '');
     },
@@ -259,6 +264,9 @@ export default {
       return [...set].sort();
     },
     clearAllColumnFilters() { this.columnFilters = {}; },
+    _onModelChanged(data) {
+      if (data.model === 'WarehouseCategory') this.fetchItems();
+    },
     async fetchItems() {
       this.loading = true;
       try {
@@ -318,7 +326,7 @@ export default {
 
 <style scoped>
 .wco-card { border-radius: 20px !important; overflow: visible; position: relative; font-family: 'Inter', sans-serif; }
-.wco-hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
+.wco-hero { background: linear-gradient(135deg, #c015b4 0%, #a21ee5 40%, #9742f5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
 .wco-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
 .wco-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
 .wco-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }
@@ -339,3 +347,4 @@ export default {
 .param-filter-input :deep(.v-field__clearable) { font-size: 14px; }
 .param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
 </style>
+

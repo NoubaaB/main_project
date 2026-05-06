@@ -1,6 +1,6 @@
 <template>
   <div class="wfs-dashboard">
-    <!-- ═══════════ HEADER ═══════════ -->
+    <!-- =========== HEADER =========== -->
     <div class="wfs-header">
       <div class="wfs-header-glow"></div>
       <div class="d-flex align-center ga-4 mb-1">
@@ -14,7 +14,7 @@
       </div>
     </div>
 
-    <!-- ═══════════ MONTH SELECTOR ═══════════ -->
+    <!-- =========== MONTH SELECTOR =========== -->
     <v-card class="rounded-xl mb-4" variant="outlined" color="info">
       <v-card-text class="pa-4">
         <div class="d-flex align-center flex-wrap ga-3">
@@ -50,7 +50,7 @@
       </v-card-text>
     </v-card>
 
-    <!-- ═══════════ FILTERS ═══════════ -->
+    <!-- =========== FILTERS =========== -->
     <v-card class="rounded-xl mb-4" variant="outlined" color="info">
       <v-card-text class="pa-4">
         <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
@@ -144,7 +144,7 @@
       </v-card-text>
     </v-card>
 
-    <!-- ═══════════ KPI CARDS ═══════════ -->
+    <!-- =========== KPI CARDS =========== -->
     <v-row class="mb-4">
       <v-col cols="6" md="3" v-for="kpi in kpiCards" :key="kpi.key">
         <div class="wfs-kpi-card">
@@ -159,7 +159,7 @@
       </v-col>
     </v-row>
 
-    <!-- ═══════════ ACTIVITY CHART ═══════════ -->
+    <!-- =========== ACTIVITY CHART =========== -->
     <v-card class="rounded-xl mb-4" variant="outlined" color="info">
       <v-card-title class="d-flex align-center justify-space-between pa-4 pb-2">
         <div class="d-flex align-center">
@@ -188,7 +188,7 @@
       </v-card-text>
     </v-card>
 
-    <!-- ═══════════ SECTION & CORPORAL CHARTS ═══════════ -->
+    <!-- =========== SECTION & CORPORAL CHARTS =========== -->
     <v-row class="mb-4">
       <v-col cols="12" md="6">
         <v-card class="rounded-xl" variant="outlined" color="orange">

@@ -2,21 +2,18 @@
 
 namespace App\Models;
 
-use App\Models\Warehouse;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Model;
 
 class WarehouseCategory extends Model
 {
-    /** @use HasFactory<\Database\Factories\WarehouseCategoryFactory> */
-    use HasFactory,SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $guarded = [];
+    protected $fillable = ['name', 'description'];
 
-    function warehouse() : HasMany {
+    public function warehouses()
+    {
         return $this->hasMany(Warehouse::class);
-        
     }
 }

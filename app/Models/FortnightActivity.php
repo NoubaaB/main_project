@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FortnightActivity extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'workforce_id',
         'date',

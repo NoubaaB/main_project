@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Models\Charge;
 use App\Models\NonWarehouseStockableOperation;
-use App\Models\Sell;
+use App\Models\Shipping;
 use App\Models\WarehouseStockableTrackingNumberOperation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +24,7 @@ class Truck extends Model
     }
 
     function sells() : BelongsToMany {
-        return $this->belongsToMany(Sell::class, "truck_sell");
+        return $this->belongsToMany(Shipping::class, "truck_sell");
     }
 
     function warehouse_stockable_tracking_number_operations(): BelongsToMany
@@ -37,3 +37,4 @@ class Truck extends Model
         return $this->belongsToMany(NonWarehouseStockableOperation::class, "truck_non_warehouse_stockable_operation");
     }
 }
+

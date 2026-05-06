@@ -46,12 +46,12 @@ class AIQueryController extends Controller
         $messages = $data['messages'];
         $excelFiles = $data['excel_files'] ?? [];
 
-        // ── Step 1: Get schema ──
+        // "" Step 1: Get schema ""
         $schema = $this->getSchemaString();
         $comments = $this->getTableCommentsString();
         $businessCtx = $this->getBusinessContext();
 
-        // ── Build Excel context if files provided ──
+        // "" Build Excel context if files provided ""
         $excelContext = '';
         if (!empty($excelFiles)) {
             $excelContext = "\n\n=== UPLOADED EXCEL FILES ===\n";
@@ -71,7 +71,7 @@ class AIQueryController extends Controller
             $excelContext .= "\nIMPORTANT: The user has uploaded Excel file(s). Use this data to answer their question. You can analyze, summarize, compare, filter, or visualize this data. If the user asks about both Excel and database data, combine them.\n";
         }
 
-        // ── Step 2: Generate SQL (or analyze Excel) ──
+        // "" Step 2: Generate SQL (or analyze Excel) ""
         $sqlPrompt = <<<PROMPT
         === DATABASE SCHEMA ===
         {$schema}
@@ -84,7 +84,7 @@ class AIQueryController extends Controller
         {$excelContext}
 
         === RULES ===
-        1. Generate ONLY a valid MySQL SELECT query — no markdown, no backticks, no explanation.
+        1. Generate ONLY a valid MySQL SELECT query " no markdown, no backticks, no explanation.
         2. Tables with SoftDelete: always add "WHERE deleted_at IS NULL".
         3. For pivot tables (charge_suppliers, charge_ships, truck_charge, sell_clients, sell_ships, truck_sell): use proper JOINs.
         4. Use COALESCE for nullable fields. LIMIT to 500 rows unless user asks for all.
@@ -100,14 +100,14 @@ class AIQueryController extends Controller
 
         if (!$sqlQuery) {
             if (!empty($excelFiles)) {
-                // No SQL but we have Excel data — go straight to answer generation
+                // No SQL but we have Excel data " go straight to answer generation
                 $sqlQuery = 'EXCEL_ONLY';
             } else {
                 return response()->json(['answer' => $this->buildFallbackAnswer($question, $id, $theme, $messages)], 200);
             }
         }
 
-        // ── Step 3: Execute SQL safely (skip if Excel-only) ──
+        // "" Step 3: Execute SQL safely (skip if Excel-only) ""
         $result = null;
         $isExcelOnly = strtoupper(trim($sqlQuery)) === 'EXCEL_ONLY';
 
@@ -130,7 +130,7 @@ class AIQueryController extends Controller
             }
         }
 
-        // ── Step 4: Generate Vue/Vuetify/ApexCharts answer ──
+        // "" Step 4: Generate Vue/Vuetify/ApexCharts answer ""
         $routes = $this->getAppRoutes();
         $answerPrompt = $this->buildVuePrompt($question, $result, $schema, $comments, $id, $theme, $messages, $businessCtx, $routes, $excelContext);
         $answer = $this->ai->generateAnswer($answerPrompt);
@@ -139,7 +139,7 @@ class AIQueryController extends Controller
             $answer = $this->buildFallbackAnswer($question, $id, $theme, $messages);
         }
 
-        // ── Step 5: Save to ai_query_messages ──
+        // "" Step 5: Save to ai_query_messages ""
         $user = $request->user();
         if ($user) {
             AiQueryMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
@@ -158,7 +158,7 @@ class AIQueryController extends Controller
     {
         $dataSection = $result && $result !== '[]' && $result !== 'null'
             ? "Data from database (SINGLE source of truth, do NOT invent data): {$result}"
-            : ($excelContext ? "No database query was needed — use the Excel data below." : "The database returned NO data for this query. Tell the user there is no data available.");
+            : ($excelContext ? "No database query was needed - use the Excel data below." : "The database returned NO data for this query. Tell the user there is no data available.");
 
         if ($excelContext) {
             $dataSection .= "\n\n" . $excelContext;
@@ -215,7 +215,7 @@ class AIQueryController extends Controller
         7. For chart data (trends, comparisons): use ApexCharts with `new ApexCharts(document.querySelector('#aichart_{$id}'), options).render()`.
            - For chart div, use: <div id="aichart_{$id}"></div>
            - Initialize in mounted() hook.
-        8. NEVER use v-table — use v-data-table instead.
+        8. NEVER use v-table " use v-data-table instead.
         9. NEVER instantiate Vue or Vuetify again (no createVuetify).
         10. NEVER use fetch, axios, or any HTTP calls.
         11. NEVER use <body>, <html>, <head> tags.
@@ -267,13 +267,13 @@ class AIQueryController extends Controller
         return $this->ai->generateAnswer($prompt) ?? '<div>No data available. Please try rephrasing your question.</div>';
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Business Context
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     private function getBusinessContext(): string
     {
         return <<<CTX
-        APP: $this->app_name — Frozen Fish (Morocco)
+        APP: $this->app_name " Frozen Fish (Morocco)
         CURRENCY: MAD | WEIGHT: KG
         - CHARGES = fish purchases from suppliers
         - SELLS = fish sales to clients
@@ -287,9 +287,9 @@ class AIQueryController extends Controller
         CTX;
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Schema
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     private function getSchemaString(): string
     {
         if (self::$cachedSchema)
@@ -335,9 +335,9 @@ class AIQueryController extends Controller
             ->get();
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Application Route Map (auto-synced from routes.js)
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Dynamically parse the frontend routes.js file to build
@@ -362,7 +362,8 @@ class AIQueryController extends Controller
 
         $output = "AVAILABLE APPLICATION PAGES (use these paths for navigation buttons):\n\n";
         foreach ($routes as $r) {
-            if (in_array($r['name'], $skipNames)) continue;
+            if (in_array($r['name'], $skipNames))
+                continue;
             $label = ucwords(str_replace('_', ' ', $r['name']));
             $paramHint = str_contains($r['path'], ':') ? ' (replace dynamic params with actual values)' : '';
             $output .= "- {$r['path']} → {$label}{$paramHint}\n";
@@ -384,7 +385,8 @@ class AIQueryController extends Controller
 
         foreach (explode("\n", $content) as $line) {
             $t = trim($line);
-            if ($t === '' || str_starts_with($t, 'import ') || str_starts_with($t, 'export ')) continue;
+            if ($t === '' || str_starts_with($t, 'import ') || str_starts_with($t, 'export '))
+                continue;
 
             if (preg_match('/children\s*:\s*\[/', $t)) {
                 $pathStack[] = $lastPath ?? '';
@@ -416,8 +418,10 @@ class AIQueryController extends Controller
 
     private function resolveRoutePath(array $parentPaths, ?string $currentPath): string
     {
-        if ($currentPath === null) return '/';
-        if (str_starts_with($currentPath, '/')) return $currentPath;
+        if ($currentPath === null)
+            return '/';
+        if (str_starts_with($currentPath, '/'))
+            return $currentPath;
 
         $base = '';
         foreach ($parentPaths as $pp) {
@@ -440,13 +444,19 @@ class AIQueryController extends Controller
         while ($i < $len) {
             if ($i + 8 <= $len && substr($content, $i, 8) === 'function') {
                 $j = $i + 8;
-                while ($j < $len && $content[$j] !== '{') $j++;
-                if ($j >= $len) { $result .= substr($content, $i); break; }
+                while ($j < $len && $content[$j] !== '{')
+                    $j++;
+                if ($j >= $len) {
+                    $result .= substr($content, $i);
+                    break;
+                }
                 $braces = 1;
                 $k = $j + 1;
                 while ($k < $len && $braces > 0) {
-                    if ($content[$k] === '{') $braces++;
-                    elseif ($content[$k] === '}') $braces--;
+                    if ($content[$k] === '{')
+                        $braces++;
+                    elseif ($content[$k] === '}')
+                        $braces--;
                     $k++;
                 }
                 $i = $k;
@@ -459,4 +469,5 @@ class AIQueryController extends Controller
         return $result;
     }
 }
+
 

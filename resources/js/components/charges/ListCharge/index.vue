@@ -1,607 +1,285 @@
 <template>
-  <v-card>
-    <v-card-title>
-      {{ $t('datatable_charges') }}
-    </v-card-title>
-
-    <v-card-text>
-      <v-row>
-        <v-col cols="3">
-          <!-- DATE -->
-          <DatePicker
-            :is-dark="main.is_dark"
-            :max-date="new Date()"
-            v-model.range="date"
-            mode="date"
-            :locale="main.lang.short"
-            expanded 
-          />
-          <div class="text-center mt-3" role="group" aria-label="Date range">
-            <!-- Start date chip -->
-            <v-chip color="info" variant="tonal" class="mr-2">
-              <v-icon left small class="mr-2">mdi-calendar-start</v-icon>
-              <span>{{ main.formateDate(date.start) }}</span>
-            </v-chip>
-            <v-divider vertical></v-divider>
-            <!-- End date chip -->
-            <v-chip color="indigo" variant="tonal" class="ml-2">
-              <span>{{ main.formateDate(date.end) }}</span>
-              <v-icon left small class="ml-2">mdi-calendar-end</v-icon>
-            </v-chip>
+<v-card class="lc-card" elevation="0">
+  <!-- Hero -->
+  <div class="lc-hero"><div class="lc-hero-inner">
+    <div class="d-flex align-center ga-4"><div class="lc-hero-icon"><v-icon size="28" color="white">mdi-truck-cargo-container</v-icon></div><div><div class="lc-hero-title">{{ $t('charges') }}</div><div class="text-white text-caption" style="opacity:.7">{{ $t('datatable_charges') }}</div></div></div>
+    <div class="lc-hero-actions"><v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchCharges" :loading="loading">{{ $t('refresh') }}</v-btn></div>
+  </div></div>
+  <!-- Tab Slider -->
+  <v-slide-group v-model="activeTab" mandatory show-arrows class="lc-tab-slider mx-4 mt-3">
+    <v-slide-group-item v-for="tab in chargeTabs" :key="tab.value" v-slot="{ isSelected, toggle }">
+      <v-btn :color="isSelected ? '#1565C0' : undefined" :variant="isSelected ? 'flat' : 'text'" rounded class="mx-1" @click="toggle" :prepend-icon="tab.icon">{{ $t(tab.label) }}</v-btn>
+    </v-slide-group-item>
+  </v-slide-group>
+  <v-divider class="mx-4 mt-2" color="#1565C0"></v-divider>
+  <!-- TAB: List Charge -->
+  <v-card-text v-if="activeTab === 0" class="pa-4">
+    <!-- Analytics Row: Calendar | Chart | Statistics -->
+    <v-row dense class="mb-3">
+      <!-- Calendar (left) -->
+      <v-col cols="3">
+        <div class="lc-panel-card">
+          <div class="lc-panel-header"><v-icon size="16" color="info" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
+          <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="blue" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
+        </div>
+      </v-col>
+      <!-- Chart (center) -->
+      <v-col cols="6">
+        <div class="lc-panel-card" style="height:100%">
+          <div class="lc-panel-header d-flex align-center justify-space-between">
+            <div class="d-flex align-center"><v-icon size="16" color="info" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div>
+            <v-btn-toggle v-model="chartMode" mandatory density="compact" color="info" variant="outlined" rounded="lg" divided>
+              <v-btn value="daily" size="x-small">{{ $t('daily') }}</v-btn>
+              <v-btn value="monthly" size="x-small">{{ $t('monthly') }}</v-btn>
+              <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
+            </v-btn-toggle>
           </div>
-        </v-col>
-        <v-col style="overflow-y: auto; max-height: 47vh !important;">
-            <div class="d-flex align-content-end flex-wrap " >
-              <CustomChartWarehouseCategoryOpration v-for="formula in charge.get_formulas_list" :key="formula.id" :formula="formula"/>
+          <apexchart v-if="chartSeries[0].data.length" type="line" :height="260" :options="chartOptions" :series="chartSeries"></apexchart>
+          <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-line-variant</v-icon></div>
+        </div>
+      </v-col>
+      <!-- Statistics (right) -->
+      <v-col cols="3">
+        <div class="lc-panel-card lc-stats-panel" style="height:100%;overflow-y:auto">
+          <div class="lc-panel-header"><v-icon size="16" color="info" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
+          <!-- Per-category stats -->
+          <div v-for="(stat,si) in categoryStats" :key="si" class="lc-stat-item mb-2">
+            <div class="d-flex align-center justify-space-between mb-1">
+              <v-chip size="x-small" color="info" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
+              <v-chip size="x-small" color="blue" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
             </div>
-            <div class="d-flex align-content-end flex-wrap " >
-                <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_fetched_warehouse_category_operation_list"
-                 :key="warehouse_category_operation.id" 
-                 :id="warehouse_category_operation.id"
-                 :data="warehouse_category_operation"
-                 :date="date"
-                 /> 
-                 <FixedChartWarehouseCategoryOpration v-for="warehouse_category_operation in charge.get_placeholder_warehouse_category_operation_list"
-                 :key="warehouse_category_operation.id" 
-                 :id="warehouse_category_operation.id"
-                 />
+            <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="blue" bg-color="blue-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
+            <div class="d-flex flex-column ga-1 text-caption">
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="blue">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b class="text-blue">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="teal">mdi-scale-balance</v-icon><span class="text-medium-emphasis">{{ $t('total_weight_invoice') }}:</span><b class="text-teal">{{ main.formatDisplayNumber(stat.weightInvoice) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
             </div>
-        </v-col>        
-      </v-row>
-    </v-card-text>
+          </div>
+          <v-divider class="my-2"></v-divider>
+          <!-- Invoice stats -->
+          <div class="d-flex flex-column ga-1">
+            <div class="d-flex align-center ga-2"><v-icon size="14" color="success">mdi-check-decagram</v-icon><span class="text-caption text-medium-emphasis">{{ $t('invoiced') }}:</span><v-chip size="x-small" color="success" variant="tonal"><b>{{ totalInvoiced }}</b></v-chip></div>
+            <div class="d-flex align-center ga-2"><v-icon size="14" color="grey">mdi-close-circle-outline</v-icon><span class="text-caption text-medium-emphasis">{{ $t('not_invoiced') }}:</span><v-chip size="x-small" color="grey" variant="tonal"><b>{{ totalNotInvoiced }}</b></v-chip></div>
+          </div>
+          <!-- Totals -->
+          <v-divider class="my-2"></v-divider>
+          <div class="d-flex flex-column ga-1">
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="info">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b class="text-info text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="teal">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight_invoice') }}:</span><b class="text-teal text-caption">{{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
+          </div>
+        </div>
+      </v-col>
+    </v-row>
+    <!-- Action Buttons + Panels Row -->
+    <v-row dense class="mb-3" align="start">
+      <!-- Left Column: Advanced Filters -->
+      <v-col cols="6">
+        <div class="d-flex justify-center mb-2">
+          <v-btn block :variant="showAdvanced?'flat':'outlined'" :color="showAdvanced?'info':'grey'" rounded size="small" :prepend-icon="showAdvanced?'mdi-chevron-up':'mdi-chevron-down'" @click="showAdvanced=!showAdvanced">{{ $t('advanced_filters') }}</v-btn>
+        </div>
+        <v-expand-transition><div v-if="showAdvanced" class="adv-panel pa-3 rounded-lg">
+          <v-row dense>
+            <v-col cols="6"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='GuanoType'" cols="6"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='PackageType'" cols="6"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col cols="6"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+          </v-row>
+        </div></v-expand-transition>
+      </v-col>
+      <!-- Right Column: Invoice -->
+      <v-col cols="6">
+        <div class="d-flex justify-center mb-2">
+          <v-btn block :variant="showInvoice?'flat':'outlined'" :color="showInvoice?'teal':'grey'" rounded size="small" :prepend-icon="showInvoice?'mdi-chevron-up':'mdi-chevron-down'" @click="showInvoice=!showInvoice" :disabled="!canSetupInvoice">{{ $t('supplier_invoices') }}</v-btn>
+          <v-alert v-if="uninvoicedSelectedCharges.length && !canSetupInvoice" type="warning" density="compact" variant="tonal" class="mt-1 text-caption" closable>{{ $t('selected_charges_different_suppliers') }}</v-alert>
+        </div>
+        <v-expand-transition><div v-if="showInvoice&&uninvoicedSelectedCharges.length" class="inv-panel pa-3 rounded-lg">
+          <v-row dense>
+            <v-col cols="6">
+              <DatePicker v-model="invForm.date" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="teal" :disabled-dates="invDisabledDates" :min-date="invMinDate" :max-date="invMaxDate">
+                <template #default="{ togglePopover, inputValue }">
+                  <v-text-field :model-value="inputValue" :label="$t('invoice_date')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details readonly prepend-inner-icon="mdi-calendar" @click="togglePopover"></v-text-field>
+                </template>
+              </DatePicker>
+            </v-col>
+            <v-col cols="6"><v-text-field :model-value="invoiceSuppliers.join(', ')" :label="$t('supplier')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details readonly></v-text-field></v-col>
+            <v-col cols="6"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details></v-autocomplete></v-col>
+            <v-col cols="6"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
+          </v-row>
+          <v-row dense class="mt-3"><v-col cols="6"><v-btn block color="teal" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn></v-col><v-col cols="6"><v-btn block color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn></v-col></v-row>
 
-    <DataTable
-     :relations="relations"
-     :show_expand="true"
-     :is_neasted="true"
-     :advanced_relations="advanced_relations"
-     :filters="filters"
-     :advanced_filters="advanced_filters"
-     :advanced_filters_keys="advanced_filters_keys"
-     :invoicer="suppliers"
-     :allow_invoice="allow_invoice"
-     :invoice="charge.invoice"
-     :invoicer_name_prop="invoicer_name_prop"
-     :select_invoicer="select_invoicer"
-     :items="items"
-     :sigma="sigma"
-     :invoice_prop="invoice_prop"
-     :date="date"
-     :headers="headers"
-     :detail_headers="detail_headers"
-     :fetchData="fetchCharge"
-     :_invoices_print_selected="_invoices_print_selected"
-     :_exportToExcel="_exportToExcel"
-     :PostInvoice="PostInvoice"
-     @sync_items="update_filtred_items_to_source"
-     :delete_items="delete_items"
-     :get_invoices_delete_selected_length="get_invoices_delete_selected_length"
-     :listen_models="['Charge']"
-     >
-        <!-- CELLS (same as before) -->
-        <template v-slot:[`item.date`]="{ item }">
-          <v-chip class="text-info">
-            {{ main.formateDate(item.date) }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.reception_tracking_number`]="{ item }">
-          <v-chip
-            v-for="v in item.reception_tracking_number"
-            :key="v"
-            color="info"
-            class="ma-1"
-          >
-            {{ v }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.tracking_onp_numbers`]="{ item }">
-          <v-chip
-            v-for="v in item.tracking_onp_numbers"
-            :key="v"
-            color="secondary"
-            class="ma-1"
-          >
-            {{ v }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.supplier_invoice_tracking_number`]="{ item }">
-          <v-chip
-            v-for="v in item.supplier_invoice_tracking_number"
-            :key="v"
-            color="brown-darken-1"
-            class="ma-1"
-          >
-            {{ v }}
-          </v-chip>
-          <v-chip
-            v-if="item.supplier_invoice_tracking_number.length == 0"
-            color="brown-darken-1"
-            class="ma-1"
-          >
-            {{ $t("n/a") }}
-          </v-chip>
-          
-        </template>
-
-        <template v-slot:[`item.supplier_ids`]="{ item }">
-          <template v-if="item.supplier_ids.length>0">
-            <v-chip
-              v-for="id in item.supplier_ids || [null]"
-              :key="id ?? 'na'"
-              color="deep-purple"
-              class="ma-1"
-            >
-              {{ suppliers.find(s => s.id === id)?.name || $t("n/a") }}
-            </v-chip>
-          </template>
-          <template v-else >
-                <v-chip :color="main.not_aviable_color" class="ma-1">
-                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
-                </v-chip>
-          </template>
-        </template>
-
-        <template v-slot:[`item.truck_ids`]="{ item }">
-          <template v-if="item.truck_ids.length>0">
-            <v-chip
-              v-for="id in item.truck_ids || [null]"
-              :key="id ?? 'na'"
-              color="pink"
-              class="ma-1"
-            >
-              {{ trucks.find(s => s.id === id)?.registration_plate || $t("n/a") }}
-            </v-chip>
-          </template>
-          <template v-else >
-                <v-chip :color="main.not_aviable_color" class="ma-1">
-                    <v-icon class="mr-1">mdi-circle-off-outline</v-icon> {{ $t("n/a") }} 
-                </v-chip>
-          </template>
-        </template>
-        
-        <template v-slot:[`item.charge_category_id`]="{ item }">
-          <v-chip  color="green" class="mx-1 mt-1">
-              {{ charge_categories.find(f=>f.id == item.charge_category_id).name }} 
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.origin_id`]="{ item }">
-          <v-chip color="cyan" class="ma-1">
-            {{ origins.find(o => o.id === item.origin_id)?.name || $t("n/a") }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.ship_id`]="{ item }">
-          <v-chip color="grey" class="ma-1">
-            {{ ships.find(s => s.id === item.ship_id)?.name || $t("n/a") }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.fishery_id`]="{ item }">
-          <v-chip color="amber" class="ma-1">
-            {{ fisheries.find(f => f.id === item.fishery_id)?.name || $t("n/a") }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.total_weight`]="{ item }">
-          {{ main.formatDisplayNumber(item.total_weight) }}
-        </template>
-
-        <template v-slot:[`item.total_price`]="{ item }">
-          {{ main.formatDisplayNumber(item.total_price) }}
-        </template>
-        
-
-
-        <template v-slot:[`item.actions`]="{ item }">
-          <div class="d-flex align-center ga-1">
-            <!-- Audit trail icon -->
-            <v-btn
-              icon
-              size="x-small"
-              variant="tonal"
-              :color="item.audit_logs_count > 0 ? 'warning' : 'grey'"
-              :disabled="item.audit_logs_count === 0"
-              @click="viewAuditTrail(item)"
-              class="vc-action-btn"
-              :title="$t('audit_trail')"
-            >
-              <v-icon size="16">mdi-history</v-icon>
-            </v-btn>
-
-            <v-menu location="bottom end" transition="scale-transition" :close-on-content-click="true">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon="mdi-dots-vertical"
-                  size="x-small"
-                  variant="tonal"
-                  color="info"
-                  v-bind="props"
-                  class="vc-action-btn"
-                ></v-btn>
+          <div class="d-flex ga-4 mt-2 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedCharges.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedCharges.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
+        </div></v-expand-transition>
+      </v-col>
+    </v-row>
+    <div class="d-flex ga-2 mb-3 justify-end">
+      <v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn>
+      <v-btn icon variant="tonal" color="success" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn>
+    </div>
+    <!-- Data Table -->
+    <div class="lc-table-wrap" ref="tableWrap">
+      <table class="lc-table">
+        <thead class="lc-thead"><tr>
+          <th class="lc-th lc-th-pin" style="min-width:50px;left:0"><v-checkbox-btn v-model="selectAll" color="info" density="compact" hide-details></v-checkbox-btn></th>
+          <th v-for="h in headers" :key="h.key" class="lc-th" :class="{'lc-th-pin':isPinned(h.key),'lc-th-dragover':dragOverCol===h.key}" :style="colPinStyle(h.key,3)" :draggable="!h.fixed" @dragstart="onDragStart(h.key)" @dragover="onDragOver(h.key,$event)" @dragend="onDragEnd" @drop="onDragEnd">
+            <div class="lc-th-inner">
+              <v-icon v-if="!h.fixed" size="12" class="drag-handle" color="grey-lighten-1">mdi-drag-vertical</v-icon>
+              <span class="lc-th-title" @click="h.sortable!==false&&toggleSort(h.key)">{{ h.title }}</span>
+              <template v-if="h.key!=='actions'&&h.key!=='expand'">
+                <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="info">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
+                <span v-if="sortIdx(h.key)" class="sort-badge">{{ sortIdx(h.key) }}</span>
+                <v-menu v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom"><template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="14"><v-icon size="12" :color="colFilters[h.key]&&colFilters[h.key].length?'info':'grey'">mdi-filter</v-icon></v-btn></template><v-card min-width="220" class="rounded-lg pa-2"><v-autocomplete v-model="colFilters[h.key]" :items="filterOpts(h.key)" density="compact" variant="outlined" color="info" hide-details multiple chips closable-chips :placeholder="$t('filter')" class="text-info"><template #chip="{item,props:p}"><v-chip v-bind="p" size="x-small" color="info" variant="tonal" closable>{{item.title}}</v-chip></template></v-autocomplete></v-card></v-menu>
+                <v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'blue':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn>
               </template>
-
-              <v-card class="rounded-lg vc-action-menu" min-width="200" variant="flat">
-                <v-list slim density="compact" class="pa-1" lines>
-                  <!-- View -->
-                  <v-list-item
-                    class="rounded-lg vc-action-item"
-                    prepend-icon="mdi-eye-outline"
-                    @click="viewItem(item)"
-                  >
-                    <v-list-item-title class="text-caption font-weight-bold text-info">{{ $t('view_charge') }}</v-list-item-title>
-                  </v-list-item>
-
-                  <!-- Audit Trail -->
-                  <v-list-item
-                    class="rounded-lg vc-action-item"
-                    prepend-icon="mdi-history"
-                    @click="viewAuditTrail(item)"
-                  >
-                    <v-list-item-title class="text-caption font-weight-bold text-warning">{{ $t('audit_trail') }}</v-list-item-title>
-                  </v-list-item>
-
-                  <!-- Invoice -->
-                  <v-list-item
-                    v-if="item.invoice_id"
-                    class="rounded-lg vc-action-item"
-                    prepend-icon="mdi-file-document-check-outline"
-                    @click="invoiceItem(item)"
-                  >
-                    <v-list-item-title class="text-caption font-weight-bold text-green">{{ $t('invoice_item') }}</v-list-item-title>
-                  </v-list-item>
-
-                  <!-- Undo Invoice -->
-                  <v-list-item
-                    v-if="item.invoice_id"
-                    class="rounded-lg vc-action-item"
-                    prepend-icon="mdi-file-document-remove-outline"
-                    @click="undoInvoiceItem(item)"
-                  >
-                    <v-list-item-title class="text-caption font-weight-bold text-red">{{ $t('undo_invoice_item') }}</v-list-item-title>
-                  </v-list-item>
-
-                  <v-divider v-if="item.invoice_id == null" class="mx-2 my-1"></v-divider>
-
-                  <!-- Edit -->
-                  <v-list-item
-                    v-if="item.invoice_id == null"
-                    class="rounded-lg vc-action-item"
-                    prepend-icon="mdi-pencil-outline"
-                    @click="editItem(item)"
-                  >
-                    <v-list-item-title class="text-caption font-weight-bold text-orange">{{ $t('edit_item') }}</v-list-item-title>
-                  </v-list-item>
-
-                  <!-- Delete -->
-                  <v-list-item
-                    v-if="item.invoice_id == null"
-                    class="rounded-lg vc-action-item"
-                    prepend-icon="mdi-delete-outline"
-                    @click="deleteItem(item)"
-                  >
-                    <v-list-item-title class="text-caption font-weight-bold text-red">{{ $t('delete_item') }}</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-card>
-            </v-menu>
-          </div>
-        </template>
-
-        <template v-slot:[`item.allow_invoice`]="{ item }">
-          <template v-if="item.allow_invoice">
-            <v-chip
-              v-if="item.invoice_id != null"
-              color="green"
-              @click="print_invoice(item)"
-              class="ma-1"
-              v-tooltip:top="$t('print_invoice')"
-            >
-              <v-icon>
-                mdi-printer-check
-              </v-icon>
-            </v-chip>
-            <v-chip
-              v-else
-              color="warning"
-              class="ma-1"
-              v-tooltip:top="$t('uninvoiced')"
-            >
-              <v-icon>
-                mdi-printer-pos-cog
-              </v-icon>
-            </v-chip>
+            </div>
+          </th>
+        </tr></thead>
+        <tbody>
+          <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="info"></v-progress-circular></td></tr></template>
+          <template v-else v-for="item in colFilteredItems" :key="item.id">
+            <tr class="lc-row" :class="{'lc-row-expanded':expanded[item.id],'lc-row-invoiced':item._is_invoiced}">
+              <td class="lc-td lc-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="info" density="compact" hide-details></v-checkbox-btn></td>
+              <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
+                <!-- expand -->
+                <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
+                <!-- date -->
+                <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
+                <!-- category -->
+                <template v-else-if="h.key==='charge_category_id'"><v-chip size="small" color="info" variant="tonal">{{ catName(item.charge_category_id) }}</v-chip></template>
+                <!-- tracking chips -->
+                <template v-else-if="h.key==='_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.reception_tracking_number||[])" :key="tn" size="x-small" color="teal" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.reception_tracking_number||[]).length" class="text-grey">-</span></div></template>
+                <!-- onp tracking chips -->
+                <template v-else-if="h.key==='_onp_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_onp_numbers||[])" :key="tn" size="x-small" color="deep-orange" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.tracking_onp_numbers||[]).length" class="text-grey">-</span></div></template>
+                <!-- weight/price -->
+                <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
+                <template v-else-if="h.key==='_total_weight_invoice'">{{ main.formatDisplayNumber(item._total_weight_invoice) }} Kg</template>
+                <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>
+                <!-- invoice state -->
+                <template v-else-if="h.key==='_invoice_state'">
+                  <v-chip v-if="item._is_invoiced" size="x-small" color="success" variant="tonal" prepend-icon="mdi-check-circle-outline">{{ item._invoice_state }}</v-chip>
+                  <v-chip v-else size="x-small" color="grey" variant="tonal" prepend-icon="mdi-close-circle-outline">{{ $t('not_invoiced') }}</v-chip>
+                </template>
+                <!-- qc status -->
+                <template v-else-if="h.key==='_qc_status'">
+                  <template v-if="catHasQualityControl(item)">
+                    <v-chip v-if="item._qc_status==='passed'" size="x-small" color="success" variant="tonal" prepend-icon="mdi-check-circle" @click="openQcDialog(item)" style="cursor:pointer">{{ $t('qc_passed') }}</v-chip>
+                    <v-chip v-else-if="item._qc_status==='failed'" size="x-small" color="error" variant="tonal" prepend-icon="mdi-close-circle" @click="openQcDialog(item)" style="cursor:pointer">{{ $t('qc_failed') }}</v-chip>
+                    <v-chip v-else-if="item._qc_status==='pending'" size="x-small" color="warning" variant="tonal" prepend-icon="mdi-clock-outline" @click="openQcDialog(item)" style="cursor:pointer">{{ $t('qc_pending') }}</v-chip>
+                    <v-btn v-else icon size="x-small" variant="tonal" color="#00838F" @click="openQcDialog(item)"><v-icon size="14">mdi-clipboard-plus-outline</v-icon></v-btn>
+                  </template>
+                  <span v-else class="text-grey">-</span>
+                </template>
+                <!-- actions -->
+                <template v-else-if="h.key==='actions'">
+                  <v-btn icon size="x-small" variant="tonal" color="info" @click="$router.push({name:'view_charge',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-eye</v-icon></v-btn>
+                  <v-btn icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_charge',params:{id:item.id}})" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-pencil</v-icon></v-btn>
+                  <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-delete</v-icon></v-btn>
+                  <template v-if="catHasProduction(item)"><v-btn v-if="!item.production" icon size="x-small" variant="tonal" color="purple" @click="$router.push({name:'add_production',query:{charge_id:item.id}})"><v-icon size="14">mdi-factory</v-icon></v-btn><v-btn v-else icon size="x-small" variant="flat" color="purple" @click="$router.push({name:'view_production',params:{id:item.production.id}})"><v-icon size="14">mdi-pencil</v-icon></v-btn></template>
+                </template>
+                <!-- fishery -->
+                <template v-else-if="h.key==='_fishery'"><v-chip v-if="item._fishery && item._fishery!=='-'" size="x-small" color="cyan" variant="tonal" prepend-icon="mdi-fish">{{ item._fishery }}</v-chip><span v-else class="text-grey">-</span></template>
+                <!-- origin -->
+                <template v-else-if="h.key==='_origin'"><v-chip v-if="item._origin && item._origin!=='-'" size="x-small" color="amber-darken-2" variant="tonal" prepend-icon="mdi-map-marker">{{ item._origin }}</v-chip><span v-else class="text-grey">-</span></template>
+                <!-- ship -->
+                <template v-else-if="h.key==='_ship'"><v-chip v-if="item._ship && item._ship!=='-'" size="x-small" color="indigo" variant="tonal" prepend-icon="mdi-ferry">{{ item._ship }}</v-chip><span v-else class="text-grey">-</span></template>
+                <!-- trucks -->
+                <template v-else-if="h.key==='_trucks'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="t in (item._trucks && item._trucks!=='-' ? item._trucks.split(', ') : [])" :key="t" size="x-small" color="deep-orange" variant="tonal" prepend-icon="mdi-truck">{{ t }}</v-chip><span v-if="!item._trucks || item._trucks==='-'" class="text-grey">-</span></div></template>
+                <!-- generic text columns (suppliers) -->
+                <template v-else>{{ item[h.key] || '-' }}</template>
+              </td>
+            </tr>
+            <!-- Expanded detail rows -->
+            <tr v-if="expanded[item.id]"><td :colspan="headers.length+1" class="pa-0">
+              <div class="lc-expand-content">
+                <div v-for="(grp,gi) in groupDetails(item)" :key="gi" class="lc-detail-group mb-2">
+                  <div class="lc-detail-group-header"><v-icon size="16" color="info" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${main.lang?.code}`]||grp.category.name:'-' }}</b></div>
+                  <table class="lc-detail-table"><thead><tr><th>{{ $t('classification') }}</th><th>{{ $t('product') }}</th><th>{{ $t('product_family') }}</th><th>{{ $t('warehouse') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_weight_invoice') }} (Kg)</th><th>{{ $t('gap') }}</th><th>{{ $t('unit_price') }}</th><th>{{ $t('total_price') }}</th><th>{{ $t('package_type') }}</th><th>{{ $t('total_package_count') }}</th></tr></thead>
+                  <tbody><tr v-for="dc in grp.items" :key="dc.id">
+                    <td><v-chip size="x-small" color="info" variant="tonal">{{ dc.stockable_type||$t('text') }}</v-chip></td>
+                    <td class="font-weight-bold">{{ articleName(dc) }}</td><td>{{ articleFamily(dc) }}</td>
+                    <td><v-chip v-if="dc.warehouse" size="x-small" variant="tonal">{{ dc.warehouse[`name_${main.lang?.code}`]||dc.warehouse.name }}</v-chip><span v-else>{{ $t('non_stockable') }}</span></td>
+                    <td>{{ main.formatDisplayNumber(dc.weight) }}</td>
+                    <td>{{ main.formatDisplayNumber(dc.weight_invoice) }}</td>
+                    <td><v-chip size="x-small" :color="Math.abs(Number(dc.weight||0)-Number(dc.weight_invoice||0))<0.01?'success':'warning'" variant="tonal">{{ main.formatDisplayNumber(Math.abs(Number(dc.weight||0)-Number(dc.weight_invoice||0))) }}</v-chip></td>
+                    <td>{{ main.formatDisplayNumber(dc.unit_price) }}</td><td>{{ main.formatDisplayNumber(dc.total_price) }}</td>
+                    <td>{{ dc.package_type?dc.package_type.name:'N/A' }}</td>
+                    <td><v-chip v-if="dc.nbr_box" size="x-small" color="teal" variant="tonal"><v-icon size="12" class="mr-1">mdi-package-variant</v-icon>{{ dc.nbr_box }}</v-chip><span v-else>-</span></td>
+                  </tr></tbody>
+                  <tfoot><tr class="lc-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalW) }}</td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalWI) }}</td><td class="font-weight-bold"><v-chip size="x-small" :color="Math.abs(grp.totalW-grp.totalWI)<0.01?'success':'warning'" variant="tonal">{{ main.formatDisplayNumber(Math.abs(grp.totalW-grp.totalWI)) }}</v-chip></td><td></td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalP) }}</td><td colspan="2"></td></tr></tfoot>
+                  </table>
+                </div>
+              </div>
+            </td></tr>
           </template>
-          <template v-else>
-            <v-chip
-              color="gray"
-              class="ma-1"
-              v-tooltip:top="$t('non_posting_invoice')"
-            >
-              <v-icon>
-                mdi-printer-pos-cancel
-              </v-icon>
-            </v-chip>
-          </template>
-        </template>
-    </DataTable>
-  </v-card>
+        </tbody>
+        <tfoot class="lc-tfoot"><tr><td class="lc-td"></td><td v-for="h in headers" :key="'foot-'+h.key" class="lc-td text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+      </table>
+    </div>
+  </v-card-text>
+  <!-- TAB: Add Charge -->
+  <v-card-text v-else-if="activeTab === 1" class="pa-0">
+    <AddCharge />
+  </v-card-text>
+  <v-dialog v-model="deleteDialog" max-width="450"><v-card class="rounded-xl"><v-card-title class="pa-5 pb-2 d-flex align-center"><v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>{{ $t('confirm_delete') }}</v-card-title><v-card-text class="pa-5 pt-2">{{ deleteBulk?$t('confirm_bulk_delete_message',{count:selected.length}):$t('confirm_delete_charge_message') }}</v-card-text><v-card-actions class="pa-5 pt-0"><v-spacer></v-spacer><v-btn @click="deleteDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="error" variant="flat" rounded @click="execDelete" :loading="deleting">{{ $t('delete') }}</v-btn></v-card-actions></v-card></v-dialog>
+</v-card>
+<!-- Quality Control Dialog -->
+<QualityControlDialog v-model="qcDialogOpen" :charge="qcDialogCharge" @saved="onQcSaved" @deleted="onQcDeleted" />
 </template>
-
 <script>
-  import DataTable from '@/components/schema/plugins/DataTable.vue';
-  import * as XLSX from 'xlsx';
-
-  import FixedChartWarehouseCategoryOpration from './FixedChart/WarehouseCategoryOpration.vue';
-  import CustomChartWarehouseCategoryOpration from './CustomChart/WarehouseCategoryOpration.vue';
-
-  import { useMain } from '@/stores/Main';
-  import { useSupplier } from '@/stores/Supplier';
-  import { useOrigin } from '@/stores/Origin';
-  import { useFishery } from '@/stores/Fishery';
-  import { useShip } from '@/stores/Ship';
-  import { useChargeCategory } from '@/stores/ChargeCategory';
-  import { useCharge } from '@/stores/Charge';
-  import { useWarehouse } from '@/stores/Warehouse';
-  import { useFishFamily } from '@/stores/FishFamily';
-  import { useTruck } from '@/stores/Truck';
-  export default {
-      components: {
-        DataTable,
-        FixedChartWarehouseCategoryOpration,
-        CustomChartWarehouseCategoryOpration
-      },
-      data:function(){
-        return {
-          filters: {
-            date: [],
-            charge_category_id: [],
-            reception_tracking_number: [],
-            tracking_onp_numbers: [],
-            supplier_invoice_tracking_number: [],
-            supplier_ids: [],
-            truck_ids: [],
-            origin_id: [],
-            ship_id: [],
-            fishery_id: [],
-          },
-          advanced_filters: {
-            warehouse_id: [],     // array of warehouse ids
-            stockable_type: [],   // array of strings (types)
-            stockable_id: [],     // array of strings in form "Type__id" (see DataTable)
-            fish_family_id:[]     // array of fish family ids
-          },
-          advanced_filters_keys: ["warehouse_id", "stockable_type", "stockable_id", "fish_family_id"],
-          invoicer_name_prop:"supplier_ids",
-          select_invoicer:"select_suppliers",
-          date: {
-            start: new Date(2024, 2, 1),
-            end: new Date()
-          },
-          allow_invoice:true,
-        }
-    },
-    computed:{
-        main: () => useMain(),
-        suppliers: () => useSupplier().getList,
-        trucks: () => useTruck().getList,
-        origins: () => useOrigin().getList,
-        fisheries: () => useFishery().getList,
-        ships: () => useShip().getList,
-        warehouses: () => useWarehouse().getList,
-        charge: () => useCharge(),
-        fetchCharge: function(){
-          return this.charge.fetchCharge
-        },
-        PostInvoice: function(){
-          return this.charge.PostInvoice
-        },
-        items: function () {
-            return this.charge.charge_fetch_items
-        },
-        sigma: function(){
-          return [
-            {
-              name: 'total_price',
-              icon: 'mdi-cash',
-              paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] 
-              
-            },
-            {
-              name: 'total_weight',
-              icon: 'mdi-weight-kilogram',
-              paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations']
-            }
-          ];
-        },
-        invoice_prop: function(){
-          return "allow_invoice";
-        },
-        charge_categories: () => useChargeCategory().getList,
-        fish_families : ()=> useFishFamily().getList,
-        relations:function(){
-          return {
-            supplier_ids: { source: this.suppliers, label: 'name' },
-            truck_ids: { source: this.trucks, label: 'registration_plate' },
-            ship_id: { source: this.ships, label: 'name' },
-            origin_id: { source: this.origins, label: 'name' },
-            fishery_id: { source: this.fisheries, label: 'name' },
-            charge_category_id: { source: this.charge_categories, label: 'name' }
-          }
-        },
-        advanced_relations:function(){
-          return {
-            // warehouse id (single path, uses warehouses source)
-            warehouse_id: { path: 'warehouse_stockable_tracking_number_operations', source: this.warehouses, label: "name" },
-
-            // stockable filters: scan two nested arrays and extract stockable.* fields
-            stockable_type: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] },
-            stockable_id: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'] },
-            // fish family uses fish_families as source for labels
-            fish_family_id: { paths: ['warehouse_stockable_tracking_number_operations', 'non_warehouse_stockable_operations'], source: this.fish_families,  label: `name_${this.main.lang.code}` }
-          }
-        },
-        
-        headers:function(){
-          return [
-            { key: 'data-table-expand', align: 'center', visible: true },
-            { align : "center" , title: this.$t("date"), key: 'date' , visible:true },
-            { align : "center" , title: this.$t("category"), key: 'charge_category_id' , visible:true },
-            { align : "center" , title: this.$t("ship"), key: 'ship_id' , visible:true },
-            { align : "center" , title: this.$t("tracking_number_short"), key: 'reception_tracking_number' , visible:true },
-            { align : "center" , title: this.$t("tracking_onp_number_short"), key: 'tracking_onp_numbers' , visible:false },
-            { align : "center" , title: this.$t("supplier_invoice_number_short"), key: 'supplier_invoice_tracking_number' , visible:true },
-            { align : "center" , title: this.$t("suppliers"), key: 'supplier_ids' , visible:true },
-            { align : "center" , title: this.$t("truck_id"), key: 'truck_ids' , visible:true },
-            { align : "center" , title: this.$t("weight_kg"), key: 'total_weight' , visible:true },
-            { align : "center" , title: this.$t("price_dh",{currency:this.main.currency}), key: 'total_price', visible: true },
-            { align : "center" , title: this.$t("origin"), key: 'origin_id' , visible:true },
-            { align : "center" , title: this.$t("fishery"), key: 'fishery_id' , visible:false },
-            { align : "center" , title: this.$t("status"), key: 'allow_invoice' , visible:true },
-            { align : "center" , title: this.$t("actions"), key: 'actions' , visible:true ,sortable: false },
-            
-          ]
-        },
-        detail_headers:function(){
-          return [
-            { align : "center" , title: this.$t("classification"), key: 'classification' , visible:true },
-            { align : "center" , title: this.$t("product"), key: 'product' , visible:true },
-            { align : "center" , title: this.$t("product_family"), key: 'product_family' , visible:true },
-            { align : "center" , title: this.$t("warehouse"), key: 'warehouse' , visible:true },
-            { align : "center" , title: this.$t("truck_id"), key: 'truck_ids' , visible:true },
-            { align : "center" , title: this.$t("total_weight_on_kg"), key: 'total_weight' , visible:true },
-            { align : "center" , title: this.$t("unit_price_currency",{currency:this.main.currency}), key: 'unit_price' , visible:true },
-            { align : "center" , title: this.$t("total_price_on",{currency:this.main.currency}), key: 'total_price' , visible:true },
-            { align : "center" , title: this.$t("package_type"), key: 'package_type_id' , visible:true },
-            { align : "center" , title: this.$t("total_package_count_un"), key: 'total_package_count' , visible:true },
-          ]
-        }
-    },
-    methods:{
-      delete_items: function (ids) {
-        this.charge.delete(ids);
-      },
-      viewAuditTrail: function (item) {
-        this.$router.push({ name: 'charge_audit_trail', params: { id: item.id } });
-      },
-      update_filtred_items_to_source: function (items) {
-        this.charge.filtred_charge_fetch_items = items;
-      },
-      get_invoices_delete_selected_length: function (that) {
-        return that.items.filter(i => that.items_selected.includes(i.id))
-        .filter(e => e.allow_invoice == true && e.invoice_id == null).length;
-      },
-      delete_invoices: function (that) {
-        let ids = that.items.filter(i => that.items_selected.includes(i.id)).filter(e =>e.allow_invoice == true && e.invoice_id == null).map(e => e.id);
-        this.supplier_invoice.delete(ids);
-      },
-      _invoices_print_selected: function (that) {
-        return that.items.filter(i => that.items_selected.includes(i.id)).filter(e => e.allow_invoice && e.invoice_id != null).map(i => i.id);
-      },
-      _exportToExcel: function (that) {
-        if (!that.items_selected || !that.items_selected_length) {
-          console.warn('No rows selected to export')
-          return
-        }
-
-        const selectedRows = that.processedItems.filter(i => that.items_selected.includes(i.id))
-        const cols = that.orderedVisibleHeaders.filter(
-          h => h.key !== 'data-table-select' && h.key !== 'data-table-expand'
-        )
-        const headerTitles = cols.map(h => h.title ?? h.key)
-
-        const dataAoA = [
-          headerTitles,
-          ...selectedRows.map(row => cols.map(h => {
-            if (h.key === 'date') {
-              return row[h.key]
-            }
-            const v = that.resolveDisplayValue(row, h.key)
-            if (v === '') return ''
-            const num = parseFloat(v)
-            if (!Number.isNaN(num) && String(v).trim() !== '') return num
-            return String(v)
-          }))
-        ]
-
-        const ws = XLSX.utils.aoa_to_sheet(dataAoA)
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, 'Export')
-
-        const dateColIndex = cols.findIndex(h => h.key === 'date')
-        if (dateColIndex !== -1) {
-          for (let r = 1; r <= selectedRows.length; r++) {
-            const cellRef = XLSX.utils.encode_cell({ c: dateColIndex, r })
-            const cell = ws[cellRef]
-            if (!cell) continue
-            if (cell.v instanceof Date) {
-              cell.t = 'd'
-              cell.z = that.main.date_format
-            } else {
-              const m = moment(cell.v)
-              if (cell.v && typeof cell.v === 'string' && m.isValid()) {
-                cell.t = 'd'
-                cell.z = that.main.date_format
-              }
-            }
-          } 
-        }
-
-        const filename = `export_charge_${moment().format('YYYYMMDD_HHmmss')}.xlsx`
-        XLSX.writeFile(wb, filename)
-      },
-      editItem: function (item) {
-        this.$router.push({
-          name: 'edit_charge',
-          params: { id: item.id }
-        })
-      },
-      invoiceItem: function (item) {
-        this.$router.push({
-          name: 'view_supplier_invoice',
-          query: { ids: [item.invoice_id] }
-        })
-      },
-      undoInvoiceItem: function (item) {
-        this.charge.undoInvoiceItem(item.id);
-      },
-      viewItem: function (item) {
-        this.$router.push({
-          name: 'view_charge',
-          params: { id: item.id }
-        })
-      },
-      deleteItem: function (item) {
-        this.charge.delete([item.id]);
-      },
-      print_invoice: function (item) {
-        console.log("item",item)
-      },
-    }
-  }
+import script from './script.js';
+import AddCharge from '../AddCharge/index.vue';
+import QualityControlDialog from '../QualityControl/QualityControlDialog.vue';
+export default {
+  ...script,
+  components:{...script.components,AddCharge,QualityControlDialog},
+  data(){return{...script.data.call(this),activeTab:0,qcDialogOpen:false,qcDialogCharge:null,chargeTabs:[{value:0,label:'list_charge',icon:'mdi-view-list-outline'},{value:1,label:'add_charge',icon:'mdi-sticker-plus-outline'}]}},
+  computed:{...script.computed,selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
+  methods:{...script.methods,openQcDialog(item){this.qcDialogCharge=item;this.qcDialogOpen=true},onQcSaved(){this.fetchCharges()},onQcDeleted(){this.fetchCharges()},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
+  watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true},activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0)this.fetchCharges()}},
+  mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths());if(this.$route.query.tab==='add')this.activeTab=1},
+  beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
+  updated(){this.measureColWidths()},
+};
 </script>
-
 <style scoped>
-.vc-action-btn {
-  transition: transform .15s;
-}
-.vc-action-btn:hover {
-  transform: scale(1.1);
-}
-.vc-action-menu {
-  box-shadow: 0 8px 24px rgba(0,0,0,.1) !important;
-}
-.vc-action-item {
-  padding: 6px 12px !important;
-  min-height: 36px !important;
-  margin-bottom: 2px;
-  transition: background .12s;
-}
-.vc-action-item:hover {
-  background: rgba(var(--v-border-color), .06);
-}
+.lc-card{border-radius:20px!important;font-family:'Inter',sans-serif}
+.lc-tab-slider{border-radius:12px}
+.lc-hero{background:linear-gradient(135deg,#0D47A1 0%,#1565C0 40%,#42A5F5 100%);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;min-height:100px}
+.lc-hero-inner{position:relative;z-index:1;padding:22px 26px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.lc-hero-icon{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.15)}
+.lc-hero-title{font-size:19px;font-weight:800;letter-spacing:.3px}
+.lc-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.adv-panel{border:1.5px solid rgba(25,118,210,.15);background:rgba(25,118,210,.03)}
+.inv-panel{border:1.5px solid rgba(0,150,136,.15);background:rgba(0,150,136,.03)}
+.lc-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
+.lc-table{width:100%;border-collapse:collapse;font-size:13px}
+.lc-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
+.lc-th{padding:10px 12px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s}
+.lc-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
+.lc-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+.lc-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+.lc-th-dragover{background:rgba(25,118,210,.08)!important}
+.lc-th-inner{display:flex;align-items:center;justify-content:center;gap:2px}
+.lc-th-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.7;cursor:pointer}
+.drag-handle{cursor:grab;opacity:.5;transition:opacity .15s}.drag-handle:hover{opacity:1}
+.sort-badge{font-size:9px;background:#1976D2;color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center}
+.lc-row:hover{background:rgba(25,118,210,.04)}
+.lc-row-expanded{background:rgba(25,118,210,.06)}
+.lc-row-invoiced{background:rgba(76,175,80,.08)!important}
+.lc-row-invoiced:hover{background:rgba(76,175,80,.14)!important}
+.lc-tfoot td{padding:10px 12px;border-top:2px solid rgba(25,118,210,.2);color:#1565C0;font-size:14px}
+.lc-expand-content{padding:12px 24px;background:rgba(var(--v-border-color),.03)}
+.lc-detail-group{border:1px solid rgba(var(--v-border-color),.12);border-radius:10px;overflow:hidden}
+.lc-detail-group-header{padding:8px 14px;background:rgba(25,118,210,.06);font-size:13px}
+.lc-detail-table{width:100%;border-collapse:collapse;font-size:12px}
+.lc-detail-table th{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.6;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.1)}
+.lc-detail-table td{padding:6px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.05)}
+.lc-detail-foot td{padding:8px 10px;background:rgba(25,118,210,.04);border-top:1px solid rgba(25,118,210,.15)}
+.lc-panel-card{border:1.5px solid rgba(25,118,210,.12);border-radius:14px;padding:12px;background:rgba(var(--v-theme-surface),1)}
+.lc-panel-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center}
+.lc-stats-panel{max-height:400px}
+.lc-stat-item{padding:8px 10px;border-radius:10px;background:rgba(25,118,210,.03);border:1px solid rgba(25,118,210,.06)}
 </style>
-

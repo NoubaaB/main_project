@@ -2,66 +2,57 @@
 
 namespace App\Models;
 
-use App\Models\WarehouseStockable;
-use App\Models\WarehouseCategory;
-use App\Models\WarehouseSejourRate;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Model;
 
 class Warehouse extends Model
 {
-    /** @use HasFactory<\Database\Factories\WarehouseFactory> */
-    use HasFactory ,SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $guarded = [];
-
-    protected $casts = [
-        'unit_price'   => 'float',
-        'total_price'  => 'float',
-        'total_weight' => 'float',
-        'total_package_count' => 'float',
-        'has_sejour' => 'boolean',
-        'operation_service_fee' => 'float',
+    protected $fillable = [
+        'name', 'description', 'warehouse_category_id',
+        'warehouse_type', 'has_sejour', 'operation_service_fee',
+        'wap_days', 'wap_sells_count', 'is_allow_price',
+        'total_weight',
     ];
 
-    function warehouse_stockables() : HasMany {
-        return $this->hasMany(WarehouseStockable::class);
+    protected $casts = [
+        'has_sejour' => 'boolean',
+        'is_allow_price' => 'boolean',
+        'operation_service_fee' => 'decimal:2',
+        'wap_days' => 'integer',
+        'wap_sells_count' => 'integer',
+        'total_weight' => 'decimal:2',
+    ];
+
+    public function category()
+    {
+        return $this->belongsTo(WarehouseCategory::class, 'warehouse_category_id');
     }
 
-    function warehouse_category() : BelongsTo {
-        return $this->belongsTo(WarehouseCategory::class);
+    public function balances()
+    {
+        return $this->hasMany(WarehouseBalance::class);
     }
 
-    function sejour_rates() : HasMany {
-        return $this->hasMany(WarehouseSejourRate::class)->orderBy('start_date');
+    public function sejourRates()
+    {
+        return $this->hasMany(SejourRate::class);
     }
 
-    function calc() : array {
-        $temp_arr = [];
-        $count = 0;
-        foreach ($this->warehouse_stockables as $warehouse_stockable) {
-            $total = $warehouse_stockable->calc();
-            
-            $temp_arr[] = [
-                "total_weight" => $total["total_weight"],
-                "total_price" => $total["total_price"],
-                "unit_price" => $total["unit_price"],
-                "total_package_count" => $total["total_package_count"]
-            ];
-            $count++;
-        }
-
-        $t = [
-            "total_weight" => (collect($temp_arr)->sum('total_weight')),
-            "total_price" => (collect($temp_arr)->sum('total_price')),
-            "total_package_count" => (collect($temp_arr)->sum('total_package_count')),
-            "unit_price" => (collect($temp_arr)->sum('unit_price') / ($count == 0 ? 1 : $count)),
-        ];
-        $this->update($t);
-
-        return $t;
+    /**
+     * Recalculate total_weight from all non-finished balances.
+     */
+    public function recalculateTotalWeight(): void
+    {
+        $this->total_weight = round(
+            $this->balances()
+                ->where('is_finished', false)
+                ->where('remaining_weight', '>', 0)
+                ->sum('remaining_weight'),
+            2
+        );
+        $this->saveQuietly(); // saveQuietly to avoid infinite loops
     }
 }

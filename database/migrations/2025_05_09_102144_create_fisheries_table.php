@@ -6,28 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Fisheries are ports/harbors where fish is unloaded from vessels.
         Schema::create('fisheries', function (Blueprint $table) {
             $table->id();
-            $table->string("name")->unique();
-            $table->string("name_fr")->nullable();
-            $table->string("name_en")->nullable();
-            $table->string("name_es")->nullable();
+            $table->string("name")->unique()->comment('Primary fishery name');
+            $table->string("name_fr")->nullable()->comment('French name');
+            $table->string("name_en")->nullable()->comment('English name');
+            $table->string("name_es")->nullable()->comment('Spanish name');
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This fisheries table has relationship with charges table as has many of charge records');
+            $table->comment('Fishing ports where fish is landed. Referenced by charges, productions, shippings.');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('fisheries');

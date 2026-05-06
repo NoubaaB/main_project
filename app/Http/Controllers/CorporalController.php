@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Corporal;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Traits\BroadcastsModelChanges;
 
 class CorporalController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of corporals with their sections.
      */
@@ -40,7 +42,10 @@ class CorporalController extends Controller
             $corporal->sections()->sync($sectionIds);
         }
 
-        return response()->json(['corporal' => $corporal->load('sections')], 201);
+        $corporal->load('sections');
+        $this->broadcastChange('Corporal', 'created', $corporal->id, $corporal->toArray());
+
+        return response()->json(['corporal' => $corporal], 201);
     }
 
     /**
@@ -65,7 +70,10 @@ class CorporalController extends Controller
         $corporal->update($data);
         $corporal->sections()->sync($sectionIds);
 
-        return response()->json(['corporal' => $corporal->fresh()->load('sections')], 200);
+        $corporal = $corporal->fresh()->load('sections');
+        $this->broadcastChange('Corporal', 'updated', $corporal->id, $corporal->toArray());
+
+        return response()->json(['corporal' => $corporal], 200);
     }
 
     /**
@@ -74,7 +82,9 @@ class CorporalController extends Controller
     public function destroy($id): JsonResponse
     {
         $corporal = Corporal::findOrFail($id);
+        $corporalId = $corporal->id;
         $corporal->delete();
+        $this->broadcastChange('Corporal', 'deleted', $corporalId);
 
         return response()->json(['message' => 'Corporal deleted successfully'], 200);
     }

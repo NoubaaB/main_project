@@ -6,27 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Fish process types define how fish is processed (e.g., fresh whole, frozen fillet, salted).
         Schema::create('fish_process_types', function (Blueprint $table) {
             $table->id();
-
-            $table->string("name")->unique();
-            $table->string("description")->nullable();
+            $table->string("name")->unique()->comment('Processing method name');
+            $table->string("description")->nullable()->comment('Description of the processing method');
+            $table->string('productivity_color')->nullable()->comment('Color code for productivity chart display');
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This fish_process_types table has relationship with fish_types table as has many of fish_type records' );
+            $table->comment('Fish processing methods. Has many fish_types.');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('fish_process_types');

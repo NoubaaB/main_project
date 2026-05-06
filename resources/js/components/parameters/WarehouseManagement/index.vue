@@ -15,7 +15,7 @@
       </div>
     </div>
 
-    <v-tabs v-model="activeTab" color="info" class="mx-4 mt-2" slider-color="info">
+    <v-tabs v-model="activeTab" color="#a21ee5" class="mx-4 mt-2" slider-color="#a21ee5">
       <v-tab value="warehouses"><v-icon start>mdi-warehouse</v-icon>{{ $t('warehouses') }}</v-tab>
       <v-tab value="categories"><v-icon start>mdi-tag-multiple-outline</v-icon>{{ $t('categories') }}</v-tab>
       <v-tab value="sejour"><v-icon start>mdi-calendar-clock</v-icon>{{ $t('sejour_rates') }}</v-tab>
@@ -30,18 +30,18 @@
           <div class="d-flex align-center ga-3 mb-3">
             <v-spacer></v-spacer>
             <v-btn v-if="hasActiveWarehouseFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="warehouseColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
+            <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
           </div>
           <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
             <template v-slot:[`item.has_sejour`]="{ item }"><v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">{{ item.has_sejour ? $t('yes') : $t('no') }}</v-chip></template>
-            <template v-slot:[`item.operation_service_fee`]="{ item }">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '—' }}</template>
-            <template v-slot:[`item.category`]="{ item }"><v-chip :color="categoryColor(item.category)" size="small" variant="tonal">{{ item.category || 'N/A' }}</v-chip></template>
+            <template v-slot:[`item.operation_service_fee`]="{ item }">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '-' }}</template>
+            <template v-slot:[`item.category`]="{ item }"><v-chip :color="categoryColor(item.category?.name)" size="small" variant="tonal">{{ item.category?.name || 'N/A' }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openWarehouseDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openWarehouseDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteWarehouse(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
@@ -52,16 +52,16 @@
           <div class="d-flex align-center ga-3 mb-3">
             <v-spacer></v-spacer>
             <v-btn v-if="hasActiveCategoryFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="categoryColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
+            <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
           </div>
           <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
-            <template v-slot:[`item.warehouse_count`]="{ item }"><v-chip color="info" size="small" variant="tonal">{{ item.warehouse_count || 0 }}</v-chip></template>
+            <template v-slot:[`item.warehouse_count`]="{ item }"><v-chip color="#a21ee5" size="small" variant="tonal">{{ item.warehouse_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openCategoryDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openCategoryDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteCategory(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
@@ -82,7 +82,7 @@
                 density="compact"
                 variant="outlined"
                 rounded
-                color="info"
+                color="#a21ee5"
                 class="text-info mb-4"
                 hide-details
                 @update:model-value="fetchSejourRates"
@@ -120,7 +120,7 @@
                   v-if="rateOpenEnded"
                 />
                 <div class="text-center mt-3" role="group">
-                  <v-chip color="info" variant="tonal" class="mr-2">
+                  <v-chip color="#a21ee5" variant="tonal" class="mr-2">
                     <v-icon left small class="mr-2">mdi-calendar-start</v-icon>
                     <span>{{ main.formateDate(rateOpenEnded ? rateDateRange.start : rateDateRange.start) }}</span>
                   </v-chip>
@@ -147,7 +147,7 @@
                 <v-text-field
                   v-model.number="rateForm.daily_rate_per_kg"
                   :label="$t('sejour_unit_price') + ' (DH/' + formatWeightUnit(rateForm.weight_unit) + ' KG)'"
-                  variant="outlined" density="compact" rounded color="info" class="text-info mt-3"
+                  variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mt-3"
                   type="number" step="0.0001" hide-details
                 ></v-text-field>
                 <v-text-field
@@ -158,7 +158,7 @@
                 ></v-text-field>
 
                 <div class="d-flex ga-3 mt-4">
-                  <v-btn color="info" prepend-icon="mdi-content-save" rounded block @click="saveRate" :loading="saving">
+                  <v-btn color="#a21ee5" prepend-icon="mdi-content-save" rounded block @click="saveRate" :loading="saving">
                     {{ editingRate ? $t('update_rate') : $t('add_rate') }}
                   </v-btn>
                 </div>
@@ -180,7 +180,7 @@
                 <p class="text-body-1 text-medium-emphasis mx-auto" style="max-width: 420px; line-height: 1.7">
                   {{ $t('no_warehouse_selected_hint') }}
                 </p>
-                <v-icon size="32" color="info" class="mt-4 sejour-empty-arrow">mdi-arrow-left-bold</v-icon>
+                <v-icon size="32" color="#a21ee5" class="mt-4 sejour-empty-arrow">mdi-arrow-left-bold</v-icon>
               </div>
 
               <!-- Rates Table -->
@@ -212,7 +212,7 @@
                   <span class="font-weight-bold text-warning">{{ item.service_unit_price || 0 }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
                 </template>
                 <template v-slot:[`item.actions`]="{ item }">
-                  <v-btn icon size="x-small" variant="tonal" color="info" @click="openRateDialog(item)" class="mr-1">
+                  <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openRateDialog(item)" class="mr-1">
                     <v-icon size="16">mdi-pencil</v-icon>
                   </v-btn>
                   <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteRate(item)">
@@ -230,21 +230,21 @@
     <v-dialog v-model="warehouseDialog" max-width="550" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-warehouse</v-icon>
+          <v-icon color="#a21ee5" class="mr-2">mdi-warehouse</v-icon>
           {{ editingWarehouse ? $t('edit_warehouse') : $t('add_warehouse') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <v-text-field v-model="warehouseForm.name" :label="$t('name')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3"></v-text-field>
-          <v-textarea v-model="warehouseForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3" rows="2"></v-textarea>
-          <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3" clearable></v-select>
-          <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3" clearable></v-select>
+          <v-text-field v-model="warehouseForm.name" :label="$t('name')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" :error-messages="warehouseNameError"></v-text-field>
+          <v-textarea v-model="warehouseForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" rows="2"></v-textarea>
+          <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" clearable></v-select>
+          <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" clearable></v-select>
           <v-switch v-model="warehouseForm.has_sejour" :label="$t('has_sejour')" color="warning" density="compact" class="mb-3"></v-switch>
-          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" variant="outlined" density="compact" rounded color="info" class="text-info" type="number"></v-text-field>
+          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" type="number"></v-text-field>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
           <v-btn @click="warehouseDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="saveWarehouse" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#a21ee5" variant="flat" rounded @click="saveWarehouse" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -253,17 +253,17 @@
     <v-dialog v-model="categoryDialog" max-width="450" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-tag-multiple-outline</v-icon>
+          <v-icon color="#a21ee5" class="mr-2">mdi-tag-multiple-outline</v-icon>
           {{ editingCategory ? $t('edit_category') : $t('add_category') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <v-text-field v-model="categoryForm.name" :label="$t('name')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3"></v-text-field>
-          <v-textarea v-model="categoryForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="info" class="text-info" rows="2"></v-textarea>
+          <v-text-field v-model="categoryForm.name" :label="$t('name')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" :error-messages="categoryNameError"></v-text-field>
+          <v-textarea v-model="categoryForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" rows="2"></v-textarea>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
           <v-btn @click="categoryDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="saveCategory" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#a21ee5" variant="flat" rounded @click="saveCategory" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -291,7 +291,9 @@
 
 <script>
 import axios from 'axios';
+import mitt from '@/plugins/mitt';
 import { useMain } from '@/stores/Main';
+import { useAuth } from '@/stores/Auth';
 
 export default {
   name: 'WarehouseManagement',
@@ -326,6 +328,7 @@ export default {
   },
   computed: {
     main() { return useMain(); },
+    auth() { return useAuth(); },
     warehouseHeaders() {
       return [
         { title: this.$t('name'), key: 'name', align: 'center' },
@@ -361,7 +364,7 @@ export default {
     filteredWarehouses() {
       return this.warehouses.filter(item => Object.entries(this.warehouseColumnFilters).every(([key, sel]) => {
         if (!sel || !sel.length) return true;
-        const val = key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
+        const val = key === 'category' ? (item.category?.name ?? '') : key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
         return sel.includes(val);
       }));
     },
@@ -373,17 +376,37 @@ export default {
     },
     hasActiveWarehouseFilters() { return Object.values(this.warehouseColumnFilters).some(f => f && f.length > 0); },
     hasActiveCategoryFilters() { return Object.values(this.categoryColumnFilters).some(f => f && f.length > 0); },
+    warehouseNameError() {
+      const name = (this.warehouseForm.name || '').trim().toLowerCase();
+      if (!name) return '';
+      const dup = this.warehouses.find(w => w.name.toLowerCase() === name && (!this.editingWarehouse || w.id !== this.editingWarehouse.id));
+      return dup ? this.$t('name_already_exists') : '';
+    },
+    categoryNameError() {
+      const name = (this.categoryForm.name || '').trim().toLowerCase();
+      if (!name) return '';
+      const dup = this.categories.find(c => c.name.toLowerCase() === name && (!this.editingCategory || c.id !== this.editingCategory.id));
+      return dup ? this.$t('name_already_exists') : '';
+    },
   },
   mounted() {
     this.fetchWarehouses();
     this.fetchCategories();
+    mitt.on('model-changed', this._onModelChanged);
   },
+  beforeUnmount() { mitt.off('model-changed', this._onModelChanged); },
   methods: {
     formatNum(v) { return this.main.formatDisplayNumber(v); },
+    _onModelChanged(data) {
+      if (['Warehouse', 'WarehouseCategory', 'SejourRate'].includes(data.model)) {
+        this.fetchWarehouses();
+        if (data.model === 'WarehouseCategory') this.fetchCategories();
+      }
+    },
     getWarehouseColumnOptions(key) {
       const set = new Set();
       this.warehouses.forEach(item => {
-        const val = key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
+        const val = key === 'category' ? (item.category?.name ?? '') : key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
         set.add(val);
       });
       return [...set].sort();
@@ -406,7 +429,7 @@ export default {
       return 'info';
     },
 
-    // ── Warehouses ──
+    // -- Warehouses --
     async fetchWarehouses() {
       this.loadingWarehouses = true;
       try {
@@ -423,16 +446,23 @@ export default {
       this.warehouseDialog = true;
     },
     async saveWarehouse() {
+      if (this.warehouseNameError) return;
       this.saving = true;
       try {
         if (this.editingWarehouse) {
           await axios.put(`/api/warehouses/${this.editingWarehouse.id}`, this.warehouseForm);
+          this.main.add_snackbar({ show: true, message: this.$t('warehouse_updated'), color: 'success' });
         } else {
-          await axios.post('/api/warehouses', this.warehouseForm);
+          const res = await axios.post('/api/warehouses', this.warehouseForm);
+          if (res.data.warehouse) this.auth.warehouse.list.push(res.data.warehouse);
+          this.main.add_snackbar({ show: true, message: this.$t('warehouse_created'), color: 'success' });
         }
         this.warehouseDialog = false;
         this.fetchWarehouses();
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+        this.main.add_snackbar({ show: true, message: this.$t('error_occurred'), color: 'error' });
+      }
       this.saving = false;
     },
     async deleteWarehouse(item) {
@@ -441,12 +471,12 @@ export default {
       this.confirmDeleteDialog = true;
     },
 
-    // ── Categories ──
+    // -- Categories --
     async fetchCategories() {
       this.loadingCategories = true;
       try {
         const res = await axios.get('/api/warehouse-categories');
-        this.categories = res.data.categories || [];
+        this.categories = res.data.warehouse_categories || res.data.categories || [];
       } catch (e) { console.error(e); }
       this.loadingCategories = false;
     },
@@ -458,17 +488,23 @@ export default {
       this.categoryDialog = true;
     },
     async saveCategory() {
+      if (this.categoryNameError) return;
       this.saving = true;
       try {
         if (this.editingCategory) {
           await axios.put(`/api/warehouse-categories/${this.editingCategory.id}`, this.categoryForm);
+          this.main.add_snackbar({ show: true, message: this.$t('category_updated'), color: 'success' });
         } else {
           await axios.post('/api/warehouse-categories', this.categoryForm);
+          this.main.add_snackbar({ show: true, message: this.$t('category_created'), color: 'success' });
         }
         this.categoryDialog = false;
         this.fetchCategories();
         this.fetchWarehouses();
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+        this.main.add_snackbar({ show: true, message: this.$t('error_occurred'), color: 'error' });
+      }
       this.saving = false;
     },
     async deleteCategory(item) {
@@ -477,7 +513,7 @@ export default {
       this.confirmDeleteDialog = true;
     },
 
-    // ── Sejour Rates ──
+    // -- Sejour Rates --
     async fetchSejourRates() {
       if (!this.selectedSejourWarehouse) return;
       this.loadingRates = true;
@@ -572,7 +608,7 @@ export default {
 
 <style scoped>
 .wm-card { border-radius: 20px !important; overflow: visible; position: relative; }
-.wm-hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
+.wm-hero { background: linear-gradient(135deg, #c015b4 0%, #a21ee5 40%, #9742f5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
 .wm-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
 .wm-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
 .wm-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }

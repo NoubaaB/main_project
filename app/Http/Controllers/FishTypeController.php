@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\FishType;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class FishTypeController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of fish types with relationships.
      */
@@ -38,6 +40,7 @@ class FishTypeController extends Controller
 
         $fishType = FishType::create($data);
         $fishType->load(['fish_family', 'fish_process_type']);
+        $this->broadcastChange('FishType', 'created', $fishType->id, $fishType->toArray());
 
         return response()->json(['fish_type' => $fishType], 201);
     }
@@ -66,6 +69,7 @@ class FishTypeController extends Controller
 
         $fishType->update($data);
         $fishType->load(['fish_family', 'fish_process_type']);
+        $this->broadcastChange('FishType', 'updated', $fishType->id, $fishType->toArray());
 
         return response()->json(['fish_type' => $fishType], 200);
     }
@@ -77,6 +81,7 @@ class FishTypeController extends Controller
     {
         $fishType = FishType::findOrFail($id);
         $fishType->delete();
+        $this->broadcastChange('FishType', 'deleted', (int)$id);
 
         return response()->json(['message' => 'Fish type deleted'], 200);
     }

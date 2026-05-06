@@ -49,6 +49,28 @@
                 <v-divider opacity="0.2" variant="dashed" thickness="2" color="info" class="my-5"></v-divider>
                 <v-row>
                     <v-col>
+                        <div class="text-caption text-grey-darken-1 mb-2 font-weight-bold">{{ $t('invoice_display_mode') }}</div>
+                        <v-btn-toggle
+                            v-model="displayMode"
+                            mandatory
+                            rounded="lg"
+                            density="compact"
+                            color="info"
+                            class="w-100"
+                            variant="outlined"
+                        >
+                            <v-btn value="detail" class="flex-grow-1 text-none" size="small" prepend-icon="mdi-format-list-bulleted">
+                                {{ $t('display_detail_mode') }}
+                            </v-btn>
+                            <v-btn value="charge" class="flex-grow-1 text-none" size="small" prepend-icon="mdi-file-document-outline">
+                                {{ $t('display_charge_mode') }}
+                            </v-btn>
+                        </v-btn-toggle>
+                    </v-col>
+                </v-row>
+                <v-divider opacity="0.2" variant="dashed" thickness="2" color="info" class="my-5"></v-divider>
+                <v-row>
+                    <v-col>
                         <v-autocomplete
                             v-model="supplierInvoice.headers"
                             :items="supplierInvoice.invoice_headers"
@@ -175,8 +197,15 @@ export default {
                 groupByKeys: [],
             }
         },
+        mounted() {
+            this.supplierInvoice.initHeaders();
+        },
         computed: {
             supplierInvoice: () => useSupplierInvoice(),
+            displayMode: {
+                get() { return this.supplierInvoice.display_mode; },
+                set(val) { this.supplierInvoice.setDisplayMode(val); }
+            },
             supplier_invoice: function () {
                 return this.supplierInvoice.getItems;
             },
@@ -185,7 +214,9 @@ export default {
                 return this.supplierInvoice.getHeaders.map(m=>m.key);
             },
             lines: function () {
-                return this.supplier_invoice.flatMap(e=>e.items)
+                const mode = this.supplierInvoice.display_mode;
+                const key = mode === 'charge' ? 'charge_items' : 'detail_items';
+                return this.supplier_invoice.flatMap(e => e[key] || []);
             },
             nbr_lines: function () {
                 return this.lines.length
@@ -209,21 +240,23 @@ export default {
                     : (this.supplier_invoice ? [_.cloneDeep(this.supplier_invoice)] : []);
 
                 if (!invoices.length) {
-                    console.warn('this.supplier_invoice is empty or undefined — nothing to export');
+                    console.warn('this.supplier_invoice is empty or undefined - nothing to export');
                     return;
                 }
 
+                // Determine which items key to use based on display mode
+                const isDetailMode = this.supplierInvoice.display_mode === 'detail';
+                const itemsKey = isDetailMode ? 'detail_items' : 'charge_items';
+
                 // 1) compute invoice totals from items (safe Number conversions)
                 invoices.forEach((inv) => {
-                    const items = Array.isArray(inv.items) ? inv.items : [];
+                    const items = Array.isArray(inv[itemsKey]) ? inv[itemsKey] : [];
 
-                    // compute total_weight digit-by-digit
                     const totalWeight = items.reduce((acc, it) => {
                     const v = Number(it.total_weight ?? 0);
                     return acc + (Number.isFinite(v) ? v : 0);
                     }, 0);
 
-                    // compute total_price digit-by-digit (use provided total_price or compute weight * unit_price)
                     const totalPrice = items.reduce((acc, it) => {
                     const w = Number(it.total_weight ?? 0);
                     const u = Number(it.unit_price ?? 0);
@@ -235,33 +268,36 @@ export default {
                     inv.total_price = totalPrice;
                 });
 
-                // 2) Flatten items into rows (use exact property names)
+                // 2) Flatten items into rows based on display mode
                 const itemRows = _.flatMap(invoices, (inv) => {
                     const invoice_tracking_numbers = Array.isArray(inv.tracking_numbers) ? inv.tracking_numbers.join(', ') : (inv.tracking_numbers ?? '');
                     const supplier_ids = Array.isArray(inv.supplier_ids) ? inv.supplier_ids.join(', ') : (inv.supplier_ids ?? '');
                     const invoice_id = inv.id ?? '';
                     const invoice_date = inv.date ? moment(inv.date).format('YYYY-MM-DD') : '';
 
-                    const items = Array.isArray(inv.items) ? inv.items : [];
-                    return items.map((it, idx) => ({
-                    // invoice-prefixed to avoid collisions but keep original names for translation
-                    invoice_id,
-                    invoice_date,
-                    invoice_tracking_numbers,
-                    supplier_ids,
-
-                    // item properties kept exactly as provided
-                    date: it.date ? moment(it.date).format('YYYY-MM-DD') : '',
-                    charge_id: it.charge_id ?? '',
-                    charge_category_id: it.charge_category_id ?? '',
-                    truck_id: it.truck_id ?? '',
-                    tracking_numbers: Array.isArray(it.tracking_numbers) ? it.tracking_numbers.join(', ') : (it.tracking_numbers ?? ''),
-                    stockable: it.stockable ?? '',
-                    stockable_type: it.stockable_type ?? '',
-                    total_weight: Number(it.total_weight ?? 0),
-                    unit_price: Number(it.unit_price ?? 0),
-                    total_price: Number(it.total_price ?? ( (Number(it.total_weight ?? 0)) * (Number(it.unit_price ?? 0)) ))
-                    }));
+                    const items = Array.isArray(inv[itemsKey]) ? inv[itemsKey] : [];
+                    return items.map((it, idx) => {
+                        const base = {
+                            invoice_id,
+                            invoice_date,
+                            invoice_tracking_numbers,
+                            supplier_ids,
+                            date: it.date ? moment(it.date).format('YYYY-MM-DD') : '',
+                            total_weight: Number(it.total_weight ?? 0),
+                            unit_price: Number(it.unit_price ?? 0),
+                            total_price: Number(it.total_price ?? ((Number(it.total_weight ?? 0)) * (Number(it.unit_price ?? 0)))),
+                        };
+                        if (isDetailMode) {
+                            base.article_type = it.article_type ?? '';
+                            base.license_plate = it.license_plate ?? '';
+                            base.reception_tracking_number = it.reception_tracking_number ?? '';
+                        } else {
+                            base.source = it.source ?? '';
+                            base.reception_tracking_number = it.reception_tracking_number ?? '';
+                            base.category_name = it.category_name ?? '';
+                        }
+                        return base;
+                    });
                 });
 
                 // 3) Build invoice summary rows (invoice-prefixed keys)
@@ -274,12 +310,18 @@ export default {
                     total_price: Number(inv.total_price ?? 0)
                 }));
 
-                // 4) Keys / column order (use exact property names)
-                const itemKeys = [
-                    'invoice_id', 'invoice_date', 'invoice_tracking_numbers', 'supplier_ids',
-                    'date', 'charge_id', 'charge_category_id', 'truck_id', 'tracking_numbers',
-                    'stockable', 'stockable_type', 'total_weight', 'unit_price', 'total_price'
-                ];
+                // 4) Keys / column order based on display mode
+                const itemKeys = isDetailMode
+                    ? [
+                        'invoice_id', 'invoice_date', 'invoice_tracking_numbers', 'supplier_ids',
+                        'date', 'article_type', 'license_plate', 'reception_tracking_number',
+                        'total_weight', 'unit_price', 'total_price'
+                    ]
+                    : [
+                        'invoice_id', 'invoice_date', 'invoice_tracking_numbers', 'supplier_ids',
+                        'date', 'source', 'reception_tracking_number', 'category_name',
+                        'total_weight', 'unit_price', 'total_price'
+                    ];
                 const invoiceKeys = ['invoice_id', 'invoice_date', 'invoice_tracking_numbers', 'supplier_ids', 'total_weight', 'total_price'];
 
                 // 5) Create worksheets
@@ -365,8 +407,9 @@ export default {
                     return [];
                 }
                 let data = [];
+                const itemsKey = this.supplierInvoice.display_mode === 'charge' ? 'charge_items' : 'detail_items';
                 this.supplierInvoice.items.forEach(supplier_invoice => {
-                    const grouped = _.groupBy(supplier_invoice.items, (item) =>
+                    const grouped = _.groupBy(supplier_invoice[itemsKey] || [], (item) =>
                         this.groupByKeys.map((k) => item[k]).join("||")
                     );
     
@@ -405,6 +448,11 @@ export default {
                     this.groupedItems();
                 },
                 deep: true,
+            },
+            displayMode() {
+                // Reset grouping when switching display modes
+                this.groupByKeys = [];
+                this.supplierInvoice.setGroupedItems([]);
             },
         }
     }

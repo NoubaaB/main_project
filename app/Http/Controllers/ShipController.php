@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ship;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class ShipController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of the resource.
      */
@@ -28,7 +30,12 @@ class ShipController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+        $ship = Ship::create($data);
+        $this->broadcastChange('Ship', 'created', $ship->id, $ship->toArray());
+        return response()->json(['ship' => $ship], 201);
     }
 
     /**

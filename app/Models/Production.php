@@ -2,126 +2,105 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Model;
 
 class Production extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $guarded = ['id'];
-
-    protected $appends = ['supplier_ids', 'truck_ids', 'created_by_name'];
-
-    protected $casts = [
-        'date' => 'date:Y-m-d',
-        'reception_tracking_number' => 'array',
-        'tracking_onp_numbers' => 'array',
-        'production_tracking_numbers' => 'array',
-        'note' => 'string',
-        'total_price'  => 'float',
-        'total_weight' => 'float',
-        'total_package_count' => 'float',
+    protected $fillable = [
+        'date',
+        'total_price',
+        'total_weight',
+        'fresh_reception_weight',
+        'frozen_production_weight',
+        'guano_production_weight',
+        'equilibrium',
+        'equilibrium_status',
+        'production_category_id',
+        'reception_tracking_number',
+        'tracking_onp_numbers',
+        'production_tracking_number',
+        'production_type',
+        'fishery_id',
+        'ship_id',
+        'origin_id',
+        'charge_id',
+        'supplier_id',
+        'client_id',
+        'allow_invoice',
+        'supplier_invoice_id',
+        'client_invoice_id',
     ];
 
-    // ── Relationships ──
+    protected $casts = [
+        'date' => 'date',
+        'total_price' => 'decimal:2',
+        'total_weight' => 'decimal:2',
+        'fresh_reception_weight' => 'decimal:2',
+        'frozen_production_weight' => 'decimal:2',
+        'guano_production_weight' => 'decimal:2',
+        'equilibrium' => 'decimal:2',
+        'reception_tracking_number' => 'array',
+        'tracking_onp_numbers' => 'array',
+        'production_tracking_number' => 'array',
+        'allow_invoice' => 'boolean',
+    ];
 
-    function charge(): BelongsTo
+    public function productionCategory()
+    {
+        return $this->belongsTo(ProductionCategory::class);
+    }
+
+    public function detailProductions()
+    {
+        return $this->hasMany(DetailProduction::class);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function charge()
     {
         return $this->belongsTo(Charge::class);
     }
 
-    function production_category(): BelongsTo
-    {
-        return $this->belongsTo(ProductionCategory::class, 'production_category_id');
-    }
-
-    function non_warehouse_stockable_operations(): HasMany
-    {
-        return $this->hasMany(NonWarehouseStockableOperation::class);
-    }
-
-    function warehouse_stockable_tracking_number_operations(): MorphMany
-    {
-        return $this->morphMany(WarehouseStockableTrackingNumberOperation::class, 'sourceable');
-    }
-
-    function suppliers(): BelongsToMany
-    {
-        return $this->belongsToMany(Supplier::class, 'production_supplier', 'production_id', 'supplier_id');
-    }
-
-    function trucks(): BelongsToMany
-    {
-        return $this->belongsToMany(Truck::class, 'production_truck');
-    }
-
-    function fishery(): BelongsTo
+    public function fishery()
     {
         return $this->belongsTo(Fishery::class);
     }
 
-    function origin(): BelongsTo
+    public function ship()
     {
-        return $this->belongsTo(Origin::class, 'origin_id');
+        return $this->belongsTo(Ship::class);
     }
 
-    function creator(): BelongsTo
+    public function origin()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(Origin::class);
     }
 
-    function updater(): BelongsTo
+    public function supplierInvoice()
     {
-        return $this->belongsTo(User::class, 'updated_by');
+        return $this->belongsTo(SupplierInvoice::class);
     }
 
-    // ── Accessors ──
-
-    protected function supplierIds(): Attribute
+    public function clientInvoice()
     {
-        return Attribute::get(fn() => $this->suppliers->pluck('id')->toArray());
+        return $this->belongsTo(ClientInvoice::class);
     }
 
-    protected function truckIds(): Attribute
+    public function qualityControls()
     {
-        return Attribute::get(fn() => $this->trucks->pluck('id')->toArray());
-    }
-
-    protected function createdByName(): Attribute
-    {
-        return Attribute::get(fn() => $this->creator?->name ?? null);
-    }
-
-    // ── Calc ──
-
-    function calc(): void
-    {
-        $total_weight = 0.00;
-        $total_price = 0.00;
-        $total_package_count = 0.00;
-
-        foreach ($this->warehouse_stockable_tracking_number_operations as $op) {
-            $total_weight += $op->total_weight;
-            $total_price += $op->total_price;
-            $total_package_count += $op->total_package_count;
-        }
-
-        foreach ($this->non_warehouse_stockable_operations as $op) {
-            $total_weight += $op->total_weight;
-            $total_price += $op->total_price;
-            $total_package_count += $op->total_package_count;
-        }
-
-        $this->update([
-            'total_weight' => $total_weight,
-            'total_price' => $total_price,
-            'total_package_count' => $total_package_count,
-        ]);
+        return $this->hasMany(QualityControl::class);
     }
 }

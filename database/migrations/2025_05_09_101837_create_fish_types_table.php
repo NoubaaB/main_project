@@ -5,37 +5,32 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Fish types are individual species used as polymorphic stockable items throughout the system.
         Schema::create('fish_types', function (Blueprint $table) {
             $table->id();
-            $table->string("name_fr")->unique();
-            $table->string("name_en")->unique();
-            $table->string("name_es")->unique();
-            $table->string("name_in_invoice")->unique();
-            $table->string("scientific_name")->nullable();
-            $table->string("image")->nullable();
-            $table->string("description")->nullable();
-            $table->string("process")->nullable();
-            $table->enum("type", ["fresh", "frozen"])->nullable();
+            $table->string("name_fr")->unique()->comment('French name of the fish species');
+            $table->string("name_en")->unique()->comment('English name of the fish species');
+            $table->string("name_es")->unique()->comment('Spanish name of the fish species');
+            $table->string("name_in_invoice")->unique()->comment('Name displayed on printed invoices');
+            $table->string("scientific_name")->nullable()->comment('Scientific/Latin name of the species');
+            $table->string("image")->nullable()->comment('Path to fish species image');
+            $table->string("description")->nullable()->comment('Optional description or notes');
+            $table->string("process")->nullable()->comment('Default processing method for this species');
+            $table->enum("type", ["fresh", "frozen"])->nullable()->comment('Fish state: fresh or frozen');
 
-            $table->foreignId('fish_family_id')->nullable()->index();
-            $table->foreignId('fish_process_type_id')->nullable()->index();
-            $table->string('productivity_color')->nullable();
+            $table->foreignId('fish_family_id')->nullable()->index()->comment('FK to fish_families - the family this species belongs to');
+            $table->foreignId('fish_process_type_id')->nullable()->index()->comment('FK to fish_process_types - default processing type');
+            $table->string('productivity_color')->nullable()->comment('Color code for productivity chart display');
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This fish_types table has belong to one fish_family record in table fish_fammilies also has belong to one fish_process_type record in table fish_process_types , and have reltionship with charge_details table as has many of charge_detail records and production_details table as has many of production_detail records');
+            $table->comment('Fish species (sardine, mackerel). BelongsTo fish_families, fish_process_types. Polymorphic stockable in detail_charges, detail_productions, detail_shippings, warehouse_balances.');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('fish_types');

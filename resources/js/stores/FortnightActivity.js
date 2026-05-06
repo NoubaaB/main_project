@@ -18,10 +18,13 @@ export const useFortnightActivity = defineStore("fortnight_activity", {
         };
     },
     actions: {
-        async fetchActivities(workforceId, year, month, fortnightPeriod) {
+        async fetchActivities(workforceIds, year, month, fortnightPeriod) {
             this.loading = true;
             try {
-                const params = { workforce_id: workforceId, year, month };
+                const params = { year, month };
+                // Support both array and single ID for backward compatibility
+                const ids = Array.isArray(workforceIds) ? workforceIds : [workforceIds];
+                if (ids.length > 0) params.workforce_ids = ids;
                 if (fortnightPeriod) params.fortnight_period = fortnightPeriod;
                 const res = await axios.get('/api/fortnight-activities', { params });
                 this.activities = res.data.activities || [];

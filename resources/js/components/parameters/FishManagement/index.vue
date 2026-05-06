@@ -59,26 +59,26 @@
             </template>
             <template v-slot:[`item.type`]="{ item }">
               <v-chip v-if="item.type" size="small" variant="tonal" :color="item.type === 'fresh' ? 'teal' : 'blue'">{{ $t(item.type) }}</v-chip>
-              <span v-else class="text-grey">—</span>
+              <span v-else class="text-grey">-</span>
             </template>
             <template v-slot:[`item.fish_family`]="{ item }">
               <v-chip v-if="item.fish_family" color="teal" size="small" variant="tonal">{{ item.fish_family['name_' + main.lang.short] || item.fish_family.name_en }}</v-chip>
-              <span v-else class="text-grey">—</span>
+              <span v-else class="text-grey">-</span>
             </template>
             <template v-slot:[`item.fish_process_type`]="{ item }">
               <v-chip v-if="item.fish_process_type" size="small" variant="tonal" :color="item.productivity_color || 'info'">{{ item.fish_process_type.name }}</v-chip>
-              <span v-else class="text-grey">—</span>
+              <span v-else class="text-grey">-</span>
             </template>
             <template v-slot:[`item.productivity_color`]="{ item }">
               <div v-if="item.productivity_color" class="d-flex align-center justify-center">
                 <div class="fm-color-dot" :style="{ background: item.productivity_color }"></div>
                 <span class="text-caption ml-1">{{ item.productivity_color }}</span>
               </div>
-              <span v-else class="text-grey">—</span>
+              <span v-else class="text-grey">-</span>
             </template>
             <template v-slot:[`item.image`]="{ item }">
               <v-avatar v-if="item.image" size="32" rounded="lg"><v-img :src="item.image" :alt="item.name_en" cover></v-img></v-avatar>
-              <span v-else class="text-grey">—</span>
+              <span v-else class="text-grey">-</span>
             </template>
             <template v-slot:[`item.actions`]="{ item }">
               <v-btn icon size="x-small" variant="tonal" color="info" @click="openTypeDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
@@ -338,6 +338,7 @@
 
 <script>
 import axios from 'axios';
+import mitt from '@/plugins/mitt';
 import { useMain } from '@/stores/Main';
 import { useFishProcessType } from '@/stores/FishProcessType';
 import { useFishFamily } from '@/stores/FishFamily';
@@ -447,22 +448,29 @@ export default {
     this.fetchFamilies();
     this.fetchTypes();
     this.fetchProcessTypes();
+    mitt.on('model-changed', this._onModelChanged);
   },
+  beforeUnmount() { mitt.off('model-changed', this._onModelChanged); },
   methods: {
     familyTitle(item) {
       return item['name_' + this.main.lang.short] || item.name_en;
     },
     getTypeCellValue(key, item) {
-      if (key === 'type') return item.type ? this.$t(item.type) : '—';
-      if (key === 'fish_family') return item.fish_family ? (item.fish_family['name_' + this.main.lang.short] || item.fish_family.name_en) : '—';
-      if (key === 'fish_process_type') return item.fish_process_type ? item.fish_process_type.name : '—';
+      if (key === 'type') return item.type ? this.$t(item.type) : '-';
+      if (key === 'fish_family') return item.fish_family ? (item.fish_family['name_' + this.main.lang.short] || item.fish_family.name_en) : '-';
+      if (key === 'fish_process_type') return item.fish_process_type ? item.fish_process_type.name : '-';
       return String(item[key] ?? '');
     },
     getFamilyColumnOptions(key) { const set = new Set(); this.families.forEach(i => set.add(String(i[key] ?? ''))); return [...set].sort(); },
     getTypeColumnOptions(key) { const set = new Set(); this.fishTypes.forEach(i => set.add(this.getTypeCellValue(key, i))); return [...set].sort(); },
     getProcessColumnOptions(key) { const set = new Set(); this.processTypesList.forEach(i => set.add(String(i[key] ?? ''))); return [...set].sort(); },
+    _onModelChanged(data) {
+      if (data.model === 'FishFamily') this.fetchFamilies();
+      if (data.model === 'FishType') { this.fetchTypes(); this.fetchFamilies(); }
+      if (data.model === 'FishProcessType') this.fetchProcessTypes();
+    },
 
-    // ── Fish Families ──
+    // -- Fish Families --
     async fetchFamilies() {
       this.loadingFamilies = true;
       try {
@@ -497,7 +505,7 @@ export default {
       this.confirmDeleteDialog = true;
     },
 
-    // ── Fish Types ──
+    // -- Fish Types --
     async fetchTypes() {
       this.loadingTypes = true;
       try {
@@ -553,7 +561,7 @@ export default {
       this.confirmDeleteDialog = true;
     },
 
-    // ── Process Types ──
+    // -- Process Types --
     async fetchProcessTypes() {
       this.loadingProcessTypes = true;
       try {
@@ -590,7 +598,7 @@ export default {
       this.confirmDeleteDialog = true;
     },
 
-    // ── Process Type Create-on-Enter ──
+    // -- Process Type Create-on-Enter --
     async onProcessTypeEnter() {
       const name = (this.processTypeSearch || '').trim();
       if (!name) return;
@@ -616,7 +624,7 @@ export default {
       this.creatingProcessType = false;
     },
 
-    // ── Delete ──
+    // -- Delete --
     async executeDelete() {
       this.confirmDeleteDialog = false;
       const item = this.deleteTarget;

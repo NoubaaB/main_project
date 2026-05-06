@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Supplier;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of the resource.
      */
@@ -33,6 +35,7 @@ class SupplierController extends Controller
             "name" => "required|string|max:100|min:2"
         ]);
         $supplier = Supplier::create($data);
+        $this->broadcastChange('Supplier', 'created', $supplier->id, $supplier->toArray());
         return response()->json(["supplier" => $supplier], 200);
     }
 

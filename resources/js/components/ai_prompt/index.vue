@@ -375,7 +375,7 @@ export default {
 </script>
 
 <style scoped>
-/* ── Page Layout ── */
+/* -- Page Layout -- */
 .aiq-page {
   position: relative;
   display: flex;
@@ -390,11 +390,11 @@ export default {
   border: 1px solid var(--aiq-input-border);
 }
 
-/* ── Theme ── */
+/* -- Theme -- */
 .aiq-dark { height: 90vh; --aiq-body-bg: #0a0a0a; --aiq-input-bg: #1a1a1a; --aiq-input-border: rgba(255,255,255,0.08); --aiq-card-bg: #141414; --aiq-text: rgba(255,255,255,0.87); --aiq-text-muted: rgba(255,255,255,0.4); }
 .aiq-light { height: 90vh; --aiq-body-bg: #f8f9fa; --aiq-input-bg: #ffffff; --aiq-input-border: rgba(0,0,0,0.1); --aiq-card-bg: #ffffff; --aiq-text: #212121; --aiq-text-muted: rgba(0,0,0,0.38); }
 
-/* ── Hero ── */
+/* -- Hero -- */
 .aiq-hero { position: relative; flex-shrink: 0; overflow: hidden; }
 .aiq-hero-bg {
   position: absolute; inset: 0;
@@ -424,7 +424,7 @@ export default {
 @keyframes aiq-blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 .aiq-clear-btn { text-transform: none !important; font-weight: 600; font-size: 11px; }
 
-/* ── Chat Body ── */
+/* -- Chat Body -- */
 .aiq-chat-body {
   flex: 1 1 0;
   min-height: 0;
@@ -439,7 +439,7 @@ export default {
 .aiq-chat-body::-webkit-scrollbar { width: 4px; }
 .aiq-chat-body::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 10px; }
 
-/* ── Welcome ── */
+/* -- Welcome -- */
 .aiq-welcome {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; flex: 1; text-align: center; gap: 12px;
@@ -455,7 +455,7 @@ export default {
 .aiq-quick-chip { cursor: pointer !important; transition: all 0.2s; text-transform: none !important; font-weight: 500; }
 .aiq-quick-chip:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(33,150,243,0.2); }
 
-/* ── Message Rows ── */
+/* -- Message Rows -- */
 .aiq-msg-row {
   display: flex;
   max-width: 100%;
@@ -465,7 +465,7 @@ export default {
 .aiq-msg-user { justify-content: flex-end; gap: 8px; align-items: flex-end; }
 .aiq-msg-ai { justify-content: flex-start; }
 
-/* ── User Bubble ── */
+/* -- User Bubble -- */
 .aiq-bubble-user {
   max-width: 70%;
   padding: 10px 16px;
@@ -486,7 +486,7 @@ export default {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 
-/* ── AI Footer (reactions + delete) ── */
+/* -- AI Footer (reactions + delete) -- */
 .aiq-ai-footer {
   display: flex; align-items: center; gap: 6px;
   padding: 4px 0 0 54px;
@@ -496,7 +496,7 @@ export default {
 .aiq-ai-footer:hover { opacity: 1; }
 .aiq-ai-time { font-size: 10px; color: var(--aiq-text-muted); font-weight: 500; }
 
-/* ── Action Buttons ── */
+/* -- Action Buttons -- */
 .aiq-action-btn {
   width: 22px; height: 22px; border-radius: 50%;
   border: none; cursor: pointer;
@@ -528,7 +528,7 @@ export default {
   color: #F44336 !important;
 }
 
-/* ── Floating Scroll-to-Bottom Button ── */
+/* -- Floating Scroll-to-Bottom Button -- */
 .aiq-scroll-bottom-fab {
   position: absolute;
   bottom: 130px;
@@ -557,12 +557,12 @@ export default {
   transform: translateY(10px) scale(0.8);
 }
 
-/* ── Loading More ── */
+/* -- Loading More -- */
 .aiq-loading-more {
   display: flex; justify-content: center; padding: 12px 0;
 }
 
-/* ── Typing ── */
+/* -- Typing -- */
 .aiq-typing-card {
   background: var(--aiq-card-bg);
   border: 1px solid rgba(var(--v-border-color), 0.08);
@@ -590,7 +590,7 @@ export default {
   30% { transform: translateY(-8px); opacity: 1; }
 }
 
-/* ── Input Area ── */
+/* -- Input Area -- */
 .aiq-input-area {
   flex-shrink: 0;
   padding: 10px 22px 14px;
@@ -642,7 +642,7 @@ export default {
 .aiq-spin { animation: aiq-spin-r 0.8s linear infinite; }
 @keyframes aiq-spin-r { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
-/* ── Excel Import ── */
+/* -- Excel Import -- */
 .aiq-excel-badges {
   display: flex;
   flex-wrap: wrap;

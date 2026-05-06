@@ -34,8 +34,7 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
-            // Add a comment to the whole table
-            $table->comment('This users table has belong to one role record in table roles');
+            $table->comment('Application users. BelongsTo roles (role_id). Has many chat_messages, ai_query_messages. JSON allowed_ai_crud controls AI CRUD permissions per model.');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

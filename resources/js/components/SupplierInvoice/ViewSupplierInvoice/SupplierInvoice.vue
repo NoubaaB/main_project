@@ -33,14 +33,17 @@
       supplierInvoice: () => useSupplierInvoice(),
       main: () => useMain(),
       items: function () {
-        return this.supplier_invoice_data.items;
+        if (this.supplierInvoice.display_mode === 'charge') {
+          return this.supplier_invoice_data.charge_items || [];
+        }
+        return this.supplier_invoice_data.detail_items || [];
       },
       supplier_invoice_detail: function () {
         return {
           id: this.supplier_invoice_data.id,
           date: this.supplier_invoice_data.date,
           tracking_numbers: this.supplier_invoice_data.tracking_numbers.toString(),
-          supplier_ids: this.supplier_invoice_data.supplier_ids,
+          supplier_ids: this.supplier_invoice_data.supplier?.name || '',
           total_price: this.supplier_invoice_data.total_price,
           total_weight: this.supplier_invoice_data.total_weight,
         }

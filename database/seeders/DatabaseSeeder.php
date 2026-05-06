@@ -2,30 +2,28 @@
 
 namespace Database\Seeders;
 
-use App\Models\Charge;
 use App\Models\ChargeCategory;
 use App\Models\Client;
+use App\Models\DetailChargeCategory;
+use App\Models\DetailShippingCategory;
+use App\Models\DetailProductionCategory;
 use App\Models\Fishery;
 use App\Models\FishFamily;
 use App\Models\FishProcessType;
 use App\Models\FishType;
-use App\Models\FixedCharge;
 use App\Models\Formula;
 use App\Models\GuanoType;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Origin;
 use App\Models\PackageType;
+use App\Models\ProductionCategory;
 use App\Models\Role;
-use App\Models\Sell;
-use App\Models\SellCategory;
 use App\Models\Ship;
+use App\Models\ShippingCategory;
 use App\Models\Supplier;
-use App\Models\SupplierInvoice;
 use App\Models\Truck;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseCategory;
-use App\Models\WarehouseCategoryOperation;
 use App\Support\CsvReader;
 use Illuminate\Database\Seeder;
 
@@ -36,9 +34,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
         Role::factory()->create([
-            "name" => "admin"
+            "name" => "admin",
+            "is_super_admin" => true,
+            "permissions" => Role::allPermissionKeys(),
         ]);
 
         User::factory()->create([
@@ -56,177 +55,9 @@ class DatabaseSeeder extends Seeder
             "enabled" => true,
             "type" => "charge",
             "created_by" => 1,
-            "expressions" => [
-                [
-                    "expression" => "cc1_weight",
-                    "chart_config" => [
-                        "chart_color" => "#0743acb6",
-                        "chart_type" => "area",
-                        "opposite" => true,
-                        "name_fr" => "HGT Qte",
-                        "name_en" => "HGT Qte",
-                        "name_es" => "HGT Qte",
-                        "scale" => "KG",
-                        "mdi_icon" => "mdi-weight-kilogram",
-                        "display_yaxis" => true,
-                        "use_avg" => false
-                    ],
-                    "variables" => [
-                        [
-                            "alias" => "cc1_weight",
-                            "kind" => "charge",
-                            "category_id" => 1,
-                            "stockable_type" => null,
-                            "stockable_id" => null,
-                            "field" => "total_weight"
-                        ]
-                    ]
-                ],
-                [
-                    "expression" => "(cc1_weight / cc2_weight)*100",
-                    "chart_config" => [
-                        "chart_color" => "#330099ff",
-                        "chart_type" => "column",
-                        "opposite" => false,
-                        "name_fr" => "Entier",
-                        "name_en" => "Entier",
-                        "name_es" => "Entier",
-                        "scale" => "%",
-                        "mdi_icon" => "mdi-percent",
-                        "display_yaxis" => true,
-                        "use_avg" => true
-                    ],
-                    "variables" => [
-                        [
-                            "alias" => "cc1_weight",
-                            "kind" => "charge",
-                            "category_id" => 3,
-                            "stockable_type" => class_basename(GuanoType::class),
-                            "stockable_id" => 1,
-                            "field" => "total_weight"
-                        ],
-                        [
-                            "alias" => "cc2_weight",
-                            "kind" => "charge",
-                            "category_id" => 1,
-                            "stockable_type" => null,
-                            "stockable_id" => null,
-                            "field" => "total_weight"
-                        ]
-                    ]
-                ],
-                [
-                    "expression" => "(cc1_weight / cc2_weight)*100",
-                    "chart_config" => [
-                        "chart_color" => "#1eaeecff",
-                        "chart_type" => "column",
-                        "opposite" => false,
-                        "name_fr" => "HGT",
-                        "name_en" => "HGT",
-                        "name_es" => "HGT",
-                        "scale" => "%",
-                        "mdi_icon" => "mdi-percent",
-                        "display_yaxis" => false,
-                        "use_avg" => true
-                    ],
-                    "variables" => [
-                        [
-                            "alias" => "cc1_weight",
-                            "kind" => "charge",
-                            "category_id" => 3,
-                            "stockable_type" => class_basename(GuanoType::class),
-                            "stockable_id" => 2,
-                            "field" => "total_weight"
-                        ],
-                        [
-                            "alias" => "cc2_weight",
-                            "kind" => "charge",
-                            "category_id" => 1,
-                            "stockable_type" => null,
-                            "stockable_id" => null,
-                            "field" => "total_weight"
-                        ]
-                    ]
-                ],
-                // [
-                //         "expression" => "(cc1_weight / cc2_weight)*100",
-                //         "chart_config" => [
-                //             "chart_color" => "#c5f51aff",
-                //             "chart_type" => "column",
-                //             "opposite" => false,
-                //             "name_fr" => "HG",
-                //             "name_en" => "HG",
-                //             "name_es" => "HG",
-                //             "scale"=>"%",
-                //             "mdi_icon"=>"mdi-percent",
-                //             "display_yaxis"=>false,
-                //             "use_avg"=>true
-                //         ],
-                //         "variables" => [
-                //             [
-                //                 "alias" => "cc1_weight",
-                //                 "kind" => "charge",
-                //                 "category_id" => 3,
-                //                 "stockable_type" => class_basename(GuanoType::class),
-                //                 "stockable_id" => 3,
-                //                 "field" => "total_weight"
-                //             ],
-                //             [
-                //                 "alias" => "cc2_weight",
-                //                 "kind" => "charge",
-                //                 "category_id" => 1,
-                //                 "stockable_type" => null,
-                //                 "stockable_id" => null,
-                //                 "field" => "total_weight"
-                //             ]
-                //     ]
-                // ],
-                // [
-                //         "expression" => "(cc1_weight / cc2_weight)*100",
-                //         "chart_config" => [
-                //             "chart_color" => "#17ea33ff",
-                //             "chart_type" => "column",
-                //             "opposite" => false,
-                //             "name_fr" => "Filet",
-                //             "name_en" => "Filet",
-                //             "name_es" => "Filet",
-                //             "scale"=>"%",
-                //             "mdi_icon"=>"mdi-percent",
-                //             "display_yaxis"=>false,
-                //             "use_avg"=>true
-                //         ],
-                //         "variables" => [
-                //             [
-                //                 "alias" => "cc1_weight",
-                //                 "kind" => "charge",
-                //                 "category_id" => 3,
-                //                 "stockable_type" => class_basename(GuanoType::class),
-                //                 "stockable_id" => 4,
-                //                 "field" => "total_weight"
-                //             ],
-                //             [
-                //                 "alias" => "cc2_weight",
-                //                 "kind" => "charge",
-                //                 "category_id" => 1,
-                //                 "stockable_type" => null,
-                //                 "stockable_id" => null,
-                //                 "field" => "total_weight"
-                //             ]
-                //     ]
-                // ]
-            ],
+            "expressions" => [],
         ]);
         #endregion formula
-
-        #region Fixed Charges and Type Charges Seeders
-        FixedCharge::create([
-            "name" => "Acompte 30%",
-            "start_date" => "2025-10-01",
-            "description" => "Acompte 30% sur total facture",
-            "amount" => 30.00,
-            "fixed_periodic_charge" => "daily",
-            "charge_category_id" => 1
-        ]);
 
         $guano_type_entier = GuanoType::create([
             "name_fr" => "Guano Entier",
@@ -264,436 +95,6 @@ class DatabaseSeeder extends Seeder
             "description" => "Guano Filet",
         ]);
 
-        $charge_category_frais_production = ChargeCategory::factory()->create([
-            "description" => "This Production is our Fresh Fish goes to production and stocked",
-            "name_en" => "Frais to production",
-            "name_fr" => "Frais to production",
-            "name_es" => "Frais to production",
-            "enable_reception_tracking_number" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_supplier_process_id" => true,
-            "enable_tracking_onp_numbers" => true,
-            "is_production" => true
-        ]);
-
-        $charge_category_frais = ChargeCategory::factory()->create([
-            "description" => "Frais",
-            "name_en" => "Frais",
-            "name_fr" => "Frais",
-            "name_es" => "Frais",
-            "enable_reception_tracking_number" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_supplier_process_id" => true,
-            "enable_tracking_onp_numbers" => true,
-            "is_production" => false
-        ]);
-
-        $charge_category_congele = ChargeCategory::factory()->create([
-            "description" => "Congele",
-            "name_en" => "Congele",
-            "name_fr" => "Congele",
-            "name_es" => "Congele",
-            "enable_reception_tracking_number" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_supplier_process_id" => true,
-            "enable_tracking_onp_numbers" => true,
-            "is_production" => false
-        ]);
-
-        $charge_category_guano_production = ChargeCategory::factory()->create([
-            "description" => "Guano Production",
-            "name_en" => "Guano Production",
-            "name_fr" => "Guano Production",
-            "name_es" => "Guano Production",
-            "enable_reception_tracking_number" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_supplier_process_id" => true,
-            "enable_tracking_onp_numbers" => true,
-            "is_production" => false
-        ]);
-
-        $charge_category_guano_arvd = ChargeCategory::factory()->create([
-            "description" => "Guano Achat Revendu",
-            "name_en" => "Guano Achat Revendu",
-            "name_fr" => "Guano Achat Revendu",
-            "name_es" => "Guano Achat Revendu",
-            "enable_reception_tracking_number" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_supplier_process_id" => true,
-            "enable_tracking_onp_numbers" => true,
-            "is_production" => false
-        ]);
-
-        #region Charge Detail Categories Seeders
-
-        $warehouse_category_operation_frais_mp = WarehouseCategoryOperation::create([
-            "name_fr" => "Frais Matiere Premiere",
-            "name_en" => "Frais Matiere Premiere",
-            "name_es" => "Frais Matiere Premiere",
-            "description" => "Frais fish Matiere Premiere",
-            "warehouse_type" => "FishType",
-            "operation_type" => "charge",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => false,
-            "production_role" => "fresh"
-        ]);
-
-        $warehouse_category_operation_frais_arvd = WarehouseCategoryOperation::create([
-            "name_fr" => "Frais Achat Revendu",
-            "name_en" => "Frais Achat Revendu",
-            "name_es" => "Frais Achat Revendu",
-            "description" => "Fresh Fish Stocked in Warehouse",
-            "warehouse_type" => "FishType",
-            "operation_type" => "charge",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => true,
-            "production_role" => "fresh"
-        ]);
-
-        $warehouse_category_operation_congele_production_intern = WarehouseCategoryOperation::create([
-            "name_fr" => "Congele Production Intern (Local)",
-            "name_en" => "Congele Production Intern (Local)",
-            "name_es" => "Congele Production Intern (Local)",
-            "description" => "Frozen Production Fish Stocked in Warehouse",
-            "warehouse_type" => "FishType",
-            "operation_type" => "production",
-            "allow_weight" => true,
-            "allow_price" => false,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => false,
-            "allow_warehouse" => true,
-            "production_role" => "frozen"
-        ]);
-
-        $warehouse_category_operation_congele_production_extern = WarehouseCategoryOperation::create([
-            "name_fr" => "Congele Production Extern",
-            "name_en" => "Congele Production Extern",
-            "name_es" => "Congele Production Extern",
-            "description" => "Frozen Production Fish Stocked in External Warehouse's fish freezing plant",
-            "warehouse_type" => "FishType",
-            "operation_type" => "production",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => false,
-            "allow_warehouse" => true,
-            "production_role" => "frozen"
-        ]);
-
-        $warehouse_category_operation_congele_achete = WarehouseCategoryOperation::create([
-            "name_fr" => "Congele Achete",
-            "name_en" => "Congele Achete",
-            "name_es" => "Congele Achete",
-            "description" => "Frozen Fish Stocked in Warehouse",
-            "warehouse_type" => "FishType",
-            "operation_type" => "charge",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => true,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_guano_production = WarehouseCategoryOperation::create([
-            "name_fr" => "Guano Production",
-            "name_en" => "Guano Production",
-            "name_es" => "Guano Production",
-            "description" => "fresh fish that goes to production and give second product as Guano Production , important to describe prodactivity yield",
-            "warehouse_type" => "GuanoType",
-            "operation_type" => "production",
-            "allow_weight" => true,
-            "allow_price" => false,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => false,
-            "allow_warehouse" => true,
-            "production_role" => "guano"
-        ]);
-
-        $warehouse_category_operation_guano_arvd = WarehouseCategoryOperation::create([
-            "name_fr" => "Guano Achat Revendu",
-            "name_en" => "Guano Achat Revendu",
-            "name_es" => "Guano Achat Revendu",
-            "description" => "Guano that is bought and stocked temporally and then sold as is",
-            "warehouse_type" => "GuanoType",
-            "operation_type" => "charge",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => true,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_glace = WarehouseCategoryOperation::create([
-            "name_fr" => "Glace",
-            "name_en" => "Glace",
-            "name_es" => "Glace",
-            "description" => "Glace that is bought used in production to make fresh fish in the perfect temperature",
-            "warehouse_type" => null,
-            "operation_type" => "charge",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => false,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_transport_on_charges = WarehouseCategoryOperation::create([
-            "name_fr" => "Transport on Charges",
-            "name_en" => "Transport on Charges",
-            "name_es" => "Transport on Charges",
-            "description" => "Transport cost on Charges that we pay to bring the fish from the port to our fish freezing plant",
-            "warehouse_type" => null,
-            "operation_type" => "charge",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => false,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_transport_on_sells = WarehouseCategoryOperation::create([
-            "name_fr" => "Transport on Sells",
-            "name_en" => "Transport on Sells",
-            "name_es" => "Transport on Sells",
-            "description" => "Transport cost on Sells that we pay to deliver the fish from the fish freezing plant to the customer",
-            "warehouse_type" => null,
-            "operation_type" => "charge",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => false,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_emballage = WarehouseCategoryOperation::create([
-            "name_fr" => "Emballage",
-            "name_en" => "Emballage",
-            "name_es" => "Emballage",
-            "description" => "Emballage cost on Charges that we pay to pack the fish",
-            "warehouse_type" => "PackageType",
-            "operation_type" => "charge",
-            "allow_weight" => false,
-            "allow_price" => true,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => true,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_commission = WarehouseCategoryOperation::create([
-            "name_fr" => "Commission",
-            "name_en" => "Commission",
-            "name_es" => "Commission",
-            "description" => "Commission for suppliers that we pay to bring the fish from the port to our fish freezing plant ",
-            "warehouse_type" => null,
-            "operation_type" => "charge",
-            "allow_weight" => false,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => false,
-            "allow_warehouse" => false,
-            "production_role" => null
-        ]);
-
-        #endregion Charge Detail Categories Seeders
-
-        #region sell_category
-        $sell_category_vsc = SellCategory::factory()->create([
-            "description" => "Freezing service is for our client who have fresh fish and like to freeze it in our fish freezing plant ",
-            "name_en" => "Freezing Service Sale",
-            "name_fr" => "Vente Service Congélation",
-            "name_es" => "Venta Servicio Congelación",
-            "enable_tracking_numbers" => true,
-            "enable_tracking_onp_numbers" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_client_process_id" => true,
-        ]);
-
-        $sell_category_congele = SellCategory::factory()->create([
-            "description" => "Congelé",
-            "name_en" => "Frozen",
-            "name_fr" => "Congelé",
-            "name_es" => "Congelado",
-            "enable_tracking_numbers" => true,
-            "enable_tracking_onp_numbers" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_client_process_id" => true,
-        ]);
-
-        $sell_category_frais = SellCategory::factory()->create([
-            "description" => "Frais",
-            "name_en" => "Fresh",
-            "name_fr" => "Frais",
-            "name_es" => "Fresco",
-            "enable_tracking_numbers" => true,
-            "enable_tracking_onp_numbers" => true,
-            "enable_fishery_id" => true,
-            "enable_ship_id" => true,
-            "enable_origin_id" => true,
-            "enable_truck_id" => true,
-            "enable_client_process_id" => true,
-        ]);
-
-        $sell_category_guano = SellCategory::factory()->create([
-            "description" => "Guano",
-            "name_en" => "Guano",
-            "name_fr" => "Guano",
-            "name_es" => "Guano",
-            "enable_tracking_numbers" => true,
-            "enable_tracking_onp_numbers" => true,
-            "enable_fishery_id" => false,
-            "enable_ship_id" => false,
-            "enable_origin_id" => false,
-            "enable_truck_id" => true,
-            "enable_client_process_id" => true,
-        ]);
-
-        #region sell warehouse_category_operations
-        // Sell-specific warehouse_category_operations (operation_type = "sell")
-        $warehouse_category_operation_vente_congele = WarehouseCategoryOperation::create([
-            "name_fr" => "Vente Congelé",
-            "name_en" => "Frozen Sale",
-            "name_es" => "Venta Congelado",
-            "description" => "Vente de poisson congelé (sortie stock)",
-            "warehouse_type" => "FishType",
-            "operation_type" => "sell",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => true,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_vente_frais = WarehouseCategoryOperation::create([
-            "name_fr" => "Vente Frais",
-            "name_en" => "Fresh Sale",
-            "name_es" => "Venta Fresco",
-            "description" => "Vente de poisson frais (sortie stock)",
-            "warehouse_type" => "FishType",
-            "operation_type" => "sell",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => false,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_vente_guano = WarehouseCategoryOperation::create([
-            "name_fr" => "Vente Guano",
-            "name_en" => "Guano Sale",
-            "name_es" => "Venta Guano",
-            "description" => "Vente de guano (sortie stock)",
-            "warehouse_type" => "GuanoType",
-            "operation_type" => "sell",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => true,
-            "production_role" => null
-        ]);
-
-        $warehouse_category_operation_transport_vente = WarehouseCategoryOperation::create([
-            "name_fr" => "Transport Vente",
-            "name_en" => "Sale Transport",
-            "name_es" => "Transporte Venta",
-            "description" => "Frais de transport sur ventes",
-            "warehouse_type" => null,
-            "operation_type" => "sell",
-            "allow_weight" => true,
-            "allow_price" => true,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => true,
-            "allow_warehouse" => false,
-            "production_role" => null
-        ]);
-        #endregion sell warehouse_category_operations
-
-        #region production warehouse_category_operations
-        // Production-specific warehouse_category_operations (operation_type = "production")
-        $warehouse_category_operation_production_congele = WarehouseCategoryOperation::create([
-            "name_fr" => "Congelé Production",
-            "name_en" => "Frozen Production",
-            "name_es" => "Congelado Producción",
-            "description" => "Poisson congelé issu de la production (entrée stock)",
-            "warehouse_type" => "FishType",
-            "operation_type" => "production",
-            "allow_weight" => true,
-            "allow_price" => false,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => false,
-            "allow_warehouse" => true,
-            "production_role" => "frozen"
-        ]);
-
-        $warehouse_category_operation_production_guano = WarehouseCategoryOperation::create([
-            "name_fr" => "Guano Production",
-            "name_en" => "Guano Production",
-            "name_es" => "Guano Producción",
-            "description" => "Guano issu de la production (sous-produit)",
-            "warehouse_type" => "GuanoType",
-            "operation_type" => "production",
-            "allow_weight" => true,
-            "allow_price" => false,
-            "allow_package_type" => false,
-            "allow_detail_truck_id" => false,
-            "allow_warehouse" => true,
-            "production_role" => "guano"
-        ]);
-
-        $warehouse_category_operation_production_emballage = WarehouseCategoryOperation::create([
-            "name_fr" => "Emballage Production",
-            "name_en" => "Production Packaging",
-            "name_es" => "Embalaje Producción",
-            "description" => "Emballage utilisé dans la production",
-            "warehouse_type" => "PackageType",
-            "operation_type" => "production",
-            "allow_weight" => false,
-            "allow_price" => true,
-            "allow_package_type" => true,
-            "allow_detail_truck_id" => false,
-            "allow_warehouse" => true,
-            "production_role" => null
-        ]);
-        #endregion production warehouse_category_operations
-        #endregion sell_category
-
-        #endregion Fixed Charges and Type Charges Seeders
-
         #region init
 
         $path = 'storage/csv/providers.csv';
@@ -722,58 +123,6 @@ class DatabaseSeeder extends Seeder
                         "id" => $data["id"]
                     ]);
                 }
-            }
-        }
-
-        $path = 'storage/csv/chambres.csv';
-        $warehouse_category_local = WarehouseCategory::create([
-            "name" => "local",
-            "description" => "its meaen that is local warehouse of our production"
-        ]);
-        $warehouse_category_foreign = WarehouseCategory::create([
-            "name" => "foreign",
-            "description" => "its meaen that is foreign warehouse of our production in other company or unite fish production"
-        ]);
-        $warehouse_category_client = WarehouseCategory::create([
-            "name" => "client",
-            "description" => "its meaen that is local warehouse thta hold his fishes and goods"
-        ]);
-        $rows = CsvReader::read($path);
-        foreach ($rows as $data) {
-            $count = Warehouse::where("name", $data['name_chambre'])->count();
-            $warehouse_category_id = $warehouse_category_client->id;
-            if ("CHAMBRE AKF 2" == $data['name_chambre']) {
-                $warehouse_category_id = $warehouse_category_local->id;
-            }
-            $warehouse_type = str_contains($data['name_chambre'], "DECHET") ? "GuanoType" : "FishType";
-            if ($count == 0) {
-                Warehouse::create([
-                    "id" => $data['id'],
-                    "name" => $data['name_chambre'],
-                    "warehouse_category_id" => $warehouse_category_id,
-                    "warehouse_type" => $warehouse_type
-                ]);
-            } else {
-                Warehouse::create([
-                    "id" => $data['id'],
-                    "name" => $data['name_chambre'] . "_" . rand(),
-                    "warehouse_category_id" => $warehouse_category_id,
-                ]);
-            }
-        }
-
-        $warehouses = Warehouse::all();
-
-        foreach ($warehouses as $warehouse) {
-            foreach (FishType::all() as $fish_type) {
-                $warehouse->warehouse_stockables()->create([
-                    "unit_price" => 0.00,
-                    "total_weight" => 0.00,
-                    "total_price" => 0.00,
-                    "total_package_count" => 0.00,
-                    "warehouse_id" => $warehouse->id,
-                    "fish_type_id" => $fish_type->id
-                ]);
             }
         }
 
@@ -873,388 +222,445 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // return ;
-        $path = ('storage/csv/guano_usines.csv');
+        #endregion init
 
-        $rows = CsvReader::read($path);
-        foreach ($rows as $data) {
-            $charge = Charge::create([
-                "date" => $data["date_sortie"],
-                "reception_tracking_number" => [(string) $data["num_bon_sortie"]],
-                "origin_id" => null,
-                "fishery_id" => null,
-                "charge_category_id" => $charge_category_guano_production->id,
-                "ship_id" => null,
-            ]);
-            foreach (json_decode($data["matricules"]) as $truck) {
-                $truck = Truck::where("registration_plate", $truck)->first();
-                if ($truck) {
-                    $charge->trucks()->attach($truck);
-                }
-            }
-            $suppliers = Supplier::find($data["provider_id"]);
-            $charge->suppliers()->attach($suppliers);
-            foreach (json_decode($data["types_sortie"]) as $item) {
-                $warehouse = Warehouse::find(35);
-                $search_item = $item->type_id;
-                $item_type_id = collect([
-                    [
-                        "id" => 1,
-                        "name" => "Entier",
-                    ],
-                    [
-                        "id" => 2,
-                        "name" => "HGT",
-                    ],
-                    [
-                        "id" => 3,
-                        "name" => "HG",
-                    ],
-                    [
-                        "id" => 4,
-                        "name" => "Filet",
-                    ],
-                ])->first(function ($item) use ($search_item) {
-                    return strcasecmp($item['name'], $search_item) === 0;
-                })['id'];
-                $warehouse_stockable = $warehouse->warehouse_stockables()->
-                    whereHasMorph('stockable', [class_basename(GuanoType::class)], fn($query) => $query->where('stockable_id', $item_type_id))
-                    ->first();
+        #region warehouse categories
+        $whCatFresh = WarehouseCategory::create(['name' => 'Entrepôt Frais']);
+        $whCatFrozen = WarehouseCategory::create(['name' => 'Entrepôt Congelé']);
+        $whCatGuano = WarehouseCategory::create(['name' => 'Entrepôt Guano']);
+        $whCatPackage = WarehouseCategory::create(['name' => 'Entrepôt Emballage']);
+        #endregion warehouse categories
 
-                if (isset($warehouse_stockable) == false) {
+        #region warehouses
+        Warehouse::create([
+            'name' => 'Entrepôt Frais Principal',
+            'description' => 'Main fresh fish warehouse',
+            'warehouse_category_id' => $whCatFresh->id,
+            'warehouse_type' => 'FishType',
+            'has_sejour' => true,
+            'operation_service_fee' => 0,
+        ]);
+        Warehouse::create([
+            'name' => 'Entrepôt Congelé Principal',
+            'description' => 'Main frozen fish warehouse',
+            'warehouse_category_id' => $whCatFrozen->id,
+            'warehouse_type' => 'FishType',
+            'has_sejour' => true,
+            'operation_service_fee' => 0,
+        ]);
+        Warehouse::create([
+            'name' => 'Entrepôt Guano',
+            'description' => 'Guano warehouse',
+            'warehouse_category_id' => $whCatGuano->id,
+            'warehouse_type' => 'GuanoType',
+            'has_sejour' => false,
+            'operation_service_fee' => 0,
+        ]);
+        Warehouse::create([
+            'name' => 'Entrepôt Emballage',
+            'description' => 'Package warehouse',
+            'warehouse_category_id' => $whCatPackage->id,
+            'warehouse_type' => 'PackageType',
+            'has_sejour' => false,
+            'operation_service_fee' => 0,
+        ]);
+        #endregion warehouses
 
-                    $warehouse_stockable = $warehouse->warehouse_stockables()->create([
-                        "unit_price" => 0.00,
-                        "total_weight" => 0.00,
-                        "total_price" => 0.00,
-                        "total_package_count" => 0.00,
-                        "warehouse_id" => $warehouse->id,
-                        "stockable_id" => $item_type_id,
-                        "stockable_type" => class_basename(GuanoType::class)
-                    ]);
-                }
-                $warehouse_stockable_tracking_number = null;
-                if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data['num_bon_sortie'])->count() != 1) {
-                    $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $data['num_bon_sortie']);
-                }
-                $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->create([
-                    "tracking_numbers" => [(string) $data['num_bon_sortie']],
-                    "unit_price" => 0.00,
-                    "total_weight" => 0.00,
-                    "total_price" => 0.00,
-                    "total_package_count" => 0.00,
-                    "warehouse_stockable_id" => $warehouse_stockable->id,
-                ]);
-
-                $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
-                    "type_operation" => "in",
-                    "date" => $charge->date,
-                    "unit_price" => $item->pu,
-                    "total_weight" => $item->weight,
-                    "total_weight_bill" => $item->weight,
-                    "total_price" => $item->weight * $item->pu,
-                    "warehouse_category_operation_id" => $warehouse_category_operation_guano_production->id,
-                    "stockable_id" => $item_type_id,
-                    "stockable_type" => class_basename(GuanoType::class)
-                ]);
-                // $warehouse->calc();
-                $charge->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
-            }
-            $charge->calc();
-        }
-
-        $path = ('storage/csv/frais.csv');
-
-        $rows = CsvReader::read($path);
-        foreach ($rows as $data) {
-            $charge = Charge::create([
-                "date" => $data["date_reception"],
-                "reception_tracking_number" => json_decode($data["num_bon_receptions"]),
-                "origin_id" => $data["origin_id"],
-                "fishery_id" => $data["place_id"],
-                "charge_category_id" => $charge_category_frais->id,
-                "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
-            ]);
-
-            $suppliers = Supplier::find(collect(json_decode($data["providers"]))->pluck('id')->toArray());
-            $charge->suppliers()->attach($suppliers);
-
-            if (count(json_decode($data["providers"])) == 0) {
-                $suppliers = Supplier::find(rand(1, 8));
-                $charge->suppliers()->attach($suppliers);
-            }
-            foreach (json_decode($data["matricules"]) as $truck) {
-                $truck = Truck::where("registration_plate", $truck)->first();
-                if ($truck) {
-                    $charge->trucks()->attach($truck);
-                }
-            }
-            foreach (json_decode($data["types_reception"]) as $item) {
-                $charge->non_warehouse_stockable_operations()->create([
-                    "date" => $data["date_reception"],
-                    "stockable_type" => class_basename(FishType::class),
-                    "stockable_id" => $item->type_id,
-                    "package_type_id" => null,
-
-                    "unit_price" => $item->price,
-                    "total_weight" => $item->weight,
-                    "total_weight_bill" => $item->weight,
-                    "total_price" => ($item->price * $item->weight),
-                    "total_package_count" => $item->type_id,
-                    "warehouse_category_operation_id" => $warehouse_category_operation_frais_mp->id,
-                ]);
-            }
-            $charge->calc();
-        }
-
-        $path = ('storage/csv/congeles.csv');
-
-        $rows = CsvReader::read($path);
-
-        foreach ($rows as $data) {
-            $charge = Charge::create([
-                "date" => $data["date_reception"],
-                "reception_tracking_number" => json_decode($data["num_bon_receptions"]),
-                "origin_id" => $data["origin_id"],
-                "fishery_id" => $data["place_id"],
-                "charge_category_id" => $charge_category_congele->id,
-                "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
-            ]);
-
-            foreach (json_decode($data["matricules"]) as $truck) {
-                $truck = Truck::where("registration_plate", $truck)->first();
-                if ($truck) {
-                    $charge->trucks()->attach($truck);
-                }
-            }
-
-            $suppliers = Supplier::find(collect(json_decode($data["providers"]))->pluck('id')->toArray());
-            $charge->suppliers()->attach($suppliers);
-
-            if (count(json_decode($data["providers"])) == 0) {
-                $suppliers = Supplier::find(rand(1, 8));
-                $charge->suppliers()->attach($suppliers);
-            }
-
-            foreach (json_decode($data["types_production"]) as $item) {
-                $warehouse = Warehouse::find($item->chambre_id);
-                $warehouse_stockable = $warehouse->warehouse_stockables()->
-                    whereHasMorph('stockable', [class_basename(FishType::class)], fn($query) => $query->where('stockable_id', $item->type_id))
-                    ->first();
-
-                if (isset($warehouse_stockable) == false) {
-                    $warehouse_stockable = $warehouse->warehouse_stockables()->create([
-                        "unit_price" => 0.00,
-                        "total_weight" => 0.00,
-                        "total_price" => 0.00,
-                        "total_package_count" => 0.00,
-                        "warehouse_id" => $warehouse->id,
-                        "stockable_id" => $item->type_id,
-                        "stockable_type" => class_basename(FishType::class)
-                    ]);
-                }
-
-                $warehouse_stockable_tracking_number = null;
-                if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception)->count() != 1) {
-                    $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception);
-                }
-                $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->create([
-                    "tracking_numbers" => [(string) $item->num_bon_reception],
-                    "unit_price" => 0.00,
-                    "total_weight" => 0.00,
-                    "total_price" => 0.00,
-                    "total_package_count" => 0.00,
-                    "warehouse_stockable_id" => $warehouse_stockable->id,
-                ]);
-
-                $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
-                    "type_operation" => "in",
-                    "date" => $charge->date,
-                    "unit_price" => $item->pu,
-                    "total_weight" => $item->total_weight_container,
-                    "total_weight_bill" => $item->total_weight_container,
-                    "total_price" => $item->total_weight_container * $item->pu,
-                    "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
-                    "package_type_id" => $item->container_id,
-                    "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
-                    "stockable_id" => $item_type_id,
-                    "stockable_type" => class_basename(FishType::class)
-
-                ]);
-                // $warehouse->calc();
-                $charge->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
-            }
-            $charge->calc();
-        }
-
-        $path = ('storage/csv/congelation_clients.csv');
-
-        $rows = CsvReader::read($path);
-        foreach ($rows as $data) {
-            $sell = Sell::create([
-                "date" => $data["date_reception"],
-                "tracking_numbers" => json_decode($data["num_bon_receptions"]),
-                "origin_id" => $data["origin_id"],
-                "fishery_id" => $data["place_id"],
-                "sell_category_id" => $sell_category_vsc->id,
-                "ship_id" => Ship::where("name", $data["name_ship"])->first()->id ?? null,
-            ]);
-            foreach (json_decode($data["matricules"]) as $truck) {
-                $truck = Truck::where("registration_plate", $truck)->first();
-                if ($truck) {
-                    $sell->trucks()->attach($truck);
-                }
-            }
-            $clients = Client::find([$data["provider_id"]]);
-            foreach (json_decode($data["types_production"]) as $item) {
-                $warehouse = Warehouse::find($item->chambre_id);
-                $warehouse_stockable = $warehouse->warehouse_stockables()->
-                    whereHasMorph('stockable', [class_basename(FishType::class)], fn($query) => $query->where('stockable_id', $item->type_id))
-                    ->first();
-
-                if (isset($warehouse_stockable) == false) {
-                    $warehouse_stockable = $warehouse->warehouse_stockables()->create([
-                        "unit_price" => 0.00,
-                        "total_weight" => 0.00,
-                        "total_price" => 0.00,
-                        "total_package_count" => 0.00,
-                        "warehouse_id" => $warehouse->id,
-                        "stockable_id" => $item->type_id,
-                        "stockable_type" => class_basename(FishType::class)
-                    ]);
-                }
-
-                $warehouse_stockable_tracking_number = null;
-                if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception)->count() != 1) {
-                    $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception);
-                }
-                $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->create([
-                    "tracking_numbers" => [(string) $item->num_bon_reception],
-                    "unit_price" => 0.00,
-                    "total_weight" => 0.00,
-                    "total_price" => 0.00,
-                    "total_package_count" => 0.00,
-                    "warehouse_stockable_id" => $warehouse_stockable->id,
-
-                ]);
-
-                $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
-                    "type_operation" => "in",
-                    "date" => $sell->date,
-                    "unit_price" => $item->pu,
-                    "total_weight" => $item->total_weight_container,
-                    "total_weight_bill" => $item->total_weight_container,
-                    "total_price" => $item->total_weight_container * $item->pu,
-                    "total_package_count" => round($item->total_weight_container / PackageType::find($item->container_id)->size, 2),
-                    "package_type_id" => $item->container_id,
-                    "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
-                    "stockable_id" => $item_type_id,
-                    "stockable_type" => class_basename(FishType::class)
-
-                ]);
-                // $warehouse->calc();
-                $sell->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
-            }
-            $sell->calc();
-        }
-
-        $path = ('storage/csv/stock_exits.csv');
-
-        $sell_category_sortie_client = SellCategory::factory()->create([
-            "description" => "Sortie Stock Client",
-            "name_en" => "Sortie Stock Client",
-            "name_fr" => "Sortie Stock Client",
-            "name_es" => "Sortie Stock Client",
+        #region charge categories
+        $chargeCat1 = ChargeCategory::create([
+            'name' => 'Du frais à la production',
+            'name_fr' => 'Du frais à la production',
+            'name_en' => 'Fresh To Production',
+            'name_es' => 'Du frais à la production',
+            'description' => 'Fresh Fish that gonna enter the production section to become Frozen fish later and be stocked to be sold',
+            'enable_reception_tracking_number' => true,
+            'enable_tracking_onp_numbers' => true,
+            'enable_fishery_id' => true,
+            'enable_ship_id' => true,
+            'enable_origin_id' => true,
+            'enable_truck_id' => true,
+            'enable_suppliers' => true,
+            'is_production' => true,
+            'enable_invoices' => false,
         ]);
 
-        $rows = CsvReader::read($path);
-        foreach ($rows as $data) {
-            echo $data['id'] . "\n";
-            $sell = Sell::create([
-                "date" => $data["date_sortie"],
-                "tracking_numbers" => json_decode($data["num_bon_sorties"]),
-                "origin_id" => $data["origin_id"] ?? 1,
-                "fishery_id" => $data["place_id"] ?? 1,
-                "sell_category_id" => $sell_category_sortie_client->id,
-                "ship_id" => null,
-            ]);
-            foreach (json_decode($data["matricules"]) as $truck) {
-                $truck = Truck::where("registration_plate", $truck)->first();
-                if ($truck) {
-                    $sell->trucks()->attach($truck);
-                }
-            }
-            $clients = Client::find([$data["provider_id"]]);
-            $sell->clients()->attach($clients);
-            foreach (json_decode($data["types_sortie"]) as $item) {
-                $warehouse = Warehouse::find($item->chambre_id);
-                $warehouse_stockable = $warehouse->warehouse_stockables()->whereHasMorph('stockable', [class_basename(FishType::class)], fn($query) => $query->where('stockable_id', $item->type_id))
-                    ->first();
+        $chargeCat2 = ChargeCategory::create([
+            'name' => 'Frais Revendue',
+            'name_fr' => 'Frais Revendue',
+            'name_en' => 'Fresh To Sell',
+            'name_es' => 'Frais Revendue',
+            'description' => 'Fresh fish that stocked to be sold later',
+            'enable_reception_tracking_number' => true,
+            'enable_tracking_onp_numbers' => true,
+            'enable_fishery_id' => true,
+            'enable_ship_id' => true,
+            'enable_origin_id' => true,
+            'enable_truck_id' => true,
+            'enable_suppliers' => true,
+            'is_production' => false,
+            'enable_invoices' => false,
+        ]);
 
-                if (isset($warehouse_stockable) == false) {
-                    $warehouse_stockable = $warehouse->warehouse_stockables()->create([
-                        "unit_price" => 0.00,
-                        "total_weight" => 0.00,
-                        "total_price" => 0.00,
-                        "total_package_count" => 0.00,
-                        "warehouse_id" => $warehouse->id,
-                        "stockable_id" => $item->type_id,
-                        "stockable_type" => class_basename(FishType::class)
-                    ]);
-                }
+        $chargeCat3 = ChargeCategory::create([
+            'name' => 'Congele',
+            'name_fr' => 'Congele',
+            'name_en' => 'Frozen',
+            'name_es' => 'Congele',
+            'description' => 'Frozen Fish that stocked to be sold later',
+            'enable_reception_tracking_number' => true,
+            'enable_tracking_onp_numbers' => false,
+            'enable_fishery_id' => true,
+            'enable_ship_id' => true,
+            'enable_origin_id' => true,
+            'enable_truck_id' => true,
+            'enable_suppliers' => true,
+            'is_production' => false,
+            'enable_invoices' => false,
+        ]);
 
-                $warehouse_stockable_tracking_number = null;
-                if ($warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception)->count() != 1) {
-                    $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->whereJsonContains("tracking_numbers", $item->num_bon_reception);
-                }
-                $warehouse_stockable_tracking_number = $warehouse_stockable->warehouse_stockable_tracking_numbers()->create([
-                    "tracking_numbers" => [(string) $item->num_bon_reception],
-                    "unit_price" => 0.00,
-                    "total_weight" => 0.00,
-                    "total_price" => 0.00,
-                    "total_package_count" => 0.00,
-                    "warehouse_stockable_id" => $warehouse_stockable->id,
+        $chargeCat4 = ChargeCategory::create([
+            'name' => 'Guano Revendue',
+            'name_fr' => 'GuanoRevendue',
+            'name_en' => 'Guano To Sell',
+            'name_es' => 'Guano Revendue',
+            'description' => 'Guano that stocked to be sold later',
+            'enable_reception_tracking_number' => true,
+            'enable_tracking_onp_numbers' => false,
+            'enable_fishery_id' => false,
+            'enable_ship_id' => false,
+            'enable_origin_id' => false,
+            'enable_truck_id' => true,
+            'enable_suppliers' => true,
+            'is_production' => false,
+            'enable_invoices' => false,
+        ]);
 
-                ]);
+        $chargeCat5 = ChargeCategory::create([
+            'name' => 'Carton',
+            'name_fr' => 'Carton',
+            'name_en' => 'Carton',
+            'name_es' => 'Carton',
+            'description' => 'Carton That will be stocked to be Consuming in the Production Process',
+            'enable_reception_tracking_number' => true,
+            'enable_tracking_onp_numbers' => false,
+            'enable_fishery_id' => false,
+            'enable_ship_id' => false,
+            'enable_origin_id' => false,
+            'enable_truck_id' => true,
+            'enable_suppliers' => true,
+            'is_production' => false,
+            'enable_invoices' => false,
+        ]);
+        #endregion charge categories
 
-                $s_f_t_n_o = $warehouse_stockable_tracking_number->warehouse_stockable_tracking_number_operations()->create([
-                    "type_operation" => "out",
-                    "date" => $sell->date,
-                    "unit_price" => $item->pu,
-                    "total_weight" => $item->weight,
-                    "total_weight_bill" => $item->weight,
-                    "total_price" => $item->weight * $item->pu,
-                    "total_package_count" => round($item->weight / PackageType::find($item->container_id)->size, 2),
-                    "package_type_id" => $item->container_id,
-                    "warehouse_category_operation_id" => $warehouse_category_operation_congele_achete->id,
-                    "stockable_id" => $item_type_id,
-                    "stockable_type" => class_basename(FishType::class)
+        #region detail charge categories
+        DetailChargeCategory::create([
+            'name_fr' => 'Frais Poisson',
+            'name_en' => 'Fresh Fish',
+            'name_es' => 'Frais Poisson',
+            'description' => 'Fresh Fish For the Charge that goes in reception (first phase)',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'fresh',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => false,
+            'allow_nbr_box' => false,
+            'allow_warehouse' => false,
+            'warehouse_operation' => null,
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'charge_category_id' => $chargeCat1->id,
+        ]);
 
-                ]);
-                // $warehouse->calc();
-                $sell->warehouse_stockable_tracking_number_operations()->save($s_f_t_n_o);
-            }
-            $sell->calc();
-        }
+        DetailChargeCategory::create([
+            'name_fr' => 'Frais Poisson',
+            'name_en' => 'Fresh Fish',
+            'name_es' => 'Frais Poisson',
+            'description' => 'Fresh Fish that gonna stocked to be sold later',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'fresh',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => null,
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'charge_category_id' => $chargeCat2->id,
+        ]);
 
-        #endregion init    
+        DetailChargeCategory::create([
+            'name_fr' => 'Congele Poisson',
+            'name_en' => 'Frozen Fish',
+            'name_es' => 'Congele Poisson',
+            'description' => 'Frozen Fish that gonna stocked and be sold later',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'frozen',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => null,
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'charge_category_id' => $chargeCat3->id,
+        ]);
 
+        DetailChargeCategory::create([
+            'name_fr' => 'Guano',
+            'name_en' => 'Guano',
+            'name_es' => 'Guano',
+            'description' => 'Guano that be stocked and be sold later',
+            'article_type' => 'GuanoType',
+            'fish_type_filter' => 'all',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => false,
+            'allow_nbr_box' => false,
+            'allow_warehouse' => true,
+            'warehouse_operation' => null,
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'charge_category_id' => $chargeCat4->id,
+        ]);
 
+        DetailChargeCategory::create([
+            'name_fr' => 'Emballage',
+            'name_en' => 'Emballage',
+            'name_es' => 'Emballage',
+            'description' => 'Emballage that will stocked in the stock to be consuming in the production process (second phase)',
+            'article_type' => 'PackageType',
+            'fish_type_filter' => 'all',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => null,
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'charge_category_id' => $chargeCat5->id,
+        ]);
+        #endregion detail charge categories
 
-        Warehouse::each(fn($q) => $q->calc());
+        #region shipping categories
+        $shipCat1 = ShippingCategory::create([
+            'name' => 'Vente Locale',
+            'name_fr' => 'Vente Locale',
+            'name_en' => 'Local Sale',
+            'name_es' => 'Venta Local',
+            'description' => 'Local shipping of fish products',
+            'enable_shipping_tracking_number' => true,
+            'enable_tracking_onp_numbers' => false,
+            'enable_fishery_id' => false,
+            'enable_ship_id' => false,
+            'enable_origin_id' => false,
+            'enable_truck_id' => true,
+            'enable_clients' => true,
+            'enable_direction' => true,
+            'enable_invoices' => true,
+        ]);
 
+        $shipCat2 = ShippingCategory::create([
+            'name' => 'Vente Export',
+            'name_fr' => 'Vente Export',
+            'name_en' => 'Export Sale',
+            'name_es' => 'Venta Export',
+            'description' => 'Export shipping of fish products',
+            'enable_shipping_tracking_number' => true,
+            'enable_tracking_onp_numbers' => false,
+            'enable_fishery_id' => false,
+            'enable_ship_id' => true,
+            'enable_origin_id' => true,
+            'enable_truck_id' => true,
+            'enable_clients' => true,
+            'enable_direction' => true,
+            'enable_invoices' => true,
+        ]);
+        #endregion shipping categories
 
-        Charge::each(function ($charge) {
-            $supplier_invoice = SupplierInvoice::create([
-                "date" => $charge->date,
-                "type_invoice" => "local",
-                "total_price" => $charge->total_price,
-                "total_weight" => $charge->total_weight,
-                "tracking_numbers" => SupplierInvoice::generateNextTrackingNumbers(),
-                "supplier_ids" => $charge->supplier_ids,
-            ]);
-            $charge->update(["invoice_id" => $supplier_invoice->id]);
-        });
+        #region detail shipping categories
+        DetailShippingCategory::create([
+            'name_fr' => 'Poisson Congelé',
+            'name_en' => 'Frozen Fish',
+            'name_es' => 'Pescado Congelado',
+            'description' => 'Frozen fish shipped from warehouse',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'frozen',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => 'stock_out',
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'shipping_category_id' => $shipCat1->id,
+        ]);
 
+        DetailShippingCategory::create([
+            'name_fr' => 'Poisson Frais',
+            'name_en' => 'Fresh Fish',
+            'name_es' => 'Pescado Fresco',
+            'description' => 'Fresh fish shipped from warehouse',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'fresh',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => 'stock_out',
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'shipping_category_id' => $shipCat1->id,
+        ]);
+
+        DetailShippingCategory::create([
+            'name_fr' => 'Guano',
+            'name_en' => 'Guano',
+            'name_es' => 'Guano',
+            'description' => 'Guano products shipped from warehouse',
+            'article_type' => 'GuanoType',
+            'fish_type_filter' => 'all',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => false,
+            'allow_nbr_box' => false,
+            'allow_warehouse' => true,
+            'warehouse_operation' => 'stock_out',
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'shipping_category_id' => $shipCat1->id,
+        ]);
+
+        DetailShippingCategory::create([
+            'name_fr' => 'Poisson Congelé Export',
+            'name_en' => 'Frozen Fish Export',
+            'name_es' => 'Pescado Congelado Export',
+            'description' => 'Frozen fish for export shipment',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'frozen',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => 'stock_out',
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => true,
+            'shipping_category_id' => $shipCat2->id,
+        ]);
+        #endregion detail shipping categories
+
+        #region production categories
+        $prodCat1 = ProductionCategory::create([
+            'name' => 'Production Congélation',
+            'name_fr' => 'Production Congélation',
+            'name_en' => 'Freezing Production',
+            'name_es' => 'Producción Congelación',
+            'description' => 'Production process that transforms fresh fish into frozen fish products',
+            'enable_reception_tracking_number' => true,
+            'enable_tracking_onp_numbers' => true,
+            'enable_production_tracking_number' => true,
+            'enable_production_type' => true,
+            'enable_fishery_id' => true,
+            'enable_ship_id' => false,
+            'enable_origin_id' => true,
+            'enable_truck_id' => false,
+            'enable_suppliers' => true,
+            'enable_clients' => false,
+            'enable_invoices' => false,
+        ]);
+
+        $prodCat2 = ProductionCategory::create([
+            'name' => 'Production Guano',
+            'name_fr' => 'Production Guano',
+            'name_en' => 'Guano Production',
+            'name_es' => 'Producción Guano',
+            'description' => 'Guano byproduct production from fish processing',
+            'enable_reception_tracking_number' => true,
+            'enable_tracking_onp_numbers' => false,
+            'enable_production_tracking_number' => true,
+            'enable_production_type' => true,
+            'enable_fishery_id' => false,
+            'enable_ship_id' => false,
+            'enable_origin_id' => false,
+            'enable_truck_id' => false,
+            'enable_suppliers' => false,
+            'enable_clients' => false,
+            'enable_invoices' => false,
+        ]);
+        #endregion production categories
+
+        #region detail production categories
+        DetailProductionCategory::create([
+            'name_fr' => 'Poisson Congelé Produit',
+            'name_en' => 'Frozen Fish Output',
+            'name_es' => 'Producción Pescado Congelado',
+            'description' => 'Frozen fish output from the production line (stock_in)',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'frozen',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => 'stock_in',
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => false,
+            'production_category_id' => $prodCat1->id,
+        ]);
+
+        DetailProductionCategory::create([
+            'name_fr' => 'Guano Produit',
+            'name_en' => 'Guano Output',
+            'name_es' => 'Producción Guano',
+            'description' => 'Guano byproduct output from production (stock_in)',
+            'article_type' => 'GuanoType',
+            'fish_type_filter' => 'all',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => false,
+            'allow_nbr_box' => false,
+            'allow_warehouse' => true,
+            'warehouse_operation' => 'stock_in',
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => false,
+            'production_category_id' => $prodCat2->id,
+        ]);
+
+        DetailProductionCategory::create([
+            'name_fr' => 'Emballage Consommé',
+            'name_en' => 'Package Consumed',
+            'name_es' => 'Embalaje Consumido',
+            'description' => 'Packaging consumed during production (stock_out)',
+            'article_type' => 'PackageType',
+            'fish_type_filter' => 'all',
+            'allow_weight' => true,
+            'allow_unit_price' => true,
+            'allow_price' => true,
+            'allow_package_type' => true,
+            'allow_nbr_box' => true,
+            'allow_warehouse' => true,
+            'warehouse_operation' => 'stock_out',
+            'allow_detail_truck_id' => false,
+            'include_in_invoice' => false,
+            'production_category_id' => $prodCat1->id,
+        ]);
+        #endregion detail production categories
     }
 }

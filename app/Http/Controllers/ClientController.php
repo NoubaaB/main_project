@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of the resource.
      */

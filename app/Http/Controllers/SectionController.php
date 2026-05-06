@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Section;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Traits\BroadcastsModelChanges;
 
 class SectionController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of sections with their corporals.
      */
@@ -30,7 +32,10 @@ class SectionController extends Controller
 
         $section = Section::create($data);
 
-        return response()->json(['section' => $section->load('corporals')], 201);
+        $section->load('corporals');
+        $this->broadcastChange('Section', 'created', $section->id, $section->toArray());
+
+        return response()->json(['section' => $section], 201);
     }
 
     /**
@@ -48,7 +53,10 @@ class SectionController extends Controller
 
         $section->update($data);
 
-        return response()->json(['section' => $section->fresh()->load('corporals')], 200);
+        $section = $section->fresh()->load('corporals');
+        $this->broadcastChange('Section', 'updated', $section->id, $section->toArray());
+
+        return response()->json(['section' => $section], 200);
     }
 
     /**
@@ -57,7 +65,9 @@ class SectionController extends Controller
     public function destroy($id): JsonResponse
     {
         $section = Section::findOrFail($id);
+        $sectionId = $section->id;
         $section->delete();
+        $this->broadcastChange('Section', 'deleted', $sectionId);
 
         return response()->json(['message' => 'Section deleted successfully'], 200);
     }

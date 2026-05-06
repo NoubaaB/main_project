@@ -1,7 +1,7 @@
 <template>
-  <v-card class="ccm-card" elevation="0">
+  <v-card class="ccm-card" :elevation="embedded ? 0 : 0" :class="{ 'ccm-embedded': embedded }">
     <!-- Hero Header -->
-    <div class="ccm-hero">
+    <div v-if="!embedded" class="ccm-hero">
       <div class="ccm-hero-inner">
         <div class="d-flex align-center ga-4">
           <div class="ccm-hero-icon">
@@ -22,7 +22,7 @@
         <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="clearAllColumnFilters">
           {{ $t('clear_filters') }}
         </v-btn>
-        <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openDialog(null)">
+        <v-btn color="#42A5F5" prepend-icon="mdi-plus" rounded @click="openDialog(null)">
           {{ $t('add_charge_category') }}
         </v-btn>
       </div>
@@ -54,7 +54,7 @@
                 :items="getColumnOptions(col.key)"
                 density="compact"
                 variant="outlined"
-                color="info"
+                color="#42A5F5"
                 class="param-filter-input text-info"
                 hide-details
                 clearable
@@ -64,7 +64,7 @@
                 :placeholder="$t('filter')"
               >
                 <template #chip="{ item, props }">
-                  <v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip>
+                  <v-chip v-bind="props" size="x-small" color="#42A5F5" variant="tonal" closable>{{ item.title }}</v-chip>
                 </template>
               </v-autocomplete>
             </th>
@@ -82,11 +82,7 @@
             {{ item.enable_tracking_onp_numbers ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
           </v-icon>
         </template>
-        <template v-slot:[`item.enable_production_tracking_numbers`]="{ item }">
-          <v-icon :color="item.enable_production_tracking_numbers ? 'success' : 'grey'" size="20">
-            {{ item.enable_production_tracking_numbers ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
-          </v-icon>
-        </template>
+
         <template v-slot:[`item.enable_fishery_id`]="{ item }">
           <v-icon :color="item.enable_fishery_id ? 'success' : 'grey'" size="20">
             {{ item.enable_fishery_id ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
@@ -117,11 +113,16 @@
             {{ item.is_production ? $t('yes') : $t('no') }}
           </v-chip>
         </template>
+        <template v-slot:[`item.enable_invoices`]="{ item }">
+          <v-icon :color="item.enable_invoices ? 'success' : 'grey'" size="20">
+            {{ item.enable_invoices ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
+          </v-icon>
+        </template>
         <template v-slot:[`item.charges_count`]="{ item }">
-          <v-chip color="info" size="small" variant="tonal">{{ item.charges_count || 0 }}</v-chip>
+          <v-chip color="#42A5F5" size="small" variant="tonal">{{ item.charges_count || 0 }}</v-chip>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon size="x-small" variant="tonal" color="info" @click="openDialog(item)" class="mr-1">
+          <v-btn icon size="x-small" variant="tonal" color="#42A5F5" @click="openDialog(item)" class="mr-1">
             <v-icon size="16">mdi-pencil</v-icon>
           </v-btn>
           <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)">
@@ -135,34 +136,34 @@
     <v-dialog v-model="dialog" max-width="700" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-shape-outline</v-icon>
+          <v-icon color="#42A5F5" class="mr-2">mdi-shape-outline</v-icon>
           {{ editing ? $t('edit_charge_category') : $t('add_charge_category') }}
         </v-card-title>
         <v-card-text class="pa-5">
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
-            <v-icon color="info" class="mr-2" size="20">mdi-translate</v-icon>
+            <v-icon color="#42A5F5" class="mr-2" size="20">mdi-translate</v-icon>
             {{ $t('names') }}
           </div>
           <v-row>
             <v-col cols="6">
-              <v-text-field v-model="form.name" :label="$t('name')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+              <v-text-field v-model="form.name" :label="$t('name')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+              <v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+              <v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-text-field>
             </v-col>
             <v-col cols="12">
-              <v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="info" class="text-info" rows="2"></v-textarea>
+              <v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info" rows="2"></v-textarea>
             </v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
-            <v-icon color="info" class="mr-2" size="20">mdi-toggle-switch-outline</v-icon>
+            <v-icon color="#42A5F5" class="mr-2" size="20">mdi-toggle-switch-outline</v-icon>
             {{ $t('enabled_fields') }}
           </div>
           <v-row dense>
@@ -184,7 +185,7 @@
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
           <v-btn @click="dialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#42A5F5" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -211,11 +212,13 @@
 
 <script>
 import axios from 'axios';
+import mitt from '@/plugins/mitt';
 import { useMain } from '@/stores/Main';
 import { useChargeCategory } from '@/stores/ChargeCategory';
 
 export default {
   name: 'ChargeCategoryManagement',
+  props: { embedded: { type: Boolean, default: false } },
   data() {
     return {
       categories: [],
@@ -231,15 +234,15 @@ export default {
       toggleFields: [
         { key: 'enable_reception_tracking_number', label: 'enable_reception_tracking_number', icon: 'mdi-barcode-scan', activeColor: '#2196F3' },
         { key: 'enable_tracking_onp_numbers', label: 'enable_tracking_onp_numbers', icon: 'mdi-barcode', activeColor: '#00BCD4' },
-        { key: 'enable_production_tracking_numbers', label: 'enable_production_tracking_numbers', icon: 'mdi-factory', activeColor: '#009688' },
+        { key: 'enable_suppliers', label: 'allow_suppliers', icon: 'mdi-account-group', activeColor: '#E91E63' },
         { key: 'enable_fishery_id', label: 'enable_fishery', icon: 'mdi-fish', activeColor: '#4CAF50' },
         { key: 'enable_ship_id', label: 'enable_ship', icon: 'mdi-ferry', activeColor: '#3F51B5' },
         { key: 'enable_origin_id', label: 'enable_origin', icon: 'mdi-map-marker', activeColor: '#FF9800' },
         { key: 'enable_truck_id', label: 'enable_truck', icon: 'mdi-truck', activeColor: '#607D8B' },
-        { key: 'enable_supplier_process_id', label: 'enable_supplier_process', icon: 'mdi-account-cog', activeColor: '#9C27B0' },
         { key: 'is_production', label: 'is_production', icon: 'mdi-factory', activeColor: '#009688' },
+        { key: 'enable_invoices', label: 'enable_invoices', icon: 'mdi-file-document-outline', activeColor: '#FF5722' },
       ],
-      booleanKeys: ['enable_reception_tracking_number', 'enable_tracking_onp_numbers', 'enable_production_tracking_numbers', 'enable_fishery_id', 'enable_ship_id', 'enable_origin_id', 'enable_truck_id', 'enable_supplier_process_id', 'is_production'],
+      booleanKeys: ['enable_reception_tracking_number', 'enable_tracking_onp_numbers', 'enable_suppliers', 'enable_fishery_id', 'enable_ship_id', 'enable_origin_id', 'enable_truck_id', 'is_production', 'enable_invoices'],
     };
   },
   computed: {
@@ -253,13 +256,13 @@ export default {
         { title: this.$t('name_es'), key: 'name_es', align: 'center' },
         { title: this.$t('tracking_numbers'), key: 'enable_reception_tracking_number', align: 'center' },
         { title: this.$t('tracking_onp_numbers_short'), key: 'enable_tracking_onp_numbers', align: 'center' },
-        { title: this.$t('production_tracking_numbers'), key: 'enable_production_tracking_numbers', align: 'center' },
+        { title: this.$t('allow_suppliers'), key: 'enable_suppliers', align: 'center' },
         { title: this.$t('fishery'), key: 'enable_fishery_id', align: 'center' },
         { title: this.$t('ship'), key: 'enable_ship_id', align: 'center' },
         { title: this.$t('origin'), key: 'enable_origin_id', align: 'center' },
         { title: this.$t('truck'), key: 'enable_truck_id', align: 'center' },
-        { title: this.$t('supplier_process'), key: 'enable_supplier_process_id', align: 'center' },
         { title: this.$t('is_production'), key: 'is_production', align: 'center' },
+        { title: this.$t('enable_invoices'), key: 'enable_invoices', align: 'center' },
         { title: this.$t('charges_count'), key: 'charges_count', align: 'center' },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
@@ -276,10 +279,14 @@ export default {
       return Object.values(this.columnFilters).some(f => f && f.length > 0);
     },
   },
-  mounted() { this.fetchCategories(); },
+  mounted() {
+    this.fetchCategories();
+    mitt.on('model-changed', this._onModelChanged);
+  },
+  beforeUnmount() { mitt.off('model-changed', this._onModelChanged); },
   methods: {
     emptyForm() {
-      return { name: '', name_fr: '', name_en: '', name_es: '', description: '', enable_reception_tracking_number: false, enable_tracking_onp_numbers: false, enable_production_tracking_numbers: false, enable_fishery_id: false, enable_ship_id: false, enable_origin_id: false, enable_truck_id: false, enable_supplier_process_id: false, is_production: false };
+      return { name: '', name_fr: '', name_en: '', name_es: '', description: '', enable_reception_tracking_number: false, enable_tracking_onp_numbers: false, enable_suppliers: false, enable_fishery_id: false, enable_ship_id: false, enable_origin_id: false, enable_truck_id: false, is_production: false, enable_invoices: false };
     },
     getCellDisplayValue(key, item) {
       if (this.booleanKeys.includes(key)) return item[key] ? this.$t('yes') : this.$t('no');
@@ -291,6 +298,9 @@ export default {
       return [...set].sort();
     },
     clearAllColumnFilters() { this.columnFilters = {}; },
+    _onModelChanged(data) {
+      if (data.model === 'ChargeCategory') this.fetchCategories();
+    },
     async fetchCategories() {
       this.loading = true;
       try {
@@ -303,7 +313,7 @@ export default {
     openDialog(item) {
       this.editing = item;
       if (item) {
-        this.form = { name: item.name || '', name_fr: item.name_fr || '', name_en: item.name_en || '', name_es: item.name_es || '', description: item.description || '', enable_reception_tracking_number: !!item.enable_reception_tracking_number, enable_tracking_onp_numbers: !!item.enable_tracking_onp_numbers, enable_production_tracking_numbers: !!item.enable_production_tracking_numbers, enable_fishery_id: !!item.enable_fishery_id, enable_ship_id: !!item.enable_ship_id, enable_origin_id: !!item.enable_origin_id, enable_truck_id: !!item.enable_truck_id, enable_supplier_process_id: !!item.enable_supplier_process_id, is_production: !!item.is_production };
+        this.form = { name: item.name || '', name_fr: item.name_fr || '', name_en: item.name_en || '', name_es: item.name_es || '', description: item.description || '', enable_reception_tracking_number: !!item.enable_reception_tracking_number, enable_tracking_onp_numbers: !!item.enable_tracking_onp_numbers, enable_suppliers: !!item.enable_suppliers, enable_fishery_id: !!item.enable_fishery_id, enable_ship_id: !!item.enable_ship_id, enable_origin_id: !!item.enable_origin_id, enable_truck_id: !!item.enable_truck_id, is_production: !!item.is_production, enable_invoices: !!item.enable_invoices };
       } else { this.form = this.emptyForm(); }
       this.dialog = true;
     },
@@ -347,7 +357,7 @@ export default {
 
 <style scoped>
 .ccm-card { border-radius: 20px !important; overflow: visible; position: relative; font-family: 'Inter', sans-serif; }
-.ccm-hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
+.ccm-hero { background: linear-gradient(135deg, #0D47A1 0%, #1565C0 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
 .ccm-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
 .ccm-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
 .ccm-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }

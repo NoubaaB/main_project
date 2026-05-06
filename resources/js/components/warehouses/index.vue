@@ -1,1191 +1,364 @@
 <template>
-  <div class="wh-dashboard">
-    <!-- ═══════════ HEADER ═══════════ -->
-    <div class="wh-header">
-      <div class="wh-header-glow"></div>
-      <div class="d-flex align-center ga-4 mb-1">
-        <div class="wh-icon-wrap">
-          <v-icon size="28" color="white">mdi-warehouse</v-icon>
-        </div>
-        <div>
-          <h1 class="wh-title">{{ $t('warehouse_dashboard') }}</h1>
-          <p class="wh-subtitle">{{ $t('warehouse_dashboard_subtitle') }}</p>
-        </div>
-      </div>
+<v-card class="wh-card" elevation="0">
+  <div class="wh-hero"><div class="wh-hero-inner">
+    <div class="d-flex align-center ga-4">
+      <div class="wh-hero-icon"><v-icon size="28" color="white">mdi-warehouse</v-icon></div>
+      <div><div class="wh-hero-title">{{ $t('warehouse_dashboard') }}</div>
+      <div class="text-white text-caption" style="opacity:.7">{{ $t('warehouse_dashboard_desc') }}</div></div>
     </div>
+    <div class="wh-hero-actions"><v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchDashboardData" :loading="fetchLoading">{{ $t('refresh') }}</v-btn></div>
+  </div></div>
 
-    <!-- ═══════════ SECTION 1: KPI CARDS ═══════════ -->
+  <v-card-text class="pa-5">
+    <!-- WAREHOUSE MULTISELECT -->
+    <v-autocomplete v-model="selectedWarehouseIds" :items="allWarehouses" density="compact" variant="outlined" color="#5C6BC0" hide-details multiple chips closable-chips :placeholder="$t('select_warehouses')" prepend-inner-icon="mdi-warehouse" class="wh-input mb-3" @update:model-value="onWarehouseChange">
+      <template #chip="{ item, props: p }"><v-chip v-bind="p" size="small" color="#5C6BC0" variant="tonal" closable>{{ item.title }}</v-chip></template>
+    </v-autocomplete>
 
-    <!-- Skeleton KPIs -->
-    <template v-if="loadingStats">
-      <div class="wh-kpi-group">
-        <v-skeleton-loader type="chip" width="160" class="mb-3"></v-skeleton-loader>
-        <div class="wh-kpi-row">
-          <div class="wh-kpi-card" v-for="i in 4" :key="'sk-kpi-'+i">
-            <v-skeleton-loader type="avatar" class="me-3"></v-skeleton-loader>
-            <div class="flex-grow-1">
-              <v-skeleton-loader type="text@2"></v-skeleton-loader>
+    <!-- Analytics Row: Calendar | Chart | Statistics -->
+    <v-row dense class="mb-3">
+      <!-- Calendar (left) -->
+      <v-col cols="3">
+        <div class="wh-panel-card">
+          <div class="wh-panel-header"><v-icon size="16" color="#5C6BC0" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
+          <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="indigo" :max-date="new Date()" expanded @update:model-value="onDateRangeVCChange" />
+        </div>
+      </v-col>
+      <!-- Chart (center) -->
+      <v-col cols="6">
+        <div class="wh-panel-card" style="height:100%">
+          <div class="wh-panel-header d-flex align-center justify-space-between">
+            <div class="d-flex align-center"><v-icon size="16" color="#5C6BC0" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div>
+            <v-btn-toggle v-model="dashChartMode" mandatory density="compact" color="#5C6BC0" variant="outlined" rounded="lg" divided>
+              <v-btn value="daily" size="x-small">{{ $t('daily') }}</v-btn>
+              <v-btn value="monthly" size="x-small">{{ $t('monthly') }}</v-btn>
+              <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
+            </v-btn-toggle>
+          </div>
+          <apexchart v-if="dashChartSeries.length && dashChartSeries[0].data.length" type="line" :height="300" :options="dashChartOptions" :series="dashChartSeries"></apexchart>
+          <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-line-variant</v-icon></div>
+        </div>
+      </v-col>
+      <!-- Statistics (right) -->
+      <v-col cols="3">
+        <div class="wh-panel-card wh-stats-panel" style="height:100%;overflow-y:auto">
+          <div class="wh-panel-header"><v-icon size="16" color="#5C6BC0" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
+          <div v-for="(stat, si) in warehouseStats" :key="si" class="wh-stat-item mb-2">
+            <div class="d-flex align-center justify-space-between mb-1">
+              <v-chip size="x-small" color="#5C6BC0" variant="tonal" class="font-weight-bold"><v-icon size="12" class="mr-1">{{ tIcon(stat.type) }}</v-icon>{{ stat.name }} ({{ stat.count }})</v-chip>
+              <v-chip size="x-small" color="#5C6BC0" variant="elevated" class="font-weight-bold">{{ totalWeight > 0 ? Math.round(stat.weight / totalWeight * 1000) / 10 : 0 }}%</v-chip>
+            </div>
+            <v-progress-linear :model-value="totalWeight > 0 ? (stat.weight / totalWeight * 100) : 0" color="#5C6BC0" bg-color="#C5CAE9" height="5" rounded class="mb-1"></v-progress-linear>
+            <div class="d-flex flex-column ga-1 text-caption">
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="#5C6BC0">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#5C6BC0">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
             </div>
           </div>
-        </div>
-      </div>
-      <div class="wh-kpi-group" v-for="j in 2" :key="'sk-cat-'+j">
-        <v-skeleton-loader type="chip" width="120" class="mb-3"></v-skeleton-loader>
-        <div class="wh-kpi-row">
-          <div class="wh-kpi-card wh-kpi-card--small" v-for="i in 4" :key="'sk-ckpi-'+j+'-'+i">
-            <v-skeleton-loader type="avatar" class="me-2"></v-skeleton-loader>
-            <div class="flex-grow-1">
-              <v-skeleton-loader type="text@2"></v-skeleton-loader>
-            </div>
+          <v-divider class="my-2"></v-divider>
+          <!-- Totals -->
+          <div class="d-flex flex-column ga-1">
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#26A69A">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b class="text-teal text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#FF7043">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-package-variant-closed</v-icon><span class="text-caption font-weight-bold">{{ $t('total_articles') }}:</span><b class="text-blue text-caption">{{ totalBalances }}</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#AB47BC">mdi-arrow-up-bold</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_in') }}:</span><b style="color:#AB47BC" class="text-caption">{{ main.formatDisplayNumber(totalStockIn) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#EF5350">mdi-arrow-down-bold</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }}:</span><b class="text-error text-caption">{{ main.formatDisplayNumber(totalStockOut) }} Kg</b></div>
           </div>
         </div>
-      </div>
-    </template>
-
-    <!-- Real KPIs -->
-    <template v-else>
-    <!-- Global Totals -->
-    <div class="wh-kpi-group">
-      <div class="wh-kpi-group-label">
-        <v-chip color="primary" variant="flat" size="small" class="text-uppercase font-weight-bold">
-          <v-icon start size="14">mdi-sigma</v-icon>
-          {{ $t('all_warehouses') }}
-        </v-chip>
-      </div>
-      <div class="wh-kpi-row">
-        <div class="wh-kpi-card" v-for="kpi in kpiCards" :key="kpi.key">
-          <div class="wh-kpi-icon-wrap" :style="{ background: kpi.bg }">
-            <v-icon :color="kpi.color" size="26">{{ kpi.icon }}</v-icon>
-          </div>
-          <div class="wh-kpi-info">
-            <span class="wh-kpi-val">{{ kpi.value }}</span>
-            <span class="wh-kpi-lbl">{{ kpi.label }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Per-Category KPIs -->
-    <div v-for="cat in categoryKpiCards" :key="cat.id" class="wh-kpi-group wh-kpi-group--category">
-      <div class="wh-kpi-group-label">
-        <v-chip :color="categoryChipColor(cat.name)" variant="tonal" size="small" class="text-uppercase font-weight-bold">
-          <v-icon start size="14">{{ categoryChipIcon(cat.name) }}</v-icon>
-          {{ cat.name }}
-        </v-chip>
-      </div>
-      <div class="wh-kpi-row">
-        <div class="wh-kpi-card wh-kpi-card--small" v-for="kpi in cat.cards" :key="kpi.key">
-          <div class="wh-kpi-icon-wrap wh-kpi-icon-wrap--sm" :style="{ background: kpi.bg }">
-            <v-icon :color="kpi.color" size="20">{{ kpi.icon }}</v-icon>
-          </div>
-          <div class="wh-kpi-info">
-            <span class="wh-kpi-val wh-kpi-val--sm">{{ kpi.value }}</span>
-            <span class="wh-kpi-lbl">{{ kpi.label }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    </template>
-
-    <!-- ═══════════ SECTION 2: LINE CHART ═══════════ -->
-    <div class="wh-chart-card">
-      <div class="wh-chart-header">
-        <h2 class="wh-chart-title">
-          <v-icon start color="primary">mdi-chart-line</v-icon>
-          {{ $t('stock_movement') }}
-        </h2>
-        <div class="wh-chart-controls">
-          <v-btn-toggle v-model="chartPeriod" mandatory density="compact" color="primary" variant="outlined" rounded="lg">
-            <v-btn value="daily" size="small">{{ $t('daily') }}</v-btn>
-            <v-btn value="monthly" size="small">{{ $t('monthly') }}</v-btn>
-            <v-btn value="yearly" size="small">{{ $t('yearly') }}</v-btn>
-          </v-btn-toggle>
-        </div>
-      </div>
-      <div class="wh-chart-body">
-        <v-skeleton-loader v-if="loadingStats" type="image" height="320" class="rounded-lg"></v-skeleton-loader>
-        <apexchart
-          v-else-if="chartSeries.length > 0"
-          type="line"
-          height="320"
-          :options="chartOptions"
-          :series="chartSeries"
-        ></apexchart>
-        <div v-else class="wh-chart-empty">
-          <v-icon size="48" color="grey-lighten-1">mdi-chart-line-variant</v-icon>
-          <p class="text-medium-emphasis mt-2">{{ $t('no_data_available') }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════ GLOBAL ARTICLE SEARCH ═══════════ -->
-    <div class="wh-global-search-card">
-      <div class="wh-global-search-header">
-        <h2 class="wh-chart-title">
-          <v-icon start color="deep-purple">mdi-text-search</v-icon>
-          {{ $t('global_article_search') }}
-        </h2>
-      </div>
-      <v-text-field
-        v-model="globalSearchQuery"
-        :placeholder="$t('global_search_placeholder')"
-        density="compact"
-        variant="outlined"
-        rounded
-        prepend-inner-icon="mdi-magnify"
-        hide-details
-        clearable
-        color="info"
-        class="mb-3 text-info"
-        :loading="globalSearchLoading"
-      ></v-text-field>
-      <v-expand-transition>
-        <div v-if="globalSearchResults.length > 0">
-          <v-table class="wh-detail-table" density="compact">
-            <thead>
-              <tr>
-                <th>{{ $t('warehouse') }}</th>
-                <th>{{ $t('article_name_col') }}</th>
-                <th>{{ $t('family') }}</th>
-                <th>{{ $t('tracking_numbers') }}</th>
-                <th>{{ $t('date_entered') }}</th>
-                <th>{{ $t('remaining_weight') }}</th>
-                <th>{{ $t('wap') }}</th>
-                <th>{{ $t('total_price') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in globalSearchResults" :key="r.tracking_number_id">
-                <td>
-                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">{{ r.warehouse_name }}</v-chip>
-                </td>
-                <td>{{ r.article_name?.name_en || r.article_name?.name_fr || 'N/A' }}</td>
-                <td><span class="text-caption">{{ r.group_name }}</span></td>
-                <td>
-                  <v-chip v-for="tn in r.tracking_numbers" :key="tn" size="x-small" color="info" variant="tonal" class="me-1">{{ tn }}</v-chip>
-                </td>
-                <td>{{ formatDate(r.date_entered) }}</td>
-                <td class="font-weight-bold">{{ fmt(r.remaining_weight) }} KG</td>
-                <td>
-                  <v-chip size="small" :color="r.wap !== null ? 'success' : 'grey'" variant="tonal">
-                    {{ r.wap !== null ? fmt(r.wap) + ' MAD/KG' : 'N/A' }}
-                  </v-chip>
-                </td>
-                <td class="font-weight-bold text-primary">{{ r.total_price !== null ? fmt(r.total_price) + ' MAD' : 'N/A' }}</td>
-              </tr>
-            </tbody>
-          </v-table>
-          <div class="text-caption text-medium-emphasis mt-2 px-2">
-            {{ globalSearchResults.length }} {{ $t('results_found') }}
-          </div>
-        </div>
-      </v-expand-transition>
-      <div v-if="globalSearchQuery && globalSearchQuery.length >= 2 && !globalSearchLoading && globalSearchResults.length === 0" class="text-center py-4 text-medium-emphasis">
-        <v-icon size="32" class="mb-1">mdi-magnify-close</v-icon>
-        <p>{{ $t('no_results_found') }}</p>
-      </div>
-    </div>
-
-    <!-- ═══════════ SECTION 3: WAREHOUSE LIST ═══════════ -->
-    <div class="wh-section-header">
-      <h2 class="wh-section-title">
-        <v-icon start color="primary">mdi-warehouse</v-icon>
-        {{ $t('warehouses') }}
-      </h2>
-      <div class="wh-filters">
-        <v-select
-          v-model="selectedCategory"
-          :items="categoryOptions"
-          item-title="name"
-          item-value="id"
-          :placeholder="$t('filter_by_category')"
-          density="compact"
-          variant="outlined"
-          rounded
-          hide-details
-          clearable
-          color="info"
-          prepend-inner-icon="mdi-filter-variant"
-          class="wh-category-filter text-info"
-        ></v-select>
-        <v-text-field
-          v-model="searchQuery"
-          :placeholder="$t('search_warehouse')"
-          density="compact"
-          variant="outlined"
-          rounded
-          prepend-inner-icon="mdi-magnify"
-          hide-details
-          class="wh-search text-info"
-          clearable
-          color="info"
-        ></v-text-field>
-      </div>
-    </div>
-
-    <v-row v-if="loadingWarehouses">
-      <v-col cols="12" md="4" sm="6" v-for="i in 6" :key="i">
-        <v-skeleton-loader type="card, article" class="rounded-xl"></v-skeleton-loader>
       </v-col>
     </v-row>
 
-    <v-row v-else>
-      <v-col
-        cols="12" md="4" sm="6"
-        v-for="wh in filteredWarehouses"
-        :key="wh.id"
-      >
-        <div class="wh-card" :class="{ 'wh-card-expanded': expandedWarehouse === wh.id }">
-          <div class="wh-card-bg"></div>
-          <div class="wh-card-content">
-            <div class="d-flex justify-space-between align-start mb-3">
-              <div>
-                <h3 class="wh-card-name" @click="toggleWarehouse(wh.id)">{{ wh.name }}</h3>
-                <div class="wh-card-date">
-                  <v-icon size="12" class="me-1">mdi-calendar</v-icon>
-                  {{ wh.created_at || 'N/A' }}
+    <!-- EMPTY STATE -->
+    <div v-if="!selectedWarehouseIds.length" class="wh-empty-state">
+      <v-icon size="80" color="#5C6BC055">mdi-warehouse</v-icon>
+      <div class="text-h6 mt-3" style="opacity:.4">{{ $t('no_warehouses_selected') }}</div>
+    </div>
+
+    <!-- LOADING -->
+    <div v-else-if="fetchLoading" class="d-flex justify-center pa-12"><v-progress-circular indeterminate color="#5C6BC0" size="48"></v-progress-circular></div>
+
+    <!-- DATA AREA -->
+    <div v-else>
+      <!-- BREADCRUMBS -->
+      <div class="d-flex align-center ga-1 mb-4 flex-wrap">
+        <template v-for="(bc, i) in breadcrumbs" :key="i">
+          <v-btn v-if="i < breadcrumbs.length - 1" variant="text" color="#5C6BC0" size="small" @click="drillTo(bc.level)" :prepend-icon="bc.icon">{{ bc.label }}</v-btn>
+          <v-chip v-else size="small" color="indigo" variant="tonal" :prepend-icon="bc.icon">{{ bc.label }}</v-chip>
+          <v-icon v-if="i < breadcrumbs.length - 1" size="14" color="grey">mdi-chevron-right</v-icon>
+        </template>
+      </div>
+
+      <!-- STAT CARDS -->
+      <v-row v-if="drillLevel === 0" dense class="mb-5">
+        <v-col v-for="(c, i) in [
+          { icon: 'mdi-package-variant-closed', l: $t('total_articles'), v: totalBalances, color: '#26A69A', sfx: '' },
+          { icon: 'mdi-weight-kilogram', l: $t('stock_weight'), v: main.formatDisplayNumber(totalWeight), color: '#42A5F5', sfx: ' Kg' },
+          { icon: 'mdi-cash-multiple', l: $t('stock_value'), v: main.formatDisplayNumber(totalPrice), color: '#FF7043', sfx: ' ' + main.currency }
+        ]" :key="i" cols="4">
+          <div class="wh-stat-card" :style="{ borderColor: c.color + '30' }">
+            <div class="wh-stat-icon" :style="{ background: c.color + '18' }"><v-icon :color="c.color" size="22">{{ c.icon }}</v-icon></div>
+            <div><div class="wh-stat-value" :style="{ color: c.color }">{{ c.v }}{{ c.sfx }}</div>
+            <div class="wh-stat-label">{{ c.l }}</div></div>
+          </div>
+        </v-col>
+      </v-row>
+
+      <!-- === LEVEL 0: ARTICLE TYPE TABLE === -->
+      <div v-if="drillLevel === 0" class="wh-panel-card">
+        <div class="wh-panel-header"><v-icon size="16" color="#5C6BC0" class="mr-1">mdi-shape-outline</v-icon><span>{{ $t('article_type_level') }}</span></div>
+        <table class="wh-detail-table">
+          <thead><tr><th>{{ $t('article_type_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
+          <tbody>
+            <tr v-for="row in articleTypes" :key="row.type" class="wh-stock-row" @click="drillIntoType(row.type)">
+              <td><div class="d-flex align-center ga-2"><v-icon size="18" :color="tColor(row.type)">{{ tIcon(row.type) }}</v-icon><span class="font-weight-bold">{{ typeName(row.type) }}</span></div></td>
+              <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td>
+              <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td>
+              <td>
+                <v-btn icon variant="text" size="x-small" color="purple" @click.stop="openPieL0(row.type)" :title="$t('stock_distribution')"><v-icon size="16">mdi-chart-pie</v-icon></v-btn>
+                <v-btn icon variant="text" size="x-small" color="#5C6BC0" @click.stop="drillIntoType(row.type)"><v-icon size="16">mdi-arrow-right</v-icon></v-btn>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="!articleTypes.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
+      </div>
+
+      <!-- === LEVEL 1: FISH FAMILY TABLE === -->
+      <div v-if="drillLevel === 1 && drillType === 'FishType'" class="wh-panel-card">
+        <div class="wh-panel-header"><v-icon size="16" color="#00ACC1" class="mr-1">mdi-fish</v-icon><span>{{ $t('fish_family_level') }}</span></div>
+        <table class="wh-detail-table">
+          <thead><tr><th>{{ $t('fish_family_name') }}</th><th>{{ $t('package_count') }}</th><th>{{ $t('package_type_size') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
+          <tbody>
+            <tr v-for="fam in fishFamilies" :key="fam.id" class="wh-stock-row" @click="drillIntoFamily(fam)">
+              <td class="font-weight-bold">{{ fam.name }}</td>
+              <td><v-chip v-if="fam.packages" size="x-small" color="teal" variant="tonal">{{ fam.packages }}</v-chip><span v-else class="text-grey">-</span></td>
+              <td>{{ fam.packageTypeNames }}</td>
+              <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(fam.weight) }}</td>
+              <td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(fam.wap) }}</v-chip></td>
+              <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(fam.price) }}</td>
+              <td>
+                <v-btn icon variant="text" size="x-small" color="purple" @click.stop="openPieL1(fam)" :title="$t('stock_distribution')"><v-icon size="16">mdi-chart-pie</v-icon></v-btn>
+                <v-btn icon variant="text" size="x-small" color="teal" @click.stop="openLineChart({ type:'family', familyId:fam.id, familyName:fam.name })" :title="$t('price_history')"><v-icon size="16">mdi-chart-line</v-icon></v-btn>
+                <v-btn icon variant="text" size="x-small" color="#5C6BC0" @click.stop="drillIntoFamily(fam)"><v-icon size="16">mdi-arrow-right</v-icon></v-btn>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="!fishFamilies.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
+      </div>
+
+      <!-- === LEVEL 2: FISH NAME TABLE === -->
+      <div v-if="drillLevel === 2 && drillType === 'FishType'" class="wh-panel-card">
+        <div class="wh-panel-header"><v-icon size="16" color="#00ACC1" class="mr-1">mdi-fish</v-icon><span>{{ $t('fish_name_level') }} - {{ drillFamilyName }}</span></div>
+        <table class="wh-detail-table">
+          <thead><tr><th>{{ $t('fish_name') }}</th><th>{{ $t('entries_count') }}</th><th>{{ $t('package_count') }}</th><th>{{ $t('package_type_size') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
+          <tbody>
+            <tr v-for="fn in fishNames" :key="fn.id" class="wh-stock-row" @click="drillIntoFishName(fn)">
+              <td class="font-weight-bold">{{ fn.name }}</td>
+              <td><v-chip size="x-small" color="indigo" variant="tonal">{{ fn.count }}</v-chip></td>
+              <td><v-chip v-if="fn.packages" size="x-small" color="teal" variant="tonal">{{ fn.packages }}</v-chip><span v-else class="text-grey">-</span></td>
+              <td>{{ fn.packageTypeNames }}</td>
+              <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(fn.weight) }}</td>
+              <td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(fn.wap) }}</v-chip></td>
+              <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(fn.price) }}</td>
+              <td>
+                <v-btn icon variant="text" size="x-small" color="teal" @click.stop="openLineChart({ type:'article', stockableId:fn.id, articleName:fn.name })" :title="$t('price_history')"><v-icon size="16">mdi-chart-line</v-icon></v-btn>
+                <v-btn icon variant="text" size="x-small" color="#5C6BC0" @click.stop="drillIntoFishName(fn)"><v-icon size="16">mdi-arrow-right</v-icon></v-btn>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="!fishNames.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
+      </div>
+
+      <!-- === LEVEL 1: GUANO TABLE === -->
+      <div v-if="drillLevel === 1 && drillType === 'GuanoType'" class="wh-panel-card">
+        <div class="wh-panel-header"><v-icon size="16" color="#FB8C00" class="mr-1">mdi-leaf</v-icon><span>{{ $t('guano_level') }}</span></div>
+        <table class="wh-detail-table">
+          <thead><tr><th>{{ $t('guano_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
+          <tbody><tr v-for="row in guanoArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(row.wap) }}</v-chip></td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
+        </table>
+        <div v-if="!guanoArticles.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
+      </div>
+
+      <!-- === LEVEL 1: PACKAGE TABLE === -->
+      <div v-if="drillLevel === 1 && drillType === 'PackageType'" class="wh-panel-card">
+        <div class="wh-panel-header"><v-icon size="16" color="#6D4C41" class="mr-1">mdi-package-variant</v-icon><span>{{ $t('package_level') }}</span></div>
+        <table class="wh-detail-table">
+          <thead><tr><th>{{ $t('package_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
+          <tbody><tr v-for="row in packageArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(row.wap) }}</v-chip></td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
+        </table>
+        <div v-if="!packageArticles.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
+      </div>
+
+      <!-- === LEVEL 3: FISH ARTICLES TABLE === -->
+      <div v-if="drillLevel === 3" class="wh-panel-card">
+        <div class="wh-panel-header"><v-icon size="16" color="#00ACC1" class="mr-1">mdi-table</v-icon><span>{{ $t('fish_article_level') }} - {{ drillFishName }}</span></div>
+        <div class="wh-balance-list">
+          <!-- Clear filters button -->
+          <div v-if="Object.values(colFilters['level3']||{}).some(f=>f&&f.length)" class="d-flex justify-end mb-2">
+            <v-btn variant="tonal" color="warning" rounded size="x-small" prepend-icon="mdi-filter-off" @click="colFilters['level3']={};colFilters={...colFilters}">{{ $t('clear_filters') }}</v-btn>
+          </div>
+          <table class="wh-detail-table">
+            <thead><tr>
+              <th style="width:30px"></th>
+              <th v-for="h in l2Headers" :key="h.key" class="wh-filter-th">
+                <div class="wh-th-inner">
+                  <span>{{ h.label }}</span>
+                  <v-menu v-if="h.filterable" v-model="l2FilterMenus[h.key]" :close-on-content-click="false" location="bottom">
+                    <template #activator="{ props }">
+                      <v-btn v-bind="props" icon variant="text" size="14">
+                        <v-icon size="12" :color="colFilters['level3']?.[h.key]?.length ? '#5C6BC0' : 'grey'">mdi-filter</v-icon>
+                      </v-btn>
+                    </template>
+                    <v-card min-width="220" class="rounded-lg pa-2">
+                      <v-autocomplete
+                        :model-value="colFilters['level3']?.[h.key]||[]"
+                        @update:model-value="setFilter('level3', h.key, $event)"
+                        :items="filterOpts(h.key, rawFishArticles)"
+                        density="compact" variant="outlined" color="#5C6BC0" hide-details
+                        multiple chips closable-chips :placeholder="$t('filter')" class="text-indigo"
+                      >
+                        <template #chip="{ item, props: p }"><v-chip v-bind="p" size="x-small" color="#5C6BC0" variant="tonal" closable>{{ item.title }}</v-chip></template>
+                      </v-autocomplete>
+                    </v-card>
+                  </v-menu>
                 </div>
-              </div>
-              <div class="d-flex gap-1">
-                <v-btn icon size="x-small" variant="tonal" color="primary" @click.stop="openPieChart(wh)">
-                  <v-icon size="16">mdi-chart-pie</v-icon>
-                  <v-tooltip activator="parent" location="top">{{ $t('article_distribution') }}</v-tooltip>
-                </v-btn>
-              </div>
-            </div>
-            <div class="wh-card-stats">
-              <div class="wh-card-stat">
-                <v-icon size="16" color="success" class="me-1">mdi-weight-kilogram</v-icon>
-                <span class="wh-stat-value">{{ fmt(wh.total_weight) }} KG</span>
-              </div>
-              <div class="wh-card-stat">
-                <v-icon size="16" color="warning" class="me-1">mdi-cash-multiple</v-icon>
-                <span class="wh-stat-value">{{ fmt(wh.total_price) }} MAD</span>
-              </div>
-            </div>
-            <v-btn
-              block
-              variant="tonal"
-              color="primary"
-              size="small"
-              class="mt-3 text-none"
-              rounded="lg"
-              @click="toggleWarehouse(wh.id)"
-              :prepend-icon="expandedWarehouse === wh.id ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-            >
-              {{ expandedWarehouse === wh.id ? $t('collapse') : $t('view_stock') }}
-            </v-btn>
-          </div>
-        </div>
-      </v-col>
-    </v-row>
-
-    <!-- ═══════════ SECTION 4: EXPANDED STOCK DETAILS (3-Level Drill-Down) ═══════════ -->
-    <v-expand-transition>
-      <div v-if="expandedWarehouse && stockFamilies.length > 0" ref="stockPanel" class="wh-stock-panel">
-        <div class="wh-stock-panel-header">
-          <h3>
-            <v-icon start color="info">mdi-package-variant-closed</v-icon>
-            {{ $t('stock_details') }} — {{ expandedWarehouseName }}
-          </h3>
-        </div>
-
-        <!-- ── Breadcrumb Navigation ── -->
-        <div class="wh-breadcrumb">
-          <v-btn
-            variant="text"
-            size="small"
-            class="text-none font-weight-bold"
-            :color="drillLevel === 'families' ? 'primary' : 'default'"
-            @click="drillToFamilies"
-          >
-            <v-icon start size="16">mdi-home</v-icon>
-            {{ $t('all_families') }}
-          </v-btn>
-          <template v-if="drillLevel === 'articles' || drillLevel === 'tracking'">
-            <v-icon size="16" class="mx-1 text-medium-emphasis">mdi-chevron-right</v-icon>
-            <v-btn
-              variant="text"
-              size="small"
-              class="text-none font-weight-bold"
-              :color="drillLevel === 'articles' ? 'primary' : 'default'"
-              @click="drillToArticles(selectedFamily)"
-            >
-              <v-avatar :color="familyColor(selectedFamily.group_type)" size="20" class="me-1" variant="tonal">
-                <v-icon size="12">{{ familyIcon(selectedFamily.group_type) }}</v-icon>
-              </v-avatar>
-              {{ selectedFamily.group_name }}
-            </v-btn>
-          </template>
-          <template v-if="drillLevel === 'tracking'">
-            <v-icon size="16" class="mx-1 text-medium-emphasis">mdi-chevron-right</v-icon>
-            <v-chip color="primary" size="small" variant="tonal" class="font-weight-bold">
-              {{ selectedArticleName }}
-            </v-chip>
-          </template>
-        </div>
-
-        <!-- ═══ LEVEL 1: FAMILIES TABLE ═══ -->
-        <v-slide-x-transition leave-absolute>
-          <v-table v-if="drillLevel === 'families'" class="wh-detail-table wh-drill-table" density="compact" key="families">
-            <thead>
-              <tr>
-                <th>{{ $t('family_name') }}</th>
-                <th class="text-center">{{ $t('type') }}</th>
-                <th class="text-center">{{ $t('articles_count') }}</th>
-                <th class="text-center">{{ $t('weight') }}</th>
-                <th class="text-center">{{ $t('value') }}</th>
-                <th class="text-center">{{ $t('actions') }}</th>
-              </tr>
-            </thead>
+              </th>
+              <th>{{ $t('actions') }}</th>
+            </tr></thead>
             <tbody>
-              <tr v-for="family in stockFamilies" :key="family.group_name" class="wh-drill-row" @click="drillToArticles(family)">
-                <td>
-                  <div class="d-flex align-center ga-3">
-                    <v-avatar :color="familyColor(family.group_type)" variant="tonal" rounded="lg" size="36">
-                      <v-icon size="18">{{ familyIcon(family.group_type) }}</v-icon>
-                    </v-avatar>
-                    <span class="font-weight-bold">{{ family.group_name }}</span>
-                  </div>
-                </td>
-                <td class="text-center">
-                  <v-chip :color="familyColor(family.group_type)" size="small" variant="tonal">
-                    {{ $t(family.group_type) }}
-                  </v-chip>
-                </td>
-                <td class="text-center">
-                  <v-chip color="info" size="small" variant="tonal">{{ groupedArticlesForFamily(family).length }}</v-chip>
-                </td>
-                <td class="text-center font-weight-bold">{{ fmt(family.total_weight) }} KG</td>
-                <td class="text-center font-weight-bold text-primary">{{ fmt(family.total_price) }} MAD</td>
-                <td class="text-center">
-                  <v-btn size="small" variant="tonal" color="info" rounded @click.stop="drillToArticles(family)">
-                    <v-icon start size="16">mdi-arrow-right</v-icon>
-                    {{ $t('view') }}
-                  </v-btn>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-        </v-slide-x-transition>
-
-        <!-- ═══ LEVEL 2: ARTICLES TABLE ═══ -->
-        <v-slide-x-transition leave-absolute>
-          <div v-if="drillLevel === 'articles'" key="articles">
-            <v-btn variant="text" color="info" size="small" class="text-none mb-3" @click="drillToFamilies">
-              <v-icon start size="18">mdi-arrow-left</v-icon>
-              {{ $t('back') }}
-            </v-btn>
-            <v-table class="wh-detail-table wh-drill-table" density="compact">
-              <thead>
-                <tr>
-                  <th>{{ $t('article_name') }}</th>
-                  <th v-if="selectedFamily.group_type === 'FishType'" class="text-center">{{ $t('nbr_boxes') }}</th>
-                  <th class="text-center">{{ $t('total_tracking_numbers') }}</th>
-                  <th class="text-center">{{ $t('weight') }}</th>
-                  <th class="text-center">{{ $t('wap') }}</th>
-                  <th class="text-center">{{ $t('value') }}</th>
-                  <th class="text-center">{{ $t('actions') }}</th>
+              <template v-for="bal in fishArticles" :key="bal.id">
+                <tr class="wh-balance-row" :class="{ 'wh-finished': bal.is_finished }" @click="toggleExpand(bal.id)">
+                  <td><v-icon size="16" :color="expandedBalances[bal.id] ? '#5C6BC0' : 'grey'">{{ expandedBalances[bal.id] ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon></td>
+                  <td>{{ main.formateDate(bal.date) }}</td>
+                  <td><v-chip size="x-small" color="indigo" variant="tonal">{{ bal.reception_tracking_number || '-' }}</v-chip></td>
+                  <td>{{ bal.supplier_name || '-' }}</td>
+                  <td>{{ bal.origin_name || '-' }}</td>
+                  <td>{{ bal.fishery_name || '-' }}</td>
+                  <td><v-chip v-if="bal.source_type" size="x-small" :color="srcColor(bal.source_type)" variant="tonal">{{ srcLabel(bal.source_type) }}</v-chip><span v-else class="text-grey">-</span></td>
+                  <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(bal.total_weight) }}</td>
+                  <td><v-chip v-if="bal.package_count" size="x-small" color="teal" variant="tonal">{{ bal.package_count }}</v-chip><span v-else class="text-grey">-</span></td>
+                  <td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(bal.wap) }}</v-chip></td>
+                  <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(bal.total_price) }}</td>
+                  <td><v-chip size="x-small" :color="Number(bal.remaining_weight) > 0 ? 'success' : 'grey'" variant="tonal" class="font-weight-bold">{{ main.formatDisplayNumber(bal.remaining_weight) }}</v-chip></td>
+                  <td class="text-no-wrap">
+                    <v-btn v-if="bal.source_type" icon variant="text" size="x-small" color="blue" @click.stop="goToSource(bal)" :title="$t('view_source')"><v-icon size="14">mdi-open-in-new</v-icon></v-btn>
+                    <v-btn icon variant="text" size="x-small" color="purple" @click.stop="openPieL2(bal)" :title="$t('stock_distribution')"><v-icon size="14">mdi-chart-pie</v-icon></v-btn>
+                    <v-btn icon variant="text" size="x-small" color="teal" @click.stop="openLineChart({ type:'article', stockableId:bal.stockable_id, articleName:bal.articleName })" :title="$t('price_history')"><v-icon size="14">mdi-chart-line</v-icon></v-btn>
+                    <v-btn icon variant="text" size="x-small" color="orange" @click.stop="openWapDialog(bal)" :title="$t('edit_wap')"><v-icon size="14">mdi-pencil</v-icon></v-btn>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                <tr v-for="art in currentArticles" :key="art.stockable_id" class="wh-drill-row" @click="drillToTracking(art)">
-                  <td>
-                    <div class="d-flex align-center ga-2">
-                      <v-avatar :color="familyColor(selectedFamily.group_type)" variant="tonal" size="28" rounded>
-                        <v-icon size="14">{{ familyIcon(selectedFamily.group_type) }}</v-icon>
-                      </v-avatar>
-                      <span class="font-weight-bold">{{ art.display_name }}</span>
+                <!-- Expanded operations -->
+                <tr v-if="expandedBalances[bal.id] && bal.operations && bal.operations.length">
+                  <td :colspan="13" class="pa-0">
+                    <div class="wh-ops-panel">
+                      <div class="wh-ops-header"><v-icon size="14" color="error" class="mr-1">mdi-arrow-up</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }} ({{ bal.operations.length }})</span></div>
+                      <table class="wh-detail-table wh-ops-table">
+                        <thead><tr><th>{{ $t('date') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('source') }}</th><th>{{ $t('client') }}</th><th>{{ $t('actions') }}</th></tr></thead>
+                        <tbody>
+                          <tr v-for="op in bal.operations" :key="op.id" class="wh-out-row">
+                            <td>{{ main.formateDate(op.date) }}</td>
+                            <td class="font-weight-bold text-error">-{{ main.formatDisplayNumber(op.weight) }}</td>
+                            <td>{{ main.formatDisplayNumber(op.total_price) }}</td>
+                            <td><v-chip size="x-small" :color="srcColor(op.source_type)" variant="tonal">{{ srcLabel(op.source_type) }}</v-chip></td>
+                            <td>{{ op.client_name || '-' }}</td>
+                            <td><v-btn v-if="op.source_type" icon variant="text" size="x-small" color="blue" @click.stop="goToSourceOp(op)" :title="$t('view_source')"><v-icon size="14">mdi-open-in-new</v-icon></v-btn></td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </td>
-                  <td v-if="selectedFamily.group_type === 'FishType'" class="text-center">{{ art.total_boxes ?? 'N/A' }}</td>
-                  <td class="text-center">
-                    <v-chip color="info" size="small" variant="tonal">{{ art.tracking_count }}</v-chip>
-                  </td>
-                  <td class="text-center font-weight-bold">{{ fmt(art.total_weight) }} KG</td>
-                  <td class="text-center">
-                    <v-chip size="small" :color="art.avg_wap !== null ? 'success' : 'grey'" variant="tonal">
-                      {{ art.avg_wap !== null ? fmt(art.avg_wap) + ' MAD/KG' : 'N/A' }}
-                    </v-chip>
-                  </td>
-                  <td class="text-center font-weight-bold text-primary">{{ art.total_price !== null ? fmt(art.total_price) + ' MAD' : 'N/A' }}</td>
-                  <td class="text-center">
-                    <v-btn size="small" variant="tonal" color="info" rounded @click.stop="drillToTracking(art)">
-                      <v-icon start size="16">mdi-arrow-right</v-icon>
-                      {{ $t('view') }}
-                    </v-btn>
-                  </td>
                 </tr>
-              </tbody>
-            </v-table>
-          </div>
-        </v-slide-x-transition>
-
-        <!-- ═══ LEVEL 3: TRACKING NUMBERS TABLE ═══ -->
-        <v-slide-x-transition leave-absolute>
-          <div v-if="drillLevel === 'tracking'" key="tracking">
-            <v-btn variant="text" color="info" size="small" class="text-none mb-3" @click="drillToArticles(selectedFamily)">
-              <v-icon start size="18">mdi-arrow-left</v-icon>
-              {{ $t('back') }}
-            </v-btn>
-            <v-table class="wh-detail-table wh-drill-table" density="compact">
-              <thead>
-                <tr>
-                  <th>{{ $t('tracking_numbers') }}</th>
-                  <th>{{ $t('date_entered') }}</th>
-                  <th>{{ $t('provider') }}</th>
-                  <th v-if="selectedFamily.group_type === 'FishType'">{{ $t('nbr_boxes') }}</th>
-                  <th>{{ $t('remaining_weight') }}</th>
-                  <th>{{ $t('wap') }}</th>
-                  <th>{{ $t('total_price') }}</th>
-                  <th>{{ $t('actions') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="tn in currentTrackingNumbers" :key="tn.tracking_number_id">
-                  <td>
-                    <v-chip v-for="t in tn.tracking_numbers" :key="t" size="x-small" color="info" variant="tonal" class="me-1">{{ t }}</v-chip>
-                  </td>
-                  <td>{{ formatDate(tn.date_entered) }}</td>
-                  <td>{{ tn.supplier_name || 'N/A' }}</td>
-                  <td v-if="selectedFamily.group_type === 'FishType'">{{ tn.nbr_boxes ?? 'N/A' }}</td>
-                  <td class="font-weight-bold">{{ fmt(tn.remaining_weight) }} KG</td>
-                  <td>
-                    <v-chip size="small" :color="tn.wap !== null ? 'success' : 'grey'" variant="tonal">
-                      {{ tn.wap !== null ? fmt(tn.wap) + ' MAD/KG' : 'N/A' }}
-                    </v-chip>
-                  </td>
-                  <td class="font-weight-bold text-primary">{{ tn.total_price !== null ? fmt(tn.total_price) + ' MAD' : 'N/A' }}</td>
-                  <td>
-                    <v-btn icon size="x-small" variant="text" color="info" @click="openTransactions(tn)">
-                      <v-icon size="18">mdi-chart-timeline-variant</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('transaction_history') }}</v-tooltip>
-                    </v-btn>
-                    <v-btn icon size="x-small" variant="text" color="warning" @click="openEditWap(tn)">
-                      <v-icon size="18">mdi-pencil</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('edit_wap') }}</v-tooltip>
-                    </v-btn>
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
-          </div>
-        </v-slide-x-transition>
-      </div>
-    </v-expand-transition>
-    <div v-if="expandedWarehouse && loadingStock" class="text-center py-8">
-      <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
-    </div>
-
-    <!-- ═══════════ DIALOG: TRANSACTION HISTORY ═══════════ -->
-    <v-dialog v-model="txDialog" max-width="800" scrollable>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon start color="info">mdi-chart-timeline-variant</v-icon>
-          {{ $t('transaction_history') }}
-          <v-spacer></v-spacer>
-          <v-btn icon size="small" variant="text" @click="txDialog = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text v-if="txLoading" class="text-center py-10">
-          <v-progress-circular indeterminate color="primary"></v-progress-circular>
-        </v-card-text>
-        <v-card-text v-else>
-          <apexchart
-            v-if="txChartSeries.length > 0"
-            type="line"
-            height="250"
-            :options="txChartOptions"
-            :series="txChartSeries"
-          ></apexchart>
-          <v-table density="compact" class="mt-4 wh-detail-table">
-            <thead>
-              <tr>
-                <th>{{ $t('date') }}</th>
-                <th>{{ $t('type') }}</th>
-                <th>{{ $t('weight') }}</th>
-                <th>{{ $t('price') }}</th>
-                <th>{{ $t('remaining_weight') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="tx in txList" :key="tx.id">
-                <td>{{ formatDate(tx.date) }}</td>
-                <td>
-                  <v-chip size="x-small" :color="tx.type === 'in' ? 'success' : 'error'" class="text-uppercase font-weight-bold">
-                    <v-icon start size="12">{{ tx.type === 'in' ? 'mdi-arrow-down-left' : 'mdi-arrow-up-right' }}</v-icon>
-                    {{ tx.type }}
-                  </v-chip>
-                </td>
-                <td>{{ fmt(tx.weight) }} KG</td>
-                <td>{{ fmt(tx.price) }} MAD</td>
-                <td class="font-weight-bold">{{ fmt(tx.running_weight) }} KG</td>
-              </tr>
+                <tr v-else-if="expandedBalances[bal.id]"><td :colspan="13" class="text-center text-caption text-medium-emphasis pa-3">{{ $t('no_data_available') }}</td></tr>
+              </template>
             </tbody>
-          </v-table>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+          </table>
+          <div v-if="!fishArticles.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
+        </div>
+      </div>
+    </div>
+  </v-card-text>
 
-    <!-- ═══════════ DIALOG: EDIT WAP ═══════════ -->
-    <v-dialog v-model="wapDialog" max-width="400">
-      <v-card class="rounded-xl pa-4">
-        <v-card-title class="d-flex align-center">
-          <v-icon start color="warning">mdi-pencil</v-icon>
-          {{ $t('edit_wap') }}
-          <v-spacer></v-spacer>
-          <v-btn icon size="small" variant="text" @click="wapDialog = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-        <v-card-text>
-          <p class="text-body-2 text-medium-emphasis mb-4">
-            {{ $t('edit_wap_desc') }}
-          </p>
-          <v-text-field
-            v-model="wapValue"
-            :label="$t('wap') + ' (MAD/KG)'"
-            type="number"
-            :min="0"
-            density="compact"
-            variant="outlined"
-            rounded
-            color="warning"
-            class="text-warning"
-            hide-details
-          ></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="wapDialog = false">{{ $t('cancel') }}</v-btn>
-          <v-btn color="warning" variant="flat" rounded="lg" :loading="wapSaving" @click="saveWap">{{ $t('save') }}</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+  <!-- === CHART DIALOG === -->
+  <v-dialog v-model="chartDialog" max-width="720" scrollable>
+    <v-card class="rounded-xl">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon size="20" :color="chartMode === 'pie' ? 'purple' : 'teal'" class="mr-2">{{ chartMode === 'pie' ? 'mdi-chart-pie' : 'mdi-chart-line' }}</v-icon>
+        <span class="text-subtitle-1 font-weight-bold">{{ chartTitle }}</span>
+        <v-spacer></v-spacer>
+        <v-btn icon variant="text" size="small" @click="chartDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+      </v-card-title>
+      <v-divider></v-divider>
+      <v-card-text class="pa-4">
+        <div v-if="chartMode === 'pie' && pieSeries.length">
+          <apexchart type="pie" :height="380" :options="pieOptions" :series="pieSeries"></apexchart>
+        </div>
+        <div v-else-if="chartMode === 'line' && lineSeries.length && lineSeries[0].data.length">
+          <apexchart type="line" :height="350" :options="lineOptions" :series="lineSeries"></apexchart>
+        </div>
+        <div v-else class="text-center text-caption text-medium-emphasis pa-8"><v-icon size="40" color="grey" class="mb-2">mdi-chart-box-outline</v-icon><div>{{ $t('no_chart_data') }}</div></div>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 
-    <!-- ═══════════ DIALOG: PIE CHART ═══════════ -->
-    <v-dialog v-model="pieDialog" max-width="600">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon start color="primary">mdi-chart-pie</v-icon>
-          {{ $t('article_distribution') }} — {{ pieWarehouseName }}
-          <v-spacer></v-spacer>
-          <v-btn icon size="small" variant="text" @click="pieDialog = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text v-if="pieLoading" class="text-center py-10">
-          <v-progress-circular indeterminate color="primary"></v-progress-circular>
-        </v-card-text>
-        <v-card-text v-else>
-          <apexchart
-            v-if="pieSeries.length > 0"
-            type="pie"
-            height="350"
-            :options="pieOptions"
-            :series="pieSeries"
-          ></apexchart>
-          <div v-else class="text-center py-6 text-medium-emphasis">{{ $t('no_data_available') }}</div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-  </div>
+  <!-- === WAP DIALOG === -->
+  <v-dialog v-model="wapDialog" max-width="420">
+    <v-card class="rounded-xl">
+      <v-card-title class="d-flex align-center pa-4"><v-icon size="20" color="orange" class="mr-2">mdi-calculator</v-icon><span class="text-subtitle-1 font-weight-bold">{{ $t('edit_wap') }}</span><v-spacer></v-spacer><v-btn icon variant="text" size="small" @click="wapDialog = false"><v-icon>mdi-close</v-icon></v-btn></v-card-title>
+      <v-divider></v-divider>
+      <v-card-text class="pa-5">
+        <div v-if="wapBalance" class="mb-4">
+          <v-chip size="small" color="indigo" variant="tonal" class="mr-2">{{ wapBalance.reception_tracking_number || '-' }}</v-chip>
+          <span class="text-caption text-medium-emphasis">{{ wapBalance.articleName || sLabel(wapBalance) }}</span>
+        </div>
+        <v-text-field v-model.number="wapValue" type="number" :label="$t('wap') + ' (' + main.currency + '/Kg)'" density="compact" variant="outlined" rounded color="orange" hide-details min="0" step="0.01"></v-text-field>
+      </v-card-text>
+      <v-card-actions class="pa-4 pt-0">
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="wapDialog = false">{{ $t('cancel') }}</v-btn>
+        <v-btn color="orange" variant="tonal" rounded :loading="wapSaving" @click="saveWap" prepend-icon="mdi-check">{{ $t('save') }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+</v-card>
 </template>
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
-import { useMain } from "@/stores/Main";
-
-export default {
-  name: "WarehouseDashboard",
-  components: { apexchart: VueApexCharts },
-  data() {
-    return {
-      // KPIs
-      kpis: { total_warehouses: 0, total_stock_weight: 0, total_stock_value: 0, total_articles: 0 },
-      categoryKpis: [],
-      // Chart
-      chartPeriod: 'monthly',
-      chartData: [],
-      // Warehouses
-      warehouses: [],
-      categories: [],
-      selectedCategory: null,
-      loadingWarehouses: true,
-      loadingStats: true,
-      searchQuery: '',
-      // Global article search
-      globalSearchQuery: '',
-      globalSearchResults: [],
-      globalSearchLoading: false,
-      globalSearchTimer: null,
-      // Expanded warehouse
-      expandedWarehouse: null,
-      stockFamilies: [],
-      loadingStock: false,
-      // Drill-down state
-      drillLevel: 'families',
-      selectedFamily: null,
-      selectedArticle: null,
-      // Transaction dialog
-      txDialog: false,
-      txLoading: false,
-      txList: [],
-      txCurrentArticle: null,
-      // WAP dialog
-      wapDialog: false,
-      wapSaving: false,
-      wapValue: null,
-      wapCurrentArticle: null,
-      // Pie dialog
-      pieDialog: false,
-      pieLoading: false,
-      pieData: [],
-      pieWarehouseName: '',
-      pieTotalWeight: 0,
-    };
-  },
-  computed: {
-    _main() { return useMain(); },
-    kpiCards() {
-      return [
-        { key: 'wh', icon: 'mdi-warehouse', label: this.$t('total_warehouses'), value: this.kpis.total_warehouses, bg: 'rgba(25,118,210,0.1)', color: 'primary' },
-        { key: 'wt', icon: 'mdi-weight-kilogram', label: this.$t('total_stock_weight'), value: this.fmt(this.kpis.total_stock_weight) + ' KG', bg: 'rgba(46,125,50,0.1)', color: 'success' },
-        { key: 'vl', icon: 'mdi-cash-multiple', label: this.$t('total_stock_value'), value: this.fmt(this.kpis.total_stock_value) + ' MAD', bg: 'rgba(239,108,0,0.1)', color: 'warning' },
-        { key: 'ar', icon: 'mdi-package-variant', label: this.$t('total_articles'), value: this.kpis.total_articles, bg: 'rgba(156,39,176,0.1)', color: 'purple' },
-      ];
-    },
-    categoryKpiCards() {
-      return this.categoryKpis.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        cards: [
-          { key: `${cat.id}-wh`, icon: 'mdi-warehouse', label: this.$t('warehouses'), value: cat.total_warehouses, bg: 'rgba(25,118,210,0.08)', color: 'primary' },
-          { key: `${cat.id}-wt`, icon: 'mdi-weight-kilogram', label: this.$t('weight'), value: this.fmt(cat.total_stock_weight) + ' KG', bg: 'rgba(46,125,50,0.08)', color: 'success' },
-          { key: `${cat.id}-vl`, icon: 'mdi-cash-multiple', label: this.$t('value'), value: this.fmt(cat.total_stock_value) + ' MAD', bg: 'rgba(239,108,0,0.08)', color: 'warning' },
-          { key: `${cat.id}-ar`, icon: 'mdi-package-variant', label: this.$t('articles'), value: cat.total_articles, bg: 'rgba(156,39,176,0.08)', color: 'purple' },
-        ],
-      }));
-    },
-    categoryOptions() {
-      return this.categories;
-    },
-    filteredWarehouses() {
-      let result = this.warehouses;
-      if (this.selectedCategory) {
-        result = result.filter(w => w.warehouse_category_id === this.selectedCategory);
-      }
-      if (this.searchQuery) {
-        const q = this.searchQuery.toLowerCase();
-        result = result.filter(w => w.name.toLowerCase().includes(q));
-      }
-      return result;
-    },
-    expandedWarehouseName() {
-      return this.warehouses.find(w => w.id === this.expandedWarehouse)?.name || '';
-    },
-    currentArticles() {
-      if (!this.selectedFamily) return [];
-      return this.groupedArticlesForFamily(this.selectedFamily);
-    },
-    currentTrackingNumbers() {
-      if (!this.selectedFamily || !this.selectedArticle) return [];
-      return this.selectedFamily.articles.filter(a => a.stockable_id === this.selectedArticle.stockable_id);
-    },
-    selectedArticleName() {
-      if (!this.selectedArticle) return '';
-      return this.selectedArticle.display_name || '';
-    },
-    chartSeries() {
-      if (!this.chartData.length) return [];
-      return [
-        { name: this.$t('stock_in'), data: this.chartData.map(d => d.stock_in_weight) },
-        { name: this.$t('sold_out'), data: this.chartData.map(d => d.sold_out_weight) },
-      ];
-    },
-    chartOptions() {
-      return {
-        chart: {
-          type: 'line',
-          toolbar: {
-            show: true,
-            tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true },
-          },
-          fontFamily: 'inherit',
-          zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
-        },
-        colors: ['#2E7D32', '#D32F2F'],
-        stroke: { curve: 'smooth', width: 3 },
-        markers: { size: 4 },
-        xaxis: { categories: this.chartData.map(d => d.label) },
-        yaxis: { labels: { formatter: v => this.fmt(v) + ' KG' } },
-        tooltip: { y: { formatter: v => this.fmt(v) + ' KG' } },
-        grid: { borderColor: 'rgba(0,0,0,0.06)' },
-        legend: { position: 'top' },
-      };
-    },
-    // Transaction chart
-    txChartSeries() {
-      if (!this.txList.length) return [];
-      return [{ name: this.$t('remaining_weight'), data: this.txList.map(t => t.running_weight) }];
-    },
-    txChartOptions() {
-      return {
-        chart: {
-          type: 'line',
-          toolbar: {
-            show: true,
-            tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true },
-          },
-          fontFamily: 'inherit',
-          zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
-        },
-        colors: ['#1976D2'],
-        stroke: { curve: 'smooth', width: 3 },
-        markers: { size: 4 },
-        xaxis: { categories: this.txList.map(t => this.formatDate(t.date)) },
-        yaxis: { labels: { formatter: v => this.fmt(v) + ' KG' } },
-        tooltip: { y: { formatter: v => this.fmt(v) + ' KG' } },
-        grid: { borderColor: 'rgba(0,0,0,0.06)' },
-      };
-    },
-    // Pie chart
-    pieSeries() {
-      return this.pieData.map(d => d.weight);
-    },
-    pieOptions() {
-      return {
-        chart: { type: 'pie', fontFamily: 'inherit' },
-        labels: this.pieData.map(d => d.name),
-        tooltip: {
-          y: { formatter: (v, { seriesIndex }) => {
-            const item = this.pieData[seriesIndex];
-            return this.fmt(item.weight) + ' KG (' + item.percentage + '%)';
-          }}
-        },
-        legend: { position: 'bottom' },
-        colors: ['#1976D2', '#2E7D32', '#EF6C00', '#9C27B0', '#00897B', '#D32F2F', '#5C6BC0', '#F9A825'],
-      };
-    },
-  },
-  watch: {
-    chartPeriod() { this.fetchDashboardStats(); },
-    globalSearchQuery(val) {
-      clearTimeout(this.globalSearchTimer);
-      if (!val || val.length < 2) {
-        this.globalSearchResults = [];
-        return;
-      }
-      this.globalSearchTimer = setTimeout(() => this.fetchGlobalSearch(val), 400);
-    },
-  },
-  mounted() {
-    this.fetchDashboardStats();
-    this.fetchWarehouses();
-  },
-  methods: {
-    fmt(num) {
-      if (!num && num !== 0) return '0,00';
-      return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
-    },
-    formatDate(d) {
-      if (!d) return 'N/A';
-      return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-    },
-    familyColor(type) {
-      if (type === 'FishType') return 'info';
-      if (type === 'GuanoType') return 'brown';
-      if (type === 'PackageType') return 'teal';
-      return 'grey';
-    },
-    familyIcon(type) {
-      if (type === 'FishType') return 'mdi-fish';
-      if (type === 'GuanoType') return 'mdi-leaf';
-      if (type === 'PackageType') return 'mdi-package-variant';
-      return 'mdi-help-circle';
-    },
-    categoryChipColor(name) {
-      const n = (name || '').toLowerCase();
-      if (n === 'local') return 'blue';
-      if (n === 'foreign') return 'teal';
-      if (n === 'client') return 'orange';
-      return 'grey';
-    },
-    categoryChipIcon(name) {
-      const n = (name || '').toLowerCase();
-      if (n === 'local') return 'mdi-home-city';
-      if (n === 'foreign') return 'mdi-earth';
-      if (n === 'client') return 'mdi-account-group';
-      return 'mdi-tag';
-    },
-    async fetchDashboardStats() {
-      this.loadingStats = true;
-      try {
-        const res = await axios.get('/api/warehouses/dashboard-stats', { params: { period: this.chartPeriod } });
-        this.chartData = res.data.chart;
-        this.kpis = res.data.kpis;
-        this.categoryKpis = res.data.category_kpis || [];
-      } catch (e) { console.error('Dashboard stats error:', e); }
-      finally { this.loadingStats = false; }
-    },
-    async fetchWarehouses() {
-      this.loadingWarehouses = true;
-      try {
-        const res = await axios.get('/api/warehouses');
-        this.warehouses = res.data.warehouses;
-        this.categories = res.data.categories || [];
-      } catch (e) { console.error('Warehouses error:', e); }
-      finally { this.loadingWarehouses = false; }
-    },
-    // ── Drill-down helpers ──
-    groupedArticlesForFamily(family) {
-      const map = {};
-      for (const art of family.articles) {
-        const key = art.stockable_id;
-        if (!map[key]) {
-          const name = art.article_name?.name_en || art.article_name?.name_fr || art.article_name?.name_es || 'N/A';
-          map[key] = {
-            stockable_id: key,
-            display_name: name,
-            article_name: art.article_name,
-            stockable_type: art.stockable_type,
-            total_weight: 0,
-            total_price: 0,
-            total_boxes: 0,
-            tracking_count: 0,
-            wap_sum: 0,
-            wap_count: 0,
-          };
-        }
-        map[key].total_weight += art.remaining_weight || 0;
-        map[key].total_price += art.total_price || 0;
-        map[key].total_boxes += art.nbr_boxes || 0;
-        map[key].tracking_count += 1;
-        if (art.wap !== null && art.wap !== undefined) {
-          map[key].wap_sum += art.wap;
-          map[key].wap_count += 1;
-        }
-      }
-      return Object.values(map).map(a => ({
-        ...a,
-        total_weight: Math.round(a.total_weight * 100) / 100,
-        total_price: Math.round(a.total_price * 100) / 100,
-        total_boxes: a.total_boxes || null,
-        avg_wap: a.wap_count > 0 ? Math.round((a.wap_sum / a.wap_count) * 100) / 100 : null,
-      }));
-    },
-    drillToFamilies() {
-      this.drillLevel = 'families';
-      this.selectedFamily = null;
-      this.selectedArticle = null;
-    },
-    drillToArticles(family) {
-      this.selectedFamily = family;
-      this.selectedArticle = null;
-      this.drillLevel = 'articles';
-    },
-    drillToTracking(article) {
-      this.selectedArticle = article;
-      this.drillLevel = 'tracking';
-    },
-    async toggleWarehouse(id) {
-      if (this.expandedWarehouse === id) {
-        this.expandedWarehouse = null;
-        this.stockFamilies = [];
-        this.drillToFamilies();
-        return;
-      }
-      this.expandedWarehouse = id;
-      this.loadingStock = true;
-      this.stockFamilies = [];
-      this.drillToFamilies();
-      try {
-        const res = await axios.get(`/api/warehouses/${id}/stock-details`);
-        this.stockFamilies = res.data.families;
-        this.$nextTick(() => {
-          setTimeout(() => {
-            if (this.$refs.stockPanel) {
-              this.$refs.stockPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 150);
-        });
-      } catch (e) { console.error('Stock details error:', e); }
-      finally { this.loadingStock = false; }
-    },
-    async openTransactions(article) {
-      this.txCurrentArticle = article;
-      this.txDialog = true;
-      this.txLoading = true;
-      this.txList = [];
-      try {
-        const res = await axios.get(`/api/warehouses/${this.expandedWarehouse}/tracking-number/${article.tracking_number_id}/transactions`);
-        this.txList = res.data.transactions;
-      } catch (e) { console.error('Transactions error:', e); }
-      finally { this.txLoading = false; }
-    },
-    openEditWap(article) {
-      this.wapCurrentArticle = article;
-      this.wapValue = article.custom_wap || article.wap || 0;
-      this.wapDialog = true;
-    },
-    async saveWap() {
-      this.wapSaving = true;
-      try {
-        await axios.put(`/api/warehouses/tracking-number/${this.wapCurrentArticle.tracking_number_id}/wap`, { custom_wap: this.wapValue });
-        // Refresh stock
-        if (this.expandedWarehouse) {
-          const res = await axios.get(`/api/warehouses/${this.expandedWarehouse}/stock-details`);
-          this.stockFamilies = res.data.families;
-        }
-        this.wapDialog = false;
-      } catch (e) { console.error('WAP save error:', e); }
-      finally { this.wapSaving = false; }
-    },
-    async openPieChart(wh) {
-      this.pieWarehouseName = wh.name;
-      this.pieDialog = true;
-      this.pieLoading = true;
-      this.pieData = [];
-      try {
-        const res = await axios.get(`/api/warehouses/${wh.id}/pie-chart`);
-        this.pieData = res.data.distribution;
-        this.pieTotalWeight = res.data.total_weight;
-      } catch (e) { console.error('Pie chart error:', e); }
-      finally { this.pieLoading = false; }
-    },
-    async fetchGlobalSearch(q) {
-      this.globalSearchLoading = true;
-      try {
-        const res = await axios.get('/api/warehouses/global-search', { params: { q } });
-        this.globalSearchResults = res.data.results;
-      } catch (e) { console.error('Global search error:', e); }
-      finally { this.globalSearchLoading = false; }
-    },
-  },
-};
+import script from './script.js';
+export default { ...script, components: { apexchart: VueApexCharts } };
 </script>
 
 <style scoped>
-.wh-dashboard {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* ── Header ── */
-.wh-header {
-  margin-bottom: 32px;
-  position: relative;
-}
-
-.wh-header-glow {
-  position: absolute;
-  top: -30px;
-  left: -20px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(25,118,210,0.08) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.wh-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #1976d2, #42a5f5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(25,118,210,0.25);
-}
-
-.wh-title {
-  font-size: 26px;
-  font-weight: 800;
-  margin-bottom: 2px;
-  background: linear-gradient(135deg, #1976d2, #42a5f5);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.wh-subtitle {
-  font-size: 14px;
-  color: rgba(var(--v-theme-on-surface), 0.55);
-  margin: 0;
-}
-
-/* ── KPI Groups ── */
-.wh-kpi-group {
-  margin-bottom: 24px;
-}
-.wh-kpi-group--category {
-  margin-bottom: 16px;
-}
-.wh-kpi-group-label {
-  margin-bottom: 12px;
-}
-
-/* ── KPI Cards ── */
-.wh-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-.wh-kpi-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(var(--v-theme-surface), 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-.wh-kpi-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-}
-.wh-kpi-card--small {
-  padding: 14px 16px;
-  border-radius: 12px;
-}
-.wh-kpi-card--small:hover {
-  transform: translateY(-2px);
-}
-.wh-kpi-icon-wrap {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-}
-.wh-kpi-icon-wrap--sm {
-  width: 40px; height: 40px;
-  border-radius: 10px;
-}
-.wh-kpi-info { display: flex; flex-direction: column; }
-.wh-kpi-val { font-size: 20px; font-weight: 800; color: rgba(var(--v-theme-on-surface), 0.9); }
-.wh-kpi-val--sm { font-size: 16px; font-weight: 700; }
-.wh-kpi-lbl { font-size: 12px; color: rgba(var(--v-theme-on-surface), 0.55); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-
-/* ── Chart Card ── */
-.wh-chart-card {
-  background: rgba(var(--v-theme-surface), 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 28px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
-}
-.wh-chart-header {
-  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
-}
-.wh-chart-title { font-size: 18px; font-weight: 700; }
-.wh-chart-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; }
-
-/* ── Global Search ── */
-.wh-global-search-card {
-  background: rgba(var(--v-theme-surface), 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 28px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
-}
-.wh-global-search-header {
-  margin-bottom: 16px;
-}
-
-/* ── Section Header ── */
-.wh-section-header {
-  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
-  margin-bottom: 24px;
-}
-.wh-section-title { font-size: 20px; font-weight: 700; }
-.wh-filters { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
-.wh-category-filter { min-width: 200px; max-width: 280px; }
-.wh-search { max-width: 320px; min-width: 200px; }
-
-/* ── Warehouse Cards ── */
-.wh-card {
-  position: relative;
-  background: rgba(var(--v-theme-surface), 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  border-radius: 20px;
-  padding: 20px;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.03);
-  height: 100%;
-}
-.wh-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.07); }
-.wh-card-expanded { border-color: rgba(var(--v-theme-primary), 0.4); box-shadow: 0 12px 32px rgba(25,118,210,0.12); }
-.wh-card-bg {
-  position: absolute; top: -40px; right: -40px; width: 120px; height: 120px;
-  background: radial-gradient(circle, rgba(var(--v-theme-primary), 0.12) 0%, transparent 70%);
-  border-radius: 50%; z-index: 0;
-}
-.wh-card-content { position: relative; z-index: 1; }
-.wh-card-name { font-size: 16px; font-weight: 700; cursor: pointer; }
-.wh-card-name:hover { color: rgb(var(--v-theme-primary)); }
-.wh-card-date { font-size: 11px; color: rgba(var(--v-theme-on-surface), 0.5); margin-top: 2px; }
-.wh-card-stats { display: flex; gap: 16px; flex-wrap: wrap; }
-.wh-card-stat { display: flex; align-items: center; }
-.wh-stat-value { font-size: 14px; font-weight: 700; }
-
-/* ── Stock Panel ── */
-.wh-stock-panel {
-  background: rgba(var(--v-theme-surface), 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  border-radius: 20px;
-  padding: 24px;
-  margin-top: 20px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
-}
-.wh-stock-panel-header { margin-bottom: 16px; }
-.wh-stock-panel-header h3 { font-size: 18px; font-weight: 700; }
-
-/* ── Breadcrumb ── */
-.wh-breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 8px 12px;
-  margin-bottom: 16px;
-  background: rgba(var(--v-theme-on-surface), 0.03);
-  border-radius: 12px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-}
-
-/* ── Tables ── */
-.wh-detail-table { background: transparent !important; }
-.wh-detail-table :deep(th) {
-  background: rgba(var(--v-theme-on-surface), 0.03) !important;
-  font-size: 11px !important; font-weight: 700 !important;
-  text-transform: uppercase; letter-spacing: 0.5px;
-  border-bottom: 2px solid rgba(var(--v-theme-on-surface), 0.06) !important;
-}
-.wh-detail-table :deep(td) {
-  padding: 12px 16px !important;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.04) !important;
-}
-.wh-detail-table :deep(tr:hover td) {
-  background: rgba(var(--v-theme-primary), 0.02) !important;
-}
-
-/* ── Drill-down rows ── */
-.wh-drill-table :deep(.wh-drill-row) {
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.wh-drill-table :deep(.wh-drill-row:hover td) {
-  background: rgba(var(--v-theme-primary), 0.05) !important;
-}
-
-.gap-1 { gap: 4px; }
-.gap-4 { gap: 16px; }
+.wh-card { border-radius: 20px !important; font-family: 'Inter', sans-serif }
+.wh-hero { background: linear-gradient(135deg, #283593 0%, #3949AB 40%, #5C6BC0 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; min-height: 100px }
+.wh-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px }
+.wh-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15) }
+.wh-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px }
+.wh-stat-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1.5px solid; background: rgba(var(--v-theme-surface),1); transition: transform .15s, box-shadow .15s }
+.wh-stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.08) }
+.wh-stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0 }
+.wh-stat-value { font-size: 16px; font-weight: 800; line-height: 1.2 }
+.wh-stat-label { font-size: 11px; font-weight: 600; opacity: .55; text-transform: uppercase; letter-spacing: .3px }
+.wh-panel-card { border: 1.5px solid rgba(92,107,192,.12); border-radius: 14px; padding: 16px; background: rgba(var(--v-theme-surface),1); margin-bottom: 16px }
+.wh-panel-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; opacity: .7; margin-bottom: 12px; display: flex; align-items: center }
+.wh-detail-table { width: 100%; border-collapse: collapse; font-size: 12.5px }
+.wh-detail-table th { padding: 10px 14px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; opacity: .6; text-align: center; border-bottom: 1.5px solid rgba(var(--v-border-color),.1); background: rgba(92,107,192,.04) }
+.wh-detail-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid rgba(var(--v-border-color),.05) }
+.wh-stock-row { cursor: pointer; transition: background .15s }
+.wh-stock-row:hover { background: rgba(92,107,192,.06) !important }
+.wh-balance-row { cursor: pointer; transition: background .15s }
+.wh-balance-row:hover { background: rgba(92,107,192,.05) !important }
+.wh-balance-row.wh-finished { opacity: .45 }
+.wh-ops-panel { margin: 0 16px 8px 40px; padding: 10px 14px; border-radius: 10px; background: rgba(244,67,54,.03); border: 1px solid rgba(244,67,54,.1) }
+.wh-ops-header { margin-bottom: 8px; display: flex; align-items: center }
+.wh-ops-table th { background: rgba(244,67,54,.04) !important }
+.wh-out-row { background: rgba(244,67,54,.02) }
+.wh-out-row:hover { background: rgba(244,67,54,.06) !important }
+.wh-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 0 }
+.wh-input :deep(.v-field) { border-radius: 10px !important }
+.wh-filter-th { white-space: nowrap }
+.wh-th-inner { display: flex; align-items: center; justify-content: center; gap: 2px }
+.wh-stats-panel { max-height: 400px }
+.wh-stat-item { padding: 8px 10px; border-radius: 10px; background: rgba(92,107,192,.03); border: 1px solid rgba(92,107,192,.06) }
 </style>

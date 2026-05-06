@@ -81,6 +81,47 @@
           {{ $t('powered_by_ai') }}
       </v-chip>
   </div>
+
+  <!-- Login Error Snackbar -->
+  <v-snackbar
+    v-model="loginError"
+    :timeout="5000"
+    location="top right"
+    color="error"
+    rounded="lg"
+    elevation="12"
+    min-width="300"
+  >
+    <div class="d-flex align-center">
+      <v-icon class="mr-2">mdi-alert-circle</v-icon>
+      <span class="text-subtitle-2 font-weight-medium">{{ $t('login_error') }}</span>
+    </div>
+    <template #actions>
+      <v-btn variant="text" size="small" icon="mdi-close" @click="loginError = false"></v-btn>
+    </template>
+  </v-snackbar>
+
+  <!-- Account Disabled Snackbar -->
+  <v-snackbar
+    v-model="accountDisabled"
+    :timeout="8000"
+    location="top right"
+    color="warning"
+    rounded="lg"
+    elevation="12"
+    min-width="360"
+  >
+    <div class="d-flex align-center">
+      <v-icon class="mr-2">mdi-account-lock</v-icon>
+      <div>
+        <div class="text-subtitle-2 font-weight-bold">{{ $t('account_disabled_title') }}</div>
+        <div class="text-caption" style="opacity:.85">{{ $t('account_disabled_message') }}</div>
+      </div>
+    </div>
+    <template #actions>
+      <v-btn variant="text" size="small" icon="mdi-close" @click="accountDisabled = false"></v-btn>
+    </template>
+  </v-snackbar>
 </template>
 
 <script>
@@ -98,6 +139,8 @@
                 v$: useValidate(),
                 show_password: false,
                 loading: false,
+                loginError: false,
+                accountDisabled: false,
             }
         },
         computed: {
@@ -116,13 +159,25 @@
         methods: {
             submit: function () {
                 this.loading = true;
+                this.loginError = false;
+                this.accountDisabled = false;
                 this.auth.login().then(_res => {
                     this.loading = false;
+                    if (!_res.token) {
+                        this.auth.model.password = null;
+                        this.loginError = true;
+                        return;
+                    }
                     this.auth.model.password = null;
                     this.$router.push({"name":"index"});
                 }).catch(error=>{
-                    this.loading = false
+                    this.loading = false;
                     this.auth.model.password = null;
+                    if (error.response && error.response.status === 403 && error.response.data?.disabled) {
+                        this.accountDisabled = true;
+                    } else {
+                        this.loginError = true;
+                    }
                 });
             }
         },
@@ -151,7 +206,7 @@
 
 <style lang="scss" scoped>
 
-/* ── Animated Auth Title ── */
+/* -- Animated Auth Title -- */
 .auth-title-col {
   padding-top: 12px;
   padding-bottom: 4px;
@@ -217,7 +272,7 @@ e-col {
   background-color: #6dc7ff2d;
 }
 
-/* ── Powered By AI Pulse ── */
+/* -- Powered By AI Pulse -- */
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(2, 143, 251, 0.5);

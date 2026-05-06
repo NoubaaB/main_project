@@ -84,7 +84,7 @@
         <template v-slot:[`item.corporals`]="{ item }">
           <div class="d-flex flex-wrap ga-1 justify-center">
             <v-chip v-for="c in (item.corporals || [])" :key="c.id" size="x-small" color="teal" variant="tonal">{{ c.full_name }}</v-chip>
-            <span v-if="!item.corporals || !item.corporals.length" class="text-grey text-caption">—</span>
+            <span v-if="!item.corporals || !item.corporals.length" class="text-grey text-caption">-</span>
           </div>
         </template>
 
@@ -227,7 +227,7 @@ export default {
     },
     getCellDisplayValue(key, item) {
       if (key === 'is_price_modifiable') return item[key] ? this.$t('yes') : this.$t('no');
-      if (key === 'corporals') return (item.corporals || []).map(c => c.full_name).join(', ') || '—';
+      if (key === 'corporals') return (item.corporals || []).map(c => c.full_name).join(', ') || '-';
       return String(item[key] ?? '');
     },
     getColumnOptions(key) {

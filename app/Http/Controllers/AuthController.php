@@ -3,14 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Stock;
+use App\Models\WarehouseCategory;
 use App\Models\Origin;
 use App\Models\Fishery;
 use App\Models\PackageType;
 use App\Models\FishType;
 use App\Models\FishProcessType;
 use App\Models\ChargeCategory;
-use App\Models\SellCategory;
+use App\Models\ShippingCategory;
 use App\Models\Client;
 use App\Models\FishFamily;
 use App\Models\Formula;
@@ -22,7 +22,12 @@ use App\Models\Ship;
 use App\Models\Supplier;
 use App\Models\Truck;
 use App\Models\Warehouse;
-use App\Models\WarehouseCategoryOperation;
+use App\Models\DetailChargeCategory;
+use App\Models\DetailShippingCategory;
+use App\Models\DetailProductionCategory;
+use App\Models\DetailInventoryCategory;
+use App\Models\WarehouseTransferCategory;
+use App\Models\ProductionCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -85,6 +90,14 @@ class AuthController extends Controller implements HasMiddleware
             return response()->json(['message' => "email or password not correct"]);
         }
 
+        // Check if user account is disabled
+        if (!$user->is_active) {
+            return response()->json([
+                'message' => 'account_disabled',
+                'disabled' => true,
+            ], 403);
+        }
+
         //create token
         $token = $user->createToken($user->name)->plainTextToken;
         return response()->json([
@@ -119,25 +132,30 @@ class AuthController extends Controller implements HasMiddleware
 
     public function update(Request $request): JsonResponse
     {
-        //get auth user
-
         /** @var User $auth_user */
         $auth_user = Auth::user();
 
-        //validate data
-        $data = $request->validate([
+        $rules = [
             'name' => 'required|string|max:50',
-            "email" => "required|unique:users,email,{$auth_user->id},id",
-            'role_id' => 'required|numeric|distinct|exists:roles,id',
-            'password' => 'min:6|required_with:confirm_password|same:confirm_password|max:250'
-        ]);
+            'email' => "required|email|max:100|unique:users,email,{$auth_user->id},id",
+        ];
 
-        //hash password
-        $data['password'] = Hash::make($data['password']);
-        //update user
+        // Password is optional – only validate if provided
+        if ($request->filled('password')) {
+            $rules['password'] = 'string|min:6|max:250|confirmed';
+        }
+
+        $data = $request->validate($rules);
+
+        // Only hash password if it was provided
+        if (isset($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+
         $auth_user->update($data);
+        $auth_user->load('role');
 
-        return response()->json(["user" => $auth_user], 200);
+        return response()->json(['user' => $auth_user], 200);
     }
 
     public function forget(Request $request): JsonResponse
@@ -208,15 +226,22 @@ class AuthController extends Controller implements HasMiddleware
         $package_types = PackageType::all();
         $guano_types = GuanoType::all();
         $warehouses = Warehouse::all();
+        $warehouse_categories = WarehouseCategory::all();
         $fisheries = Fishery::all();
         $origins = Origin::all();
-        $charge_categories = ChargeCategory::all();
-        $sell_categories = SellCategory::all();
+        $charge_categories = ChargeCategory::withCount('charges')->get();
+        $shipping_categories = ShippingCategory::withCount('shippings')->get();
+        $production_categories = ProductionCategory::withCount('productions')->get();
+        $detail_charge_categories = DetailChargeCategory::all();
+        $detail_shipping_categories = DetailShippingCategory::all();
+        $detail_production_categories = DetailProductionCategory::all();
+        $detail_inventory_categories = DetailInventoryCategory::all();
+        $warehouse_transfer_categories = WarehouseTransferCategory::all();
         $clients = Client::all();
-        $warehouse_category_operations = WarehouseCategoryOperation::all();
         $formulas = Formula::all();
         $trucks = Truck::all();
         $fish_process_types = FishProcessType::all();
+        $roles = \App\Models\Role::withCount('users')->get();
         return [
             "suppliers" => $suppliers,
             "ships" => $ships,
@@ -226,14 +251,21 @@ class AuthController extends Controller implements HasMiddleware
             "package_types" => $package_types,
             "guano_types" => $guano_types,
             "warehouses" => $warehouses,
+            "warehouse_categories" => $warehouse_categories,
             "charge_categories" => $charge_categories,
-            "sell_categories" => $sell_categories,
+            "shipping_categories" => $shipping_categories,
             "clients" => $clients,
-            "warehouse_category_operations" => $warehouse_category_operations,
             "fisheries" => $fisheries,
             "origins" => $origins,
             "formulas" => $formulas,
-            "trucks" => $trucks
+            "trucks" => $trucks,
+            "production_categories" => $production_categories,
+            "detail_charge_categories" => $detail_charge_categories,
+            "detail_shipping_categories" => $detail_shipping_categories,
+            "detail_production_categories" => $detail_production_categories,
+            "detail_inventory_categories" => $detail_inventory_categories,
+            "warehouse_transfer_categories" => $warehouse_transfer_categories,
+            "roles" => $roles,
         ];
     }
 }

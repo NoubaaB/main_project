@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+﻿import { defineStore } from 'pinia';
 import { initSocket, disconnectSocket } from '@/echo.js';
 import mitt from '@/plugins/mitt.js';
 
@@ -16,13 +16,17 @@ import { useGuanoType } from '@/stores/GuanoType';
 import { useFishery } from '@/stores/Fishery';
 import { useOrigin } from '@/stores/Origin';
 import { useWarehouse } from '@/stores/Warehouse';
-import { useWarehouseCategoryOperation } from '@/stores/WarehouseCategoryOperation';
+import { useProductionCategory } from '@/stores/ProductionCategory';
 import { useChargeCategory } from '@/stores/ChargeCategory';
-import { useSellCategory } from '@/stores/SellCategory';
+import { useShippingCategory } from '@/stores/ShippingCategory';
+import { useDetailChargeCategory } from '@/stores/DetailChargeCategory';
+import { useDetailProductionCategory } from '@/stores/DetailProductionCategory';
+import { useDetailShippingCategory } from '@/stores/DetailShippingCategory';
 import { useFormula } from '@/stores/Formula';
 import { useCorporal } from '@/stores/Corporal';
 import { useSection } from '@/stores/Section';
 import { useWorkforce } from '@/stores/Workforce';
+import { useDetailInventoryCategory } from '@/stores/DetailInventoryCategory';
 
 export const useOnlineUsers = defineStore('OnlineUsers', {
     state: () => ({
@@ -146,9 +150,13 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
                 'Fishery': () => useFishery(),
                 'Origin': () => useOrigin(),
                 'Warehouse': () => useWarehouse(),
-                'WarehouseCategory': () => useWarehouseCategoryOperation(),
+                'ProductionCategory': () => useProductionCategory(),
                 'ChargeCategory': () => useChargeCategory(),
-                'SellCategory': () => useSellCategory(),
+                'ShippingCategory': () => useShippingCategory(),
+                'DetailChargeCategory': () => useDetailChargeCategory(),
+                'DetailProductionCategory': () => useDetailProductionCategory(),
+                'DetailShippingCategory': () => useDetailShippingCategory(),
+                'DetailInventoryCategory': () => useDetailInventoryCategory(),
                 'Formula': () => useFormula(),
                 'Corporal': () => useCorporal(),
                 'Section': () => useSection(),
@@ -196,3 +204,4 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
         },
     },
 });
+

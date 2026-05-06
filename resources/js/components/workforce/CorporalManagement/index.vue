@@ -87,7 +87,7 @@
         <template v-slot:[`item.sections`]="{ item }">
           <div class="d-flex flex-wrap ga-1 justify-center">
             <v-chip v-for="s in (item.sections || [])" :key="s.id" size="x-small" color="info" variant="tonal">{{ s.name }}</v-chip>
-            <span v-if="!item.sections || !item.sections.length" class="text-grey text-caption">—</span>
+            <span v-if="!item.sections || !item.sections.length" class="text-grey text-caption">-</span>
           </div>
         </template>
 
@@ -263,7 +263,7 @@ export default {
     getCellDisplayValue(key, item) {
       if (key === 'is_quinzaine') return item[key] ? this.$t('yes') : this.$t('no');
       if (key === 'sex') return this.$t(item[key]);
-      if (key === 'sections') return (item.sections || []).map(s => s.name).join(', ') || '—';
+      if (key === 'sections') return (item.sections || []).map(s => s.name).join(', ') || '-';
       return String(item[key] ?? '');
     },
     getColumnOptions(key) {

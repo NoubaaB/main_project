@@ -195,7 +195,7 @@
           </v-card>
         </v-col>
 
-        <!-- ============= RIGHT PANEL — CALENDAR ============= -->
+        <!-- ============= RIGHT PANEL - CALENDAR ============= -->
         <v-col cols="12" md="8">
           <v-card variant="outlined" class="rounded-xl" color="info">
             <!-- Calendar Header -->
@@ -230,10 +230,11 @@
                   'fnm-cal-cell--empty': !cell.day,
                   'fnm-cal-cell--today': cell.isToday,
                   'fnm-cal-cell--outside': cell.isOutside,
+                  'fnm-cal-cell--future': cell.isFuture,
                   'fnm-cal-cell--multi': cell.activities && cell.activities.length >= 2,
                   'fnm-cal-cell--active-half': cell.inActiveHalf
                 }"
-                @click="cell.day && !cell.isOutside ? selectDate(cell) : null"
+                @click="cell.day && !cell.isOutside && !cell.isFuture ? selectDate(cell) : null"
               >
                 <div v-if="cell.day" class="fnm-cal-day-num" :class="{ 'fnm-cal-day-selected': isSelectedDate(cell) }">
                   {{ cell.day }}
@@ -243,12 +244,15 @@
                 <!-- Activities in cell -->
                 <div v-if="cell.activities && cell.activities.length" class="fnm-cal-activities">
                   <div
-                    v-for="act in cell.activities"
+                    v-for="act in cell.activities.slice(0, 4)"
                     :key="act.id"
                     class="fnm-cal-activity"
                     :class="act.section_id ? 'fnm-act-section' : 'fnm-act-corporal'"
                     @click.stop="editActivity(act)"
                   >
+                    <span v-if="multipleSelected && act.workforce" class="fnm-act-wf" :title="act.workforce.full_name">
+                      {{ getWorkforceInitials(act.workforce) }}
+                    </span>
                     <span class="fnm-act-price">{{ formatNumber(act.price) }} Dh</span>
                     <span class="fnm-act-label">{{ getActivityLabel(act) }}</span>
                     <!-- Delete button on hover -->
@@ -263,6 +267,35 @@
                       <v-icon size="10">mdi-close</v-icon>
                     </v-btn>
                   </div>
+                  <!-- "+X more" indicator -->
+                  <v-menu v-if="cell.activities.length > 4" location="bottom center" :close-on-content-click="false" max-width="320">
+                    <template #activator="{ props }">
+                      <div v-bind="props" class="fnm-cal-more" @click.stop>
+                        +{{ cell.activities.length - 4 }} {{ $t('more') }}
+                      </div>
+                    </template>
+                    <v-card class="rounded-lg pa-0" elevation="8" min-width="280">
+                      <div class="fnm-more-header">
+                        <v-icon size="16" color="white" class="mr-1">mdi-calendar</v-icon>
+                        {{ cell.dateStr }} — {{ cell.activities.length }} {{ $t('activities') }}
+                      </div>
+                      <div class="fnm-more-list">
+                        <div
+                          v-for="act in cell.activities"
+                          :key="'more-' + act.id"
+                          class="fnm-more-item"
+                          @click="editActivity(act)"
+                        >
+                          <span v-if="act.workforce" class="fnm-more-wf">{{ act.workforce.full_name }}</span>
+                          <span class="fnm-more-price">{{ formatNumber(act.price) }} Dh</span>
+                          <span class="fnm-more-label">{{ getActivityLabel(act) }}</span>
+                          <v-btn icon size="18" variant="text" color="error" class="fnm-more-del" @click.stop="deleteActivity(act)">
+                            <v-icon size="14">mdi-close</v-icon>
+                          </v-btn>
+                        </div>
+                      </div>
+                    </v-card>
+                  </v-menu>
                 </div>
               </div>
             </div>
@@ -318,7 +351,7 @@
                 </span>
               </div>
 
-              <!-- ═══════ WORKFORCE TAB ═══════ -->
+              <!-- ======= WORKFORCE TAB ======= -->
               <template v-if="breakdownTab === 'workforces'">
                 <!-- Summary table -->
                 <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table">
@@ -383,7 +416,7 @@
                           <v-icon start size="12">mdi-account-tie</v-icon>
                           {{ act.corporal_name }}
                         </v-chip>
-                        <span v-else class="text-grey">—</span>
+                        <span v-else class="text-grey">-</span>
                       </td>
                       <td class="text-center font-weight-bold">{{ formatNumber(act.price) }} {{ main.currency || 'DH' }}</td>
                     </tr>
@@ -391,7 +424,7 @@
                 </v-table>
               </template>
 
-              <!-- ═══════ SECTIONS TAB ═══════ -->
+              <!-- ======= SECTIONS TAB ======= -->
               <template v-if="breakdownTab === 'sections'">
                 <!-- Summary table -->
                 <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table">
@@ -475,7 +508,7 @@
                 </v-table>
               </template>
 
-              <!-- ═══════ CORPORALS TAB ═══════ -->
+              <!-- ======= CORPORALS TAB ======= -->
               <template v-if="breakdownTab === 'corporals'">
                 <!-- Summary table -->
                 <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table">
@@ -651,6 +684,7 @@ import { useCorporal } from '@/stores/Corporal';
 import { useSection } from '@/stores/Section';
 import { useFortnightActivity } from '@/stores/FortnightActivity';
 import { useNotification } from '@/stores/Notification';
+import mitt from '@/plugins/mitt.js';
 
 export default {
   name: 'FortnightManagement',
@@ -695,12 +729,12 @@ export default {
     activityStore() { return useFortnightActivity(); },
     notification() { return useNotification(); },
     summary() { return this.activityStore.summary; },
-    /** First selected workforce — used for calendar display */
+    /** First selected workforce - used for calendar display */
     primaryWorkforce() {
       if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return null;
       return this.workforceStore.list.find(w => w.id === this.selectedWorkforceIds[0]);
     },
-    /** For backward compat with calendar — use first selected */
+    /** For backward compat with calendar - use first selected */
     selectedWorkforceId() {
       return this.selectedWorkforceIds && this.selectedWorkforceIds.length ? this.selectedWorkforceIds[0] : null;
     },
@@ -717,6 +751,10 @@ export default {
     },
     canDeleteActivities() {
       return this.selectedWorkforceIds && this.selectedWorkforceIds.length >= 1 && this.selectedDate;
+    },
+    /** Whether multiple workforces are selected - used to show workforce name on calendar chips */
+    multipleSelected() {
+      return this.selectedWorkforceIds && this.selectedWorkforceIds.length > 1;
     },
     breakdownData() { return this.activityStore.breakdown; },
     sectionTotals() {
@@ -803,9 +841,12 @@ export default {
       }
 
       // Current month
+      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); // midnight today
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const cellDate = new Date(year, month, d);
         const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+        const isFuture = cellDate > todayDate;
         const inActiveHalf = this.currentHalf === 1 ? d <= 15 : d >= 16;
         const dayActivities = activitiesByDate[dateStr] || [];
 
@@ -814,6 +855,7 @@ export default {
           dateStr,
           isOutside: false,
           isToday,
+          isFuture,
           inActiveHalf,
           activities: dayActivities,
           monthLabel: d === 1 ? this.monthNames[month]?.substring(0, 3) : null,
@@ -841,10 +883,12 @@ export default {
       this.loadBreakdown();
     },
     currentMonth() {
+      this.loadActivities();
       this.loadSummary();
       this.loadBreakdown();
     },
     currentYear() {
+      this.loadActivities();
       this.loadSummary();
       this.loadBreakdown();
     },
@@ -861,10 +905,41 @@ export default {
     // Load initial summary and breakdown for all workforces
     this.loadSummary();
     this.loadBreakdown();
+
+    // Listen for model changes from AI Assistant or WebSocket (other users)
+    this._onModelChanged = (data) => this.handleModelChanged(data);
+    mitt.on('model-changed', this._onModelChanged);
+  },
+  beforeUnmount() {
+    if (this._onModelChanged) {
+      mitt.off('model-changed', this._onModelChanged);
+    }
   },
   methods: {
     formatDateStr(d) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
+    /**
+     * Handle real-time model change events from AI Assistant or WebSocket.
+     * Re-fetches calendar activities, summary, and breakdown when relevant models change.
+     */
+    handleModelChanged(data) {
+      const model = data?.model || '';
+      const relevantModels = ['FortnightActivity', 'Corporal', 'Section', 'Workforce'];
+      if (!relevantModels.includes(model)) return;
+
+      if (model === 'FortnightActivity') {
+        // Re-fetch activities, summary, and breakdown
+        this.loadActivities();
+        this.loadSummary();
+        this.loadBreakdown();
+      } else {
+        // Corporal, Section, or Workforce changed - re-fetch the reference store + breakdown
+        if (model === 'Workforce') this.workforceStore.fetch();
+        if (model === 'Section') this.sectionStore.fetch();
+        if (model === 'Corporal') this.corporalStore.fetch();
+        this.loadBreakdown();
+      }
     },
     formatNumber(n) {
       if (this.main.formatDisplayNumber) return this.main.formatDisplayNumber(n);
@@ -900,6 +975,14 @@ export default {
       if (act.corporal) return act.corporal.full_name;
       return '';
     },
+    /** Get short initials from a workforce for compact display */
+    getWorkforceInitials(wf) {
+      if (!wf) return '?';
+      const name = wf.full_name || '';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      return name.substring(0, 2).toUpperCase();
+    },
     onSectionChange(val) {
       if (val) {
         this.activityForm.corporal_id = null;
@@ -930,13 +1013,16 @@ export default {
       // loadActivities triggered by watcher on selectedWorkforceIds
     },
     async loadActivities() {
-      const wId = this.selectedWorkforceId;
-      if (!wId) return;
+      if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) {
+        // Clear calendar activities when no workforce is selected
+        this.activityStore.activities = [];
+        return;
+      }
 
-      // Fetch all activities for the full month (both Q1 and Q2)
-      await this.activityStore.fetchActivities(wId, this.currentYear, this.currentMonth + 1);
+      // Fetch activities for ALL selected workforces for the full month
+      await this.activityStore.fetchActivities(this.selectedWorkforceIds, this.currentYear, this.currentMonth + 1);
     },
-    /** Load summary — filters only by workforce(s) and month/year */
+    /** Load summary - filters only by workforce(s) and month/year */
     async loadSummary() {
       const params = {
         year: this.currentYear,
@@ -950,7 +1036,7 @@ export default {
 
       await this.activityStore.fetchSummary(params);
     },
-    /** Load breakdown — same filter as summary */
+    /** Load breakdown - same filter as summary */
     async loadBreakdown() {
       const params = {
         year: this.currentYear,
@@ -961,7 +1047,7 @@ export default {
       }
       await this.activityStore.fetchBreakdown(params);
     },
-    /** Export activities to Excel — exports exactly what is displayed on screen */
+    /** Export activities to Excel - exports exactly what is displayed on screen */
     async exportToExcel() {
       this.exporting = true;
       try {
@@ -976,7 +1062,7 @@ export default {
         let fileName = '';
 
         if (tab === 'workforces' && !drill) {
-          // ── Workforces summary table ──
+          // -- Workforces summary table --
           sheetName = this.$t('workforces_activities');
           const headers = [
             this.$t('name'), this.$t('matricule'),
@@ -995,7 +1081,7 @@ export default {
           fileName = `Fortnight_Workforces_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'workforces' && drill) {
-          // ── Drill-down: activities for a specific workforce ──
+          // -- Drill-down: activities for a specific workforce --
           sheetName = `${drill.name} - ${this.$t('activities')}`;
           const headers = [
             this.$t('date'),
@@ -1004,7 +1090,7 @@ export default {
           ];
           const data = (drill.activities || []).map(act => [
             this.main.formateDate(act.date),
-            act.section_name || act.corporal_name || '—',
+            act.section_name || act.corporal_name || '-',
             act.price
           ]);
           const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -1013,7 +1099,7 @@ export default {
           fileName = `Fortnight_${drill.name}_Activities_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'sections' && !drill) {
-          // ── Sections summary table ──
+          // -- Sections summary table --
           sheetName = this.$t('sections_activities');
           const headers = [
             this.$t('name'),
@@ -1032,7 +1118,7 @@ export default {
           fileName = `Fortnight_Sections_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'sections' && drill) {
-          // ── Drill-down: workforces in a specific section ──
+          // -- Drill-down: workforces in a specific section --
           sheetName = `${drill.name} - ${this.$t('workforces')}`;
           const headers = [
             this.$t('full_name'), this.$t('matricule'),
@@ -1052,7 +1138,7 @@ export default {
           fileName = `Fortnight_Section_${drill.name}_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'corporals' && !drill) {
-          // ── Corporals summary table ──
+          // -- Corporals summary table --
           sheetName = this.$t('corporals_activities');
           const headers = [
             this.$t('name'),
@@ -1071,7 +1157,7 @@ export default {
           fileName = `Fortnight_Corporals_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'corporals' && drill) {
-          // ── Drill-down: workforces in a specific corporal ──
+          // -- Drill-down: workforces in a specific corporal --
           sheetName = `${drill.name} - ${this.$t('workforces')}`;
           const headers = [
             this.$t('full_name'), this.$t('matricule'),
@@ -1108,7 +1194,7 @@ export default {
       const priceVal = this.activityForm.price;
 
       try {
-        // Create activity for each selected workforce (silent — no individual snackbars)
+        // Create activity for each selected workforce (silent - no individual snackbars)
         for (const wId of ids) {
           await this.activityStore.create({
             workforce_id: wId,
@@ -1143,7 +1229,7 @@ export default {
         await this.loadSummary();
         await this.loadBreakdown();
 
-        // Preserve form values — focus back to workforce selector
+        // Preserve form values - focus back to workforce selector
         this.$nextTick(() => {
           if (this.$refs.workforceAutocomplete) {
             this.$refs.workforceAutocomplete.focus();
@@ -1285,6 +1371,7 @@ export default {
 .fnm-cal-cell:hover { background: rgba(33,150,243,.03); }
 .fnm-cal-cell--empty { background: transparent; cursor: default; }
 .fnm-cal-cell--outside { opacity: .3; cursor: default; }
+.fnm-cal-cell--future { opacity: .35; cursor: not-allowed; pointer-events: none; background: repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(0,0,0,.03) 4px, rgba(0,0,0,.03) 8px) !important; }
 .fnm-cal-cell--today { background: rgba(33,150,243,.06) !important; }
 .fnm-cal-cell--multi { background: rgba(255, 235, 59, .12) !important; }
 .fnm-cal-cell--active-half { }
@@ -1295,14 +1382,97 @@ export default {
 
 /* Activities inside cells */
 .fnm-cal-activities { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-.fnm-cal-activity { display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 6px; font-size: 10px; position: relative; cursor: pointer; transition: all .15s ease; }
+.fnm-cal-activity { display: flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 6px; font-size: 10px; position: relative; cursor: pointer; transition: all .15s ease; }
 .fnm-cal-activity:hover { filter: brightness(1.1); }
 .fnm-cal-activity:hover .fnm-act-delete { opacity: 1; }
 .fnm-act-section { background: linear-gradient(135deg, #E65100, #FF9800); color: #fff; }
 .fnm-act-corporal { background: linear-gradient(135deg, #0D47A1, #42A5F5); color: #fff; }
+.fnm-act-wf { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 14px; padding: 0 3px; border-radius: 3px; background: rgba(255,255,255,.3); font-size: 8px; font-weight: 800; letter-spacing: .3px; line-height: 1; flex-shrink: 0; }
 .fnm-act-price { font-weight: 700; white-space: nowrap; }
 .fnm-act-label { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 .fnm-act-delete { opacity: 0; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); transition: opacity .15s ease; width: 14px !important; height: 14px !important; }
+
+/* "+X more" badge */
+.fnm-cal-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #1565C0;
+  background: rgba(33, 150, 243, .1);
+  border: 1px dashed rgba(33, 150, 243, .3);
+  cursor: pointer;
+  transition: all .15s ease;
+  letter-spacing: .3px;
+}
+.fnm-cal-more:hover {
+  background: rgba(33, 150, 243, .2);
+  border-color: rgba(33, 150, 243, .5);
+}
+
+/* Popup for all activities */
+.fnm-more-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #1565C0, #42A5F5);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px 8px 0 0;
+}
+.fnm-more-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.fnm-more-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .15s ease;
+  border-bottom: 1px solid rgba(0,0,0,.04);
+}
+.fnm-more-item:last-child { border-bottom: none; }
+.fnm-more-item:hover { background: rgba(33,150,243,.06); }
+.fnm-more-wf {
+  font-weight: 700;
+  color: #1565C0;
+  font-size: 11px;
+  flex-shrink: 0;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fnm-more-price {
+  font-weight: 700;
+  font-size: 11px;
+  color: #2E7D32;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.fnm-more-label {
+  font-size: 11px;
+  color: #78909C;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.fnm-more-del {
+  flex-shrink: 0;
+  opacity: .4;
+  transition: opacity .15s ease;
+}
+.fnm-more-item:hover .fnm-more-del { opacity: 1; }
 
 /* Responsive */
 @media (max-width: 960px) {

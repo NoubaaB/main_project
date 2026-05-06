@@ -77,7 +77,7 @@ export default {
 
 <style scoped>
 /* ============================================================
-   NotificationToast — Top-Right Stacked Toast Notifications
+   NotificationToast - Top-Right Stacked Toast Notifications
    Premium design with accent bar, detail fields, progress bar
    ============================================================ */
 
@@ -225,7 +225,7 @@ export default {
   to   { transform: scaleX(0); }
 }
 
-/* ─── Slide Transition ─── */
+/* --- Slide Transition --- */
 .notif-slide-enter-active {
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -247,7 +247,7 @@ export default {
   opacity: 0;
 }
 
-/* ─── Responsive ─── */
+/* --- Responsive --- */
 @media (max-width: 480px) {
   .notif-toast-stack {
     right: 10px;

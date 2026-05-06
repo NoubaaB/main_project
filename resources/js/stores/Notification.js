@@ -1,9 +1,9 @@
-import { defineStore } from "pinia";
+﻿import { defineStore } from "pinia";
 import i18n from '@/plugins/i18n';
 
 /**
  * Notification Store
- * ──────────────────
+ * ------------------
  * Reusable notification system for entity creation events.
  * Supports: charges, production, inventory, sells, and any future entity.
  *
@@ -34,12 +34,12 @@ export const useNotification = defineStore("notification", {
         /**
          * Generic notification push
          * @param {Object} opts
-         * @param {string}   opts.title    – Notification title
-         * @param {string}   opts.message  – Short description
-         * @param {string}   opts.icon     – MDI icon name
-         * @param {string}   opts.color    – Vuetify color (info, success, warning, error)
-         * @param {Array}    opts.fields   – Array of { label, value, icon? } for detail rows
-         * @param {number}   opts.duration – Auto-dismiss time in ms (0 = sticky)
+         * @param {string}   opts.title    - Notification title
+         * @param {string}   opts.message  - Short description
+         * @param {string}   opts.icon     - MDI icon name
+         * @param {string}   opts.color    - Vuetify color (info, success, warning, error)
+         * @param {Array}    opts.fields   - Array of { label, value, icon? } for detail rows
+         * @param {number}   opts.duration - Auto-dismiss time in ms (0 = sticky)
          */
         push(opts = {}) {
             const id = this._nextId++;
@@ -90,15 +90,15 @@ export const useNotification = defineStore("notification", {
             }, 400);
         },
 
-        // ─── Convenience methods for entity creation notifications ───
+        // --- Convenience methods for entity creation notifications ---
 
         /**
          * Notify that an entity was created.
          * @param {Object}  opts
-         * @param {string}  opts.type   – Entity type key (charge, production, inventory, sell)
-         * @param {string}  opts.icon   – MDI icon
-         * @param {string}  opts.color  – Vuetify color
-         * @param {Array}   opts.fields – Detail fields [{ label, value, icon? }]
+         * @param {string}  opts.type   - Entity type key (charge, production, inventory, sell)
+         * @param {string}  opts.icon   - MDI icon
+         * @param {string}  opts.color  - Vuetify color
+         * @param {Array}   opts.fields - Detail fields [{ label, value, icon? }]
          */
         notifyCreation(opts = {}) {
             const typeLabel = i18n.global.t(opts.type || 'item');
@@ -151,3 +151,4 @@ export const useNotification = defineStore("notification", {
         },
     },
 });
+

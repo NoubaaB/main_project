@@ -14,7 +14,8 @@ class CustomService
     public function __construct()
     {
         // $this->model = env('OLLAMA_MODEL', 'gemma4:31b');
-        $this->model = env('OLLAMA_MODEL', 'gemini-3-flash-preview:cloud');
+        // $this->model = env('OLLAMA_MODEL', 'gemini-3-flash-preview:cloud');
+        $this->model = env('OLLAMA_MODEL', 'gemma4:31b-cloud');
     }
 
     /**

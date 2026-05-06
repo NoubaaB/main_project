@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use App\Models\Sell;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Client extends Model
 {
@@ -14,9 +14,28 @@ class Client extends Model
     use HasFactory, SoftDeletes;
     protected $guarded = [];
 
-    function sells(): BelongsToMany
+    public function shippings(): HasMany
     {
-        return $this->belongsToMany(Sell::class, "sell_clients", "client_id", "sell_id")
-            ->withPivot('sell_id', 'client_id');
+        return $this->hasMany(Shipping::class);
+    }
+
+    public function productions(): HasMany
+    {
+        return $this->hasMany(Production::class);
+    }
+
+    public function clientInvoices(): HasMany
+    {
+        return $this->hasMany(ClientInvoice::class);
+    }
+
+    public function clientPayments(): HasMany
+    {
+        return $this->hasMany(ClientPayment::class);
+    }
+
+    public function profit_and_loss_account(): MorphOne
+    {
+        return $this->morphOne(ProfitAndLossAccount::class, 'accountable');
     }
 }

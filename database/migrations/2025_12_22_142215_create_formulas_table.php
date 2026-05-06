@@ -6,45 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Custom formulas for pricing/calculation with configurable expressions and chart visualization.
         Schema::create('formulas', function (Blueprint $table) {
             $table->id();
-            $table->string("name_fr")->unique();
-            $table->string("name_en")->unique();
-            $table->string("name_es")->unique();
-            $table->text('description')->nullable();
-            $table->json('expressions'); /*"expressions": "(cc1_price + cc2_price) / cc3_weight * 1000",
-                                            "chart_config" : [
-                                                "chart_color" : "#330099ff",
-                                                "chart_type" : "column",
-                                            ],
-                                            "variables": [
-                                                {
-                                                    "alias": "cc1_price",
-                                                    "kind": "charge",            // "charge" or "sell"
-                                                    "category_id": 1,
-                                                    "stockable_type": "App/Models/Guano",
-                                                    "stockable_id": "Guano Entier",
-                                                    "field": "total_price"      // "total_price" | "total_weight" | "total_package_count"
-                                                }
-                                            ]
-            */
-            $table->boolean('enabled')->default(true);
-            $table->enum('type', ['charge', 'sell'])->nullable();
+            $table->string("name_fr")->unique()->comment('French formula name');
+            $table->string("name_en")->unique()->comment('English formula name');
+            $table->string("name_es")->unique()->comment('Spanish formula name');
+            $table->text('description')->nullable()->comment('Description of what the formula calculates');
+            $table->json('expressions')->comment('JSON: formula expression, chart config (color, type), and variable definitions referencing charge/sell categories');
+            $table->boolean('enabled')->default(true)->comment('Whether the formula is active');
+            $table->enum('type', ['charge', 'sell'])->nullable()->comment('Formula applies to charge or sell data');
 
-            $table->foreignId('created_by')->nullable()->constrained('users');
+            $table->foreignId('created_by')->nullable()->constrained('users')->comment('FK to users - who created this formula');
             $table->timestamps();
             $table->softDeletes();
+
+            $table->comment('Custom pricing/calculation formulas. BelongsTo users (created_by).');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('formulas');

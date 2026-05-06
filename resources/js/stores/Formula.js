@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+﻿import { defineStore } from "pinia";
 import { useMain } from "./Main";
 export const useFormula = defineStore("formula", {
     state: () => {

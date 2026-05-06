@@ -42,7 +42,7 @@ class DeepSeekController extends Controller
             Your task:
             - Internally analyze the schema and relationships step by step.
             - Do not show your reasoning.
-            - Generate only one final output: a valid MySQL query that answers the user’s request.
+            - Generate only one final output: a valid MySQL query that answers the user's request.
             - Do not include markdown, explanations, or extra text — only return the raw SQL query.
             - Ensure the SQL query is syntactically correct and executable.
             - Use table and column names exactly as they appear in the schema.

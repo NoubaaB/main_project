@@ -17,7 +17,7 @@
                     color="info"
                     size="36"
                     class="systembar-nav-btn"
-                    @click.prevent="main.sidebar_mini = !main.sidebar_mini; main.menu_drawer = true"
+                    @click.prevent="main.sidebar_mini = !main.sidebar_mini"
                 >
                     <v-icon size="20">mdi-menu</v-icon>
                 </v-btn>
@@ -26,271 +26,15 @@
             <!-- Center: Logo / Title -->
             <div class="systembar-center">
                 <router-link to="/" class="systembar-logo-link">
+                    <img :src="miniLogoUrl" alt="Jupiter" class="systembar-mini-logo" />
                     <span class="systembar-logo-text">
-                        {{ $t("title_logo") }}
+                        {{ $t("title_logo") }} App
                     </span>
                 </router-link>
             </div>
 
             <!-- Right: Actions -->
             <div class="systembar-right">
-                <!-- Archives Button -->
-                <v-btn
-                    v-if="auth.is_auth"
-                    icon
-                    variant="tonal"
-                    color="teal"
-                    size="36"
-                    class="systembar-action-btn"
-                    @click="archiveDialog = true"
-                    id="archive-btn"
-                >
-                    <v-badge
-                        v-if="_archive.totalCount > 0"
-                        :content="_archive.totalCount"
-                        color="amber"
-                        text-color="white"
-                        location="bottom end"
-                        offset-x="2"
-                        offset-y="2"
-                    >
-                        <v-icon size="19">mdi-archive-check</v-icon>
-                    </v-badge>
-                    <v-icon v-else size="19">mdi-archive-outline</v-icon>
-                    <v-tooltip activator="parent" location="bottom">{{ $t('archives') }}</v-tooltip>
-                </v-btn>
-
-                <!-- Archive Dialog -->
-                <v-dialog v-model="archiveDialog" max-width="960" scrollable>
-                    <v-card rounded="xl" :class="main.is_dark ? 'archive-dark' : 'archive-light'">
-                        <v-card-title class="d-flex align-center pa-4">
-                            <v-icon class="mr-2" size="24" color="teal">mdi-archive-check</v-icon>
-                            <span class="text-h6 font-weight-bold">{{ $t('archives') }}</span>
-                            <v-chip class="ml-2" size="small" color="teal" variant="tonal">{{ _archive.totalCount }}</v-chip>
-                            <v-spacer></v-spacer>
-                            <v-btn icon variant="text" size="small" @click="archiveDialog = false">
-                                <v-icon>mdi-close</v-icon>
-                            </v-btn>
-                        </v-card-title>
-                        <v-divider></v-divider>
-                        <v-tabs v-model="archiveTab" color="teal" grow density="compact">
-                            <v-tab value="charges">
-                                <v-icon start size="18">mdi-warehouse</v-icon>
-                                {{ $t('charges') }}
-                                <v-chip v-if="_archive.chargeCount > 0" class="ml-1" size="x-small" color="info" variant="tonal">{{ _archive.chargeCount }}</v-chip>
-                            </v-tab>
-                            <v-tab value="sells">
-                                <v-icon start size="18">mdi-cart-check</v-icon>
-                                {{ $t('sells') }}
-                                <v-chip v-if="_archive.sellCount > 0" class="ml-1" size="x-small" color="green" variant="tonal">{{ _archive.sellCount }}</v-chip>
-                            </v-tab>
-                            <v-tab value="productions">
-                                <v-icon start size="18">mdi-cog-outline</v-icon>
-                                {{ $t('productions') }}
-                                <v-chip v-if="_archive.productionCount > 0" class="ml-1" size="x-small" color="teal" variant="tonal">{{ _archive.productionCount }}</v-chip>
-                            </v-tab>
-                        </v-tabs>
-                        <v-divider></v-divider>
-                        <v-card-text class="pa-0" style="max-height: 60vh; overflow-y: auto;">
-                            <v-tabs-window v-model="archiveTab">
-                                <!-- ═══ Charges Tab ═══ -->
-                                <v-tabs-window-item value="charges">
-                                    <div v-if="_archive.charges.length > 0" class="pa-2">
-                                        <div class="d-flex align-center ga-2 pa-2">
-                                            <v-btn size="small" color="teal" variant="flat" rounded="lg" :disabled="selectedCharges.length === 0" @click="submitSelectedCharges" :loading="archiveLoading">
-                                                <v-icon start size="16">mdi-check-all</v-icon>
-                                                {{ $t('submit_selected') }} {{ selectedCharges.length > 0 ? `(${selectedCharges.length})` : '' }}
-                                            </v-btn>
-                                            <v-btn size="small" color="error" variant="tonal" rounded="lg" :disabled="selectedCharges.length === 0" @click="deleteSelectedCharges">
-                                                <v-icon start size="16">mdi-delete-outline</v-icon>
-                                                {{ $t('delete_selected') }} {{ selectedCharges.length > 0 ? `(${selectedCharges.length})` : '' }}
-                                            </v-btn>
-                                        </div>
-                                        <v-data-table
-                                            v-model="selectedCharges"
-                                            :headers="chargeHeaders"
-                                            :items="_archive.charges"
-                                            item-value="id"
-                                            show-select
-                                            density="compact"
-                                            hide-default-footer
-                                            class="archive-table"
-                                        >
-                                            <template v-slot:[`item.date`]="{ item }">
-                                                {{ main.formateDate(item.date) }}
-                                            </template>
-                                            <template v-slot:[`item.charge_category_id`]="{ item }">
-                                                <v-chip color="info" size="x-small" variant="tonal">{{ _charge_category.get_charge_category_name_by_id(item.charge_category_id) }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.reception_tracking_number`]="{ item }">
-                                                <v-chip v-for="tn in (item.reception_tracking_number || [])" :key="tn" size="x-small" color="secondary" variant="tonal" class="mr-1 mt-1">{{ tn }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.supplier_ids`]="{ item }">
-                                                <v-chip v-for="sid in (item.supplier_ids || [])" :key="sid" size="x-small" color="info" variant="tonal" class="mr-1 mt-1">{{ _supplier.get_supplier_name_by_id(sid) }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.total_weight`]="{ item }">
-                                                {{ main.formatDisplayNumber(item.total_weight) }}
-                                            </template>
-                                            <template v-slot:[`item.total_price`]="{ item }">
-                                                {{ main.formatDisplayNumber(item.total_price) }}
-                                            </template>
-                                            <template v-slot:[`item.actions`]="{ item }">
-                                                <div class="d-flex ga-1">
-                                                    <v-btn icon variant="text" size="x-small" color="amber" @click="editChargeArchive(item.id)">
-                                                        <v-icon size="16">mdi-pencil</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
-                                                    </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="teal" @click="submitChargeArchive(item.id)" :loading="archiveLoading">
-                                                        <v-icon size="16">mdi-send-check</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('submit') }}</v-tooltip>
-                                                    </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="red" @click="deleteChargeArchive(item.id)">
-                                                        <v-icon size="16">mdi-delete</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
-                                                    </v-btn>
-                                                </div>
-                                            </template>
-                                        </v-data-table>
-                                    </div>
-                                    <div v-else class="text-medium-emphasis d-flex flex-column align-center justify-center py-10">
-                                        <v-icon size="48" color="grey" class="mb-2">mdi-archive-off-outline</v-icon>
-                                        <span>{{ $t('no_archives') }}</span>
-                                    </div>
-                                </v-tabs-window-item>
-
-                                <!-- ═══ Sells Tab ═══ -->
-                                <v-tabs-window-item value="sells">
-                                    <div v-if="_archive.sells.length > 0" class="pa-2">
-                                        <div class="d-flex align-center ga-2 pa-2">
-                                            <v-btn size="small" color="green" variant="flat" rounded="lg" :disabled="selectedSells.length === 0" @click="submitSelectedSells" :loading="archiveLoading">
-                                                <v-icon start size="16">mdi-check-all</v-icon>
-                                                {{ $t('submit_selected') }} {{ selectedSells.length > 0 ? `(${selectedSells.length})` : '' }}
-                                            </v-btn>
-                                            <v-btn size="small" color="error" variant="tonal" rounded="lg" :disabled="selectedSells.length === 0" @click="deleteSelectedSells">
-                                                <v-icon start size="16">mdi-delete-outline</v-icon>
-                                                {{ $t('delete_selected') }} {{ selectedSells.length > 0 ? `(${selectedSells.length})` : '' }}
-                                            </v-btn>
-                                        </div>
-                                        <v-data-table
-                                            v-model="selectedSells"
-                                            :headers="sellHeaders"
-                                            :items="_archive.sells"
-                                            item-value="id"
-                                            show-select
-                                            density="compact"
-                                            hide-default-footer
-                                            class="archive-table"
-                                        >
-                                            <template v-slot:[`item.date`]="{ item }">
-                                                {{ main.formateDate(item.date) }}
-                                            </template>
-                                            <template v-slot:[`item.sell_category_id`]="{ item }">
-                                                <v-chip color="green" size="x-small" variant="tonal">{{ _sell_category.get_sell_category_name_by_id(item.sell_category_id) }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.tracking_numbers`]="{ item }">
-                                                <v-chip v-for="tn in (item.tracking_numbers || [])" :key="tn" size="x-small" color="secondary" variant="tonal" class="mr-1 mt-1">{{ tn }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.client_ids`]="{ item }">
-                                                <v-chip v-for="cid in (item.client_ids || [])" :key="cid" size="x-small" color="green" variant="tonal" class="mr-1 mt-1">{{ _client.get_client_name_by_id(cid) }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.total_weight`]="{ item }">
-                                                {{ main.formatDisplayNumber(item.total_weight) }}
-                                            </template>
-                                            <template v-slot:[`item.total_price`]="{ item }">
-                                                {{ main.formatDisplayNumber(item.total_price) }}
-                                            </template>
-                                            <template v-slot:[`item.actions`]="{ item }">
-                                                <div class="d-flex ga-1">
-                                                    <v-btn icon variant="text" size="x-small" color="amber" @click="editSellArchive(item.id)">
-                                                        <v-icon size="16">mdi-pencil</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
-                                                    </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="green" @click="submitSellArchive(item.id)" :loading="archiveLoading">
-                                                        <v-icon size="16">mdi-send-check</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('submit') }}</v-tooltip>
-                                                    </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="red" @click="deleteSellArchive(item.id)">
-                                                        <v-icon size="16">mdi-delete</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
-                                                    </v-btn>
-                                                </div>
-                                            </template>
-                                        </v-data-table>
-                                    </div>
-                                    <div v-else class="text-medium-emphasis d-flex flex-column align-center justify-center py-10">
-                                        <v-icon size="48" color="grey" class="mb-2">mdi-archive-off-outline</v-icon>
-                                        <span>{{ $t('no_archives') }}</span>
-                                    </div>
-                                </v-tabs-window-item>
-
-                                <!-- ═══ Productions Tab ═══ -->
-                                <v-tabs-window-item value="productions">
-                                    <div v-if="_archive.productions.length > 0" class="pa-2">
-                                        <div class="d-flex align-center ga-2 pa-2">
-                                            <v-btn size="small" color="teal" variant="flat" rounded="lg" :disabled="selectedProductions.length === 0" @click="submitSelectedProductions" :loading="archiveLoading">
-                                                <v-icon start size="16">mdi-check-all</v-icon>
-                                                {{ $t('submit_selected') }} {{ selectedProductions.length > 0 ? `(${selectedProductions.length})` : '' }}
-                                            </v-btn>
-                                            <v-btn size="small" color="error" variant="tonal" rounded="lg" :disabled="selectedProductions.length === 0" @click="deleteSelectedProductions">
-                                                <v-icon start size="16">mdi-delete-outline</v-icon>
-                                                {{ $t('delete_selected') }} {{ selectedProductions.length > 0 ? `(${selectedProductions.length})` : '' }}
-                                            </v-btn>
-                                        </div>
-                                        <v-data-table
-                                            v-model="selectedProductions"
-                                            :headers="productionHeaders"
-                                            :items="_archive.productions"
-                                            item-value="id"
-                                            show-select
-                                            density="compact"
-                                            hide-default-footer
-                                            class="archive-table"
-                                        >
-                                            <template v-slot:[`item.date`]="{ item }">
-                                                {{ main.formateDate(item.date) }}
-                                            </template>
-                                            <template v-slot:[`item.production_category_id`]="{ item }">
-                                                <v-chip color="teal" size="x-small" variant="tonal">{{ item.production_category_id }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.production_tracking_numbers`]="{ item }">
-                                                <v-chip v-for="tn in (item.production_tracking_numbers || [])" :key="tn" size="x-small" color="teal" variant="tonal" class="mr-1 mt-1">{{ tn }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.supplier_ids`]="{ item }">
-                                                <v-chip v-for="sid in (item.supplier_ids || [])" :key="sid" size="x-small" color="teal" variant="tonal" class="mr-1 mt-1">{{ _supplier.get_supplier_name_by_id(sid) }}</v-chip>
-                                            </template>
-                                            <template v-slot:[`item.total_weight`]="{ item }">
-                                                {{ main.formatDisplayNumber(item.total_weight) }}
-                                            </template>
-                                            <template v-slot:[`item.total_price`]="{ item }">
-                                                {{ main.formatDisplayNumber(item.total_price) }}
-                                            </template>
-                                            <template v-slot:[`item.actions`]="{ item }">
-                                                <div class="d-flex ga-1">
-                                                    <v-btn icon variant="text" size="x-small" color="amber" @click="editProductionArchive(item.id)">
-                                                        <v-icon size="16">mdi-pencil</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
-                                                    </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="teal" @click="submitProductionArchive(item.id)" :loading="archiveLoading">
-                                                        <v-icon size="16">mdi-send-check</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('submit') }}</v-tooltip>
-                                                    </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="red" @click="deleteProductionArchive(item.id)">
-                                                        <v-icon size="16">mdi-delete</v-icon>
-                                                        <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
-                                                    </v-btn>
-                                                </div>
-                                            </template>
-                                        </v-data-table>
-                                    </div>
-                                    <div v-else class="text-medium-emphasis d-flex flex-column align-center justify-center py-10">
-                                        <v-icon size="48" color="grey" class="mb-2">mdi-archive-off-outline</v-icon>
-                                        <span>{{ $t('no_archives') }}</span>
-                                    </div>
-                                </v-tabs-window-item>
-                            </v-tabs-window>
-                        </v-card-text>
-                    </v-card>
-                </v-dialog>
 
                 <!-- Online Users Button -->
                 <v-menu
@@ -441,26 +185,12 @@
     import { useDashboardWaiter } from "@/stores/DashboardWaiter"; 
     import { useMain } from "@/stores/Main"; 
     import { useAuth } from "@/stores/Auth";
-    import { useCharge } from "@/stores/Charge";
-    import { useSupplier } from "@/stores/Supplier";
-    import { useChargeCategory } from "@/stores/ChargeCategory";
-    import { useSell } from "@/stores/Sell";
-    import { useClient } from "@/stores/Client";
-    import { useSellCategory } from "@/stores/SellCategory";
     import { useOnlineUsers } from "@/stores/OnlineUsers";
-    import { useArchive } from "@/stores/Archive";
-    import { useProductionCategory } from "@/stores/ProductionCategory";
     import annyang from "annyang";
 
     export default {
         data:function(){
           return {
-            archiveDialog: false,
-            archiveTab: 'charges',
-            archiveLoading: false,
-            selectedCharges: [],
-            selectedSells: [],
-            selectedProductions: [],
           }
         },
         computed:{
@@ -473,69 +203,15 @@
             auth: function () {
                 return useAuth();
             },
-            _charge: function () {
-                return useCharge();
-            },
-            _supplier: function () {
-                return useSupplier();
-            },
-            _charge_category: function () {
-                return useChargeCategory();
-            },
-            _sell: function () {
-                return useSell();
-            },
-            _client: function () {
-                return useClient();
-            },
             _online: function () {
                 return useOnlineUsers();
-            },
-            _sell_category: function () {
-                return useSellCategory();
             },
             currentLangFlag: function () {
                 if (!this.main.lang) return 'https://flagcdn.com/24x18/gb.png';
                 return this.getLangFlag(this.main.lang.code);
             },
-            _archive: function () {
-                return useArchive();
-            },
-            _production_category: function () {
-                return useProductionCategory();
-            },
-            chargeHeaders: function () {
-                return [
-                    { title: this.$t('date'), value: 'date', width: '100px' },
-                    { title: this.$t('charge_category'), value: 'charge_category_id' },
-                    { title: this.$t('reception_tracking_number'), value: 'reception_tracking_number' },
-                    { title: this.$t('suppliers'), value: 'supplier_ids' },
-                    { title: this.$t('total_weight'), value: 'total_weight', width: '100px' },
-                    { title: this.$t('total_price'), value: 'total_price', width: '100px' },
-                    { title: this.$t('actions'), value: 'actions', align: 'end', sortable: false, width: '120px' },
-                ];
-            },
-            sellHeaders: function () {
-                return [
-                    { title: this.$t('date'), value: 'date', width: '100px' },
-                    { title: this.$t('sell_category'), value: 'sell_category_id' },
-                    { title: this.$t('tracking_numbers'), value: 'tracking_numbers' },
-                    { title: this.$t('clients'), value: 'client_ids' },
-                    { title: this.$t('total_weight'), value: 'total_weight', width: '100px' },
-                    { title: this.$t('total_price'), value: 'total_price', width: '100px' },
-                    { title: this.$t('actions'), value: 'actions', align: 'end', sortable: false, width: '120px' },
-                ];
-            },
-            productionHeaders: function () {
-                return [
-                    { title: this.$t('date'), value: 'date', width: '100px' },
-                    { title: this.$t('production_category'), value: 'production_category_id' },
-                    { title: this.$t('production_tracking_numbers'), value: 'production_tracking_numbers' },
-                    { title: this.$t('suppliers'), value: 'supplier_ids' },
-                    { title: this.$t('total_weight'), value: 'total_weight', width: '100px' },
-                    { title: this.$t('total_price'), value: 'total_price', width: '100px' },
-                    { title: this.$t('actions'), value: 'actions', align: 'end', sortable: false, width: '120px' },
-                ];
+            miniLogoUrl: function () {
+                return new URL('/images/jupiter-logo.png', window.location.origin).href;
             },
 
         },
@@ -551,10 +227,9 @@
             },
             getLangName: function (code) {
                 const names = {
-                    'en': 'English',
-                    'fr': 'Français',
-                    'es': 'Español',
-                    'ar': 'العربية',
+                    'en': this.$t('english'),
+                    'fr': this.$t('french'),
+                    'es': this.$t('spanish'),
                 };
                 return names[code] || code;
             },
@@ -566,73 +241,6 @@
                 console.log(lang)
                 annyang.setLanguage(lang.annyang);
                 this.main.lang = lang;
-            },
-            // ─── Archive actions ───
-            editChargeArchive(id) {
-                this._archive.editChargeArchive(id, this.$router);
-                this.archiveDialog = false;
-            },
-            async submitChargeArchive(id) {
-                this.archiveLoading = true;
-                await this._archive.submitCharge(id);
-                this.archiveLoading = false;
-            },
-            deleteChargeArchive(id) {
-                this._archive.removeCharge(id);
-            },
-            async submitSelectedCharges() {
-                this.archiveLoading = true;
-                await this._archive.submitCharges([...this.selectedCharges]);
-                this.selectedCharges = [];
-                this.archiveLoading = false;
-            },
-            deleteSelectedCharges() {
-                this._archive.removeCharges([...this.selectedCharges]);
-                this.selectedCharges = [];
-            },
-            editSellArchive(id) {
-                this._archive.editSellArchive(id, this.$router);
-                this.archiveDialog = false;
-            },
-            async submitSellArchive(id) {
-                this.archiveLoading = true;
-                await this._archive.submitSell(id);
-                this.archiveLoading = false;
-            },
-            deleteSellArchive(id) {
-                this._archive.removeSell(id);
-            },
-            async submitSelectedSells() {
-                this.archiveLoading = true;
-                await this._archive.submitSells([...this.selectedSells]);
-                this.selectedSells = [];
-                this.archiveLoading = false;
-            },
-            deleteSelectedSells() {
-                this._archive.removeSells([...this.selectedSells]);
-                this.selectedSells = [];
-            },
-            editProductionArchive(id) {
-                this._archive.editProductionArchive(id, this.$router);
-                this.archiveDialog = false;
-            },
-            async submitProductionArchive(id) {
-                this.archiveLoading = true;
-                await this._archive.submitProduction(id);
-                this.archiveLoading = false;
-            },
-            deleteProductionArchive(id) {
-                this._archive.removeProduction(id);
-            },
-            async submitSelectedProductions() {
-                this.archiveLoading = true;
-                await this._archive.submitProductions([...this.selectedProductions]);
-                this.selectedProductions = [];
-                this.archiveLoading = false;
-            },
-            deleteSelectedProductions() {
-                this._archive.removeProductions([...this.selectedProductions]);
-                this.selectedProductions = [];
             },
 
         },
@@ -649,7 +257,7 @@
 
 <style scoped>
 /* ============================================================
-   SystemBar — Premium Top Bar
+   SystemBar - Premium Top Bar
    ============================================================ */
 
 .systembar-premium {
@@ -715,6 +323,15 @@
     text-decoration: none;
     display: flex;
     align-items: center;
+    gap: 8px;
+}
+
+.systembar-mini-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 6px;
+    flex-shrink: 0;
 }
 
 .systembar-logo-text {

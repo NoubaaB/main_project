@@ -416,6 +416,8 @@
 
             formatCell(row, key) {
                 const v = this.getCellValue(row, key);
+                // Format date columns using main date format
+                if (key === 'date' && v) return this.main.formateDate(v);
                 if (this.isNumericKey(key)) return this.formatNumber(v);
                 if (Array.isArray(v)) return v.join(', ');
                 if (v && typeof v === 'object') {

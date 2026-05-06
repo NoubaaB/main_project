@@ -27,16 +27,20 @@ class AppServiceProvider extends ServiceProvider
             'FishType'  => \App\Models\FishType::class,
             'PackageType'  => \App\Models\PackageType::class,
             'Charge'  => \App\Models\Charge::class,
-            'Sell'  => \App\Models\Sell::class,
+            'Shipping'  => \App\Models\Shipping::class,
             'Production'  => \App\Models\Production::class,
+            'DetailCharge'  => \App\Models\DetailCharge::class,
+            'DetailShipping'  => \App\Models\DetailShipping::class,
+            'DetailProduction'  => \App\Models\DetailProduction::class,
+            'DetailWarehouseTransfer'  => \App\Models\DetailWarehouseTransfer::class,
             'User'  => \App\Models\User::class,
-            'InventoryAdjustment' => \App\Models\InventoryAdjustment::class,
         ]);
 
         // Register model change observer for real-time broadcasting
         $observedModels = [
             \App\Models\Charge::class,
-            \App\Models\Sell::class,
+            \App\Models\Shipping::class,
+            \App\Models\Production::class,
             \App\Models\Supplier::class,
             \App\Models\Client::class,
             \App\Models\Ship::class,
@@ -55,9 +59,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Models\PackageType::class,
             \App\Models\GuanoType::class,
             \App\Models\Formula::class,
-            \App\Models\FixedCharge::class,
-            \App\Models\SellCategory::class,
+            \App\Models\ShippingCategory::class,
             \App\Models\ChargeCategory::class,
+            \App\Models\ProductionCategory::class,
+            \App\Models\WarehouseBalance::class,
+            \App\Models\WarehouseBalanceOperation::class,
+            \App\Models\WarehouseTransfer::class,
+            \App\Models\WarehouseTransferCategory::class,
+            \App\Models\QualityControl::class,
         ];
 
         foreach ($observedModels as $model) {

@@ -1,6 +1,6 @@
 <template>
   <v-navigation-drawer
-    v-model="main.menu_drawer"
+    permanent
     :rail="main.sidebar_mini"
     :rail-width="68"
     :width="270"
@@ -113,6 +113,18 @@
           variant="text"
           icon
           size="small"
+          class="nav-edit-btn"
+          @click.stop="$router.push({ name: 'profile_settings' })"
+          id="nav-edit-profile-btn"
+        >
+          <v-icon size="18">mdi-account-edit-outline</v-icon>
+          <v-tooltip activator="parent" location="top">{{ $t('edit_profile') }}</v-tooltip>
+        </v-btn>
+        <v-btn
+          v-if="!main.sidebar_mini"
+          variant="text"
+          icon
+          size="small"
           class="nav-logout-btn"
           @click.stop="logout()"
         >
@@ -123,12 +135,6 @@
     </template>
   </v-navigation-drawer>
 
-  <!-- Click-away overlay to minimize sidebar -->
-  <div
-    v-if="main.menu_drawer && !main.sidebar_mini"
-    class="nav-click-away-overlay"
-    @click="minimizeSidebar"
-  ></div>
 </template>
 
 <script>
@@ -152,49 +158,67 @@ export default {
     auth: function () {
       return useAuth();
     },
-    links: function () {
+    _rawLinks: function () {
       return [
-        ['mdi-human-male-board-poll', this.$t("general"), null, "view_supplier_invoice"],
-        ['mdi-robot', this.$t("ai_prompt"), null, "ai_prompt"],
+        ['mdi-human-male-board-poll', this.$t("general"), null, "view_supplier_invoice", 'dashboard.view'],
+        ['mdi-robot', this.$t("ai_prompt"), null, "ai_prompt", 'ai_prompt.view'],
         ['mdi-warehouse', this.$t('warehouses'), [
           ['mdi-view-dashboard-outline', this.$t('dashboard'), "warehouses"],
-          ['mdi-clipboard-check-outline', this.$t('inventory'), "inventory"],
-          ['mdi-history', this.$t('adjustment_history'), "inventory_history"],
-        ]],
+        ], null, 'warehouses.view'],
+        ['mdi-clipboard-text-clock-outline', this.$t('inventory'), [
+          ['mdi-sticker-plus-outline', this.$t('add_inventory'), 'add_inventory'],
+        ], null, 'inventory.view'],
         ['mdi-truck-cargo-container', this.$t('charges'), [
-          ['mdi-sticker-plus-outline', this.$t("add_charge"), "add_charge"],
           ['mdi-view-list-outline', this.$t("list_charge"), "list_charge"],
-        ]],
+        ], null, 'charges.view'],
         ['mdi-factory', this.$t('production'), [
-          ['mdi-view-column-outline', this.$t("production_kanban"), "production_kanban"],
+          ['mdi-sticker-plus-outline', this.$t("add_production"), "add_production"],
           ['mdi-format-list-bulleted', this.$t("production_list"), "production_list"],
-          ['mdi-chart-waterfall', this.$t("production_yield"), "production_yield"],
-        ]],
-        ['mdi-cash-register', this.$t('sells'), [
-          ['mdi-sticker-plus-outline', this.$t("add_sell"), "add_sell"],
-          ['mdi-view-list-outline', this.$t("list_sell"), "list_sell"],
-        ]],
+          ['mdi-link-variant', this.$t("charge_production_management"), "charge_production_management"],
+        ], null, 'production.view'],
+        ['mdi-package-variant-closed', this.$t('shippings'), [
+          ['mdi-view-list-outline', this.$t("list_shipping"), "list_shipping"],
+        ], null, 'shippings.view'],
+        ['mdi-swap-horizontal', this.$t('warehouse_transfers'), [
+          ['mdi-view-list-outline', this.$t("list_warehouse_transfer"), "list_warehouse_transfer"],
+        ], null, 'warehouse_transfers.view'],
         ['mdi-account-hard-hat', this.$t('workforce'), [
           ['mdi-account-multiple', this.$t("workforce_management"), "workforce_management"],
           ['mdi-account-tie', this.$t("corporal_management"), "corporal_management"],
           ['mdi-sitemap-outline', this.$t("section_management"), "section_management"],
           ['mdi-calendar-month', this.$t("fortnight_management"), "fortnight_management"],
           ['mdi-chart-bar', this.$t("workforce_statistics"), "workforce_statistics"],
-        ]],
-        ['mdi-file-document-check', this.$t('invoics'), [
+        ], null, 'workforce.view'],
+        ['mdi-file-document-check', this.$t('supplier_invoices'), [
           ['mdi-file-document-multiple', this.$t("list_supplier_invoice"), "list_supplier_invoice"],
-        ]],
+          ['mdi-cash-register', this.$t("supplier_settlement"), "supplier_settlement"],
+        ], null, 'supplier_invoices.view'],
+        ['mdi-account-cash', this.$t('client_invoics'), [
+          ['mdi-file-document-multiple', this.$t("list_client_invoice"), "list_client_invoice"],
+          ['mdi-cash-register', this.$t("client_settlement"), "client_settlement"],
+        ], null, 'client_invoices.view'],
         ['mdi-cog-outline', this.$t('parameters'), [
           ['mdi-warehouse', this.$t("warehouse_management"), "warehouse_management"],
           ['mdi-fish', this.$t("fish_management"), "fish_management"],
-          ['mdi-shape-outline', this.$t("charge_category_management"), "charge_category_management"],
-          ['mdi-cog-transfer-outline', this.$t("wco_management"), "wco_management"],
-          ['mdi-tag-multiple-outline', this.$t("sell_category_management"), "sell_category_management"],
-          ['mdi-cog-outline', this.$t("production_category_management"), "production_category_management"],
-        ]],
+          ['mdi-shape-outline', this.$t("charge_management"), "charge_management"],
+          ['mdi-tag-multiple-outline', this.$t("shipping_management"), "shipping_management"],
+          ['mdi-cog-outline', this.$t("production_management"), "production_management"],
+          ['mdi-clipboard-text-clock-outline', this.$t("detail_inventory_category_management"), "detail_inventory_category_management"],
+          ['mdi-swap-horizontal', this.$t("warehouse_transfer_category_management"), "warehouse_transfer_category_management"],
+          ['mdi-leaf', this.$t("guano_management"), "guano_management"],
+          ['mdi-package-variant-closed', this.$t("package_management"), "package_management"],
+          ['mdi-bank', this.$t("bank_name_management"), "bank_name_management"],
+        ], null, 'settings.manage'],
+        ['mdi-shield-account', this.$t('user_management'), null, "admin_users", 'users.manage'],
       ];
     },
-    // Flatten all links for rail mode — parent groups show as single icon items
+    links: function () {
+      return this._rawLinks.filter(([,,,,perm]) => {
+        if (!perm) return true;
+        return this.auth.hasPermission(perm);
+      });
+    },
+    // Flatten all links for rail mode - parent groups show as single icon items
     flatLinks: function () {
       const flat = [];
       for (const [icon, text, childrens, url] of this.links) {
@@ -224,14 +248,14 @@ export default {
     },
   },
   mounted() {
-    this.main.sidebar_mini = false;
+    this.main.sidebar_mini = true;
   }
 };
 </script>
 
 <style scoped>
 /* ============================================================
-   Navigation Drawer — Clean Sidebar with Info Color
+   Navigation Drawer - Clean Sidebar with Info Color
    ============================================================ */
 
 .nav-drawer-premium {
@@ -323,6 +347,17 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.nav-edit-btn {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: all 0.2s ease !important;
+}
+
+.nav-edit-btn:hover {
+  opacity: 1;
+  color: #1976D2 !important;
 }
 
 .nav-logout-btn {

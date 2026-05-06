@@ -1,5 +1,5 @@
 // randomDataGenerator.js
-// ES module — import with:
+// ES module - import with:
 //   import { generateRandomData } from './randomDataGenerator.js'
 //   or: import generateRandomData from './randomDataGenerator.js'
 

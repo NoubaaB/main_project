@@ -3,63 +3,65 @@
 namespace App\Http\Controllers;
 
 use App\Models\GuanoType;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class GuanoTypeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    use BroadcastsModelChanges;
+
     public function index()
     {
-        //
+        $guano_types = GuanoType::orderBy('name_fr')->get();
+        return response()->json(['guano_types' => $guano_types]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name_fr' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'name_es' => 'nullable|string|max:255',
+            'name_in_invoice' => 'nullable|string|max:255',
+            'scientific_name' => 'nullable|string|max:255',
+            'image' => 'nullable|string|max:500',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $guanoType = GuanoType::create($validated);
+        $this->broadcastChange('GuanoType', 'created', $guanoType->id);
+
+        return response()->json(['guano_type' => $guanoType], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(GuanoType $guanoType)
     {
-        //
+        return response()->json(['guano_type' => $guanoType]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(GuanoType $guanoType)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, GuanoType $guanoType)
     {
-        //
+        $validated = $request->validate([
+            'name_fr' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'name_es' => 'nullable|string|max:255',
+            'name_in_invoice' => 'nullable|string|max:255',
+            'scientific_name' => 'nullable|string|max:255',
+            'image' => 'nullable|string|max:500',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $guanoType->update($validated);
+        $this->broadcastChange('GuanoType', 'updated', $guanoType->id);
+
+        return response()->json(['guano_type' => $guanoType]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(GuanoType $guanoType)
     {
-        //
+        $guanoType->delete();
+        $this->broadcastChange('GuanoType', 'deleted', $guanoType->id);
+
+        return response()->json(['message' => 'Deleted']);
     }
 }

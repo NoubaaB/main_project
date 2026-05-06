@@ -3,66 +3,45 @@
 namespace App\Http\Controllers;
 
 use App\Models\WarehouseCategory;
-use Illuminate\Http\JsonResponse;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class WarehouseCategoryController extends Controller
 {
-    /**
-     * GET /api/warehouse-categories
-     */
-    public function index(): JsonResponse
+    use BroadcastsModelChanges;
+    public function index()
     {
-        $categories = WarehouseCategory::withCount('warehouse')->get();
-        return response()->json(['categories' => $categories], 200);
+        return response()->json(['warehouse_categories' => WarehouseCategory::withCount('warehouses')->get()]);
     }
 
-    /**
-     * POST /api/warehouse-categories
-     */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'nullable|string|max:50|unique:warehouse_categories,name',
-            'description' => 'nullable|string|max:250',
+            'name' => 'required|string|max:255|unique:warehouse_categories,name',
+            'description' => 'nullable|string',
         ]);
-
-        $category = WarehouseCategory::create($data);
-
-        return response()->json([
-            'message' => 'Category created successfully',
-            'category' => $category,
-        ], 201);
+        $cat = WarehouseCategory::create($data);
+        $this->broadcastChange('WarehouseCategory', 'created', $cat->id, $cat->toArray());
+        return response()->json(['warehouse_category' => $cat], 201);
     }
 
-    /**
-     * PUT /api/warehouse-categories/{id}
-     */
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, $id)
     {
-        $category = WarehouseCategory::findOrFail($id);
-
+        $item = WarehouseCategory::findOrFail($id);
         $data = $request->validate([
-            'name' => 'nullable|string|max:50|unique:warehouse_categories,name,' . $category->id,
-            'description' => 'nullable|string|max:250',
+            'name' => 'required|string|max:255|unique:warehouse_categories,name,' . $id,
+            'description' => 'nullable|string',
         ]);
-
-        $category->update($data);
-
-        return response()->json([
-            'message' => 'Category updated successfully',
-            'category' => $category->fresh(),
-        ], 200);
+        $item->update($data);
+        $this->broadcastChange('WarehouseCategory', 'updated', $item->id, $item->toArray());
+        return response()->json(['warehouse_category' => $item]);
     }
 
-    /**
-     * DELETE /api/warehouse-categories/{id}
-     */
-    public function destroy($id): JsonResponse
+    public function destroy($id)
     {
-        $category = WarehouseCategory::findOrFail($id);
-        $category->delete();
-
-        return response()->json(['message' => 'Category deleted successfully'], 200);
+        $item = WarehouseCategory::findOrFail($id);
+        $item->delete();
+        $this->broadcastChange('WarehouseCategory', 'deleted', (int)$id);
+        return response()->json(['message' => 'Deleted']);
     }
 }

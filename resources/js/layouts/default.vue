@@ -13,17 +13,15 @@
     <!-- system bar end -->
 
     <!-- main start -->
-    <v-container class="pb-0" :max-width="auth.is_auth ? 1400 : 1200" :class="{'py-15':auth.is_auth,'py-5':!auth.is_auth}" style="position: relative">
-    <router-view v-slot="{ Component }">
-    <!-- keep-alive only when route.meta.keepAlive is true -->
-    <keep-alive>
-      <component :is="Component"/>
-    </keep-alive>
-
-    <!-- render normally when not cached -->
-  </router-view>
-
-    </v-container>
+    <v-main @click="collapseSidebar">
+      <v-container fluid class="mt-15" style="position: relative; max-width: 100%;">
+        <router-view v-slot="{ Component, route }">
+          <keep-alive :include="['ListCharge', 'ListShipping', 'ListProduction', 'WarehouseDashboard', 'ListSupplierInvoice', 'ListClientInvoice', 'SupplierSettlement', 'ClientSettlement']">
+            <component :is="Component" :key="keepAliveNames.includes(Component?.type?.name) ? Component?.type?.name : route.fullPath"/>
+          </keep-alive>
+        </router-view>
+      </v-container>
+    </v-main>
     <v-snackbar
       v-model="main.snackbar.show"
     >
@@ -61,9 +59,22 @@
         SystemBar,
         AiAssistant
       },
+      data() {
+        return {
+          keepAliveNames: ['ListCharge', 'ListShipping', 'ListProduction', 'WarehouseDashboard', 'ListSupplierInvoice', 'ListClientInvoice', 'SupplierSettlement', 'ClientSettlement'],
+        };
+      },
       computed:{
         auth: () => useAuth(),
         main : () => useMain()
+      },
+      methods: {
+        collapseSidebar() {
+          if (!this.main.sidebar_mini) {
+            this.main.sidebar_mini = true;
+          }
+        }
       }
   }
 </script>
+

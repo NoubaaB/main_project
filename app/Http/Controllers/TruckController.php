@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Truck;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class TruckController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of the resource.
      */
@@ -33,6 +35,7 @@ class TruckController extends Controller
             "registration_plate"=>"required|string|max:13|min:5"
         ]);
         $truck = Truck::create($data);
+        $this->broadcastChange('Truck', 'created', $truck->id, $truck->toArray());
         return response()->json(["truck"=>$truck],200);
     }
 

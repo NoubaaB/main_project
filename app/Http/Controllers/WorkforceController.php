@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Workforce;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Traits\BroadcastsModelChanges;
 
 class WorkforceController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of workforces.
      */
@@ -32,6 +34,7 @@ class WorkforceController extends Controller
         ]);
 
         $workforce = Workforce::create($data);
+        $this->broadcastChange('Workforce', 'created', $workforce->id, $workforce->toArray());
 
         return response()->json(['workforce' => $workforce], 201);
     }
@@ -53,8 +56,10 @@ class WorkforceController extends Controller
         ]);
 
         $workforce->update($data);
+        $workforce = $workforce->fresh();
+        $this->broadcastChange('Workforce', 'updated', $workforce->id, $workforce->toArray());
 
-        return response()->json(['workforce' => $workforce->fresh()], 200);
+        return response()->json(['workforce' => $workforce], 200);
     }
 
     /**
@@ -63,7 +68,9 @@ class WorkforceController extends Controller
     public function destroy($id): JsonResponse
     {
         $workforce = Workforce::findOrFail($id);
+        $workforceId = $workforce->id;
         $workforce->delete();
+        $this->broadcastChange('Workforce', 'deleted', $workforceId);
 
         return response()->json(['message' => 'Workforce deleted successfully'], 200);
     }

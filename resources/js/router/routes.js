@@ -38,7 +38,24 @@ const routes = [
                         path: "/",
                         name: "index",
                         keeplive: true,
-                        component: () => import("@/components/ai_prompt/index.vue") //create origin component later
+                        component: () => import("@/components/dashboard/index.vue")
+                    },
+                    {
+                        path: "/profile",
+                        name: "profile_settings",
+                        keeplive: false,
+                        component: () => import("@/components/auth/ProfileSettings/index.vue")
+                    },
+                    {
+                        path: "/admin/users",
+                        name: "admin_users",
+                        keeplive: false,
+                        component: () => import("@/components/admin/UserRoleManagement/index.vue"),
+                        beforeEnter: (to, from, next) => {
+                            const auth = useAuth();
+                            if (auth.isAdmin) next();
+                            else next({ name: 'index' });
+                        }
                     },
                     {
                         path: "/ai_prompt",
@@ -52,6 +69,9 @@ const routes = [
                         keeplive: true,
                         redirect: { name: "command.list" },
                     },
+                    // =======================================
+                    //  CHARGES
+                    // =======================================
                     {
                         path: "/charges",
                         keeplive: true,
@@ -81,24 +101,15 @@ const routes = [
                                 keeplive: false,
                                 component: () => import("@/components/charges/ViewCharge/index.vue")
                             },
-                            {
-                                path: "audit_trail/:id",
-                                name: "charge_audit_trail",
-                                keeplive: false,
-                                component: () => import("@/components/charges/AuditTrail/index.vue")
-                            },
                         ]
                     },
+                    // =======================================
+                    //  PRODUCTIONS
+                    // =======================================
                     {
                         path: '/production',
                         name: 'production',
                         children: [
-                            {
-                                path: 'kanban',
-                                name: 'production_kanban',
-                                keeplive: true,
-                                component: () => import('@/components/production/KanbanProduction/index.vue')
-                            },
                             {
                                 path: 'list',
                                 name: 'production_list',
@@ -106,16 +117,16 @@ const routes = [
                                 component: () => import('@/components/production/ListProduction/index.vue')
                             },
                             {
-                                path: 'yield',
-                                name: 'production_yield',
-                                keeplive: true,
-                                component: () => import('@/components/production/ProductionYield/index.vue')
-                            },
-                            {
-                                path: 'add/:chargeId',
+                                path: 'add',
                                 name: 'add_production',
                                 keeplive: false,
                                 component: () => import('@/components/production/AddProduction/index.vue')
+                            },
+                            {
+                                path: 'edit/:id',
+                                name: 'edit_production',
+                                keeplive: false,
+                                component: () => import('@/components/production/EditProduction/index.vue')
                             },
                             {
                                 path: 'view/:id',
@@ -123,8 +134,85 @@ const routes = [
                                 keeplive: false,
                                 component: () => import('@/components/production/ViewProduction/index.vue')
                             },
+                            {
+                                path: 'charge-management',
+                                name: 'charge_production_management',
+                                component: () => import('@/components/production/ChargeProductionManagement/index.vue')
+                            },
                         ]
                     },
+                    // =======================================
+                    //  SHIPPINGS
+                    // =======================================
+                    {
+                        path: "/shippings",
+                        keeplive: true,
+                        name: "shippings",
+                        children: [
+                            {
+                                path: "add_shipping",
+                                keeplive: true,
+                                name: "add_shipping",
+                                component: () => import("@/components/shippings/AddShipping/index.vue")
+                            },
+                            {
+                                path: "edit_shipping/:id",
+                                name: "edit_shipping",
+                                keeplive: false,
+                                component: () => import("@/components/shippings/EditShipping/index.vue")
+                            },
+                            {
+                                path: "list_shipping",
+                                name: "list_shipping",
+                                keeplive: true,
+                                component: () => import("@/components/shippings/ListShipping/index.vue")
+                            },
+                            {
+                                path: "view_shipping/:id",
+                                name: "view_shipping",
+                                keeplive: false,
+                                component: () => import("@/components/shippings/ViewShipping/index.vue")
+                            },
+                        ]
+                    },
+                    // =======================================
+                    //  INVENTORY
+                    // =======================================
+                    {
+                        path: '/inventory',
+                        name: 'inventory',
+                        children: [
+                            {
+                                path: 'add',
+                                name: 'add_inventory',
+                                keeplive: true,
+                                component: () => import('@/components/inventory/AddInventory/index.vue')
+                            },
+                        ]
+                    },
+                    // =======================================
+                    //  WAREHOUSE TRANSFERS
+                    // =======================================
+                    {
+                        path: '/warehouse-transfers',
+                        name: 'warehouse_transfers',
+                        children: [
+                            {
+                                path: 'list',
+                                name: 'list_warehouse_transfer',
+                                keeplive: true,
+                                component: () => import('@/components/warehouse_transfers/AddWarehouseTransfer/index.vue')
+                            },
+                            {
+                                path: 'edit/:id',
+                                name: 'edit_warehouse_transfer',
+                                component: () => import('@/components/warehouse_transfers/EditWarehouseTransfer/index.vue')
+                            },
+                        ]
+                    },
+                    // =======================================
+                    //  SUPPLIER INVOICE
+                    // =======================================
                     {
                         path: "/supplier_invoice",
                         keeplive: true,
@@ -140,26 +228,50 @@ const routes = [
                                 name: "list_supplier_invoice",
                                 component: () => import("@/components/SupplierInvoice/ListSupplierInvoice/index.vue")
                             },
+                            {
+                                path: "supplier_settlement",
+                                name: "supplier_settlement",
+                                component: () => import("@/components/SupplierPayment/SupplierSettlement/index.vue")
+                            },
                         ]
                     },
+                    // =======================================
+                    //  CLIENT INVOICE
+                    // =======================================
+                    {
+                        path: "/client_invoice",
+                        keeplive: true,
+                        name: "client_invoice",
+                        children: [
+                            {
+                                path: "view_client_invoice",
+                                name: "view_client_invoice",
+                                component: () => import("@/components/ClientInvoice/ViewClientInvoice/index.vue")
+                            },
+                            {
+                                path: "list_client_invoice",
+                                name: "list_client_invoice",
+                                component: () => import("@/components/ClientInvoice/ListClientInvoice/index.vue")
+                            },
+                            {
+                                path: "client_settlement",
+                                name: "client_settlement",
+                                component: () => import("@/components/ClientPayment/ClientSettlement/index.vue")
+                            },
+                        ]
+                    },
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                    //  WAREHOUSES
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                     {
                         path: "/warehouses",
                         name: "warehouses",
                         keeplive: true,
                         component: () => import("@/components/warehouses/index.vue")
                     },
-                    {
-                        path: "/inventory",
-                        name: "inventory",
-                        keeplive: true,
-                        component: () => import("@/components/warehouses/Inventory.vue")
-                    },
-                    {
-                        path: "/inventory-history",
-                        name: "inventory_history",
-                        keeplive: true,
-                        component: () => import("@/components/warehouses/InventoryHistory.vue")
-                    },
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                    //  PARAMETERS
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                     {
                         path: "/parameters",
                         name: "parameters",
@@ -177,31 +289,58 @@ const routes = [
                                 component: () => import("@/components/parameters/FishManagement/index.vue")
                             },
                             {
-                                path: "charge-category-management",
-                                name: "charge_category_management",
+                                path: "charge-management",
+                                name: "charge_management",
                                 keeplive: true,
-                                component: () => import("@/components/parameters/ChargeCategoryManagement/index.vue")
+                                component: () => import("@/components/parameters/ChargeManagement/index.vue")
                             },
                             {
-                                path: "wco-management",
-                                name: "wco_management",
+                                path: "shipping-management",
+                                name: "shipping_management",
                                 keeplive: true,
-                                component: () => import("@/components/parameters/WarehouseCategoryOperationManagement/index.vue")
+                                component: () => import("@/components/parameters/ShippingManagement/index.vue")
                             },
                             {
-                                path: "sell-category-management",
-                                name: "sell_category_management",
+                                path: "production-management",
+                                name: "production_management",
                                 keeplive: true,
-                                component: () => import("@/components/parameters/SellCategoryManagement/index.vue")
+                                component: () => import("@/components/parameters/ProductionManagement/index.vue")
                             },
                             {
-                                path: "production-category-management",
-                                name: "production_category_management",
+                                path: "detail-inventory-category-management",
+                                name: "detail_inventory_category_management",
                                 keeplive: true,
-                                component: () => import("@/components/parameters/ProductionCategoryManagement/index.vue")
+                                component: () => import("@/components/parameters/DetailInventoryCategoryManagement/index.vue")
+                            },
+                            {
+                                path: "warehouse-transfer-category-management",
+                                name: "warehouse_transfer_category_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/WarehouseTransferCategoryManagement/index.vue")
+                            },
+                            {
+                                path: "guano-management",
+                                name: "guano_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/GuanoManagement/index.vue")
+                            },
+                            {
+                                path: "package-management",
+                                name: "package_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/PackageManagement/index.vue")
+                            },
+                            {
+                                path: "bank-name-management",
+                                name: "bank_name_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/BankNameManagement/index.vue")
                             },
                         ]
                     },
+                    // =======================================
+                    //  WORKFORCE
+                    // =======================================
                     {
                         path: '/workforce',
                         name: 'workforce',
@@ -238,37 +377,6 @@ const routes = [
                             },
                         ]
                     },
-                    {
-                        path: "/sells",
-                        keeplive: true,
-                        name: "sells",
-                        children: [
-                            {
-                                path: "add_sell",
-                                keeplive: true,
-                                name: "add_sell",
-                                component: () => import("@/components/sells/AddSell/index.vue")
-                            },
-                            {
-                                path: "list_sell",
-                                name: "list_sell",
-                                keeplive: true,
-                                component: () => import("@/components/sells/ListSell/index.vue")
-                            },
-                            {
-                                path: "view_sell/:id",
-                                name: "view_sell",
-                                keeplive: false,
-                                component: () => import("@/components/sells/ViewSell/index.vue")
-                            },
-                            {
-                                path: "audit_trail/:id",
-                                name: "sell_audit_trail",
-                                keeplive: false,
-                                component: () => import("@/components/sells/AuditTrail/index.vue")
-                            },
-                        ]
-                    },
                 ]
             },
             {
@@ -292,3 +400,4 @@ const routes = [
 ]
 
 export default routes;
+

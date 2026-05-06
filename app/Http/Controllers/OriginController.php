@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Origin;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class OriginController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of the resource.
      */

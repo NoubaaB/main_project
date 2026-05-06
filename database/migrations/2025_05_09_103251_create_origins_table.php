@@ -6,26 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Origins represent geographic source regions for fish.
         Schema::create('origins', function (Blueprint $table) {
             $table->id();
-            $table->string("name")->unique();
-            $table->string("description")->nullable();
+            $table->string("name")->unique()->comment('Origin name (e.g., Atlantic Coast, Mediterranean)');
+            $table->string("description")->nullable()->comment('Additional description');
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->comment('This origins table describe the origin of charge and where it come from and have relationship with charges table as has many of charge records');
+            $table->comment('Geographic origins of fish. Referenced by charges, productions, shippings.');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('origins');

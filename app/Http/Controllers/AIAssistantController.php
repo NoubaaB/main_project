@@ -28,8 +28,12 @@ class AIAssistantController extends Controller
 
     /** Models excluded from AI write/delete operations */
     private const PROTECTED_MODELS = [
-        'User', 'Role', 'PasswordReset', 'ChatMessage',
-        'ChargeAuditLog', 'SellAuditLog',
+        'User',
+        'Role',
+        'PasswordReset',
+        'ChatMessage',
+        'ChargeAuditLog',
+        'SellAuditLog',
     ];
 
     public function __construct()
@@ -38,9 +42,9 @@ class AIAssistantController extends Controller
         $this->app_name = env('APP_NAME');
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Main endpoint: POST /api/ai-assistant
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     public function ask(Request $request)
     {
         $data = $request->validate([
@@ -51,12 +55,12 @@ class AIAssistantController extends Controller
         $question = $data['message'];
         $messages = $data['messages'];
 
-        // ── Step 1: Build context ──
+        // "" Step 1: Build context ""
         $schema = $this->getSchemaString();
         $tableComments = $this->getTableCommentsString();
         $businessCtx = $this->getBusinessContext();
 
-        // ── Step 2: Classify intent (read / create / delete / confirm / cancel) ──
+        // "" Step 2: Classify intent (read / create / delete / confirm / cancel) ""
         $modelMapStr = $this->getModelMapString();
         $intentPrompt = $this->buildIntentPrompt($question, $messages, $schema, $modelMapStr);
         $intentJson = $this->ai->classifyIntent($intentPrompt);
@@ -66,7 +70,7 @@ class AIAssistantController extends Controller
         }
         $intent = $intentData['intent'] ?? 'read';
 
-        // ── Handle WRITE/DELETE intents ──
+        // "" Handle WRITE/DELETE intents ""
         if (in_array($intent, ['create', 'delete'])) {
             return $this->handleWriteIntent($request, $question, $messages, $intentData, $schema, $tableComments, $businessCtx);
         }
@@ -81,19 +85,19 @@ class AIAssistantController extends Controller
             return response()->json(['answer' => $answer], 200);
         }
 
-        // ── READ intent: existing SQL pipeline ──
+        // "" READ intent: existing SQL pipeline ""
         $sqlPrompt = $this->buildSQLPrompt($question, $messages, $schema, $tableComments, $businessCtx);
         $sqlQuery = $this->ai->generateSQL($sqlPrompt);
 
         $result = null;
         $sqlError = null;
         if ($sqlQuery) {
-                if ($this->isSafeQuery($sqlQuery)) {
-                    $result = DB::select($sqlQuery);
-                    $result = json_encode($result);
-                } else {
-                    $sqlError = 'Query blocked: only SELECT statements are allowed.';
-                }
+            if ($this->isSafeQuery($sqlQuery)) {
+                $result = DB::select($sqlQuery);
+                $result = json_encode($result);
+            } else {
+                $sqlError = 'Query blocked: only SELECT statements are allowed.';
+            }
         }
 
         $routes = $this->getAppRoutes();
@@ -101,7 +105,7 @@ class AIAssistantController extends Controller
         $answer = $this->ai->generateAnswer($answerPrompt);
 
         if (!$answer) {
-            $answer = 'Sorry — I could not generate an answer. Please try rephrasing your question.';
+            $answer = 'Sorry, I could not generate an answer. Please try rephrasing your question.';
         }
 
         $this->persistMessages($request, $question, $answer);
@@ -113,9 +117,9 @@ class AIAssistantController extends Controller
         ], 200);
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Write/Delete Intent Handlers
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Handle create/delete intents: validate, build confirmation, return to user.
@@ -165,7 +169,7 @@ class AIAssistantController extends Controller
                 foreach ($records as $record) {
                     $cleaned = [];
                     foreach ($record as $field => $value) {
-                        // Skip name-reference fields (like section_name) — resolved separately
+                        // Skip name-reference fields (like section_name)  resolved separately
                         if (str_ends_with($field, '_name') && !in_array($field, $columns)) {
                             continue;
                         }
@@ -223,7 +227,7 @@ class AIAssistantController extends Controller
         }
 
         if (!empty($errors) && empty($validatedActions)) {
-            $answer = '<div style="padding:8px;color:#D32F2F;"><strong>⚠️ Cannot execute:</strong><ul>' .
+            $answer = '<div style="padding:8px;color:#D32F2F;"><strong>š ï¸ Cannot execute:</strong><ul>' .
                 implode('', array_map(fn($e) => "<li>$e</li>", $errors)) . '</ul></div>';
             $this->persistMessages($request, $question, $answer);
             return response()->json(['answer' => $answer], 200);
@@ -248,7 +252,7 @@ class AIAssistantController extends Controller
     }
 
     /**
-     * Handle user confirmation — find the pending action and execute it.
+     * Handle user confirmation  find the pending action and execute it.
      */
     private function handleConfirmIntent(Request $request, string $question, string $messages, string $schema, string $tableComments, string $businessCtx)
     {
@@ -290,7 +294,7 @@ class AIAssistantController extends Controller
             $modelPerms = $allowedCrud[$modelName] ?? [];
             if (!in_array($intent, $modelPerms)) {
                 $error = "You don't have permission to {$intent} {$modelName} records via AI.";
-                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>⚠️ ' . $error . '</strong></div>'], 403);
+                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>š ï¸ ' . $error . '</strong></div>'], 403);
             }
         }
         foreach ($actionPlan['pre_create'] ?? [] as $pc) {
@@ -298,7 +302,7 @@ class AIAssistantController extends Controller
             $pcPerms = $allowedCrud[$pcModel] ?? [];
             if (!in_array('create', $pcPerms)) {
                 $error = "You don't have permission to create {$pcModel} records via AI.";
-                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>⚠️ ' . $error . '</strong></div>'], 403);
+                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>š ï¸ ' . $error . '</strong></div>'], 403);
             }
         }
 
@@ -319,19 +323,19 @@ class AIAssistantController extends Controller
     public function askWithExcel(Request $request)
     {
         $request->validate([
-            'message'    => 'required|string|max:2000',
+            'message' => 'required|string|max:2000',
             'excel_data' => 'required|array',
             'excel_data.headers' => 'required|array',
-            'excel_data.rows'    => 'required|array',
+            'excel_data.rows' => 'required|array',
             'excel_data.filename' => 'nullable|string',
             'excel_data.sheet_name' => 'nullable|string',
         ]);
 
-        $message   = $request->input('message');
+        $message = $request->input('message');
         $excelData = $request->input('excel_data');
-        $headers   = $excelData['headers'] ?? [];
-        $rows      = $excelData['rows'] ?? [];
-        $filename  = $excelData['filename'] ?? 'uploaded_file.xlsx';
+        $headers = $excelData['headers'] ?? [];
+        $rows = $excelData['rows'] ?? [];
+        $filename = $excelData['filename'] ?? 'uploaded_file.xlsx';
         $sheetName = $excelData['sheet_name'] ?? 'Sheet1';
         $totalRows = count($rows);
 
@@ -340,7 +344,9 @@ class AIAssistantController extends Controller
         $excelText = "File: {$filename} | Sheet: {$sheetName} | Total Rows: {$totalRows}\n";
         $excelText .= "Headers: " . implode(' | ', $headers) . "\n\n";
         foreach ($previewRows as $i => $row) {
-            $values = array_map(function ($v) { return is_null($v) ? '' : (string) $v; }, $row);
+            $values = array_map(function ($v) {
+                return is_null($v) ? '' : (string) $v;
+            }, $row);
             $excelText .= "Row " . ($i + 1) . ": " . implode(' | ', $values) . "\n";
         }
         if ($totalRows > 200) {
@@ -348,7 +354,7 @@ class AIAssistantController extends Controller
         }
 
         // Detect intent: does the user want to INSERT, SUMMARIZE, or SEARCH?
-        $schema   = $this->getSchemaString();
+        $schema = $this->getSchemaString();
         $modelMapStr = $this->getModelMapString();
 
         $prompt = $this->buildExcelPrompt($message, $excelText, $schema, $modelMapStr, $headers, $totalRows);
@@ -357,17 +363,17 @@ class AIAssistantController extends Controller
         $aiResponse = $this->ai->classifyIntent($prompt);
 
         if (!$aiResponse) {
-            return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;">Sorry — could not analyze the Excel data.</div>'], 200);
+            return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;">Sorry  could not analyze the Excel data.</div>'], 200);
         }
 
         $parsed = json_decode($aiResponse, true);
         if (!is_array($parsed)) {
-            return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;">Sorry — invalid AI response.</div>'], 200);
+            return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;">Sorry  invalid AI response.</div>'], 200);
         }
 
         $intent = $parsed['intent'] ?? 'analyze';
 
-        // Handle ANALYZE / SUMMARIZE / SEARCH intents — use the answer generator
+        // Handle ANALYZE / SUMMARIZE / SEARCH intents  use the answer generator
         if (in_array($intent, ['read', 'analyze', 'summarize', 'search'])) {
             $analysisPrompt = <<<PROMPT
             === EXCEL DATA ===
@@ -392,7 +398,7 @@ class AIAssistantController extends Controller
 
             $answer = $this->ai->generateAnswer($analysisPrompt);
             if (!$answer) {
-                $answer = '<div style="padding:8px;color:#D32F2F;">Sorry — could not analyze the Excel data.</div>';
+                $answer = '<div style="padding:8px;color:#D32F2F;">Sorry, could not analyze the Excel data.</div>';
             }
 
             $user = $request->user();
@@ -404,7 +410,7 @@ class AIAssistantController extends Controller
             return response()->json(['answer' => $answer], 200);
         }
 
-        // Handle INSERT intent — propose an action plan to insert Excel rows into DB
+        // Handle INSERT intent  propose an action plan to insert Excel rows into DB
         if ($intent === 'create') {
             $actions = $parsed['actions'] ?? [];
             if (empty($actions)) {
@@ -495,8 +501,8 @@ class AIAssistantController extends Controller
         Classify the user's intent regarding this Excel data. Return ONLY valid JSON.
         
         INTENTS:
-        1. "analyze" — User wants to SUMMARIZE, UNDERSTAND, SEARCH, or GET STATISTICS from the Excel data.
-        2. "create" — User wants to INSERT/IMPORT the Excel data into a database table.
+        1. "analyze"  User wants to SUMMARIZE, UNDERSTAND, SEARCH, or GET STATISTICS from the Excel data.
+        2. "create"  User wants to INSERT/IMPORT the Excel data into a database table.
         
         For "analyze": return {"intent":"analyze"}
         
@@ -526,7 +532,8 @@ class AIAssistantController extends Controller
             // Execute pre_create first (dependencies)
             foreach ($plan['pre_create'] ?? [] as $pc) {
                 $modelName = $pc['model'] ?? '';
-                if (!isset($modelMap[$modelName])) continue;
+                if (!isset($modelMap[$modelName]))
+                    continue;
                 $class = $modelMap[$modelName]['class'];
                 $record = $class::create($pc['fields'] ?? []);
                 $results[] = "✅ Created {$modelName} #{$record->id}";
@@ -548,7 +555,8 @@ class AIAssistantController extends Controller
             // Execute main actions
             foreach ($plan['actions'] as $action) {
                 $modelName = $action['model'] ?? '';
-                if (!isset($modelMap[$modelName])) continue;
+                if (!isset($modelMap[$modelName]))
+                    continue;
                 $class = $modelMap[$modelName]['class'];
                 $affectedModels[] = $modelName;
 
@@ -573,7 +581,7 @@ class AIAssistantController extends Controller
                         }
                     }
                     $softLabel = ($action['soft_delete'] ?? false) ? ' (soft-deleted)' : ' (permanently deleted)';
-                    $results[] = "🗑️ Deleted {$deleted} {$modelName} record(s){$softLabel}";
+                    $results[] = "🗑️ Deleted {$deleted} {$modelName} record(s){$softLabel}";
                 }
             }
 
@@ -591,22 +599,23 @@ class AIAssistantController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             $html = '<div style="background:#FFEBEE;border-radius:12px;padding:16px;border-left:4px solid #D32F2F;">'
-                . '<strong style="color:#D32F2F;">❌ Error:</strong> ' . htmlspecialchars($e->getMessage())
+                . '<strong style="color:#D32F2F;">❌ Error:</strong> ' . htmlspecialchars($e->getMessage())
                 . '</div>';
             return ['html' => $html, 'affected_models' => []];
         }
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Model Discovery
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Auto-discover all Eloquent models with their table columns.
      */
     private function getModelMap(): array
     {
-        if (self::$cachedModelMap) return self::$cachedModelMap;
+        if (self::$cachedModelMap)
+            return self::$cachedModelMap;
 
         $modelPath = app_path('Models');
         $map = [];
@@ -616,7 +625,8 @@ class AIAssistantController extends Controller
                 $className = "App\\Models\\" . pathinfo($file->getFilename(), PATHINFO_FILENAME);
                 $shortName = pathinfo($file->getFilename(), PATHINFO_FILENAME);
 
-                if (!class_exists($className) || !is_subclass_of($className, Model::class)) continue;
+                if (!class_exists($className) || !is_subclass_of($className, Model::class))
+                    continue;
 
                 try {
                     $instance = new $className();
@@ -673,17 +683,19 @@ class AIAssistantController extends Controller
         $output = "WRITABLE MODELS (use exact model name in the 'model' field):\n\n";
 
         foreach ($map as $name => $info) {
-            if (in_array($name, self::PROTECTED_MODELS)) continue;
+            if (in_array($name, self::PROTECTED_MODELS))
+                continue;
             $sd = $info['soft_delete'] ? ' [soft-delete]' : ' [hard-delete]';
             $fillable = !empty($info['fillable']) ? implode(', ', $info['fillable']) : 'all';
-            $output .= "● {$name} → table: {$info['table']}{$sd}\n";
+            $output .= "— {$name} → table: {$info['table']}{$sd}\n";
             $output .= "  fillable: {$fillable}\n";
 
             // Show detailed column info
             if (!empty($info['column_details'])) {
                 $output .= "  columns:\n";
                 foreach ($info['column_details'] as $colName => $detail) {
-                    if (in_array($colName, ['id', 'created_at', 'updated_at', 'deleted_at'])) continue;
+                    if (in_array($colName, ['id', 'created_at', 'updated_at', 'deleted_at']))
+                        continue;
                     $nullable = $detail['nullable'] ? 'nullable' : 'required';
                     $default = $detail['default'] !== null ? ", default={$detail['default']}" : '';
                     $fk = $detail['key'] === 'MUL' ? ' [FK]' : '';
@@ -696,9 +708,9 @@ class AIAssistantController extends Controller
         return $output;
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Confirmation & Extraction Helpers
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Build styled HTML confirmation card for the user.
@@ -709,7 +721,7 @@ class AIAssistantController extends Controller
         $isDelete = $intent === 'delete';
         $color = $isDelete ? '#D32F2F' : '#1976D2';
         $bgGradient = $isDelete ? 'linear-gradient(135deg,#FFEBEE,#FFCDD2)' : 'linear-gradient(135deg,#E3F2FD,#BBDEFB)';
-        $icon = $isDelete ? '🗑️' : '📝';
+        $icon = $isDelete ? '🗑️' : '📝';
         $title = $isDelete ? 'Delete Confirmation' : 'Create Confirmation';
 
         $html = "<div style='background:{$bgGradient};border-radius:12px;padding:16px;border-left:4px solid {$color};'>";
@@ -736,16 +748,16 @@ class AIAssistantController extends Controller
                 $html .= "<li>Create <strong>{$count}</strong> {$model} record(s)</li>";
             } else {
                 $count = count($action['ids'] ?? []);
-                $softLabel = ($action['soft_delete'] ?? false) ? '(soft-delete, recoverable)' : '<span style="color:#D32F2F;font-weight:700;">(⚠️ permanent!)</span>';
+                $softLabel = ($action['soft_delete'] ?? false) ? '(soft-delete, recoverable)' : '<span style="color:#D32F2F;font-weight:700;">(š ï¸ permanent!)</span>';
                 $desc = $action['description'] ?? '';
-                $html .= "<li>Delete <strong>{$count}</strong> {$model} record(s) {$softLabel}" . ($desc ? " — {$desc}" : '') . "</li>";
+                $html .= "<li>Delete <strong>{$count}</strong> {$model} record(s) {$softLabel}" . ($desc ? "  {$desc}" : '') . "</li>";
             }
         }
         $html .= "</ul>";
 
         // Show errors
         if (!empty($plan['errors'])) {
-            $html .= "<div style='color:#EF6C00;font-size:12px;margin-bottom:8px;'>⚠️ Warnings: " . implode(', ', $plan['errors']) . "</div>";
+            $html .= "<div style='color:#EF6C00;font-size:12px;margin-bottom:8px;'>š ï¸ Warnings: " . implode(', ', $plan['errors']) . "</div>";
         }
 
         $html .= "<div style='font-size:13px;color:#333;'>Reply <strong>\"yes\"</strong> to confirm or <strong>\"no\"</strong> to cancel.</div>";
@@ -770,7 +782,8 @@ class AIAssistantController extends Controller
     private function extractPendingAction(string $messagesJson): ?array
     {
         $messages = json_decode($messagesJson, true);
-        if (!is_array($messages)) return null;
+        if (!is_array($messages))
+            return null;
 
         // Search backwards for the most recent pending action
         for ($i = count($messages) - 1; $i >= 0; $i--) {
@@ -808,17 +821,17 @@ class AIAssistantController extends Controller
         {$question}
 
         === TASK ===
-        You are an intent classifier. Classify the user's intent. Return ONLY valid JSON — nothing else.
+        You are an intent classifier. Classify the user's intent. Return ONLY valid JSON  nothing else.
 
         INTENT RULES:
-        1. "read" — The user wants to QUERY, VIEW, LIST, COUNT, or ANALYZE existing data. Example: "how many charges?", "show suppliers", "total sales"
-        2. "create" — The user wants to ADD, CREATE, INSERT, REGISTER, or ENTRY new records into the database. Example: "create a section", "add activity", "insert supplier", "entry workforce"
-        3. "delete" — The user wants to DELETE, REMOVE, or SUPPRESS records. Example: "delete supplier 5", "remove this ship"
-        4. "confirm" — The user is confirming a previous action proposal by saying: yes, ok, oui, confirm, go ahead, d'accord, proceed
-        5. "cancel" — The user is cancelling by saying: no, cancel, stop, annuler
+        1. "read"  The user wants to QUERY, VIEW, LIST, COUNT, or ANALYZE existing data. Example: "how many charges?", "show suppliers", "total sales"
+        2. "create"  The user wants to ADD, CREATE, INSERT, REGISTER, or ENTRY new records into the database. Example: "create a section", "add activity", "insert supplier", "entry workforce"
+        3. "delete"  The user wants to DELETE, REMOVE, or SUPPRESS records. Example: "delete supplier 5", "remove this ship"
+        4. "confirm"  The user is confirming a previous action proposal by saying: yes, ok, oui, confirm, go ahead, d'accord, proceed
+        5. "cancel"  The user is cancelling by saying: no, cancel, stop, annuler
 
-        CRITICAL: If the user uses words like "create", "add", "insert", "entry", "register", "new", "ajouter", "créer", "enregistrer" — the intent is ALWAYS "create", NEVER "read".
-        CRITICAL: If the user uses words like "delete", "remove", "supprimer" — the intent is ALWAYS "delete", NEVER "read".
+        CRITICAL: If the user uses words like "create", "add", "insert", "entry", "register", "new", "ajouter", "créer", "enregistrer"  the intent is ALWAYS "create", NEVER "read".
+        CRITICAL: If the user uses words like "delete", "remove", "supprimer"  the intent is ALWAYS "delete", NEVER "read".
         CRITICAL: There is NO limit on the number of records. If the user asks to create 50, 100, 500 or more records, generate ALL of them in the "records" array. Never truncate or limit the output.
 
         CRITICAL TABLE STUDY RULES (for CREATE intent):
@@ -857,9 +870,9 @@ class AIAssistantController extends Controller
         }
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Prompt Builders
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Build a precise SQL generation prompt.
@@ -878,7 +891,7 @@ class AIAssistantController extends Controller
 
         === RULES ===
         1. Generate ONLY a valid MySQL SELECT query that answers the user's question.
-        2. Return ONLY the raw SQL — no markdown, no explanation, no backticks.
+        2. Return ONLY the raw SQL  no markdown, no explanation, no backticks.
         3. Many tables use SoftDelete. Always add "WHERE deleted_at IS NULL" for tables that have a deleted_at column.
         4. Use proper JOINs based on the relationships described in the schema.
         5. For pivot/many-to-many tables (charge_suppliers, charge_ships, truck_charge, sell_clients, sell_ships, truck_sell), use JOIN through them.
@@ -918,7 +931,7 @@ class AIAssistantController extends Controller
         return <<<PROMPT
         === YOUR ROLE ===
         You are "$this->app_name AI", a smart assistant for the $this->app_name fish management system.
-        You help users understand their business data — purchases, sales, stock, suppliers, and operations.
+        You help users understand their business data  purchases, sales, stock, suppliers, and operations.
 
         === BUSINESS CONTEXT ===
         {$businessCtx}
@@ -975,9 +988,9 @@ class AIAssistantController extends Controller
         PROMPT;
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Business Context
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Get the business context of the application.
@@ -989,7 +1002,7 @@ class AIAssistantController extends Controller
             return self::$cachedBusinessContext;
 
         self::$cachedBusinessContext = <<<CTX
-        APPLICATION: $this->app_name — Frozen Fish System
+        APPLICATION: $this->app_name  Frozen Fish System
         DEVELOPER: ELBACHIR NOUBAA
         DOMAIN: Fish buying, processing, storage, and selling in Morocco.
         CURRENCY: MAD (Moroccan Dirham)
@@ -1007,7 +1020,7 @@ class AIAssistantController extends Controller
         - ORIGINS: Geographic origin of the fish.
         - FISH TYPES: Specific fish species (sardine, mackerel, etc.)
         - FISH FAMILIES: Groups of fish types.
-        - CHARGE CATEGORIES: Types of charges (some are "production" type — where is_production=true).
+        - CHARGE CATEGORIES: Types of charges (some are "production" type  where is_production=true).
         - FORMULAS: Pricing/calculation formulas.
         - SUPPLIER INVOICES: Consolidated invoices grouping multiple charges for a supplier.
         - WAREHOUSE CATEGORY OPERATIONS: Types of warehouse operations (IN/OUT). Some have is_production=true meaning production processing.
@@ -1027,9 +1040,9 @@ class AIAssistantController extends Controller
         return self::$cachedBusinessContext;
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Safety
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Check that the query is a safe read-only SELECT.
@@ -1046,9 +1059,9 @@ class AIAssistantController extends Controller
         return str_starts_with($normalized, 'SELECT');
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Schema Extraction
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Get the full database schema as a JSON string (cached).
@@ -1118,9 +1131,9 @@ class AIAssistantController extends Controller
         return self::$cachedComments;
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Model/Relationship Introspection
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     public function getDatabaseSchema()
     {
@@ -1178,9 +1191,9 @@ class AIAssistantController extends Controller
             ->get();
     }
 
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
     //  Application Route Map (auto-synced from routes.js)
-    // ─────────────────────────────────────────
+    // """""""""""""""""""""""""""""""""""""""""
 
     /**
      * Dynamically parse the frontend routes.js file to build
@@ -1206,7 +1219,8 @@ class AIAssistantController extends Controller
 
         $output = "AVAILABLE APPLICATION PAGES (use these paths for navigation buttons):\n\n";
         foreach ($routes as $r) {
-            if (in_array($r['name'], $skipNames)) continue;
+            if (in_array($r['name'], $skipNames))
+                continue;
             $label = ucwords(str_replace('_', ' ', $r['name']));
             $paramHint = str_contains($r['path'], ':') ? ' (replace dynamic params with actual values)' : '';
             $output .= "- {$r['path']} → {$label}{$paramHint}\n";
@@ -1233,7 +1247,8 @@ class AIAssistantController extends Controller
 
         foreach (explode("\n", $content) as $line) {
             $t = trim($line);
-            if ($t === '' || str_starts_with($t, 'import ') || str_starts_with($t, 'export ')) continue;
+            if ($t === '' || str_starts_with($t, 'import ') || str_starts_with($t, 'export '))
+                continue;
 
             // Detect children: [ → push current path onto stack
             if (preg_match('/children\s*:\s*\[/', $t)) {
@@ -1275,8 +1290,10 @@ class AIAssistantController extends Controller
      */
     private function resolveRoutePath(array $parentPaths, ?string $currentPath): string
     {
-        if ($currentPath === null) return '/';
-        if (str_starts_with($currentPath, '/')) return $currentPath;
+        if ($currentPath === null)
+            return '/';
+        if (str_starts_with($currentPath, '/'))
+            return $currentPath;
 
         $base = '';
         foreach ($parentPaths as $pp) {
@@ -1304,14 +1321,20 @@ class AIAssistantController extends Controller
             if ($i + 8 <= $len && substr($content, $i, 8) === 'function') {
                 // Find opening brace
                 $j = $i + 8;
-                while ($j < $len && $content[$j] !== '{') $j++;
-                if ($j >= $len) { $result .= substr($content, $i); break; }
+                while ($j < $len && $content[$j] !== '{')
+                    $j++;
+                if ($j >= $len) {
+                    $result .= substr($content, $i);
+                    break;
+                }
                 // Count braces to find matching close
                 $braces = 1;
                 $k = $j + 1;
                 while ($k < $len && $braces > 0) {
-                    if ($content[$k] === '{') $braces++;
-                    elseif ($content[$k] === '}') $braces--;
+                    if ($content[$k] === '{')
+                        $braces++;
+                    elseif ($content[$k] === '}')
+                        $braces--;
                     $k++;
                 }
                 $i = $k;
@@ -1324,4 +1347,5 @@ class AIAssistantController extends Controller
         return $result;
     }
 }
+
 

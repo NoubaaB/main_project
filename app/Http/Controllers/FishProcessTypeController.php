@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\FishProcessType;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 
 class FishProcessTypeController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * Display a listing of fish process types with fish_types count.
      */
@@ -24,10 +26,12 @@ class FishProcessTypeController extends Controller
         $data = $request->validate([
             'name' => 'nullable|string|max:255|unique:fish_process_types,name',
             'description' => 'nullable|string|max:500',
+            'productivity_color' => 'nullable|string|max:50',
         ]);
 
         $processType = FishProcessType::create($data);
         $processType->loadCount('fish_types');
+        $this->broadcastChange('FishProcessType', 'created', $processType->id, $processType->toArray());
 
         return response()->json(['fish_process_type' => $processType], 201);
     }
@@ -42,10 +46,12 @@ class FishProcessTypeController extends Controller
         $data = $request->validate([
             'name' => 'nullable|string|max:255|unique:fish_process_types,name,' . $id,
             'description' => 'nullable|string|max:500',
+            'productivity_color' => 'nullable|string|max:50',
         ]);
 
         $processType->update($data);
         $processType->loadCount('fish_types');
+        $this->broadcastChange('FishProcessType', 'updated', $processType->id, $processType->toArray());
 
         return response()->json(['fish_process_type' => $processType], 200);
     }
@@ -57,6 +63,7 @@ class FishProcessTypeController extends Controller
     {
         $processType = FishProcessType::findOrFail($id);
         $processType->delete();
+        $this->broadcastChange('FishProcessType', 'deleted', (int)$id);
 
         return response()->json(['message' => 'Fish process type deleted'], 200);
     }

@@ -28,6 +28,7 @@ class User extends Authenticatable
         'role',
         'password',
         'allowed_ai_crud',
+        'is_active',
     ];
 
     /**
@@ -51,6 +52,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'allowed_ai_crud' => 'array',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -61,8 +63,23 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
-    // function dailies(): HasMany
-    // {
-    //     return $this->hasMany(Daily::class);
-    // }
+    /**
+     * Check if this user is a super admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role && $this->role->is_super_admin;
+    }
+
+    /**
+     * Check if this user has a specific permission.
+     */
+    public function hasPermission(string $key): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->role && $this->role->hasPermission($key);
+    }
 }

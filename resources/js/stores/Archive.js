@@ -6,61 +6,61 @@ import { useNotification } from "./Notification";
 import { useSupplier } from "./Supplier";
 import { useClient } from "./Client";
 import { useChargeCategory } from "./ChargeCategory";
-import { useSellCategory } from "./SellCategory";
+import { useShippingCategory } from "./ShippingCategory";
 import { useProductionCategory } from "./ProductionCategory";
 import i18n from '@/plugins/i18n';
 
 /**
  * Archive Store
- * ─────────────
- * Centralized per-user archive system for Charges, Sells, and Productions.
+ * -------------
+ * Centralized per-user archive system for Charges, Shippings, and Productions.
  * Archives are local draft snapshots stored in localStorage keyed by user ID.
  * Users can edit, submit (POST to API), or delete archived items.
  */
 export const useArchive = defineStore("archive", {
     state: () => ({
         charges: [],
-        sells: [],
+        shippings: [],
         productions: [],
         _userId: null,
     }),
     actions: {
-        // ─── Storage keys ───
+        // --- Storage keys ---
         _key(type) {
             return `archive_${type}_${this._userId}`;
         },
 
-        // ─── Load archives for the current user ───
+        // --- Load archives for the current user ---
         loadForUser(userId) {
             this._userId = userId;
             try {
                 const charges = localStorage.getItem(this._key('charges'));
-                const sells = localStorage.getItem(this._key('sells'));
+                const sells = localStorage.getItem(this._key('shippings'));
                 const productions = localStorage.getItem(this._key('productions'));
                 this.charges = charges ? JSON.parse(charges) : [];
-                this.sells = sells ? JSON.parse(sells) : [];
+                this.shippings = sells ? JSON.parse(sells) : [];
                 this.productions = productions ? JSON.parse(productions) : [];
             } catch (e) {
                 console.error("Error loading archives from localStorage:", e);
                 this.charges = [];
-                this.sells = [];
+                this.shippings = [];
                 this.productions = [];
             }
         },
 
-        // ─── Persist to localStorage ───
+        // --- Persist to localStorage ---
         _save() {
             if (!this._userId) return;
             try {
                 localStorage.setItem(this._key('charges'), JSON.stringify(this.charges));
-                localStorage.setItem(this._key('sells'), JSON.stringify(this.sells));
+                localStorage.setItem(this._key('shippings'), JSON.stringify(this.shippings));
                 localStorage.setItem(this._key('productions'), JSON.stringify(this.productions));
             } catch (e) {
                 console.error("Error saving archives to localStorage:", e);
             }
         },
 
-        // ─── Build notification fields helper ───
+        // --- Build notification fields helper ---
         _buildChargeFields(item) {
             const main = useMain();
             const supplier = useSupplier();
@@ -74,11 +74,11 @@ export const useArchive = defineStore("archive", {
             if (item.production_tracking_numbers?.length) {
                 fields.push({ label: i18n.global.t('production_tracking_numbers'), value: item.production_tracking_numbers.join(', '), icon: 'mdi-factory' });
             }
-            const supplierNames = (item.supplier_ids || [])
-                .map(id => supplier.list.find(s => s.id === id)?.name)
-                .filter(Boolean);
-            if (supplierNames.length) {
-                fields.push({ label: i18n.global.t('suppliers'), value: supplierNames.join(', '), icon: 'mdi-truck-delivery' });
+            if (item.supplier_id) {
+                const supplierName = supplier.list.find(s => s.id === item.supplier_id)?.name;
+                if (supplierName) {
+                    fields.push({ label: i18n.global.t('supplier'), value: supplierName, icon: 'mdi-truck-delivery' });
+                }
             }
             if (item.total_weight) {
                 fields.push({ label: i18n.global.t('total_weight'), value: main.formatDisplayNumber(item.total_weight) + ' Kg', icon: 'mdi-weight-kilogram' });
@@ -88,7 +88,7 @@ export const useArchive = defineStore("archive", {
             }
             return fields;
         },
-        _buildSellFields(item) {
+        _buildShippingFields(item) {
             const main = useMain();
             const client = useClient();
             const fields = [];
@@ -125,11 +125,11 @@ export const useArchive = defineStore("archive", {
             if (item.production_tracking_numbers?.length) {
                 fields.push({ label: i18n.global.t('production_tracking_numbers'), value: item.production_tracking_numbers.join(', '), icon: 'mdi-factory' });
             }
-            const supplierNames = (item.supplier_ids || [])
-                .map(id => supplier.list.find(s => s.id === id)?.name)
-                .filter(Boolean);
-            if (supplierNames.length) {
-                fields.push({ label: i18n.global.t('suppliers'), value: supplierNames.join(', '), icon: 'mdi-truck-delivery' });
+            if (item.supplier_id) {
+                const supplierName = supplier.list.find(s => s.id === item.supplier_id)?.name;
+                if (supplierName) {
+                    fields.push({ label: i18n.global.t('supplier'), value: supplierName, icon: 'mdi-truck-delivery' });
+                }
             }
             if (item.total_weight) {
                 fields.push({ label: i18n.global.t('total_weight'), value: main.formatDisplayNumber(item.total_weight) + ' Kg', icon: 'mdi-weight-kilogram' });
@@ -140,9 +140,9 @@ export const useArchive = defineStore("archive", {
             return fields;
         },
 
-        // ═══════════════════════════════════════
+        // =======================================
         //  CHARGE ARCHIVES
-        // ═══════════════════════════════════════
+        // =======================================
         archiveCharge(chargeData) {
             const snapshot = JSON.parse(JSON.stringify(chargeData));
             snapshot._archivedAt = new Date().toISOString();
@@ -248,19 +248,19 @@ export const useArchive = defineStore("archive", {
             }
         },
 
-        // ═══════════════════════════════════════
-        //  SELL ARCHIVES
-        // ═══════════════════════════════════════
-        archiveSell(sellData) {
-            const snapshot = JSON.parse(JSON.stringify(sellData));
+        // =======================================
+        //  SHIPPING ARCHIVES
+        // =======================================
+        archiveShipping(shippingData) {
+            const snapshot = JSON.parse(JSON.stringify(shippingData));
             snapshot._archivedAt = new Date().toISOString();
-            this.sells.push(snapshot);
+            this.shippings.push(snapshot);
             this._save();
 
             const main = useMain();
             main.add_snackbar({
                 show: true,
-                message: i18n.global.t("sell_archived_successfully"),
+                message: i18n.global.t("shipping_archived_successfully"),
                 color: "success"
             });
             const notification = useNotification();
@@ -268,63 +268,63 @@ export const useArchive = defineStore("archive", {
                 type: 'archives',
                 icon: 'mdi-archive-arrow-down',
                 color: 'teal',
-                fields: this._buildSellFields(snapshot)
+                fields: this._buildShippingFields(snapshot)
             });
         },
-        removeSell(id) {
-            this.sells = this.sells.filter(s => s.id !== id);
+        removeShipping(id) {
+            this.shippings = this.shippings.filter(s => s.id !== id);
             this._save();
             const main = useMain();
             main.add_snackbar({ show: true, message: i18n.global.t("archive_deleted_successfully"), color: "success" });
         },
-        removeSells(ids) {
-            const removed = this.sells.filter(s => ids.includes(s.id));
-            this.sells = this.sells.filter(s => !ids.includes(s.id));
+        removeShippings(ids) {
+            const removed = this.shippings.filter(s => ids.includes(s.id));
+            this.shippings = this.shippings.filter(s => !ids.includes(s.id));
             this._save();
             const main = useMain();
             main.add_snackbar({ show: true, message: i18n.global.t("archives_deleted_successfully", { count: removed.length }), color: "success" });
         },
-        async submitSell(id) {
-            const item = this.sells.find(s => s.id === id);
+        async submitShipping(id) {
+            const item = this.shippings.find(s => s.id === id);
             if (!item) return;
             try {
-                const res = await axios.post("/api/sell", item);
-                this.sells = this.sells.filter(s => s.id !== id);
+                const res = await axios.post("/api/shipping", item);
+                this.shippings = this.shippings.filter(s => s.id !== id);
                 this._save();
                 const main = useMain();
                 const notification = useNotification();
-                notification.notifyCreation({ type: 'sells', icon: 'mdi-cart-check', color: 'green', fields: this._buildSellFields(item) });
+                notification.notifyCreation({ type: 'shippings', icon: 'mdi-cart-check', color: 'green', fields: this._buildShippingFields(item) });
                 main.add_snackbar({ show: true, message: i18n.global.t("archive_submitted_successfully"), color: "success" });
                 return res.data;
             } catch (e) {
-                console.error("Error submitting archived sell:", e);
+                console.error("Error submitting archived shipping:", e);
                 const main = useMain();
                 main.add_snackbar({ show: true, message: e.response?.data?.message || i18n.global.t("archive_submit_failed"), color: "error" });
                 return null;
             }
         },
-        async submitSells(ids) {
-            const items = this.sells.filter(s => ids.includes(s.id));
+        async submitShippings(ids) {
+            const items = this.shippings.filter(s => ids.includes(s.id));
             let successCount = 0;
             for (const item of items) {
                 try {
-                    await axios.post("/api/sell", item);
-                    this.sells = this.sells.filter(s => s.id !== item.id);
+                    await axios.post("/api/shipping", item);
+                    this.shippings = this.shippings.filter(s => s.id !== item.id);
                     successCount++;
-                } catch (e) { console.error("Error submitting archived sell:", e); }
+                } catch (e) { console.error("Error submitting archived shipping:", e); }
             }
             this._save();
             if (successCount > 0) {
                 const main = useMain();
                 const notification = useNotification();
-                notification.notifyCreation({ type: 'sells', icon: 'mdi-cart-check', color: 'green', fields: items.flatMap(i => this._buildSellFields(i)).slice(0, 6) });
+                notification.notifyCreation({ type: 'shippings', icon: 'mdi-cart-check', color: 'green', fields: items.flatMap(i => this._buildShippingFields(i)).slice(0, 6) });
                 main.add_snackbar({ show: true, message: i18n.global.t("archives_submitted_successfully", { count: successCount }), color: "success" });
             }
         },
 
-        // ═══════════════════════════════════════
+        // =======================================
         //  PRODUCTION ARCHIVES
-        // ═══════════════════════════════════════
+        // =======================================
         archiveProduction(prodData) {
             const snapshot = JSON.parse(JSON.stringify(prodData));
             snapshot._archivedAt = new Date().toISOString();
@@ -396,7 +396,7 @@ export const useArchive = defineStore("archive", {
             }
         },
 
-        // ─── Edit archive: load into form and navigate ───
+        // --- Edit archive: load into form and navigate ---
         editChargeArchive(id, router) {
             const item = this.charges.find(c => c.id === id);
             if (!item) return;
@@ -409,16 +409,16 @@ export const useArchive = defineStore("archive", {
             }
             if (router) router.push({ name: 'add_charge' });
         },
-        editSellArchive(id, router) {
-            const item = this.sells.find(s => s.id === id);
+        editShippingArchive(id, router) {
+            const item = this.shippings.find(s => s.id === id);
             if (!item) return;
             const auth = useAuth();
             const userId = auth.user?.id;
             if (userId) {
-                localStorage.setItem(`form_sell_${userId}`, JSON.stringify(item));
-                localStorage.setItem(`form_sell_showAdditionalInfo_${userId}`, 'true');
+                localStorage.setItem(`form_shipping_${userId}`, JSON.stringify(item));
+                localStorage.setItem(`form_shipping_showAdditionalInfo_${userId}`, 'true');
             }
-            if (router) router.push({ name: 'add_sell' });
+            if (router) router.push({ name: 'add_shipping' });
         },
         editProductionArchive(id, router) {
             const item = this.productions.find(p => p.id === id);
@@ -432,9 +432,10 @@ export const useArchive = defineStore("archive", {
         },
     },
     getters: {
-        totalCount: (state) => state.charges.length + state.sells.length + state.productions.length,
+        totalCount: (state) => state.charges.length + state.shippings.length + state.productions.length,
         chargeCount: (state) => state.charges.length,
-        sellCount: (state) => state.sells.length,
+        shippingCount: (state) => state.shippings.length,
         productionCount: (state) => state.productions.length,
     }
 });
+

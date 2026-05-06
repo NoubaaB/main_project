@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { useCharge } from "./Charge";
-import { useSell } from "./Sell";
+import { useShipping } from "./Shipping";
 import annyang from "annyang";
 import moment from "moment";
 import { usePackageType } from "./PackageType";
@@ -11,7 +11,7 @@ import { useWarehouse } from "./Warehouse";
 import { useChargeCategory } from "./ChargeCategory";
 import { useSupplier } from "./Supplier";
 import { useTruck } from "./Truck";
-import { useSellCategory } from "./SellCategory";
+import { useShippingCategory } from "./ShippingCategory";
 import { useClient } from "./Client";
 import i18n  from '@/plugins/i18n';
 
@@ -65,7 +65,6 @@ export const useMain = defineStore("main", {
             package_type:usePackageType(),
             guano_type:useGuanoType(),
             fish_type:useFishType(),
-            charge:useCharge(),
             fish_family:useFishFamily(),
             warehouse: useWarehouse(),
             charge_category: useChargeCategory(),
@@ -91,45 +90,6 @@ export const useMain = defineStore("main", {
             }
             annyang.setLanguage(lang.annyang);
             this.lang = lang;
-
-            //initialize the charge store with data from localStorage
-            let charge = localStorage.getItem("charge") || '{}';
-            if (charge == '{}') {
-                this.charge.add_charge();
-            } else {
-                Object.assign(this.charge.charge, JSON.parse(charge));
-            }
-
-            //initialize the charges store with data from localStorage
-            let charges = localStorage.getItem("charges") || '[]';
-            this.charge.charges = JSON.parse(charges);
-
-            //other charge settings
-            this.charge.input_tracking_number = localStorage.getItem("input_tracking_number") == "null" ? null : localStorage.getItem("input_tracking_number");
-            this.charge.showAdditionalInfo = localStorage.getItem("charge_showAdditionalInfo") == "true";
-
-            //initialize the sell store with data from localStorage
-            try {
-                const _sell = useSell();
-                let sell = localStorage.getItem("sell") || '{}';
-                let parsedSell = JSON.parse(sell);
-                if (parsedSell && parsedSell.id && Array.isArray(parsedSell.warehouse_category_operations)) {
-                    Object.assign(_sell.sell, parsedSell);
-                } else {
-                    _sell.add_sell();
-                }
-
-                //initialize the sells store with data from localStorage
-                let sells = localStorage.getItem("sells") || '[]';
-                _sell.sells = JSON.parse(sells);
-
-                //other sell settings
-                _sell.showAdditionalInfo = localStorage.getItem("sell_showAdditionalInfo") == "true";
-            } catch (e) {
-                console.error("Error initializing sell from localStorage:", e);
-                const _sell = useSell();
-                _sell.add_sell();
-            }
         },
         fetchData: async function (date_start, date_end, api_url, api_url_prop) {
             try {
@@ -208,7 +168,6 @@ export const useMain = defineStore("main", {
             this.snackbar = { ...message };
         },
         getStockableName: function (stockable_id, stockable_type) {
-            // return stockable_type + stockable_id;
             let type = null
             switch (stockable_type) {
                 case "PackageType":
@@ -229,6 +188,28 @@ export const useMain = defineStore("main", {
                 return "N/A"
             }
         },
+        // Returns name_in_invoice if set, otherwise falls back to localized name
+        getStockableInvoiceName: function (stockable_id, stockable_type) {
+            let type = null
+            switch (stockable_type) {
+                case "PackageType":
+                    type = this.getPackageTypes.find(e => e.id == stockable_id);
+                    break;
+                case "FishType":
+                    type = this.getFishTypes.find(e => e.id == stockable_id);
+                    break;
+                case "GuanoType":
+                    type = this.getGuanoTypes.find(e => e.id == stockable_id);
+                    break;
+                default:
+                    return isNaN(stockable_id) ? stockable_id : i18n.global.t("add_description");
+            }
+            if (!!type) {
+                return type.name_in_invoice || type[`name_${this.lang.code}`];
+            } else {
+                return "N/A"
+            }
+        },
         getTruckNames: function (truck_ids) {
             if (typeof truck_ids == "object") {
                 return truck_ids.map(truck_id => {
@@ -243,9 +224,9 @@ export const useMain = defineStore("main", {
             const charge_category = this.getChargeCataegories.find(charge_category => charge_category.id === charge_category_id);
             return charge_category ? charge_category[`name_${this.lang.code}`] : i18n.global.t("n/a");
         },
-        getSellCategoryName: function (sell_category_id) {
-            const sell_category = this.getSellCataegories.find(sell_category => sell_category.id === sell_category_id);
-            return sell_category ? sell_category[`name_${this.lang.code}`] : i18n.global.t("n/a");
+        getShippingCategoryName: function (shipping_category_id) {
+            const shipping_category = this.getShippingCategories.find(cat => cat.id === shipping_category_id);
+            return shipping_category ? shipping_category[`name_${this.lang.code}`] : i18n.global.t("n/a");
         },
         getSupplierName: function (supplier_id) {
             const supplier = this.getSuppliers.find(supplier => supplier.id === supplier_id);
@@ -327,8 +308,9 @@ export const useMain = defineStore("main", {
         getChargeCataegories: (state) => {
             return state.charge_category.getList;
         },
-        getSellCataegories: (state) => {
-            return state.sell_category.getList;
+        getShippingCategories: () => {
+            const { useShippingCategory } = require('./ShippingCategory');
+            return useShippingCategory().getList;
         },
         getFishTypes: (state) => {
             return state.fish_type.getList;
@@ -347,3 +329,4 @@ export const useMain = defineStore("main", {
         }
     }
 });
+

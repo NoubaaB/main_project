@@ -5,26 +5,39 @@ namespace App\Http\Controllers;
 use App\Models\FortnightActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Traits\BroadcastsModelChanges;
 
 class FortnightActivityController extends Controller
 {
+    use BroadcastsModelChanges;
     /**
      * List activities for a workforce in a given fortnight period.
      */
     public function index(Request $request): JsonResponse
     {
         $request->validate([
-            'workforce_id' => 'required|exists:workforces,id',
+            'workforce_id' => 'nullable|exists:workforces,id',
+            'workforce_ids' => 'nullable|array',
+            'workforce_ids.*' => 'exists:workforces,id',
             'year' => 'required|integer',
             'month' => 'required|integer|min:1|max:12',
             'fortnight_period' => 'nullable|in:Q1,Q2',
         ]);
 
-        $query = FortnightActivity::with(['section', 'corporal'])
-            ->where('workforce_id', $request->workforce_id)
+        $query = FortnightActivity::with(['section', 'corporal', 'workforce'])
             ->whereYear('date', $request->year)
             ->whereMonth('date', $request->month)
             ->orderBy('date');
+
+        // Support multiple workforce_ids OR single workforce_id
+        if ($request->has('workforce_ids') && is_array($request->workforce_ids) && count($request->workforce_ids) > 0) {
+            $query->whereIn('workforce_id', $request->workforce_ids);
+        } elseif ($request->filled('workforce_id')) {
+            $query->where('workforce_id', $request->workforce_id);
+        } else {
+            // No workforce filter provided — return empty to avoid loading everything
+            return response()->json(['activities' => []], 200);
+        }
 
         if ($request->fortnight_period) {
             $query->where('fortnight_period', $request->fortnight_period);
@@ -71,9 +84,11 @@ class FortnightActivityController extends Controller
         }
 
         $activity = FortnightActivity::create($data);
+        $activity->load(['section', 'corporal', 'workforce']);
+        $this->broadcastChange('FortnightActivity', 'created', $activity->id, $activity->toArray());
 
         return response()->json([
-            'activity' => $activity->load(['section', 'corporal'])
+            'activity' => $activity
         ], 201);
     }
 
@@ -115,9 +130,11 @@ class FortnightActivityController extends Controller
         }
 
         $activity->update($data);
+        $activity = $activity->fresh()->load(['section', 'corporal', 'workforce']);
+        $this->broadcastChange('FortnightActivity', 'updated', $activity->id, $activity->toArray());
 
         return response()->json([
-            'activity' => $activity->fresh()->load(['section', 'corporal'])
+            'activity' => $activity
         ], 200);
     }
 
@@ -127,7 +144,9 @@ class FortnightActivityController extends Controller
     public function destroy($id): JsonResponse
     {
         $activity = FortnightActivity::findOrFail($id);
+        $activityId = $activity->id;
         $activity->delete();
+        $this->broadcastChange('FortnightActivity', 'deleted', $activityId);
 
         return response()->json(['message' => 'Activity deleted successfully'], 200);
     }
@@ -202,6 +221,8 @@ class FortnightActivityController extends Controller
         $deleted = FortnightActivity::whereIn('workforce_id', $request->workforce_ids)
             ->whereDate('date', $request->date)
             ->delete();
+
+        $this->broadcastChange('FortnightActivity', 'deleted', 0);
 
         return response()->json([
             'message' => 'Activities deleted successfully',
