@@ -166,8 +166,8 @@
             </v-row>
             <div class="mt-2 d-flex align-center ga-2 flex-wrap">
               <v-chip :color="approvalColors[qc.approval_status]" variant="tonal" size="x-small">{{ $t('qc_approval_'+qc.approval_status) }}</v-chip>
-              <v-btn v-if="qc.approval_status==='pending'" size="x-small" variant="tonal" color="success" rounded prepend-icon="mdi-check" @click.stop="approveQc(qc.id,'approved')">{{ $t('qc_approve') }}</v-btn>
-              <v-btn v-if="qc.approval_status==='pending'" size="x-small" variant="tonal" color="error" rounded prepend-icon="mdi-close" @click.stop="approveQc(qc.id,'rejected')">{{ $t('qc_reject') }}</v-btn>
+              <v-btn v-if="qc.approval_status!=='approved'" size="x-small" variant="tonal" color="success" rounded prepend-icon="mdi-check" @click.stop="approveQc(qc.id,'approved')">{{ $t('qc_approve') }}</v-btn>
+              <v-btn v-if="qc.approval_status!=='rejected'" size="x-small" variant="tonal" color="error" rounded prepend-icon="mdi-close" @click.stop="approveQc(qc.id,'rejected')">{{ $t('qc_reject') }}</v-btn>
             </div>
           </div>
         </div>
