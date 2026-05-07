@@ -179,9 +179,17 @@ Route::middleware(["auth:sanctum"])->group(
         Route::put("warehouses/sejour-rates/{id}", [SejourRateController::class, "update"]);
         Route::delete("warehouses/sejour-rates/{id}", [SejourRateController::class, "destroy"]);
 
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // Storage Invoices (Facture de Stockage)
+        Route::get("storage-invoices", [App\Http\Controllers\StorageInvoiceController::class, "index"]);
+        Route::get("storage-invoices/preview", [App\Http\Controllers\StorageInvoiceController::class, "preview"]);
+        Route::post("storage-invoices/generate", [App\Http\Controllers\StorageInvoiceController::class, "generate"]);
+        Route::get("storage-invoices/{id}", [App\Http\Controllers\StorageInvoiceController::class, "show"]);
+        Route::delete("storage-invoices/{id}", [App\Http\Controllers\StorageInvoiceController::class, "destroy"]);
+        Route::post("storage-invoices/{id}/increment-print-counter", [App\Http\Controllers\StorageInvoiceController::class, "incrementPrintCounter"]);
+
+        // â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
         //  SUPPLIER INVOICE ROUTES
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
         Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
         Route::get("supplier_invoice", [SupplierInvoiceController::class, "index"]);
         Route::delete("supplier_invoice", [SupplierInvoiceController::class, "destroy"]);

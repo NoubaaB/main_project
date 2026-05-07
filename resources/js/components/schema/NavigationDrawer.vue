@@ -164,6 +164,7 @@ export default {
         ['mdi-robot', this.$t("ai_prompt"), null, "ai_prompt", 'ai_prompt.view'],
         ['mdi-warehouse', this.$t('warehouses'), [
           ['mdi-view-dashboard-outline', this.$t('dashboard'), "warehouses"],
+          ['mdi-receipt-text-outline', this.$t('storage_invoices'), "storage_invoices"],
         ], null, 'warehouses.view'],
         ['mdi-clipboard-text-clock-outline', this.$t('inventory'), [
           ['mdi-sticker-plus-outline', this.$t('add_inventory'), 'add_inventory'],

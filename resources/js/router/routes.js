@@ -269,6 +269,12 @@ const routes = [
                         keeplive: true,
                         component: () => import("@/components/warehouses/index.vue")
                     },
+                    {
+                        path: "/storage-invoices",
+                        name: "storage_invoices",
+                        keeplive: true,
+                        component: () => import("@/components/StorageInvoice/index.vue")
+                    },
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                     //  PARAMETERS
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
