@@ -8,7 +8,7 @@ export default {
   name: 'StorageInvoiceList',
   data() {
     return {
-      selectedWarehouse: null, selectedYear: new Date().getFullYear(), selectedMonth: new Date().getMonth() + 1,
+      selectedWarehouses: [], selectedYear: new Date().getFullYear(), selectedMonth: new Date().getMonth() + 1,
       warehouses: [], invoices: [],
       loading: false, previewing: false, generating: false, deleting: false,
       previewData: null, deleteDialog: false, deleteTarget: null,
@@ -18,6 +18,8 @@ export default {
       // Filter/sort/pin state (like ListCharge)
       colFilters: {}, colSorts: [], pinState: {}, filterMenus: {},
       columnOrder: null, dragCol: null, dragOverCol: null, colWidths: {},
+      // Selection & batch print
+      selectedIds: [], printInvoices: [], loadingBatchPrint: false,
       // Analytics
       chartMode: 'monthly',
     };
@@ -27,6 +29,8 @@ export default {
     auth() { return useAuth(); },
     logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
     sejourWarehouses() { return this.warehouses.filter(w => w.has_sejour); },
+    allSelected() { return this.colFilteredItems.length > 0 && this.colFilteredItems.every(i => this.selectedIds.includes(i.id)); },
+    someSelected() { return this.colFilteredItems.some(i => this.selectedIds.includes(i.id)); },
     yearOptions() { const c = new Date().getFullYear(); return Array.from({ length: 10 }, (_, i) => c - i); },
     monthOptions() { return Array.from({ length: 12 }, (_, i) => ({ title: this.monthName(i + 1), value: i + 1 })); },
     allHeaders() {
@@ -131,7 +135,7 @@ export default {
   methods: {
     formatNum(v) { return this.main.formatDisplayNumber(v); },
     monthName(m) {
-      const k = ['','month_january','month_february','month_march','month_april','month_may','month_june','month_july','month_august','month_september','month_october','month_november','month_december'];
+      const k = ['', 'month_january', 'month_february', 'month_march', 'month_april', 'month_may', 'month_june', 'month_july', 'month_august', 'month_september', 'month_october', 'month_november', 'month_december'];
       return this.$t(k[m] || '');
     },
     _onModelChanged(data) { if (data.model === 'StorageInvoice') this.fetchInvoices(); },
@@ -141,21 +145,21 @@ export default {
     // Data
     async fetchWarehouses() { try { const r = await axios.get('/api/warehouses'); this.warehouses = r.data.warehouses || []; } catch (e) { console.error(e); } },
     async fetchInvoices() {
-      if (!this.selectedWarehouse) { this.invoices = []; return; }
+      if (!this.selectedWarehouses.length) { this.invoices = []; return; }
       this.loading = true;
-      try { const r = await axios.get('/api/storage-invoices', { params: { warehouse_id: this.selectedWarehouse, year: this.selectedYear } }); this.invoices = (r.data.storage_invoices || []).map(i => this.mapInvoice(i)); } catch (e) { console.error(e); }
+      try { const r = await axios.get('/api/storage-invoices', { params: { warehouse_ids: this.selectedWarehouses.join(','), year: this.selectedYear } }); this.invoices = (r.data.storage_invoices || []).map(i => this.mapInvoice(i)); } catch (e) { console.error(e); }
       this.loading = false;
     },
     async previewInvoice() {
       this.previewing = true; this.previewData = null;
-      try { const r = await axios.get('/api/storage-invoices/preview', { params: { warehouse_id: this.selectedWarehouse, year: this.selectedYear, month: this.selectedMonth } }); this.previewData = r.data.preview; }
+      try { const r = await axios.get('/api/storage-invoices/preview', { params: { warehouse_id: this.selectedWarehouses[0], year: this.selectedYear, month: this.selectedMonth } }); this.previewData = r.data.preview; }
       catch (e) { this.main.add_snackbar({ show: true, message: this.$t(e.response?.data?.error || 'error_occurred'), color: 'error' }); }
       this.previewing = false;
     },
     async generateInvoice() {
       this.generating = true;
       try {
-        const r = await axios.post('/api/storage-invoices/generate', { warehouse_id: this.selectedWarehouse, year: this.selectedYear, month: this.selectedMonth });
+        const r = await axios.post('/api/storage-invoices/generate', { warehouse_id: this.selectedWarehouses[0], year: this.selectedYear, month: this.selectedMonth });
         const inv = r.data.storage_invoice;
         this.previewData = null; this.fetchInvoices();
         this.showSnackbar(false, this.$t('invoice_generated_success'), inv.warehouse?.name, `${this.monthName(inv.month)} ${inv.year}`, `${this.formatNum(inv.total_amount)} MAD`);
@@ -174,8 +178,30 @@ export default {
       this.deleting = false; this.deleteTarget = null;
     },
     async loadPrintInvoice(item) {
-      try { const r = await axios.get(`/api/storage-invoices/${item.id}`); this.printInvoice = r.data.storage_invoice; axios.post(`/api/storage-invoices/${item.id}/increment-print-counter`).catch(() => {}); }
-      catch (e) { console.error(e); }
+      try {
+        const r = await axios.get(`/api/storage-invoices/${item.id}`);
+        this.printInvoice = r.data.storage_invoice;
+        this.printInvoices = [r.data.storage_invoice];
+        axios.post(`/api/storage-invoices/${item.id}/increment-print-counter`).catch(() => {});
+      } catch (e) { console.error(e); }
+    },
+    async loadPrintMultiple() {
+      this.loadingBatchPrint = true;
+      try {
+        const results = await Promise.all(this.selectedIds.map(id => axios.get(`/api/storage-invoices/${id}`)));
+        this.printInvoices = results.map(r => r.data.storage_invoice);
+        this.printInvoice = this.printInvoices[0];
+        this.selectedIds.forEach(id => axios.post(`/api/storage-invoices/${id}/increment-print-counter`).catch(() => {}));
+      } catch (e) { console.error(e); }
+      this.loadingBatchPrint = false;
+    },
+    toggleSelect(id) {
+      const i = this.selectedIds.indexOf(id);
+      if (i === -1) this.selectedIds.push(id); else this.selectedIds.splice(i, 1);
+    },
+    toggleSelectAll(val) {
+      if (val) { const ids = this.colFilteredItems.map(i => i.id); this.selectedIds = [...new Set([...this.selectedIds, ...ids])]; }
+      else { const ids = new Set(this.colFilteredItems.map(i => i.id)); this.selectedIds = this.selectedIds.filter(id => !ids.has(id)); }
     },
     // Filter/Sort/Pin (same as ListCharge)
     cellText(key, item) {
@@ -219,7 +245,7 @@ export default {
     exportExcel() {
       const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions').forEach(h => { row[h.title] = this.cellText(h.key, c); }); return row; });
       const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'StorageInvoices'); XLSX.writeFile(wb, `storage_invoices_${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, 'StorageInvoices'); XLSX.writeFile(wb, `storage_invoices_${new Date().toISOString().slice(0, 10)}.xlsx`);
     },
     showSnackbar(isError, title, warehouse, period, total) {
       clearInterval(this.snackbarTimer);

@@ -4,14 +4,14 @@
     <v-card-text class="pa-4">
       <v-row class="mb-4">
         <v-col cols="12" md="4">
-          <v-autocomplete v-model="selectedWarehouse" :items="sejourWarehouses" item-title="name" item-value="id" :label="$t('select_warehouse')" chips density="compact" variant="outlined" rounded color="#a21ee5" class="text-info" hide-details @update:model-value="fetchInvoices">
-            <template #chip="{ item }"><v-chip color="#a21ee5" variant="tonal">{{ item.title }}</v-chip></template>
+          <v-autocomplete v-model="selectedWarehouses" :items="sejourWarehouses" item-title="name" item-value="id" :label="$t('select_warehouse')" multiple chips closable-chips density="compact" variant="outlined" rounded color="#a21ee5" class="text-info" hide-details @update:model-value="fetchInvoices">
+            <template #chip="{ item, props: p }"><v-chip v-bind="p" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template>
           </v-autocomplete>
         </v-col>
         <v-col cols="6" md="2"><v-select v-model="selectedYear" :items="yearOptions" :label="$t('year')" density="compact" variant="outlined" rounded color="#a21ee5" class="text-info" hide-details @update:model-value="fetchInvoices"></v-select></v-col>
         <v-col cols="6" md="2"><v-select v-model="selectedMonth" :items="monthOptions" :label="$t('month_label')" density="compact" variant="outlined" rounded color="#a21ee5" class="text-info" hide-details></v-select></v-col>
-        <v-col cols="6" md="2"><v-btn color="#a21ee5" variant="tonal" rounded block prepend-icon="mdi-eye-outline" :disabled="!selectedWarehouse || !selectedMonth" :loading="previewing" @click="previewInvoice">{{ $t('preview_invoice') }}</v-btn></v-col>
-        <v-col cols="6" md="2"><v-btn color="#a21ee5" rounded block prepend-icon="mdi-file-document-plus-outline" :disabled="!selectedWarehouse || !selectedMonth" :loading="generating" @click="generateInvoice">{{ $t('generate_invoice') }}</v-btn></v-col>
+        <v-col cols="6" md="2"><v-btn color="#a21ee5" variant="tonal" rounded block prepend-icon="mdi-eye-outline" :disabled="!selectedWarehouses.length || !selectedMonth" :loading="previewing" @click="previewInvoice">{{ $t('preview_invoice') }}</v-btn></v-col>
+        <v-col cols="6" md="2"><v-btn color="#a21ee5" rounded block prepend-icon="mdi-file-document-plus-outline" :disabled="!selectedWarehouses.length || !selectedMonth" :loading="generating" @click="generateInvoice">{{ $t('generate_invoice') }}</v-btn></v-col>
       </v-row>
 
       <!-- Preview Card -->
@@ -19,7 +19,7 @@
         <v-card v-if="previewData" class="mb-4 rounded-xl" variant="outlined" color="#a21ee5">
           <v-card-title class="d-flex align-center pa-4 pb-2">
             <v-icon color="#a21ee5" class="mr-2">mdi-calculator-variant-outline</v-icon>
-            <span>{{ $t('invoice_preview') }} — {{ previewData.warehouse_name }} ({{ monthName(previewData.month) }} {{ previewData.year }})</span>
+            <span>{{ $t('invoice_preview') }} - {{ previewData.warehouse_name }} ({{ monthName(previewData.month) }} {{ previewData.year }})</span>
             <v-spacer></v-spacer>
             <v-btn icon size="small" variant="text" @click="previewData = null"><v-icon>mdi-close</v-icon></v-btn>
           </v-card-title>
@@ -42,27 +42,15 @@
         </v-card>
       </v-expand-transition>
 
+      <!-- Analytics Row -->
+      <v-row dense class="mb-3"><v-col cols="8"><div class="si-panel"><div class="si-panel-hdr d-flex align-center justify-space-between"><div class="d-flex align-center"><v-icon size="16" color="#a21ee5" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div><v-btn-toggle v-model="chartMode" mandatory density="compact" color="#a21ee5" variant="outlined" rounded="lg" divided><v-btn value="monthly" size="x-small">{{ $t('monthly') }}</v-btn><v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn></v-btn-toggle></div><apexchart v-if="chartSeries[0].data.length" type="bar" :height="260" :options="chartOptions" :series="chartSeries"></apexchart><div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-bar</v-icon></div></div></v-col>
+      <v-col cols="4"><div class="si-panel si-stats" style="height:100%;overflow-y:auto"><div class="si-panel-hdr"><v-icon size="16" color="#a21ee5" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div><div v-for="stat in warehouseStats" :key="stat.name" class="si-stat-item mb-2"><div class="d-flex align-center justify-space-between mb-1"><v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip><v-chip size="x-small" color="success" variant="elevated" class="font-weight-bold">{{ totalAmount>0?Math.round(stat.total/totalAmount*1000)/10:0 }}%</v-chip></div><v-progress-linear :model-value="totalAmount>0?(stat.total/totalAmount*100):0" color="#a21ee5" bg-color="purple-lighten-4" height="5" rounded class="mb-1"></v-progress-linear><div class="d-flex flex-column ga-1 text-caption"><div class="d-flex align-center ga-1"><v-icon size="12" color="info">mdi-arrow-down-bold</v-icon><span class="text-medium-emphasis">{{ $t('manipulation_in') }}:</span><b class="text-info">{{ formatNum(stat.manipIn) }} MAD</b></div><div class="d-flex align-center ga-1"><v-icon size="12" color="warning">mdi-arrow-up-bold</v-icon><span class="text-medium-emphasis">{{ $t('manipulation_out') }}:</span><b class="text-warning">{{ formatNum(stat.manipOut) }} MAD</b></div><div class="d-flex align-center ga-1"><v-icon size="12" color="deep-purple">mdi-clock-outline</v-icon><span class="text-medium-emphasis">{{ $t('sejour_stockage') }}:</span><b class="text-deep-purple">{{ formatNum(stat.sejour) }} MAD</b></div><div class="d-flex align-center ga-1"><v-icon size="12" color="success">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total') }}:</span><b class="text-success">{{ formatNum(stat.total) }} MAD</b></div></div></div><v-divider class="my-2"></v-divider><div class="d-flex flex-column ga-1"><div class="d-flex align-center ga-1"><v-icon size="14" color="info">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_in') }}:</span><b class="text-info text-caption">{{ formatNum(totalStockIn) }} KG</b></div><div class="d-flex align-center ga-1"><v-icon size="14" color="warning">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }}:</span><b class="text-warning text-caption">{{ formatNum(totalStockOut) }} KG</b></div><div class="d-flex align-center ga-1"><v-icon size="14" color="success">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total') }}:</span><b class="text-success text-caption">{{ formatNum(totalAmount) }} MAD</b></div></div></div></v-col></v-row>
+      <!-- Action btns -->
+      <div class="d-flex ga-2 mb-3 justify-end"><v-btn v-if="selectedIds.length" color="#a21ee5" rounded size="small" prepend-icon="mdi-printer" :loading="loadingBatchPrint" @click="loadPrintMultiple">{{ $t('print') }} ({{ selectedIds.length }})</v-btn><v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn><v-btn icon variant="tonal" color="success" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn></div>
       <!-- Invoices List -->
-      <v-data-table :headers="invoiceHeaders" :items="invoices" :loading="loading ? 'info' : false" density="comfortable" class="rounded-lg" hover :no-data-text="$t('no_invoices_found')">
-        <template v-slot:[`item.invoice_number`]="{ item }"><v-chip color="#a21ee5" variant="tonal" size="small" class="font-weight-bold">{{ item.invoice_number }}</v-chip></template>
-        <template v-slot:[`item.period`]="{ item }">{{ monthName(item.month) }} {{ item.year }}</template>
-        <template v-slot:[`item.warehouse`]="{ item }">{{ item.warehouse?.name || '-' }}</template>
-        <template v-slot:[`item.manipulation_in_amount`]="{ item }">{{ formatNum(item.manipulation_in_amount) }}</template>
-        <template v-slot:[`item.manipulation_out_amount`]="{ item }">{{ formatNum(item.manipulation_out_amount) }}</template>
-        <template v-slot:[`item.sejour_amount`]="{ item }">{{ formatNum(item.sejour_amount) }}</template>
-        <template v-slot:[`item.total_amount`]="{ item }"><span class="font-weight-bold text-success">{{ formatNum(item.total_amount) }} MAD</span></template>
-        <template v-slot:[`item.status`]="{ item }"><v-chip :color="item.status === 'finalized' ? 'success' : 'warning'" size="small" variant="tonal">{{ $t(item.status) }}</v-chip></template>
-        <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon size="x-small" variant="tonal" color="#a21ee5" class="mr-1" @click="loadPrintInvoice(item)">
-            <v-icon size="16">mdi-printer</v-icon>
-            <v-tooltip activator="parent" location="top">{{ $t('print') }}</v-tooltip>
-          </v-btn>
-          <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)">
-            <v-icon size="16">mdi-delete</v-icon>
-            <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
-          </v-btn>
-        </template>
-      </v-data-table>
+      <div class="si-table-wrap" ref="tableWrap"><table class="si-table"><thead class="si-thead"><tr><th class="si-th" style="width:40px"><v-checkbox-btn :model-value="allSelected" :indeterminate="someSelected && !allSelected" color="#a21ee5" density="compact" hide-details @update:model-value="toggleSelectAll"></v-checkbox-btn></th><th v-for="h in headers" :key="h.key" class="si-th" :class="{'si-th-pin':isPinned(h.key),'si-th-dragover':dragOverCol===h.key}" :style="colPinStyle(h.key,3)" :draggable="!h.fixed" @dragstart="onDragStart(h.key)" @dragover="onDragOver(h.key,$event)" @dragend="onDragEnd" @drop="onDragEnd"><div class="si-th-inner"><v-icon v-if="!h.fixed" size="12" class="drag-handle" color="grey-lighten-1">mdi-drag-vertical</v-icon><span class="si-th-title" @click="h.sortable!==false&&toggleSort(h.key)">{{ h.title }}</span><template v-if="h.key!=='actions'"><v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="#a21ee5">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn><span v-if="sortIdx(h.key)" class="sort-badge">{{ sortIdx(h.key) }}</span><v-menu v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom"><template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="14"><v-icon size="12" :color="colFilters[h.key]&&colFilters[h.key].length?'#a21ee5':'grey'">mdi-filter</v-icon></v-btn></template><v-card min-width="220" class="rounded-lg pa-2"><v-autocomplete v-model="colFilters[h.key]" :items="filterOpts(h.key)" density="compact" variant="outlined" color="#a21ee5" hide-details multiple chips closable-chips :placeholder="$t('filter')" class="text-info"></v-autocomplete></v-card></v-menu><v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'blue':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn></template></div></th></tr></thead>
+      <tbody><template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="#a21ee5"></v-progress-circular></td></tr></template><template v-else v-for="item in colFilteredItems" :key="item.id"><tr class="si-row"><td class="si-td"><v-checkbox-btn :model-value="selectedIds.includes(item.id)" color="#a21ee5" density="compact" hide-details @update:model-value="toggleSelect(item.id)"></v-checkbox-btn></td><td v-for="h in headers" :key="h.key" class="si-td" :class="{'si-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)"><template v-if="h.key==='invoice_number'"><v-chip color="#a21ee5" variant="tonal" size="small" class="font-weight-bold">{{ item.invoice_number }}</v-chip></template><template v-else-if="h.key==='_period'">{{ item._period }}</template><template v-else-if="h.key==='_warehouse'">{{ item._warehouse }}</template><template v-else-if="h.key==='total_stock_in_kg'||h.key==='total_stock_out_kg'||h.key==='manipulation_in_amount'||h.key==='manipulation_out_amount'||h.key==='sejour_amount'">{{ formatNum(item[h.key]) }}</template><template v-else-if="h.key==='total_amount'"><span class="font-weight-bold text-success">{{ formatNum(item.total_amount) }} MAD</span></template><template v-else-if="h.key==='status'"><v-chip :color="item.status==='finalized'?'success':'warning'" size="small" variant="tonal">{{ $t(item.status) }}</v-chip></template><template v-else-if="h.key==='actions'"><v-btn icon size="x-small" variant="tonal" color="#a21ee5" class="mr-1" @click="loadPrintInvoice(item)"><v-icon size="16">mdi-printer</v-icon></v-btn><v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)"><v-icon size="16">mdi-delete</v-icon></v-btn></template><template v-else>{{ item[h.key]||'-' }}</template></td></tr></template></tbody>
+      <tfoot class="si-tfoot"><tr><td class="si-td"></td><td v-for="h in headers" :key="'f-'+h.key" class="si-td text-center font-weight-bold"><template v-if="h.key==='total_stock_in_kg'">Σ {{ formatNum(totalStockIn) }} KG</template><template v-else-if="h.key==='total_stock_out_kg'">Σ {{ formatNum(totalStockOut) }} KG</template><template v-else-if="h.key==='manipulation_in_amount'">Σ {{ formatNum(totalManipIn) }}</template><template v-else-if="h.key==='manipulation_out_amount'">Σ {{ formatNum(totalManipOut) }}</template><template v-else-if="h.key==='sejour_amount'">Σ {{ formatNum(totalSejour) }}</template><template v-else-if="h.key==='total_amount'">Σ {{ formatNum(totalAmount) }} MAD</template></td></tr></tfoot></table></div>
     </v-card-text>
 
     <!-- Delete Confirm Dialog -->
@@ -74,12 +62,12 @@
       </v-card>
     </v-dialog>
 
-    <!-- Print Trigger (only visible when printInvoice is loaded) -->
-    <div v-if="printInvoice" class="d-flex align-center ga-2 pa-3" style="position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(162,30,229,.95);border-radius:16px;box-shadow:0 8px 32px rgba(162,30,229,.4)">
+    <!-- Print Trigger (single or batch) -->
+    <div v-if="printInvoices.length" class="d-flex align-center ga-2 pa-3" style="position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(162,30,229,.95);border-radius:16px;box-shadow:0 8px 32px rgba(162,30,229,.4)">
       <v-icon color="white" size="20">mdi-receipt-text-outline</v-icon>
-      <span class="text-white text-body-2 font-weight-bold mr-2">{{ printInvoice.invoice_number }}</span>
+      <span class="text-white text-body-2 font-weight-bold mr-2">{{ printInvoices.length === 1 ? printInvoices[0].invoice_number : printInvoices.length + ' ' + $t('invoices') }}</span>
       <v-btn v-print="printCfg" color="white" variant="flat" size="small" rounded prepend-icon="mdi-printer" style="color:#a21ee5">{{ $t('print') }}</v-btn>
-      <v-btn icon size="x-small" variant="text" color="white" @click="printInvoice = null"><v-icon size="18">mdi-close</v-icon></v-btn>
+      <v-btn icon size="x-small" variant="text" color="white" @click="printInvoices = []; printInvoice = null"><v-icon size="18">mdi-close</v-icon></v-btn>
     </div>
 
     <!-- Summary Snackbar -->
@@ -99,21 +87,21 @@
     </v-snackbar>
   </v-card>
 
-  <!-- Hidden Print Area (same pattern as QualityControl) -->
+  <!-- Hidden Print Area -->
   <div style="display:none"><div id="si-print-area">
-    <div v-if="printInvoice" style="padding:24px 32px;max-width:900px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a">
+    <div v-for="(inv, idx) in printInvoices" :key="inv.id" :style="idx > 0 ? 'page-break-before:always' : ''" style="padding:24px 32px;max-width:900px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a">
       <!-- Header with Logo -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div><img :src="logoUrl" alt="Logo" style="height:52px" /></div>
-        <div style="text-align:center;flex:1"><h1 style="font-size:20px;font-weight:800;color:#7B1FA2;margin:0">{{ $t('facture_de_stockage') }}</h1><p style="font-size:12px;color:#78909C;margin:2px 0 0">{{ printInvoice.warehouse?.name }}</p></div>
-        <div style="text-align:right;font-size:11px;color:#546E7A"><div><b>{{ $t('invoice_number') }}:</b> {{ printInvoice.invoice_number }}</div><div><b>{{ $t('invoice_period') }}:</b> {{ monthName(printInvoice.month) }} {{ printInvoice.year }}</div><div><b>{{ $t('date') }}:</b> {{ new Date().toLocaleDateString() }}</div></div>
+        <div style="text-align:center;flex:1"><h1 style="font-size:20px;font-weight:800;color:#7B1FA2;margin:0">{{ $t('facture_de_stockage') }}</h1><p style="font-size:12px;color:#78909C;margin:2px 0 0">{{ inv.warehouse?.name }}</p></div>
+        <div style="text-align:right;font-size:11px;color:#546E7A"><div><b>{{ $t('invoice_number') }}:</b> {{ inv.invoice_number }}</div><div><b>{{ $t('invoice_period') }}:</b> {{ monthName(inv.month) }} {{ inv.year }}</div><div><b>{{ $t('date') }}:</b> {{ new Date().toLocaleDateString() }}</div></div>
       </div>
       <div style="height:3px;background:linear-gradient(90deg,#7B1FA2,#CE93D8,#7B1FA2);border-radius:2px;margin:12px 0 20px"></div>
       <!-- Info Row -->
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
-        <tr><td class="si-pl">{{ $t('warehouse') }}</td><td class="si-pv">{{ printInvoice.warehouse?.name }}</td><td class="si-pl">{{ $t('invoice_number') }}</td><td class="si-pv">{{ printInvoice.invoice_number }}</td></tr>
-        <tr><td class="si-pl">{{ $t('invoice_period') }}</td><td class="si-pv">{{ monthName(printInvoice.month) }} {{ printInvoice.year }}</td><td class="si-pl">{{ $t('status') }}</td><td class="si-pv">{{ printInvoice.status }}</td></tr>
-        <tr><td class="si-pl">{{ $t('stock_in') }} (KG)</td><td class="si-pv">{{ formatNum(printInvoice.total_stock_in_kg) }}</td><td class="si-pl">{{ $t('stock_out') }} (KG)</td><td class="si-pv">{{ formatNum(printInvoice.total_stock_out_kg) }}</td></tr>
+        <tr><td class="si-pl">{{ $t('warehouse') }}</td><td class="si-pv">{{ inv.warehouse?.name }}</td><td class="si-pl">{{ $t('invoice_number') }}</td><td class="si-pv">{{ inv.invoice_number }}</td></tr>
+        <tr><td class="si-pl">{{ $t('invoice_period') }}</td><td class="si-pv">{{ monthName(inv.month) }} {{ inv.year }}</td><td class="si-pl">{{ $t('status') }}</td><td class="si-pv">{{ inv.status }}</td></tr>
+        <tr><td class="si-pl">{{ $t('stock_in') }} (KG)</td><td class="si-pv">{{ formatNum(inv.total_stock_in_kg) }}</td><td class="si-pl">{{ $t('stock_out') }} (KG)</td><td class="si-pv">{{ formatNum(inv.total_stock_out_kg) }}</td></tr>
       </table>
       <!-- Lines Table -->
       <table style="width:100%;border-collapse:collapse">
@@ -125,7 +113,7 @@
           <th class="si-ph">{{ $t('total') }} (MAD)</th>
         </tr></thead>
         <tbody>
-          <tr v-for="line in printInvoice.lines" :key="line.id">
+          <tr v-for="line in inv.lines" :key="line.id">
             <td class="si-pc">{{ line.description }}</td>
             <td class="si-pv2">{{ formatNum(line.quantity_kg) }}</td>
             <td class="si-pv2">{{ line.quantity_days > 0 ? line.quantity_days : '-' }}</td>
@@ -134,7 +122,7 @@
           </tr>
         </tbody>
         <tfoot>
-          <tr><td colspan="4" style="text-align:right;font-weight:800;font-size:15px;padding:12px 10px;border-top:2px solid #7B1FA2">{{ $t('total_to_pay') }} (MAD):</td><td style="text-align:center;font-weight:800;font-size:18px;color:#7B1FA2;padding:12px 10px;border-top:2px solid #7B1FA2">{{ formatNum(printInvoice.total_amount) }}</td></tr>
+          <tr><td colspan="4" style="text-align:right;font-weight:800;font-size:15px;padding:12px 10px;border-top:2px solid #7B1FA2">{{ $t('total_to_pay') }} (MAD):</td><td style="text-align:center;font-weight:800;font-size:18px;color:#7B1FA2;padding:12px 10px;border-top:2px solid #7B1FA2">{{ formatNum(inv.total_amount) }}</td></tr>
         </tfoot>
       </table>
       <!-- Signatures -->
@@ -148,114 +136,12 @@
 </template>
 
 <script>
-import axios from 'axios';
-import mitt from '@/plugins/mitt';
-import { useMain } from '@/stores/Main';
-import { useAuth } from '@/stores/Auth';
+import script from './script.js';
 import print from 'vue3-print-nb';
-
 export default {
-  name: 'StorageInvoiceList',
+  ...script,
   directives: { print },
-  data() {
-    return {
-      selectedWarehouse: null,
-      selectedYear: new Date().getFullYear(),
-      selectedMonth: new Date().getMonth() + 1,
-      warehouses: [], invoices: [],
-      loading: false, previewing: false, generating: false, deleting: false,
-      previewData: null,
-      deleteDialog: false, deleteTarget: null,
-      printInvoice: null,
-      printCfg: { id: 'si-print-area', popTitle: 'Storage Invoice' },
-      summarySnackbar: { show: false, title: '', warehouse: '', period: '', total: '', isError: false },
-      snackbarProgress: 100, snackbarTimer: null,
-    };
-  },
-  computed: {
-    main() { return useMain(); },
-    auth() { return useAuth(); },
-    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
-    sejourWarehouses() { return this.warehouses.filter(w => w.has_sejour); },
-    yearOptions() { const c = new Date().getFullYear(); return Array.from({ length: 10 }, (_, i) => c - i); },
-    monthOptions() { return Array.from({ length: 12 }, (_, i) => ({ title: this.monthName(i + 1), value: i + 1 })); },
-    previewHeaders() {
-      return [
-        { title: this.$t('prestations'), key: 'description' },
-        { title: this.$t('quantity_kg') + ' (KG)', key: 'quantity_kg', align: 'center' },
-        { title: this.$t('quantity_days_short') + ' (J)', key: 'quantity_days', align: 'center' },
-        { title: this.$t('unit_price_pu') + ' (MAD)', key: 'unit_price', align: 'center' },
-        { title: this.$t('total') + ' (MAD)', key: 'total_amount', align: 'end' },
-      ];
-    },
-    invoiceHeaders() {
-      return [
-        { title: 'N°', key: 'invoice_number', align: 'center' },
-        { title: this.$t('invoice_period'), key: 'period', align: 'center' },
-        { title: this.$t('warehouse'), key: 'warehouse', align: 'center' },
-        { title: this.$t('manipulation_in'), key: 'manipulation_in_amount', align: 'center' },
-        { title: this.$t('manipulation_out'), key: 'manipulation_out_amount', align: 'center' },
-        { title: this.$t('sejour_stockage'), key: 'sejour_amount', align: 'center' },
-        { title: this.$t('total') + ' (MAD)', key: 'total_amount', align: 'center' },
-        { title: this.$t('status'), key: 'status', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
-      ];
-    },
-  },
-  mounted() { this.fetchWarehouses(); mitt.on('model-changed', this._onModelChanged); },
-  beforeUnmount() { mitt.off('model-changed', this._onModelChanged); clearInterval(this.snackbarTimer); },
-  methods: {
-    formatNum(v) { return this.main.formatDisplayNumber(v); },
-    monthName(m) {
-      const k = ['','month_january','month_february','month_march','month_april','month_may','month_june','month_july','month_august','month_september','month_october','month_november','month_december'];
-      return this.$t(k[m] || '');
-    },
-    _onModelChanged(data) { if (data.model === 'StorageInvoice') this.fetchInvoices(); },
-    async fetchWarehouses() { try { const r = await axios.get('/api/warehouses'); this.warehouses = r.data.warehouses || []; } catch (e) { console.error(e); } },
-    async fetchInvoices() {
-      if (!this.selectedWarehouse) { this.invoices = []; return; }
-      this.loading = true;
-      try { const r = await axios.get('/api/storage-invoices', { params: { warehouse_id: this.selectedWarehouse, year: this.selectedYear } }); this.invoices = r.data.storage_invoices || []; } catch (e) { console.error(e); }
-      this.loading = false;
-    },
-    async previewInvoice() {
-      this.previewing = true; this.previewData = null;
-      try { const r = await axios.get('/api/storage-invoices/preview', { params: { warehouse_id: this.selectedWarehouse, year: this.selectedYear, month: this.selectedMonth } }); this.previewData = r.data.preview; }
-      catch (e) { this.main.add_snackbar({ show: true, message: this.$t(e.response?.data?.error || 'error_occurred'), color: 'error' }); }
-      this.previewing = false;
-    },
-    async generateInvoice() {
-      this.generating = true;
-      try {
-        const r = await axios.post('/api/storage-invoices/generate', { warehouse_id: this.selectedWarehouse, year: this.selectedYear, month: this.selectedMonth });
-        const inv = r.data.storage_invoice;
-        this.previewData = null; this.fetchInvoices();
-        this.showSnackbar(false, this.$t('invoice_generated_success'), inv.warehouse?.name, `${this.monthName(inv.month)} ${inv.year}`, `${this.formatNum(inv.total_amount)} MAD`);
-      } catch (e) {
-        const ek = e.response?.data?.error;
-        this.showSnackbar(true, ek === 'invoice_already_exists' ? this.$t('invoice_already_exists') : ek === 'warehouse_no_sejour' ? this.$t('warehouse_no_sejour_error') : this.$t('error_occurred'), '', '', '');
-      }
-      this.generating = false;
-    },
-    confirmDelete(item) { this.deleteTarget = item; this.deleteDialog = true; },
-    async executeDelete() {
-      if (!this.deleteTarget) return;
-      this.deleting = true;
-      try { await axios.delete(`/api/storage-invoices/${this.deleteTarget.id}`); this.deleteDialog = false; this.fetchInvoices(); this.showSnackbar(false, this.$t('invoice_deleted_success'), this.deleteTarget.warehouse?.name, `${this.monthName(this.deleteTarget.month)} ${this.deleteTarget.year}`, ''); }
-      catch (e) { this.main.add_snackbar({ show: true, message: this.$t('error_occurred'), color: 'error' }); }
-      this.deleting = false; this.deleteTarget = null;
-    },
-    async loadPrintInvoice(item) {
-      try { const r = await axios.get(`/api/storage-invoices/${item.id}`); this.printInvoice = r.data.storage_invoice; axios.post(`/api/storage-invoices/${item.id}/increment-print-counter`).catch(() => {}); }
-      catch (e) { console.error(e); }
-    },
-    showSnackbar(isError, title, warehouse, period, total) {
-      clearInterval(this.snackbarTimer);
-      this.summarySnackbar = { show: true, isError, title, warehouse, period, total };
-      this.snackbarProgress = 100;
-      this.snackbarTimer = setInterval(() => { this.snackbarProgress -= 1.25; if (this.snackbarProgress <= 0) clearInterval(this.snackbarTimer); }, 100);
-    },
-  },
+  data(){ return { ...script.data.call(this), printCfg: { id: 'si-print-area', popTitle: 'Storage Invoice' } }; },
 };
 </script>
 
@@ -265,6 +151,23 @@ export default {
 .si-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
 .si-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
 .si-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }
+.si-panel{border:1.5px solid rgba(162,30,229,.12);border-radius:14px;padding:12px;background:rgba(var(--v-theme-surface),1)}
+.si-panel-hdr{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center}
+.si-stat-item{padding:8px 10px;border-radius:10px;background:rgba(162,30,229,.03);border:1px solid rgba(162,30,229,.06)}
+.si-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
+.si-table{width:100%;border-collapse:collapse;font-size:13px}
+.si-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
+.si-th{padding:10px 12px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s}
+.si-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
+.si-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+.si-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+.si-th-dragover{background:rgba(162,30,229,.08)!important}
+.si-th-inner{display:flex;align-items:center;justify-content:center;gap:2px}
+.si-th-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.7;cursor:pointer}
+.drag-handle{cursor:grab;opacity:.5;transition:opacity .15s}.drag-handle:hover{opacity:1}
+.sort-badge{font-size:9px;background:#a21ee5;color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center}
+.si-row:hover{background:rgba(162,30,229,.04)}
+.si-tfoot td{padding:10px 12px;border-top:2px solid rgba(162,30,229,.2);color:#a21ee5;font-size:14px}
 </style>
 
 <style>

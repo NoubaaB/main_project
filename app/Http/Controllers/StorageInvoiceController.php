@@ -199,9 +199,9 @@ class StorageInvoiceController extends Controller
         // Get the active séjour rate for this period
         $rate = $this->getActiveRate($warehouse->id, $monthStart, $monthEnd);
 
-        $serviceUnitPrice = $rate ? (float)$rate->service_unit_price : 0;
-        $dailyRate = $rate ? (float)$rate->daily_rate_per_kg : 0;
-        $weightUnit = $rate ? (int)$rate->weight_unit : 1000;
+        $serviceUnitPrice = $rate ? (float) $rate->service_unit_price : 0;
+        $dailyRate = $rate ? (float) $rate->daily_rate_per_kg : 0;
+        $weightUnit = $rate ? (int) $rate->weight_unit : 1000;
 
         // ── 1. STOCK IN this month ──
         $stockInThisMonth = WarehouseBalance::where('warehouse_id', $warehouse->id)
@@ -211,19 +211,19 @@ class StorageInvoiceController extends Controller
             ->whereNull('deleted_at')
             ->sum('total_weight');
 
-        $totalStockInKg = (float)$stockInThisMonth;
+        $totalStockInKg = (float) $stockInThisMonth;
 
         // ── 2. STOCK OUT this month ──
         // Get all stock_out operations in this month for this warehouse
         $stockOutOps = WarehouseBalanceOperation::whereHas('warehouseBalance', function ($q) use ($warehouse) {
-                $q->where('warehouse_id', $warehouse->id)->whereNull('deleted_at');
-            })
+            $q->where('warehouse_id', $warehouse->id)->whereNull('deleted_at');
+        })
             ->whereYear('date', $year)
             ->whereMonth('date', $month)
             ->whereNull('deleted_at')
             ->get();
 
-        $totalStockOutKg = (float)$stockOutOps->sum('weight');
+        $totalStockOutKg = (float) $stockOutOps->sum('weight');
 
         // ── 3. MANIPULATION FEES ──
         $manipulationInAmount = round($totalStockInKg * $serviceUnitPrice, 2);
@@ -238,7 +238,8 @@ class StorageInvoiceController extends Controller
         // Group stock_out operations and calculate days in warehouse for each
         foreach ($stockOutOps as $op) {
             $balance = $op->warehouseBalance;
-            if (!$balance) continue;
+            if (!$balance)
+                continue;
 
             $stockInDate = Carbon::parse($balance->date);
             // The effective start for this month is the later of: stock_in date or month start
@@ -247,10 +248,10 @@ class StorageInvoiceController extends Controller
 
             // Days stayed = from effective start to exit date (inclusive)
             // Use startOfDay to avoid floating-point from time components
-            $days = (int)$effectiveStart->copy()->startOfDay()->diffInDays($exitDate->copy()->startOfDay()) + 1;
+            $days = (int) $effectiveStart->copy()->startOfDay()->diffInDays($exitDate->copy()->startOfDay()) + 1;
             $days = min($days, $daysInMonth);
 
-            $weight = (float)$op->weight;
+            $weight = (float) $op->weight;
             $lineTotal = round($weight * $days * $dailyRate, 2);
             $sejourTotal += $lineTotal;
 
@@ -287,7 +288,7 @@ class StorageInvoiceController extends Controller
             $days = $daysInMonth - $effectiveStart->day + 1;
             $days = max(1, min($days, $daysInMonth));
 
-            $remainingWeight = (float)$balance->remaining_weight;
+            $remainingWeight = (float) $balance->remaining_weight;
             $lineAmount = round($remainingWeight * $days * $dailyRate, 2);
             $remainingKg += $remainingWeight;
             $remainingSejourTotal += $lineAmount;
@@ -381,7 +382,7 @@ class StorageInvoiceController extends Controller
             ->where('start_date', '<=', $monthEnd->format('Y-m-d'))
             ->where(function ($q) use ($monthStart) {
                 $q->where('end_date', '>=', $monthStart->format('Y-m-d'))
-                  ->orWhereNull('end_date');
+                    ->orWhereNull('end_date');
             })
             ->whereNull('deleted_at')
             ->orderBy('start_date', 'desc')
@@ -403,7 +404,7 @@ class StorageInvoiceController extends Controller
             ->first();
 
         if ($lastInvoice) {
-            $lastSeq = (int)substr($lastInvoice->invoice_number, strlen($prefix));
+            $lastSeq = (int) substr($lastInvoice->invoice_number, strlen($prefix));
             $nextSeq = $lastSeq + 1;
         } else {
             $nextSeq = 1;

@@ -1438,6 +1438,7 @@
   "uncategorized": "Uncategorized",
   "production_balance": "Production Balance",
   "storage_invoices": "Storage Invoices",
+  "invoices": "Invoices",
   "storage_invoice_desc": "Generate and manage monthly warehouse storage invoices",
   "preview_invoice": "Preview",
   "generate_invoice": "Generate Invoice",

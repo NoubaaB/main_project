@@ -1143,5 +1143,6 @@
   "finalized": "Finalizada",
   "draft": "Borrador",
   "company_signature": "Firma de la empresa",
-  "printed_on": "Impreso el"
+  "printed_on": "Impreso el",
+  "invoices": "Facturas"
 }
