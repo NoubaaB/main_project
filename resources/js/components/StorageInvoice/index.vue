@@ -99,9 +99,11 @@
       <div style="height:3px;background:linear-gradient(90deg,#7B1FA2,#CE93D8,#7B1FA2);border-radius:2px;margin:12px 0 20px"></div>
       <!-- Info Row -->
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+        <tbody>
         <tr><td class="si-pl">{{ $t('warehouse') }}</td><td class="si-pv">{{ inv.warehouse?.name }}</td><td class="si-pl">{{ $t('invoice_number') }}</td><td class="si-pv">{{ inv.invoice_number }}</td></tr>
         <tr><td class="si-pl">{{ $t('invoice_period') }}</td><td class="si-pv">{{ monthName(inv.month) }} {{ inv.year }}</td><td class="si-pl">{{ $t('status') }}</td><td class="si-pv">{{ inv.status }}</td></tr>
         <tr><td class="si-pl">{{ $t('stock_in') }} (KG)</td><td class="si-pv">{{ formatNum(inv.total_stock_in_kg) }}</td><td class="si-pl">{{ $t('stock_out') }} (KG)</td><td class="si-pv">{{ formatNum(inv.total_stock_out_kg) }}</td></tr>
+        </tbody>
       </table>
       <!-- Lines Table -->
       <table style="width:100%;border-collapse:collapse">
