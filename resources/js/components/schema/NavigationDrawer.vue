@@ -198,6 +198,7 @@ export default {
           ['mdi-file-document-multiple', this.$t("list_client_invoice"), "list_client_invoice"],
           ['mdi-cash-register', this.$t("client_settlement"), "client_settlement"],
         ], null, 'client_invoices.view'],
+        ['mdi-bank-transfer', this.$t('order_transfers'), null, 'order_transfers_page', 'order_transfers.view'],
         ['mdi-cog-outline', this.$t('parameters'), [
           ['mdi-warehouse', this.$t("warehouse_management"), "warehouse_management"],
           ['mdi-fish', this.$t("fish_management"), "fish_management"],
@@ -209,6 +210,7 @@ export default {
           ['mdi-leaf', this.$t("guano_management"), "guano_management"],
           ['mdi-package-variant-closed', this.$t("package_management"), "package_management"],
           ['mdi-bank', this.$t("bank_name_management"), "bank_name_management"],
+          ['mdi-domain', this.$t("company_settings"), "company_settings"],
         ], null, 'settings.manage'],
         ['mdi-shield-account', this.$t('user_management'), null, "admin_users", 'users.manage'],
       ];

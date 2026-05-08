@@ -61,7 +61,7 @@
       },
       data() {
         return {
-          keepAliveNames: ['ListCharge', 'ListShipping', 'ListProduction', 'WarehouseDashboard', 'ListSupplierInvoice', 'ListClientInvoice', 'SupplierSettlement', 'ClientSettlement'],
+          keepAliveNames: ['ListCharge', 'ListShipping', 'ListProduction', 'WarehouseDashboard', 'ListSupplierInvoice', 'ListClientInvoice', 'SupplierSettlement', 'ClientSettlement', 'OrderTransferList'],
         };
       },
       computed:{

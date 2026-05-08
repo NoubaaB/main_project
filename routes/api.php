@@ -328,6 +328,23 @@ Route::middleware(["auth:sanctum"])->group(
         Route::put("bank-names/{bankName}", [App\Http\Controllers\BankNameController::class, "update"]);
         Route::delete("bank-names/{bankName}", [App\Http\Controllers\BankNameController::class, "destroy"]);
         #endregion
+
+        // ═══════════════════════════════════════════
+        //  ORDER TRANSFER ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("order-transfers/analytics", [App\Http\Controllers\OrderTransferController::class, "analytics"]);
+        Route::get("order-transfers", [App\Http\Controllers\OrderTransferController::class, "index"]);
+        Route::post("order-transfers", [App\Http\Controllers\OrderTransferController::class, "store"]);
+        Route::get("order-transfers/{orderTransfer}", [App\Http\Controllers\OrderTransferController::class, "show"]);
+        Route::put("order-transfers/{orderTransfer}", [App\Http\Controllers\OrderTransferController::class, "update"]);
+        Route::delete("order-transfers", [App\Http\Controllers\OrderTransferController::class, "destroy"]);
+
+        // ═══════════════════════════════════════════
+        //  COMPANY SETTINGS ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("company-settings", [App\Http\Controllers\CompanySettingController::class, "index"]);
+        Route::put("company-settings", [App\Http\Controllers\CompanySettingController::class, "update"]);
+        Route::post("company-settings/upload-logo", [App\Http\Controllers\CompanySettingController::class, "uploadLogo"]);
     }
 );
 #endregion

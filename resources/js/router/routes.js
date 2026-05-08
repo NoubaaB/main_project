@@ -261,6 +261,15 @@ const routes = [
                         ]
                     },
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                    //  ORDER TRANSFER
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                    {
+                        path: '/order-transfers',
+                        name: 'order_transfers_page',
+                        keeplive: true,
+                        component: () => import('@/components/OrderTransfer/index.vue')
+                    },
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                     //  WAREHOUSES
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                     {
@@ -341,6 +350,12 @@ const routes = [
                                 name: "bank_name_management",
                                 keeplive: true,
                                 component: () => import("@/components/parameters/BankNameManagement/index.vue")
+                            },
+                            {
+                                path: "company-settings",
+                                name: "company_settings",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/CompanySettings/index.vue")
                             },
                         ]
                     },
