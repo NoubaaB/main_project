@@ -208,19 +208,46 @@ class FortnightActivityController extends Controller
     }
 
     /**
-     * Bulk delete activities for given workforce IDs on a specific date.
+     * Bulk delete activities for given workforce IDs on specific date(s).
+     * Supports single `date` or multiple `dates` array.
+     * When workforce_ids is not provided, deletes ALL activities for the date(s).
      */
     public function bulkDeleteByDate(Request $request): JsonResponse
     {
         $request->validate([
-            'workforce_ids' => 'required|array|min:1',
+            'workforce_ids' => 'nullable|array',
             'workforce_ids.*' => 'exists:workforces,id',
-            'date' => 'required|date',
+            'date' => 'nullable|date|required_without:dates',
+            'dates' => 'nullable|array|required_without:date',
+            'dates.*' => 'date',
         ]);
 
-        $deleted = FortnightActivity::whereIn('workforce_id', $request->workforce_ids)
-            ->whereDate('date', $request->date)
-            ->delete();
+        // Collect target dates
+        $dates = [];
+        if ($request->has('dates') && is_array($request->dates) && count($request->dates) > 0) {
+            $dates = $request->dates;
+        } elseif ($request->has('date')) {
+            $dates = [$request->date];
+        }
+
+        if (empty($dates)) {
+            return response()->json(['message' => 'No dates provided', 'deleted_count' => 0], 422);
+        }
+
+        $query = FortnightActivity::query();
+
+        if (count($dates) === 1) {
+            $query->whereDate('date', $dates[0]);
+        } else {
+            // Use whereIn with date cast for multiple dates
+            $query->whereIn(\DB::raw('DATE(date)'), $dates);
+        }
+
+        if ($request->has('workforce_ids') && is_array($request->workforce_ids) && count($request->workforce_ids) > 0) {
+            $query->whereIn('workforce_id', $request->workforce_ids);
+        }
+
+        $deleted = $query->delete();
 
         $this->broadcastChange('FortnightActivity', 'deleted', 0);
 
@@ -228,6 +255,57 @@ class FortnightActivityController extends Controller
             'message' => 'Activities deleted successfully',
             'deleted_count' => $deleted,
         ], 200);
+    }
+
+    /**
+     * Get aggregated daily totals for a month across all workforces.
+     * Used to display the calendar overview when no specific workforce is selected.
+     */
+    public function dailyTotals(Request $request): JsonResponse
+    {
+        $request->validate([
+            'year' => 'required|integer',
+            'month' => 'required|integer|min:1|max:12',
+        ]);
+
+        $year = $request->year;
+        $month = $request->month;
+
+        $activities = FortnightActivity::query()
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->selectRaw('DATE(date) as date_key, SUM(price) as total_price, COUNT(*) as activity_count')
+            ->groupBy('date_key')
+            ->orderBy('date_key')
+            ->get();
+
+        $dailyTotals = $activities->map(function ($row) {
+            return [
+                'date' => $row->date_key,
+                'total_price' => round((float) $row->total_price, 2),
+                'count' => (int) $row->activity_count,
+            ];
+        });
+
+        return response()->json(['daily_totals' => $dailyTotals], 200);
+    }
+
+    /**
+     * Get all activities for a specific date with full relationships.
+     * Used when clicking a summary cell in overview mode.
+     */
+    public function activitiesByDate(Request $request): JsonResponse
+    {
+        $request->validate([
+            'date' => 'required|date',
+        ]);
+
+        $activities = FortnightActivity::with(['section', 'corporal', 'workforce'])
+            ->whereDate('date', $request->date)
+            ->orderBy('workforce_id')
+            ->get();
+
+        return response()->json(['activities' => $activities], 200);
     }
 
     /**

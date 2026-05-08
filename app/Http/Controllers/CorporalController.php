@@ -29,6 +29,7 @@ class CorporalController extends Controller
             'sex' => 'required|in:male,female',
             'cni' => 'nullable|string|max:100',
             'is_quinzaine' => 'boolean',
+            'daily_price' => 'nullable|numeric|min:0',
             'section_ids' => 'nullable|array',
             'section_ids.*' => 'exists:sections,id',
         ]);
@@ -60,6 +61,7 @@ class CorporalController extends Controller
             'sex' => 'required|in:male,female',
             'cni' => 'nullable|string|max:100',
             'is_quinzaine' => 'boolean',
+            'daily_price' => 'nullable|numeric|min:0',
             'section_ids' => 'nullable|array',
             'section_ids.*' => 'exists:sections,id',
         ]);

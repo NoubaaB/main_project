@@ -91,6 +91,12 @@
           </div>
         </template>
 
+        <template v-slot:[`item.daily_price`]="{ item }">
+          <v-chip size="small" color="success" variant="tonal">
+            {{ main.formatDisplayNumber ? main.formatDisplayNumber(item.daily_price) : item.daily_price }} {{ main.currency || 'DH' }}
+          </v-chip>
+        </template>
+
         <template v-slot:[`item.actions`]="{ item }">
           <v-btn icon size="x-small" variant="tonal" color="info" @click="openDialog(item)" class="mr-1">
             <v-icon size="16">mdi-pencil</v-icon>
@@ -119,6 +125,9 @@
             </v-col>
             <v-col cols="6">
               <v-text-field v-model="form.cni" :label="$t('cni')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+            </v-col>
+            <v-col cols="12">
+              <v-text-field v-model.number="form.daily_price" :label="$t('daily_price')" variant="outlined" density="compact" rounded color="info" class="text-info" type="number" min="0" step="0.01" :suffix="main.currency || 'DH'"></v-text-field>
             </v-col>
             <v-col cols="12">
               <v-autocomplete
@@ -238,6 +247,7 @@ export default {
         { title: this.$t('full_name'), key: 'full_name', align: 'start' },
         { title: this.$t('sex'), key: 'sex', align: 'center' },
         { title: this.$t('cni'), key: 'cni', align: 'center' },
+        { title: this.$t('daily_price'), key: 'daily_price', align: 'center' },
         { title: this.$t('is_quinzaine'), key: 'is_quinzaine', align: 'center' },
         { title: this.$t('sections'), key: 'sections', align: 'center', sortable: false },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
@@ -258,7 +268,7 @@ export default {
   mounted() { this.fetchData(); },
   methods: {
     emptyForm() {
-      return { full_name: '', sex: 'male', cni: '', is_quinzaine: false, section_ids: [] };
+      return { full_name: '', sex: 'male', cni: '', is_quinzaine: false, daily_price: 0, section_ids: [] };
     },
     getCellDisplayValue(key, item) {
       if (key === 'is_quinzaine') return item[key] ? this.$t('yes') : this.$t('no');
@@ -283,6 +293,7 @@ export default {
         this.form = {
           full_name: item.full_name || '', sex: item.sex || 'male', cni: item.cni || '',
           is_quinzaine: !!item.is_quinzaine,
+          daily_price: parseFloat(item.daily_price) || 0,
           section_ids: (item.sections || []).map(s => s.id),
         };
       } else { this.form = this.emptyForm(); }

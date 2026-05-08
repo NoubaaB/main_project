@@ -209,6 +209,16 @@
                 {{ monthNames[currentMonth] }} {{ currentYear }} | {{ currentHalf === 1 ? $t('first_fortnight') : $t('second_fortnight') }}
               </div>
               <div class="d-flex align-center ga-1">
+                <v-btn
+                  :variant="multiSelectMode ? 'flat' : 'outlined'"
+                  :color="multiSelectMode ? 'warning' : 'info'"
+                  size="small"
+                  rounded
+                  @click="toggleMultiSelect"
+                  :prepend-icon="multiSelectMode ? 'mdi-checkbox-multiple-marked' : 'mdi-checkbox-multiple-blank-outline'"
+                >
+                  {{ multiSelectMode ? $t('selection_mode_on') : $t('selection_mode') }}
+                </v-btn>
                 <v-btn-toggle v-model="currentHalf" mandatory variant="outlined" density="compact" color="info" rounded>
                   <v-btn :value="1" size="small">Q1</v-btn>
                   <v-btn :value="2" size="small">Q2</v-btn>
@@ -232,17 +242,35 @@
                   'fnm-cal-cell--outside': cell.isOutside,
                   'fnm-cal-cell--future': cell.isFuture,
                   'fnm-cal-cell--multi': cell.activities && cell.activities.length >= 2,
-                  'fnm-cal-cell--active-half': cell.inActiveHalf
+                  'fnm-cal-cell--active-half': cell.inActiveHalf,
+                  'fnm-cal-cell--summary': cell.isSummary,
+                  'fnm-cal-cell--ms-selected': multiSelectMode && selectedDates.includes(cell.dateStr)
                 }"
-                @click="cell.day && !cell.isOutside && !cell.isFuture ? selectDate(cell) : null"
+                @click="cell.day && !cell.isOutside && !cell.isFuture ? handleCellClick(cell) : null"
               >
-                <div v-if="cell.day" class="fnm-cal-day-num" :class="{ 'fnm-cal-day-selected': isSelectedDate(cell) }">
-                  {{ cell.day }}
-                  <span v-if="cell.monthLabel" class="fnm-cal-month-label">{{ cell.monthLabel }}</span>
+                <div v-if="cell.day" class="fnm-cal-day-header">
+                  <div class="fnm-cal-day-num" :class="{ 'fnm-cal-day-selected': isSelectedDate(cell) }">
+                    {{ cell.day }}
+                    <span v-if="cell.monthLabel" class="fnm-cal-month-label">{{ cell.monthLabel }}</span>
+                  </div>
+                  <!-- Cell delete button -->
+                  <v-btn
+                    v-if="cell.activities && cell.activities.length && !cell.isOutside && !cell.isFuture"
+                    icon
+                    size="18"
+                    variant="text"
+                    color="error"
+                    class="fnm-cell-delete-btn"
+                    @click.stop="deleteCellActivities(cell)"
+                    :loading="deletingCell === cell.dateStr"
+                  >
+                    <v-icon size="14">mdi-delete-outline</v-icon>
+                    <v-tooltip activator="parent" location="top">{{ $t('delete_all_cell_activities') }}</v-tooltip>
+                  </v-btn>
                 </div>
 
-                <!-- Activities in cell -->
-                <div v-if="cell.activities && cell.activities.length" class="fnm-cal-activities">
+                <!-- Activities in cell (normal mode: workforce selected) -->
+                <div v-if="cell.activities && cell.activities.length && !cell.isSummary" class="fnm-cal-activities">
                   <div
                     v-for="act in cell.activities.slice(0, 4)"
                     :key="act.id"
@@ -297,8 +325,55 @@
                     </v-card>
                   </v-menu>
                 </div>
+
+                <!-- Summary mode: no workforce selected - show aggregated total -->
+                <div v-if="cell.isSummary && cell.summaryData" class="fnm-cal-activities">
+                  <div class="fnm-cal-activity fnm-act-summary" @click.stop="openDayDetail(cell)" style="cursor:pointer">
+                    <v-icon size="12" color="white" class="mr-1">mdi-sigma</v-icon>
+                    <span class="fnm-act-price">{{ formatNumber(cell.summaryData.total_price) }} Dh</span>
+                    <span class="fnm-act-label">{{ cell.summaryData.count }} {{ $t('activities') }}</span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <!-- Multi-select floating action bar -->
+            <v-slide-y-reverse-transition>
+              <div v-if="multiSelectMode && selectedDates.length > 0" class="fnm-ms-action-bar">
+                <div class="fnm-ms-info">
+                  <v-icon size="18" color="white" class="mr-2">mdi-calendar-check</v-icon>
+                  <span class="fnm-ms-count">{{ selectedDates.length }} {{ $t('days_selected') }}</span>
+                  <v-chip v-if="selectedWorkforceIds.length" size="x-small" color="white" variant="outlined" class="ml-2">
+                    {{ selectedWorkforceIds.length }} {{ $t('workforces') }}
+                  </v-chip>
+                  <v-chip v-else size="x-small" color="white" variant="outlined" class="ml-2">
+                    {{ $t('all_workforces') }}
+                  </v-chip>
+                </div>
+                <div class="fnm-ms-actions">
+                  <v-btn
+                    size="small"
+                    variant="text"
+                    color="white"
+                    @click="clearMultiSelect"
+                    prepend-icon="mdi-close"
+                  >
+                    {{ $t('clear_selection') }}
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    variant="flat"
+                    color="error"
+                    rounded
+                    @click="bulkDeleteSelectedDays"
+                    :loading="bulkDeleting"
+                    prepend-icon="mdi-delete-sweep"
+                  >
+                    {{ $t('delete_selected_activities') }}
+                  </v-btn>
+                </div>
+              </div>
+            </v-slide-y-reverse-transition>
           </v-card>
         </v-col>
       </v-row>
@@ -312,17 +387,29 @@
                 <v-icon color="info" class="mr-2">mdi-chart-box-outline</v-icon>
                 <span class="text-subtitle-1 font-weight-bold">{{ $t('activity_breakdown') }}</span>
               </div>
-              <v-btn
-                color="success"
-                variant="flat"
-                rounded
-                size="small"
-                prepend-icon="mdi-microsoft-excel"
-                :loading="exporting"
-                @click="exportToExcel"
-              >
-                {{ $t('export_excel') }}
-              </v-btn>
+              <div class="d-flex ga-2">
+                <v-btn
+                  v-print="printCfg"
+                  color="info"
+                  variant="flat"
+                  rounded
+                  size="small"
+                  prepend-icon="mdi-printer"
+                >
+                  {{ $t('print') }}
+                </v-btn>
+                <v-btn
+                  color="success"
+                  variant="flat"
+                  rounded
+                  size="small"
+                  prepend-icon="mdi-microsoft-excel"
+                  :loading="exporting"
+                  @click="exportToExcel"
+                >
+                  {{ $t('export_excel') }}
+                </v-btn>
+              </div>
             </v-card-title>
             <v-card-text class="pa-4 pt-0">
               <!-- Toggle buttons -->
@@ -674,7 +761,277 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- ============= DAY DETAIL DIALOG (Summary mode) ============= -->
+    <v-dialog v-model="dayDetailDialog" max-width="680" scrollable>
+      <v-card class="rounded-xl">
+        <!-- Header -->
+        <div class="fnm-dd-header">
+          <div class="d-flex align-center ga-2">
+            <div class="fnm-dd-icon">
+              <v-icon color="white" size="22">mdi-calendar-text</v-icon>
+            </div>
+            <div>
+              <div class="fnm-dd-title">{{ $t('day_activities_detail') }}</div>
+              <div class="fnm-dd-subtitle">{{ dayDetailDate }}</div>
+            </div>
+          </div>
+          <v-btn icon size="small" variant="text" color="white" @click="dayDetailDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <!-- Summary bar -->
+        <div v-if="dayDetailActivities.length" class="fnm-dd-summary">
+          <v-chip size="small" color="info" variant="flat" prepend-icon="mdi-account-group">
+            {{ dayDetailWorkforceCount }} {{ $t('workforces') }}
+          </v-chip>
+          <v-chip size="small" color="purple" variant="flat" prepend-icon="mdi-sigma">
+            {{ formatNumber(dayDetailTotal) }} {{ main.currency || 'DH' }}
+          </v-chip>
+          <v-chip size="small" variant="flat" prepend-icon="mdi-counter">
+            {{ dayDetailActivities.length }} {{ $t('activities') }}
+          </v-chip>
+        </div>
+
+        <!-- Activity list -->
+        <v-card-text class="pa-0" style="max-height: 420px;">
+          <div v-if="dayDetailLoading" class="d-flex justify-center pa-8">
+            <v-progress-circular indeterminate color="info" />
+          </div>
+          <div v-else-if="!dayDetailActivities.length" class="text-center pa-8 text-grey">
+            <v-icon size="48" color="grey-lighten-1">mdi-calendar-blank</v-icon>
+            <div class="mt-2">{{ $t('no_activities_found') }}</div>
+          </div>
+          <v-list v-else lines="three" class="pa-2">
+            <template v-for="(act, idx) in dayDetailActivities" :key="act.id">
+              <v-list-item class="fnm-dd-item rounded-lg mb-1" :ripple="false">
+                <template #prepend>
+                  <v-avatar size="38" :color="act.section ? 'info' : 'purple'" class="mr-3">
+                    <span class="text-white text-caption font-weight-bold">{{ getWorkforceInitials(act.workforce) }}</span>
+                  </v-avatar>
+                </template>
+                <v-list-item-title class="font-weight-bold text-body-2">
+                  {{ act.workforce ? act.workforce.full_name : '—' }}
+                  <v-chip v-if="act.workforce" size="x-small" variant="outlined" color="grey" class="ml-1">{{ act.workforce.matricule }}</v-chip>
+                </v-list-item-title>
+                <v-list-item-subtitle class="d-flex align-center ga-2 mt-1">
+                  <v-chip v-if="act.section" size="x-small" color="info" variant="tonal" prepend-icon="mdi-sitemap-outline">
+                    {{ act.section.name }}
+                  </v-chip>
+                  <v-chip v-if="act.corporal" size="x-small" color="purple" variant="tonal" prepend-icon="mdi-account-tie">
+                    {{ act.corporal.full_name }}
+                  </v-chip>
+                  <v-chip size="x-small" color="success" variant="tonal" prepend-icon="mdi-cash">
+                    {{ formatNumber(act.price) }} {{ main.currency || 'DH' }}
+                  </v-chip>
+                </v-list-item-subtitle>
+                <template #append>
+                  <div class="d-flex ga-1">
+                    <v-btn icon size="x-small" variant="text" color="info" @click="editActivityFromDetail(act)">
+                      <v-icon size="16">mdi-pencil</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('edit_activity') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn icon size="x-small" variant="text" color="error" @click="deleteActivityFromDetail(act)" :loading="deletingDetailId === act.id">
+                      <v-icon size="16">mdi-delete-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
+                    </v-btn>
+                  </div>
+                </template>
+              </v-list-item>
+              <v-divider v-if="idx < dayDetailActivities.length - 1" class="mx-3" />
+            </template>
+          </v-list>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-card>
+
+  <!-- ============= HIDDEN PRINT AREA ============= -->
+  <div style="display:none">
+    <div id="fnm-print-area">
+      <div style="padding:30px 40px;max-width:900px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a">
+        <!-- Logo + Company -->
+        <div style="text-align:center;margin-bottom:16px">
+          <img :src="printLogoUrl" alt="Logo" style="height:65px;margin-bottom:4px" />
+        </div>
+        <!-- Title -->
+        <div style="text-align:center;margin-bottom:12px">
+          <div style="display:inline-block;border:2px solid #333;padding:6px 28px;font-size:14px;font-weight:700;letter-spacing:1px">{{ $t('activity_breakdown') }}</div>
+        </div>
+        <!-- Context row -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:18px;font-size:12px;color:#555">
+          <div><b>{{ $t('month') }}:</b> {{ monthNames[currentMonth] }} {{ currentYear }}</div>
+          <div><b>{{ $t('tab') }}:</b> {{ printTabLabel }}</div>
+          <div v-if="drilldownItem"><b>{{ printTabLabel }}:</b> {{ drilldownItem.name }}</div>
+        </div>
+
+        <!-- ==== WORKFORCES SUMMARY ==== -->
+        <table v-if="breakdownTab === 'workforces' && !drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#E3F2FD">
+              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('name') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('matricule') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="w in breakdownData.workforces" :key="'pw-'+w.id">
+              <td style="padding:6px 10px;border:1px solid #ddd">{{ w.name }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ w.matricule }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ w.q1_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(w.q1_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ w.q2_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(w.q2_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#1565C0">{{ formatNumber(w.month_total) }}</td>
+            </tr>
+            <tr style="background:#E3F2FD;font-weight:700">
+              <td style="padding:8px 10px;border:1px solid #ccc" colspan="2">{{ $t('total') }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ workforceTotals.q1_count }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(workforceTotals.q1_total) }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ workforceTotals.q2_count }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(workforceTotals.q2_total) }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc;color:#1565C0">{{ formatNumber(workforceTotals.month_total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ==== WORKFORCES DRILLDOWN ==== -->
+        <table v-if="breakdownTab === 'workforces' && drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#E3F2FD">
+              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('date') }}</th>
+              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('section') }} / {{ $t('corporal') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('price') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="act in drilldownItem.activities" :key="'pa-'+act.id">
+              <td style="padding:6px 10px;border:1px solid #ddd">{{ main.formateDate(act.date) }}</td>
+              <td style="padding:6px 10px;border:1px solid #ddd">{{ act.section_name || act.corporal_name || '-' }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700">{{ formatNumber(act.price) }} {{ main.currency || 'DH' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ==== SECTIONS SUMMARY ==== -->
+        <table v-if="breakdownTab === 'sections' && !drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#FFF3E0">
+              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('name') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="s in breakdownData.sections" :key="'ps-'+s.id">
+              <td style="padding:6px 10px;border:1px solid #ddd">{{ s.name }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ s.q1_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(s.q1_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ s.q2_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(s.q2_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#E65100">{{ formatNumber(s.month_total) }}</td>
+            </tr>
+            <tr style="background:#FFF3E0;font-weight:700">
+              <td style="padding:8px 10px;border:1px solid #ccc">{{ $t('total') }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ sectionTotals.q1_count }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(sectionTotals.q1_total) }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ sectionTotals.q2_count }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(sectionTotals.q2_total) }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc;color:#E65100">{{ formatNumber(sectionTotals.month_total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ==== SECTIONS/CORPORALS DRILLDOWN (workforces list) ==== -->
+        <table v-if="(breakdownTab === 'sections' || breakdownTab === 'corporals') && drilldownItem && drilldownItem.workforces" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr :style="{background: breakdownTab==='sections'?'#FFF3E0':'#F3E5F5'}">
+              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('full_name') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('matricule') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('nationality') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('sex') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('is_migrant') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="wf in drilldownItem.workforces" :key="'pdw-'+wf.id">
+              <td style="padding:6px 10px;border:1px solid #ddd">{{ wf.name }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.matricule }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.nationality }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ $t(wf.sex) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.is_migrant ? $t('yes') : $t('no') }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.q1_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(wf.q1_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.q2_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(wf.q2_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#1565C0">{{ formatNumber(wf.month_total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ==== CORPORALS SUMMARY ==== -->
+        <table v-if="breakdownTab === 'corporals' && !drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#F3E5F5">
+              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('name') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
+              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in breakdownData.corporals" :key="'pc-'+c.id">
+              <td style="padding:6px 10px;border:1px solid #ddd">{{ c.name }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ c.q1_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(c.q1_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ c.q2_count }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(c.q2_total) }}</td>
+              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#7B1FA2">{{ formatNumber(c.month_total) }}</td>
+            </tr>
+            <tr style="background:#F3E5F5;font-weight:700">
+              <td style="padding:8px 10px;border:1px solid #ccc">{{ $t('total') }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ corporalTotals.q1_count }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(corporalTotals.q1_total) }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ corporalTotals.q2_count }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(corporalTotals.q2_total) }}</td>
+              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc;color:#7B1FA2">{{ formatNumber(corporalTotals.month_total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Grand Total footer -->
+        <div style="margin-top:20px;display:flex;justify-content:space-around;padding:12px;border:2px solid #1565C0;border-radius:8px">
+          <div style="text-align:center"><div style="font-size:11px;color:#888">{{ $t('first_fortnight') }}</div><div style="font-size:16px;font-weight:800;color:#1565C0">{{ formatNumber(grandTotals.q1_total) }} {{ main.currency || 'DH' }}</div></div>
+          <div style="text-align:center"><div style="font-size:11px;color:#888">{{ $t('second_fortnight') }}</div><div style="font-size:16px;font-weight:800;color:#1565C0">{{ formatNumber(grandTotals.q2_total) }} {{ main.currency || 'DH' }}</div></div>
+          <div style="text-align:center"><div style="font-size:11px;color:#888">{{ $t('total_month') }}</div><div style="font-size:16px;font-weight:800;color:#7B1FA2">{{ formatNumber(grandTotals.month_total) }} {{ main.currency || 'DH' }}</div></div>
+        </div>
+
+        <!-- Footer -->
+        <div v-if="companySettings.company_name" style="text-align:center;margin-top:20px;border-top:1px solid #ccc;padding-top:8px;font-size:10px;color:#888">
+          <div>{{ companySettings.company_name }} - {{ companySettings.company_address || '' }}</div>
+          <div>
+            <span v-if="companySettings.rc">RC: {{ companySettings.rc }}</span>
+            <span v-if="companySettings.ice"> | ICE: {{ companySettings.ice }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -685,9 +1042,12 @@ import { useSection } from '@/stores/Section';
 import { useFortnightActivity } from '@/stores/FortnightActivity';
 import { useNotification } from '@/stores/Notification';
 import mitt from '@/plugins/mitt.js';
+import print from 'vue3-print-nb';
+import axios from 'axios';
 
 export default {
   name: 'FortnightManagement',
+  directives: { print },
   data() {
     const now = new Date();
     return {
@@ -699,7 +1059,17 @@ export default {
       activityForm: { section_id: null, corporal_id: null, price: 0 },
       submitting: false,
       deleting: false,
+      deletingCell: null,
+      multiSelectMode: false,
+      selectedDates: [],
+      bulkDeleting: false,
+      dayDetailDialog: false,
+      dayDetailDate: '',
+      dayDetailActivities: [],
+      dayDetailLoading: false,
+      deletingDetailId: null,
       exporting: false,
+      companySettings: {},
       editDialog: false,
       editForm: { id: null, section_id: null, corporal_id: null, price: 0 },
       editSaving: false,
@@ -751,6 +1121,23 @@ export default {
     },
     canDeleteActivities() {
       return this.selectedWorkforceIds && this.selectedWorkforceIds.length >= 1 && this.selectedDate;
+    },
+    /** Whether no workforce is selected — enables the aggregated calendar view */
+    noWorkforceSelected() {
+      return !this.selectedWorkforceIds || this.selectedWorkforceIds.length === 0;
+    },
+    /** Unique workforce count in day detail activities */
+    dayDetailWorkforceCount() {
+      const ids = new Set(this.dayDetailActivities.map(a => a.workforce_id));
+      return ids.size;
+    },
+    /** Total price of day detail activities */
+    dayDetailTotal() {
+      return this.dayDetailActivities.reduce((sum, a) => sum + parseFloat(a.price || 0), 0);
+    },
+    /** Whether there are multi-selected dates */
+    hasMultiSelection() {
+      return this.multiSelectMode && this.selectedDates.length > 0;
     },
     /** Whether multiple workforces are selected - used to show workforce name on calendar chips */
     multipleSelected() {
@@ -823,6 +1210,18 @@ export default {
       }
       return false;
     },
+    /** Logo URL for print area - uses Order Transfer invoice logo pattern */
+    printLogoUrl() {
+      if (this.companySettings.logo_invoice_url) return this.companySettings.logo_invoice_url;
+      return new URL('/storage/images/logo_login.png', window.location.origin).href;
+    },
+    /** Print configuration for vue3-print-nb */
+    printCfg() { return { id: 'fnm-print-area', popTitle: this.$t('activity_breakdown') }; },
+    /** Human-readable label for current breakdown tab */
+    printTabLabel() {
+      const labels = { workforces: this.$t('workforces_activities'), sections: this.$t('sections_activities'), corporals: this.$t('corporals_activities') };
+      return labels[this.breakdownTab] || '';
+    },
     /** Build calendar cells for the current month */
     calendarCells() {
       const cells = [];
@@ -832,12 +1231,14 @@ export default {
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const daysInPrevMonth = new Date(year, month, 0).getDate();
       const activitiesByDate = this.activityStore.activitiesByDate;
+      const dailyTotalsByDate = this.activityStore.dailyTotalsByDate;
+      const isOverview = this.noWorkforceSelected;
       const today = new Date();
 
       // Previous month fill
       for (let i = firstDay - 1; i >= 0; i--) {
         const d = daysInPrevMonth - i;
-        cells.push({ day: d, isOutside: true, monthLabel: null, activities: [], isToday: false, inActiveHalf: false });
+        cells.push({ day: d, isOutside: true, monthLabel: null, activities: [], isToday: false, inActiveHalf: false, isSummary: false, summaryData: null });
       }
 
       // Current month
@@ -848,24 +1249,45 @@ export default {
         const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
         const isFuture = cellDate > todayDate;
         const inActiveHalf = this.currentHalf === 1 ? d <= 15 : d >= 16;
-        const dayActivities = activitiesByDate[dateStr] || [];
 
-        cells.push({
-          day: d,
-          dateStr,
-          isOutside: false,
-          isToday,
-          isFuture,
-          inActiveHalf,
-          activities: dayActivities,
-          monthLabel: d === 1 ? this.monthNames[month]?.substring(0, 3) : null,
-        });
+        if (isOverview) {
+          // Aggregated daily totals mode
+          const dt = dailyTotalsByDate[dateStr] || null;
+          const hasData = dt && dt.total_price > 0;
+          cells.push({
+            day: d,
+            dateStr,
+            isOutside: false,
+            isToday,
+            isFuture,
+            inActiveHalf,
+            activities: hasData ? [{ id: `summary-${dateStr}`, price: dt.total_price, count: dt.count }] : [],
+            isSummary: true,
+            summaryData: dt,
+            monthLabel: d === 1 ? this.monthNames[month]?.substring(0, 3) : null,
+          });
+        } else {
+          // Normal mode: individual activities per workforce
+          const dayActivities = activitiesByDate[dateStr] || [];
+          cells.push({
+            day: d,
+            dateStr,
+            isOutside: false,
+            isToday,
+            isFuture,
+            inActiveHalf,
+            activities: dayActivities,
+            isSummary: false,
+            summaryData: null,
+            monthLabel: d === 1 ? this.monthNames[month]?.substring(0, 3) : null,
+          });
+        }
       }
 
       // Next month fill to complete grid
       const remaining = (7 - (cells.length % 7)) % 7;
       for (let i = 1; i <= remaining; i++) {
-        cells.push({ day: i, isOutside: true, monthLabel: null, activities: [], isToday: false, inActiveHalf: false });
+        cells.push({ day: i, isOutside: true, monthLabel: null, activities: [], isToday: false, inActiveHalf: false, isSummary: false, summaryData: null });
       }
 
       return cells;
@@ -903,8 +1325,10 @@ export default {
       this.sectionStore.fetch(),
     ]);
     // Load initial summary and breakdown for all workforces
+    this.loadActivities();
     this.loadSummary();
     this.loadBreakdown();
+    this.fetchCompanySettings();
 
     // Listen for model changes from AI Assistant or WebSocket (other users)
     this._onModelChanged = (data) => this.handleModelChanged(data);
@@ -945,6 +1369,9 @@ export default {
       if (this.main.formatDisplayNumber) return this.main.formatDisplayNumber(n);
       return Number(n || 0).toFixed(2);
     },
+    async fetchCompanySettings() {
+      try { const r = await axios.get('/api/company-settings'); this.companySettings = r.data.settings || {}; } catch (e) { console.error(e); }
+    },
     workforceItemTitle(item) {
       return `${item.full_name} (${item.matricule})`;
     },
@@ -963,6 +1390,14 @@ export default {
       this.currentHalf = now.getDate() <= 15 ? 1 : 2;
       this.selectedDate = this.formatDateStr(now);
     },
+    /** Handle cell click - either multi-select or single select */
+    handleCellClick(cell) {
+      if (this.multiSelectMode) {
+        this.toggleDateSelection(cell);
+      } else {
+        this.selectDate(cell);
+      }
+    },
     selectDate(cell) {
       if (cell.dateStr) this.selectedDate = cell.dateStr;
       if (cell.day) this.currentHalf = cell.day <= 15 ? 1 : 2;
@@ -970,10 +1405,138 @@ export default {
     isSelectedDate(cell) {
       return cell.dateStr === this.selectedDate;
     },
+    /** Toggle multi-select mode on/off */
+    toggleMultiSelect() {
+      this.multiSelectMode = !this.multiSelectMode;
+      if (!this.multiSelectMode) {
+        this.selectedDates = [];
+      }
+    },
+    /** Toggle a date in the multi-selection array */
+    toggleDateSelection(cell) {
+      if (!cell.dateStr || cell.isOutside || cell.isFuture) return;
+      // Only allow selecting cells that have activities
+      if (!cell.activities || !cell.activities.length) return;
+      const idx = this.selectedDates.indexOf(cell.dateStr);
+      if (idx >= 0) {
+        this.selectedDates.splice(idx, 1);
+      } else {
+        this.selectedDates.push(cell.dateStr);
+      }
+    },
+    /** Clear multi-selection */
+    clearMultiSelect() {
+      this.selectedDates = [];
+    },
+    /** Bulk delete activities for all selected dates */
+    async bulkDeleteSelectedDays() {
+      if (!this.selectedDates.length) return;
+      this.bulkDeleting = true;
+      try {
+        const wfIds = this.noWorkforceSelected ? null : [...this.selectedWorkforceIds];
+        const dates = [...this.selectedDates].sort();
+        const deletedCount = await this.activityStore.bulkDeleteByDates(
+          wfIds,
+          dates
+        );
+
+        // Rich notification
+        const fields = [];
+        fields.push({ label: this.$t('dates_count'), value: dates.length, icon: 'mdi-calendar-multiple' });
+        fields.push({ label: this.$t('date_range_label'), value: `${dates[0]} → ${dates[dates.length - 1]}`, icon: 'mdi-calendar-range' });
+        if (wfIds && wfIds.length === 1) {
+          const w = this.workforceStore.list.find(w => w.id === wfIds[0]);
+          fields.push({ label: this.$t('workforce'), value: w ? w.full_name : '', icon: 'mdi-account' });
+        } else if (wfIds && wfIds.length > 1) {
+          fields.push({ label: this.$t('workforces_count'), value: wfIds.length, icon: 'mdi-account-group' });
+        } else {
+          fields.push({ label: this.$t('scope'), value: this.$t('all_workforces'), icon: 'mdi-account-group' });
+        }
+        fields.push({ label: this.$t('activities_removed'), value: deletedCount, icon: 'mdi-delete-sweep' });
+
+        this.notification.notifyDeletion({
+          type: 'fortnight_activity',
+          icon: 'mdi-calendar-remove',
+          color: 'error',
+          fields,
+        });
+
+        // Reset selection and reload
+        this.selectedDates = [];
+        this.multiSelectMode = false;
+        await this.loadActivities();
+        await this.loadSummary();
+        await this.loadBreakdown();
+      } catch (e) {
+        console.error(e);
+        this.notification.push({ title: this.$t('error'), message: this.$t('workforce_delete_error'), icon: 'mdi-alert-circle', color: 'error' });
+      }
+      this.bulkDeleting = false;
+    },
     getActivityLabel(act) {
       if (act.section) return act.section.name;
       if (act.corporal) return act.corporal.full_name;
       return '';
+    },
+    /** Open day detail dialog for a summary cell */
+    async openDayDetail(cell) {
+      if (!cell || !cell.dateStr) return;
+      this.dayDetailDate = cell.dateStr;
+      this.dayDetailActivities = [];
+      this.dayDetailDialog = true;
+      this.dayDetailLoading = true;
+      try {
+        this.dayDetailActivities = await this.activityStore.fetchActivitiesByDate(cell.dateStr);
+      } catch (e) {
+        console.error(e);
+      }
+      this.dayDetailLoading = false;
+    },
+    /** Edit an activity from the detail dialog - opens the standard edit dialog */
+    editActivityFromDetail(act) {
+      this.editForm = {
+        id: act.id,
+        section_id: act.section_id,
+        corporal_id: act.corporal_id,
+        price: parseFloat(act.price) || 0,
+      };
+      this.editDialog = true;
+    },
+    /** Delete an activity from the detail dialog */
+    async deleteActivityFromDetail(act) {
+      this.deletingDetailId = act.id;
+      try {
+        await this.activityStore.remove(act.id);
+        // Remove from local detail list
+        this.dayDetailActivities = this.dayDetailActivities.filter(a => a.id !== act.id);
+
+        // Rich notification
+        const fields = [];
+        if (act.workforce) fields.push({ label: this.$t('workforce'), value: act.workforce.full_name, icon: 'mdi-account' });
+        if (act.section) fields.push({ label: this.$t('section_affiliated'), value: act.section.name, icon: 'mdi-sitemap-outline' });
+        if (act.corporal) fields.push({ label: this.$t('corporal'), value: act.corporal.full_name, icon: 'mdi-account-tie' });
+        fields.push({ label: this.$t('price'), value: `${this.formatNumber(act.price)} ${this.main.currency || 'DH'}`, icon: 'mdi-cash' });
+
+        this.notification.notifyDeletion({
+          type: 'fortnight_activity',
+          icon: 'mdi-calendar-remove',
+          color: 'error',
+          fields,
+        });
+
+        // Reload totals
+        await this.loadActivities();
+        await this.loadSummary();
+        await this.loadBreakdown();
+
+        // Close dialog if no activities left
+        if (!this.dayDetailActivities.length) {
+          this.dayDetailDialog = false;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      this.deletingDetailId = null;
     },
     /** Get short initials from a workforce for compact display */
     getWorkforceInitials(wf) {
@@ -993,7 +1556,8 @@ export default {
     onCorporalChange(val) {
       if (val) {
         this.activityForm.section_id = null;
-        this.activityForm.price = 0;
+        const corporal = this.corporalStore.list.find(c => c.id === val);
+        this.activityForm.price = corporal ? (parseFloat(corporal.daily_price) || 0) : 0;
       }
     },
     onEditSectionChange(val) {
@@ -1006,20 +1570,23 @@ export default {
     onEditCorporalChange(val) {
       if (val) {
         this.editForm.section_id = null;
-        this.editForm.price = 0;
+        const corporal = this.corporalStore.list.find(c => c.id === val);
+        this.editForm.price = corporal ? (parseFloat(corporal.daily_price) || 0) : 0;
       }
     },
     onWorkforceChange() {
       // loadActivities triggered by watcher on selectedWorkforceIds
     },
     async loadActivities() {
-      if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) {
-        // Clear calendar activities when no workforce is selected
+      if (this.noWorkforceSelected) {
+        // Fetch aggregated daily totals for all workforces
         this.activityStore.activities = [];
+        await this.activityStore.fetchDailyTotals(this.currentYear, this.currentMonth + 1);
         return;
       }
 
       // Fetch activities for ALL selected workforces for the full month
+      this.activityStore.dailyTotals = [];
       await this.activityStore.fetchActivities(this.selectedWorkforceIds, this.currentYear, this.currentMonth + 1);
     },
     /** Load summary - filters only by workforce(s) and month/year */
@@ -1278,6 +1845,11 @@ export default {
         await this.loadActivities();
         await this.loadSummary();
         await this.loadBreakdown();
+
+        // Refresh day detail dialog if open
+        if (this.dayDetailDialog && this.dayDetailDate) {
+          this.dayDetailActivities = await this.activityStore.fetchActivitiesByDate(this.dayDetailDate);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -1343,6 +1915,47 @@ export default {
       }
       this.deleting = false;
     },
+    /** Delete all activities for a specific calendar cell (date) */
+    async deleteCellActivities(cell) {
+      if (!cell || !cell.dateStr) return;
+      this.deletingCell = cell.dateStr;
+      try {
+        const wfIds = this.noWorkforceSelected ? [] : [...this.selectedWorkforceIds];
+        const deletedCount = await this.activityStore.bulkDeleteByDate(
+          wfIds.length > 0 ? wfIds : null,
+          cell.dateStr
+        );
+
+        // Rich notification
+        const fields = [];
+        fields.push({ label: this.$t('date'), value: cell.dateStr, icon: 'mdi-calendar' });
+        if (!this.noWorkforceSelected && wfIds.length === 1) {
+          const w = this.workforceStore.list.find(w => w.id === wfIds[0]);
+          fields.push({ label: this.$t('workforce'), value: w ? w.full_name : '', icon: 'mdi-account' });
+        } else if (!this.noWorkforceSelected && wfIds.length > 1) {
+          fields.push({ label: this.$t('workforces_count'), value: wfIds.length, icon: 'mdi-account-group' });
+        } else {
+          fields.push({ label: this.$t('scope'), value: this.$t('all_workforces'), icon: 'mdi-account-group' });
+        }
+        fields.push({ label: this.$t('activities_removed'), value: deletedCount, icon: 'mdi-delete-sweep' });
+
+        this.notification.notifyDeletion({
+          type: 'fortnight_activity',
+          icon: 'mdi-calendar-remove',
+          color: 'error',
+          fields,
+        });
+
+        // Reload
+        await this.loadActivities();
+        await this.loadSummary();
+        await this.loadBreakdown();
+      } catch (e) {
+        console.error(e);
+        this.notification.push({ title: this.$t('error'), message: this.$t('workforce_delete_error'), icon: 'mdi-alert-circle', color: 'error' });
+      }
+      this.deletingCell = null;
+    },
   },
 };
 </script>
@@ -1376,9 +1989,115 @@ export default {
 .fnm-cal-cell--multi { background: rgba(255, 235, 59, .12) !important; }
 .fnm-cal-cell--active-half { }
 
+/* Day header: number + delete button */
+.fnm-cal-day-header { display: flex; align-items: center; justify-content: space-between; }
 .fnm-cal-day-num { font-size: 12px; font-weight: 600; padding: 2px 6px; display: inline-block; border-radius: 8px; }
 .fnm-cal-day-selected { background: #2196F3; color: #fff; }
 .fnm-cal-month-label { font-size: 9px; font-weight: 700; text-transform: uppercase; opacity: .5; margin-left: 4px; }
+
+/* Cell delete button - appears on hover */
+.fnm-cell-delete-btn { opacity: 0; transition: opacity .2s ease; }
+.fnm-cal-cell:hover .fnm-cell-delete-btn { opacity: 1; }
+
+/* Summary mode cell */
+.fnm-cal-cell--summary { }
+.fnm-act-summary { background: linear-gradient(135deg, #1565C0, #7B1FA2); color: #fff; cursor: default; }
+.fnm-act-summary:hover { filter: brightness(1.05); }
+
+/* Multi-select mode */
+.fnm-cal-cell--ms-selected {
+  background: rgba(255, 152, 0, .15) !important;
+  box-shadow: inset 0 0 0 2px rgba(255, 152, 0, .6);
+  position: relative;
+}
+.fnm-cal-cell--ms-selected::after {
+  content: '\F0132';
+  font-family: 'Material Design Icons';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FF9800;
+  color: #fff;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* Day Detail Dialog */
+.fnm-dd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #1565C0 0%, #7B1FA2 100%);
+  color: #fff;
+}
+.fnm-dd-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.18);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fnm-dd-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+.fnm-dd-subtitle {
+  font-size: 12px;
+  opacity: .8;
+}
+.fnm-dd-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(var(--v-border-color), .1);
+}
+.fnm-dd-item {
+  border: 1px solid rgba(var(--v-border-color), .08);
+  transition: all .15s ease;
+}
+.fnm-dd-item:hover {
+  background: rgba(33, 150, 243, .04);
+  border-color: rgba(33, 150, 243, .15);
+}
+
+/* Multi-select floating action bar */
+.fnm-ms-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #E65100, #FF9800);
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+  gap: 12px;
+}
+.fnm-ms-info {
+  display: flex;
+  align-items: center;
+  color: #fff;
+}
+.fnm-ms-count {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .3px;
+}
+.fnm-ms-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /* Activities inside cells */
 .fnm-cal-activities { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }

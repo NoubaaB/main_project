@@ -276,6 +276,8 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("sections/{section}/corporals", [App\Http\Controllers\SectionController::class, "attachCorporals"]);
         Route::delete("sections/{section}/corporals/{corporal}", [App\Http\Controllers\SectionController::class, "detachCorporal"]);
         Route::apiResource("workforces", App\Http\Controllers\WorkforceController::class);
+        Route::get("fortnight-activities/activities-by-date", [App\Http\Controllers\FortnightActivityController::class, "activitiesByDate"]);
+        Route::get("fortnight-activities/daily-totals", [App\Http\Controllers\FortnightActivityController::class, "dailyTotals"]);
         Route::get("fortnight-activities/summary", [App\Http\Controllers\FortnightActivityController::class, "summary"]);
         Route::get("fortnight-activities/breakdown", [App\Http\Controllers\FortnightActivityController::class, "breakdown"]);
         Route::get("fortnight-activities/export", [App\Http\Controllers\FortnightActivityController::class, "export"]);

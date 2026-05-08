@@ -13,10 +13,12 @@ class Corporal extends Model
         'sex',
         'cni',
         'is_quinzaine',
+        'daily_price',
     ];
 
     protected $casts = [
         'is_quinzaine' => 'boolean',
+        'daily_price' => 'decimal:2',
     ];
 
     public function sections()
