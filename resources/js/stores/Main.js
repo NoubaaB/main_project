@@ -13,7 +13,7 @@ import { useSupplier } from "./Supplier";
 import { useTruck } from "./Truck";
 import { useShippingCategory } from "./ShippingCategory";
 import { useClient } from "./Client";
-import i18n  from '@/plugins/i18n';
+import i18n from '@/plugins/i18n';
 
 export const useMain = defineStore("main", {
     state: () => {
@@ -25,11 +25,31 @@ export const useMain = defineStore("main", {
             currency: "Dh",
             currency_unit: "Dirham",
             currency_subunit: "Centime",
+            currencies: [
+                {
+                    unit: "Dirham",
+                    currency: "Dh",
+                    short: "MAD",
+                    subunit: "Centime",
+                },
+                {
+                    unit: "Euro",
+                    currency: "€",
+                    short: "EUR",
+                    subunit: "Cent"
+                },
+                {
+                    unit: "Dollar",
+                    currency: "$",
+                    short: "USD",
+                    subunit: "Cent"
+                }
+            ],
             date_format: "DD/MM/YYYY",
             snackbar: {
                 show: false,
                 message: "",
-                color:""
+                color: ""
             },
             is_dark: localStorage.getItem("theme") == "dark",
             langs: [
@@ -60,22 +80,22 @@ export const useMain = defineStore("main", {
                 // },
             ],
             lang: null,
-            product_ids:[],
-            warehouse_ids:[],
-            package_type:usePackageType(),
-            guano_type:useGuanoType(),
-            fish_type:useFishType(),
-            fish_family:useFishFamily(),
+            product_ids: [],
+            warehouse_ids: [],
+            package_type: usePackageType(),
+            guano_type: useGuanoType(),
+            fish_type: useFishType(),
+            fish_family: useFishFamily(),
             warehouse: useWarehouse(),
             charge_category: useChargeCategory(),
             supplier: useSupplier(),
             client: useClient(),
             truck: useTruck(),
             snackbar: {
-                action_command:false,
-                action_command_icon_color:"",
-                action_command_icon:"",
-                action_command_text:""
+                action_command: false,
+                action_command_icon_color: "",
+                action_command_icon: "",
+                action_command_text: ""
             }
         };
     },
@@ -113,7 +133,7 @@ export const useMain = defineStore("main", {
         formateDate: function (date) {
             return moment(date).format(this.date_format);
         },
-        formateDateCustom: function (date,format) {
+        formateDateCustom: function (date, format) {
             return moment(date).format(format);
         },
         capitalize: function (str) {
@@ -154,7 +174,7 @@ export const useMain = defineStore("main", {
                 maximumFractionDigits: 0,
             }).format(num)
         },
-        escapeHtml: function(unsafe) {
+        escapeHtml: function (unsafe) {
             if (typeof unsafe !== 'string') return '';
             return unsafe
                 .replaceAll("\n", '<br>')

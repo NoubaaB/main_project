@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
 use App\Models\User;
 use App\Models\WarehouseCategory;
 use App\Models\Origin;
@@ -242,6 +243,19 @@ class AuthController extends Controller implements HasMiddleware
         $trucks = Truck::all();
         $fish_process_types = FishProcessType::all();
         $roles = \App\Models\Role::withCount('users')->get();
+
+        // Company settings as key-value with logo URLs resolved
+        $company_settings = CompanySetting::getAllSettings();
+        if (!empty($company_settings['logo_invoice_path'])) {
+            $company_settings['logo_invoice_url'] = asset('storage/' . $company_settings['logo_invoice_path']);
+        }
+        if (!empty($company_settings['logo_origin_path'])) {
+            $company_settings['logo_origin_url'] = asset('storage/' . $company_settings['logo_origin_path']);
+        }
+        if (!empty($company_settings['logo_invoice_body_path'])) {
+            $company_settings['logo_invoice_body_url'] = asset('storage/' . $company_settings['logo_invoice_body_path']);
+        }
+
         return [
             "suppliers" => $suppliers,
             "ships" => $ships,
@@ -266,6 +280,7 @@ class AuthController extends Controller implements HasMiddleware
             "detail_inventory_categories" => $detail_inventory_categories,
             "warehouse_transfer_categories" => $warehouse_transfer_categories,
             "roles" => $roles,
+            "company_settings" => $company_settings,
         ];
     }
 }

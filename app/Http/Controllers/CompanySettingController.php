@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompanySetting;
+use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class CompanySettingController extends Controller
 {
+    use BroadcastsModelChanges;
+
     /**
      * Return all company settings as a key-value object.
      */
@@ -48,9 +51,24 @@ class CompanySettingController extends Controller
             CompanySetting::setValue($key, $value);
         }
 
+        $allSettings = CompanySetting::getAllSettings();
+        // Resolve logo URLs for broadcast
+        if (!empty($allSettings['logo_invoice_path'])) {
+            $allSettings['logo_invoice_url'] = asset('storage/' . $allSettings['logo_invoice_path']);
+        }
+        if (!empty($allSettings['logo_origin_path'])) {
+            $allSettings['logo_origin_url'] = asset('storage/' . $allSettings['logo_origin_path']);
+        }
+        if (!empty($allSettings['logo_invoice_body_path'])) {
+            $allSettings['logo_invoice_body_url'] = asset('storage/' . $allSettings['logo_invoice_body_path']);
+        }
+
+        // Broadcast to other users
+        $this->broadcastChange('CompanySetting', 'updated', 0, $allSettings);
+
         return response()->json([
             'message'  => 'Settings updated successfully',
-            'settings' => CompanySetting::getAllSettings(),
+            'settings' => $allSettings,
         ]);
     }
 
@@ -76,6 +94,19 @@ class CompanySettingController extends Controller
         // Store new logo
         $path = $request->file('logo')->store('images/company', 'public');
         CompanySetting::setValue($key, $path);
+
+        // Broadcast updated settings to other users
+        $allSettings = CompanySetting::getAllSettings();
+        if (!empty($allSettings['logo_invoice_path'])) {
+            $allSettings['logo_invoice_url'] = asset('storage/' . $allSettings['logo_invoice_path']);
+        }
+        if (!empty($allSettings['logo_origin_path'])) {
+            $allSettings['logo_origin_url'] = asset('storage/' . $allSettings['logo_origin_path']);
+        }
+        if (!empty($allSettings['logo_invoice_body_path'])) {
+            $allSettings['logo_invoice_body_url'] = asset('storage/' . $allSettings['logo_invoice_body_path']);
+        }
+        $this->broadcastChange('CompanySetting', 'updated', 0, $allSettings);
 
         return response()->json([
             'message' => 'Logo uploaded successfully',

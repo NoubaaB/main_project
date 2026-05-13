@@ -60,6 +60,7 @@ class FortnightActivityController extends Controller
             'section_id' => 'nullable|exists:sections,id',
             'corporal_id' => 'nullable|exists:corporals,id',
             'price' => 'required|numeric|min:0',
+            'is_fixed_price' => 'boolean',
         ]);
 
         // Ensure at least one of section_id or corporal_id is provided
@@ -350,8 +351,10 @@ class FortnightActivityController extends Controller
                     $sections[$key] = [
                         'id' => $act->section_id,
                         'name' => $act->section ? $act->section->name : 'Unknown',
-                        'q1_count' => 0, 'q1_total' => 0,
-                        'q2_count' => 0, 'q2_total' => 0,
+                        'q1_count' => 0,
+                        'q1_total' => 0,
+                        'q2_count' => 0,
+                        'q2_total' => 0,
                     ];
                 }
                 $sections[$key][$half . '_count']++;
@@ -364,8 +367,10 @@ class FortnightActivityController extends Controller
                     $corporals[$key] = [
                         'id' => $act->corporal_id,
                         'name' => $act->corporal ? $act->corporal->full_name : 'Unknown',
-                        'q1_count' => 0, 'q1_total' => 0,
-                        'q2_count' => 0, 'q2_total' => 0,
+                        'q1_count' => 0,
+                        'q1_total' => 0,
+                        'q2_count' => 0,
+                        'q2_total' => 0,
                     ];
                 }
                 $corporals[$key][$half . '_count']++;
@@ -383,19 +388,32 @@ class FortnightActivityController extends Controller
                         'nationality' => $act->workforce ? $act->workforce->nationality : '',
                         'sex' => $act->workforce ? $act->workforce->sex : '',
                         'is_migrant' => $act->workforce ? (bool) $act->workforce->is_migrant : false,
-                        'q1_count' => 0, 'q1_total' => 0,
-                        'q2_count' => 0, 'q2_total' => 0,
+                        'salary_statement' => $act->workforce ? (bool) $act->workforce->salary_statement : false,
+                        'cnss_id' => $act->workforce ? $act->workforce->cnss_id : '',
+                        'cin' => $act->workforce ? $act->workforce->cin : '',
+                        'fixed_daily_pay' => $act->workforce ? (bool) $act->workforce->fixed_daily_pay : false,
+                        'daily_price' => $act->workforce ? $act->workforce->daily_price : null,
+                        'q1_count' => 0,
+                        'q1_total' => 0,
+                        'q2_count' => 0,
+                        'q2_total' => 0,
+                        'q1_dates' => [],
+                        'q2_dates' => [],
                         'activities' => [],
                     ];
                 }
                 $workforces[$wKey][$half . '_count']++;
                 $workforces[$wKey][$half . '_total'] += $price;
+                // Track distinct work dates for work/non-work days
+                $dateStr = date('Y-m-d', strtotime($act->date));
+                $workforces[$wKey][$half . '_dates'][] = $dateStr;
                 $workforces[$wKey]['activities'][] = [
                     'id' => $act->id,
                     'date' => $act->date,
                     'section_name' => $act->section ? $act->section->name : null,
                     'corporal_name' => $act->corporal ? $act->corporal->full_name : null,
                     'price' => $price,
+                    'is_fixed_price' => (bool) $act->is_fixed_price,
                 ];
             }
         }
@@ -414,11 +432,17 @@ class FortnightActivityController extends Controller
                         'id' => $wid,
                         'name' => $act->workforce ? $act->workforce->full_name : 'Unknown',
                         'matricule' => $act->workforce ? $act->workforce->matricule : '',
+                        'cin' => $act->workforce ? $act->workforce->cin : '',
+                        'cnss_id' => $act->workforce ? $act->workforce->cnss_id : '',
                         'nationality' => $act->workforce ? $act->workforce->nationality : '',
                         'sex' => $act->workforce ? $act->workforce->sex : '',
                         'is_migrant' => $act->workforce ? (bool) $act->workforce->is_migrant : false,
-                        'q1_count' => 0, 'q1_total' => 0,
-                        'q2_count' => 0, 'q2_total' => 0,
+                        'salary_statement' => $act->workforce ? (bool) $act->workforce->salary_statement : false,
+                        'fixed_daily_pay' => $act->workforce ? (bool) $act->workforce->fixed_daily_pay : false,
+                        'q1_count' => 0,
+                        'q1_total' => 0,
+                        'q2_count' => 0,
+                        'q2_total' => 0,
                     ];
                 }
                 $sWorkforces[$wid][$half . '_count']++;
@@ -447,11 +471,17 @@ class FortnightActivityController extends Controller
                         'id' => $wid,
                         'name' => $act->workforce ? $act->workforce->full_name : 'Unknown',
                         'matricule' => $act->workforce ? $act->workforce->matricule : '',
+                        'cin' => $act->workforce ? $act->workforce->cin : '',
+                        'cnss_id' => $act->workforce ? $act->workforce->cnss_id : '',
                         'nationality' => $act->workforce ? $act->workforce->nationality : '',
                         'sex' => $act->workforce ? $act->workforce->sex : '',
                         'is_migrant' => $act->workforce ? (bool) $act->workforce->is_migrant : false,
-                        'q1_count' => 0, 'q1_total' => 0,
-                        'q2_count' => 0, 'q2_total' => 0,
+                        'salary_statement' => $act->workforce ? (bool) $act->workforce->salary_statement : false,
+                        'fixed_daily_pay' => $act->workforce ? (bool) $act->workforce->fixed_daily_pay : false,
+                        'q1_count' => 0,
+                        'q1_total' => 0,
+                        'q2_count' => 0,
+                        'q2_total' => 0,
                     ];
                 }
                 $cWorkforces[$wid][$half . '_count']++;
@@ -484,6 +514,15 @@ class FortnightActivityController extends Controller
             $w['month_count'] = $w['q1_count'] + $w['q2_count'];
             $w['q1_total'] = round($w['q1_total'], 2);
             $w['q2_total'] = round($w['q2_total'], 2);
+            // Work days = distinct dates with activities
+            $w['q1_work_days'] = count(array_unique($w['q1_dates']));
+            $w['q2_work_days'] = count(array_unique($w['q2_dates']));
+            // Non-work days: Q1 = 15 days max, Q2 = remaining days in month
+            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+            $w['q1_non_work_days'] = max(0, 15 - $w['q1_work_days']);
+            $w['q2_non_work_days'] = max(0, ($daysInMonth - 15) - $w['q2_work_days']);
+            // Remove raw date arrays
+            unset($w['q1_dates'], $w['q2_dates']);
         }
 
         return response()->json([
@@ -589,7 +628,8 @@ class FortnightActivityController extends Controller
         // Section totals
         $sectionMap = [];
         foreach ($activities as $act) {
-            if (!$act->section_id) continue;
+            if (!$act->section_id)
+                continue;
             $key = $act->section_id;
             if (!isset($sectionMap[$key])) {
                 $sectionMap[$key] = [
@@ -606,7 +646,8 @@ class FortnightActivityController extends Controller
         // Corporal totals
         $corporalMap = [];
         foreach ($activities as $act) {
-            if (!$act->corporal_id) continue;
+            if (!$act->corporal_id)
+                continue;
             $key = $act->corporal_id;
             if (!isset($corporalMap[$key])) {
                 $corporalMap[$key] = [

@@ -36,10 +36,21 @@
                             inset
                         ></v-switch>
                     </v-col>
+                </v-row>
+                <v-row v-if="clientInvoice.list.some(inv => inv.type_invoice === 'export') || (clientInvoice.items.length && clientInvoice.items[0]?.invoice?.type_invoice === 'export') || true">
                     <v-col>
                         <v-switch
-                            v-model="clientInvoice.use_simple_invoice"
-                            :label="$t('use_simple_invoice')"
+                            v-model="clientInvoice.use_export_layout"
+                            :label="$t('use_export_layout') || 'Use Export Layout'"
+                            hide-details
+                            color="#00838F"
+                            inset
+                        ></v-switch>
+                    </v-col>
+                    <v-col v-if="clientInvoice.use_export_layout">
+                        <v-switch
+                            v-model="clientInvoice.show_intermediary_info"
+                            :label="$t('show_intermediary_info') || 'Show Intermediary Info'"
                             hide-details
                             color="#00838F"
                             inset
@@ -91,7 +102,6 @@
                             <template v-slot:chip="{ props, item }">
                                 <v-chip
                                 v-bind="props"
-                                class="text-white"
                                 color="#00838F"
                                 closable
                                 variant="tonal"
@@ -135,7 +145,6 @@
                             <template v-slot:chip="{ props, item }">
                                 <v-chip
                                 v-bind="props"
-                                class="text-white"
                                 color="#00838F"
                                 closable
                                 variant="tonal"

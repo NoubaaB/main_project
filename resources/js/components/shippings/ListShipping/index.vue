@@ -88,9 +88,99 @@
               </DatePicker>
             </v-col>
             <v-col cols="6"><v-text-field :model-value="invoiceClients.join(', ')" :label="$t('clients')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details readonly></v-text-field></v-col>
-            <v-col cols="6"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-autocomplete></v-col>
+            <v-col cols="6"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details @update:model-value="onTypeInvoiceChange"></v-autocomplete></v-col>
             <v-col cols="6"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
           </v-row>
+
+          <!-- ═══ EXPORT INFORMATION PANEL ═══ -->
+          <v-expand-transition>
+            <div v-if="invForm.type_invoice==='export'" class="mt-3">
+              <v-divider class="mb-3" color="#4643a0" thickness="2" opacity="0.4"></v-divider>
+              <div class="text-subtitle-2 font-weight-bold mb-2" style="color:#4643a0"><v-icon size="18" class="mr-1">mdi-file-export-outline</v-icon>{{ $t('export_invoice_info') }}</div>
+
+              <v-row dense>
+                <!-- Incoterm -->
+                <v-col cols="4">
+                  <v-autocomplete v-model="invForm.incoterm" :items="['FOB','C&F','CIF']" :label="$t('select_incoterm')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details prepend-inner-icon="mdi-checkbox-marked-circle-outline"></v-autocomplete>
+                </v-col>
+                <!-- Currency -->
+                <v-col cols="4">
+                  <v-autocomplete v-model="invForm.currency" :items="['USD','EUR','GBP','MAD','XOF','GHS','NGN','ZAR','CNY','JPY']" :label="$t('select_currency')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details prepend-inner-icon="mdi-currency-usd"></v-autocomplete>
+                </v-col>
+                <!-- Total Gross Weight -->
+                <v-col cols="4">
+                  <v-text-field v-model.number="invForm.total_gross_weight" :label="$t('total_gross_weight')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details type="number" prepend-inner-icon="mdi-weight-kilogram"></v-text-field>
+                </v-col>
+              </v-row>
+
+              <v-row dense>
+                <v-col cols="4">
+                  <v-text-field v-model="invForm.shipment_country" :label="$t('shipment_country')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details prepend-inner-icon="mdi-flag"></v-text-field>
+                </v-col>
+                <v-col cols="4">
+                  <v-text-field v-model.number="invForm.tax_percentage" :label="$t('tax_percentage')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details type="number" min="0" max="100" suffix="%" prepend-inner-icon="mdi-percent"></v-text-field>
+                </v-col>
+              </v-row>
+
+              <!-- Intermediary Info -->
+              <div class="text-caption font-weight-bold mt-3 mb-1" style="color:#4643a0"><v-icon size="14" class="mr-1">mdi-domain</v-icon>{{ $t('intermediary_information') }}</div>
+              <v-row dense>
+                <v-col cols="4"><v-text-field v-model="invForm.intermediary_company" :label="$t('intermediary_company')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+                <v-col cols="4"><v-text-field v-model="invForm.intermediary_address" :label="$t('intermediary_address')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+                <v-col cols="4"><v-text-field v-model="invForm.intermediary_country" :label="$t('intermediary_country')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+              </v-row>
+
+              <!-- Destination Info -->
+              <div class="text-caption font-weight-bold mt-3 mb-1" style="color:#4643a0"><v-icon size="14" class="mr-1">mdi-map-marker</v-icon>{{ $t('destination_information') }}</div>
+              <v-row dense>
+                <v-col cols="4"><v-text-field v-model="invForm.destination_company" :label="$t('destination_company')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+                <v-col cols="4"><v-text-field v-model="invForm.destination_address" :label="$t('destination_address')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+                <v-col cols="4"><v-text-field v-model="invForm.destination_country" :label="$t('destination_country')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+              </v-row>
+
+              <!-- Export Detail Lines -->
+              <div class="text-caption font-weight-bold mt-3 mb-1" style="color:#4643a0"><v-icon size="14" class="mr-1">mdi-format-list-numbered</v-icon>{{ $t('export_details') }}</div>
+              <div class="export-detail-table-wrap">
+                <table class="export-detail-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>{{ $t('description') }}</th>
+                      <th>{{ $t('container_or_truck_id') }}</th>
+                      <th>{{ $t('weight_metric_ton') }}</th>
+                      <th>{{ $t('unit_price_per_ton') }}</th>
+                      <th>{{ $t('total_price') }} ({{ invForm.currency || '-' }})</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(line, idx) in invForm.export_details" :key="idx">
+                      <td class="text-center">{{ idx + 1 }}</td>
+                      <td><v-text-field v-model="line.description" variant="plain" density="compact" hide-details class="export-input"></v-text-field></td>
+                      <td><v-text-field v-model="line.container_or_truck_id" variant="plain" density="compact" hide-details class="export-input"></v-text-field></td>
+                      <td><v-text-field v-model.number="line.weight_mt" variant="plain" density="compact" hide-details type="number" class="export-input" @update:model-value="calcDetailTotal(line)"></v-text-field></td>
+                      <td><v-text-field v-model.number="line.unit_price_per_ton" variant="plain" density="compact" hide-details type="number" class="export-input" @update:model-value="calcDetailTotal(line)"></v-text-field></td>
+                      <td class="text-right font-weight-bold">{{ main.formatDisplayNumber(calcDetailTotal(line)) }}</td>
+                      <td><v-btn icon size="x-small" variant="text" color="error" @click="removeExportDetail(idx)"><v-icon size="16">mdi-close-circle</v-icon></v-btn></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <v-btn variant="tonal" color="#4643a0" size="small" rounded class="mt-1" prepend-icon="mdi-plus" @click="addExportDetail">{{ $t('add_detail_line') }}</v-btn>
+
+              <!-- Summary -->
+              <v-row dense class="mt-2" v-if="invForm.export_details.length">
+                <v-col cols="7"></v-col>
+                <v-col cols="5">
+                  <div class="d-flex justify-space-between text-body-2"><span>{{ $t('sub_total') }}:</span><b>{{ main.formatDisplayNumber(exportSubTotal()) }} {{ invForm.currency || '' }}</b></div>
+                  <div class="d-flex justify-space-between text-body-2"><span>{{ $t('tax_percentage') }}:</span><b>{{ invForm.tax_percentage || 0 }}%</b></div>
+                  <v-divider class="my-1"></v-divider>
+                  <div class="d-flex justify-space-between text-subtitle-2 font-weight-bold" style="color:#4643a0"><span>{{ $t('grand_total') }}:</span><span>{{ main.formatDisplayNumber(exportGrandTotal()) }} {{ invForm.currency || '' }}</span></div>
+                </v-col>
+              </v-row>
+            </div>
+          </v-expand-transition>
+
           <v-row dense class="mt-3"><v-col cols="6"><v-btn block color="#4643a0" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn></v-col><v-col cols="6"><v-btn block color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn></v-col></v-row>
 
           <div class="d-flex ga-4 mt-2 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(selectedSells.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(selectedSells.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
@@ -122,7 +212,7 @@
         <tbody>
           <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="#4643a0"></v-progress-circular></td></tr></template>
           <template v-else v-for="item in colFilteredItems" :key="item.id">
-            <tr class="ls-row" :class="{'ls-row-expanded':expanded[item.id]}">
+            <tr class="ls-row" :class="{'ls-row-expanded':expanded[item.id],'ls-row-invoiced':item._is_invoiced}">
               <td class="ls-td ls-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="#4643a0" density="compact" hide-details></v-checkbox-btn></td>
               <td v-for="h in headers" :key="h.key" class="ls-td" :class="{'ls-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
@@ -133,7 +223,7 @@
                 <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
                 <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>
                 <template v-else-if="h.key==='_invoice_state'">
-                  <v-chip v-if="item._invoice_state" size="x-small" color="success" variant="tonal" prepend-icon="mdi-check-decagram">{{ item._invoice_state }}</v-chip>
+                  <v-chip v-if="item._invoice_state" size="x-small" color="success" variant="tonal" prepend-icon="mdi-check-decagram" style="cursor:pointer" @click="$router.push({name:'view_client_invoice',query:{ids:[item.invoice_id]}})">{{ item._invoice_state }}</v-chip>
                   <v-chip v-else size="x-small" color="grey" variant="tonal">{{ $t('not_invoiced') }}</v-chip>
                 </template>
                 <template v-else-if="h.key==='actions'">
@@ -209,6 +299,7 @@ export default {
 .ls-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
 .ls-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
 .ls-row:hover{background:rgba(70,67,160,.04)}.ls-row-expanded{background:rgba(70,67,160,.06)}
+.ls-row-invoiced{background:rgba(76,175,80,.06)}.ls-row-invoiced:hover{background:rgba(76,175,80,.1)}.ls-row-invoiced td{border-bottom-color:rgba(76,175,80,.12)}
 .ls-tfoot td{padding:10px 12px;border-top:2px solid rgba(70,67,160,.2);color:#4643a0;font-size:14px}
 .ls-expand-content{padding:12px 24px;background:rgba(var(--v-border-color),.03)}
 .ls-detail-group{border:1px solid rgba(var(--v-border-color),.12);border-radius:10px;overflow:hidden}
@@ -221,6 +312,13 @@ export default {
 .ls-panel-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center}
 .ls-stats-panel{max-height:400px}
 .ls-stat-item{padding:8px 10px;border-radius:10px;background:rgba(70,67,160,.03);border:1px solid rgba(70,67,160,.06)}
+.export-detail-table-wrap{overflow-x:auto;border:1px solid rgba(70,67,160,.15);border-radius:10px;margin-top:4px}
+.export-detail-table{width:100%;border-collapse:collapse;font-size:12px}
+.export-detail-table thead{background:rgba(70,67,160,.08)}
+.export-detail-table th{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#4643a0;text-align:center;border-bottom:1.5px solid rgba(70,67,160,.2);white-space:nowrap}
+.export-detail-table td{padding:4px 8px;text-align:center;border-bottom:1px solid rgba(70,67,160,.06)}
+.export-detail-table tbody tr:hover{background:rgba(70,67,160,.04)}
+.export-input .v-field__input{font-size:12px;min-height:28px!important;padding:2px 6px!important}
 </style>
 
 

@@ -357,6 +357,12 @@ const routes = [
                                 keeplive: true,
                                 component: () => import("@/components/parameters/CompanySettings/index.vue")
                             },
+                            {
+                                path: "fortnight-settings",
+                                name: "fortnight_settings",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/FortnightSettings/index.vue")
+                            },
                         ]
                     },
                     // =======================================

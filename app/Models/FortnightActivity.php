@@ -15,11 +15,13 @@ class FortnightActivity extends Model
         'section_id',
         'corporal_id',
         'price',
+        'is_fixed_price',
     ];
 
     protected $casts = [
         'date' => 'date',
         'price' => 'decimal:2',
+        'is_fixed_price' => 'boolean',
     ];
 
     public function workforce()

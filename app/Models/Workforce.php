@@ -15,10 +15,17 @@ class Workforce extends Model
         'sex',
         'cni',
         'is_migrant',
+        'salary_statement',
+        'fixed_daily_pay',
+        'cnss_id',
+        'daily_price',
     ];
 
     protected $casts = [
         'is_migrant' => 'boolean',
+        'salary_statement' => 'boolean',
+        'fixed_daily_pay' => 'boolean',
+        'daily_price' => 'decimal:2',
     ];
 
     public function fortnightActivities()

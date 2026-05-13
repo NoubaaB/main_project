@@ -1,8 +1,9 @@
 <template>
     <div 
     class="invoice-wrap pa-0 _invoice_page"
-    :class="{'border-dashed border-md border-cyan-darken-3':is_show}"
+    :class="{'border-dashed border-md border-cyan-darken-3':is_show, 'export-invoice-wrap': isExport}"
     >
+        <img class="export-watermark" :src="'/storage/images/invoice_title.png'" v-if="isExport" />
         <div class="header-wrap">
             <v-row no-gutters>
                 <v-col cols="12" class="bg-cyan-darken-4 header-wrap-strick">
@@ -24,7 +25,6 @@
             </v-row>
         </div>
         <!-- HEADER -->
-
         <div class="title-wrap">
             <v-row no-gutters>
                 <v-col>
@@ -33,19 +33,19 @@
                             <div class="ml-5 bg-cyan-darken-4 chevron" v-for="n in 10" :key="n" ></div>
                         </v-col>
                     </v-row>
-                    <v-row >
+                    <v-row>
                         <v-col class="ml-5">
                             <v-row no-gutters>
                                 <v-col class="text-black">
                                     <h3>
-                                        {{ $t('company') }} : {{client_invoice_detail.client_name}}
+                                        {{ $t('company') }} : {{company_settings.settings.company_name}}
                                     </h3>
                                 </v-col>
                             </v-row>
                             <v-row no-gutters>
                                 <v-col class="text-black">
                                     <strong>
-                                        {{ $t("address") }} : {{client_invoice_detail.address}}
+                                        {{ $t("address") }} : {{company_settings.settings.company_address}}
                                     </strong>
                                 </v-col>
                             </v-row>
@@ -68,7 +68,7 @@
                             </h4>
                         </v-col>
                     </v-row>
-                    <v-row >
+                    <v-row>
                         <v-col class="text-center text-cyan-darken-4 d-flex ">
                             <div cols="1" class="text-center ml-3" v-if="clientInvoice.allow_qr_code">
                                 <div class="corner-only" v-html="qr_code_generate">
@@ -82,127 +82,329 @@
             <div class="title_doughnut_top"></div>
         </div>
         <!-- TITLE -->
-        
-        <div class="content-wrap">
-            <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="clientInvoice.allow_bg_image"/>
-            <!-- START: Invoice table -->
-            <div class="invoice-table-wrap mt-0 pt-0">
-                <div class="table-scroll">
-                    <table class="invoice-table" role="table">
-                        <thead>
-                            <tr role="row" class="bg-cyan-darken-4">
-                            <th
-                                v-for="(h, idx) in displayedHeaders"
-                                :key="h.key"
-                                :draggable="true"
-                                class="ma-0 py-1"
-                                @dragstart="onHeaderDragStart($event, idx)"
-                                @dragover="onHeaderDragOver($event, idx)"
-                                @dragleave="onHeaderDragLeave($event, idx)"
-                                @drop="onHeaderDrop($event, idx)"
-                                :class="['col-header', { dragging: draggingIndex === idx, 'drag-over': dragOverIndex === idx }]"
-                                :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
-                            >
-                                <span class="d-inline ">
-                                    <span class="text-center" @click="toggleSort(h.key)">
-                                        <strong class="header-text">{{ h.title }}</strong>
-                                        <span  class="sort-indicator" v-if="sortKey === h.key && is_show">
-                                            <v-icon>{{ sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending' }}</v-icon>
+        <template v-if="clientInvoice.use_export_layout">
+            <div class="content-wrap">
+                <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="clientInvoice.allow_bg_image"/>
+                <!-- START: Invoice table -->
+                <div class="invoice-table-wrap mt-0 pt-2">
+                    <div class="table-scroll">
+                        <table class="invoice-table" role="table">
+                            <thead>
+                                <tr role="row" class="bg-cyan-darken-4">
+                                <th
+                                    v-for="(h, idx) in displayedHeaders"
+                                    :key="h.key"
+                                    :draggable="true"
+                                    class="ma-0 py-1"
+                                    @dragstart="onHeaderDragStart($event, idx)"
+                                    @dragover="onHeaderDragOver($event, idx)"
+                                    @dragleave="onHeaderDragLeave($event, idx)"
+                                    @drop="onHeaderDrop($event, idx)"
+                                    :class="['col-header', { dragging: draggingIndex === idx, 'drag-over': dragOverIndex === idx }]"
+                                    :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
+                                >
+                                    <span class="d-inline ">
+                                        <span class="text-center" @click="toggleSort(h.key)">
+                                            <strong class="header-text">{{ h.title }}</strong>
+                                            <span  class="sort-indicator" v-if="sortKey === h.key && is_show">
+                                                <v-icon>{{ sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending' }}</v-icon>
+                                            </span>
                                         </span>
+    
+                                        <span v-if="is_show" class="drag-handle mx-0 px-0" title="Drag to reorder" @mousedown.stop>
+                                            <v-icon>mdi-drag</v-icon>
+                                        </span>
+    
+                                        <span
+                                            v-if="is_show"
+                                            class="resize-handle"
+                                            @mousedown.prevent="onResizeMouseDown($event, h.key)"
+                                            title="Drag to resize"
+                                        ></span>
                                     </span>
-
-                                    <span v-if="is_show" class="drag-handle mx-0 px-0" title="Drag to reorder" @mousedown.stop>
-                                        <v-icon>mdi-drag</v-icon>
-                                    </span>
-
-                                    <span
-                                        v-if="is_show"
-                                        class="resize-handle"
-                                        @mousedown.prevent="onResizeMouseDown($event, h.key)"
-                                        title="Drag to resize"
-                                    ></span>
-                                </span>
-                            </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr class="ma-0 pa-0" v-for="(row, rIdx) in sortedItems" :key="rIdx" role="row">
-                            <td
-                                v-for="h in displayedHeaders"
-                                :key="h.key"
-                                class="ma-0 pa-0"
-                                :class="{ numeric: isNumericKey(h.key) }"
-                                :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
-                            >
-                                <strong class="cell-content">{{ formatCell(row, h.key) }}</strong>
-                            </td>
-                            </tr>
-
-                            <!-- filler rows to mimic printed invoice spacing -->
-                            <tr class="ma-0 pa-0" v-for="n in emptyRows" :key="'empty-'+n">
-                                <td class="ma-0 pa-0" v-for="h in displayedHeaders" :key="h.key + '-e'">&nbsp;</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                </th>
+                                </tr>
+                            </thead>
+    
+                            <tbody>
+                                <tr class="ma-0 pa-0" v-for="(row, rIdx) in sortedItems" :key="rIdx" role="row">
+                                <td
+                                    v-for="h in displayedHeaders"
+                                    :key="h.key"
+                                    class="ma-0 pa-0"
+                                    :class="{ numeric: isNumericKey(h.key) }"
+                                    :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
+                                >
+                                    <strong class="cell-content">{{ formatCell(row, h.key) }}</strong>
+                                </td>
+                                </tr>
+    
+                                <!-- filler rows to mimic printed invoice spacing -->
+                                <tr class="ma-0 pa-0" v-for="n in emptyRows" :key="'empty-'+n">
+                                    <td class="ma-0 pa-0" v-for="h in displayedHeaders" :key="h.key + '-e'">&nbsp;</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- END: Invoice table -->
+                <v-row
+                class="flex-nowrap"
+                no-gutters
+                v-if="allow_summary"
+                >
+                    <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-75 border-cyan-darken-3 text-blue text-center">
+                        <v-row >
+                            <v-col class="text-cyan-lighten-1 numeric-font">
+                                {{ $t("present invoice") }} :
+                            </v-col>
+                        </v-row>
+                        <v-divider opacity="0.5" variant="dashed" thickness="1"></v-divider>
+                        <v-row>
+                            <v-col class="text-cyan-darken-4 numeric-font">
+                                {{convertSumPriceToWord}}
+                            </v-col>
+                        </v-row>
+                    </v-col>
+                    <v-col class="text-black text-center-h-v">
+                        <v-row class="ma-1">
+                            <v-col>
+                                <v-row class="text-center">
+                                    <v-col class="bg-cyan-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
+                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_price") }} :</div>
+                                    </v-col>
+                                    <v-col class="bg-cyan-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
+                                        <strong>{{total.price}} {{ this.main_currency.currency }}</strong>
+                                    </v-col>
+                                </v-row>
+                                <v-row>
+                                    <v-col class="px-0 py-1">
+                                        <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2"></v-divider>
+                                    </v-col>
+                                </v-row>
+                                <v-row class="text-center">
+                                    <v-col class="bg-cyan-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
+                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
+                                    </v-col>
+                                    <v-col class="bg-cyan-lighten-5 rounded-be-lg py-0 pl-0 pr-2 text-left pl-5">
+                                        <strong>{{total.weight}} Kg</strong>
+                                    </v-col>
+                                </v-row>
+                            </v-col>
+                        </v-row>
+                    </v-col>
+                </v-row>
+                <v-chip  v-if="pagination.allow" variant="tonal" class="mx-3" size="x-small" color="grey">
+                    <span class="text-grey-darken-1">
+                        {{pagination.page}}/{{pagination.total_pages}}
+                    </span>
+                </v-chip>
+                <div class="wrap-summary">
+                    <div class="summary_doughnut_top"></div>
                 </div>
             </div>
-            <!-- END: Invoice table -->
-            <v-row
-            class="flex-nowrap"
-            no-gutters
-            v-if="allow_summary"
-            >
-                <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-75 border-cyan-darken-3 text-blue text-center">
-                    <v-row >
-                        <v-col class="text-cyan-lighten-1 numeric-font">
-                            {{ $t("present invoice") }} :
-                        </v-col>
-                    </v-row>
-                    <v-divider opacity="0.5" variant="dashed" thickness="1"></v-divider>
-                    <v-row>
-                        <v-col class="text-cyan-darken-4 numeric-font">
-                            {{convertSumPriceToWord}}
-                        </v-col>
-                    </v-row>
-                </v-col>
-                <v-col class="text-black text-center-h-v">
-                    <v-row class="ma-1">
-                        <v-col>
-                            <v-row class="text-center">
-                                <v-col class="bg-cyan-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
-                                    <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_price") }} :</div>
-                                </v-col>
-                                <v-col class="bg-cyan-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
-                                    <strong>{{total.price}} {{ this.main.currency }}<small>(s)</small></strong>
-                                </v-col>
-                            </v-row>
-                            <v-row>
-                                <v-col class="px-0 py-1">
-                                    <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2"></v-divider>
-                                </v-col>
-                            </v-row>
-                            <v-row class="text-center">
-                                <v-col class="bg-cyan-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
-                                    <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
-                                </v-col>
-                                <v-col class="bg-cyan-lighten-5 rounded-be-lg py-0 pl-0 pr-2 text-left pl-5">
-                                    <strong>{{total.weight}} Kg</strong>
-                                </v-col>
-                            </v-row>
-                        </v-col>
-                    </v-row>
-                </v-col>
-            </v-row>
-            <v-chip  v-if="pagination.allow" variant="tonal" class="mx-3" size="x-small" color="grey">
-                <span class="text-grey-darken-1">
-                    {{pagination.page}}/{{pagination.total_pages}}
-                </span>
-            </v-chip>
-            <div class="wrap-summary">
-                <div class="summary_doughnut_top"></div>
+        </template>
+        <template v-else>
+            <div class="content-wrap">
+                <v-row no-gutters class="py-2">
+                    <v-col class="mr-1 py-1 font-weight-bold text-center-h-v text-center bg-cyan-lighten-2 rounded-ts-xl">
+                        {{$t("shipper_/_exporter") }}
+                    </v-col>
+                    <v-col class="ml-1 py-1 font-weight-bold text-center-h-v text-center bg-cyan-darken-4 rounded-te-xl" >
+                        {{ $t("recipient_/_importer") }}
+                    </v-col>
+                </v-row>
+                <v-row no-gutters>
+                    <v-col class="invoice-details mr-1 py-1">
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t('company') }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{ client_invoice_detail.invoice.client.name }} </v-col>
+                        </v-row>
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t("address") }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{ client_invoice_detail.invoice.client.address }}</v-col>
+                        </v-row>
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t("country") }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{ client_invoice_detail.invoice.client.country }} </v-col>
+                        </v-row>
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t("shipment_country") }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{  client_invoice_detail.invoice.shipment_country}} </v-col>
+                        </v-row>
+                    </v-col>
+                    <v-col class="invoice-details ml-1 py-1">
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t('company') }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{ client_invoice_detail.invoice.intermediary_company }} </v-col>
+                        </v-row>
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t("address") }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{ client_invoice_detail.invoice.intermediary_address }}</v-col>
+                        </v-row>
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t("country") }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{ client_invoice_detail.invoice.intermediary_country }} </v-col>
+                        </v-row>
+                        <v-row no-gutters class="text-center">
+                            <v-col>{{ $t("importer_country") }}</v-col>
+                            <v-col cols="1">:</v-col>
+                            <v-col> {{  company_settings.settings.company_origin}} </v-col>
+                        </v-row>
+                    </v-col>
+                </v-row>
+                <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="clientInvoice.allow_bg_image"/>
+                <!-- START: Invoice table -->
+                <div class="invoice-table-wrap mt-0 pt-2">
+                    <div class="table-scroll">
+                        <table class="invoice-table" role="table">
+                            <thead>
+                                <tr role="row" class="bg-cyan-darken-4">
+                                <th v-for="(h, idx) in getHeaderExportKeys"
+                                    :key="idx"
+                                    class="ma-0 py-1 col-header">
+                                    <span class="d-inline ">
+                                        <span class="text-center">
+                                            <strong class="header-text">{{ $t(h)}}</strong>
+                                        </span>
+                                    </span>
+                                </th>
+                                </tr>
+                            </thead>
+    
+                            <tbody>
+                                <tr class="ma-0 pa-0" v-for="(row, rIdx) in getItemsExport" :key="rIdx" role="row">
+                                    <td
+                                        v-for="h in getHeaderExportKeys"
+                                        :key="h"
+                                        class="ma-0 pa-0"
+                                        :class="{ numeric: isNumericKey(h) }"
+                                        :style="{ width: (columnWidths[h] || defaultWidth) + 'px', textAlign: h.align || 'center' }"
+                                    >
+                                        <strong class="cell-content">{{ formatCell(row, h) }}</strong>
+                                    </td>
+                                </tr>
+                                <!-- filler rows to mimic printed invoice spacing -->
+                                <tr class="ma-0 pa-0" v-for="n in emptyRows-16" :key="'empty-'+n">
+                                    <td class="ma-0 pa-0" v-for="h in getHeaderExportKeys" :key="h.key + '-e'">&nbsp;</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- END: Invoice table -->
+                <v-row
+                class="flex-nowrap mt-2"
+                no-gutters
+                v-if="allow_summary"
+                >   
+                    <v-col cols="2" class="text-center mx-3 ">
+                        <v-row no-gutters class="bg-cyan-darken-4 rounded-t-lg">
+                            <v-col>
+                                {{ $t('incoterm') }}
+                            </v-col>
+                        </v-row>
+                        <v-row no-gutters class="text-center bg-cyan-lighten-5 rounded-b-lg">
+                            <v-col class="mx-5">
+                                <v-checkbox v-for="incoterm in incoterms" :key="incoterm" 
+                                    :model-value="incoterm == client_invoice_detail.invoice.incoterm"
+                                    color="cyan-darken-4"
+                                    class="my-2"
+                                    :label="incoterm"
+                                    readonly
+                                    hide-details
+                                    density=""
+                                ></v-checkbox>
+                            </v-col>
+                        </v-row>
+                    </v-col>
+                    <v-col cols="5" class="text-black text-center-h-v">
+                        <v-row class="ma-1">
+                            <v-col>
+                                <v-row class="text-center">
+                                    <v-col class="bg-cyan-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
+                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_gross_weight") }} :</div>
+                                    </v-col>
+                                    <v-col cols="5" class="bg-cyan-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
+                                        <strong>{{main.formatDisplayNumber(client_invoice_detail.invoice.total_gross_weight)}} Kg</strong>
+                                    </v-col>
+                                </v-row>
+                                <v-row>
+                                    <v-col class="px-0 py-1">
+                                        <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2"></v-divider>
+                                    </v-col>
+                                </v-row>
+                                <v-row class="text-center">
+                                    <v-col class="bg-cyan-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
+                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
+                                    </v-col>
+                                    <v-col cols="5" class="bg-cyan-lighten-5 rounded-be-lg py-0 pl-0 pr-2 text-left pl-5">
+                                        <strong>{{main.formatDisplayNumber(export_total.weight)}} Kg</strong>
+                                    </v-col>
+                                </v-row>
+                            </v-col>
+                        </v-row>
+                    </v-col>
+                    <v-col cols="5" class="text-black text-center-h-v">
+                        <v-row class="ma-1">
+                            <v-col>
+                                <v-row class="text-center">
+                                    <v-col class="bg-cyan-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
+                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_price") }} :</div>
+                                    </v-col>
+                                    <v-col class="bg-cyan-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
+                                        <strong>{{main.formatDisplayNumber(export_total.price)}} {{ this.main_currency.currency }}</strong>
+                                    </v-col>
+                                </v-row>
+                                <v-row>
+                                    <v-col class="px-0 py-1">
+                                        <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2"></v-divider>
+                                    </v-col>
+                                </v-row>
+                                <v-row class="text-center">
+                                    <v-col class="bg-cyan-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
+                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
+                                    </v-col>
+                                    <v-col class="bg-cyan-lighten-5 rounded-be-lg py-0 pl-0 pr-2 text-left pl-5">
+                                        <strong>{{main.formatDisplayNumber(export_total.weight)}} Kg</strong>
+                                    </v-col>
+                                </v-row>
+                            </v-col>
+                        </v-row>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col class="border-dashed border-sm rounded-lg mx-8 border-opacity-75 border-cyan-darken-3 text-blue text-center">
+                        <v-row >
+                            <v-col class="text-cyan-lighten-1 numeric-font">
+                                {{ $t("present invoice") }} :
+                            </v-col>
+                        </v-row>
+                        <v-divider opacity="0.5" variant="dashed" thickness="1"></v-divider>
+                        <v-row>
+                            <v-col class="text-cyan-darken-4 numeric-font">
+                                {{convertSumPriceToWord}}
+                            </v-col>
+                        </v-row>
+                    </v-col>
+                </v-row>
+                <v-chip  v-if="pagination.allow" variant="tonal" class="mx-3" size="x-small" color="grey">
+                    <span class="text-grey-darken-1">
+                        {{pagination.page}}/{{pagination.total_pages}}
+                    </span>
+                </v-chip>
+                <div class="wrap-summary">
+                    <div class="summary_doughnut_top"></div>
+                </div>
             </div>
-        </div>
+        </template>
 
         <!-- FOOTER -->
         <div class="footer-wrap">
@@ -230,11 +432,13 @@
                 </v-col>
             </v-row>
         </div>
+
     </div>
 </template>
 
 <script>
     import { useTruck } from '@/stores/Truck';
+    import { useCompanySettings } from '@/stores/CompanySettings';
     import { useMain } from '@/stores/Main';
     import { useClientInvoice } from '@/stores/ClientInvoice';
     import writtenNumber from 'written-number';
@@ -296,9 +500,19 @@
         computed: {
             truck: () => useTruck(),
             main: () => useMain(),
+            company_settings: () => useCompanySettings(),
             clientInvoice: () => useClientInvoice(),
             is_show: function () {
                 return this.clientInvoice.is_show;
+            },
+            export_total: function () {
+                return {
+                    price: _.sumBy(this.client_invoice_detail?.invoice?.export_details,"total_price"),
+                    weight: _.sumBy(this.client_invoice_detail?.invoice?.export_details,"weight_mt"),
+                }
+            },
+            incoterms : function(){
+                return ['FOB','C&F','CIF'];
             },
             qr_code_generate: function () {
                 const qrSVG = new QRCodeSVG('0001', {
@@ -328,15 +542,32 @@
 
                 // if no centimes, return only the unit part
                 if (subunit === 0) {
-                    return `${this.main.capitalize(unitWords)} ${this.main.currency_unit}(s)`.trim();
+                    return `${this.main.capitalize(unitWords)} ${this.main_currency.unit}(s)`.trim();
                 }
 
                 // otherwise include centimes
                 const subunitWords = writtenNumber(subunit, { lang: this.main.lang.code });
-                return `${this.main.capitalize(unitWords)} ${this.main.currency_unit}(s) ${this.$t('and')} 
-                ${this.main.capitalize(subunitWords)} ${this.main.currency_subunit}(s)`
+                return `${this.main.capitalize(unitWords)} ${this.main_currency.unit}(s) ${this.$t('and')} 
+                ${this.main.capitalize(subunitWords)} ${this.main_currency.subunit}(s)`
                 .trim();
 
+            },
+            main_currency : function(){
+                if(this.client_invoice_detail.invoice.currency){
+                    return this.main.currencies.find(c => c.short == this.client_invoice_detail.invoice.currency);
+                }
+                return this.main.currencies.find(c => c.short == this.main_currency.currency);
+            },
+            isExport() {
+                return this.client_invoice_detail?.type_invoice === 'export';
+            },
+            exportSubTotal() {
+                return (this.client_invoice_detail?.export_details || []).reduce((s, l) => s + Number(l.total_price || 0), 0);
+            },
+            exportGrandTotal() {
+                const sub = this.exportSubTotal;
+                const tax = Number(this.client_invoice_detail?.tax_percentage || 0);
+                return Number((sub + sub * (tax / 100)).toFixed(2));
             },
             // displayedHeaders: respects visibility and columnOrder (uses this.clientInvoice.getHeaders)
             displayedHeaders() {
@@ -350,7 +581,18 @@
                 visible.forEach(h => { if (!this.columnOrder.includes(h.key)) mapped.push(h); });
                 return mapped;
             },
-
+            getHeaderExportKeys:function(){
+                if(this.client_invoice_detail.invoice.export_details.length==0){
+                   return []
+                }
+             return Object.keys(this.client_invoice_detail.invoice.export_details[0])
+            },
+            getItemsExport:function(){
+                if(this.client_invoice_detail.invoice.export_details.length==0){
+                   return []
+                }
+             return this.client_invoice_detail.invoice.export_details;
+            },
             // sortedItems: sort by sortKey / sortDesc (uses this.items)
             sortedItems() {
                 const arr = (this.items || []).slice();
@@ -513,6 +755,13 @@
             - var(--title-wrap-margin-top-height)
         ); 
         position: relative;
+    }
+    .invoice-details .v-row:nth-child(odd) {
+        background-color:rgba(135,207,235,0.12);
+    }
+
+    .invoice-details .v-row:nth-child(even) {
+        background-color: rgba(255, 255, 255, 0);
     }
 
     .invoice-wrap{
@@ -741,4 +990,17 @@ table.invoice-table tbody tr td:empty { height: 26px; }
 .rounded-bs-lg[data-v-043dbba6] {
     border-bottom-left-radius: 8px !important;
 }
+/* ═══ Export Invoice Custom Styles ═══ */
+.exp-header { height: 100px; position: relative; overflow: hidden; }
+.exp-header-curve { width: 300px; height: 100px; position: absolute; left: 45%; transform: skewX(-40deg); z-index: 1; }
+.exp-meta-box { border: 1px solid #B2EBF2; }
+.exp-party-box { height: 100%; }
+.exp-table { width: 100%; border-collapse: collapse; }
+.exp-table th { padding: 6px 12px; font-size: 13px; font-weight: 800; text-align: center; border-bottom: 2px solid #80DEEA; }
+.exp-table td { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #E0F7FA; }
+.exp-checkbox { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1.5px solid #00838F; border-radius: 2px; background: white; }
+.exp-checkbox.checked { border-color: #00838F; }
+.exp-footer-curve { position: absolute; top: 0; left: -50px; width: 150px; height: 100%; transform: skewX(-30deg); z-index: 1; }
+.export-invoice-wrap { position: relative; z-index: 1; }
+.export-watermark { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); opacity: 0.05; z-index: 0; pointer-events: none; width: 60%; }
 </style>

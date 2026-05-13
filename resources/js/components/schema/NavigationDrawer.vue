@@ -211,6 +211,7 @@ export default {
           ['mdi-package-variant-closed', this.$t("package_management"), "package_management"],
           ['mdi-bank', this.$t("bank_name_management"), "bank_name_management"],
           ['mdi-domain', this.$t("company_settings"), "company_settings"],
+          ['mdi-calendar-clock', this.$t("fortnight_settings"), "fortnight_settings"],
         ], null, 'settings.manage'],
         ['mdi-shield-account', this.$t('user_management'), null, "admin_users", 'users.manage'],
       ];

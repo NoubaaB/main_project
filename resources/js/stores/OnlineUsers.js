@@ -1,4 +1,4 @@
-﻿import { defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 import { initSocket, disconnectSocket } from '@/echo.js';
 import mitt from '@/plugins/mitt.js';
 
@@ -27,6 +27,8 @@ import { useCorporal } from '@/stores/Corporal';
 import { useSection } from '@/stores/Section';
 import { useWorkforce } from '@/stores/Workforce';
 import { useDetailInventoryCategory } from '@/stores/DetailInventoryCategory';
+import { useCompanySettings } from '@/stores/CompanySettings';
+import { useFortnightSetting } from '@/stores/FortnightSetting';
 
 export const useOnlineUsers = defineStore('OnlineUsers', {
     state: () => ({
@@ -163,6 +165,33 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
                 'Workforce': () => useWorkforce(),
             };
 
+            // CompanySetting is a key-value store, handle separately
+            if (model === 'CompanySetting') {
+                try {
+                    const csStore = useCompanySettings();
+                    if (record_data && typeof record_data === 'object') {
+                        csStore.setSettings(record_data);
+                    } else {
+                        // Full refresh if no inline data
+                        csStore.fetchSettings();
+                    }
+                } catch (e) {
+                    console.warn('[WebSocket] Failed to update CompanySettings:', e);
+                }
+                return;
+            }
+
+            // FortnightSetting uses a list-based store with CRUD
+            if (model === 'FortnightSetting') {
+                try {
+                    const fsStore = useFortnightSetting();
+                    fsStore.handleWsUpdate({ action, id: record_id, data: record_data });
+                } catch (e) {
+                    console.warn('[WebSocket] Failed to update FortnightSetting:', e);
+                }
+                return;
+            }
+
             const factory = storeMap[model];
             if (!factory) return;
 
@@ -204,4 +233,3 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
         },
     },
 });
-

@@ -123,6 +123,30 @@
               :readonly="priceReadonly"
             ></v-text-field>
 
+            <!-- Fixed Daily Price (shown when any selected workforce has fixed_daily_pay) -->
+            <div v-if="hasFixedDailyPaySelected" class="fnm-fixed-price-wrap mb-3">
+              <div class="fnm-fixed-price-badge">
+                <v-icon size="16" color="amber-darken-2" class="mr-1">mdi-cash-lock</v-icon>
+                <span class="text-caption font-weight-bold">{{ $t('fixed_daily_pay') }}</span>
+                <v-chip size="x-small" color="amber-darken-2" variant="flat" class="ml-1">{{ fixedDailyPayCount }}</v-chip>
+              </div>
+              <v-text-field
+                v-model.number="fixedDailyPrice"
+                :label="$t('fixed_daily_price')"
+                density="compact"
+                variant="outlined"
+                rounded
+                color="amber-darken-2"
+                class="text-amber-darken-2"
+                type="number"
+                min="0"
+                step="0.01"
+                :prefix="'Dh'"
+                :hint="$t('fixed_daily_price_hint', { count: fixedDailyPayCount })"
+                persistent-hint
+              ></v-text-field>
+            </div>
+
             <!-- Submit button -->
             <v-btn
               block
@@ -275,10 +299,10 @@
                     v-for="act in cell.activities.slice(0, 4)"
                     :key="act.id"
                     class="fnm-cal-activity"
-                    :class="act.section_id ? 'fnm-act-section' : 'fnm-act-corporal'"
+                    :class="getActivityClass(act)"
                     @click.stop="editActivity(act)"
                   >
-                    <span v-if="multipleSelected && act.workforce" class="fnm-act-wf" :title="act.workforce.full_name">
+                    <span v-if="(multipleSelected || act.is_fixed_price) && act.workforce" class="fnm-act-wf" :title="act.workforce.full_name">
                       {{ getWorkforceInitials(act.workforce) }}
                     </span>
                     <span class="fnm-act-price">{{ formatNumber(act.price) }} Dh</span>
@@ -305,7 +329,7 @@
                     <v-card class="rounded-lg pa-0" elevation="8" min-width="280">
                       <div class="fnm-more-header">
                         <v-icon size="16" color="white" class="mr-1">mdi-calendar</v-icon>
-                        {{ cell.dateStr }} — {{ cell.activities.length }} {{ $t('activities') }}
+                        {{ cell.dateStr }} â€” {{ cell.activities.length }} {{ $t('activities') }}
                       </div>
                       <div class="fnm-more-list">
                         <div
@@ -315,6 +339,7 @@
                           @click="editActivity(act)"
                         >
                           <span v-if="act.workforce" class="fnm-more-wf">{{ act.workforce.full_name }}</span>
+                          <v-icon v-if="act.is_fixed_price" size="12" color="amber-darken-2" class="mr-1">mdi-cash-lock</v-icon>
                           <span class="fnm-more-price">{{ formatNumber(act.price) }} Dh</span>
                           <span class="fnm-more-label">{{ getActivityLabel(act) }}</span>
                           <v-btn icon size="18" variant="text" color="error" class="fnm-more-del" @click.stop="deleteActivity(act)">
@@ -389,6 +414,17 @@
               </div>
               <div class="d-flex ga-2">
                 <v-btn
+                  color="grey-darken-1"
+                  variant="tonal"
+                  rounded
+                  size="small"
+                  icon="mdi-table-cog"
+                  @click="colSettingsDialog = true"
+                >
+                  <v-icon>mdi-table-cog</v-icon>
+                  <v-tooltip activator="parent" location="bottom">{{ $t('configure_columns') }}</v-tooltip>
+                </v-btn>
+                <v-btn
                   v-print="printCfg"
                   color="info"
                   variant="flat"
@@ -412,18 +448,50 @@
               </div>
             </v-card-title>
             <v-card-text class="pa-4 pt-0">
-              <!-- Toggle buttons -->
-              <v-btn-toggle v-model="breakdownTab" mandatory variant="outlined" density="compact" color="info" rounded class="mb-4">
-                <v-btn value="workforces" size="small" prepend-icon="mdi-account-multiple">
-                  {{ $t('workforces_activities') }}
-                </v-btn>
-                <v-btn value="sections" size="small" prepend-icon="mdi-sitemap-outline">
-                  {{ $t('sections_activities') }}
-                </v-btn>
-                <v-btn value="corporals" size="small" prepend-icon="mdi-account-tie">
-                  {{ $t('corporals_activities') }}
-                </v-btn>
-              </v-btn-toggle>
+              <!-- Period Toggle + Declaration Checkboxes -->
+              <div class="d-flex flex-wrap align-center ga-3 mb-4">
+                <!-- Entity toggle (Workforces / Sections / Corporals) -->
+                <v-btn-toggle v-model="breakdownTab" mandatory variant="outlined" density="compact" color="#42A5F5" rounded>
+                  <v-btn value="workforces" size="small" prepend-icon="mdi-account-multiple">
+                    {{ $t('workforces_activities') }}
+                  </v-btn>
+                  <v-btn value="sections" size="small" prepend-icon="mdi-sitemap-outline">
+                    {{ $t('sections_activities') }}
+                  </v-btn>
+                  <v-btn value="corporals" size="small" prepend-icon="mdi-account-tie">
+                    {{ $t('corporals_activities') }}
+                  </v-btn>
+                </v-btn-toggle>
+
+                <v-divider vertical class="mx-1" style="height:28px;"></v-divider>
+
+                <!-- Period toggle (Q1 / Q2 / Month) -->
+                <v-btn-toggle v-model="breakdownPeriod" mandatory variant="outlined" density="compact" color="#42A5F5" rounded>
+                  <v-btn value="q1" size="small" prepend-icon="mdi-numeric-1-circle-outline">Q1</v-btn>
+                  <v-btn value="q2" size="small" prepend-icon="mdi-numeric-2-circle-outline">Q2</v-btn>
+                  <v-btn value="month" size="small" prepend-icon="mdi-calendar-month">{{ $t('month') }}</v-btn>
+                </v-btn-toggle>
+
+                <v-divider vertical class="mx-1" style="height:28px;"></v-divider>
+
+                <!-- Declaration checkboxes -->
+                <v-checkbox
+                  v-model="showDeclared"
+                  :label="$t('declared')"
+                  density="compact"
+                  color="#42A5F5"
+                  hide-details
+                  class="flex-grow-0"
+                ></v-checkbox>
+                <v-checkbox
+                  v-model="showNonDeclared"
+                  :label="$t('non_declared')"
+                  density="compact"
+                  color="warning"
+                  hide-details
+                  class="flex-grow-0"
+                ></v-checkbox>
+              </div>
 
               <!-- Breadcrumb -->
               <div v-if="drilldownItem" class="d-flex align-center ga-2 mb-3 fnm-breadcrumb">
@@ -441,38 +509,57 @@
               <!-- ======= WORKFORCE TAB ======= -->
               <template v-if="breakdownTab === 'workforces'">
                 <!-- Summary table -->
-                <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table">
+                <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table" id="fnm-breakdown-print-area">
                   <thead>
                     <tr>
-                      <th>{{ $t('name') }}</th>
-                      <th class="text-center">{{ $t('q1_count') }}</th>
-                      <th class="text-center">{{ $t('q1_total') }}</th>
-                      <th class="text-center">{{ $t('q2_count') }}</th>
-                      <th class="text-center">{{ $t('q2_total') }}</th>
-                      <th class="text-center font-weight-bold">{{ $t('month_total') }}</th>
+                      <th v-for="col in visibleWorkforceColumns" :key="'th-'+col.key"
+                        :class="col.type === 'chip' ? '' : 'text-center'"
+                        :style="col.headerColor ? 'color:'+col.headerColor : ''"
+                      >{{ $t(col.label) }}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="w in breakdownData.workforces" :key="'w-' + w.id" class="fnm-clickable-row" @click="drilldownItem = w">
-                      <td>
-                        <v-chip size="small" color="info" variant="tonal" label>
+                    <tr v-for="w in filteredWorkforces" :key="'w-' + w.id" class="fnm-clickable-row" @click="drilldownItem = w">
+                      <td v-for="col in visibleWorkforceColumns" :key="'td-'+col.key+'-'+w.id"
+                        :class="col.type === 'chip' ? '' : 'text-center'"
+                        :style="col.bold ? 'font-weight:700;color:#42A5F5;' : (col.cellColor ? 'font-weight:700;color:'+col.cellColor : '')"
+                      >
+                        <!-- Chip (name) -->
+                        <v-chip v-if="col.type === 'chip'" size="small" color="#42A5F5" variant="tonal" label>
                           <v-icon start size="14">mdi-account</v-icon>
-                          {{ w.name }}
+                          {{ w[col.key] }}
                         </v-chip>
+                        <!-- Boolean icon -->
+                        <v-icon v-else-if="col.type === 'boolean'" :color="w[col.key] ? (col.color || 'success') : 'grey'" size="18">
+                          {{ w[col.key] ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
+                        </v-icon>
+                        <!-- Computed declared/non-declared -->
+                        <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(getDeclared(w)) }}</template>
+                        <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(getNonDeclared(w)) }}</template>
+                        <!-- Currency -->
+                        <template v-else-if="col.type === 'currency'">{{ formatNumber(w[col.key]) }}</template>
+                        <!-- Text / Number -->
+                        <template v-else>{{ getCellValue(w, col) }}</template>
                       </td>
-                      <td class="text-center">{{ w.q1_count }}</td>
-                      <td class="text-center">{{ formatNumber(w.q1_total) }}</td>
-                      <td class="text-center">{{ w.q2_count }}</td>
-                      <td class="text-center">{{ formatNumber(w.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-info">{{ formatNumber(w.month_total) }}</td>
                     </tr>
                     <tr class="fnm-breakdown-total-row">
-                      <td class="font-weight-bold">{{ $t('total') }}</td>
-                      <td class="text-center font-weight-bold">{{ workforceTotals.q1_count }}</td>
-                      <td class="text-center font-weight-bold">{{ formatNumber(workforceTotals.q1_total) }}</td>
-                      <td class="text-center font-weight-bold">{{ workforceTotals.q2_count }}</td>
-                      <td class="text-center font-weight-bold">{{ formatNumber(workforceTotals.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-info">{{ formatNumber(workforceTotals.month_total) }}</td>
+                      <td class="font-weight-bold" :colspan="totalColspan">{{ $t('total') }}</td>
+                      <template v-for="col in visibleWorkforceColumns" :key="'tot-'+col.key">
+                        <td v-if="col.period || col.type === 'computed_declared' || col.type === 'computed_non_declared'"
+                          class="text-center font-weight-bold"
+                          :style="col.cellColor ? 'color:'+col.cellColor : (col.bold ? 'color:#42A5F5;' : '')"
+                        >
+                          <template v-if="col.key === 'q1_work_days'">{{ workforceTotals.q1_work_days }}</template>
+                          <template v-else-if="col.key === 'q1_non_work_days'">{{ workforceTotals.q1_non_work_days }}</template>
+                          <template v-else-if="col.key === 'q1_total'">{{ formatNumber(workforceTotals.q1_total) }}</template>
+                          <template v-else-if="col.key === 'q2_work_days'">{{ workforceTotals.q2_work_days }}</template>
+                          <template v-else-if="col.key === 'q2_non_work_days'">{{ workforceTotals.q2_non_work_days }}</template>
+                          <template v-else-if="col.key === 'q2_total'">{{ formatNumber(workforceTotals.q2_total) }}</template>
+                          <template v-else-if="col.key === 'month_total'">{{ formatNumber(workforceTotals.month_total) }}</template>
+                          <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(workforceTotals.declared) }}</template>
+                          <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(workforceTotals.non_declared) }}</template>
+                        </td>
+                      </template>
                     </tr>
                   </tbody>
                 </v-table>
@@ -484,6 +571,7 @@
                       <th>{{ $t('date') }}</th>
                       <th>{{ $t('section') }} / {{ $t('corporal') }}</th>
                       <th class="text-center">{{ $t('price') }}</th>
+                      <th class="text-center">{{ $t('type') }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -506,6 +594,13 @@
                         <span v-else class="text-grey">-</span>
                       </td>
                       <td class="text-center font-weight-bold">{{ formatNumber(act.price) }} {{ main.currency || 'DH' }}</td>
+                      <td class="text-center">
+                        <v-chip v-if="act.is_fixed_price" size="x-small" color="amber-darken-2" variant="flat">
+                          <v-icon start size="12">mdi-cash-lock</v-icon>
+                          {{ $t('fixed_daily_pay') }}
+                        </v-chip>
+                        <v-chip v-else size="x-small" color="grey" variant="tonal">{{ $t('regular') }}</v-chip>
+                      </td>
                     </tr>
                   </tbody>
                 </v-table>
@@ -513,16 +608,16 @@
 
               <!-- ======= SECTIONS TAB ======= -->
               <template v-if="breakdownTab === 'sections'">
-                <!-- Summary table -->
                 <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table">
                   <thead>
                     <tr>
                       <th>{{ $t('name') }}</th>
-                      <th class="text-center">{{ $t('q1_count') }}</th>
-                      <th class="text-center">{{ $t('q1_total') }}</th>
-                      <th class="text-center">{{ $t('q2_count') }}</th>
-                      <th class="text-center">{{ $t('q2_total') }}</th>
-                      <th class="text-center font-weight-bold">{{ $t('month_total') }}</th>
+                      <th class="text-center">{{ $t('workforce_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -533,63 +628,73 @@
                           {{ s.name }}
                         </v-chip>
                       </td>
-                      <td class="text-center">{{ s.q1_count }}</td>
-                      <td class="text-center">{{ formatNumber(s.q1_total) }}</td>
-                      <td class="text-center">{{ s.q2_count }}</td>
-                      <td class="text-center">{{ formatNumber(s.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-orange">{{ formatNumber(s.month_total) }}</td>
+                      <td class="text-center">
+                        <v-chip size="x-small" color="#42A5F5" variant="tonal">{{ (s.workforces || []).length }}</v-chip>
+                      </td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ s.q1_count }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(s.q1_total) }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ s.q2_count }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(s.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-orange">{{ formatNumber(s.month_total) }}</td>
                     </tr>
                     <tr class="fnm-breakdown-total-row">
-                      <td class="font-weight-bold">{{ $t('total') }}</td>
-                      <td class="text-center font-weight-bold">{{ sectionTotals.q1_count }}</td>
-                      <td class="text-center font-weight-bold">{{ formatNumber(sectionTotals.q1_total) }}</td>
-                      <td class="text-center font-weight-bold">{{ sectionTotals.q2_count }}</td>
-                      <td class="text-center font-weight-bold">{{ formatNumber(sectionTotals.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-orange">{{ formatNumber(sectionTotals.month_total) }}</td>
+                      <td class="font-weight-bold" colspan="2">{{ $t('total') }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ sectionTotals.q1_count }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(sectionTotals.q1_total) }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ sectionTotals.q2_count }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(sectionTotals.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-orange">{{ formatNumber(sectionTotals.month_total) }}</td>
                     </tr>
                   </tbody>
                 </v-table>
 
-                <!-- Drill-down: workforces in selected section -->
+                <!-- Drill-down -->
                 <v-table v-else density="compact" class="rounded-lg fnm-breakdown-table">
                   <thead>
                     <tr>
                       <th>{{ $t('full_name') }}</th>
                       <th class="text-center">{{ $t('matricule') }}</th>
+                      <th class="text-center">{{ $t('cin') }}</th>
+                      <th class="text-center">{{ $t('cnss_id') }}</th>
                       <th class="text-center">{{ $t('nationality') }}</th>
                       <th class="text-center">{{ $t('sex') }}</th>
                       <th class="text-center">{{ $t('is_migrant') }}</th>
-                      <th class="text-center">{{ $t('q1_count') }}</th>
-                      <th class="text-center">{{ $t('q1_total') }}</th>
-                      <th class="text-center">{{ $t('q2_count') }}</th>
-                      <th class="text-center">{{ $t('q2_total') }}</th>
-                      <th class="text-center font-weight-bold">{{ $t('month_total') }}</th>
+                      <th class="text-center">{{ $t('salary_statement') }}</th>
+                      <th class="text-center">{{ $t('fixed_daily_pay') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="wf in drilldownItem.workforces" :key="'sw-' + wf.id">
                       <td>
-                        <v-chip size="small" color="info" variant="tonal" label>
+                        <v-chip size="small" color="#42A5F5" variant="tonal" label>
                           <v-icon start size="14">mdi-account</v-icon>
                           {{ wf.name }}
                         </v-chip>
                       </td>
-                      <td class="text-center">{{ wf.matricule }}</td>
-                      <td class="text-center">{{ wf.nationality }}</td>
-                      <td class="text-center">
-                        <v-chip :color="wf.sex === 'male' ? 'blue' : 'pink'" size="x-small" variant="tonal">
-                          <v-icon size="12" class="mr-1">{{ wf.sex === 'male' ? 'mdi-gender-male' : 'mdi-gender-female' }}</v-icon>
-                          {{ $t(wf.sex) }}
-                        </v-chip>
-                      </td>
+                      <td class="text-center">{{ wf.matricule || '-' }}</td>
+                      <td class="text-center">{{ wf.cin || '-' }}</td>
+                      <td class="text-center">{{ wf.cnss_id || '-' }}</td>
+                      <td class="text-center">{{ wf.nationality || '-' }}</td>
+                      <td class="text-center">{{ wf.sex || '-' }}</td>
                       <td class="text-center">
                         <v-icon :color="wf.is_migrant ? 'warning' : 'grey'" size="18">{{ wf.is_migrant ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}</v-icon>
                       </td>
-                      <td class="text-center">{{ wf.q1_count }}</td>
-                      <td class="text-center">{{ formatNumber(wf.q1_total) }}</td>
-                      <td class="text-center">{{ wf.q2_count }}</td>
-                      <td class="text-center">{{ formatNumber(wf.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-info">{{ formatNumber(wf.month_total) }}</td>
+                      <td class="text-center">
+                        <v-icon :color="wf.salary_statement ? 'success' : 'grey'" size="18">{{ wf.salary_statement ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}</v-icon>
+                      </td>
+                      <td class="text-center">
+                        <v-icon :color="wf.fixed_daily_pay ? 'info' : 'grey'" size="18">{{ wf.fixed_daily_pay ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}</v-icon>
+                      </td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ wf.q1_count }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q1_total) }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ wf.q2_count }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#42A5F5;">{{ formatNumber(wf.month_total) }}</td>
                     </tr>
                   </tbody>
                 </v-table>
@@ -597,16 +702,16 @@
 
               <!-- ======= CORPORALS TAB ======= -->
               <template v-if="breakdownTab === 'corporals'">
-                <!-- Summary table -->
                 <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table">
                   <thead>
                     <tr>
                       <th>{{ $t('name') }}</th>
-                      <th class="text-center">{{ $t('q1_count') }}</th>
-                      <th class="text-center">{{ $t('q1_total') }}</th>
-                      <th class="text-center">{{ $t('q2_count') }}</th>
-                      <th class="text-center">{{ $t('q2_total') }}</th>
-                      <th class="text-center font-weight-bold">{{ $t('month_total') }}</th>
+                      <th class="text-center">{{ $t('workforce_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -617,63 +722,73 @@
                           {{ c.name }}
                         </v-chip>
                       </td>
-                      <td class="text-center">{{ c.q1_count }}</td>
-                      <td class="text-center">{{ formatNumber(c.q1_total) }}</td>
-                      <td class="text-center">{{ c.q2_count }}</td>
-                      <td class="text-center">{{ formatNumber(c.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-purple">{{ formatNumber(c.month_total) }}</td>
+                      <td class="text-center">
+                        <v-chip size="x-small" color="#42A5F5" variant="tonal">{{ (c.workforces || []).length }}</v-chip>
+                      </td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ c.q1_count }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(c.q1_total) }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ c.q2_count }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(c.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-purple">{{ formatNumber(c.month_total) }}</td>
                     </tr>
                     <tr class="fnm-breakdown-total-row">
-                      <td class="font-weight-bold">{{ $t('total') }}</td>
-                      <td class="text-center font-weight-bold">{{ corporalTotals.q1_count }}</td>
-                      <td class="text-center font-weight-bold">{{ formatNumber(corporalTotals.q1_total) }}</td>
-                      <td class="text-center font-weight-bold">{{ corporalTotals.q2_count }}</td>
-                      <td class="text-center font-weight-bold">{{ formatNumber(corporalTotals.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-purple">{{ formatNumber(corporalTotals.month_total) }}</td>
+                      <td class="font-weight-bold" colspan="2">{{ $t('total') }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ corporalTotals.q1_count }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(corporalTotals.q1_total) }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ corporalTotals.q2_count }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(corporalTotals.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-purple">{{ formatNumber(corporalTotals.month_total) }}</td>
                     </tr>
                   </tbody>
                 </v-table>
 
-                <!-- Drill-down: workforces in selected corporal -->
+                <!-- Drill-down -->
                 <v-table v-else density="compact" class="rounded-lg fnm-breakdown-table">
                   <thead>
                     <tr>
                       <th>{{ $t('full_name') }}</th>
                       <th class="text-center">{{ $t('matricule') }}</th>
+                      <th class="text-center">{{ $t('cin') }}</th>
+                      <th class="text-center">{{ $t('cnss_id') }}</th>
                       <th class="text-center">{{ $t('nationality') }}</th>
                       <th class="text-center">{{ $t('sex') }}</th>
                       <th class="text-center">{{ $t('is_migrant') }}</th>
-                      <th class="text-center">{{ $t('q1_count') }}</th>
-                      <th class="text-center">{{ $t('q1_total') }}</th>
-                      <th class="text-center">{{ $t('q2_count') }}</th>
-                      <th class="text-center">{{ $t('q2_total') }}</th>
-                      <th class="text-center font-weight-bold">{{ $t('month_total') }}</th>
+                      <th class="text-center">{{ $t('salary_statement') }}</th>
+                      <th class="text-center">{{ $t('fixed_daily_pay') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
+                      <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="wf in drilldownItem.workforces" :key="'cw-' + wf.id">
                       <td>
-                        <v-chip size="small" color="info" variant="tonal" label>
+                        <v-chip size="small" color="#42A5F5" variant="tonal" label>
                           <v-icon start size="14">mdi-account</v-icon>
                           {{ wf.name }}
                         </v-chip>
                       </td>
-                      <td class="text-center">{{ wf.matricule }}</td>
-                      <td class="text-center">{{ wf.nationality }}</td>
-                      <td class="text-center">
-                        <v-chip :color="wf.sex === 'male' ? 'blue' : 'pink'" size="x-small" variant="tonal">
-                          <v-icon size="12" class="mr-1">{{ wf.sex === 'male' ? 'mdi-gender-male' : 'mdi-gender-female' }}</v-icon>
-                          {{ $t(wf.sex) }}
-                        </v-chip>
-                      </td>
+                      <td class="text-center">{{ wf.matricule || '-' }}</td>
+                      <td class="text-center">{{ wf.cin || '-' }}</td>
+                      <td class="text-center">{{ wf.cnss_id || '-' }}</td>
+                      <td class="text-center">{{ wf.nationality || '-' }}</td>
+                      <td class="text-center">{{ wf.sex || '-' }}</td>
                       <td class="text-center">
                         <v-icon :color="wf.is_migrant ? 'warning' : 'grey'" size="18">{{ wf.is_migrant ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}</v-icon>
                       </td>
-                      <td class="text-center">{{ wf.q1_count }}</td>
-                      <td class="text-center">{{ formatNumber(wf.q1_total) }}</td>
-                      <td class="text-center">{{ wf.q2_count }}</td>
-                      <td class="text-center">{{ formatNumber(wf.q2_total) }}</td>
-                      <td class="text-center font-weight-bold text-info">{{ formatNumber(wf.month_total) }}</td>
+                      <td class="text-center">
+                        <v-icon :color="wf.salary_statement ? 'success' : 'grey'" size="18">{{ wf.salary_statement ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}</v-icon>
+                      </td>
+                      <td class="text-center">
+                        <v-icon :color="wf.fixed_daily_pay ? 'info' : 'grey'" size="18">{{ wf.fixed_daily_pay ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}</v-icon>
+                      </td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ wf.q1_count }}</td>
+                      <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q1_total) }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ wf.q2_count }}</td>
+                      <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#42A5F5;">{{ formatNumber(wf.month_total) }}</td>
                     </tr>
                   </tbody>
                 </v-table>
@@ -812,7 +927,7 @@
                   </v-avatar>
                 </template>
                 <v-list-item-title class="font-weight-bold text-body-2">
-                  {{ act.workforce ? act.workforce.full_name : '—' }}
+                  {{ act.workforce ? act.workforce.full_name : 'â€”' }}
                   <v-chip v-if="act.workforce" size="x-small" variant="outlined" color="grey" class="ml-1">{{ act.workforce.matricule }}</v-chip>
                 </v-list-item-title>
                 <v-list-item-subtitle class="d-flex align-center ga-2 mt-1">
@@ -845,6 +960,52 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+
+    <!-- ============= COLUMN SETTINGS DIALOG ============= -->
+    <v-dialog v-model="colSettingsDialog" max-width="460" persistent>
+      <v-card class="rounded-xl">
+        <v-card-title class="d-flex align-center pa-5 pb-2">
+          <v-icon color="info" class="mr-2">mdi-table-cog</v-icon>
+          {{ $t('configure_columns') }}
+          <v-spacer></v-spacer>
+          <v-btn icon size="x-small" variant="text" @click="colSettingsDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+        <v-card-text class="pa-5 pt-2">
+          <div class="d-flex ga-2 mb-3">
+            <v-btn size="x-small" variant="tonal" color="info" rounded @click="toggleAllColumns(true)" prepend-icon="mdi-eye">{{ $t('show_all') }}</v-btn>
+            <v-btn size="x-small" variant="tonal" color="warning" rounded @click="toggleAllColumns(false)" prepend-icon="mdi-eye-off">{{ $t('hide_all') }}</v-btn>
+          </div>
+          <div class="text-caption text-grey mb-2">{{ $t('drag_to_reorder') }}</div>
+          <div class="col-settings-list">
+            <div
+              v-for="(col, idx) in allWorkforceColumns"
+              :key="col.key"
+              class="col-settings-item"
+              :class="{ 'col-settings-item--locked': col.locked, 'col-settings-item--dragging': colDragIdx === idx }"
+              :draggable="!col.locked"
+              @dragstart="colDragStart(idx)"
+              @dragover="colDragOver(idx, $event)"
+              @dragend="colDragEnd"
+            >
+              <v-icon v-if="!col.locked" size="18" class="col-settings-drag-handle text-grey">mdi-drag-vertical</v-icon>
+              <v-icon v-else size="18" class="text-grey-lighten-1 mr-1">mdi-lock-outline</v-icon>
+              <v-checkbox
+                v-model="col.visible"
+                :disabled="col.locked"
+                density="compact"
+                color="#42A5F5"
+                hide-details
+                class="col-settings-cb"
+              ></v-checkbox>
+              <span class="col-settings-label" :class="{ 'text-grey': !col.visible }">{{ $t(col.label) }}</span>
+              <v-chip v-if="col.period" size="x-small" :color="col.period === 'q1' ? 'blue-lighten-4' : col.period === 'q2' ? 'orange-lighten-4' : 'purple-lighten-4'" variant="flat" class="ml-auto">
+                {{ col.period === 'month' ? $t('month') : col.period.toUpperCase() }}
+              </v-chip>
+            </div>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-card>
 
   <!-- ============= HIDDEN PRINT AREA ============= -->
@@ -862,6 +1023,7 @@
         <!-- Context row -->
         <div style="display:flex;justify-content:space-between;margin-bottom:18px;font-size:12px;color:#555">
           <div><b>{{ $t('month') }}:</b> {{ monthNames[currentMonth] }} {{ currentYear }}</div>
+          <div><b>{{ $t('period') }}:</b> {{ printPeriodLabel }}</div>
           <div><b>{{ $t('tab') }}:</b> {{ printTabLabel }}</div>
           <div v-if="drilldownItem"><b>{{ printTabLabel }}:</b> {{ drilldownItem.name }}</div>
         </div>
@@ -870,32 +1032,40 @@
         <table v-if="breakdownTab === 'workforces' && !drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
           <thead>
             <tr style="background:#E3F2FD">
-              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('name') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('matricule') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
+              <th v-for="col in visibleWorkforceColumns" :key="'pth-'+col.key"
+                :style="'padding:8px 10px;border:1px solid #ccc;' + (col.type === 'chip' ? 'text-align:left' : 'text-align:center') + (col.headerColor ? ';color:'+col.headerColor : '')"
+              >{{ $t(col.label) }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="w in breakdownData.workforces" :key="'pw-'+w.id">
-              <td style="padding:6px 10px;border:1px solid #ddd">{{ w.name }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ w.matricule }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ w.q1_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(w.q1_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ w.q2_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(w.q2_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#1565C0">{{ formatNumber(w.month_total) }}</td>
+            <tr v-for="w in (filteredWorkforces || breakdownData.workforces)" :key="'pw-'+w.id">
+              <td v-for="col in visibleWorkforceColumns" :key="'ptd-'+col.key+'-'+w.id"
+                :style="'padding:6px 10px;border:1px solid #ddd;' + (col.type !== 'chip' ? 'text-align:center;' : '') + (col.cellColor ? 'font-weight:700;color:'+col.cellColor+';' : '') + (col.bold ? 'font-weight:700;color:#1565C0;' : '')"
+              >
+                <template v-if="col.type === 'boolean'">{{ w[col.key] ? $t('yes') : $t('no') }}</template>
+                <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(getDeclared(w)) }}</template>
+                <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(getNonDeclared(w)) }}</template>
+                <template v-else-if="col.type === 'currency'">{{ formatNumber(w[col.key]) }}</template>
+                <template v-else>{{ w[col.key] || '-' }}</template>
+              </td>
             </tr>
             <tr style="background:#E3F2FD;font-weight:700">
-              <td style="padding:8px 10px;border:1px solid #ccc" colspan="2">{{ $t('total') }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ workforceTotals.q1_count }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(workforceTotals.q1_total) }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ workforceTotals.q2_count }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(workforceTotals.q2_total) }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc;color:#1565C0">{{ formatNumber(workforceTotals.month_total) }}</td>
+              <td style="padding:8px 10px;border:1px solid #ccc" :colspan="totalColspan">{{ $t('total') }}</td>
+              <template v-for="col in visibleWorkforceColumns" :key="'ptot-'+col.key">
+                <td v-if="col.period || col.type === 'computed_declared' || col.type === 'computed_non_declared'"
+                  :style="'padding:8px 10px;text-align:center;border:1px solid #ccc;' + (col.cellColor ? 'color:'+col.cellColor+';' : '') + (col.bold ? 'color:#1565C0;' : '')"
+                >
+                  <template v-if="col.key === 'q1_work_days'">{{ workforceTotals.q1_work_days }}</template>
+                  <template v-else-if="col.key === 'q1_non_work_days'">{{ workforceTotals.q1_non_work_days }}</template>
+                  <template v-else-if="col.key === 'q1_total'">{{ formatNumber(workforceTotals.q1_total) }}</template>
+                  <template v-else-if="col.key === 'q2_work_days'">{{ workforceTotals.q2_work_days }}</template>
+                  <template v-else-if="col.key === 'q2_non_work_days'">{{ workforceTotals.q2_non_work_days }}</template>
+                  <template v-else-if="col.key === 'q2_total'">{{ formatNumber(workforceTotals.q2_total) }}</template>
+                  <template v-else-if="col.key === 'month_total'">{{ formatNumber(workforceTotals.month_total) }}</template>
+                  <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(workforceTotals.declared) }}</template>
+                  <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(workforceTotals.non_declared) }}</template>
+                </td>
+              </template>
             </tr>
           </tbody>
         </table>
@@ -1040,6 +1210,7 @@ import { useWorkforce } from '@/stores/Workforce';
 import { useCorporal } from '@/stores/Corporal';
 import { useSection } from '@/stores/Section';
 import { useFortnightActivity } from '@/stores/FortnightActivity';
+import { useFortnightSetting } from '@/stores/FortnightSetting';
 import { useNotification } from '@/stores/Notification';
 import mitt from '@/plugins/mitt.js';
 import print from 'vue3-print-nb';
@@ -1057,6 +1228,7 @@ export default {
       selectedWorkforceIds: [],
       selectedDate: this.formatDateStr(now),
       activityForm: { section_id: null, corporal_id: null, price: 0 },
+      fixedDailyPrice: 0,
       submitting: false,
       deleting: false,
       deletingCell: null,
@@ -1074,6 +1246,9 @@ export default {
       editForm: { id: null, section_id: null, corporal_id: null, price: 0 },
       editSaving: false,
       breakdownTab: 'workforces',
+      breakdownPeriod: 'month',
+      showDeclared: true,
+      showNonDeclared: true,
       drilldownItem: null,
       monthNames: [
         this.$t('month_january') || 'January', this.$t('month_february') || 'February',
@@ -1089,6 +1264,28 @@ export default {
         this.$t('day_thu') || 'THU', this.$t('day_fri') || 'FRI',
         this.$t('day_sat') || 'SAT',
       ],
+      colSettingsDialog: false,
+      colDragIdx: null,
+      allWorkforceColumns: [
+        { key: 'name', label: 'full_name', type: 'chip', visible: true, locked: true },
+        { key: 'matricule', label: 'matricule', type: 'text', visible: true },
+        { key: 'cin', label: 'cin', type: 'text', visible: true },
+        { key: 'cnss_id', label: 'cnss_id', type: 'text', visible: true },
+        { key: 'nationality', label: 'nationality', type: 'text', visible: true },
+        { key: 'sex', label: 'sex', type: 'text', visible: true },
+        { key: 'is_migrant', label: 'is_migrant', type: 'boolean', visible: true, color: 'warning' },
+        { key: 'salary_statement', label: 'salary_statement', type: 'boolean', visible: true, color: 'success' },
+        { key: 'fixed_daily_pay', label: 'fixed_daily_pay', type: 'boolean', visible: true, color: 'info' },
+        { key: 'q1_work_days', label: 'work_days_q1', type: 'number', visible: true, period: 'q1' },
+        { key: 'q1_non_work_days', label: 'non_work_days_q1', type: 'number', visible: true, period: 'q1' },
+        { key: 'q1_total', label: 'q1_total', type: 'currency', visible: true, period: 'q1' },
+        { key: 'q2_work_days', label: 'work_days_q2', type: 'number', visible: true, period: 'q2' },
+        { key: 'q2_non_work_days', label: 'non_work_days_q2', type: 'number', visible: true, period: 'q2' },
+        { key: 'q2_total', label: 'q2_total', type: 'currency', visible: true, period: 'q2' },
+        { key: 'month_total', label: 'month_total', type: 'currency', visible: true, period: 'month', bold: true },
+        { key: 'declared', label: 'declared', type: 'computed_declared', visible: true, headerColor: '#2E7D32', cellColor: '#2E7D32' },
+        { key: 'non_declared', label: 'non_declared', type: 'computed_non_declared', visible: true, headerColor: '#E65100', cellColor: '#E65100' },
+      ],
     };
   },
   computed: {
@@ -1097,8 +1294,25 @@ export default {
     corporalStore() { return useCorporal(); },
     sectionStore() { return useSection(); },
     activityStore() { return useFortnightActivity(); },
+    fortnightSettingStore() { return useFortnightSetting(); },
     notification() { return useNotification(); },
     summary() { return this.activityStore.summary; },
+    /** Columns visible in the workforce breakdown table, respecting period filter */
+    visibleWorkforceColumns() {
+      const p = this.breakdownPeriod;
+      return this.allWorkforceColumns.filter(col => {
+        if (!col.visible) return false;
+        if (!col.period) return true;
+        if (col.period === 'month') return p === 'month';
+        if (col.period === 'q1') return p === 'q1' || p === 'month';
+        if (col.period === 'q2') return p === 'q2' || p === 'month';
+        return true;
+      });
+    },
+    /** Number of non-period (info) columns for total row colspan */
+    totalColspan() {
+      return this.visibleWorkforceColumns.filter(c => !c.period && c.type !== 'computed_declared' && c.type !== 'computed_non_declared').length;
+    },
     /** First selected workforce - used for calendar display */
     primaryWorkforce() {
       if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return null;
@@ -1122,7 +1336,7 @@ export default {
     canDeleteActivities() {
       return this.selectedWorkforceIds && this.selectedWorkforceIds.length >= 1 && this.selectedDate;
     },
-    /** Whether no workforce is selected — enables the aggregated calendar view */
+    /** Whether no workforce is selected â€” enables the aggregated calendar view */
     noWorkforceSelected() {
       return !this.selectedWorkforceIds || this.selectedWorkforceIds.length === 0;
     },
@@ -1143,7 +1357,41 @@ export default {
     multipleSelected() {
       return this.selectedWorkforceIds && this.selectedWorkforceIds.length > 1;
     },
+    /** IDs of selected workforces that have fixed_daily_pay enabled */
+    fixedDailyPayWorkforceIds() {
+      if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return [];
+      return this.selectedWorkforceIds.filter(id => {
+        const wf = this.workforceStore.list.find(w => w.id === id);
+        return wf && wf.fixed_daily_pay;
+      });
+    },
+    /** Count of selected workforces with fixed_daily_pay */
+    fixedDailyPayCount() {
+      return this.fixedDailyPayWorkforceIds.length;
+    },
+    /** Whether to show the fixed daily price input */
+    hasFixedDailyPaySelected() {
+      return this.fixedDailyPayCount > 0;
+    },
+    /** IDs of selected workforces that do NOT have fixed_daily_pay */
+    regularWorkforceIds() {
+      if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return [];
+      return this.selectedWorkforceIds.filter(id => !this.fixedDailyPayWorkforceIds.includes(id));
+    },
     breakdownData() { return this.activityStore.breakdown; },
+    /**
+     * Filter workforces based on declared/non-declared checkboxes.
+     * Declared = salary_statement enabled (true)
+     * Non-Declared = salary_statement disabled (false)
+     */
+    filteredWorkforces() {
+      const wfs = this.breakdownData.workforces || [];
+      if (this.showDeclared && this.showNonDeclared) return wfs;
+      if (!this.showDeclared && !this.showNonDeclared) return [];
+      if (this.showDeclared) return wfs.filter(w => w.salary_statement === true);
+      if (this.showNonDeclared) return wfs.filter(w => w.salary_statement === false);
+      return wfs;
+    },
     sectionTotals() {
       const secs = this.breakdownData.sections || [];
       return {
@@ -1167,13 +1415,19 @@ export default {
       };
     },
     workforceTotals() {
-      const wfs = this.breakdownData.workforces || [];
+      const wfs = this.filteredWorkforces;
       return {
         q1_count: wfs.reduce((s, r) => s + r.q1_count, 0),
         q1_total: wfs.reduce((s, r) => s + r.q1_total, 0),
         q2_count: wfs.reduce((s, r) => s + r.q2_count, 0),
         q2_total: wfs.reduce((s, r) => s + r.q2_total, 0),
         month_total: wfs.reduce((s, r) => s + r.month_total, 0),
+        q1_work_days: wfs.reduce((s, r) => s + (r.q1_work_days || 0), 0),
+        q1_non_work_days: wfs.reduce((s, r) => s + (r.q1_non_work_days || 0), 0),
+        q2_work_days: wfs.reduce((s, r) => s + (r.q2_work_days || 0), 0),
+        q2_non_work_days: wfs.reduce((s, r) => s + (r.q2_non_work_days || 0), 0),
+        declared: wfs.reduce((s, r) => s + this.getDeclared(r), 0),
+        non_declared: wfs.reduce((s, r) => s + this.getNonDeclared(r), 0),
       };
     },
     breakdownTabIcon() {
@@ -1221,6 +1475,11 @@ export default {
     printTabLabel() {
       const labels = { workforces: this.$t('workforces_activities'), sections: this.$t('sections_activities'), corporals: this.$t('corporals_activities') };
       return labels[this.breakdownTab] || '';
+    },
+    /** Human-readable label for current period toggle */
+    printPeriodLabel() {
+      const labels = { q1: this.$t('first_fortnight'), q2: this.$t('second_fortnight'), month: this.$t('month') };
+      return labels[this.breakdownPeriod] || '';
     },
     /** Build calendar cells for the current month */
     calendarCells() {
@@ -1303,6 +1562,15 @@ export default {
       this.loadActivities();
       this.loadSummary();
       this.loadBreakdown();
+      // Auto-fill fixedDailyPrice from the first fixed workforce's daily_price
+      if (this.fixedDailyPayWorkforceIds.length > 0) {
+        const firstFixed = this.workforceStore.list.find(w => w.id === this.fixedDailyPayWorkforceIds[0]);
+        if (firstFixed && firstFixed.daily_price) {
+          this.fixedDailyPrice = parseFloat(firstFixed.daily_price) || 0;
+        }
+      } else {
+        this.fixedDailyPrice = 0;
+      }
     },
     currentMonth() {
       this.loadActivities();
@@ -1329,6 +1597,7 @@ export default {
     this.loadSummary();
     this.loadBreakdown();
     this.fetchCompanySettings();
+    this.fortnightSettingStore.fetch();
 
     // Listen for model changes from AI Assistant or WebSocket (other users)
     this._onModelChanged = (data) => this.handleModelChanged(data);
@@ -1342,6 +1611,45 @@ export default {
   methods: {
     formatDateStr(d) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
+    /**
+     * Calculate declared salary for a workforce based on fortnight settings.
+     * Resolves the matching setting for the currently viewed month.
+     * salary_statement ENABLED  → split: declared = min(total, max), rest = non-declared
+     * salary_statement DISABLED → all salary is non-declared (declared = 0)
+     */
+    getDeclared(w) {
+      if (!w) return 0;
+      if (!w.salary_statement) return 0;
+      // Resolve the setting for the current month (use 15th as mid-month reference)
+      const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-15`;
+      const setting = this.fortnightSettingStore.getSettingForDate(dateStr);
+      if (!setting) return 0;
+      const q1Max = parseFloat(setting.q1_max_salary) || 0;
+      const q2Max = parseFloat(setting.q2_max_salary) || 0;
+      const period = this.breakdownPeriod;
+      if (period === 'q1') {
+        return q1Max > 0 ? Math.min(w.q1_total || 0, q1Max) : (w.q1_total || 0);
+      } else if (period === 'q2') {
+        return q2Max > 0 ? Math.min(w.q2_total || 0, q2Max) : (w.q2_total || 0);
+      } else {
+        const monthTotal = (w.q1_total || 0) + (w.q2_total || 0);
+        const monthMax = q1Max + q2Max;
+        return monthMax > 0 ? Math.min(monthTotal, monthMax) : monthTotal;
+      }
+    },
+    /**
+     * Calculate non-declared salary = total - declared.
+     * salary_statement DISABLED → everything is non-declared.
+     */
+    getNonDeclared(w) {
+      if (!w) return 0;
+      const period = this.breakdownPeriod;
+      let total = 0;
+      if (period === 'q1') total = w.q1_total || 0;
+      else if (period === 'q2') total = w.q2_total || 0;
+      else total = w.month_total || 0;
+      return total - this.getDeclared(w);
     },
     /**
      * Handle real-time model change events from AI Assistant or WebSocket.
@@ -1368,6 +1676,38 @@ export default {
     formatNumber(n) {
       if (this.main.formatDisplayNumber) return this.main.formatDisplayNumber(n);
       return Number(n || 0).toFixed(2);
+    },
+    // ---- Column Management ----
+    colDragStart(idx) { this.colDragIdx = idx; },
+    colDragOver(idx, e) {
+      e.preventDefault();
+      if (this.colDragIdx === null || this.colDragIdx === idx) return;
+      const from = this.colDragIdx;
+      const moved = this.allWorkforceColumns.splice(from, 1)[0];
+      this.allWorkforceColumns.splice(idx, 0, moved);
+      this.colDragIdx = idx;
+    },
+    colDragEnd() { this.colDragIdx = null; },
+    toggleAllColumns(val) {
+      this.allWorkforceColumns.forEach(c => { if (!c.locked) c.visible = val; });
+    },
+    getCellValue(w, col) {
+      if (col.type === 'chip') return w[col.key] || '-';
+      if (col.type === 'text') return w[col.key] || '-';
+      if (col.type === 'number') return w[col.key] || 0;
+      if (col.type === 'currency') return this.formatNumber(w[col.key]);
+      if (col.type === 'boolean') return w[col.key];
+      if (col.type === 'computed_declared') return this.formatNumber(this.getDeclared(w));
+      if (col.type === 'computed_non_declared') return this.formatNumber(this.getNonDeclared(w));
+      return w[col.key] || '-';
+    },
+    getColExcelValue(w, col) {
+      if (col.type === 'boolean') return w[col.key] ? this.$t('yes') : this.$t('no');
+      if (col.type === 'computed_declared') return this.getDeclared(w);
+      if (col.type === 'computed_non_declared') return this.getNonDeclared(w);
+      if (col.type === 'currency') return w[col.key] || 0;
+      if (col.type === 'number') return w[col.key] || 0;
+      return w[col.key] || '';
     },
     async fetchCompanySettings() {
       try { const r = await axios.get('/api/company-settings'); this.companySettings = r.data.settings || {}; } catch (e) { console.error(e); }
@@ -1443,7 +1783,7 @@ export default {
         // Rich notification
         const fields = [];
         fields.push({ label: this.$t('dates_count'), value: dates.length, icon: 'mdi-calendar-multiple' });
-        fields.push({ label: this.$t('date_range_label'), value: `${dates[0]} → ${dates[dates.length - 1]}`, icon: 'mdi-calendar-range' });
+        fields.push({ label: this.$t('date_range_label'), value: `${dates[0]} â†’ ${dates[dates.length - 1]}`, icon: 'mdi-calendar-range' });
         if (wfIds && wfIds.length === 1) {
           const w = this.workforceStore.list.find(w => w.id === wfIds[0]);
           fields.push({ label: this.$t('workforce'), value: w ? w.full_name : '', icon: 'mdi-account' });
@@ -1473,7 +1813,15 @@ export default {
       }
       this.bulkDeleting = false;
     },
+    getActivityClass(act) {
+      if (act.is_fixed_price) return 'fnm-act-fixed';
+      return act.section_id ? 'fnm-act-section' : 'fnm-act-corporal';
+    },
     getActivityLabel(act) {
+      // Fixed price activities always show workforce name
+      if (act.is_fixed_price && act.workforce) return act.workforce.full_name;
+      // When workforces are selected, show workforce name instead of section/corporal
+      if (!this.noWorkforceSelected && act.workforce) return act.workforce.full_name;
       if (act.section) return act.section.name;
       if (act.corporal) return act.corporal.full_name;
       return '';
@@ -1629,23 +1977,37 @@ export default {
         let fileName = '';
 
         if (tab === 'workforces' && !drill) {
-          // -- Workforces summary table --
+          // -- Workforces summary table (uses visible columns) --
           sheetName = this.$t('workforces_activities');
-          const headers = [
-            this.$t('name'), this.$t('matricule'),
-            `Q1 ${this.$t('count')}`, `Q1 ${this.$t('total')} (${currency})`,
-            `Q2 ${this.$t('count')}`, `Q2 ${this.$t('total')} (${currency})`,
-            `${this.$t('month_total')} (${currency})`
-          ];
-          const data = (bd.workforces || []).map(w => [
-            w.name, w.matricule, w.q1_count, w.q1_total, w.q2_count, w.q2_total, w.month_total
-          ]);
-          data.push([]);
-          data.push([this.$t('total'), '', this.workforceTotals.q1_count, this.workforceTotals.q1_total, this.workforceTotals.q2_count, this.workforceTotals.q2_total, this.workforceTotals.month_total]);
-          const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-          ws['!cols'] = [{ wch: 24 }, { wch: 14 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 18 }];
+          const cols = this.visibleWorkforceColumns;
+          const headers = cols.map(c => {
+            const label = this.$t(c.label);
+            if (c.type === 'currency') return `${label} (${currency})`;
+            return label;
+          });
+          const rows = (this.filteredWorkforces || bd.workforces || []).map(w =>
+            cols.map(c => this.getColExcelValue(w, c))
+          );
+          rows.push([]);
+          const totRow = cols.map(c => {
+            if (c.type === 'chip') return this.$t('total');
+            if (c.type === 'text' || c.type === 'boolean') return '';
+            if (c.key === 'q1_work_days') return this.workforceTotals.q1_work_days;
+            if (c.key === 'q1_non_work_days') return this.workforceTotals.q1_non_work_days;
+            if (c.key === 'q1_total') return this.workforceTotals.q1_total;
+            if (c.key === 'q2_work_days') return this.workforceTotals.q2_work_days;
+            if (c.key === 'q2_non_work_days') return this.workforceTotals.q2_non_work_days;
+            if (c.key === 'q2_total') return this.workforceTotals.q2_total;
+            if (c.key === 'month_total') return this.workforceTotals.month_total;
+            if (c.type === 'computed_declared') return this.workforceTotals.declared;
+            if (c.type === 'computed_non_declared') return this.workforceTotals.non_declared;
+            return '';
+          });
+          rows.push(totRow);
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = cols.map(c => ({ wch: c.type === 'chip' ? 24 : c.type === 'text' ? 16 : 14 }));
           XLSX.utils.book_append_sheet(wb, ws, sheetName);
-          fileName = `Fortnight_Workforces_${monthName}_${this.currentYear}.xlsx`;
+          fileName = `Fortnight_Workforces_${this.breakdownPeriod.toUpperCase()}_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'workforces' && drill) {
           // -- Drill-down: activities for a specific workforce --
@@ -1682,7 +2044,7 @@ export default {
           const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
           ws['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 18 }];
           XLSX.utils.book_append_sheet(wb, ws, sheetName);
-          fileName = `Fortnight_Sections_${monthName}_${this.currentYear}.xlsx`;
+          fileName = `Fortnight_Sections_${this.breakdownPeriod.toUpperCase()}_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'sections' && drill) {
           // -- Drill-down: workforces in a specific section --
@@ -1702,7 +2064,7 @@ export default {
           const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
           ws['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 18 }];
           XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-          fileName = `Fortnight_Section_${drill.name}_${monthName}_${this.currentYear}.xlsx`;
+          fileName = `Fortnight_Section_${drill.name}_${this.breakdownPeriod.toUpperCase()}_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'corporals' && !drill) {
           // -- Corporals summary table --
@@ -1721,7 +2083,7 @@ export default {
           const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
           ws['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 18 }];
           XLSX.utils.book_append_sheet(wb, ws, sheetName);
-          fileName = `Fortnight_Corporals_${monthName}_${this.currentYear}.xlsx`;
+          fileName = `Fortnight_Corporals_${this.breakdownPeriod.toUpperCase()}_${monthName}_${this.currentYear}.xlsx`;
 
         } else if (tab === 'corporals' && drill) {
           // -- Drill-down: workforces in a specific corporal --
@@ -1741,7 +2103,7 @@ export default {
           const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
           ws['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 18 }];
           XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-          fileName = `Fortnight_Corporal_${drill.name}_${monthName}_${this.currentYear}.xlsx`;
+          fileName = `Fortnight_Corporal_${drill.name}_${this.breakdownPeriod.toUpperCase()}_${monthName}_${this.currentYear}.xlsx`;
         }
 
         XLSX.writeFile(wb, fileName);
@@ -1760,8 +2122,13 @@ export default {
       const assignmentType = this.activityForm.section_id ? this.$t('section_affiliated') : this.$t('corporal');
       const priceVal = this.activityForm.price;
 
+      // Split workforces into regular and fixed daily pay
+      const fixedIds = this.fixedDailyPayWorkforceIds;
+      const regularIds = this.regularWorkforceIds;
+      const fixedPrice = this.fixedDailyPrice;
+
       try {
-        // Create activity for each selected workforce (silent - no individual snackbars)
+        // 1) Create regular activities for ALL selected workforces
         for (const wId of ids) {
           await this.activityStore.create({
             workforce_id: wId,
@@ -1769,10 +2136,25 @@ export default {
             section_id: this.activityForm.section_id || null,
             corporal_id: this.activityForm.corporal_id || null,
             price: priceVal,
+            is_fixed_price: false,
           }, true);
         }
 
-        // Rich notification like AddCharge
+        // 2) Additionally create fixed price activities for workforces with fixed daily pay
+        if (fixedIds.length > 0) {
+          for (const wId of fixedIds) {
+            await this.activityStore.create({
+              workforce_id: wId,
+              date: this.selectedDate,
+              section_id: this.activityForm.section_id || null,
+              corporal_id: this.activityForm.corporal_id || null,
+              price: fixedPrice,
+              is_fixed_price: true,
+            }, true);
+          }
+        }
+
+        // Rich notification
         const fields = [];
         if (ids.length === 1) {
           const w = this.workforceStore.list.find(w => w.id === ids[0]);
@@ -1783,6 +2165,9 @@ export default {
         fields.push({ label: this.$t('date'), value: this.selectedDate, icon: 'mdi-calendar' });
         fields.push({ label: assignmentType, value: assignmentLabel, icon: this.activityForm.section_id ? 'mdi-sitemap-outline' : 'mdi-account-tie' });
         fields.push({ label: this.$t('price'), value: `${this.formatNumber(priceVal)} ${this.main.currency || 'DH'}`, icon: 'mdi-cash' });
+        if (fixedIds.length > 0) {
+          fields.push({ label: this.$t('fixed_daily_pay'), value: `${this.formatNumber(fixedPrice)} ${this.main.currency || 'DH'} (${fixedIds.length})`, icon: 'mdi-cash-lock' });
+        }
 
         this.notification.notifyCreation({
           type: 'fortnight_activity',
@@ -2106,6 +2491,10 @@ export default {
 .fnm-cal-activity:hover .fnm-act-delete { opacity: 1; }
 .fnm-act-section { background: linear-gradient(135deg, #E65100, #FF9800); color: #fff; }
 .fnm-act-corporal { background: linear-gradient(135deg, #0D47A1, #42A5F5); color: #fff; }
+.fnm-act-fixed { background: linear-gradient(135deg, #F57F17, #FFD600); color: #33300d; border: 1px solid rgba(245,127,23,.3); }
+.fnm-act-fixed .fnm-act-wf { background: rgba(0,0,0,.15); color: #fff; }
+.fnm-act-fixed .fnm-act-price { color: #33300d; }
+.fnm-act-fixed .fnm-act-label { color: #5d4a00; }
 .fnm-act-wf { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 14px; padding: 0 3px; border-radius: 3px; background: rgba(255,255,255,.3); font-size: 8px; font-weight: 800; letter-spacing: .3px; line-height: 1; flex-shrink: 0; }
 .fnm-act-price { font-weight: 700; white-space: nowrap; }
 .fnm-act-label { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
@@ -2237,5 +2626,71 @@ export default {
   font-weight: 600;
   font-size: 13px;
   opacity: .7;
+}
+
+/* Fixed Daily Price input wrapper */
+.fnm-fixed-price-wrap {
+  border: 1.5px solid rgba(245,127,23,.25);
+  border-radius: 12px;
+  padding: 10px 12px 4px;
+  background: rgba(245,127,23,.04);
+  transition: all .2s ease;
+}
+.fnm-fixed-price-wrap:hover {
+  border-color: rgba(245,127,23,.4);
+}
+.fnm-fixed-price-badge {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+/* Column Settings Dialog */
+.col-settings-list {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid rgba(var(--v-border-color), .12);
+  border-radius: 12px;
+  padding: 4px;
+}
+.col-settings-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all .15s ease;
+  cursor: grab;
+  user-select: none;
+}
+.col-settings-item:hover {
+  background: rgba(66, 165, 245, .06);
+  border-color: rgba(66, 165, 245, .15);
+}
+.col-settings-item--locked {
+  cursor: default;
+  opacity: .7;
+  background: rgba(var(--v-border-color), .04);
+}
+.col-settings-item--dragging {
+  background: rgba(66, 165, 245, .12);
+  border-color: #42A5F5;
+  box-shadow: 0 2px 8px rgba(66,165,245,.18);
+}
+.col-settings-drag-handle {
+  cursor: grab;
+  flex-shrink: 0;
+}
+.col-settings-cb {
+  flex-shrink: 0;
+  max-width: 28px;
+}
+.col-settings-label {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

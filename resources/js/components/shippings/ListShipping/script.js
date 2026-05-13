@@ -20,7 +20,7 @@ export default {
       expanded: {},
       showAdvanced: false, showInvoice: false,
       advFilter: { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] },
-      invForm: { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '' },
+      invForm: { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '', incoterm: null, currency: null, total_gross_weight: null, intermediary_company: '', intermediary_address: '', intermediary_country: '', destination_company: '', destination_address: '', destination_country: '', shipment_country: '', tax_percentage: 0, export_details: [] },
       invChecking: false,
       deleteDialog: false, deleting: false, deleteId: null, deleteBulk: false,
       filterMenus: {},
@@ -107,7 +107,7 @@ export default {
     canSetupInvoice() {
       if (!this.uninvoicedSelectedShippings.length) return false;
       const ids = this.uninvoicedSelectedShippings.map(c => c.client_id).filter(Boolean);
-      if (!ids.length) return false;
+      if (!ids.length) return true;
       return new Set(ids).size === 1;
     },
     invMinDate() {
@@ -202,9 +202,39 @@ export default {
     confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true },
     confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true },
     async execDelete() { this.deleting = true; try { const ids = this.deleteBulk ? this.selected : [this.deleteId]; await axios.delete('/api/shipping', { data: { ids } }); this.main.add_snackbar({ show: true, message: this.$t('delete_many_shippings'), color: 'success' }); this.selected = []; this.deleteDialog = false; this.fetchShippings() } catch (e) { console.error(e) } this.deleting = false },
-    async onTrackingUpdate(val) { if (!val || !val.length) return; const raw = val[val.length - 1]; if (!raw || !raw.trim()) return; let v = raw.trim(); const y = String(new Date().getFullYear()).slice(-2); if (!v.startsWith(y + '-')) v = y + '-' + v.replace(/^0+/, '').padStart(4, '0'); this.invForm.trackingNumbers.splice(this.invForm.trackingNumbers.length - 1, 1); if (this.invForm.trackingNumbers.includes(v)) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }); return; } this.invChecking = true; try { const r = await axios.get('/api/client_invoice/check-tracking-number', { params: { tracking_number: v } }); if (r.data.exists) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }) } else { this.invForm.trackingNumbers.push(v) } } catch (e) { console.error(e) } this.invChecking = false },
-    async submitInvoice() { if (!this.selected.length || !this.invForm.trackingNumbers.length) return; try { const clientId = this.selectedShippings[0]?.client_id; await axios.post('/api/client_invoice', { date: this.fmtDate(this.invForm.date) || this.fmtDate(new Date()), type_invoice: this.invForm.type_invoice || 'local', tracking_numbers: this.invForm.trackingNumbers, client_id: clientId, shipping_ids: this.selected }); this.main.add_snackbar({ show: true, message: this.$t('invoice_created_successfully'), color: 'success' }); this.invForm = { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '' }; this.showInvoice = false; this.fetchShippings() } catch (e) { console.error(e) } },
-    cancelInvoice() { this.selected = []; this.invForm = { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '' }; this.showInvoice = false; },
+    async fetchNextTracking(type) {
+      try {
+        const r = await axios.get('/api/client_invoice/next-tracking-number', { params: { type: type || 'local' } });
+        if (r.data.next_tracking_number) {
+          this.invForm.trackingNumbers = [r.data.next_tracking_number];
+        }
+      } catch (e) { console.error(e) }
+    },
+    async onTypeInvoiceChange(val) {
+      this.invForm.trackingNumbers = [];
+      if (val) await this.fetchNextTracking(val);
+    },
+    async onTrackingUpdate(val) { if (!val || !val.length) return; const raw = val[val.length - 1]; if (!raw || !raw.trim()) return; let v = raw.trim(); const y = String(new Date().getFullYear()).slice(-2); const type = this.invForm.type_invoice || 'local'; if (type === 'export') { if (!v.startsWith(y + '-E')) v = y + '-E' + v.replace(/^0+/, '').padStart(4, '0'); } else { if (!v.startsWith(y + '-')) v = y + '-' + v.replace(/^0+/, '').padStart(4, '0'); } this.invForm.trackingNumbers.splice(this.invForm.trackingNumbers.length - 1, 1); if (this.invForm.trackingNumbers.includes(v)) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }); return; } this.invChecking = true; try { const r = await axios.get('/api/client_invoice/check-tracking-number', { params: { tracking_number: v } }); if (r.data.exists) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }) } else { this.invForm.trackingNumbers.push(v) } } catch (e) { console.error(e) } this.invChecking = false },
+    addExportDetail() { this.invForm.export_details.push({ description: '', container_or_truck_id: '', weight_mt: 0, unit_price_per_ton: 0, total_price: 0 }) },
+    removeExportDetail(i) { this.invForm.export_details.splice(i, 1) },
+    calcDetailTotal(line) { line.total_price = Number((Number(line.weight_mt || 0) * Number(line.unit_price_per_ton || 0)).toFixed(2)); return line.total_price },
+    exportSubTotal() { return this.invForm.export_details.reduce((s, l) => s + Number(l.total_price || 0), 0) },
+    exportGrandTotal() { const sub = this.exportSubTotal(); return Number((sub + sub * (Number(this.invForm.tax_percentage || 0) / 100)).toFixed(2)) },
+    resetInvForm() { return { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '', incoterm: null, currency: null, total_gross_weight: null, intermediary_company: '', intermediary_address: '', intermediary_country: '', destination_company: '', destination_address: '', destination_country: '', shipment_country: '', tax_percentage: 0, export_details: [] } },
+    async submitInvoice() {
+      if (!this.selected.length || !this.invForm.trackingNumbers.length) return;
+      try {
+        const clientId = this.selectedShippings[0]?.client_id;
+        const payload = { date: this.fmtDate(this.invForm.date) || this.fmtDate(new Date()), type_invoice: this.invForm.type_invoice || 'local', tracking_numbers: this.invForm.trackingNumbers, client_id: clientId, shipping_ids: this.selected };
+        if (payload.type_invoice === 'export') {
+          Object.assign(payload, { incoterm: this.invForm.incoterm, currency: this.invForm.currency, total_gross_weight: this.invForm.total_gross_weight, intermediary_company: this.invForm.intermediary_company, intermediary_address: this.invForm.intermediary_address, intermediary_country: this.invForm.intermediary_country, destination_company: this.invForm.destination_company, destination_address: this.invForm.destination_address, destination_country: this.invForm.destination_country, shipment_country: this.invForm.shipment_country, tax_percentage: this.invForm.tax_percentage, export_details: this.invForm.export_details });
+        }
+        await axios.post('/api/client_invoice', payload);
+        this.main.add_snackbar({ show: true, message: this.$t('invoice_created_successfully'), color: 'success' });
+        this.invForm = this.resetInvForm(); this.showInvoice = false; this.fetchShippings();
+      } catch (e) { console.error(e) }
+    },
+    cancelInvoice() { this.selected = []; this.invForm = this.resetInvForm(); this.showInvoice = false; },
     exportExcel() { const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions' && h.key !== 'expand').forEach(h => { row[h.title] = this.cellText(h.key, c) }); return row }); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Shippings'); XLSX.writeFile(wb, `shippings_${this.today}.xlsx`) },
   },
 };

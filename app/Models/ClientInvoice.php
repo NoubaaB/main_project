@@ -20,6 +20,9 @@ class ClientInvoice extends Model
         'tracking_numbers' => 'array',
         'total_price' => 'decimal:2',
         'total_weight' => 'decimal:2',
+        'export_details' => 'array',
+        'total_gross_weight' => 'decimal:2',
+        'tax_percentage' => 'decimal:2',
     ];
 
     protected $appends = ['shipping_ids', 'production_ids'];

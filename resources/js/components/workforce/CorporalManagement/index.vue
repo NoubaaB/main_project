@@ -29,7 +29,7 @@
         </v-btn>
       </div>
 
-      <v-data-table
+      <v-data-table-virtual
         :headers="headers"
         :items="filteredItems"
         :loading="loading ? 'info' : false"
@@ -40,6 +40,8 @@
         v-model="selectedIds"
         item-value="id"
         :return-object="false"
+        fixed-header
+        height="650"
       >
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>
@@ -53,7 +55,7 @@
           <tr class="param-filter-row">
             <th v-for="col in columns" :key="col.key + '-filter'" class="param-filter-th">
               <v-autocomplete
-                v-if="col.key !== 'actions'"
+                v-if="col.key !== 'actions' && col.key !== 'data-table-select'"
                 v-model="columnFilters[col.key]"
                 :items="getColumnOptions(col.key)"
                 density="compact"
@@ -105,7 +107,7 @@
             <v-icon size="16">mdi-delete</v-icon>
           </v-btn>
         </template>
-      </v-data-table>
+      </v-data-table-virtual>
     </v-card-text>
 
     <!-- ============= CREATE/EDIT DIALOG ============= -->

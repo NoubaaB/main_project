@@ -41,12 +41,27 @@
       client_invoice_detail: function () {
         return {
           id: this.client_invoice_data.id,
+          invoice: this.client_invoice_data.invoice,
           date: this.client_invoice_data.date,
           tracking_numbers: this.client_invoice_data.tracking_numbers.toString(),
           client_name: this.client_invoice_data.client_name || '',
           address: this.client_invoice_data.address || [],
           total_price: this.client_invoice_data.total_price,
           total_weight: this.client_invoice_data.total_weight,
+          // Export fields
+          type_invoice: this.client_invoice_data.type_invoice || 'local',
+          incoterm: this.client_invoice_data.incoterm || null,
+          currency: this.client_invoice_data.currency || null,
+          total_gross_weight: this.client_invoice_data.total_gross_weight || null,
+          intermediary_company: this.client_invoice_data.intermediary_company || '',
+          intermediary_address: this.client_invoice_data.intermediary_address || '',
+          intermediary_country: this.client_invoice_data.intermediary_country || '',
+          destination_company: this.client_invoice_data.destination_company || '',
+          destination_address: this.client_invoice_data.destination_address || '',
+          destination_country: this.client_invoice_data.destination_country || '',
+          shipment_country: this.client_invoice_data.shipment_country || '',
+          tax_percentage: this.client_invoice_data.tax_percentage || 0,
+          export_details: this.client_invoice_data.export_details || [],
         }
       },
       chunkItems: function () {

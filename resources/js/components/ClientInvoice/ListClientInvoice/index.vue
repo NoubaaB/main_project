@@ -94,6 +94,7 @@
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
                 <template v-else-if="h.key==='_tracking_numbers'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_numbers||[])" :key="tn" size="x-small" color="#00838F" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.tracking_numbers||[]).length" class="text-grey">-</span></div></template>
+                <template v-else-if="h.key==='_type_invoice'"><v-chip size="x-small" :color="item._type_invoice==='export'?'warning':'info'" variant="tonal">{{ $t(item._type_invoice==='export'?'export_type':'local') }}</v-chip></template>
                 <template v-else-if="h.key==='_clients'">{{ item._clients }}</template>
                 <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
                 <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>

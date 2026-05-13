@@ -76,6 +76,8 @@
 
 <script>
 import axios from 'axios';
+import { useCompanySettings } from '@/stores/CompanySettings';
+
 export default {
   name: 'CompanySettingsPage',
   data() {
@@ -86,24 +88,46 @@ export default {
       saving: false,
       snack: { show:false, msg:'', color:'success' },
       genderOptions: [{ title: this.$t('male'), value: 'male' }, { title: this.$t('female'), value: 'female' }],
+      csStore: useCompanySettings(),
     };
   },
-  mounted() { this.fetchSettings(); },
+  mounted() { this.loadFromStore(); },
   methods: {
+    /**
+     * Load form from cached Pinia store (populated at auth/page-load).
+     * Falls back to API if the store is empty.
+     */
+    loadFromStore() {
+      const s = this.csStore.getSettings;
+      if (s && Object.keys(s).length > 0) {
+        this.populateForm(s);
+      } else {
+        this.fetchSettings();
+      }
+    },
+    populateForm(s) {
+      Object.keys(this.form).forEach(k => { if (s[k] !== undefined) this.form[k] = s[k] || ''; });
+      this.logoInvoiceUrl = s.logo_invoice_url || '';
+      this.logoInvoiceBodyUrl = s.logo_invoice_body_url || '';
+      this.logoOriginUrl = s.logo_origin_url || '';
+    },
     async fetchSettings() {
       try {
         const r = await axios.get('/api/company-settings');
         const s = r.data.settings || {};
-        Object.keys(this.form).forEach(k => { if (s[k] !== undefined) this.form[k] = s[k] || ''; });
-        this.logoInvoiceUrl = s.logo_invoice_url || '';
-        this.logoInvoiceBodyUrl = s.logo_invoice_body_url || '';
-        this.logoOriginUrl = s.logo_origin_url || '';
+        this.populateForm(s);
+        // Update the Pinia store cache
+        this.csStore.setSettings(s);
       } catch(e) { console.error(e); }
     },
     async save() {
       this.saving = true;
       try {
-        await axios.put('/api/company-settings', this.form);
+        const r = await axios.put('/api/company-settings', this.form);
+        const updatedSettings = r.data.settings || {};
+        // Update local Pinia store cache
+        this.csStore.setSettings(updatedSettings);
+        this.populateForm(updatedSettings);
         this.snack = { show:true, msg: this.$t('settings_saved'), color:'success' };
       } catch(e) {
         this.snack = { show:true, msg: this.$t('error_occurred'), color:'error' };
@@ -124,6 +148,8 @@ export default {
         if (type === 'logo_invoice') this.logoInvoiceUrl = r.data.url;
         else if (type === 'logo_invoice_body') this.logoInvoiceBodyUrl = r.data.url;
         else this.logoOriginUrl = r.data.url;
+        // Update the Pinia store with the new logo URL
+        this.csStore.setSettings({ [`${type}_url`]: r.data.url, [`${type}_path`]: r.data.path });
         this.snack = { show:true, msg: this.$t('logo_uploaded'), color:'success' };
       } catch(e) {
         this.snack = { show:true, msg: this.$t('error_occurred'), color:'error' };

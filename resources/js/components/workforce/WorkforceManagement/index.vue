@@ -31,7 +31,7 @@
       </div>
 
       <!-- Data Table -->
-      <v-data-table
+      <v-data-table-virtual
         :headers="headers"
         :items="filteredItems"
         :loading="loading ? 'info' : false"
@@ -42,6 +42,8 @@
         v-model="selectedIds"
         item-value="id"
         :return-object="false"
+        fixed-header
+        height="650"
       >
         <!-- Custom headers with filter inputs -->
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
@@ -56,7 +58,7 @@
           <tr class="param-filter-row">
             <th v-for="col in columns" :key="col.key + '-filter'" class="param-filter-th">
               <v-autocomplete
-                v-if="col.key !== 'actions'"
+                v-if="col.key !== 'actions' && col.key !== 'data-table-select'"
                 v-model="columnFilters[col.key]"
                 :items="getColumnOptions(col.key)"
                 density="compact"
@@ -93,6 +95,28 @@
           </v-icon>
         </template>
 
+        <!-- Salary Statement column -->
+        <template v-slot:[`item.salary_statement`]="{ item }">
+          <v-icon :color="item.salary_statement ? 'success' : 'grey'" size="20">
+            {{ item.salary_statement ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
+          </v-icon>
+        </template>
+
+        <!-- Fixed Daily Pay column -->
+        <template v-slot:[`item.fixed_daily_pay`]="{ item }">
+          <v-icon :color="item.fixed_daily_pay ? 'info' : 'grey'" size="20">
+            {{ item.fixed_daily_pay ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
+          </v-icon>
+        </template>
+
+        <!-- Daily Price column -->
+        <template v-slot:[`item.daily_price`]="{ item }">
+          <v-chip v-if="item.fixed_daily_pay" size="small" color="success" variant="tonal" label>
+            {{ main.formatDisplayNumber ? main.formatDisplayNumber(item.daily_price) : item.daily_price }} {{ main.currency || 'DH' }}
+          </v-chip>
+          <span v-else class="text-grey text-caption">—</span>
+        </template>
+
         <!-- Actions column -->
         <template v-slot:[`item.actions`]="{ item }">
           <v-btn icon size="x-small" variant="tonal" color="info" @click="openDialog(item)" class="mr-1">
@@ -102,7 +126,7 @@
             <v-icon size="16">mdi-delete</v-icon>
           </v-btn>
         </template>
-      </v-data-table>
+      </v-data-table-virtual>
     </v-card-text>
 
     <!-- ============= CREATE/EDIT DIALOG ============= -->
@@ -130,6 +154,23 @@
               <v-text-field v-model="form.cni" :label="$t('cni')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
             </v-col>
             <v-col cols="6">
+              <v-text-field v-model="form.cnss_id" :label="$t('cnss_id')" variant="outlined" density="compact" rounded color="info" class="text-info" placeholder="ex: 123456789"></v-text-field>
+            </v-col>
+            <v-col cols="6">
+              <div class="wfm-toggle-card" :class="{ 'wfm-toggle-active-blue': form.fixed_daily_pay }" @click="form.fixed_daily_pay = !form.fixed_daily_pay">
+                <div class="wfm-toggle-left">
+                  <div class="wfm-toggle-icon-wrap" :style="{ background: form.fixed_daily_pay ? '#1565C01A' : 'rgba(var(--v-border-color), .06)' }">
+                    <v-icon :color="form.fixed_daily_pay ? 'info' : 'grey'" size="20">mdi-cash-lock</v-icon>
+                  </div>
+                  <div class="wfm-toggle-label">{{ $t('fixed_daily_pay') }}</div>
+                </div>
+                <v-switch v-model="form.fixed_daily_pay" color="info" inset density="compact" hide-details @click.stop></v-switch>
+              </div>
+            </v-col>
+            <v-col cols="6" v-if="form.fixed_daily_pay">
+              <v-text-field v-model.number="form.daily_price" :label="$t('daily_price')" variant="outlined" density="compact" rounded color="info" class="text-info" type="number" min="0" step="0.01" :suffix="main.currency || 'DH'"></v-text-field>
+            </v-col>
+            <v-col cols="6">
               <div class="wfm-toggle-card" :class="{ 'wfm-toggle-active': form.is_migrant }" @click="form.is_migrant = !form.is_migrant">
                 <div class="wfm-toggle-left">
                   <div class="wfm-toggle-icon-wrap" :style="{ background: form.is_migrant ? '#FF98001A' : 'rgba(var(--v-border-color), .06)' }">
@@ -138,6 +179,17 @@
                   <div class="wfm-toggle-label">{{ $t('is_migrant') }}</div>
                 </div>
                 <v-switch v-model="form.is_migrant" color="warning" inset density="compact" hide-details @click.stop></v-switch>
+              </div>
+            </v-col>
+            <v-col cols="6">
+              <div class="wfm-toggle-card" :class="{ 'wfm-toggle-active-green': form.salary_statement }" @click="form.salary_statement = !form.salary_statement">
+                <div class="wfm-toggle-left">
+                  <div class="wfm-toggle-icon-wrap" :style="{ background: form.salary_statement ? '#4CAF501A' : 'rgba(var(--v-border-color), .06)' }">
+                    <v-icon :color="form.salary_statement ? 'success' : 'grey'" size="20">mdi-file-document-check-outline</v-icon>
+                  </div>
+                  <div class="wfm-toggle-label">{{ $t('salary_statement') }}</div>
+                </div>
+                <v-switch v-model="form.salary_statement" color="success" inset density="compact" hide-details @click.stop></v-switch>
               </div>
             </v-col>
           </v-row>
@@ -225,7 +277,11 @@ export default {
         { title: this.$t('nationality'), key: 'nationality', align: 'center' },
         { title: this.$t('sex'), key: 'sex', align: 'center' },
         { title: this.$t('cni'), key: 'cni', align: 'center' },
+        { title: this.$t('cnss_id'), key: 'cnss_id', align: 'center' },
         { title: this.$t('is_migrant'), key: 'is_migrant', align: 'center' },
+        { title: this.$t('salary_statement'), key: 'salary_statement', align: 'center' },
+        { title: this.$t('fixed_daily_pay'), key: 'fixed_daily_pay', align: 'center' },
+        { title: this.$t('daily_price'), key: 'daily_price', align: 'center' },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
     },
@@ -244,11 +300,12 @@ export default {
   mounted() { this.fetchData(); },
   methods: {
     emptyForm() {
-      return { full_name: '', matricule: '', nationality: '', sex: 'male', cni: '', is_migrant: false };
+      return { full_name: '', matricule: '', nationality: '', sex: 'male', cni: '', cnss_id: '', is_migrant: false, salary_statement: false, fixed_daily_pay: false, daily_price: 0 };
     },
     getCellDisplayValue(key, item) {
-      if (key === 'is_migrant') return item[key] ? this.$t('yes') : this.$t('no');
+      if (key === 'is_migrant' || key === 'salary_statement' || key === 'fixed_daily_pay') return item[key] ? this.$t('yes') : this.$t('no');
       if (key === 'sex') return this.$t(item[key]);
+      if (key === 'daily_price') return this.main.formatDisplayNumber ? this.main.formatDisplayNumber(item[key]) : String(item[key] ?? '0');
       return String(item[key] ?? '');
     },
     getColumnOptions(key) {
@@ -265,7 +322,7 @@ export default {
     openDialog(item) {
       this.editing = item;
       if (item) {
-        this.form = { full_name: item.full_name || '', matricule: item.matricule || '', nationality: item.nationality || '', sex: item.sex || 'male', cni: item.cni || '', is_migrant: !!item.is_migrant };
+        this.form = { full_name: item.full_name || '', matricule: item.matricule || '', nationality: item.nationality || '', sex: item.sex || 'male', cni: item.cni || '', cnss_id: item.cnss_id || '', is_migrant: !!item.is_migrant, salary_statement: !!item.salary_statement, fixed_daily_pay: !!item.fixed_daily_pay, daily_price: parseFloat(item.daily_price) || 0 };
       } else { this.form = this.emptyForm(); }
       this.dialog = true;
     },
@@ -328,6 +385,8 @@ export default {
 .wfm-toggle-card { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; border: 1.5px solid rgba(var(--v-border-color), .12); cursor: pointer; transition: all .2s ease; background: transparent; height: 100%; }
 .wfm-toggle-card:hover { border-color: rgba(var(--v-border-color), .25); }
 .wfm-toggle-active { border-color: #FF9800 !important; background: rgba(255,152,0,.04); }
+.wfm-toggle-active-green { border-color: #4CAF50 !important; background: rgba(76,175,80,.04); }
+.wfm-toggle-active-blue { border-color: #1565C0 !important; background: rgba(21,101,192,.04); }
 .wfm-toggle-left { display: flex; align-items: center; gap: 10px; }
 .wfm-toggle-icon-wrap { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: background .2s ease; }
 .wfm-toggle-label { font-size: 13px; font-weight: 600; }

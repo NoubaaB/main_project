@@ -44,6 +44,24 @@ class ClientInvoiceController extends Controller
             'shipping_ids.*' => 'exists:shippings,id',
             'production_ids' => 'nullable|array',
             'production_ids.*' => 'exists:productions,id',
+            // Export-specific fields
+            'incoterm' => 'nullable|string|max:10',
+            'currency' => 'nullable|string|max:10',
+            'total_gross_weight' => 'nullable|numeric|min:0',
+            'intermediary_company' => 'nullable|string|max:255',
+            'intermediary_address' => 'nullable|string|max:500',
+            'intermediary_country' => 'nullable|string|max:255',
+            'destination_company' => 'nullable|string|max:255',
+            'destination_address' => 'nullable|string|max:500',
+            'destination_country' => 'nullable|string|max:255',
+            'shipment_country' => 'nullable|string|max:255',
+            'tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'export_details' => 'nullable|array',
+            'export_details.*.description' => 'nullable|string',
+            'export_details.*.container_or_truck_id' => 'nullable|string',
+            'export_details.*.weight_mt' => 'nullable|numeric|min:0',
+            'export_details.*.unit_price_per_ton' => 'nullable|numeric|min:0',
+            'export_details.*.total_price' => 'nullable|numeric|min:0',
         ]);
 
         $shipping_ids = $data['shipping_ids'] ?? [];
@@ -75,7 +93,7 @@ class ClientInvoiceController extends Controller
         $total_price = ($shipTotals->total_price ?? 0) + ($prodTotals->total_price ?? 0);
         $total_weight = ($shipTotals->total_weight ?? 0) + ($prodTotals->total_weight ?? 0);
 
-        $client_invoice = ClientInvoice::create([
+        $invoiceData = [
             'date' => $data['date'],
             'type_invoice' => $data['type_invoice'] ?? 'local',
             'total_price' => $total_price,
@@ -83,7 +101,27 @@ class ClientInvoiceController extends Controller
             'tracking_numbers' => $data['tracking_numbers'],
             'client_id' => $data['client_id'],
             'print_counter' => 0,
-        ]);
+        ];
+
+        // Persist export-specific fields
+        if (($data['type_invoice'] ?? 'local') === 'export') {
+            $invoiceData = array_merge($invoiceData, [
+                'incoterm' => $data['incoterm'] ?? null,
+                'currency' => $data['currency'] ?? null,
+                'total_gross_weight' => $data['total_gross_weight'] ?? null,
+                'intermediary_company' => $data['intermediary_company'] ?? null,
+                'intermediary_address' => $data['intermediary_address'] ?? null,
+                'intermediary_country' => $data['intermediary_country'] ?? null,
+                'destination_company' => $data['destination_company'] ?? null,
+                'destination_address' => $data['destination_address'] ?? null,
+                'destination_country' => $data['destination_country'] ?? null,
+                'shipment_country' => $data['shipment_country'] ?? null,
+                'tax_percentage' => $data['tax_percentage'] ?? 0,
+                'export_details' => $data['export_details'] ?? null,
+            ]);
+        }
+
+        $client_invoice = ClientInvoice::create($invoiceData);
 
         // Link shippings
         if (count($shipping_ids)) {
@@ -109,12 +147,8 @@ class ClientInvoiceController extends Controller
 
     public function destroy(Request $request)
     {
-        $ids = $request->query('ids', []);
-        if (empty($ids)) {
-            return response()->json(['message' => 'No IDs provided'], 400);
-        }
-
-        $invoices = ClientInvoice::findMany($ids);
+        $data = $request->validate(['ids' => 'required|array']);
+        $invoices = ClientInvoice::whereIn('id', $data['ids'])->get();
         $deleted_tracking_numbers = [];
 
         foreach ($invoices as $invoice) {
@@ -142,11 +176,54 @@ class ClientInvoiceController extends Controller
     }
 
     /**
+     * Get next available tracking number for a given invoice type.
+     * Local:  YY-0001, YY-0002 ...
+     * Export: YY-E001, YY-E002 ...
+     */
+    public function nextTrackingNumber(Request $request)
+    {
+        $type = $request->query('type', 'local');
+        $year = date('y'); // 2-digit year
+
+        if ($type === 'export') {
+            $prefix = $year . '-E';
+        } else {
+            $prefix = $year . '-';
+        }
+
+        // Find all tracking numbers from invoices of this type in the current year
+        $invoices = ClientInvoice::where('type_invoice', $type)->get();
+        $maxNum = 0;
+
+        foreach ($invoices as $inv) {
+            $trackingNumbers = $inv->tracking_numbers ?? [];
+            foreach ($trackingNumbers as $tn) {
+                if (str_starts_with($tn, $prefix)) {
+                    $numPart = substr($tn, strlen($prefix));
+                    $num = intval($numPart);
+                    if ($num > $maxNum) $maxNum = $num;
+                }
+            }
+        }
+
+        $nextNum = $maxNum + 1;
+
+        if ($type === 'export') {
+            $next = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+        } else {
+            $next = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+        }
+
+        return response()->json(['next_tracking_number' => $next]);
+    }
+
+    /**
      * Fetch specific client invoices by their IDs (for view/print page).
      */
     public function clientInvoicesByIds(Request $request)
     {
         $ids = $request->query('ids', []);
+        $ids = is_array($ids) ? $ids : [$ids];
         if (empty($ids)) {
             return response()->json(['client_invoices' => []], 200);
         }

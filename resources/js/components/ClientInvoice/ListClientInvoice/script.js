@@ -34,6 +34,7 @@ export default {
         { title: '', key: 'expand', sortable: false, width: 40, fixed: true },
         { title: this.$t('date'), key: 'date', align: 'center' },
         { title: this.$t('client_invoice_number_short'), key: '_tracking_numbers', align: 'center' },
+        { title: this.$t('invoice_type'), key: '_type_invoice', align: 'center' },
         { title: this.$t('clients'), key: '_clients', align: 'center' },
         { title: this.$t('total_weight'), key: 'total_weight', align: 'center' },
         { title: this.$t('price_dh', { currency: this.main.currency }), key: 'total_price', align: 'center' },
@@ -55,6 +56,7 @@ export default {
           ...inv,
           _tracking_numbers: (inv.tracking_numbers || []).join(', ') || '-',
           _clients: clientName,
+          _type_invoice: inv.type_invoice || 'local',
         };
       });
     },

@@ -23,6 +23,7 @@ import { useDetailInventoryCategory } from "./DetailInventoryCategory";
 import { useWarehouseTransferCategory } from "./WarehouseTransferCategory";
 import { useArchive } from "./Archive";
 import { useRole } from "./Role";
+import { useCompanySettings } from "./CompanySettings";
 
 export const useAuth = defineStore("Auth", {
   state: () => {
@@ -60,6 +61,7 @@ export const useAuth = defineStore("Auth", {
       detail_inventory_category: useDetailInventoryCategory(),
       warehouse_transfer_category: useWarehouseTransferCategory(),
       role_store: useRole(),
+      company_settings: useCompanySettings(),
     };
   },
   actions: {
@@ -115,6 +117,10 @@ export const useAuth = defineStore("Auth", {
       this.detail_inventory_category.list = response.data.detail_inventory_categories || [];
       this.warehouse_transfer_category.list = response.data.warehouse_transfer_categories || [];
       this.role_store.list = response.data.roles || [];
+      // Company settings — set the cached key-value map
+      if (response.data.company_settings) {
+        this.company_settings.setSettings(response.data.company_settings);
+      }
     },
     set_user: function (user) {
       this.user = user;

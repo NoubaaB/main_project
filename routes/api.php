@@ -218,6 +218,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "index"]);
         Route::delete("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "destroy"]);
         Route::get("client_invoice/check-tracking-number", [\App\Http\Controllers\ClientInvoiceController::class, "checkTrackingNumber"]);
+        Route::get("client_invoice/next-tracking-number", [\App\Http\Controllers\ClientInvoiceController::class, "nextTrackingNumber"]);
         Route::get("client_invoice/client-invoices-by-ids", [\App\Http\Controllers\ClientInvoiceController::class, "clientInvoicesByIds"]);
         Route::post("client_invoice/increment-print-counter", [\App\Http\Controllers\ClientInvoiceController::class, "incrementPrintCounter"]);
 
@@ -288,6 +289,12 @@ Route::middleware(["auth:sanctum"])->group(
         Route::put("fortnight-activities/{fortnightActivity}", [App\Http\Controllers\FortnightActivityController::class, "update"]);
         Route::delete("fortnight-activities/{fortnightActivity}", [App\Http\Controllers\FortnightActivityController::class, "destroy"]);
 
+        // Fortnight Settings
+        Route::get("fortnight-settings", [App\Http\Controllers\FortnightSettingController::class, "index"]);
+        Route::post("fortnight-settings", [App\Http\Controllers\FortnightSettingController::class, "store"]);
+        Route::put("fortnight-settings/{id}", [App\Http\Controllers\FortnightSettingController::class, "update"]);
+        Route::delete("fortnight-settings/{id}", [App\Http\Controllers\FortnightSettingController::class, "destroy"]);
+
         // Ships
         Route::post("ships", [App\Http\Controllers\ShipController::class, "store"]);
 
@@ -330,7 +337,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::put("bank-names/{bankName}", [App\Http\Controllers\BankNameController::class, "update"]);
         Route::delete("bank-names/{bankName}", [App\Http\Controllers\BankNameController::class, "destroy"]);
         #endregion
-
+    
         // ═══════════════════════════════════════════
         //  ORDER TRANSFER ROUTES
         // ═══════════════════════════════════════════

@@ -31,6 +31,10 @@ class WorkforceController extends Controller
             'sex' => 'required|in:male,female',
             'cni' => 'nullable|string|max:100',
             'is_migrant' => 'boolean',
+            'salary_statement' => 'boolean',
+            'fixed_daily_pay' => 'boolean',
+            'cnss_id' => 'nullable|string|max:100',
+            'daily_price' => 'nullable|numeric|min:0',
         ]);
 
         $workforce = Workforce::create($data);
@@ -53,6 +57,10 @@ class WorkforceController extends Controller
             'sex' => 'required|in:male,female',
             'cni' => 'nullable|string|max:100',
             'is_migrant' => 'boolean',
+            'salary_statement' => 'boolean',
+            'fixed_daily_pay' => 'boolean',
+            'cnss_id' => 'nullable|string|max:100',
+            'daily_price' => 'nullable|numeric|min:0',
         ]);
 
         $workforce->update($data);
