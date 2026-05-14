@@ -13,6 +13,7 @@ class SupplierInvoice extends Model
     protected $fillable = [
         'date',
         'tracking_numbers',
+        'type_invoice',
         'total_price',
         'total_weight',
         'print_counter',

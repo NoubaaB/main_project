@@ -160,7 +160,7 @@ export default {
     },
     _rawLinks: function () {
       return [
-        ['mdi-human-male-board-poll', this.$t("general"), null, "view_supplier_invoice", 'dashboard.view'],
+        ['mdi-chart-box-outline', this.$t("main_dashboard"), null, "main_dashboard"],
         ['mdi-robot', this.$t("ai_prompt"), null, "ai_prompt", 'ai_prompt.view'],
         ['mdi-warehouse', this.$t('warehouses'), [
           ['mdi-view-dashboard-outline', this.$t('dashboard'), "warehouses"],
@@ -212,6 +212,8 @@ export default {
           ['mdi-bank', this.$t("bank_name_management"), "bank_name_management"],
           ['mdi-domain', this.$t("company_settings"), "company_settings"],
           ['mdi-calendar-clock', this.$t("fortnight_settings"), "fortnight_settings"],
+          ['mdi-chart-areaspline', this.$t("chart_management"), "chart_management"],
+          ['mdi-cash-lock-open', this.$t("static_charge_management"), "static_charge_management"],
         ], null, 'settings.manage'],
         ['mdi-shield-account', this.$t('user_management'), null, "admin_users", 'users.manage'],
       ];

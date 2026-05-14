@@ -51,6 +51,7 @@ class SupplierInvoiceController extends Controller
         $data = $request->validate([
             'date' => 'required|date',
             'tracking_numbers' => 'required|array',
+            'type_invoice' => 'nullable|string|in:local,export',
             'supplier_id' => 'required|exists:suppliers,id',
             'charge_ids' => 'nullable|array',
             'charge_ids.*' => 'exists:charges,id',
@@ -90,6 +91,7 @@ class SupplierInvoiceController extends Controller
         $supplier_invoice = SupplierInvoice::create([
             'date' => $data['date'],
             'tracking_numbers' => $data['tracking_numbers'],
+            'type_invoice' => $data['type_invoice'] ?? 'local',
             'total_price' => $total_price,
             'total_weight' => $total_weight,
             'print_counter' => 0,
@@ -205,13 +207,100 @@ class SupplierInvoiceController extends Controller
     }
 
     /**
-     * Check if a tracking number already exists in any supplier invoice.
+     * Check if a tracking number already exists in any supplier invoice,
+     * scoped by charge_category_id or production_category_id and type_invoice.
      */
     public function checkTrackingNumber()
     {
         $trackingNumber = request()->query('tracking_number');
-        $exists = SupplierInvoice::whereJsonContains('tracking_numbers', $trackingNumber)->exists();
+        $typeInvoice = request()->query('type_invoice');
+        $chargeCategoryId = request()->query('charge_category_id');
+        $productionCategoryId = request()->query('production_category_id');
+
+        $query = SupplierInvoice::whereJsonContains('tracking_numbers', $trackingNumber);
+
+        // Scope by type_invoice if provided
+        if ($typeInvoice) {
+            $query->where('type_invoice', $typeInvoice);
+        }
+
+        // Scope by charge_category_id: invoice must have at least one charge in that category
+        if ($chargeCategoryId) {
+            $query->whereHas('charges', function ($q) use ($chargeCategoryId) {
+                $q->where('charge_category_id', $chargeCategoryId);
+            });
+        }
+
+        // Scope by production_category_id: invoice must have at least one production in that category
+        if ($productionCategoryId) {
+            $query->whereHas('productions', function ($q) use ($productionCategoryId) {
+                $q->where('production_category_id', $productionCategoryId);
+            });
+        }
+
+        $exists = $query->exists();
 
         return response()->json(['exists' => $exists], 200);
+    }
+
+    /**
+     * Get next available tracking number for supplier invoices.
+     * Scoped by charge_category_id or production_category_id and type.
+     * Local:  YY-0001, YY-0002 ...
+     * Export: YY-E001, YY-E002 ...
+     */
+    public function nextTrackingNumber(Request $request)
+    {
+        $type = $request->query('type', 'local');
+        $chargeCategoryId = $request->query('charge_category_id');
+        $productionCategoryId = $request->query('production_category_id');
+        $invoiceDate = $request->query('date'); // YYYY-MM-DD format
+
+        // Determine year from invoice date or current
+        if ($invoiceDate) {
+            $year = substr($invoiceDate, 2, 2); // e.g. "2026-05-14" -> "26"
+        } else {
+            $year = date('y'); // 2-digit year
+        }
+
+        if ($type === 'export') {
+            $prefix = $year . '-E';
+        } else {
+            $prefix = $year . '-';
+        }
+
+        // Build scoped query
+        $query = SupplierInvoice::where('type_invoice', $type);
+
+        if ($chargeCategoryId) {
+            $query->whereHas('charges', function ($q) use ($chargeCategoryId) {
+                $q->where('charge_category_id', $chargeCategoryId);
+            });
+        }
+
+        if ($productionCategoryId) {
+            $query->whereHas('productions', function ($q) use ($productionCategoryId) {
+                $q->where('production_category_id', $productionCategoryId);
+            });
+        }
+
+        $invoices = $query->get();
+        $maxNum = 0;
+
+        foreach ($invoices as $inv) {
+            $trackingNumbers = $inv->tracking_numbers ?? [];
+            foreach ($trackingNumbers as $tn) {
+                if (str_starts_with($tn, $prefix)) {
+                    $numPart = substr($tn, strlen($prefix));
+                    $num = intval($numPart);
+                    if ($num > $maxNum) $maxNum = $num;
+                }
+            }
+        }
+
+        $nextNum = $maxNum + 1;
+        $next = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+        return response()->json(['next_tracking_number' => $next]);
     }
 }

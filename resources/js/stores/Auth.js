@@ -24,6 +24,8 @@ import { useWarehouseTransferCategory } from "./WarehouseTransferCategory";
 import { useArchive } from "./Archive";
 import { useRole } from "./Role";
 import { useCompanySettings } from "./CompanySettings";
+import { useCustomChart } from "./CustomChart";
+import { useStaticCharge } from "./StaticCharge";
 
 export const useAuth = defineStore("Auth", {
   state: () => {
@@ -62,6 +64,8 @@ export const useAuth = defineStore("Auth", {
       warehouse_transfer_category: useWarehouseTransferCategory(),
       role_store: useRole(),
       company_settings: useCompanySettings(),
+      custom_chart: useCustomChart(),
+      static_charge: useStaticCharge(),
     };
   },
   actions: {
@@ -121,6 +125,10 @@ export const useAuth = defineStore("Auth", {
       if (response.data.company_settings) {
         this.company_settings.setSettings(response.data.company_settings);
       }
+      // Custom charts
+      this.custom_chart.list = response.data.custom_charts || [];
+      // Static charges
+      this.static_charge.list = response.data.static_charges || [];
     },
     set_user: function (user) {
       this.user = user;

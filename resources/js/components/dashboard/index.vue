@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div :class="['dashboard', main.is_dark ? 'dashboard-dark' : 'dashboard-light']" class="pb-1 rounded-xl">
 
     <!-- Hero Section with Logo -->

@@ -20,7 +20,7 @@ export default {
       expanded: {},
       showAdvanced: false, showInvoice: false,
       advFilter: { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] },
-      invForm: { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '', incoterm: null, currency: null, total_gross_weight: null, intermediary_company: '', intermediary_address: '', intermediary_country: '', destination_company: '', destination_address: '', destination_country: '', shipment_country: '', tax_percentage: 0, export_details: [] },
+      invForm: { date: null, type_invoice: 'local', trackingNumbers: [], trackingInput: '', incoterm: null, currency: null, total_gross_weight: null, intermediary_company: '', intermediary_address: '', intermediary_country: '', destination_company: '', destination_address: '', destination_country: '', shipment_country: '', tax_percentage: 0, export_details: [] },
       invChecking: false,
       deleteDialog: false, deleting: false, deleteId: null, deleteBulk: false,
       filterMenus: {},
@@ -202,9 +202,26 @@ export default {
     confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true },
     confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true },
     async execDelete() { this.deleting = true; try { const ids = this.deleteBulk ? this.selected : [this.deleteId]; await axios.delete('/api/shipping', { data: { ids } }); this.main.add_snackbar({ show: true, message: this.$t('delete_many_shippings'), color: 'success' }); this.selected = []; this.deleteDialog = false; this.fetchShippings() } catch (e) { console.error(e) } this.deleting = false },
+    getInvoiceYear() {
+      if (this.invForm.date) {
+        const d = typeof this.invForm.date === 'string' ? new Date(this.invForm.date) : this.invForm.date;
+        if (!isNaN(d)) return String(d.getFullYear()).slice(-2);
+      }
+      return String(new Date().getFullYear()).slice(-2);
+    },
+    getShippingCategoryId() {
+      if (!this.uninvoicedSelectedShippings.length) return null;
+      const ids = [...new Set(this.uninvoicedSelectedShippings.map(c => c.shipping_category_id))];
+      return ids.length === 1 ? ids[0] : ids[0];
+    },
     async fetchNextTracking(type) {
       try {
-        const r = await axios.get('/api/client_invoice/next-tracking-number', { params: { type: type || 'local' } });
+        const params = { type: type || 'local' };
+        const catId = this.getShippingCategoryId();
+        if (catId) params.shipping_category_id = catId;
+        const dateStr = this.invForm.date ? this.fmtDate(this.invForm.date) : null;
+        if (dateStr) params.date = dateStr;
+        const r = await axios.get('/api/client_invoice/next-tracking-number', { params });
         if (r.data.next_tracking_number) {
           this.invForm.trackingNumbers = [r.data.next_tracking_number];
         }
@@ -214,13 +231,36 @@ export default {
       this.invForm.trackingNumbers = [];
       if (val) await this.fetchNextTracking(val);
     },
-    async onTrackingUpdate(val) { if (!val || !val.length) return; const raw = val[val.length - 1]; if (!raw || !raw.trim()) return; let v = raw.trim(); const y = String(new Date().getFullYear()).slice(-2); const type = this.invForm.type_invoice || 'local'; if (type === 'export') { if (!v.startsWith(y + '-E')) v = y + '-E' + v.replace(/^0+/, '').padStart(4, '0'); } else { if (!v.startsWith(y + '-')) v = y + '-' + v.replace(/^0+/, '').padStart(4, '0'); } this.invForm.trackingNumbers.splice(this.invForm.trackingNumbers.length - 1, 1); if (this.invForm.trackingNumbers.includes(v)) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }); return; } this.invChecking = true; try { const r = await axios.get('/api/client_invoice/check-tracking-number', { params: { tracking_number: v } }); if (r.data.exists) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }) } else { this.invForm.trackingNumbers.push(v) } } catch (e) { console.error(e) } this.invChecking = false },
+    async onTrackingUpdate(val) {
+      if (!val || !val.length) return;
+      const raw = val[val.length - 1]; if (!raw || !raw.trim()) return;
+      let v = raw.trim();
+      const y = this.getInvoiceYear();
+      const type = this.invForm.type_invoice || 'local';
+      if (type === 'export') {
+        if (!v.startsWith(y + '-E')) v = y + '-E' + v.replace(/^0+/, '').padStart(4, '0');
+      } else {
+        if (!v.startsWith(y + '-')) v = y + '-' + v.replace(/^0+/, '').padStart(4, '0');
+      }
+      this.invForm.trackingNumbers.splice(this.invForm.trackingNumbers.length - 1, 1);
+      if (this.invForm.trackingNumbers.includes(v)) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }); return; }
+      this.invChecking = true;
+      try {
+        const params = { tracking_number: v, type_invoice: type };
+        const catId = this.getShippingCategoryId();
+        if (catId) params.shipping_category_id = catId;
+        const r = await axios.get('/api/client_invoice/check-tracking-number', { params });
+        if (r.data.exists) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }) }
+        else { this.invForm.trackingNumbers.push(v) }
+      } catch (e) { console.error(e) }
+      this.invChecking = false;
+    },
     addExportDetail() { this.invForm.export_details.push({ description: '', container_or_truck_id: '', weight_mt: 0, unit_price_per_ton: 0, total_price: 0 }) },
     removeExportDetail(i) { this.invForm.export_details.splice(i, 1) },
     calcDetailTotal(line) { line.total_price = Number((Number(line.weight_mt || 0) * Number(line.unit_price_per_ton || 0)).toFixed(2)); return line.total_price },
     exportSubTotal() { return this.invForm.export_details.reduce((s, l) => s + Number(l.total_price || 0), 0) },
     exportGrandTotal() { const sub = this.exportSubTotal(); return Number((sub + sub * (Number(this.invForm.tax_percentage || 0) / 100)).toFixed(2)) },
-    resetInvForm() { return { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '', incoterm: null, currency: null, total_gross_weight: null, intermediary_company: '', intermediary_address: '', intermediary_country: '', destination_company: '', destination_address: '', destination_country: '', shipment_country: '', tax_percentage: 0, export_details: [] } },
+    resetInvForm() { return { date: null, type_invoice: 'local', trackingNumbers: [], trackingInput: '', incoterm: null, currency: null, total_gross_weight: null, intermediary_company: '', intermediary_address: '', intermediary_country: '', destination_company: '', destination_address: '', destination_country: '', shipment_country: '', tax_percentage: 0, export_details: [] } },
     async submitInvoice() {
       if (!this.selected.length || !this.invForm.trackingNumbers.length) return;
       try {

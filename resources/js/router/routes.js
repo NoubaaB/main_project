@@ -41,6 +41,12 @@ const routes = [
                         component: () => import("@/components/dashboard/index.vue")
                     },
                     {
+                        path: "/main-dashboard",
+                        name: "main_dashboard",
+                        keeplive: true,
+                        component: () => import("@/components/dashboard/MainDashboard.vue")
+                    },
+                    {
                         path: "/profile",
                         name: "profile_settings",
                         keeplive: false,
@@ -362,6 +368,18 @@ const routes = [
                                 name: "fortnight_settings",
                                 keeplive: true,
                                 component: () => import("@/components/parameters/FortnightSettings/index.vue")
+                            },
+                            {
+                                path: "chart-management",
+                                name: "chart_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/ChartManagement/index.vue")
+                            },
+                            {
+                                path: "static-charge-management",
+                                name: "static_charge_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/StaticChargeManagement/index.vue")
                             },
                         ]
                     },

@@ -29,6 +29,8 @@ import { useWorkforce } from '@/stores/Workforce';
 import { useDetailInventoryCategory } from '@/stores/DetailInventoryCategory';
 import { useCompanySettings } from '@/stores/CompanySettings';
 import { useFortnightSetting } from '@/stores/FortnightSetting';
+import { useCustomChart } from '@/stores/CustomChart';
+import { useStaticCharge } from '@/stores/StaticCharge';
 
 export const useOnlineUsers = defineStore('OnlineUsers', {
     state: () => ({
@@ -188,6 +190,28 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
                     fsStore.handleWsUpdate({ action, id: record_id, data: record_data });
                 } catch (e) {
                     console.warn('[WebSocket] Failed to update FortnightSetting:', e);
+                }
+                return;
+            }
+
+            // CustomChart uses same list-based pattern
+            if (model === 'CustomChart') {
+                try {
+                    const ccStore = useCustomChart();
+                    ccStore.handleWsUpdate({ action, id: record_id, data: record_data });
+                } catch (e) {
+                    console.warn('[WebSocket] Failed to update CustomChart:', e);
+                }
+                return;
+            }
+
+            // StaticCharge uses same list-based pattern
+            if (model === 'StaticCharge') {
+                try {
+                    const scStore = useStaticCharge();
+                    scStore.handleWsUpdate({ action, id: record_id, data: record_data });
+                } catch (e) {
+                    console.warn('[WebSocket] Failed to update StaticCharge:', e);
                 }
                 return;
             }

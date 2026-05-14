@@ -196,6 +196,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("supplier_invoice/supplier-invoices-by-ids", [SupplierInvoiceController::class, "supplierInvoicesByIds"]);
         Route::post("supplier_invoice/increment-print-counter", [SupplierInvoiceController::class, "incrementPrintCounter"]);
         Route::get("supplier_invoice/check-tracking-number", [SupplierInvoiceController::class, "checkTrackingNumber"]);
+        Route::get("supplier_invoice/next-tracking-number", [SupplierInvoiceController::class, "nextTrackingNumber"]);
 
         // Supplier Payments
         Route::get("supplier_payments/balance", [\App\Http\Controllers\SupplierPaymentController::class, "supplierBalance"]);
@@ -295,6 +296,12 @@ Route::middleware(["auth:sanctum"])->group(
         Route::put("fortnight-settings/{id}", [App\Http\Controllers\FortnightSettingController::class, "update"]);
         Route::delete("fortnight-settings/{id}", [App\Http\Controllers\FortnightSettingController::class, "destroy"]);
 
+        // Static Charges
+        Route::get("static-charges", [App\Http\Controllers\StaticChargeController::class, "index"]);
+        Route::post("static-charges", [App\Http\Controllers\StaticChargeController::class, "store"]);
+        Route::put("static-charges/{id}", [App\Http\Controllers\StaticChargeController::class, "update"]);
+        Route::delete("static-charges/{id}", [App\Http\Controllers\StaticChargeController::class, "destroy"]);
+
         // Ships
         Route::post("ships", [App\Http\Controllers\ShipController::class, "store"]);
 
@@ -354,6 +361,17 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("company-settings", [App\Http\Controllers\CompanySettingController::class, "index"]);
         Route::put("company-settings", [App\Http\Controllers\CompanySettingController::class, "update"]);
         Route::post("company-settings/upload-logo", [App\Http\Controllers\CompanySettingController::class, "uploadLogo"]);
+
+        // ═══════════════════════════════════════════
+        //  CUSTOM CHART ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("custom-charts", [App\Http\Controllers\CustomChartController::class, "index"]);
+        Route::post("custom-charts", [App\Http\Controllers\CustomChartController::class, "store"]);
+        Route::get("custom-charts/{customChart}", [App\Http\Controllers\CustomChartController::class, "show"]);
+        Route::put("custom-charts/{customChart}", [App\Http\Controllers\CustomChartController::class, "update"]);
+        Route::delete("custom-charts/{customChart}", [App\Http\Controllers\CustomChartController::class, "destroy"]);
+        Route::get("custom-charts/{customChart}/data", [App\Http\Controllers\CustomChartController::class, "chartData"]);
+        Route::post("custom-charts/reorder", [App\Http\Controllers\CustomChartController::class, "reorder"]);
     }
 );
 #endregion

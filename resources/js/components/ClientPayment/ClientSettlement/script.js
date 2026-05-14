@@ -2,6 +2,7 @@ import { useMain } from '@/stores/Main';
 import { useClientPayment } from '@/stores/ClientPayment';
 import { useClient } from '@/stores/Client';
 import { useBankName } from '@/stores/BankName';
+import { useCompanySettings } from '@/stores/CompanySettings';
 import mitt from '@/plugins/mitt.js';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
@@ -42,6 +43,9 @@ export default {
       // Expanded months
       expandedMonths: {},
       bankNameSearch: '',
+      // Print
+      printReady: false,
+      printLoading: false,
     };
   },
   computed: {
@@ -53,6 +57,8 @@ export default {
       return this.clients.map(c => ({ title: c.name, value: c.id }));
     },
     bankNameStore() { return useBankName(); },
+    companySettings() { return useCompanySettings(); },
+    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
     bankNameItems() {
       return this.bankNameStore.list.map(b => ({ title: b.name, value: b.name }));
     },
@@ -266,6 +272,49 @@ export default {
         dataLabels: { enabled: false },
         theme: { mode: this.main.is_dark ? 'dark' : 'light' },
       };
+    },
+    // Print: label showing which clients are filtered
+    printClientLabel() {
+      if (!this.selectedClientIds.length) return '';
+      return this.clients
+        .filter(c => this.selectedClientIds.includes(c.id))
+        .map(c => c.name)
+        .join(', ');
+    },
+    // Print: only months that have data (invoices or payments)
+    printMonths() {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth() + 1;
+      return this.months.filter(m => {
+        if (this.currentYear > curYear) return false;
+        if (this.currentYear === curYear && m.num > curMonth) return false;
+        const hasInv = this.invoicesByMonth[m.num] && this.invoicesByMonth[m.num].length > 0;
+        const hasPay = this.paymentsByMonth[m.num] && this.paymentsByMonth[m.num].length > 0;
+        return hasInv || hasPay;
+      });
+    },
+    // Print: statistics for the footer
+    printStats() {
+      let invoiceCount = 0;
+      let totalWeight = 0;
+      let paymentCount = 0;
+      const methodCounts = {};
+      for (let m = 1; m <= 12; m++) {
+        const invs = this.invoicesByMonth[m] || [];
+        invoiceCount += invs.length;
+        invs.forEach(inv => { totalWeight += Number(inv.total_weight || 0); });
+        const pays = this.paymentsByMonth[m] || [];
+        paymentCount += pays.length;
+        pays.forEach(p => {
+          const type = this.paymentTypeLabel(p.payment_type);
+          methodCounts[type] = (methodCounts[type] || 0) + 1;
+        });
+      }
+      const paymentMethodsSummary = Object.entries(methodCounts)
+        .map(([type, count]) => `${type} (${count})`)
+        .join(', ') || '-';
+      return { invoiceCount, totalWeight, paymentCount, paymentMethodsSummary };
     },
   },
   mounted() {
@@ -610,6 +659,15 @@ export default {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheetTitle.substring(0, 31));
       const fileCliNames = cliNames || 'all';
       XLSX.writeFile(wb, `client_settlement_${fileCliNames.replace(/\s+/g, '_')}_${monthLabel}-${this.currentYear}.xlsx`);
+    },
+    prepareSettlementPrint() {
+      this.printLoading = true;
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.printReady = true;
+          this.printLoading = false;
+        }, 300);
+      });
     },
   },
 };

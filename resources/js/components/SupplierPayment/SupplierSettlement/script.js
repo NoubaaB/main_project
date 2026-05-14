@@ -2,6 +2,7 @@ import { useMain } from '@/stores/Main';
 import { useSupplierPayment } from '@/stores/SupplierPayment';
 import { useSupplier } from '@/stores/Supplier';
 import { useBankName } from '@/stores/BankName';
+import { useCompanySettings } from '@/stores/CompanySettings';
 import mitt from '@/plugins/mitt.js';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
@@ -42,6 +43,9 @@ export default {
       // Expanded months
       expandedMonths: {},
       bankNameSearch: '',
+      // Print
+      printReady: false,
+      printLoading: false,
     };
   },
   computed: {
@@ -53,6 +57,8 @@ export default {
       return this.suppliers.map(s => ({ title: s.name, value: s.id }));
     },
     bankNameStore() { return useBankName(); },
+    companySettings() { return useCompanySettings(); },
+    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
     bankNameItems() {
       return this.bankNameStore.list.map(b => ({ title: b.name, value: b.name }));
     },
@@ -107,6 +113,49 @@ export default {
         const day = String(d.getDate()).padStart(2, '0');
         this.payForm.date = `${y}-${m}-${day}`;
       },
+    },
+    // Print: label showing which suppliers are filtered
+    printSupplierLabel() {
+      if (!this.selectedSupplierIds.length) return '';
+      return this.suppliers
+        .filter(s => this.selectedSupplierIds.includes(s.id))
+        .map(s => s.name)
+        .join(', ');
+    },
+    // Print: only months that have data (invoices or payments)
+    printMonths() {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth() + 1;
+      return this.months.filter(m => {
+        if (this.currentYear > curYear) return false;
+        if (this.currentYear === curYear && m.num > curMonth) return false;
+        const hasInv = this.invoicesByMonth[m.num] && this.invoicesByMonth[m.num].length > 0;
+        const hasPay = this.paymentsByMonth[m.num] && this.paymentsByMonth[m.num].length > 0;
+        return hasInv || hasPay;
+      });
+    },
+    // Print: statistics for the footer
+    printStats() {
+      let invoiceCount = 0;
+      let totalWeight = 0;
+      let paymentCount = 0;
+      const methodCounts = {};
+      for (let m = 1; m <= 12; m++) {
+        const invs = this.invoicesByMonth[m] || [];
+        invoiceCount += invs.length;
+        invs.forEach(inv => { totalWeight += Number(inv.total_weight || 0); });
+        const pays = this.paymentsByMonth[m] || [];
+        paymentCount += pays.length;
+        pays.forEach(p => {
+          const type = this.paymentTypeLabel(p.payment_type);
+          methodCounts[type] = (methodCounts[type] || 0) + 1;
+        });
+      }
+      const paymentMethodsSummary = Object.entries(methodCounts)
+        .map(([type, count]) => `${type} (${count})`)
+        .join(', ') || '-';
+      return { invoiceCount, totalWeight, paymentCount, paymentMethodsSummary };
     },
     filteredInvoices() {
       if (!this.payForm.supplier_id) return [];
@@ -630,6 +679,16 @@ export default {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheetTitle.substring(0, 31));
       const fileSupNames = supNames || 'all';
       XLSX.writeFile(wb, `supplier_settlement_${fileSupNames.replace(/\s+/g, '_')}_${monthLabel}-${this.currentYear}.xlsx`);
+    },
+    prepareSettlementPrint() {
+      this.printLoading = true;
+      // Small timeout to let the print area render
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.printReady = true;
+          this.printLoading = false;
+        }, 300);
+      });
     },
   },
 };

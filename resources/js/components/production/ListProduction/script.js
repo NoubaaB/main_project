@@ -20,7 +20,7 @@ export default {
       expanded: {},
       showAdvanced: false, showInvoice: false,
       advFilter: { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] },
-      invForm: { date: null, type_invoice: null, invoiceKind: 'supplier', trackingNumbers: [], trackingInput: '' },
+      invForm: { date: null, type_invoice: 'local', invoiceKind: 'supplier', trackingNumbers: [], trackingInput: '' },
       invChecking: false,
       deleteDialog: false, deleting: false, deleteId: null, deleteBulk: false,
       filterMenus: {},
@@ -305,7 +305,61 @@ export default {
     confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true },
     confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true },
     async execDelete() { this.deleting = true; try { const ids = this.deleteBulk ? this.selected : [this.deleteId]; await axios.delete('/api/productions', { data: { ids } }); this.main.add_snackbar({ show: true, message: this.$t('productions_deleted_successfully'), color: 'success' }); this.selected = []; this.deleteDialog = false; this.fetchProductions() } catch (e) { console.error(e) } this.deleting = false },
-    async onTrackingUpdate(val) { if (!val || !val.length) return; const raw = val[val.length - 1]; if (!raw || !raw.trim()) return; let v = raw.trim(); const y = String(new Date().getFullYear()).slice(-2); if (!v.startsWith(y + '-')) v = y + '-' + v.replace(/^0+/, '').padStart(4, '0'); this.invForm.trackingNumbers.splice(this.invForm.trackingNumbers.length - 1, 1); if (this.invForm.trackingNumbers.includes(v)) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }); return; } this.invChecking = true; const ep = this.invForm.invoiceKind === 'supplier' ? '/api/supplier_invoice/check-tracking-number' : '/api/client_invoice/check-tracking-number'; try { const r = await axios.get(ep, { params: { tracking_number: v } }); if (r.data.exists) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }) } else { this.invForm.trackingNumbers.push(v) } } catch (e) { console.error(e) } this.invChecking = false },
+    getInvoiceYear() {
+      if (this.invForm.date) {
+        const d = typeof this.invForm.date === 'string' ? new Date(this.invForm.date) : this.invForm.date;
+        if (!isNaN(d)) return String(d.getFullYear()).slice(-2);
+      }
+      return String(new Date().getFullYear()).slice(-2);
+    },
+    getProductionCategoryId() {
+      if (!this.uninvoicedSelectedProductions.length) return null;
+      const ids = [...new Set(this.uninvoicedSelectedProductions.map(c => c.production_category_id))];
+      return ids.length === 1 ? ids[0] : ids[0];
+    },
+    async fetchNextTracking(type) {
+      try {
+        const params = { type: type || 'local' };
+        const catId = this.getProductionCategoryId();
+        if (catId) params.production_category_id = catId;
+        const dateStr = this.invForm.date ? this.fmtDate(this.invForm.date) : null;
+        if (dateStr) params.date = dateStr;
+        const ep = this.invForm.invoiceKind === 'supplier' ? '/api/supplier_invoice/next-tracking-number' : '/api/client_invoice/next-tracking-number';
+        const r = await axios.get(ep, { params });
+        if (r.data.next_tracking_number) {
+          this.invForm.trackingNumbers = [r.data.next_tracking_number];
+        }
+      } catch (e) { console.error(e) }
+    },
+    async onTypeInvoiceChange(val) {
+      this.invForm.trackingNumbers = [];
+      if (val) await this.fetchNextTracking(val);
+    },
+    async onTrackingUpdate(val) {
+      if (!val || !val.length) return;
+      const raw = val[val.length - 1]; if (!raw || !raw.trim()) return;
+      let v = raw.trim();
+      const y = this.getInvoiceYear();
+      const type = this.invForm.type_invoice || 'local';
+      if (type === 'export') {
+        if (!v.startsWith(y + '-E')) v = y + '-E' + v.replace(/^0+/, '').padStart(4, '0');
+      } else {
+        if (!v.startsWith(y + '-')) v = y + '-' + v.replace(/^0+/, '').padStart(4, '0');
+      }
+      this.invForm.trackingNumbers.splice(this.invForm.trackingNumbers.length - 1, 1);
+      if (this.invForm.trackingNumbers.includes(v)) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }); return; }
+      this.invChecking = true;
+      const ep = this.invForm.invoiceKind === 'supplier' ? '/api/supplier_invoice/check-tracking-number' : '/api/client_invoice/check-tracking-number';
+      try {
+        const params = { tracking_number: v, type_invoice: type };
+        const catId = this.getProductionCategoryId();
+        if (catId) params.production_category_id = catId;
+        const r = await axios.get(ep, { params });
+        if (r.data.exists) { this.main.add_snackbar({ show: true, message: this.$t('tracking_number_exists_in_invoice'), color: 'warning' }) }
+        else { this.invForm.trackingNumbers.push(v) }
+      } catch (e) { console.error(e) }
+      this.invChecking = false;
+    },
     async submitInvoice() {
       const uninvoicedIds = this.uninvoicedSelectedProductions.map(c => c.id);
       if (!uninvoicedIds.length || !this.invForm.trackingNumbers.length) return;
@@ -325,7 +379,7 @@ export default {
         } catch (e) { console.error(e); this.main.add_snackbar({ show: true, message: this.$t('error'), color: 'error' }) }
       }
     },
-    cancelInvoice() { this.selected = []; this.invForm = { date: null, type_invoice: null, trackingNumbers: [], trackingInput: '', invoiceKind: 'supplier' }; this.showInvoice = false; },
+    cancelInvoice() { this.selected = []; this.invForm = { date: null, type_invoice: 'local', trackingNumbers: [], trackingInput: '', invoiceKind: 'supplier' }; this.showInvoice = false; },
     exportExcel() { const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions' && h.key !== 'expand').forEach(h => { row[h.title] = this.cellText(h.key, c) }); return row }); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Productions'); XLSX.writeFile(wb, `productions_${this.today}.xlsx`) },
   },
 };

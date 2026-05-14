@@ -168,22 +168,61 @@ class ClientInvoiceController extends Controller
         ], 200);
     }
 
+    /**
+     * Check if a tracking number already exists in any client invoice,
+     * scoped by shipping_category_id or production_category_id and type_invoice.
+     */
     public function checkTrackingNumber(Request $request)
     {
         $tracking = $request->query('tracking_number');
-        $exists = ClientInvoice::whereJsonContains('tracking_numbers', $tracking)->exists();
+        $typeInvoice = $request->query('type_invoice');
+        $shippingCategoryId = $request->query('shipping_category_id');
+        $productionCategoryId = $request->query('production_category_id');
+
+        $query = ClientInvoice::whereJsonContains('tracking_numbers', $tracking);
+
+        // Scope by type_invoice if provided
+        if ($typeInvoice) {
+            $query->where('type_invoice', $typeInvoice);
+        }
+
+        // Scope by shipping_category_id: invoice must have at least one shipping in that category
+        if ($shippingCategoryId) {
+            $query->whereHas('shippings', function ($q) use ($shippingCategoryId) {
+                $q->where('shipping_category_id', $shippingCategoryId);
+            });
+        }
+
+        // Scope by production_category_id: invoice must have at least one production in that category
+        if ($productionCategoryId) {
+            $query->whereHas('productions', function ($q) use ($productionCategoryId) {
+                $q->where('production_category_id', $productionCategoryId);
+            });
+        }
+
+        $exists = $query->exists();
         return response()->json(['exists' => $exists]);
     }
 
     /**
-     * Get next available tracking number for a given invoice type.
+     * Get next available tracking number for a given invoice type,
+     * scoped by shipping_category_id or production_category_id.
      * Local:  YY-0001, YY-0002 ...
      * Export: YY-E001, YY-E002 ...
      */
     public function nextTrackingNumber(Request $request)
     {
         $type = $request->query('type', 'local');
-        $year = date('y'); // 2-digit year
+        $shippingCategoryId = $request->query('shipping_category_id');
+        $productionCategoryId = $request->query('production_category_id');
+        $invoiceDate = $request->query('date'); // YYYY-MM-DD format
+
+        // Determine year from invoice date or current
+        if ($invoiceDate) {
+            $year = substr($invoiceDate, 2, 2);
+        } else {
+            $year = date('y'); // 2-digit year
+        }
 
         if ($type === 'export') {
             $prefix = $year . '-E';
@@ -191,8 +230,23 @@ class ClientInvoiceController extends Controller
             $prefix = $year . '-';
         }
 
-        // Find all tracking numbers from invoices of this type in the current year
-        $invoices = ClientInvoice::where('type_invoice', $type)->get();
+        // Build scoped query
+        $query = ClientInvoice::where('type_invoice', $type);
+
+        if ($shippingCategoryId) {
+            $query->whereHas('shippings', function ($q) use ($shippingCategoryId) {
+                $q->where('shipping_category_id', $shippingCategoryId);
+            });
+        }
+
+        if ($productionCategoryId) {
+            $query->whereHas('productions', function ($q) use ($productionCategoryId) {
+                $q->where('production_category_id', $productionCategoryId);
+            });
+        }
+
+        // Find all tracking numbers from invoices of this type in the scoped query
+        $invoices = $query->get();
         $maxNum = 0;
 
         foreach ($invoices as $inv) {
@@ -207,12 +261,7 @@ class ClientInvoiceController extends Controller
         }
 
         $nextNum = $maxNum + 1;
-
-        if ($type === 'export') {
-            $next = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
-        } else {
-            $next = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
-        }
+        $next = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
 
         return response()->json(['next_tracking_number' => $next]);
     }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompanySetting;
+use App\Models\CustomChart;
+use App\Models\StaticCharge;
 use App\Models\User;
 use App\Models\WarehouseCategory;
 use App\Models\Origin;
@@ -226,7 +228,7 @@ class AuthController extends Controller implements HasMiddleware
         $fish_families = FishFamily::all();
         $package_types = PackageType::all();
         $guano_types = GuanoType::all();
-        $warehouses = Warehouse::all();
+        $warehouses = Warehouse::with('category')->get();
         $warehouse_categories = WarehouseCategory::all();
         $fisheries = Fishery::all();
         $origins = Origin::all();
@@ -281,6 +283,8 @@ class AuthController extends Controller implements HasMiddleware
             "warehouse_transfer_categories" => $warehouse_transfer_categories,
             "roles" => $roles,
             "company_settings" => $company_settings,
+            "custom_charts" => CustomChart::with('series')->where('is_active', true)->orderBy('display_order')->get(),
+            "static_charges" => StaticCharge::orderBy('created_at', 'desc')->get(),
         ];
     }
 }

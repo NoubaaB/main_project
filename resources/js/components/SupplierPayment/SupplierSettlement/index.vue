@@ -46,6 +46,7 @@
         </v-autocomplete>
         <v-btn color="#E65100" variant="flat" rounded prepend-icon="mdi-plus" @click="openAddPayment" :disabled="isClosed" size="small" class="flex-shrink-0">{{ $t('add_payment') }}</v-btn>
         <v-btn icon variant="tonal" color="success" size="small" @click="exportExcel" class="flex-shrink-0"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn>
+        <v-btn icon variant="tonal" color="#E65100" size="small" @click="prepareSettlementPrint" :loading="printLoading" class="flex-shrink-0"><v-icon size="18">mdi-printer-outline</v-icon></v-btn>
       </div>
       <div v-if="yearInvoicesLoading || store.loading" class="text-center pa-8"><v-progress-circular indeterminate color="#E65100" size="40"></v-progress-circular></div>
       <template v-else>
@@ -163,11 +164,187 @@
   <v-dialog v-model="closeYearDialog" max-width="500"><v-card class="rounded-xl"><v-card-title class="pa-5 pb-2"><v-icon color="#E65100" class="mr-2">mdi-lock</v-icon>{{ $t('fiscal_year_closing') }}</v-card-title><v-card-text class="pa-5 pt-2">{{ $t('confirm_close_year', {year:currentYear}) }}</v-card-text><v-card-actions class="pa-5 pt-0"><v-spacer/><v-btn @click="closeYearDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="#E65100" variant="flat" rounded @click="doCloseYear" :loading="closingYear">{{ $t('close_year') }}</v-btn></v-card-actions></v-card></v-dialog>
   <!-- Reopen Year Dialog -->
   <v-dialog v-model="reopenDialog" max-width="450"><v-card class="rounded-xl"><v-card-title class="pa-5 pb-2"><v-icon color="warning" class="mr-2">mdi-lock-open</v-icon>{{ $t('reopen_year') }}</v-card-title><v-card-text class="pa-5 pt-2">{{ $t('confirm_reopen_year', {year:currentYear}) }}</v-card-text><v-card-actions class="pa-5 pt-0"><v-spacer/><v-btn @click="reopenDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="warning" variant="flat" rounded @click="doReopenYear" :loading="reopening">{{ $t('reopen_year') }}</v-btn></v-card-actions></v-card></v-dialog>
+
+  <!-- Print Trigger Floating Bar -->
+  <div v-if="printReady" class="d-flex align-center ga-2 pa-3" style="position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(230,81,0,.95);border-radius:16px;box-shadow:0 8px 32px rgba(230,81,0,.4)">
+    <v-icon color="white" size="20">mdi-file-document-outline</v-icon>
+    <span class="text-white text-body-2 font-weight-bold mr-2">{{ $t('settlement_bulletin') }} — {{ currentYear }}</span>
+    <v-btn v-print="printCfg" color="white" variant="flat" size="small" rounded prepend-icon="mdi-printer" style="color:#E65100">{{ $t('print') }}</v-btn>
+    <v-btn icon size="x-small" variant="text" color="white" @click="printReady = false"><v-icon size="18">mdi-close</v-icon></v-btn>
+  </div>
 </v-card>
+
+<!-- Hidden Print Area -->
+<div style="display:none"><div id="ss-print-area">
+  <div style="padding:20px 28px;max-width:1060px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a1a">
+    <!-- Header with Logo & Company -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div><img :src="logoUrl" alt="Logo" style="height:48px" /></div>
+      <div style="text-align:center;flex:1">
+        <h1 style="font-size:20px;font-weight:800;color:#E65100;margin:0;letter-spacing:.5px">{{ $t('settlement_bulletin') }}</h1>
+        <p style="font-size:11px;color:#78909C;margin:2px 0 0">{{ companySettings.companyName }} — {{ companySettings.companyAddress }}</p>
+      </div>
+      <div style="text-align:right;font-size:10px;color:#546E7A">
+        <div><b>{{ $t('year') }}:</b> {{ currentYear }}</div>
+        <div><b>{{ $t('date') }}:</b> {{ new Date().toLocaleDateString() }}</div>
+        <div v-if="printSupplierLabel"><b>{{ $t('suppliers') }}:</b> {{ printSupplierLabel }}</div>
+      </div>
+    </div>
+    <div style="height:3px;background:linear-gradient(90deg,#E65100,#FFB74D,#E65100);border-radius:2px;margin:8px 0 14px"></div>
+
+    <!-- Summary Stats Row -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr>
+        <td class="ss-ps" style="background:#FFF3E0;border:1px solid #FFE0B2"><div class="ss-ps-label">{{ $t('carry_forward') }}</div><div class="ss-ps-val" style="color:#E65100">{{ main.formatDisplayNumber(totalCarryForward) }} {{ main.currency }}</div></td>
+        <td class="ss-ps" style="background:#FBE9E7;border:1px solid #FFCCBC"><div class="ss-ps-label">{{ $t('supplier_invoices') }}</div><div class="ss-ps-val" style="color:#BF360C">{{ main.formatDisplayNumber(totalInvoices) }} {{ main.currency }}</div></td>
+        <td class="ss-ps" style="background:#E0F2F1;border:1px solid #B2DFDB"><div class="ss-ps-label">{{ $t('payments') }}</div><div class="ss-ps-val" style="color:#00695C">{{ main.formatDisplayNumber(totalPayments) }} {{ main.currency }}</div></td>
+        <td class="ss-ps" :style="totalBalance>0?'background:#FFEBEE;border:1px solid #FFCDD2':'background:#E8F5E9;border:1px solid #C8E6C9'"><div class="ss-ps-label">{{ $t('outstanding_balance') }}</div><div class="ss-ps-val" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}</div></td>
+      </tr>
+    </table>
+
+    <!-- Month-by-Month Breakdown -->
+    <template v-for="m in printMonths" :key="m.num">
+      <!-- Month Header -->
+      <div style="background:linear-gradient(90deg,#E65100,#F57C00);color:#fff;padding:6px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:4px 4px 0 0;margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+        <span>{{ m.label }} {{ currentYear }}</span>
+        <span style="font-size:10px;opacity:.85">
+          {{ $t('supplier_invoices') }}: {{ main.formatDisplayNumber(monthTotals[m.num].invoices) }} {{ main.currency }}
+          &nbsp;|&nbsp;
+          {{ $t('payments') }}: {{ main.formatDisplayNumber(monthTotals[m.num].payments) }} {{ main.currency }}
+          &nbsp;|&nbsp;
+          {{ $t('outstanding_balance') }}: {{ main.formatDisplayNumber(monthTotals[m.num].balance) }} {{ main.currency }}
+        </span>
+      </div>
+      <!-- Side-by-Side Tables -->
+      <table style="width:100%;border-collapse:collapse;border:1px solid #E0E0E0;border-top:none">
+        <tr>
+          <!-- LEFT: Invoices -->
+          <td style="width:50%;vertical-align:top;padding:0;border-right:2px solid #E65100">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead><tr>
+                <th class="ss-ph" colspan="4" style="background:#FFF3E0;color:#BF360C;border-bottom:1px solid #FFE0B2;font-size:10px;padding:5px 6px">{{ $t('supplier_invoices') }} ({{ invoicesByMonth[m.num].length }})</th>
+              </tr><tr>
+                <th class="ss-ph2">{{ $t('date') }}</th>
+                <th class="ss-ph2">{{ $t('suppliers') }}</th>
+                <th class="ss-ph2">{{ $t('weight') }}</th>
+                <th class="ss-ph2">{{ $t('price') }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="inv in invoicesByMonth[m.num]" :key="'pi'+inv.id">
+                  <td class="ss-pv">{{ fmtDate(inv.date) }}</td>
+                  <td class="ss-pv">{{ inv._supplierNames }}</td>
+                  <td class="ss-pv" style="text-align:right">{{ main.formatDisplayNumber(inv.total_weight) }}</td>
+                  <td class="ss-pv" style="text-align:right;font-weight:600;color:#BF360C">{{ main.formatDisplayNumber(inv.total_price) }}</td>
+                </tr>
+                <tr v-if="!invoicesByMonth[m.num].length"><td class="ss-pv" colspan="4" style="text-align:center;opacity:.4;padding:6px">—</td></tr>
+                <tr style="background:#FFF3E0"><td colspan="3" class="ss-pv" style="text-align:right;font-weight:700;font-size:10px">{{ $t('total') }}</td><td class="ss-pv" style="text-align:right;font-weight:700;color:#BF360C">{{ main.formatDisplayNumber(monthTotals[m.num].invoices) }}</td></tr>
+              </tbody>
+            </table>
+          </td>
+          <!-- RIGHT: Payments -->
+          <td style="width:50%;vertical-align:top;padding:0">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead><tr>
+                <th class="ss-ph" colspan="4" style="background:#E0F2F1;color:#00695C;border-bottom:1px solid #B2DFDB;font-size:10px;padding:5px 6px">{{ $t('payments') }} ({{ paymentsByMonth[m.num].length }})</th>
+              </tr><tr>
+                <th class="ss-ph2">{{ $t('date') }}</th>
+                <th class="ss-ph2">{{ $t('suppliers') }}</th>
+                <th class="ss-ph2">{{ $t('payment_type') }}</th>
+                <th class="ss-ph2">{{ $t('payment_amount') }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="p in paymentsByMonth[m.num]" :key="'pp'+p.id">
+                  <td class="ss-pv">{{ fmtDate(p.date) }}</td>
+                  <td class="ss-pv">{{ p._supplierName }}</td>
+                  <td class="ss-pv">{{ paymentTypeLabel(p.payment_type) }}</td>
+                  <td class="ss-pv" style="text-align:right;font-weight:600;color:#00695C">{{ main.formatDisplayNumber(p.amount) }}</td>
+                </tr>
+                <tr v-if="!paymentsByMonth[m.num].length"><td class="ss-pv" colspan="4" style="text-align:center;opacity:.4;padding:6px">—</td></tr>
+                <tr style="background:#E0F2F1"><td colspan="3" class="ss-pv" style="text-align:right;font-weight:700;font-size:10px">{{ $t('total') }}</td><td class="ss-pv" style="text-align:right;font-weight:700;color:#00695C">{{ main.formatDisplayNumber(monthTotals[m.num].payments) }}</td></tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </template>
+
+    <!-- Year Summary Table -->
+    <div style="margin-top:16px;page-break-inside:avoid">
+      <div style="background:linear-gradient(90deg,#E65100,#F57C00);color:#fff;padding:6px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:4px 4px 0 0;display:flex;align-items:center">
+        <span>{{ $t('year_summary') }} — {{ currentYear }}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #E0E0E0;border-top:none;font-size:11px">
+        <thead><tr>
+          <th class="ss-ph3">{{ $t('suppliers') }}</th>
+          <th class="ss-ph3">{{ $t('carry_forward') }}</th>
+          <th class="ss-ph3">{{ $t('supplier_invoices') }}</th>
+          <th class="ss-ph3">{{ $t('payments') }}</th>
+          <th class="ss-ph3">{{ $t('outstanding_balance') }}</th>
+        </tr></thead>
+        <tbody>
+          <tr v-for="s in filteredYearSummary" :key="'ps'+s.supplier_id">
+            <td class="ss-pv" style="font-weight:600">{{ s.supplier_name }}</td>
+            <td class="ss-pv" style="text-align:right">{{ main.formatDisplayNumber(s.carry_forward) }}</td>
+            <td class="ss-pv" style="text-align:right;color:#BF360C">{{ main.formatDisplayNumber(s.total_invoices) }}</td>
+            <td class="ss-pv" style="text-align:right;color:#00695C">{{ main.formatDisplayNumber(s.total_payments) }}</td>
+            <td class="ss-pv" style="text-align:right;font-weight:700" :style="s.balance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(s.balance) }} {{ main.currency }}</td>
+          </tr>
+          <tr style="background:#FFF3E0;border-top:2px solid #E65100">
+            <td class="ss-pv" style="font-weight:800">{{ $t('total') }}</td>
+            <td class="ss-pv" style="text-align:right;font-weight:700">{{ main.formatDisplayNumber(totalCarryForward) }}</td>
+            <td class="ss-pv" style="text-align:right;font-weight:700;color:#BF360C">{{ main.formatDisplayNumber(totalInvoices) }}</td>
+            <td class="ss-pv" style="text-align:right;font-weight:700;color:#00695C">{{ main.formatDisplayNumber(totalPayments) }}</td>
+            <td class="ss-pv" style="text-align:right;font-weight:800" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Statistics Footer -->
+    <div style="margin-top:14px;display:flex;gap:16px;page-break-inside:avoid">
+      <div style="flex:1;border:1px solid #FFE0B2;border-radius:6px;padding:10px;background:#FFF8E1">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#E65100;margin-bottom:6px;letter-spacing:.5px">{{ $t('settlement_stats_invoices') }}</div>
+        <div style="font-size:11px;display:flex;flex-direction:column;gap:3px">
+          <div><span style="color:#78909C">{{ $t('total_invoices_count') }}:</span> <b>{{ printStats.invoiceCount }}</b></div>
+          <div><span style="color:#78909C">{{ $t('total_weight') }}:</span> <b>{{ main.formatDisplayNumber(printStats.totalWeight) }} KG</b></div>
+          <div><span style="color:#78909C">{{ $t('total') }}:</span> <b style="color:#BF360C">{{ main.formatDisplayNumber(totalInvoices) }} {{ main.currency }}</b></div>
+        </div>
+      </div>
+      <div style="flex:1;border:1px solid #B2DFDB;border-radius:6px;padding:10px;background:#E0F7FA">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#00695C;margin-bottom:6px;letter-spacing:.5px">{{ $t('settlement_stats_payments') }}</div>
+        <div style="font-size:11px;display:flex;flex-direction:column;gap:3px">
+          <div><span style="color:#78909C">{{ $t('total_payments_count') }}:</span> <b>{{ printStats.paymentCount }}</b></div>
+          <div><span style="color:#78909C">{{ $t('settlement_payment_methods') }}:</span> <b>{{ printStats.paymentMethodsSummary }}</b></div>
+          <div><span style="color:#78909C">{{ $t('total') }}:</span> <b style="color:#00695C">{{ main.formatDisplayNumber(totalPayments) }} {{ main.currency }}</b></div>
+        </div>
+      </div>
+      <div style="flex:1;border-radius:6px;padding:10px" :style="totalBalance>0?'border:1px solid #FFCDD2;background:#FFEBEE':'border:1px solid #C8E6C9;background:#E8F5E9'">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ $t('settlement_stats_balance') }}</div>
+        <div style="font-size:11px;display:flex;flex-direction:column;gap:3px">
+          <div><span style="color:#78909C">{{ $t('carry_forward') }}:</span> <b>{{ main.formatDisplayNumber(totalCarryForward) }} {{ main.currency }}</b></div>
+          <div><span style="color:#78909C">{{ $t('net_movement') }}:</span> <b>{{ main.formatDisplayNumber(totalInvoices - totalPayments) }} {{ main.currency }}</b></div>
+          <div><span style="color:#78909C">{{ $t('outstanding_balance') }}:</span> <b :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signatures -->
+    <div style="display:flex;justify-content:space-between;margin-top:40px;gap:60px">
+      <div style="flex:1;text-align:center"><div style="border-bottom:1px solid #333;height:36px;margin-bottom:6px"></div><div style="font-size:10px;font-weight:600;color:#546E7A;text-transform:uppercase">{{ $t('la_direction') }}</div></div>
+      <div style="flex:1;text-align:center"><div style="border-bottom:1px solid #333;height:36px;margin-bottom:6px"></div><div style="font-size:10px;font-weight:600;color:#546E7A;text-transform:uppercase">{{ $t('company_signature') }}</div></div>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:9px;color:#9E9E9E">{{ $t('printed_on') }}: {{ new Date().toLocaleString() }}</div>
+  </div>
+</div></div>
 </template>
 <script>
 import script from './script.js';
-export default { ...script };
+import print from 'vue3-print-nb';
+export default {
+  ...script,
+  directives: { print },
+  data(){ return { ...script.data.call(this), printCfg: { id: 'ss-print-area', popTitle: 'Supplier Settlement' } }; },
+};
 </script>
 <style scoped>
 .ss-card{border-radius:20px!important;font-family:'Inter',sans-serif}
@@ -193,4 +370,16 @@ export default { ...script };
 .ss-foot td{padding:8px 10px;border-top:2px solid rgba(230,81,0,.2);color:#E65100;font-size:12px}
 .ss-panel-card{border:1.5px solid rgba(230,81,0,.12);border-radius:14px;padding:16px;background:rgba(var(--v-theme-surface),1)}
 .ss-date-picker{border:1.5px solid rgba(230,81,0,.15)!important}
+</style>
+
+<style>
+/* Print area table styles (unscoped so they work inside the hidden print div) */
+.ss-ps{padding:8px 14px;text-align:center;border-radius:4px}
+.ss-ps-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#78909C;margin-bottom:2px}
+.ss-ps-val{font-size:15px;font-weight:800}
+.ss-ph{font-weight:700;text-transform:uppercase;letter-spacing:.3px;text-align:center}
+.ss-ph2{background:#F5F5F5;color:#546E7A;font-size:9px;font-weight:700;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid #E0E0E0;text-align:center;letter-spacing:.3px}
+.ss-ph3{background:#FFF3E0;color:#E65100;font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;border:1px solid #FFE0B2;text-align:center;letter-spacing:.3px}
+#ss-print-area .ss-pv{padding:4px 6px;border-bottom:1px solid #EEEEEE;font-size:11px;color:#212121}
+@media print { #ss-print-area { display: block !important; } }
 </style>
