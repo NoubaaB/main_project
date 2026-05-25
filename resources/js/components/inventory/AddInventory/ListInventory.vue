@@ -92,7 +92,7 @@
                 <!-- date -->
                 <template v-else-if="h.key==='date'">{{ (item.date||'').slice(0,10) }}</template>
                 <!-- tracking chips -->
-                <template v-else-if="h.key==='_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.inventory_tracking_number||[])" :key="tn" size="x-small" color="#6D4C41" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.inventory_tracking_number||[]).length" class="text-grey">-</span></div></template>
+                <template v-else-if="h.key==='_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.inventory_tracking_numbers||[])" :key="tn" size="x-small" color="#6D4C41" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.inventory_tracking_numbers||[]).length" class="text-grey">-</span></div></template>
                 <!-- weight/price -->
                 <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
                 <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>
@@ -100,7 +100,9 @@
                 <template v-else-if="h.key==='_details_count'"><v-chip size="x-small" color="#6D4C41" variant="tonal">{{ item._details_count }}</v-chip></template>
                 <!-- actions -->
                 <template v-else-if="h.key==='actions'">
+                  <v-btn icon size="x-small" variant="tonal" color="#6D4C41" @click="editInventory(item)" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
                   <v-btn icon size="x-small" variant="tonal" color="warning" @click="confirmDelete(item.id)" class="mr-1"><v-icon size="14">mdi-delete</v-icon></v-btn>
+                  <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
                 </template>
                 <!-- generic -->
                 <template v-else>{{ item[h.key] || '-' }}</template>
@@ -139,14 +141,18 @@
     </div>
   </v-card-text>
   <v-dialog v-model="deleteDialog" max-width="450"><v-card class="rounded-xl"><v-card-title class="pa-5 pb-2 d-flex align-center"><v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>{{ $t('confirm_delete') }}</v-card-title><v-card-text class="pa-5 pt-2">{{ $t('confirm_delete_message') }}</v-card-text><v-card-actions class="pa-5 pt-0"><v-spacer></v-spacer><v-btn @click="deleteDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="error" variant="flat" rounded @click="execDelete" :loading="deleting">{{ $t('delete') }}</v-btn></v-card-actions></v-card></v-dialog>
+<AuditLogDialog v-model="auditLogDialogOpen" auditable-type="Inventory" :auditable-id="auditLogRecordId" module-color="#6D4C41" />
 </div>
 </template>
 <script>
 import script from './listScript.js';
+import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 export default {
   ...script,
+  components: { ...script.components, AuditLogDialog },
+  data() { return { ...script.data.call(this), auditLogDialogOpen: false, auditLogRecordId: 0 }; },
   computed:{...script.computed,selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
-  methods:{...script.methods,colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
+  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths())},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},

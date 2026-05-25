@@ -89,6 +89,7 @@
                   <template v-else-if="h.key==='actions'">
                     <v-btn icon variant="text" size="x-small" color="#F9A825" @click="$router.push({ name: 'edit_warehouse_transfer', params: { id: item.id } })"><v-icon size="16">mdi-pencil</v-icon></v-btn>
                     <v-btn icon variant="text" size="x-small" color="error" @click="confirmDelete(item.id)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+                    <v-btn icon variant="text" size="x-small" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="16">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
                   </template>
                   <template v-else>{{ cellText(h.key, item) }}</template>
                 </td>
@@ -148,12 +149,19 @@
     </v-dialog>
   </v-card-text>
 </v-card>
+<AuditLogDialog v-model="auditLogDialogOpen" auditable-type="WarehouseTransfer" :auditable-id="auditLogRecordId" module-color="#F9A825" />
 </template>
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import script from './listScript.js';
-export default { ...script, components: { apexchart: VueApexCharts, ...script.components } };
+import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+export default {
+  ...script,
+  components: { apexchart: VueApexCharts, ...script.components, AuditLogDialog },
+  data() { return { ...script.data.call(this), auditLogDialogOpen: false, auditLogRecordId: 0 }; },
+  methods: { ...script.methods, openAuditLog(id) { this.auditLogRecordId = id; this.auditLogDialogOpen = true; } },
+};
 </script>
 
 <style scoped>

@@ -120,7 +120,7 @@ export default {
         const p={date_start:this.fmtDate(ds),date_end:this.fmtDate(de)};
         const r=await axios.get('/api/inventories/get_inventories',{params:p});
         this.inventories=(r.data.inventories||[]).map(c=>({...c,
-          _tracking:(c.inventory_tracking_number||[]).join(', ')||'-',
+          _tracking:(c.inventory_tracking_numbers||[]).join(', ')||'-',
           _details_count:(c.detail_inventories||[]).length,
         }));
       }catch(e){console.error(e)}
@@ -165,10 +165,10 @@ export default {
     groupDetails(inv){
       const groups={};
       (inv.detail_inventories||[]).forEach(di=>{
-        const catId=di.detail_inventory_category_id;
+        const catId=di.detail_inventory_category_id||'uncategorized';
         if(!groups[catId]){
-          const cat=this.detailCats.find(x=>x.id===catId);
-          groups[catId]={category:cat||{name_en:`#${catId}`},items:[],totalW:0,totalP:0};
+          const cat=catId!=='uncategorized'?this.detailCats.find(x=>x.id===catId):null;
+          groups[catId]={category:cat||{name_en:catId==='uncategorized'?'Warehouse Stock':'#'+catId},items:[],totalW:0,totalP:0};
         }
         groups[catId].items.push(di);
         groups[catId].totalW+=Number(di.weight||0);
@@ -196,6 +196,9 @@ export default {
       const data=this.colFilteredItems.map(c=>{const row={};this.headers.filter(h=>h.key!=='actions'&&h.key!=='expand').forEach(h=>{row[h.title]=this.cellText(h.key,c)});return row});
       const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,ws,'Inventories');XLSX.writeFile(wb,`inventories_${this.today}.xlsx`);
+    },
+    editInventory(item){
+      this.$emit('edit-inventory', item);
     },
   },
 };

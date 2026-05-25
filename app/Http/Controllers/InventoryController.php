@@ -24,7 +24,7 @@ class InventoryController extends Controller
             'inventory_tracking_number' => 'nullable|array',
             'description' => 'nullable|string|max:1000',
             'details' => 'required|array|min:1',
-            'details.*.detail_inventory_category_id' => 'required|exists:detail_inventory_categories,id',
+            'details.*.detail_inventory_category_id' => 'nullable|exists:detail_inventory_categories,id',
             'details.*.article_description' => 'nullable|string',
             'details.*.stockable_type' => 'nullable|string',
             'details.*.stockable_id' => 'nullable|integer',
@@ -37,7 +37,7 @@ class InventoryController extends Controller
             'details.*.warehouse_operation' => 'nullable|string|in:stock_in,stock_out',
         ]);
 
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $request) {
             $totalPrice = collect($data['details'])->sum('total_price') ?? 0;
             $totalWeight = collect($data['details'])->sum('weight') ?? 0;
 
@@ -45,8 +45,9 @@ class InventoryController extends Controller
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
-                'inventory_tracking_number' => $data['inventory_tracking_number'] ?? null,
+                'inventory_tracking_numbers' => $data['inventory_tracking_number'] ?? null,
                 'description' => $data['description'] ?? null,
+                'user_id' => $request->user()?->id,
             ]);
 
             foreach ($data['details'] as $detail) {
@@ -78,7 +79,7 @@ class InventoryController extends Controller
             'inventory_tracking_number' => 'nullable|array',
             'description' => 'nullable|string|max:1000',
             'details' => 'required|array|min:1',
-            'details.*.detail_inventory_category_id' => 'required|exists:detail_inventory_categories,id',
+            'details.*.detail_inventory_category_id' => 'nullable|exists:detail_inventory_categories,id',
             'details.*.article_description' => 'nullable|string',
             'details.*.stockable_type' => 'nullable|string',
             'details.*.stockable_id' => 'nullable|integer',
@@ -105,7 +106,7 @@ class InventoryController extends Controller
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
-                'inventory_tracking_number' => $data['inventory_tracking_number'] ?? null,
+                'inventory_tracking_numbers' => $data['inventory_tracking_number'] ?? null,
                 'description' => $data['description'] ?? null,
             ]);
 
@@ -166,14 +167,14 @@ class InventoryController extends Controller
             'tracking_number' => 'required|string',
         ]);
 
-        $exists = Inventory::whereJsonContains('inventory_tracking_number', $data['tracking_number'])
+        $exists = Inventory::whereJsonContains('inventory_tracking_numbers', $data['tracking_number'])
             ->first();
 
         if ($exists) {
             return response()->json([
                 'exists' => true,
                 'inventory' => [
-                    'date' => $exists->date->format('Y-m-d'),
+                    'date' => $exists->date instanceof \Carbon\Carbon ? $exists->date->format('Y-m-d') : (string) $exists->date,
                     'weight' => $exists->total_weight,
                     'price' => $exists->total_price,
                 ]
@@ -195,7 +196,7 @@ class InventoryController extends Controller
         $weight = $di->weight ?? 0;
         $totalPrice = $di->total_price ?? 0;
         $packages = $di->nbr_box ?? 0;
-        $trackingNumber = $inventory->inventory_tracking_number[0] ?? null;
+        $trackingNumber = $inventory->inventory_tracking_numbers[0] ?? null;
 
         if ($di->warehouse_operation === 'stock_in') {
             WarehouseBalance::create([

@@ -123,7 +123,10 @@ class ShippingController extends Controller
             'details.*.truck_id' => 'nullable|exists:trucks,id',
         ]);
 
-        return DB::transaction(function () use ($data, $shipping) {
+        // Capture old state for audit trail
+        $oldData = $shipping->toArray();
+
+        return DB::transaction(function () use ($data, $shipping, $oldData) {
             $this->reverseWarehouseOperations($shipping);
             $shipping->detailShippings()->delete();
 
@@ -153,7 +156,7 @@ class ShippingController extends Controller
             }
 
             $shipping->load('shippingCategory', 'client', 'trucks', 'origin', 'clientInvoice', 'detailShippings.detailShippingCategory', 'detailShippings.stockable', 'detailShippings.warehouse', 'detailShippings.packageType');
-            $this->broadcastChange('Shipping', 'updated', $shipping->id, $shipping->toArray());
+            $this->broadcastChange('Shipping', 'updated', $shipping->id, $shipping->toArray(), $oldData);
             $this->broadcastChange('WarehouseBalance', 'updated', $shipping->id);
             return response()->json(['shipping' => $shipping]);
         });

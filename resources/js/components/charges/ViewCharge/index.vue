@@ -9,9 +9,15 @@
             <div class="text-white text-caption" style="opacity:.7">{{ charge ? main.formateDate(charge.date) : '' }}</div>
           </div>
         </div>
-        <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'list_charge' })">{{ $t('back') }}</v-btn>
+        <div>
+          <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'list_charge' })" class="mr-2">{{ $t('back') }}</v-btn>
+          <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-history" @click="auditDialog = true" v-if="charge">{{ $t('audit_log') }}</v-btn>
+        </div>
       </div>
     </div>
+
+    <!-- Audit Log Dialog -->
+    <AuditLogDialog v-model="auditDialog" auditable-type="Charge" :auditable-id="Number($route.params.id)" module-color="#42A5F5" />
 
     <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="info"></v-progress-circular></v-card-text>
 
@@ -102,10 +108,12 @@
 <script>
 import axios from 'axios';
 import { useMain } from '@/stores/Main';
+import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 
 export default {
   name: 'ViewCharge',
-  data() { return { charge: null, loading: true }; },
+  components: { AuditLogDialog },
+  data() { return { charge: null, loading: true, auditDialog: false }; },
   computed: {
     main() { return useMain(); },
     detailHeaders() {

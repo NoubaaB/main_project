@@ -338,7 +338,10 @@ class ProductionController extends Controller
             'details.*.truck_id' => 'nullable|exists:trucks,id',
         ]);
 
-        return DB::transaction(function () use ($data, $production) {
+        // Capture old state for audit trail
+        $oldData = $production->toArray();
+
+        return DB::transaction(function () use ($data, $production, $oldData) {
             $this->reverseWarehouseOperations($production);
             $production->detailProductions()->delete();
 
@@ -370,7 +373,7 @@ class ProductionController extends Controller
 
             $production->load('productionCategory', 'supplier', 'client', 'charge.detailCharges.stockable', 'supplierInvoice', 'clientInvoice', 'detailProductions.detailProductionCategory', 'detailProductions.stockable', 'detailProductions.warehouse', 'detailProductions.packageType');
             $this->computeEquilibrium($production);
-            $this->broadcastChange('Production', 'updated', $production->id, $production->toArray());
+            $this->broadcastChange('Production', 'updated', $production->id, $production->toArray(), $oldData);
             $this->broadcastChange('WarehouseBalance', 'updated', $production->id);
             return response()->json(['production' => $production]);
         });

@@ -167,7 +167,7 @@ export default {
       try {
         const ids = this.deleteBulk ? this.selected : [this.deleteId];
         // Build snapshot before deleting
-        const deletedTransfers = this.items.filter(i => ids.includes(i.id));
+        const deletedTransfers = this.transfers.filter(i => ids.includes(i.id));
         const totalWeight = deletedTransfers.reduce((s, t) => s + Number(t.total_weight || 0), 0);
         const dates = [...new Set(deletedTransfers.map(t => t.date).filter(Boolean))].join(', ');
         const trackingNumbers = deletedTransfers.flatMap(t => t.transfer_tracking_number || []).join(', ');

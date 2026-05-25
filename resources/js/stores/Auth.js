@@ -171,7 +171,12 @@ export const useAuth = defineStore("Auth", {
     hasPermission: (state) => (key) => {
       if (!state.user?.role) return false;
       if (state.user.role.is_super_admin) return true;
-      return (state.user.role.permissions || []).includes(key);
+      const perms = state.user.role.permissions || [];
+      // settings.manage acts as master key for all settings.* sub-permissions
+      if (key.startsWith('settings.') && key !== 'settings.manage') {
+        if (perms.includes('settings.manage')) return true;
+      }
+      return perms.includes(key);
     },
   }
 });

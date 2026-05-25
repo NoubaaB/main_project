@@ -29,7 +29,16 @@ class Role extends Model
             return true;
         }
 
-        return in_array($key, $this->permissions ?? [], true);
+        $perms = $this->permissions ?? [];
+
+        // settings.manage acts as a master key for all settings.* sub-permissions
+        if (str_starts_with($key, 'settings.') && $key !== 'settings.manage') {
+            if (in_array('settings.manage', $perms, true)) {
+                return true;
+            }
+        }
+
+        return in_array($key, $perms, true);
     }
 
     /**
@@ -52,6 +61,12 @@ class Role extends Model
             'client_invoices.view', 'client_invoices.create', 'client_invoices.manage',
             'quality_control.view', 'quality_control.manage',
             'settings.manage',
+            'settings.warehouses', 'settings.fish', 'settings.charges',
+            'settings.shippings', 'settings.production',
+            'settings.inventory_categories', 'settings.transfer_categories',
+            'settings.guano', 'settings.packages', 'settings.banks',
+            'settings.company', 'settings.fortnight',
+            'settings.charts', 'settings.static_charges',
         ];
     }
 
@@ -74,7 +89,15 @@ class Role extends Model
             'supplier_invoices' => ['supplier_invoices.view', 'supplier_invoices.create', 'supplier_invoices.manage'],
             'client_invoices' => ['client_invoices.view', 'client_invoices.create', 'client_invoices.manage'],
             'quality_control' => ['quality_control.view', 'quality_control.manage'],
-            'settings' => ['settings.manage'],
+            'settings' => [
+                'settings.manage',
+                'settings.warehouses', 'settings.fish', 'settings.charges',
+                'settings.shippings', 'settings.production',
+                'settings.inventory_categories', 'settings.transfer_categories',
+                'settings.guano', 'settings.packages', 'settings.banks',
+                'settings.company', 'settings.fortnight',
+                'settings.charts', 'settings.static_charges',
+            ],
         ];
     }
 

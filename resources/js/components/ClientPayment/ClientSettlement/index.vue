@@ -75,7 +75,7 @@
             <v-col cols="12" md="6">
               <div class="cs-sub-label"><v-icon size="12" color="teal" class="mr-1">mdi-cash-multiple</v-icon>{{ $t('payments') }} ({{ paymentsByMonth[m.num].length }})</div>
               <div class="cs-sub-table-wrap"><table class="cs-table" v-if="paymentsByMonth[m.num].length"><thead><tr><th class="cs-th">{{ $t('date') }}</th><th class="cs-th">{{ $t('clients') }}</th><th class="cs-th">{{ $t('payment_type') }}</th><th class="cs-th">{{ $t('payment_reference') }}</th><th class="cs-th">{{ $t('payment_amount') }}</th><th class="cs-th">{{ $t('actions') }}</th></tr></thead><tbody>
-                <tr v-for="p in paymentsByMonth[m.num]" :key="p.id" class="cs-row"><td class="cs-td">{{ fmtDate(p.date) }}</td><td class="cs-td">{{ p._clientName }}</td><td class="cs-td"><v-chip size="x-small" :color="p.payment_type==='cash'?'success':p.payment_type==='check'?'blue':'purple'" variant="tonal">{{ paymentTypeLabel(p.payment_type) }}</v-chip></td><td class="cs-td">{{ p.reference || '-' }}</td><td class="cs-td font-weight-bold text-teal">{{ main.formatDisplayNumber(p.amount) }}</td><td class="cs-td"><v-btn icon size="x-small" variant="tonal" color="warning" class="mr-1" @click="editPayment(p)" :disabled="isClosed"><v-icon size="14">mdi-pencil</v-icon></v-btn><v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(p.id)" :disabled="isClosed"><v-icon size="14">mdi-delete</v-icon></v-btn></td></tr>
+                <tr v-for="p in paymentsByMonth[m.num]" :key="p.id" class="cs-row"><td class="cs-td">{{ fmtDate(p.date) }}</td><td class="cs-td">{{ p._clientName }}</td><td class="cs-td"><v-chip size="x-small" :color="p.payment_type==='cash'?'success':p.payment_type==='check'?'blue':'purple'" variant="tonal">{{ paymentTypeLabel(p.payment_type) }}</v-chip></td><td class="cs-td">{{ p.reference || '-' }}</td><td class="cs-td font-weight-bold text-teal">{{ main.formatDisplayNumber(p.amount) }}</td><td class="cs-td"><v-btn icon size="x-small" variant="tonal" color="warning" class="mr-1" @click="editPayment(p)" :disabled="isClosed"><v-icon size="14">mdi-pencil</v-icon></v-btn><v-btn icon size="x-small" variant="tonal" color="error" class="mr-1" @click="confirmDelete(p.id)" :disabled="isClosed"><v-icon size="14">mdi-delete</v-icon></v-btn><v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(p.id)"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn></td></tr>
                 <tr class="cs-foot"><td colspan="5" class="font-weight-bold text-right">{{ $t('total') }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(monthTotals[m.num].payments) }}</td></tr>
               </tbody></table><div v-else class="text-center text-caption pa-4" style="opacity:.35">-</div></div>
             </v-col>
@@ -339,14 +339,18 @@
     <div style="text-align:center;margin-top:16px;font-size:9px;color:#9E9E9E">{{ $t('printed_on') }}: {{ new Date().toLocaleString() }}</div>
   </div>
 </div></div>
+<AuditLogDialog v-model="auditLogDialogOpen" auditable-type="ClientPayment" :auditable-id="auditLogRecordId" module-color="#00838F" />
 </template>
 <script>
 import script from './script.js';
 import print from 'vue3-print-nb';
+import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 export default {
   ...script,
+  components: { ...script.components, AuditLogDialog },
   directives: { print },
-  data(){ return { ...script.data.call(this), printCfg: { id: 'cs-print-area', popTitle: 'Client Settlement' } }; },
+  data(){ return { ...script.data.call(this), printCfg: { id: 'cs-print-area', popTitle: 'Client Settlement' }, auditLogDialogOpen: false, auditLogRecordId: 0 }; },
+  methods: { ...script.methods, openAuditLog(id) { this.auditLogRecordId = id; this.auditLogDialogOpen = true; } },
 };
 </script>
 <style scoped>

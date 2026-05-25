@@ -18,15 +18,26 @@ class ModelChanged implements ShouldBroadcast
     public string $userName;
     public string $timestamp;
     public array $recordData;
+    public ?int $actorId;
+    public string $permissionKey;
 
-    public function __construct(string $model, string $action, int $recordId, string $userName, array $recordData = [])
-    {
+    public function __construct(
+        string $model,
+        string $action,
+        int $recordId,
+        string $userName,
+        array $recordData = [],
+        ?int $actorId = null,
+        string $permissionKey = ''
+    ) {
         $this->model = $model;
         $this->action = $action;
         $this->recordId = $recordId;
         $this->userName = $userName;
         $this->timestamp = now()->toIso8601String();
         $this->recordData = $recordData;
+        $this->actorId = $actorId;
+        $this->permissionKey = $permissionKey;
     }
 
     public function broadcastOn(): array
@@ -48,6 +59,8 @@ class ModelChanged implements ShouldBroadcast
             'user_name' => $this->userName,
             'timestamp' => $this->timestamp,
             'record_data' => $this->recordData,
+            'actor_id' => $this->actorId,
+            'permission_key' => $this->permissionKey,
         ];
     }
 }

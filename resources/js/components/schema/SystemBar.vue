@@ -107,6 +107,110 @@
                     </v-card>
                 </v-menu>
 
+                <!-- Notification Bell -->
+                <v-menu
+                    transition="scale-transition"
+                    :close-on-content-click="false"
+                    v-if="auth.is_auth"
+                    v-model="notifMenuOpen"
+                >
+                    <template v-slot:activator="{ props }">
+                        <v-btn
+                            v-bind="props"
+                            icon
+                            variant="tonal"
+                            color="amber-darken-2"
+                            size="36"
+                            class="systembar-action-btn"
+                            id="notification-bell-btn"
+                        >
+                            <v-badge
+                                v-if="notifCenter.unreadCount > 0"
+                                :content="notifCenter.unreadCount > 99 ? '99+' : notifCenter.unreadCount"
+                                color="error"
+                                text-color="white"
+                                location="bottom end"
+                                offset-x="2"
+                                offset-y="2"
+                            >
+                                <v-icon size="19" class="notif-bell-ring">mdi-bell</v-icon>
+                            </v-badge>
+                            <v-icon v-else size="19">mdi-bell-outline</v-icon>
+                            <v-tooltip activator="parent" location="bottom">{{ $t('notifications') }}</v-tooltip>
+                        </v-btn>
+                    </template>
+                    <v-card
+                        class="notif-panel mt-2"
+                        :class="main.is_dark ? 'archive-dark' : 'archive-light'"
+                        min-width="380"
+                        max-width="420"
+                        rounded="xl"
+                        elevation="12"
+                    >
+                        <!-- Panel Header -->
+                        <div class="notif-panel-header">
+                            <div class="d-flex align-center">
+                                <v-icon size="20" color="amber-darken-2" class="mr-2">mdi-bell-ring-outline</v-icon>
+                                <span class="text-subtitle-2 font-weight-bold">{{ $t('notifications') }}</span>
+                                <v-chip v-if="notifCenter.unreadCount > 0" size="x-small" color="error" variant="flat" class="ml-2">{{ notifCenter.unreadCount }}</v-chip>
+                            </div>
+                            <v-btn
+                                v-if="notifCenter.unreadCount > 0"
+                                variant="text"
+                                size="x-small"
+                                color="info"
+                                class="text-none"
+                                @click="notifCenter.markAllAsRead()"
+                            >
+                                <v-icon size="14" class="mr-1">mdi-check-all</v-icon>
+                                {{ $t('mark_all_as_read') }}
+                            </v-btn>
+                        </div>
+                        <v-divider></v-divider>
+
+                        <!-- Notification List -->
+                        <div class="notif-list" v-if="notifCenter.notifications.length > 0">
+                            <div
+                                v-for="notif in notifCenter.notifications.slice(0, 30)"
+                                :key="notif.id"
+                                class="notif-item"
+                                :class="{ 'notif-item--unread': !notif.read_at }"
+                                @click="onNotifClick(notif)"
+                            >
+                                <div class="notif-item-icon" :style="{ background: notifCenter.getColorForModule(notif.type) + '18' }">
+                                    <v-icon size="18" :color="notifCenter.getColorForModule(notif.type)">{{ notifCenter.getIconForModule(notif.type) }}</v-icon>
+                                </div>
+                                <div class="notif-item-body">
+                                    <div class="notif-item-title">
+                                        <strong>{{ notif.actor_name }}</strong>
+                                        {{ getNotifActionText(notif.action) }}
+                                        <v-chip size="x-small" :color="notifCenter.getColorForModule(notif.type)" variant="tonal" class="ml-1">{{ $t(notifCenter.getI18nKeyForModule(notif.type)) }}</v-chip>
+                                    </div>
+                                    <div class="notif-item-meta">
+                                        <span v-if="notif.data && notif.data.tracking" class="mr-2">
+                                            <v-icon size="10" class="mr-1">mdi-barcode</v-icon>{{ notif.data.tracking }}
+                                        </span>
+                                        <span class="notif-time">
+                                            <v-icon size="10" class="mr-1">mdi-clock-outline</v-icon>
+                                            {{ notifCenter.getRelativeTime(notif.created_at, $t) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div v-if="!notif.read_at" class="notif-unread-dot"></div>
+                            </div>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div v-else class="d-flex flex-column align-center justify-center py-8" style="opacity:.5">
+                            <v-icon size="48" color="amber-darken-2" class="mb-2">mdi-bell-sleep-outline</v-icon>
+                            <span class="text-body-2">{{ $t('no_notifications') }}</span>
+                        </div>
+
+                        <!-- Loading indicator -->
+                        <v-progress-linear v-if="notifCenter.loading" indeterminate color="amber-darken-2" height="2"></v-progress-linear>
+                    </v-card>
+                </v-menu>
+
                 <!-- Language Selector -->
                 <v-menu
                     transition="scale-transition"
@@ -186,11 +290,13 @@
     import { useMain } from "@/stores/Main"; 
     import { useAuth } from "@/stores/Auth";
     import { useOnlineUsers } from "@/stores/OnlineUsers";
+    import { useNotificationCenter } from "@/stores/NotificationCenter";
     import annyang from "annyang";
 
     export default {
         data:function(){
           return {
+              notifMenuOpen: false,
           }
         },
         computed:{
@@ -205,6 +311,9 @@
             },
             _online: function () {
                 return useOnlineUsers();
+            },
+            notifCenter: function () {
+                return useNotificationCenter();
             },
             currentLangFlag: function () {
                 if (!this.main.lang) return 'https://flagcdn.com/24x18/gb.png';
@@ -243,10 +352,29 @@
                 this.main.lang = lang;
             },
 
+            getNotifActionText(action) {
+                const map = { created: this.$t('created').toLowerCase(), updated: this.$t('updated').toLowerCase(), deleted: this.$t('deleted').toLowerCase() };
+                return map[action] || action;
+            },
+
+            onNotifClick(notif) {
+                // Mark as read
+                if (!notif.read_at) {
+                    this.notifCenter.markAsRead(notif.id);
+                }
+                // Navigate to record
+                const route = this.notifCenter.getRouteForNotification(notif);
+                if (route) {
+                    this.notifMenuOpen = false;
+                    this.$router.push(route).catch(() => {});
+                }
+            },
+
         },
         mounted() {
             if (this.auth.is_auth) {
                 this._online.connect();
+                this.notifCenter.init();
             }
         },
         beforeUnmount() {
@@ -581,4 +709,108 @@
         font-size: 1.1rem;
     }
 }
+
+/* ============================================================
+   Notification Panel Styles
+   ============================================================ */
+.notif-bell-ring {
+    animation: bellRing 2.5s ease-in-out infinite;
+}
+@keyframes bellRing {
+    0%   { transform: rotate(0); }
+    5%   { transform: rotate(12deg); }
+    10%  { transform: rotate(-10deg); }
+    15%  { transform: rotate(8deg); }
+    20%  { transform: rotate(-6deg); }
+    25%  { transform: rotate(0); }
+    100% { transform: rotate(0); }
+}
+
+.notif-panel {
+    overflow: hidden;
+}
+
+.notif-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+}
+
+.notif-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 4px;
+}
+.notif-list::-webkit-scrollbar { width: 4px; }
+.notif-list::-webkit-scrollbar-track { background: transparent; }
+.notif-list::-webkit-scrollbar-thumb { background: rgba(var(--v-theme-on-surface), .15); border-radius: 4px; }
+
+.notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .2s ease;
+    position: relative;
+}
+.notif-item:hover {
+    background: rgba(var(--v-theme-on-surface), .05);
+}
+.notif-item--unread {
+    background: rgba(255, 160, 0, .04);
+}
+.notif-item--unread:hover {
+    background: rgba(255, 160, 0, .08);
+}
+
+.notif-item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notif-item-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.notif-item-title {
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: rgba(var(--v-theme-on-surface), .85);
+}
+
+.notif-item-meta {
+    font-size: 11px;
+    color: rgba(var(--v-theme-on-surface), .5);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.notif-time {
+    display: inline-flex;
+    align-items: center;
+}
+
+.notif-unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #FF9800;
+    flex-shrink: 0;
+    margin-top: 6px;
+    box-shadow: 0 0 6px rgba(255, 152, 0, .4);
+}
+
 </style>
+

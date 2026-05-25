@@ -372,6 +372,19 @@ Route::middleware(["auth:sanctum"])->group(
         Route::delete("custom-charts/{customChart}", [App\Http\Controllers\CustomChartController::class, "destroy"]);
         Route::get("custom-charts/{customChart}/data", [App\Http\Controllers\CustomChartController::class, "chartData"]);
         Route::post("custom-charts/reorder", [App\Http\Controllers\CustomChartController::class, "reorder"]);
+
+        // ═══════════════════════════════════════════
+        //  NOTIFICATION ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("notifications", [App\Http\Controllers\NotificationController::class, "index"]);
+        Route::get("notifications/unread-count", [App\Http\Controllers\NotificationController::class, "unreadCount"]);
+        Route::put("notifications/read-all", [App\Http\Controllers\NotificationController::class, "markAllAsRead"]);
+        Route::put("notifications/{id}/read", [App\Http\Controllers\NotificationController::class, "markAsRead"]);
+
+        // ═══════════════════════════════════════════
+        //  AUDIT LOG ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("audit-logs", [App\Http\Controllers\AuditLogController::class, "index"]);
     }
 );
 #endregion

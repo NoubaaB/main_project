@@ -19,8 +19,8 @@
       </v-avatar>
       <transition name="nav-fade">
         <div v-if="!main.sidebar_mini" class="nav-user-info">
-          <div class="nav-user-name">{{ auth.user.name }}</div>
-          <div class="nav-user-role">{{ auth.user.role.name }}</div>
+          <div class="nav-user-name">{{ auth.user?.name }}</div>
+          <div class="nav-user-role">{{ auth.user?.role?.name }}</div>
         </div>
       </transition>
     </div>
@@ -104,8 +104,8 @@
         </v-avatar>
         <transition name="nav-fade">
           <div v-if="!main.sidebar_mini" class="nav-footer-info">
-            <div class="nav-footer-name">{{ auth.user.name }}</div>
-            <div class="nav-footer-role">{{ auth.user.role.name }}</div>
+            <div class="nav-footer-name">{{ auth.user?.name }}</div>
+            <div class="nav-footer-role">{{ auth.user?.role?.name }}</div>
           </div>
         </transition>
         <v-btn
@@ -167,6 +167,7 @@ export default {
           ['mdi-receipt-text-outline', this.$t('storage_invoices'), "storage_invoices"],
         ], null, 'warehouses.view'],
         ['mdi-clipboard-text-clock-outline', this.$t('inventory'), [
+          ['mdi-view-list-outline', this.$t('list_inventory'), 'list_inventory'],
           ['mdi-sticker-plus-outline', this.$t('add_inventory'), 'add_inventory'],
         ], null, 'inventory.view'],
         ['mdi-truck-cargo-container', this.$t('charges'), [
@@ -200,29 +201,42 @@ export default {
         ], null, 'client_invoices.view'],
         ['mdi-bank-transfer', this.$t('order_transfers'), null, 'order_transfers_page', 'order_transfers.view'],
         ['mdi-cog-outline', this.$t('parameters'), [
-          ['mdi-warehouse', this.$t("warehouse_management"), "warehouse_management"],
-          ['mdi-fish', this.$t("fish_management"), "fish_management"],
-          ['mdi-shape-outline', this.$t("charge_management"), "charge_management"],
-          ['mdi-tag-multiple-outline', this.$t("shipping_management"), "shipping_management"],
-          ['mdi-cog-outline', this.$t("production_management"), "production_management"],
-          ['mdi-clipboard-text-clock-outline', this.$t("detail_inventory_category_management"), "detail_inventory_category_management"],
-          ['mdi-swap-horizontal', this.$t("warehouse_transfer_category_management"), "warehouse_transfer_category_management"],
-          ['mdi-leaf', this.$t("guano_management"), "guano_management"],
-          ['mdi-package-variant-closed', this.$t("package_management"), "package_management"],
-          ['mdi-bank', this.$t("bank_name_management"), "bank_name_management"],
-          ['mdi-domain', this.$t("company_settings"), "company_settings"],
-          ['mdi-calendar-clock', this.$t("fortnight_settings"), "fortnight_settings"],
-          ['mdi-chart-areaspline', this.$t("chart_management"), "chart_management"],
-          ['mdi-cash-lock-open', this.$t("static_charge_management"), "static_charge_management"],
-        ], null, 'settings.manage'],
+          ['mdi-warehouse', this.$t("warehouse_management"), "warehouse_management", 'settings.warehouses'],
+          ['mdi-fish', this.$t("fish_management"), "fish_management", 'settings.fish'],
+          ['mdi-shape-outline', this.$t("charge_management"), "charge_management", 'settings.charges'],
+          ['mdi-tag-multiple-outline', this.$t("shipping_management"), "shipping_management", 'settings.shippings'],
+          ['mdi-cog-outline', this.$t("production_management"), "production_management", 'settings.production'],
+          ['mdi-clipboard-text-clock-outline', this.$t("detail_inventory_category_management"), "detail_inventory_category_management", 'settings.inventory_categories'],
+          ['mdi-swap-horizontal', this.$t("warehouse_transfer_category_management"), "warehouse_transfer_category_management", 'settings.transfer_categories'],
+          ['mdi-leaf', this.$t("guano_management"), "guano_management", 'settings.guano'],
+          ['mdi-package-variant-closed', this.$t("package_management"), "package_management", 'settings.packages'],
+          ['mdi-bank', this.$t("bank_name_management"), "bank_name_management", 'settings.banks'],
+          ['mdi-domain', this.$t("company_settings"), "company_settings", 'settings.company'],
+          ['mdi-calendar-clock', this.$t("fortnight_settings"), "fortnight_settings", 'settings.fortnight'],
+          ['mdi-chart-areaspline', this.$t("chart_management"), "chart_management", 'settings.charts'],
+          ['mdi-cash-lock-open', this.$t("static_charge_management"), "static_charge_management", 'settings.static_charges'],
+        ], null],
         ['mdi-shield-account', this.$t('user_management'), null, "admin_users", 'users.manage'],
       ];
     },
     links: function () {
-      return this._rawLinks.filter(([,,,,perm]) => {
-        if (!perm) return true;
-        return this.auth.hasPermission(perm);
-      });
+      return this._rawLinks
+        .map(([icon, text, childrens, url, perm]) => {
+          // Filter parent-level permission
+          if (perm && !this.auth.hasPermission(perm)) return null;
+          // Filter children that have their own permission key
+          if (childrens) {
+            const filtered = childrens.filter(child => {
+              const childPerm = child[3]; // 4th element = permission key
+              if (!childPerm) return true;
+              return this.auth.hasPermission(childPerm);
+            });
+            if (filtered.length === 0) return null;
+            return [icon, text, filtered, url, perm];
+          }
+          return [icon, text, childrens, url, perm];
+        })
+        .filter(Boolean);
     },
     // Flatten all links for rail mode - parent groups show as single icon items
     flatLinks: function () {

@@ -2,8 +2,14 @@
   <v-card class="view-prod-card" elevation="0">
     <div class="vp-hero"><div class="vp-hero-inner">
       <div class="d-flex align-center ga-4"><div class="vp-hero-icon"><v-icon size="28" color="white">mdi-eye</v-icon></div><div><div class="vp-hero-title">{{ $t('view_production') }} #{{ production?.id }}</div><div class="text-white text-caption" style="opacity:.7">{{ production ? main.formateDate(production.date) : '' }}</div></div></div>
-      <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'production_list' })">{{ $t('back') }}</v-btn>
+      <div class="d-flex ga-2">
+        <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'production_list' })">{{ $t('back') }}</v-btn>
+        <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-history" @click="auditDialog = true" v-if="production">{{ $t('audit_log') }}</v-btn>
+      </div>
     </div></div>
+
+    <!-- Audit Log Dialog -->
+    <AuditLogDialog v-model="auditDialog" auditable-type="Production" :auditable-id="Number($route.params.id)" module-color="#00897B" />
     <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="#00897B"></v-progress-circular></v-card-text>
     <v-card-text v-else-if="production" class="pa-5">
       <v-row>
@@ -223,14 +229,15 @@ import axios from 'axios';
 import { useMain } from '@/stores/Main';
 import { useFishProcessType } from '@/stores/FishProcessType';
 import QualityControlDialog from '../QualityControl/QualityControlDialog.vue';
+import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 import { CRITERIA, GRADES, GRADE_COLORS, GRADE_ICONS, DECISION_COLORS, APPROVAL_COLORS } from '../QualityControl/qcCriteria';
 import print from 'vue3-print-nb';
 
 export default {
   name: 'ViewProduction',
-  components: { QualityControlDialog },
+  components: { QualityControlDialog, AuditLogDialog },
   directives: { print },
-  data() { return { production: null, loading: true, qcDialogOpen: false, vpPrintCfg: { id: 'vp-qc-print', popTitle: 'Quality Control Report' } }; },
+  data() { return { production: null, loading: true, qcDialogOpen: false, auditDialog: false, vpPrintCfg: { id: 'vp-qc-print', popTitle: 'Quality Control Report' } }; },
   computed: {
     main() { return useMain(); },
     lang() { return this.main.lang?.code || 'en'; },

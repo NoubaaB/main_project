@@ -31,6 +31,7 @@ import { useCompanySettings } from '@/stores/CompanySettings';
 import { useFortnightSetting } from '@/stores/FortnightSetting';
 import { useCustomChart } from '@/stores/CustomChart';
 import { useStaticCharge } from '@/stores/StaticCharge';
+import { useNotificationCenter } from '@/stores/NotificationCenter';
 
 export const useOnlineUsers = defineStore('OnlineUsers', {
     state: () => ({
@@ -125,6 +126,14 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
 
             // Update local store list for reference data models
             this.updateLocalStore(data);
+
+            // Push to NotificationCenter for real-time notifications
+            try {
+                const notifCenter = useNotificationCenter();
+                notifCenter.handleRealtimeNotification(data);
+            } catch (e) {
+                console.warn('[WebSocket] Failed to push notification:', e);
+            }
 
             // Emit event for DataTable-based pages (Charge, Sell, etc.) to re-fetch
             mitt.emit('model-changed', data);

@@ -140,7 +140,10 @@ class ChargeController extends Controller
             'details.*.supplier_id' => 'nullable|exists:suppliers,id',
         ]);
 
-        return DB::transaction(function () use ($data, $charge) {
+        // Capture old state for audit trail
+        $oldData = $charge->toArray();
+
+        return DB::transaction(function () use ($data, $charge, $oldData) {
             // Reverse existing warehouse operations
             $this->reverseWarehouseOperations($charge);
 
@@ -173,7 +176,7 @@ class ChargeController extends Controller
             }
 
             $charge->load('chargeCategory', 'supplier', 'trucks', 'fishery', 'ship', 'origin', 'production', 'supplierInvoice', 'detailCharges.detailChargeCategory', 'detailCharges.stockable', 'detailCharges.warehouse', 'detailCharges.packageType');
-            $this->broadcastChange('Charge', 'updated', $charge->id, $charge->toArray());
+            $this->broadcastChange('Charge', 'updated', $charge->id, $charge->toArray(), $oldData);
             $this->broadcastChange('WarehouseBalance', 'updated', $charge->id);
             return response()->json(['charge' => $charge]);
         });

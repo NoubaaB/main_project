@@ -187,11 +187,22 @@ const routes = [
                     {
                         path: '/inventory',
                         name: 'inventory',
+                        redirect: '/inventory/list',
                         children: [
+                            {
+                                path: 'list',
+                                name: 'list_inventory',
+                                component: () => import('@/components/inventory/AddInventory/index.vue')
+                            },
                             {
                                 path: 'add',
                                 name: 'add_inventory',
                                 keeplive: true,
+                                component: () => import('@/components/inventory/AddInventory/index.vue')
+                            },
+                            {
+                                path: 'edit/:id',
+                                name: 'edit_inventory',
                                 component: () => import('@/components/inventory/AddInventory/index.vue')
                             },
                         ]
