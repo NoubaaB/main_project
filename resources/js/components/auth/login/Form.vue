@@ -4,12 +4,12 @@
         <v-row>
             <v-col class="auth-title-col">
                 <div class="auth-title-wrapper">
-                  <img
+                  <v-img
                     src="/images/jupiter-logo.png"
                     width="200"
                     height="200"
                     class="auth-animated-title"
-                    />
+                  ></v-img>
                 </div>
             </v-col>
         </v-row>

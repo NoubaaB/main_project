@@ -123,7 +123,7 @@
                 <td class="text-success font-weight-medium">{{ u.creates }}</td>
                 <td class="text-warning font-weight-medium">{{ u.updates }}</td>
                 <td class="text-error font-weight-medium">{{ u.deletes }}</td>
-                <td><v-chip v-if="topModule(u)" size="x-small" color="#7C4DFF" variant="tonal">{{ topModule(u) }}</v-chip><span v-else class="text-grey">-</span></td>
+                <td><v-chip v-if="topModule(u)" size="x-small" color="#7C4DFF" variant="tonal" class="us-clickable" @click="navigateToModule(topModule(u))"><v-icon start size="12">{{ moduleIcon(topModule(u)) }}</v-icon>{{ topModule(u) }}</v-chip><span v-else class="text-grey">-</span></td>
                 <td class="text-caption">{{ formatDateTime(u.last_activity) }}</td>
                 <td style="min-width:120px"><apexchart type="area" :height="36" :width="120" :options="sparkOpts" :series="[{data:sparkData(u)}]" /></td>
               </tr>
@@ -147,7 +147,7 @@
               <div class="d-flex align-center ga-2 flex-wrap">
                 <span class="font-weight-medium text-body-2">{{ a.user_name }}</span>
                 <v-chip :color="actionColor(a.action)" size="x-small" variant="tonal">{{ $t(actionLabel(a.action)) }}</v-chip>
-                <v-chip size="x-small" variant="outlined">{{ a.auditable_type }} #{{ a.auditable_id }}</v-chip>
+                <v-chip size="x-small" variant="outlined" class="us-clickable" @click="navigateToRecord(a.auditable_type, a.auditable_id)"><v-icon start size="12">{{ moduleIcon(a.auditable_type) }}</v-icon>{{ a.auditable_type }} #{{ a.auditable_id }}<v-icon end size="10">mdi-open-in-new</v-icon></v-chip>
               </div>
               <div class="text-caption text-medium-emphasis mt-1">{{ formatDateTime(a.created_at) }}</div>
             </div>
@@ -268,6 +268,58 @@ export default {
     avatarColor(id) { const c = ['#7C4DFF', '#00BFA5', '#FF6D00', '#2979FF', '#F50057', '#00E676', '#C51162']; return c[id % c.length]; },
     actionColor(a) { return { created: '#4CAF50', updated: '#FF9800', deleted: '#EF5350' }[a] || '#78909C'; },
     actionLabel(a) { return { created: 'record_created', updated: 'record_updated', deleted: 'record_deleted' }[a] || a; },
+
+    /* ── Source navigation helpers ── */
+    moduleIcon(type) {
+      const icons = {
+        Charge: 'mdi-truck-cargo-container', Production: 'mdi-factory',
+        Shipping: 'mdi-package-variant-closed', Inventory: 'mdi-clipboard-text-clock-outline',
+        WarehouseTransfer: 'mdi-swap-horizontal', SupplierInvoice: 'mdi-file-document-check',
+        ClientInvoice: 'mdi-account-cash', StorageInvoice: 'mdi-warehouse',
+        OrderTransfer: 'mdi-bank-transfer', FortnightActivity: 'mdi-calendar-month',
+      };
+      return icons[type] || 'mdi-cube-outline';
+    },
+    /**
+     * Navigate to a module's list page (from Top Module chip).
+     */
+    navigateToModule(type) {
+      const listRoutes = {
+        Charge: 'list_charge', Production: 'production_list',
+        Shipping: 'list_shipping', Inventory: 'list_inventory',
+        WarehouseTransfer: 'list_warehouse_transfer', SupplierInvoice: 'list_supplier_invoice',
+        ClientInvoice: 'list_client_invoice', StorageInvoice: 'storage_invoices',
+        OrderTransfer: 'order_transfers_page', FortnightActivity: 'fortnight_management',
+      };
+      const routeName = listRoutes[type];
+      if (routeName) {
+        this.$router.push({ name: routeName });
+      }
+    },
+    /**
+     * Navigate to a specific record's view/edit page (from Recent Activity chip).
+     */
+    navigateToRecord(type, id) {
+      const viewRoutes = {
+        Charge:             { name: 'view_charge',            paramKey: 'id' },
+        Production:         { name: 'view_production',        paramKey: 'id' },
+        Shipping:           { name: 'view_shipping',          paramKey: 'id' },
+        Inventory:          { name: 'edit_inventory',         paramKey: 'id' },
+        WarehouseTransfer:  { name: 'edit_warehouse_transfer', paramKey: 'id' },
+        SupplierInvoice:    { name: 'list_supplier_invoice',  paramKey: null },
+        ClientInvoice:      { name: 'list_client_invoice',    paramKey: null },
+        StorageInvoice:     { name: 'storage_invoices',       paramKey: null },
+        OrderTransfer:      { name: 'order_transfers_page',   paramKey: null },
+        FortnightActivity:  { name: 'fortnight_management',   paramKey: null },
+      };
+      const route = viewRoutes[type];
+      if (!route) return;
+      if (route.paramKey && id) {
+        this.$router.push({ name: route.name, params: { [route.paramKey]: id } });
+      } else {
+        this.$router.push({ name: route.name });
+      }
+    },
   },
 };
 </script>
@@ -286,4 +338,6 @@ export default {
 .us-feed { max-height: 400px; overflow-y: auto; }
 .us-feed-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,.04); }
 .us-feed-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.us-clickable { cursor: pointer !important; transition: all 0.2s ease; }
+.us-clickable:hover { transform: scale(1.05); box-shadow: 0 2px 8px rgba(124,77,255,.2); }
 </style>

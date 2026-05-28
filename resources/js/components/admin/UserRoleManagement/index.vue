@@ -478,6 +478,7 @@ export default {
         workforce: 'mdi-account-hard-hat', supplier_invoices: 'mdi-file-document-check',
         client_invoices: 'mdi-account-cash', quality_control: 'mdi-clipboard-check-outline',
         user_statistics: 'mdi-chart-timeline-variant-shimmer',
+        order_transfers: 'mdi-bank-transfer',
         settings: 'mdi-cog-outline',
       };
       return icons[group] || 'mdi-key';
