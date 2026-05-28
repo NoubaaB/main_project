@@ -4,7 +4,12 @@
         <v-row>
             <v-col class="auth-title-col">
                 <div class="auth-title-wrapper">
-                  <v-icon class="auth-animated-title" size="150">mdi-fingerprint</v-icon>
+                  <img
+                    src="/images/jupiter-logo.png"
+                    width="200"
+                    height="200"
+                    class="auth-animated-title"
+                    />
                 </div>
             </v-col>
         </v-row>

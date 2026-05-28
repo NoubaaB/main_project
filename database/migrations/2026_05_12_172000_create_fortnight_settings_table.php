@@ -9,6 +9,8 @@ return new class extends Migration {
     {
         Schema::create('fortnight_settings', function (Blueprint $table) {
             $table->id();
+            $table->date('date_start')->default('2026-01-01');
+            $table->date('date_end')->nullable();
             $table->decimal('q1_max_salary', 10, 2)->default(0);
             $table->decimal('q2_max_salary', 10, 2)->default(0);
             $table->timestamps();

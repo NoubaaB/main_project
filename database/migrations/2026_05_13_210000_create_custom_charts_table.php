@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('custom_charts', function (Blueprint $table) {
             $table->id();
             $table->string('title');
+            $table->string('icon', 100)->nullable()->default('mdi-chart-areaspline');
             $table->string('chart_type')->default('bar');                // line, bar, area, pie, donut, radar, heatmap, mixed
             $table->json('chart_options')->nullable();                    // Full ApexCharts options JSON
             $table->string('date_range_type')->default('dynamic');       // dynamic | fixed_month | fixed_year | all
@@ -22,6 +23,7 @@ return new class extends Migration
             $table->integer('display_order')->default(0);
             $table->integer('grid_cols')->default(6);                    // Vuetify grid cols (1-12)
             $table->boolean('is_active')->default(true);
+            $table->string('visibility', 20)->default('all');
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
             $table->softDeletes();

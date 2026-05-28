@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::create('detail_inventories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('inventory_id')->constrained('inventories')->cascadeOnDelete()->comment('FK to inventories - parent inventory');
-            $table->foreignId('detail_inventory_category_id')->constrained('detail_inventory_categories')->cascadeOnDelete()->comment('FK to detail_inventory_categories');
+            $table->foreignId('detail_inventory_category_id')->nullable()->constrained('detail_inventory_categories')->cascadeOnDelete()->comment('FK to detail_inventory_categories');
             $table->string('article_description')->nullable()->comment('Free-text article description');
             $table->string('stockable_type')->nullable()->comment('Polymorphic type: FishType, GuanoType, or PackageType');
             $table->unsignedBigInteger('stockable_id')->nullable()->comment('Polymorphic ID');

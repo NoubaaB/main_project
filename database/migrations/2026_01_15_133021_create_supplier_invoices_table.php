@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->id();
             $table->date('date')->comment('Date the invoice was issued');
             $table->json('tracking_numbers')->nullable()->comment('Array of invoice tracking/reference numbers');
+            $table->enum('type_invoice', ['local', 'export'])->nullable()->comment('Invoice type: local or export');
             $table->decimal('total_price', 15, 2)->default(0.00)->comment('Sum of all charge and production prices in this invoice');
             $table->decimal('total_weight', 15, 2)->default(0.00)->comment('Sum of all charge and production weights in this invoice');
             $table->integer('print_counter')->default(0)->comment('Number of times this invoice has been printed');

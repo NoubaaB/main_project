@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('section_id')->nullable()->comment('FK to sections - set when worker is assigned to a section (corporal_id must be null)');
             $table->foreignId('corporal_id')->nullable()->comment('FK to corporals - set when worker is assigned to a corporal (section_id must be null)');
             $table->decimal('price', 10, 2)->default(0.00)->comment('Daily payment amount in MAD');
+            $table->boolean('is_fixed_price')->default(false);
             $table->timestamps();
             $table->softDeletes();
 

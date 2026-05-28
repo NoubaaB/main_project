@@ -19,7 +19,7 @@
 
       <div class="dashboard-grid">
         <!-- General -->
-        <div class="dashboard-card" @click="$router.push({ name: 'view_supplier_invoice' })" style="--card-color: #42A5F5; --card-gradient: linear-gradient(135deg, #0D47A1, #42A5F5);">
+        <div class="dashboard-card" @click="$router.push({ name: 'main_dashboard' })" style="--card-color: #42A5F5; --card-gradient: linear-gradient(135deg, #0D47A1, #42A5F5);">
           <div class="dashboard-card-icon-wrap">
             <v-icon size="28" color="white">mdi-human-male-board-poll</v-icon>
           </div>
@@ -74,6 +74,18 @@
           <div class="dashboard-card-info">
             <span class="dashboard-card-title">{{ $t('fortnight_activities') }}</span>
             <span class="dashboard-card-desc">{{ $t('workforce') }}</span>
+          </div>
+          <v-icon size="18" class="dashboard-card-arrow">mdi-chevron-right</v-icon>
+        </div>
+
+        <!-- User Statistics (admin only) -->
+        <div v-if="auth.hasPermission('user_statistics.view')" class="dashboard-card" @click="$router.push({ name: 'user_statistics' })" style="--card-color: #7C4DFF; --card-gradient: linear-gradient(135deg, #4527A0, #B388FF);">
+          <div class="dashboard-card-icon-wrap">
+            <v-icon size="28" color="white">mdi-chart-timeline-variant-shimmer</v-icon>
+          </div>
+          <div class="dashboard-card-info">
+            <span class="dashboard-card-title">{{ $t('user_statistics') }}</span>
+            <span class="dashboard-card-desc">{{ $t('activity_tracking') }}</span>
           </div>
           <v-icon size="18" class="dashboard-card-arrow">mdi-chevron-right</v-icon>
         </div>

@@ -27,6 +27,7 @@ return new class extends Migration
             $table->boolean('enable_suppliers')->default(false)->comment('If true, productions can be linked to suppliers');
             $table->boolean('enable_clients')->default(false)->comment('If true, productions can be linked to clients');
             $table->boolean('enable_invoices')->default(false)->comment('If true, productions can be included in supplier invoices');
+            $table->boolean('enable_quality_control')->default(false)->comment('If true, productions of this category can have quality control inspections');
             $table->timestamps();
             $table->softDeletes();
 

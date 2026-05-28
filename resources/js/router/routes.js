@@ -47,6 +47,17 @@ const routes = [
                         component: () => import("@/components/dashboard/MainDashboard.vue")
                     },
                     {
+                        path: "/user-statistics",
+                        name: "user_statistics",
+                        keeplive: false,
+                        component: () => import("@/components/dashboard/UserStatistics.vue"),
+                        beforeEnter: (to, from, next) => {
+                            const auth = useAuth();
+                            if (auth.hasPermission('user_statistics.view')) next();
+                            else next({ name: 'index' });
+                        }
+                    },
+                    {
                         path: "/profile",
                         name: "profile_settings",
                         keeplive: false,

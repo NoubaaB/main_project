@@ -12,6 +12,7 @@ return new class extends Migration
         Schema::create('storage_invoices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete()->comment('FK to warehouses');
+            $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete()->comment('Optional FK to suppliers');
             $table->string('invoice_number')->unique()->comment('Invoice number e.g. 02V003');
             $table->integer('year')->comment('Invoice year');
             $table->integer('month')->comment('Invoice month (1-12)');

@@ -385,6 +385,11 @@ Route::middleware(["auth:sanctum"])->group(
         //  AUDIT LOG ROUTES
         // ═══════════════════════════════════════════
         Route::get("audit-logs", [App\Http\Controllers\AuditLogController::class, "index"]);
+
+        // ═══════════════════════════════════════════
+        //  USER STATISTICS ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("user-statistics", [App\Http\Controllers\UserStatisticsController::class, "index"]);
     }
 );
 #endregion

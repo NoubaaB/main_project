@@ -13,6 +13,11 @@ return new class extends Migration {
             $table->date('date')->comment('Date the production was recorded');
             $table->decimal('total_price', 14, 2)->default(0)->comment('Sum of all line item prices in MAD');
             $table->decimal('total_weight', 14, 2)->default(0)->comment('Sum of all line item weights in KG');
+            $table->decimal('fresh_reception_weight', 12, 2)->default(0);
+            $table->decimal('frozen_production_weight', 12, 2)->default(0);
+            $table->decimal('guano_production_weight', 12, 2)->default(0);
+            $table->decimal('equilibrium', 12, 2)->default(0);
+            $table->string('equilibrium_status')->default('balanced');
             $table->foreignId('production_category_id')->constrained('production_categories')->cascadeOnDelete()->comment('FK to production_categories');
             $table->json('reception_tracking_number')->nullable()->comment('JSON array of reception tracking numbers');
             $table->text('description')->nullable()->comment('Additional notes');

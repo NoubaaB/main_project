@@ -12,6 +12,8 @@ return new class extends Migration
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
             $table->string("name", 50)->comment('Role name (e.g., admin, manager, operator)');
+            $table->boolean('is_super_admin')->default(false);
+            $table->json('permissions')->default('[]');
 
             $table->timestamps();
             $table->softDeletes();

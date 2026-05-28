@@ -17,6 +17,10 @@ return new class extends Migration
             $table->enum('sex', ['male', 'female'])->default('male')->comment('Gender');
             $table->string('cni')->nullable()->comment('National ID card number (CNI)');
             $table->boolean('is_migrant')->default(false)->comment('Whether the worker is a migrant worker');
+            $table->boolean('salary_statement')->default(false)->comment('Whether this worker has a salary statement');
+            $table->boolean('fixed_daily_pay')->default(false);
+            $table->string('cnss_id', 100)->nullable()->comment('CNSS registration number');
+            $table->decimal('daily_price', 10, 2)->default(0);
             $table->timestamps();
             $table->softDeletes();
 

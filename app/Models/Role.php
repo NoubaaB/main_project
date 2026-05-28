@@ -89,6 +89,7 @@ class Role extends Model
             'supplier_invoices' => ['supplier_invoices.view', 'supplier_invoices.create', 'supplier_invoices.manage'],
             'client_invoices' => ['client_invoices.view', 'client_invoices.create', 'client_invoices.manage'],
             'quality_control' => ['quality_control.view', 'quality_control.manage'],
+            'user_statistics' => ['user_statistics.view'],
             'settings' => [
                 'settings.manage',
                 'settings.warehouses', 'settings.fish', 'settings.charges',

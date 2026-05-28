@@ -21,6 +21,7 @@ return new class extends Migration
             $table->integer('wap_sells_count')->default(3)->comment('Number of recent sells used for WAP calculation');
             $table->boolean('is_allow_price')->default(true)->comment('Whether price tracking is enabled for this warehouse');
             $table->decimal('total_weight', 14, 2)->default(0)->comment('Current total stock weight in KG (computed)');
+            $table->boolean('is_carton_source')->default(false)->comment('Only one warehouse can be the source of cartons');
             $table->timestamps();
             $table->softDeletes();
 

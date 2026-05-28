@@ -18,6 +18,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->foreignId('role_id')->nullable()->index();
+            $table->boolean('is_active')->default(true);
             $table->json('allowed_ai_crud')->default(
                 json_encode([
                     'Section' => ['create', 'read', 'update', 'delete'],

@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('allow_price')->default(false)->comment('Show total price field');
             $table->boolean('allow_package_type')->default(false)->comment('Show package type selection');
             $table->boolean('allow_nbr_box')->default(false)->comment('Show number of boxes field');
+            $table->string('package_stock_operation')->nullable()->default('neutre')->comment('How nbr_box affects carton stock: stock_in, stock_out, or neutre');
             $table->boolean('allow_warehouse')->default(false)->comment('Show warehouse selection');
             $table->string('warehouse_operation')->nullable()->comment('Default warehouse operation: stock_in or stock_out');
             $table->boolean('allow_detail_truck_id')->default(false)->comment('Show truck selection per line item');

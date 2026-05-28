@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->enum('sex', ['male', 'female'])->default('male')->comment('Gender');
             $table->string('cni')->nullable()->comment('National ID card number (CNI)');
             $table->boolean('is_quinzaine')->default(false)->comment('Whether this corporal is paid per fortnight period');
+            $table->decimal('daily_price', 10, 2)->default(0)->comment('Default daily price for this corporal');
             $table->timestamps();
             $table->softDeletes();
 

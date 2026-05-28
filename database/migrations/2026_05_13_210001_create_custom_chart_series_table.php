@@ -14,6 +14,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('series_type')->default('column');            // line, column, area (for mixed charts)
             $table->string('color')->nullable();                         // Hex color
+            $table->string('measure_unit')->default('Kg')->comment('Display unit: Kg, DH, DH/KG, %');
+            $table->boolean('is_visible')->default(true)->comment('Whether this series is displayed in chart/statistic output');
             $table->string('data_source');                               // charges | productions | shippings | warehouses | fortnight_activities
             $table->string('aggregate_field')->default('total_weight');   // total_weight, total_price, count, etc.
             $table->string('aggregate_function')->default('sum');         // sum | avg | count | min | max
