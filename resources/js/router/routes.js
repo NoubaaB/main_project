@@ -98,13 +98,15 @@ const routes = [
                                 path: "add_charge",
                                 keeplive: true,
                                 name: "add_charge",
-                                component: () => import("@/components/charges/AddCharge/index.vue")
+                                component: () => import("@/components/charges/AddCharge/index.vue"),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('charges.create') ? next() : next({ name: 'list_charge' }); }
                             },
                             {
                                 path: "edit_charge/:id",
                                 keeplive: false,
                                 name: "edit_charge",
-                                component: () => import("@/components/charges/EditCharge/index.vue")
+                                component: () => import("@/components/charges/EditCharge/index.vue"),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('charges.edit') ? next() : next({ name: 'list_charge' }); }
                             },
                             {
                                 path: "list_charge",
@@ -137,13 +139,15 @@ const routes = [
                                 path: 'add',
                                 name: 'add_production',
                                 keeplive: false,
-                                component: () => import('@/components/production/AddProduction/index.vue')
+                                component: () => import('@/components/production/AddProduction/index.vue'),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('production.create') ? next() : next({ name: 'production_list' }); }
                             },
                             {
                                 path: 'edit/:id',
                                 name: 'edit_production',
                                 keeplive: false,
-                                component: () => import('@/components/production/EditProduction/index.vue')
+                                component: () => import('@/components/production/EditProduction/index.vue'),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('production.edit') ? next() : next({ name: 'production_list' }); }
                             },
                             {
                                 path: 'view/:id',
@@ -170,13 +174,15 @@ const routes = [
                                 path: "add_shipping",
                                 keeplive: true,
                                 name: "add_shipping",
-                                component: () => import("@/components/shippings/AddShipping/index.vue")
+                                component: () => import("@/components/shippings/AddShipping/index.vue"),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('shippings.create') ? next() : next({ name: 'list_shipping' }); }
                             },
                             {
                                 path: "edit_shipping/:id",
                                 name: "edit_shipping",
                                 keeplive: false,
-                                component: () => import("@/components/shippings/EditShipping/index.vue")
+                                component: () => import("@/components/shippings/EditShipping/index.vue"),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('shippings.edit') ? next() : next({ name: 'list_shipping' }); }
                             },
                             {
                                 path: "list_shipping",
@@ -209,12 +215,14 @@ const routes = [
                                 path: 'add',
                                 name: 'add_inventory',
                                 keeplive: true,
-                                component: () => import('@/components/inventory/AddInventory/index.vue')
+                                component: () => import('@/components/inventory/AddInventory/index.vue'),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('inventory.create') ? next() : next({ name: 'list_inventory' }); }
                             },
                             {
                                 path: 'edit/:id',
                                 name: 'edit_inventory',
-                                component: () => import('@/components/inventory/AddInventory/index.vue')
+                                component: () => import('@/components/inventory/AddInventory/index.vue'),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('inventory.edit') ? next() : next({ name: 'list_inventory' }); }
                             },
                         ]
                     },
@@ -234,7 +242,8 @@ const routes = [
                             {
                                 path: 'edit/:id',
                                 name: 'edit_warehouse_transfer',
-                                component: () => import('@/components/warehouse_transfers/EditWarehouseTransfer/index.vue')
+                                component: () => import('@/components/warehouse_transfers/EditWarehouseTransfer/index.vue'),
+                                beforeEnter: (to, from, next) => { useAuth().hasPermission('warehouse_transfers.edit') ? next() : next({ name: 'list_warehouse_transfer' }); }
                             },
                         ]
                     },

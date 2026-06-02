@@ -172,9 +172,12 @@ export const useAuth = defineStore("Auth", {
       if (!state.user?.role) return false;
       if (state.user.role.is_super_admin) return true;
       const perms = state.user.role.permissions || [];
-      // settings.manage acts as master key for all settings.* sub-permissions
-      if (key.startsWith('settings.') && key !== 'settings.manage') {
-        if (perms.includes('settings.manage')) return true;
+      // Master-key modules: <module>.manage grants all <module>.* sub-permissions
+      const masterModules = ['settings', 'workforce', 'supplier_invoices', 'client_invoices', 'quality_control'];
+      for (const mod of masterModules) {
+        if (key.startsWith(mod + '.') && key !== mod + '.manage') {
+          if (perms.includes(mod + '.manage')) return true;
+        }
       }
       return perms.includes(key);
     },

@@ -52,7 +52,7 @@
     <!-- Action Buttons -->
     <div class="d-flex ga-2 mb-3 justify-end flex-wrap">
       <v-btn v-if="selectedIds.length" color="#00897B" rounded size="small" prepend-icon="mdi-printer" :loading="loadingBatchPrint" @click="loadPrintMultiple">{{ $t('print') }} ({{ selectedIds.length }})</v-btn>
-      <v-btn v-if="selectedIds.length" color="error" variant="tonal" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete') }} ({{ selectedIds.length }})</v-btn>
+      <v-btn v-if="selectedIds.length && auth.hasPermission('order_transfers.delete')" color="error" variant="tonal" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete') }} ({{ selectedIds.length }})</v-btn>
       <v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn>
       <v-btn icon variant="tonal" color="success" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn>
     </div>
@@ -93,9 +93,9 @@
                 <template v-else-if="h.key==='_beneficiaries'"><span class="text-caption">{{ item._beneficiaries }}</span></template>
                 <template v-else-if="h.key==='motif'"><span class="text-caption" style="max-width:200px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.motif || '-' }}</span></template>
                 <template v-else-if="h.key==='actions'">
-                  <v-btn icon size="x-small" variant="tonal" color="#00897B" class="mr-1" @click="editTransfer(item)"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('order_transfers.edit')" icon size="x-small" variant="tonal" color="#00897B" class="mr-1" @click="editTransfer(item)"><v-icon size="16">mdi-pencil</v-icon></v-btn>
                   <v-btn icon size="x-small" variant="tonal" color="#00897B" class="mr-1" @click="loadPrintSingle(item)"><v-icon size="16">mdi-printer</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('order_transfers.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)"><v-icon size="16">mdi-delete</v-icon></v-btn>
                 </template>
                 <template v-else>{{ item[h.key] || '-' }}</template>
               </td>

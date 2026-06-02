@@ -175,8 +175,8 @@
                 <!-- actions -->
                 <template v-else-if="h.key==='actions'">
                   <v-btn icon size="x-small" variant="tonal" color="info" @click="$router.push({name:'view_charge',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-eye</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_charge',params:{id:item.id}})" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-delete</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('charges.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_charge',params:{id:item.id}})" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-pencil</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('charges.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-delete</v-icon></v-btn>
                   <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)" class="mr-1"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
                   <template v-if="catHasProduction(item)"><v-btn v-if="!item.production" icon size="x-small" variant="tonal" color="purple" @click="$router.push({name:'add_production',query:{charge_id:item.id}})"><v-icon size="14">mdi-factory</v-icon></v-btn><v-btn v-else icon size="x-small" variant="flat" color="purple" @click="$router.push({name:'view_production',params:{id:item.production.id}})"><v-icon size="14">mdi-pencil</v-icon></v-btn></template>
                 </template>
@@ -236,11 +236,12 @@ import script from './script.js';
 import AddCharge from '../AddCharge/index.vue';
 import QualityControlDialog from '../QualityControl/QualityControlDialog.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
   components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog},
-  data(){return{...script.data.call(this),activeTab:0,qcDialogOpen:false,qcDialogCharge:null,auditLogDialogOpen:false,auditLogRecordId:0,chargeTabs:[{value:0,label:'list_charge',icon:'mdi-view-list-outline'},{value:1,label:'add_charge',icon:'mdi-sticker-plus-outline'}]}},
-  computed:{...script.computed,selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
+  data(){return{...script.data.call(this),activeTab:0,qcDialogOpen:false,qcDialogCharge:null,auditLogDialogOpen:false,auditLogRecordId:0,chargeTabs:[{value:0,label:'list_charge',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('charges.create')?[{value:1,label:'add_charge',icon:'mdi-sticker-plus-outline'}]:[])]}},
+  computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
   methods:{...script.methods,openQcDialog(item){this.qcDialogCharge=item;this.qcDialogOpen=true},onQcSaved(){this.fetchCharges()},onQcDeleted(){this.fetchCharges()},openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true},activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0)this.fetchCharges()},showInvoice(v){if(v&&this.uninvoicedSelectedCharges.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths());if(this.$route.query.tab==='add')this.activeTab=1},

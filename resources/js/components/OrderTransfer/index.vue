@@ -23,7 +23,7 @@
             {{ $t('list_order_transfer') }}
           </v-btn>
         </v-slide-group-item>
-        <v-slide-group-item v-slot="{ isSelected, toggle }">
+        <v-slide-group-item v-if="auth.hasPermission('order_transfers.create')" v-slot="{ isSelected, toggle }">
           <v-btn :color="isSelected ? '#00897B' : undefined" :variant="isSelected ? 'flat' : 'text'" rounded class="mx-1 my-2" prepend-icon="mdi-plus-circle-outline" @click="toggle">
             {{ $t('add_order_transfer') }}
           </v-btn>
@@ -43,6 +43,7 @@
 <script>
 import ListOrderTransfer from './ListOrderTransfer.vue';
 import AddOrderTransfer from './AddOrderTransfer.vue';
+import { useAuth } from '@/stores/Auth';
 
 export default {
   name: 'OrderTransferPage',
@@ -52,6 +53,9 @@ export default {
       activeTab: 0,
       editData: null,
     };
+  },
+  computed: {
+    auth() { return useAuth(); },
   },
   methods: {
     onEdit(transfer) {

@@ -259,8 +259,11 @@ export default {
     lang() { return this.main.lang?.code || 'en'; },
     isEditMode() { return this.activeTab === 2 && !!this.editingId; },
     visibleTabs() {
-      // Only show edit tab when actually editing
-      return this.tabs.filter(t => t.value !== 2 || this.isEditMode);
+      return this.tabs.filter(t => {
+        if (t.value === 1 && !this.auth.hasPermission('inventory.create')) return false;
+        if (t.value === 2 && (!this.isEditMode || !this.auth.hasPermission('inventory.edit'))) return false;
+        return true;
+      });
     },
     canSubmit() {
       const inv = this.inventoryStore.inventory;

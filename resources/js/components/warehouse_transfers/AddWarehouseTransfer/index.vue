@@ -252,7 +252,7 @@ export default {
       activeTab: 0,
       tabs: [
         { value: 0, label: 'list_warehouse_transfer', icon: 'mdi-view-list-outline' },
-        { value: 1, label: 'add_warehouse_transfer', icon: 'mdi-swap-horizontal' },
+        ...(useAuth().hasPermission('warehouse_transfers.create') ? [{ value: 1, label: 'add_warehouse_transfer', icon: 'mdi-swap-horizontal' }] : []),
       ],
       submitting: false, descriptionDialog: false, refreshing: false,
       is_checking_tracking: false,

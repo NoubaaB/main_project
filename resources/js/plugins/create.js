@@ -9,6 +9,7 @@ import "vue3-snackbar/styles";
 import methods from "@/plugins/methods.js";
 import { useAuth } from '@/stores/Auth';
 import { useMain } from '@/stores/Main';
+import { usePwa } from '@/stores/pwa';
 import { setupCalendar, DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
 
@@ -44,6 +45,7 @@ export async function registerPlugins(app) {
         });
     }
     useMain().initData();
+    usePwa().init();
 
     app.use(router);
 }

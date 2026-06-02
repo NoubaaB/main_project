@@ -87,8 +87,8 @@
                   <template v-else-if="h.key==='total_weight'"><span class="font-weight-bold" style="color:#F9A825">{{ main.formatDisplayNumber(item.total_weight) }}</span></template>
                   <template v-else-if="h.key==='_tracking'"><v-chip v-for="(tn,ti) in (item.transfer_tracking_number||[])" :key="ti" size="x-small" color="#F9A825" variant="tonal" class="mr-1">{{ tn }}</v-chip><span v-if="!(item.transfer_tracking_number||[]).length" class="text-grey">-</span></template>
                   <template v-else-if="h.key==='actions'">
-                    <v-btn icon variant="text" size="x-small" color="#F9A825" @click="$router.push({ name: 'edit_warehouse_transfer', params: { id: item.id } })"><v-icon size="16">mdi-pencil</v-icon></v-btn>
-                    <v-btn icon variant="text" size="x-small" color="error" @click="confirmDelete(item.id)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+                    <v-btn v-if="auth.hasPermission('warehouse_transfers.edit')" icon variant="text" size="x-small" color="#F9A825" @click="$router.push({ name: 'edit_warehouse_transfer', params: { id: item.id } })"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+                    <v-btn v-if="auth.hasPermission('warehouse_transfers.delete')" icon variant="text" size="x-small" color="error" @click="confirmDelete(item.id)"><v-icon size="16">mdi-delete</v-icon></v-btn>
                     <v-btn icon variant="text" size="x-small" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="16">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
                   </template>
                   <template v-else>{{ cellText(h.key, item) }}</template>
@@ -134,7 +134,7 @@
     </div>
 
     <!-- Bulk actions -->
-    <v-row v-if="selected.length" class="mt-2">
+    <v-row v-if="selected.length && auth.hasPermission('warehouse_transfers.delete')" class="mt-2">
       <v-col><v-btn block rounded variant="tonal" color="error" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn></v-col>
     </v-row>
 
@@ -156,10 +156,12 @@
 import VueApexCharts from 'vue3-apexcharts';
 import script from './listScript.js';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
   components: { apexchart: VueApexCharts, ...script.components, AuditLogDialog },
   data() { return { ...script.data.call(this), auditLogDialogOpen: false, auditLogRecordId: 0 }; },
+  computed: { ...script.computed, auth() { return useAuth(); } },
   methods: { ...script.methods, openAuditLog(id) { this.auditLogRecordId = id; this.auditLogDialogOpen = true; } },
 };
 </script>

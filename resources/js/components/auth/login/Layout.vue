@@ -23,12 +23,9 @@
                                             <v-icon class="auth-animated-title" size="150">mdi-fingerprint</v-icon>
                                     </v-avatar>
                                 </div>
-    
                             </div>
-        
                             </v-overlay>
                         </div>
-                        
                     </v-col>
                     <v-divider vertical color="light-blue-darken-4"></v-divider>
                     <v-col class="text-center form_login">
@@ -56,7 +53,10 @@
     padding-top: 12px;
     padding-bottom: 4px;
     }
-    .profile-avatar { background: linear-gradient(135deg, #7cb9ff80, #8bcbffa7) !important; box-shadow: 0 4px 20px rgba(25, 118, 210, .3); }
+    .profile-avatar {
+         background: linear-gradient(135deg, #7cb9ff80, #8bcbffa7) !important;
+        box-shadow: rgba(25, 92, 187, 0.719) 0px 30px 90px;
+    }
     .auth-title-wrapper {
         animation: floatTitle 3s ease-in-out infinite;
     }

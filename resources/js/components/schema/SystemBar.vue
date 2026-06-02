@@ -36,6 +36,32 @@
             <!-- Right: Actions -->
             <div class="systembar-right">
 
+                <!-- PWA Offline Indicator -->
+                <v-chip
+                    v-if="!pwa.is_online"
+                    color="warning"
+                    variant="outlined"
+                    size="small"
+                    class="mr-1 systembar-offline-chip pulse-warning"
+                >
+                    <v-icon start size="14">mdi-wifi-off</v-icon>
+                    {{ $t('offline') || 'Offline' }}
+                </v-chip>
+
+                <!-- PWA Install Button -->
+                <v-btn
+                    v-if="pwa.isInstallable && !pwa.is_installed"
+                    icon
+                    variant="tonal"
+                    color="info"
+                    size="36"
+                    class="systembar-action-btn pwa-install-btn bounce-btn mr-1"
+                    @click="pwa.triggerInstall"
+                >
+                    <v-icon size="19">mdi-download-network-outline</v-icon>
+                    <v-tooltip activator="parent" location="bottom">{{ $t('pwa_install_btn') }}</v-tooltip>
+                </v-btn>
+
                 <!-- Online Users Button -->
                 <v-menu
                     transition="scale-transition"
@@ -291,6 +317,7 @@
     import { useAuth } from "@/stores/Auth";
     import { useOnlineUsers } from "@/stores/OnlineUsers";
     import { useNotificationCenter } from "@/stores/NotificationCenter";
+    import { usePwa } from "@/stores/pwa";
     import annyang from "annyang";
 
     export default {
@@ -321,6 +348,9 @@
             },
             miniLogoUrl: function () {
                 return new URL('/images/jupiter-logo.png', window.location.origin).href;
+            },
+            pwa: function () {
+                return usePwa();
             },
 
         },
@@ -810,6 +840,49 @@
     flex-shrink: 0;
     margin-top: 6px;
     box-shadow: 0 0 6px rgba(255, 152, 0, .4);
+}
+
+/* ---------- PWA Styles & Micro-animations ---------- */
+.systembar-offline-chip {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-width: 1.5px !important;
+}
+
+.pulse-warning {
+    animation: pulseWarning 2s infinite;
+}
+
+@keyframes pulseWarning {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(255, 152, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
+    }
+}
+
+.pwa-install-btn {
+    position: relative;
+}
+
+.bounce-btn {
+    animation: bounceButton 3s ease infinite;
+}
+
+@keyframes bounceButton {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-5px);
+    }
+    60% {
+        transform: translateY(-3px);
+    }
 }
 
 </style>

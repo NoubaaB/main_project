@@ -228,8 +228,8 @@
                 </template>
                 <template v-else-if="h.key==='actions'">
                   <v-btn icon size="x-small" variant="tonal" color="#4643a0" @click="$router.push({name:'view_shipping',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-eye</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_shipping',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1"><v-icon size="14">mdi-delete</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('shippings.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_shipping',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('shippings.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1"><v-icon size="14">mdi-delete</v-icon></v-btn>
                   <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
                 </template>
                 <!-- origin -->
@@ -268,11 +268,12 @@
 import script from './script.js';
 import AddShipping from '../AddShipping/index.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
   components:{...script.components,AddShipping,AuditLogDialog},
-  data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,sellTabs:[{value:0,label:'list_shipping',icon:'mdi-view-list-outline'},{value:1,label:'add_shipping',icon:'mdi-sticker-plus-outline'}]}},
-  computed:{...script.computed,selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
+  data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,sellTabs:[{value:0,label:'list_shipping',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('shippings.create')?[{value:1,label:'add_shipping',icon:'mdi-sticker-plus-outline'}]:[])]}},
+  computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
   methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true},activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0)this.fetchShippings()},showInvoice(v){if(v&&this.selectedShippings.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths());if(this.$route.query.tab==='add')this.activeTab=1},

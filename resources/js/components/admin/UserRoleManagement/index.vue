@@ -291,23 +291,28 @@ export default {
   watch: {
     'roleForm.permissions': {
       handler(newPerms, oldPerms) {
-        if (!oldPerms || !this.permissionGroups.settings) return;
-        const settingsSubPerms = (this.permissionGroups.settings || []).filter(p => p !== 'settings.manage');
-        if (settingsSubPerms.length === 0) return;
+        if (!oldPerms) return;
+        // Master-key modules: .manage grants all sub-permissions
+        const masterModules = ['settings', 'workforce', 'supplier_invoices', 'client_invoices', 'quality_control'];
+        masterModules.forEach(mod => {
+          const groupPerms = this.permissionGroups[mod] || [];
+          const subPerms = groupPerms.filter(p => p !== mod + '.manage');
+          if (subPerms.length === 0) return;
 
-        const hadMaster = oldPerms.includes('settings.manage');
-        const hasMaster = newPerms.includes('settings.manage');
+          const hadMaster = oldPerms.includes(mod + '.manage');
+          const hasMaster = newPerms.includes(mod + '.manage');
 
-        // Master was just checked → add all sub-permissions
-        if (!hadMaster && hasMaster) {
-          settingsSubPerms.forEach(p => {
-            if (!this.roleForm.permissions.includes(p)) this.roleForm.permissions.push(p);
-          });
-        }
-        // Master was just unchecked → remove all sub-permissions
-        else if (hadMaster && !hasMaster) {
-          this.roleForm.permissions = this.roleForm.permissions.filter(p => !settingsSubPerms.includes(p));
-        }
+          // Master was just checked → add all sub-permissions
+          if (!hadMaster && hasMaster) {
+            subPerms.forEach(p => {
+              if (!this.roleForm.permissions.includes(p)) this.roleForm.permissions.push(p);
+            });
+          }
+          // Master was just unchecked → remove all sub-permissions
+          else if (hadMaster && !hasMaster) {
+            this.roleForm.permissions = this.roleForm.permissions.filter(p => !subPerms.includes(p));
+          }
+        });
       },
       deep: true,
     },
@@ -390,11 +395,14 @@ export default {
       this.editingRole = role;
       if (role) {
         const perms = [...(role.permissions || [])];
-        // If settings.manage (master) is set, expand to show all sub-settings as checked
-        if (perms.includes('settings.manage')) {
-          const settingsSubPerms = (this.permissionGroups.settings || []).filter(p => p !== 'settings.manage');
-          settingsSubPerms.forEach(p => { if (!perms.includes(p)) perms.push(p); });
-        }
+        // For all master-key modules, expand sub-permissions if master is set
+        const masterModules = ['settings', 'workforce', 'supplier_invoices', 'client_invoices', 'quality_control'];
+        masterModules.forEach(mod => {
+          if (perms.includes(mod + '.manage')) {
+            const subPerms = (this.permissionGroups[mod] || []).filter(p => p !== mod + '.manage');
+            subPerms.forEach(p => { if (!perms.includes(p)) perms.push(p); });
+          }
+        });
         this.roleForm = { name: role.name, is_super_admin: !!role.is_super_admin, permissions: perms };
       } else {
         this.roleForm = { name: '', is_super_admin: false, permissions: [] };
@@ -405,11 +413,14 @@ export default {
       this.savingRole = true;
       try {
         const payload = { ...this.roleForm };
-        // If settings.manage is checked, strip individual sub-permissions to keep DB clean
-        if (payload.permissions.includes('settings.manage')) {
-          const settingsSubPerms = (this.permissionGroups.settings || []).filter(p => p !== 'settings.manage');
-          payload.permissions = payload.permissions.filter(p => !settingsSubPerms.includes(p));
-        }
+        // If a master key is checked, strip individual sub-permissions to keep DB clean
+        const masterModules = ['settings', 'workforce', 'supplier_invoices', 'client_invoices', 'quality_control'];
+        masterModules.forEach(mod => {
+          if (payload.permissions.includes(mod + '.manage')) {
+            const subPerms = (this.permissionGroups[mod] || []).filter(p => p !== mod + '.manage');
+            payload.permissions = payload.permissions.filter(p => !subPerms.includes(p));
+          }
+        });
         if (this.editingRole) {
           await axios.put(`/api/admin/roles/${this.editingRole.id}`, payload);
           this.showSnack(this.$t('role_updated'), 'success', 'mdi-check-circle');

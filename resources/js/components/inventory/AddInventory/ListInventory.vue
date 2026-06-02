@@ -55,7 +55,7 @@
     <div class="d-flex ga-2 mb-3 justify-space-between">
       <div class="d-flex ga-2">
         <v-btn variant="tonal" color="#6D4C41" rounded size="small" prepend-icon="mdi-refresh" @click="fetchInventories" :loading="loading">{{ $t('refresh') }}</v-btn>
-        <v-btn v-if="selected.length" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
+        <v-btn v-if="selected.length && auth.hasPermission('inventory.delete')" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
       </div>
       <div class="d-flex ga-2">
         <v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn>
@@ -100,8 +100,8 @@
                 <template v-else-if="h.key==='_details_count'"><v-chip size="x-small" color="#6D4C41" variant="tonal">{{ item._details_count }}</v-chip></template>
                 <!-- actions -->
                 <template v-else-if="h.key==='actions'">
-                  <v-btn icon size="x-small" variant="tonal" color="#6D4C41" @click="editInventory(item)" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="warning" @click="confirmDelete(item.id)" class="mr-1"><v-icon size="14">mdi-delete</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('inventory.edit')" icon size="x-small" variant="tonal" color="#6D4C41" @click="editInventory(item)" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
+                  <v-btn v-if="auth.hasPermission('inventory.delete')" icon size="x-small" variant="tonal" color="warning" @click="confirmDelete(item.id)" class="mr-1"><v-icon size="14">mdi-delete</v-icon></v-btn>
                   <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
                 </template>
                 <!-- generic -->

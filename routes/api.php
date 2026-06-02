@@ -61,11 +61,11 @@ Route::middleware(["auth:sanctum"])->group(
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  CHARGE ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        Route::post("charge", [ChargeController::class, "store"]);
-        Route::get("charge/{charge}", [ChargeController::class, "show"]);
-        Route::put("charge/{charge}", [ChargeController::class, "update"]);
-        Route::delete("charge", [ChargeController::class, "destroy"]);
-        Route::get("charges/get_charges", [ChargeController::class, "get_charges"]);
+        Route::get("charges/get_charges", [ChargeController::class, "get_charges"])->middleware('check.permission:charges.view');
+        Route::get("charge/{charge}", [ChargeController::class, "show"])->middleware('check.permission:charges.view');
+        Route::post("charge", [ChargeController::class, "store"])->middleware('check.permission:charges.create');
+        Route::put("charge/{charge}", [ChargeController::class, "update"])->middleware('check.permission:charges.edit');
+        Route::delete("charge", [ChargeController::class, "destroy"])->middleware('check.permission:charges.delete');
         Route::post("charge/check-tracking-number", [ChargeController::class, "checkTrackingNumberUniqueness"]);
         Route::post("charge/check-onp-tracking-number", [ChargeController::class, "checkOnpTrackingNumberUniqueness"]);
         Route::get("charges/production-charges", [ChargeController::class, "get_production_charges"]);
@@ -92,11 +92,11 @@ Route::middleware(["auth:sanctum"])->group(
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  SHIPPING ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        Route::post("shipping", [ShippingController::class, "store"]);
-        Route::get("shipping/{shipping}", [ShippingController::class, "show"]);
-        Route::put("shipping/{shipping}", [ShippingController::class, "update"]);
-        Route::delete("shipping", [ShippingController::class, "destroy"]);
-        Route::get("shippings/get_shippings", [ShippingController::class, "get_shippings"]);
+        Route::get("shippings/get_shippings", [ShippingController::class, "get_shippings"])->middleware('check.permission:shippings.view');
+        Route::get("shipping/{shipping}", [ShippingController::class, "show"])->middleware('check.permission:shippings.view');
+        Route::post("shipping", [ShippingController::class, "store"])->middleware('check.permission:shippings.create');
+        Route::put("shipping/{shipping}", [ShippingController::class, "update"])->middleware('check.permission:shippings.edit');
+        Route::delete("shipping", [ShippingController::class, "destroy"])->middleware('check.permission:shippings.delete');
         Route::post("shipping/check-tracking-number", [ShippingController::class, "checkShippingTrackingNumberUniqueness"]);
 
         // Shipping Categories
@@ -114,12 +114,12 @@ Route::middleware(["auth:sanctum"])->group(
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  PRODUCTION ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        Route::get("productions/analytics", [App\Http\Controllers\ProductionController::class, "analytics"]);
-        Route::get("productions", [App\Http\Controllers\ProductionController::class, "index"]);
-        Route::post("productions", [App\Http\Controllers\ProductionController::class, "store"]);
-        Route::get("productions/{production}", [App\Http\Controllers\ProductionController::class, "show"]);
-        Route::put("productions/{production}", [App\Http\Controllers\ProductionController::class, "update"]);
-        Route::delete("productions", [App\Http\Controllers\ProductionController::class, "destroy"]);
+        Route::get("productions/analytics", [App\Http\Controllers\ProductionController::class, "analytics"])->middleware('check.permission:production.view');
+        Route::get("productions", [App\Http\Controllers\ProductionController::class, "index"])->middleware('check.permission:production.view');
+        Route::get("productions/{production}", [App\Http\Controllers\ProductionController::class, "show"])->middleware('check.permission:production.view');
+        Route::post("productions", [App\Http\Controllers\ProductionController::class, "store"])->middleware('check.permission:production.create');
+        Route::put("productions/{production}", [App\Http\Controllers\ProductionController::class, "update"])->middleware('check.permission:production.edit');
+        Route::delete("productions", [App\Http\Controllers\ProductionController::class, "destroy"])->middleware('check.permission:production.delete');
         Route::post("productions/check-production-tracking-number", [App\Http\Controllers\ProductionController::class, "checkProductionTrackingNumberUniqueness"]);
         Route::post("productions/check-reception-tracking-number", [App\Http\Controllers\ProductionController::class, "checkReceptionTrackingNumberUniqueness"]);
         Route::post("productions/check-onp-tracking-number", [App\Http\Controllers\ProductionController::class, "checkOnpTrackingNumberUniqueness"]);
@@ -139,17 +139,17 @@ Route::middleware(["auth:sanctum"])->group(
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  WAREHOUSE ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        Route::get("warehouses/dashboard-data", [WarehouseController::class, "dashboardData"]);
-        Route::get("warehouses/available-balances", [WarehouseController::class, "availableBalances"]);
-        Route::get("warehouses/with-stock", [WarehouseController::class, "warehousesWithStock"]);
-        Route::get("warehouses/articles", [WarehouseController::class, "warehouseArticles"]);
-        Route::get("warehouses/balances-for-transfer", [WarehouseController::class, "warehouseBalancesForTransfer"]);
-        Route::post("warehouses/calculate-wap", [WarehouseController::class, "calculateWap"]);
-        Route::put("warehouses/balance-wap/{balanceId}", [WarehouseController::class, "updateBalanceWap"]);
-        Route::get("warehouses", [WarehouseController::class, "index"]);
-        Route::post("warehouses", [WarehouseController::class, "store"]);
-        Route::put("warehouses/{warehouse}", [WarehouseController::class, "update"]);
-        Route::delete("warehouses/{warehouse}", [WarehouseController::class, "destroy"]);
+        Route::get("warehouses/dashboard-data", [WarehouseController::class, "dashboardData"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/available-balances", [WarehouseController::class, "availableBalances"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/with-stock", [WarehouseController::class, "warehousesWithStock"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/articles", [WarehouseController::class, "warehouseArticles"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/balances-for-transfer", [WarehouseController::class, "warehouseBalancesForTransfer"])->middleware('check.permission:warehouses.view');
+        Route::post("warehouses/calculate-wap", [WarehouseController::class, "calculateWap"])->middleware('check.permission:warehouses.edit');
+        Route::put("warehouses/balance-wap/{balanceId}", [WarehouseController::class, "updateBalanceWap"])->middleware('check.permission:warehouses.edit');
+        Route::get("warehouses", [WarehouseController::class, "index"])->middleware('check.permission:warehouses.view');
+        Route::post("warehouses", [WarehouseController::class, "store"])->middleware('check.permission:warehouses.create');
+        Route::put("warehouses/{warehouse}", [WarehouseController::class, "update"])->middleware('check.permission:warehouses.edit');
+        Route::delete("warehouses/{warehouse}", [WarehouseController::class, "destroy"])->middleware('check.permission:warehouses.delete');
 
         // Warehouse Categories
         Route::get("warehouse-categories", [App\Http\Controllers\WarehouseCategoryController::class, "index"]);
@@ -160,12 +160,12 @@ Route::middleware(["auth:sanctum"])->group(
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  INVENTORY ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        Route::post("inventory", [InventoryController::class, "store"]);
-        Route::post("inventory/check-tracking-number", [InventoryController::class, "checkTrackingNumberUniqueness"]);
-        Route::get("inventory/{inventory}", [InventoryController::class, "show"]);
-        Route::put("inventory/{inventory}", [InventoryController::class, "update"]);
-        Route::delete("inventory", [InventoryController::class, "destroy"]);
-        Route::get("inventories/get_inventories", [InventoryController::class, "get_inventories"]);
+        Route::get("inventories/get_inventories", [InventoryController::class, "get_inventories"])->middleware('check.permission:inventory.view');
+        Route::get("inventory/{inventory}", [InventoryController::class, "show"])->middleware('check.permission:inventory.view');
+        Route::post("inventory", [InventoryController::class, "store"])->middleware('check.permission:inventory.create');
+        Route::post("inventory/check-tracking-number", [InventoryController::class, "checkTrackingNumberUniqueness"])->middleware('check.permission:inventory.create');
+        Route::put("inventory/{inventory}", [InventoryController::class, "update"])->middleware('check.permission:inventory.edit');
+        Route::delete("inventory", [InventoryController::class, "destroy"])->middleware('check.permission:inventory.delete');
 
         // Detail Inventory Categories
         Route::get("detail-inventory-categories", [App\Http\Controllers\DetailInventoryCategoryController::class, "index"]);
@@ -190,12 +190,12 @@ Route::middleware(["auth:sanctum"])->group(
         // â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
         //  SUPPLIER INVOICE ROUTES
         // â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
-        Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"]);
-        Route::get("supplier_invoice", [SupplierInvoiceController::class, "index"]);
-        Route::delete("supplier_invoice", [SupplierInvoiceController::class, "destroy"]);
-        Route::get("supplier_invoice/supplier-invoices-by-ids", [SupplierInvoiceController::class, "supplierInvoicesByIds"]);
-        Route::post("supplier_invoice/increment-print-counter", [SupplierInvoiceController::class, "incrementPrintCounter"]);
-        Route::get("supplier_invoice/check-tracking-number", [SupplierInvoiceController::class, "checkTrackingNumber"]);
+        Route::get("supplier_invoice", [SupplierInvoiceController::class, "index"])->middleware('check.permission:supplier_invoices.view');
+        Route::get("supplier_invoice/supplier-invoices-by-ids", [SupplierInvoiceController::class, "supplierInvoicesByIds"])->middleware('check.permission:supplier_invoices.view');
+        Route::get("supplier_invoice/check-tracking-number", [SupplierInvoiceController::class, "checkTrackingNumber"])->middleware('check.permission:supplier_invoices.view');
+        Route::post("supplier_invoice", [SupplierInvoiceController::class, "store"])->middleware('check.permission:supplier_invoices.create');
+        Route::post("supplier_invoice/increment-print-counter", [SupplierInvoiceController::class, "incrementPrintCounter"])->middleware('check.permission:supplier_invoices.view');
+        Route::delete("supplier_invoice", [SupplierInvoiceController::class, "destroy"])->middleware('check.permission:supplier_invoices.delete');
         Route::get("supplier_invoice/next-tracking-number", [SupplierInvoiceController::class, "nextTrackingNumber"]);
 
         // Supplier Payments
@@ -215,13 +215,13 @@ Route::middleware(["auth:sanctum"])->group(
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  CLIENT INVOICE ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        Route::post("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "store"]);
-        Route::get("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "index"]);
-        Route::delete("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "destroy"]);
-        Route::get("client_invoice/check-tracking-number", [\App\Http\Controllers\ClientInvoiceController::class, "checkTrackingNumber"]);
-        Route::get("client_invoice/next-tracking-number", [\App\Http\Controllers\ClientInvoiceController::class, "nextTrackingNumber"]);
-        Route::get("client_invoice/client-invoices-by-ids", [\App\Http\Controllers\ClientInvoiceController::class, "clientInvoicesByIds"]);
-        Route::post("client_invoice/increment-print-counter", [\App\Http\Controllers\ClientInvoiceController::class, "incrementPrintCounter"]);
+        Route::get("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "index"])->middleware('check.permission:client_invoices.view');
+        Route::get("client_invoice/check-tracking-number", [\App\Http\Controllers\ClientInvoiceController::class, "checkTrackingNumber"])->middleware('check.permission:client_invoices.view');
+        Route::get("client_invoice/next-tracking-number", [\App\Http\Controllers\ClientInvoiceController::class, "nextTrackingNumber"])->middleware('check.permission:client_invoices.view');
+        Route::get("client_invoice/client-invoices-by-ids", [\App\Http\Controllers\ClientInvoiceController::class, "clientInvoicesByIds"])->middleware('check.permission:client_invoices.view');
+        Route::post("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "store"])->middleware('check.permission:client_invoices.create');
+        Route::post("client_invoice/increment-print-counter", [\App\Http\Controllers\ClientInvoiceController::class, "incrementPrintCounter"])->middleware('check.permission:client_invoices.view');
+        Route::delete("client_invoice", [\App\Http\Controllers\ClientInvoiceController::class, "destroy"])->middleware('check.permission:client_invoices.delete');
 
         // Client Payments
         Route::get("client_payments/balance", [\App\Http\Controllers\ClientPaymentController::class, "clientBalance"]);
@@ -316,12 +316,12 @@ Route::middleware(["auth:sanctum"])->group(
         Route::put("warehouse-transfer-categories/{id}", [App\Http\Controllers\WarehouseTransferCategoryController::class, "update"]);
         Route::delete("warehouse-transfer-categories/{id}", [App\Http\Controllers\WarehouseTransferCategoryController::class, "destroy"]);
 
-        Route::post("warehouse-transfer", [App\Http\Controllers\WarehouseTransferController::class, "store"]);
-        Route::get("warehouse-transfer/{warehouseTransfer}", [App\Http\Controllers\WarehouseTransferController::class, "show"]);
-        Route::put("warehouse-transfer/{warehouseTransfer}", [App\Http\Controllers\WarehouseTransferController::class, "update"]);
-        Route::delete("warehouse-transfer", [App\Http\Controllers\WarehouseTransferController::class, "destroy"]);
-        Route::get("warehouse-transfers/get_transfers", [App\Http\Controllers\WarehouseTransferController::class, "get_transfers"]);
-        Route::post("warehouse-transfer/check-tracking-number", [App\Http\Controllers\WarehouseTransferController::class, "checkTrackingNumberUniqueness"]);
+        Route::get("warehouse-transfers/get_transfers", [App\Http\Controllers\WarehouseTransferController::class, "get_transfers"])->middleware('check.permission:warehouse_transfers.view');
+        Route::get("warehouse-transfer/{warehouseTransfer}", [App\Http\Controllers\WarehouseTransferController::class, "show"])->middleware('check.permission:warehouse_transfers.view');
+        Route::post("warehouse-transfer", [App\Http\Controllers\WarehouseTransferController::class, "store"])->middleware('check.permission:warehouse_transfers.create');
+        Route::post("warehouse-transfer/check-tracking-number", [App\Http\Controllers\WarehouseTransferController::class, "checkTrackingNumberUniqueness"])->middleware('check.permission:warehouse_transfers.create');
+        Route::put("warehouse-transfer/{warehouseTransfer}", [App\Http\Controllers\WarehouseTransferController::class, "update"])->middleware('check.permission:warehouse_transfers.edit');
+        Route::delete("warehouse-transfer", [App\Http\Controllers\WarehouseTransferController::class, "destroy"])->middleware('check.permission:warehouse_transfers.delete');
         #endregion
     
         #region Guano Types
@@ -348,12 +348,12 @@ Route::middleware(["auth:sanctum"])->group(
         // ═══════════════════════════════════════════
         //  ORDER TRANSFER ROUTES
         // ═══════════════════════════════════════════
-        Route::get("order-transfers/analytics", [App\Http\Controllers\OrderTransferController::class, "analytics"]);
-        Route::get("order-transfers", [App\Http\Controllers\OrderTransferController::class, "index"]);
-        Route::post("order-transfers", [App\Http\Controllers\OrderTransferController::class, "store"]);
-        Route::get("order-transfers/{orderTransfer}", [App\Http\Controllers\OrderTransferController::class, "show"]);
-        Route::put("order-transfers/{orderTransfer}", [App\Http\Controllers\OrderTransferController::class, "update"]);
-        Route::delete("order-transfers", [App\Http\Controllers\OrderTransferController::class, "destroy"]);
+        Route::get("order-transfers/analytics", [App\Http\Controllers\OrderTransferController::class, "analytics"])->middleware('check.permission:order_transfers.view');
+        Route::get("order-transfers", [App\Http\Controllers\OrderTransferController::class, "index"])->middleware('check.permission:order_transfers.view');
+        Route::get("order-transfers/{orderTransfer}", [App\Http\Controllers\OrderTransferController::class, "show"])->middleware('check.permission:order_transfers.view');
+        Route::post("order-transfers", [App\Http\Controllers\OrderTransferController::class, "store"])->middleware('check.permission:order_transfers.create');
+        Route::put("order-transfers/{orderTransfer}", [App\Http\Controllers\OrderTransferController::class, "update"])->middleware('check.permission:order_transfers.edit');
+        Route::delete("order-transfers", [App\Http\Controllers\OrderTransferController::class, "destroy"])->middleware('check.permission:order_transfers.delete');
 
         // ═══════════════════════════════════════════
         //  COMPANY SETTINGS ROUTES
