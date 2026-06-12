@@ -57,8 +57,8 @@ self.addEventListener('fetch', (event) => {
 
   // Rule 3 Bypass: WebSockets, Echo/Pusher, and API requests must always go to network (real-time sync)
   if (
-    url.pathname.includes('/api/') || 
-    url.pathname.includes('/broadcasting/') || 
+    url.pathname.includes('/api/') ||
+    url.pathname.includes('/broadcasting/') ||
     request.url.includes('pusher') ||
     request.url.includes('sockjs') ||
     request.method !== 'GET'

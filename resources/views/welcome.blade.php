@@ -7,13 +7,14 @@
     <link rel="icon" type="image/png" href="/storage/icons/icon-144x144.png" sizes="144x144" async defer>
     <link rel="manifest" href="{{asset('/js/manifest.json')}}">
     <link rel="apple-touch-icon" href="/storage/icons/icon-192x192.png" sizes="192x192">
-    <meta name="theme-color" content="#1565C0" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="background_color" content="#121212" />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Jupiter">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
     <title>{{config('app.name')}} App</title>
     @vite(['resources/css/app.css'])
     <link href="{{asset('/css/main.css')}}" rel="stylesheet">
@@ -51,9 +52,9 @@
         // Register the Service Worker 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js')
-                .then(function(registration) {
+                .then(function (registration) {
                     console.log('Service Worker registered with scope:', registration.scope);
-                }).catch(function(error) {
+                }).catch(function (error) {
                     console.log('Service Worker registration failed:', error);
                 });
         }
