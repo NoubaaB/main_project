@@ -2,6 +2,17 @@ import { defineStore } from "pinia";
 import { useMain } from "./Main";
 import i18n from '@/plugins/i18n';
 
+// ─── Early capture: beforeinstallprompt fires BEFORE Pinia initializes ───
+// We stash the event at module scope so it's never lost, then hand it
+// to the reactive store inside init().
+let _earlyInstallPrompt = null;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    _earlyInstallPrompt = e;
+    console.log("[PWA] beforeinstallprompt captured (module-level)");
+});
+
 export const usePwa = defineStore("pwa", {
     state: () => {
         return {
@@ -12,15 +23,20 @@ export const usePwa = defineStore("pwa", {
     },
     actions: {
         init() {
+            // Transfer early-captured prompt (if it fired before init)
+            if (_earlyInstallPrompt) {
+                this.install_prompt = _earlyInstallPrompt;
+                _earlyInstallPrompt = null;
+                console.log("[PWA Store] Transferred early-captured install prompt");
+            }
+
             // Monitor Online / Offline events
             window.addEventListener("online", () => this.handleConnectionChange(true));
             window.addEventListener("offline", () => this.handleConnectionChange(false));
 
-            // Monitor Installation prompt
+            // Listen for any future beforeinstallprompt (e.g. after user dismisses)
             window.addEventListener("beforeinstallprompt", (e) => {
-                // Prevent Chrome 67 and earlier from automatically showing the prompt
                 e.preventDefault();
-                // Stash the event so it can be triggered later.
                 this.install_prompt = e;
                 console.log("[PWA Store] beforeinstallprompt event captured!");
             });

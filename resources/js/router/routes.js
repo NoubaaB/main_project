@@ -461,7 +461,7 @@ const routes = [
                 redirect: { name: 'login' },
                 beforeEnter: function (to, from, next) {
                     if (useAuth().is_auth) next({ name: 'index' });
-                    next();
+                    else next();
                 },
                 children: [
                     {

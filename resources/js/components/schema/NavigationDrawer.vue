@@ -254,10 +254,15 @@ export default {
     }
   },
   methods: {
-    logout: function () {
-      this.auth.logout().then(res => {
-        this.$router.push({ "name": "login" });
-      });
+    logout: async function () {
+      // Clear state first so the auth guard allows navigation to /auth/login
+      this.auth.user = null;
+      this.auth.token = null;
+      localStorage.removeItem('token');
+      // Navigate to login
+      this.$router.push({ name: "login" });
+      // Fire API logout in background
+      this.auth.logout().catch(() => {});
     },
     expandSidebar() {
       if (this.main.sidebar_mini) {

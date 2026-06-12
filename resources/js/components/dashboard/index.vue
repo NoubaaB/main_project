@@ -5,7 +5,7 @@
     <div class="dashboard-hero">
       <div class="dashboard-hero-content">
         <img :src="logoUrl" alt="Jupiter" class="dashboard-logo" />
-        <h1 class="dashboard-title">{{ $t('welcome_back') }}, <span class="dashboard-user-name">{{ auth.user.name }}</span></h1>
+        <h1 class="dashboard-title">{{ $t('welcome_back') }}, <span class="dashboard-user-name">{{ auth.user?.name }}</span></h1>
         <p class="dashboard-subtitle">{{ $t('dashboard_subtitle') }}</p>
       </div>
     </div>
