@@ -600,14 +600,14 @@ export default {
 .aiq-input-wrapper {
   display: flex; align-items: center; gap: 8px;
   background: var(--aiq-input-bg);
-  border: 1.5px solid var(--aiq-input-border);
-  border-radius: 14px;
-  padding: 3px 4px 3px 14px;
+  border: 1px solid var(--aiq-input-border);
+  border-radius: 28px;
+  padding: 3px 4px 3px 16px;
   transition: all 0.25s;
 }
 .aiq-input-wrapper:focus-within {
-  border-color: #2196F3;
-  box-shadow: 0 0 0 2px rgba(33,150,243,0.12);
+  border-color: #42A5F5;
+  box-shadow: 0 0 0 1px #42A5F5;
 }
 .aiq-input-icon { color: var(--aiq-text-muted) !important; }
 .aiq-input {

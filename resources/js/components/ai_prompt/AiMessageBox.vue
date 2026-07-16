@@ -2,12 +2,20 @@
   <div class="aimb-wrapper" :class="{ 'is-loading': isLoading }">
     <!-- AI avatar + header -->
     <div class="aimb-header">
-      <div class="aimb-avatar-glow"></div>
-      <div class="aimb-avatar">
-        <v-icon size="16" color="white" class="aimb-robot-icon">mdi-robot-happy-outline</v-icon>
+      <div class="aimb-avatar-container">
+        <div class="aimb-avatar-glow"></div>
+        <div class="aimb-avatar-ring"></div>
+        <div class="aimb-avatar">
+          <v-icon size="18" color="white" class="aimb-robot-icon">mdi-robot-happy-outline</v-icon>
+        </div>
+        <span class="aimb-online-badge"></span>
       </div>
       <div class="aimb-meta">
-        <span class="aimb-name">{{ $t('app_name_ai') }}<v-icon size="12" class="ms-1" color="success">mdi-check-decagram</v-icon></span>
+        <div class="aimb-name-row">
+          <span class="aimb-name">{{ $t('app_name_ai') }}</span>
+          <v-icon size="14" class="ms-1 aimb-verified-badge">mdi-check-decagram</v-icon>
+          <span class="aimb-role-badge">{{ $t('assistant') }}</span>
+        </div>
         <span class="aimb-time">{{ formatTime }}</span>
       </div>
     </div>
@@ -220,67 +228,181 @@ export default {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 18px;
 }
 
-.aimb-avatar-glow {
-  position: absolute;
-  top: 50%;
-  left: 20px;
+.aimb-avatar-container {
+  position: relative;
   width: 44px;
   height: 44px;
-  background: conic-gradient(from 0deg, #1976D2, #00C853, #9C27B0, #1976D2);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  filter: blur(10px);
-  opacity: 0.6;
-  z-index: 0;
-  animation: aimb-spin 6s linear infinite;
-}
-
-.aimb-avatar {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1A237E, #1976D2);
-  box-shadow: 0 4px 15px rgba(25, 118, 210, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.aimb-avatar-glow {
+  position: absolute;
+  inset: -2px;
+  background: conic-gradient(from 0deg, #1565C0, #00C853, #9C27B0, #42A5F5, #1565C0);
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: 0.65;
+  z-index: 0;
+  animation: aimb-glow-pulse-spin 6s linear infinite;
+}
+
+.aimb-avatar-ring {
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #1565C0, #42A5F5, #00C853, #9C27B0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: aimb-simple-spin 8s linear infinite;
   z-index: 1;
+}
+
+.aimb-avatar {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d47a1 0%, #1976D2 50%, #42A5F5 100%);
+  box-shadow: 
+    0 4px 12px rgba(21, 101, 192, 0.4), 
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.aimb-avatar-container:hover .aimb-avatar {
+  transform: scale(1.05);
+  box-shadow: 
+    0 6px 16px rgba(21, 101, 192, 0.6), 
+    inset 0 2px 4px rgba(255, 255, 255, 0.4);
 }
 
 .aimb-robot-icon {
   animation: aimb-float 3s ease-in-out infinite;
 }
 
+@keyframes aimb-glow-pulse-spin {
+  0% {
+    transform: rotate(0deg) scale(0.95);
+    filter: blur(8px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.05);
+    filter: blur(10px);
+    opacity: 0.75;
+  }
+  100% {
+    transform: rotate(360deg) scale(0.95);
+    filter: blur(8px);
+    opacity: 0.5;
+  }
+}
+
+@keyframes aimb-simple-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.aimb-online-badge {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 10px;
+  height: 10px;
+  background: #00E676;
+  border: 2px solid rgba(var(--v-theme-surface), 0.9);
+  border-radius: 50%;
+  z-index: 3;
+  box-shadow: 0 0 8px #00E676;
+  animation: aimb-online-blink 2s ease-in-out infinite;
+}
+
+@keyframes aimb-online-blink {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 6px #00E676;
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 2px #00E676;
+  }
+}
+
 /* Metadata */
 .aimb-meta {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+}
+
+.aimb-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .aimb-name {
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 800;
-  background: linear-gradient(90deg, #1565C0, #0277BD);
+  background: linear-gradient(135deg, #1565C0 0%, #1E88E5 50%, #00B0FF 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: 0.5px;
-  display: flex;
+  letter-spacing: 0.4px;
+}
+
+.aimb-verified-badge {
+  color: #2196F3 !important;
+  filter: drop-shadow(0 0 2px rgba(33, 150, 243, 0.4));
+  animation: aimb-pulse-verified 4s ease-in-out infinite;
+}
+
+@keyframes aimb-pulse-verified {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.aimb-role-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(33, 150, 243, 0.08);
+  color: #2196F3;
+  border: 1.2px solid rgba(33, 150, 243, 0.2);
+  display: inline-flex;
   align-items: center;
+  height: fit-content;
+  line-height: 1;
 }
 
 .aimb-time {
-  font-size: 11px;
+  font-size: 10.5px;
   color: rgba(var(--v-theme-on-surface), 0.45);
   font-weight: 600;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
 }
 
 /* Premium Content Rendering */
@@ -426,10 +548,7 @@ export default {
   100% { background-position: 0% 50%; }
 }
 
-@keyframes aimb-spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
+/* aimb-spin keyframe retired */
 
 /* Export Excel Bar */
 .aimb-export-bar {
