@@ -21,6 +21,11 @@ export default defineConfig({
             },
         }),
     ],
+    // Add this server block right here:
+    server: {
+        host: '127.0.0.1', // Forces IPv4 instead of IPv6 [::1]
+        cors: true,        // Allows cross-origin requests from dev.local
+    },
     resolve: {
         alias: {
             vue: "vue/dist/vue.esm-bundler.js",
