@@ -48,5 +48,7 @@ class FishType extends Model
         return $this->belongsTo(FishProcessType::class, 'fish_process_type_id'); 
     }
 
-
+    function waps() : HasMany {
+        return $this->hasMany(FishTypeWap::class);
+    }
 }

@@ -38,11 +38,6 @@ export default {
       pieDrillData: null, // current level raw data for click
       lineSeries: [],
       lineCategories: [],
-      // WAP dialog
-      wapDialog: false,
-      wapBalance: null,
-      wapValue: 0,
-      wapSaving: false,
     };
   },
   computed: {
@@ -53,8 +48,10 @@ export default {
       this.filteredBalances.forEach(b => {
         const t = b.stockable_type || 'Other';
         if (!groups[t]) groups[t] = { type: t, weight: 0, price: 0 };
-        groups[t].weight += Number(b.remaining_weight || 0);
-        groups[t].price += Number(b.total_price || 0);
+        const w = Number(b.remaining_weight || 0);
+        const wapVal = Number(b.wap || 0);
+        groups[t].weight += w;
+        groups[t].price += wapVal > 0 ? wapVal * w : 0;
       });
       return this.applyFilters(Object.values(groups), 'level0');
     },
@@ -65,8 +62,11 @@ export default {
         const fname = fam ? (fam[`name_${this.lang}`] || fam.name || fam.name_fr || 'Unknown') : this.$t('unknown');
         const fid = fam?.id || 0;
         if (!groups[fid]) groups[fid] = { id: fid, name: fname, weight: 0, price: 0, packages: 0, packageTypes: new Set() };
-        groups[fid].weight += Number(b.remaining_weight || 0);
-        groups[fid].price += Number(b.total_price || 0);
+        const w = Number(b.remaining_weight || 0);
+        const wapVal = Number(b.wap || 0);
+        const p = wapVal > 0 ? wapVal * w : 0;
+        groups[fid].weight += w;
+        groups[fid].price += p;
         groups[fid].packages += Number(b.package_count || 0);
         if (b.package_type) groups[fid].packageTypes.add(b.package_type[`name_${this.lang}`] || '');
       });
@@ -81,11 +81,13 @@ export default {
       this.filteredBalances.filter(b => b.stockable_type === 'GuanoType').forEach(b => {
         const nm = this.sLabel(b);
         if (!groups[nm]) groups[nm] = { name: nm, weight: 0, price: 0 };
-        groups[nm].weight += Number(b.remaining_weight || 0);
-        groups[nm].price += Number(b.total_price || 0);
+        const w = Number(b.remaining_weight || 0);
+        groups[nm].weight += w;
+        groups[nm].price += 0;
       });
       return this.applyFilters(Object.values(groups).map(g => ({
-        ...g, wap: g.weight > 0 ? Math.round((g.price / g.weight) * 100) / 100 : 0,
+        ...g,
+        wap: 0,
       })), 'level1_guano');
     },
     packageArticles() {
@@ -93,11 +95,13 @@ export default {
       this.filteredBalances.filter(b => b.stockable_type === 'PackageType').forEach(b => {
         const nm = this.sLabel(b);
         if (!groups[nm]) groups[nm] = { name: nm, weight: 0, price: 0 };
-        groups[nm].weight += Number(b.remaining_weight || 0);
-        groups[nm].price += Number(b.total_price || 0);
+        const w = Number(b.remaining_weight || 0);
+        groups[nm].weight += w;
+        groups[nm].price += 0;
       });
       return this.applyFilters(Object.values(groups).map(g => ({
-        ...g, wap: g.weight > 0 ? Math.round((g.price / g.weight) * 100) / 100 : 0,
+        ...g,
+        wap: 0,
       })), 'level1_package');
     },
     fishNames() {
@@ -109,8 +113,11 @@ export default {
           const sid = b.stockable_id;
           const nm = this.sLabel(b);
           if (!groups[sid]) groups[sid] = { id: sid, name: nm, weight: 0, price: 0, packages: 0, packageTypes: new Set(), count: 0 };
-          groups[sid].weight += Number(b.remaining_weight || 0);
-          groups[sid].price += Number(b.total_price || 0);
+          const w = Number(b.remaining_weight || 0);
+          const wapVal = Number(b.wap || 0);
+          const p = wapVal > 0 ? wapVal * w : 0;
+          groups[sid].weight += w;
+          groups[sid].price += p;
           groups[sid].packages += Number(b.package_count || 0);
           groups[sid].count++;
           if (b.package_type) groups[sid].packageTypes.add(b.package_type[`name_${this.lang}`] || '');
@@ -125,13 +132,19 @@ export default {
       if (this.drillLevel < 3 || !this.drillFishNameId) return [];
       return this.filteredBalances
         .filter(b => b.stockable_type === 'FishType' && b.stockable_id === this.drillFishNameId && (b.stockable?.fish_family_id || 0) === this.drillFamilyId)
-        .map(b => ({
-          ...b,
-          wap: Number(b.total_weight) > 0 ? Math.round((Number(b.total_price) / Number(b.total_weight)) * 100) / 100 : 0,
-          articleName: this.sLabel(b),
-          _date_display: b.date ? b.date.substring(0, 10) : '-',
-          _source_label: b.source_type ? this.srcLabel(b.source_type) : '-',
-        }));
+        .map(b => {
+          const w = Number(b.remaining_weight || b.total_weight || 0);
+          const wapVal = Number(b.wap || 0);
+          const priceVal = wapVal > 0 ? wapVal * w : 0;
+          return {
+            ...b,
+            wap: Math.round(wapVal * 100) / 100,
+            total_price: Math.round(priceVal * 100) / 100,
+            articleName: this.sLabel(b),
+            _date_display: b.date ? b.date.substring(0, 10) : '-',
+            _source_label: b.source_type ? this.srcLabel(b.source_type) : '-',
+          };
+        });
     },
     fishArticles() {
       return this.applyFilters(this.rawFishArticles, 'level3');
@@ -147,7 +160,7 @@ export default {
         { key: '_source_label', label: this.$t('source'), filterable: true },
         { key: 'total_weight', label: this.$t('total_weight') + ' (Kg)', filterable: false },
         { key: 'package_count', label: this.$t('package_count'), filterable: false },
-        { key: 'wap', label: this.$t('wap') + ` (${c})`, filterable: false },
+        { key: 'wap', label: this.$t('wap') + ` (${c}/Kg)`, filterable: false },
         { key: 'total_price', label: this.$t('total_price') + ` (${c})`, filterable: false },
         { key: 'remaining_weight', label: this.$t('remaining') + ' (Kg)', filterable: false },
       ];
@@ -169,7 +182,13 @@ export default {
       return bc;
     },
     totalWeight() { return this.filteredBalances.reduce((s, b) => s + Number(b.remaining_weight || 0), 0) },
-    totalPrice() { return this.filteredBalances.reduce((s, b) => s + Number(b.total_price || 0), 0) },
+    totalPrice() {
+      return this.filteredBalances.reduce((s, b) => {
+        const w = Number(b.remaining_weight || 0);
+        const wapVal = Number(b.wap || 0);
+        return s + (wapVal > 0 ? wapVal * w : 0);
+      }, 0);
+    },
     totalBalances() { return this.filteredBalances.length },
     totalStockIn() { return this.filteredBalances.reduce((s, b) => s + Number(b.total_weight || 0), 0) },
     totalStockOut() {
@@ -183,9 +202,11 @@ export default {
       this.filteredBalances.forEach(b => {
         const t = b.stockable_type || 'Other';
         if (!groups[t]) groups[t] = { type: t, name: this.typeName(t), count: 0, weight: 0, price: 0 };
+        const w = Number(b.remaining_weight || 0);
+        const wapVal = Number(b.wap || 0);
         groups[t].count++;
-        groups[t].weight += Number(b.remaining_weight || 0);
-        groups[t].price += Number(b.total_price || 0);
+        groups[t].weight += w;
+        groups[t].price += wapVal > 0 ? wapVal * w : 0;
       });
       return Object.values(groups).sort((a, b) => b.weight - a.weight);
     },
@@ -202,15 +223,12 @@ export default {
       };
       const dateMapBal = {}; // stock-in per bucket
       const dateMapOps = {}; // stock-out per bucket
-      const dateMapPrice = {}; // price per bucket
       this.filteredBalances.forEach(b => {
         const d = b.date ? b.date.substring(0, 10) : null;
         if (d && d >= this.dateFrom && d <= this.dateTo) {
           const k = bucketKey(d);
           if (!dateMapBal[k]) dateMapBal[k] = 0;
           dateMapBal[k] += Number(b.total_weight || 0);
-          if (!dateMapPrice[k]) dateMapPrice[k] = 0;
-          dateMapPrice[k] += Number(b.total_price || 0);
         }
         (b.operations || []).forEach(op => {
           const od = op.date ? op.date.substring(0, 10) : null;
@@ -221,24 +239,22 @@ export default {
           }
         });
       });
-      const allKeys = [...new Set([...Object.keys(dateMapBal), ...Object.keys(dateMapOps), ...Object.keys(dateMapPrice)])].sort();
+      const allKeys = [...new Set([...Object.keys(dateMapBal), ...Object.keys(dateMapOps)])].sort();
       if (!allKeys.length) return [{ name: '', data: [] }];
       return [
         { name: this.$t('stock_in') + ' (Kg)', data: allKeys.map(k => ({ x: k, y: Math.round((dateMapBal[k] || 0) * 100) / 100 })) },
         { name: this.$t('stock_out') + ' (Kg)', data: allKeys.map(k => ({ x: k, y: Math.round((dateMapOps[k] || 0) * 100) / 100 })) },
-        { name: this.$t('total_price') + ` (${this.main.currency})`, data: allKeys.map(k => ({ x: k, y: Math.round((dateMapPrice[k] || 0) * 100) / 100 })) },
       ];
     },
     dashChartOptions() {
       return {
         chart: { type: 'line', toolbar: { show: true }, zoom: { enabled: true } },
-        stroke: { width: [3, 3, 2], curve: 'smooth', dashArray: [0, 0, 5] },
-        colors: ['#5C6BC0', '#EF5350', '#FF7043'],
+        stroke: { width: [3, 3], curve: 'smooth' },
+        colors: ['#5C6BC0', '#EF5350'],
         xaxis: { type: 'category', labels: { rotate: -45, style: { fontSize: '10px' } } },
         yaxis: [
           { title: { text: this.$t('stock_in') + ' (Kg)', style: { fontSize: '11px' } }, labels: { formatter: v => this.main.formatDisplayNumber(v) } },
           { show: false, labels: { formatter: v => this.main.formatDisplayNumber(v) } },
-          { opposite: true, title: { text: this.$t('total_price') + ` (${this.main.currency})`, style: { fontSize: '11px' } }, labels: { formatter: v => this.main.formatDisplayNumber(v) } },
         ],
         tooltip: { shared: true },
         legend: { position: 'top', fontSize: '11px' },
@@ -276,12 +292,11 @@ export default {
     lineOptions() {
       return {
         chart: { type: 'line', toolbar: { show: true }, zoom: { enabled: true } },
-        stroke: { width: [3, 3], curve: 'smooth' },
-        colors: ['#26A69A', '#FF7043'],
+        stroke: { width: 3, curve: 'smooth' },
+        colors: ['#26A69A'],
         xaxis: { categories: this.lineCategories, labels: { rotate: -45, style: { fontSize: '10px' } } },
         yaxis: [
           { title: { text: this.$t('weight') + ' (Kg)' }, labels: { formatter: v => this.main.formatDisplayNumber(v) } },
-          { opposite: true, title: { text: this.$t('total_price') + ` (${this.main.currency})` }, labels: { formatter: v => this.main.formatDisplayNumber(v) } },
         ],
         tooltip: { shared: true },
         legend: { position: 'top' },
@@ -411,19 +426,18 @@ export default {
       const ops = bal.operations || [];
       if (!ops.length) {
         // No operations - show single balance as 100%
-        const items = [{ name: bal.reception_tracking_number || '-', weight: Math.round(Number(bal.remaining_weight) * 100) / 100, price: Number(bal.total_price || 0), _leaf: true }];
+        const items = [{ name: bal.reception_tracking_number || '-', weight: Math.round(Number(bal.remaining_weight) * 100) / 100, _leaf: true }];
         this._openPie(items, this.sLabel(bal));
         return;
       }
       const items = ops.map(op => ({
         name: `${this.srcLabel(op.source_type)} #${op.source_id || '-'} (${this.main.formateDate(op.date)})`,
         weight: Math.round(Number(op.weight || 0) * 100) / 100,
-        price: Number(op.total_price || 0),
         _leaf: true,
       }));
       // Add remaining stock as a slice
       const remain = Number(bal.remaining_weight || 0);
-      if (remain > 0) items.push({ name: this.$t('remaining_weight'), weight: Math.round(remain * 100) / 100, price: 0, _leaf: true });
+      if (remain > 0) items.push({ name: this.$t('remaining_weight'), weight: Math.round(remain * 100) / 100, _leaf: true });
       this._openPie(items, (bal.articleName || this.sLabel(bal)) + ' - ' + (bal.reception_tracking_number || ''));
     },
     _openPie(items, titlePrefix) {
@@ -462,17 +476,15 @@ export default {
       bals.forEach(b => {
         const d = b.date ? b.date.substring(0, 10) : null;
         if (d && d >= this.dateFrom && d <= this.dateTo) {
-          if (!dateMap[d]) dateMap[d] = { weight: 0, price: 0 };
+          if (!dateMap[d]) dateMap[d] = { weight: 0 };
           dateMap[d].weight += Number(b.total_weight || 0);
-          dateMap[d].price += Number(b.total_price || 0);
         }
         // Also include operations
         (b.operations || []).forEach(op => {
           const od = op.date ? op.date.substring(0, 10) : null;
           if (od && od >= this.dateFrom && od <= this.dateTo) {
-            if (!dateMap[od]) dateMap[od] = { weight: 0, price: 0 };
+            if (!dateMap[od]) dateMap[od] = { weight: 0 };
             dateMap[od].weight -= Number(op.weight || 0);
-            dateMap[od].price -= Number(op.total_price || 0);
           }
         });
       });
@@ -480,29 +492,13 @@ export default {
       this.lineCategories = dates;
       this.lineSeries = [
         { name: this.$t('weight') + ' (Kg)', data: dates.map(d => Math.round(dateMap[d].weight * 100) / 100) },
-        { name: this.$t('total_price') + ` (${this.main.currency})`, data: dates.map(d => Math.round(dateMap[d].price * 100) / 100) },
       ];
-      this.chartTitle = (context.familyName || context.articleName) + ' - ' + this.$t('price_history');
+      this.chartTitle = (context.familyName || context.articleName) + ' - ' + this.$t('stock_history');
       this.chartMode = 'line';
       this.chartDialog = true;
     },
 
-    // === WAP DIALOG ===
-    openWapDialog(bal) {
-      this.wapBalance = bal;
-      this.wapValue = bal.wap || 0;
-      this.wapDialog = true;
-    },
-    async saveWap() {
-      if (!this.wapBalance) return;
-      this.wapSaving = true;
-      try {
-        await axios.put(`/api/warehouses/balance-wap/${this.wapBalance.id}`, { unit_price: this.wapValue });
-        this.wapDialog = false;
-        this.fetchDashboardData();
-      } catch (e) { console.error(e); }
-      this.wapSaving = false;
-    },
+
 
     // === Filters ===
     applyFilters(rows, levelKey) {

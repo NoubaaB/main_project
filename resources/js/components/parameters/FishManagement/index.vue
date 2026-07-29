@@ -81,6 +81,7 @@
               <span v-else class="text-grey">-</span>
             </template>
             <template v-slot:[`item.actions`]="{ item }">
+              <v-btn icon size="x-small" variant="tonal" color="purple" @click="openWapDialog(item)" class="mr-1" :title="$t('wap_config')"><v-icon size="16">mdi-calculator</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="info" @click="openTypeDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteType(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
@@ -333,12 +334,232 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- ============= WAP CONFIGURATION DIALOG ============= -->
+    <v-dialog v-model="wapDialog" max-width="850" persistent>
+      <v-card class="rounded-xl">
+        <v-card-title class="d-flex align-center pa-5 pb-2">
+          <v-icon color="purple" class="mr-2">mdi-calculator</v-icon>
+          <span class="text-subtitle-1 font-weight-bold">
+            {{ $t('wap_config') }} - {{ selectedFishTypeForWap ? (selectedFishTypeForWap['name_' + main.lang.short] || selectedFishTypeForWap.name_en) : '' }}
+          </span>
+          <v-spacer></v-spacer>
+          <v-btn icon variant="text" size="small" @click="closeWapDialog"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pa-5">
+          <!-- WAP Rule Form -->
+          <v-card variant="outlined" class="rounded-lg pa-4 mb-4" style="border-color: rgba(147, 66, 245, 0.25); background: rgba(147, 66, 245, 0.02)">
+            <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center text-purple">
+              <v-icon size="18" color="purple" class="mr-1">mdi-plus-circle-outline</v-icon>
+              {{ editingWapRule ? $t('edit_wap_rule') : $t('add_wap_rule') }}
+            </div>
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-autocomplete
+                  v-model="wapForm.warehouse_id"
+                  :items="warehousesList"
+                  item-title="name"
+                  item-value="id"
+                  :label="$t('select_warehouse')"
+                  variant="outlined"
+                  density="compact"
+                  rounded
+                  color="purple"
+                  class="text-purple mb-2"
+                  hide-details
+                ></v-autocomplete>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model.number="wapForm.wap"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  :label="$t('wap') + ' (MAD/Kg)'"
+                  variant="outlined"
+                  density="compact"
+                  rounded
+                  color="purple"
+                  class="text-purple mb-2"
+                  hide-details
+                  prepend-inner-icon="mdi-cash"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="text-caption font-weight-bold opacity-70">{{ $t('wap_by_date_range') }}</div>
+                  <v-checkbox
+                    v-model="wapForm.is_indefinite"
+                    :label="$t('date_range')"
+                    density="compact"
+                    hide-details
+                    color="purple"
+                  ></v-checkbox>
+                </div>
+                <!-- Extended Calendar -->
+                <DatePicker
+                  v-if="wapForm.is_indefinite"
+                  v-model.range="wapDateRangeVC"
+                  expanded
+                  :is-dark="main.is_dark"
+                  mode="date"
+                  color="purple"
+                  class="rounded-lg mb-2"
+                />
+                <DatePicker
+                  v-else
+                  v-model="wapSingleDateVC"
+                  expanded
+                  :is-dark="main.is_dark"
+                  mode="date"
+                  color="purple"
+                  class="rounded-lg mb-2"
+                />
+                <div class="d-flex align-center ga-4 text-caption mt-1">
+                  <div><b>{{ $t('date_start') }}:</b> <span class="text-purple font-weight-bold">{{ wapStartDateDisplay }}</span></div>
+                  <div><b>{{ $t('date_end') }}:</b> <span class="text-purple font-weight-bold">{{ wapEndDateDisplay }}</span></div>
+                </div>
+              </v-col>
+              <v-col cols="12" class="d-flex align-center justify-end mt-2">
+                <v-btn v-if="editingWapRule" variant="text" size="small" @click="resetWapForm" class="mr-2">{{ $t('cancel') }}</v-btn>
+                <v-btn color="purple" variant="flat" rounded :loading="savingWapRule" @click="saveWapRule" prepend-icon="mdi-check">
+                  {{ editingWapRule ? $t('update') : $t('save') }}
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-card>
+
+          <!-- Existing Rules Table Header with Chart Button -->
+          <div class="d-flex align-center justify-space-between mb-2">
+            <div class="text-subtitle-2 font-weight-bold">{{ $t('wap_by_date_range') }}</div>
+            <v-btn
+              color="purple"
+              variant="tonal"
+              rounded
+              size="small"
+              prepend-icon="mdi-chart-timeline-variant"
+              @click="wapChartModalDialog = true"
+            >
+              {{ $t('wap_chart_statistics') }}
+            </v-btn>
+          </div>
+          <v-data-table
+            :headers="wapHeaders"
+            :items="wapsList"
+            :loading="loadingWaps ? 'purple' : false"
+            density="compact"
+            class="rounded-lg param-table"
+            hover
+          >
+            <template v-slot:[`item.warehouse`]="{ item }">
+              <span class="font-weight-bold">{{ item.warehouse ? item.warehouse.name : '-' }}</span>
+            </template>
+            <template v-slot:[`item.date_start`]="{ item }">
+              <span>{{ main.formateDate(item.date_start) }}</span>
+            </template>
+            <template v-slot:[`item.date_end`]="{ item }">
+              <v-chip size="x-small" :color="item.date_end ? 'purple' : 'warning'" variant="tonal" class="font-weight-bold">
+                {{ item.date_end ? main.formateDate(item.date_end) : $t('indefinite') }}
+              </v-chip>
+            </template>
+            <template v-slot:[`item.wap`]="{ item }">
+              <b class="text-purple">{{ main.formatDisplayNumber(item.wap) }} MAD/Kg</b>
+            </template>
+            <template v-slot:[`item.actions`]="{ item }">
+              <v-btn icon size="x-small" variant="tonal" color="purple" @click="editWapRule(item)" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteWapRule(item)"><v-icon size="14">mdi-delete</v-icon></v-btn>
+            </template>
+          </v-data-table>
+        </v-card-text>
+        <v-card-actions class="pa-5 pt-0">
+          <v-spacer></v-spacer>
+          <v-btn @click="closeWapDialog" variant="text">{{ $t('close') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ============= WAP CHART & STATISTICS DIALOG ============= -->
+    <v-dialog v-model="wapChartModalDialog" max-width="900" persistent>
+      <v-card class="rounded-xl">
+        <v-card-title class="d-flex align-center pa-5 pb-2">
+          <v-icon color="purple" class="mr-2">mdi-chart-timeline-variant</v-icon>
+          <span class="text-subtitle-1 font-weight-bold">
+            {{ $t('wap_chart_statistics') }} - {{ selectedFishTypeForWap ? (selectedFishTypeForWap['name_' + main.lang.short] || selectedFishTypeForWap.name_en) : '' }}
+          </span>
+          <v-spacer></v-spacer>
+          <v-btn icon variant="text" size="small" @click="wapChartModalDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pa-5">
+          <!-- Summary Statistics Cards -->
+          <v-row dense class="mb-4">
+            <v-col cols="12" sm="3">
+              <v-card variant="tonal" color="purple" class="pa-3 rounded-lg text-center">
+                <div class="text-caption text-medium-emphasis">{{ $t('min_wap') }}</div>
+                <div class="text-h6 font-weight-bold text-purple">{{ main.formatDisplayNumber(wapStats.min) }} MAD/Kg</div>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-card variant="tonal" color="purple" class="pa-3 rounded-lg text-center">
+                <div class="text-caption text-medium-emphasis">{{ $t('avg_wap') }}</div>
+                <div class="text-h6 font-weight-bold text-purple">{{ main.formatDisplayNumber(wapStats.avg) }} MAD/Kg</div>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-card variant="tonal" color="purple" class="pa-3 rounded-lg text-center">
+                <div class="text-caption text-medium-emphasis">{{ $t('max_wap') }}</div>
+                <div class="text-h6 font-weight-bold text-purple">{{ main.formatDisplayNumber(wapStats.max) }} MAD/Kg</div>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-card variant="tonal" color="purple" class="pa-3 rounded-lg text-center">
+                <div class="text-caption text-medium-emphasis">{{ $t('active_rules') }}</div>
+                <div class="text-h6 font-weight-bold text-purple">{{ wapsList.length }}</div>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- ApexChart for WAP Evolution -->
+          <v-card variant="outlined" class="pa-4 rounded-xl" style="border-color: rgba(147, 66, 245, 0.2)">
+            <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center text-purple">
+              <v-icon size="18" class="mr-1">mdi-chart-line</v-icon>
+              {{ $t('wap_evolution') }}
+            </div>
+            <apexchart
+              v-if="wapChartSeries.length && wapChartSeries[0].data.length"
+              type="line"
+              :height="350"
+              :options="wapChartOptions"
+              :series="wapChartSeries"
+            ></apexchart>
+            <div v-else class="text-center text-caption text-grey pa-8">
+              <v-icon size="40" color="grey" class="mb-2">mdi-chart-line</v-icon>
+              <div>{{ $t('no_data_available') }}</div>
+            </div>
+          </v-card>
+        </v-card-text>
+        <v-card-actions class="pa-5 pt-0">
+          <v-spacer></v-spacer>
+          <v-btn color="purple" variant="flat" rounded @click="wapChartModalDialog = false">{{ $t('close') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Summary Snackbar -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="bottom end" elevation="4" rounded="lg">
+      <div class="d-flex align-center"><v-icon class="mr-2">mdi-information</v-icon><span>{{ snackbar.text }}</span></div>
+      <template v-slot:actions>
+        <v-btn variant="text" size="small" @click="snackbar.show = false">{{ $t('close') }}</v-btn>
+      </template>
+    </v-snackbar>
   </v-card>
 </template>
 
 <script>
 import axios from 'axios';
 import mitt from '@/plugins/mitt';
+import VueApexCharts from 'vue3-apexcharts';
 import { useMain } from '@/stores/Main';
 import { useFishProcessType } from '@/stores/FishProcessType';
 import { useFishFamily } from '@/stores/FishFamily';
@@ -346,6 +567,7 @@ import { useFishType } from '@/stores/FishType';
 
 export default {
   name: 'FishManagement',
+  components: { apexchart: VueApexCharts },
   data() {
     return {
       activeTab: 'families',
@@ -379,6 +601,19 @@ export default {
       deleteTarget: null,
       deleteEntityType: null,
       saving: false,
+      // WAP Configuration state
+      wapDialog: false,
+      wapChartModalDialog: false,
+      selectedFishTypeForWap: null,
+      loadingWaps: false,
+      wapsList: [],
+      warehousesList: [],
+      editingWapRule: null,
+      wapForm: { warehouse_id: null, wap: null, is_indefinite: false },
+      wapSingleDateVC: new Date(),
+      wapDateRangeVC: { start: new Date(), end: new Date() },
+      savingWapRule: false,
+      snackbar: { show: false, text: '', color: 'success' },
     };
   },
   computed: {
@@ -421,6 +656,103 @@ export default {
         { title: this.$t('fish_types_count'), key: 'fish_types_count', align: 'center' },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
+    },
+    wapHeaders() {
+      return [
+        { title: this.$t('warehouse'), key: 'warehouse', align: 'center' },
+        { title: this.$t('date_start'), key: 'date_start', align: 'center' },
+        { title: this.$t('date_end'), key: 'date_end', align: 'center' },
+        { title: this.$t('wap'), key: 'wap', align: 'center' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+      ];
+    },
+    wapStartDateDisplay() {
+      if (this.wapForm.is_indefinite) {
+        if (!this.wapDateRangeVC) return '-';
+        const d = this.wapDateRangeVC.start || this.wapDateRangeVC;
+        return d ? (typeof d === 'string' ? d.substring(0, 10) : new Date(d).toISOString().substring(0, 10)) : '-';
+      } else {
+        if (!this.wapSingleDateVC) return '-';
+        const d = this.wapSingleDateVC;
+        return d ? (typeof d === 'string' ? d.substring(0, 10) : new Date(d).toISOString().substring(0, 10)) : '-';
+      }
+    },
+    wapEndDateDisplay() {
+      if (!this.wapForm.is_indefinite) return this.$t('indefinite');
+      if (!this.wapDateRangeVC || !this.wapDateRangeVC.end) return '-';
+      const d = this.wapDateRangeVC.end;
+      return d ? (typeof d === 'string' ? d.substring(0, 10) : new Date(d).toISOString().substring(0, 10)) : '-';
+    },
+    wapStats() {
+      if (!this.wapsList.length) return { min: 0, max: 0, avg: 0 };
+      const vals = this.wapsList.map(w => Number(w.wap || 0)).filter(v => v > 0);
+      if (!vals.length) return { min: 0, max: 0, avg: 0 };
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      return {
+        min: Math.round(min * 100) / 100,
+        max: Math.round(max * 100) / 100,
+        avg: Math.round(avg * 100) / 100,
+      };
+    },
+    wapChartSeries() {
+      if (!this.wapsList.length) return [];
+      const warehouseGroups = {};
+      this.wapsList.forEach(item => {
+        const whName = item.warehouse ? item.warehouse.name : (this.$t('warehouse') + ' #' + item.warehouse_id);
+        if (!warehouseGroups[whName]) warehouseGroups[whName] = [];
+        
+        const price = Number(item.wap || 0);
+        const startDate = item.date_start ? item.date_start.substring(0, 10) : '';
+        if (startDate) {
+          warehouseGroups[whName].push({ x: startDate, y: price });
+        }
+        if (item.date_end) {
+          const endDate = item.date_end.substring(0, 10);
+          warehouseGroups[whName].push({ x: endDate, y: price });
+        }
+      });
+
+      return Object.entries(warehouseGroups).map(([whName, points]) => {
+        points.sort((a, b) => new Date(a.x) - new Date(b.x));
+        return {
+          name: whName,
+          data: points,
+        };
+      });
+    },
+    wapChartOptions() {
+      return {
+        chart: {
+          type: 'line',
+          toolbar: { show: true },
+          zoom: { enabled: true },
+        },
+        stroke: {
+          width: 3,
+          curve: 'stepline',
+        },
+        markers: {
+          size: 6,
+          hover: { size: 8 },
+        },
+        colors: ['#9342F5', '#1565C0', '#26A69A', '#FF9800', '#EF5350', '#AB47BC'],
+        xaxis: {
+          type: 'category',
+          title: { text: this.$t('date'), style: { fontSize: '11px', fontWeight: 600 } },
+          labels: { rotate: -45, style: { fontSize: '10px' } },
+        },
+        yaxis: {
+          title: { text: 'WAP (MAD/Kg)', style: { fontSize: '11px', fontWeight: 600 } },
+          labels: { formatter: val => this.main.formatDisplayNumber(val) + ' MAD/Kg' },
+        },
+        tooltip: {
+          shared: true,
+          y: { formatter: val => this.main.formatDisplayNumber(val) + ' MAD/Kg' },
+        },
+        legend: { position: 'top', fontSize: '12px' },
+      };
     },
     filteredFamilies() {
       return this.families.filter(item => Object.entries(this.familyColumnFilters).every(([key, sel]) => {
@@ -468,6 +800,7 @@ export default {
       if (data.model === 'FishFamily') this.fetchFamilies();
       if (data.model === 'FishType') { this.fetchTypes(); this.fetchFamilies(); }
       if (data.model === 'FishProcessType') this.fetchProcessTypes();
+      if (data.model === 'FishTypeWap' && this.selectedFishTypeForWap) { this.fetchWapRules(this.selectedFishTypeForWap.id); }
     },
 
     // -- Fish Families --
@@ -644,6 +977,110 @@ export default {
       } catch (e) { console.error(e); }
       this.deleteTarget = null;
       this.deleteEntityType = null;
+    },
+
+    // -- WAP Configuration Methods --
+    async fetchWarehouses() {
+      try {
+        const res = await axios.get('/api/warehouses');
+        this.warehousesList = res.data.warehouses || [];
+      } catch (e) { console.error(e); }
+    },
+    async openWapDialog(item) {
+      this.selectedFishTypeForWap = item;
+      this.wapDialog = true;
+      this.resetWapForm();
+      if (!this.warehousesList.length) {
+        await this.fetchWarehouses();
+      }
+      this.fetchWapRules(item.id);
+    },
+    closeWapDialog() {
+      this.wapDialog = false;
+      this.selectedFishTypeForWap = null;
+      this.wapsList = [];
+      this.resetWapForm();
+    },
+    async fetchWapRules(fishTypeId) {
+      this.loadingWaps = true;
+      try {
+        const res = await axios.get(`/api/fish-types/${fishTypeId}/waps`);
+        this.wapsList = res.data.waps || [];
+      } catch (e) { console.error(e); }
+      this.loadingWaps = false;
+    },
+    resetWapForm() {
+      this.editingWapRule = null;
+      this.wapForm = { warehouse_id: null, wap: null, is_indefinite: false };
+      const today = new Date();
+      this.wapSingleDateVC = today;
+      this.wapDateRangeVC = { start: today, end: today };
+    },
+    editWapRule(item) {
+      this.editingWapRule = item;
+      const start = item.date_start ? new Date(item.date_start) : new Date();
+      const end = item.date_end ? new Date(item.date_end) : new Date();
+      this.wapSingleDateVC = start;
+      this.wapDateRangeVC = { start, end };
+      this.wapForm = {
+        warehouse_id: item.warehouse_id,
+        wap: item.wap,
+        is_indefinite: !!item.date_end,
+      };
+    },
+    async saveWapRule() {
+      if (!this.selectedFishTypeForWap || !this.wapForm.warehouse_id || !this.wapForm.wap) {
+        this.showSnackbar(this.$t('please_fill_all_required_fields'), 'error');
+        return;
+      }
+      this.savingWapRule = true;
+      try {
+        const startStr = this.wapStartDateDisplay;
+        let endStr = null;
+        if (this.wapForm.is_indefinite && this.wapDateRangeVC && this.wapDateRangeVC.end) {
+          const d = this.wapDateRangeVC.end;
+          const formatted = typeof d === 'string' ? d.substring(0, 10) : new Date(d).toISOString().substring(0, 10);
+          if (formatted && formatted !== startStr) {
+            endStr = formatted;
+          }
+        }
+
+        const payload = {
+          warehouse_id: this.wapForm.warehouse_id,
+          date_start: startStr,
+          date_end: endStr,
+          wap: this.wapForm.wap,
+        };
+
+        if (this.editingWapRule) {
+          await axios.put(`/api/fish-type-waps/${this.editingWapRule.id}`, payload);
+          this.showSnackbar(this.$t('wap_rule_saved'), 'success');
+        } else {
+          await axios.post(`/api/fish-types/${this.selectedFishTypeForWap.id}/waps`, payload);
+          this.showSnackbar(this.$t('wap_rule_saved'), 'success');
+        }
+        this.resetWapForm();
+        this.fetchWapRules(this.selectedFishTypeForWap.id);
+      } catch (e) {
+        console.error(e);
+        this.showSnackbar(this.$t('an_error_occurred'), 'error');
+      }
+      this.savingWapRule = false;
+    },
+    async deleteWapRule(item) {
+      try {
+        await axios.delete(`/api/fish-type-waps/${item.id}`);
+        this.showSnackbar(this.$t('wap_rule_deleted'), 'success');
+        if (this.selectedFishTypeForWap) {
+          this.fetchWapRules(this.selectedFishTypeForWap.id);
+        }
+      } catch (e) {
+        console.error(e);
+        this.showSnackbar(this.$t('an_error_occurred'), 'error');
+      }
+    },
+    showSnackbar(text, color = 'success') {
+      this.snackbar = { show: true, text, color };
     },
   },
 };

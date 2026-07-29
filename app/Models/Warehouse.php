@@ -13,7 +13,7 @@ class Warehouse extends Model
     protected $fillable = [
         'name', 'description', 'warehouse_category_id',
         'warehouse_type', 'has_sejour', 'operation_service_fee',
-        'wap_days', 'wap_sells_count', 'is_allow_price',
+        'is_allow_price',
         'total_weight',
     ];
 
@@ -21,8 +21,6 @@ class Warehouse extends Model
         'has_sejour' => 'boolean',
         'is_allow_price' => 'boolean',
         'operation_service_fee' => 'decimal:2',
-        'wap_days' => 'integer',
-        'wap_sells_count' => 'integer',
         'total_weight' => 'decimal:2',
     ];
 

@@ -18,6 +18,16 @@ class WarehouseBalance extends Model
             }
         };
 
+        static::creating(function (WarehouseBalance $balance) {
+            if ($balance->stockable_type && str_contains($balance->stockable_type, 'FishType')) {
+                $wap = FishTypeWap::getWapForFishType($balance->stockable_id, $balance->warehouse_id, $balance->date ?? now());
+                if ($wap !== null) {
+                    $balance->unit_price = $wap;
+                    $balance->total_price = round($wap * (float)$balance->total_weight, 2);
+                }
+            }
+        });
+
         static::created($recalc);
         static::updated($recalc);
         static::deleted(function (WarehouseBalance $balance) {
@@ -47,6 +57,8 @@ class WarehouseBalance extends Model
         'package_count' => 'decimal:2',
         'is_finished' => 'boolean',
     ];
+
+    protected $appends = ['wap', 'effective_total_price'];
 
     public function warehouse()
     {
@@ -80,12 +92,30 @@ class WarehouseBalance extends Model
     }
 
     /**
-     * Get computed WAP (unit price).
+     * Get WAP strictly from parameters/fish-management WAP Configuration.
+     * Does NOT take WAP from record source.
      */
     public function getWapAttribute(): float
     {
-        return $this->total_weight > 0
-            ? round($this->total_price / $this->total_weight, 2)
-            : 0;
+        if ($this->stockable_type && str_contains($this->stockable_type, 'FishType')) {
+            $wapConfig = FishTypeWap::getWapForFishType($this->stockable_id, $this->warehouse_id, $this->date ?? now());
+            if ($wapConfig !== null) {
+                return (float) $wapConfig;
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Get effective total price based strictly on WAP Configuration.
+     */
+    public function getEffectiveTotalPriceAttribute(): float
+    {
+        $wap = $this->wap;
+        if ($wap > 0 && (float) $this->remaining_weight > 0) {
+            return round($wap * (float) $this->remaining_weight, 2);
+        }
+        return 0.0;
     }
 }

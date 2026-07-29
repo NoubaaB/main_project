@@ -51,14 +51,14 @@
             <v-progress-linear :model-value="totalWeight > 0 ? (stat.weight / totalWeight * 100) : 0" color="#5C6BC0" bg-color="#C5CAE9" height="5" rounded class="mb-1"></v-progress-linear>
             <div class="d-flex flex-column ga-1 text-caption">
               <div class="d-flex align-center ga-1"><v-icon size="12" color="#5C6BC0">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#5C6BC0">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="#FF9800">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('value') }}:</span><b style="color:#FF9800">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
             </div>
           </div>
           <v-divider class="my-2"></v-divider>
           <!-- Totals -->
           <div class="d-flex flex-column ga-1">
             <div class="d-flex align-center ga-1"><v-icon size="14" color="#26A69A">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b class="text-teal text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#FF7043">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#FF9800">mdi-cash</v-icon><span class="text-caption font-weight-bold">{{ $t('total_stock_value') }}:</span><b class="text-amber-darken-2 text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
             <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-package-variant-closed</v-icon><span class="text-caption font-weight-bold">{{ $t('total_articles') }}:</span><b class="text-blue text-caption">{{ totalBalances }}</b></div>
             <div class="d-flex align-center ga-1"><v-icon size="14" color="#AB47BC">mdi-arrow-up-bold</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_in') }}:</span><b style="color:#AB47BC" class="text-caption">{{ main.formatDisplayNumber(totalStockIn) }} Kg</b></div>
             <div class="d-flex align-center ga-1"><v-icon size="14" color="#EF5350">mdi-arrow-down-bold</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }}:</span><b class="text-error text-caption">{{ main.formatDisplayNumber(totalStockOut) }} Kg</b></div>
@@ -92,7 +92,7 @@
         <v-col v-for="(c, i) in [
           { icon: 'mdi-package-variant-closed', l: $t('total_articles'), v: totalBalances, color: '#26A69A', sfx: '' },
           { icon: 'mdi-weight-kilogram', l: $t('stock_weight'), v: main.formatDisplayNumber(totalWeight), color: '#42A5F5', sfx: ' Kg' },
-          { icon: 'mdi-cash-multiple', l: $t('stock_value'), v: main.formatDisplayNumber(totalPrice), color: '#FF7043', sfx: ' ' + main.currency }
+          { icon: 'mdi-cash', l: $t('total_stock_value'), v: main.formatDisplayNumber(totalPrice), color: '#FF9800', sfx: ' ' + main.currency }
         ]" :key="i" cols="4">
           <div class="wh-stat-card" :style="{ borderColor: c.color + '30' }">
             <div class="wh-stat-icon" :style="{ background: c.color + '18' }"><v-icon :color="c.color" size="22">{{ c.icon }}</v-icon></div>
@@ -111,7 +111,8 @@
             <tr v-for="row in articleTypes" :key="row.type" class="wh-stock-row" @click="drillIntoType(row.type)">
               <td><div class="d-flex align-center ga-2"><v-icon size="18" :color="tColor(row.type)">{{ tIcon(row.type) }}</v-icon><span class="font-weight-bold">{{ typeName(row.type) }}</span></div></td>
               <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td>
-              <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td>
+              <td v-if="row.price > 0" class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td>
+              <td v-else class="text-grey">-</td>
               <td>
                 <v-btn icon variant="text" size="x-small" color="purple" @click.stop="openPieL0(row.type)" :title="$t('stock_distribution')"><v-icon size="16">mdi-chart-pie</v-icon></v-btn>
                 <v-btn icon variant="text" size="x-small" color="#5C6BC0" @click.stop="drillIntoType(row.type)"><v-icon size="16">mdi-arrow-right</v-icon></v-btn>
@@ -126,15 +127,17 @@
       <div v-if="drillLevel === 1 && drillType === 'FishType'" class="wh-panel-card">
         <div class="wh-panel-header"><v-icon size="16" color="#00ACC1" class="mr-1">mdi-fish</v-icon><span>{{ $t('fish_family_level') }}</span></div>
         <table class="wh-detail-table">
-          <thead><tr><th>{{ $t('fish_family_name') }}</th><th>{{ $t('package_count') }}</th><th>{{ $t('package_type_size') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
+          <thead><tr><th>{{ $t('fish_family_name') }}</th><th>{{ $t('package_count') }}</th><th>{{ $t('package_type_size') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }}/Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
           <tbody>
             <tr v-for="fam in fishFamilies" :key="fam.id" class="wh-stock-row" @click="drillIntoFamily(fam)">
               <td class="font-weight-bold">{{ fam.name }}</td>
               <td><v-chip v-if="fam.packages" size="x-small" color="teal" variant="tonal">{{ fam.packages }}</v-chip><span v-else class="text-grey">-</span></td>
               <td>{{ fam.packageTypeNames }}</td>
               <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(fam.weight) }}</td>
-              <td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(fam.wap) }}</v-chip></td>
-              <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(fam.price) }}</td>
+              <td v-if="fam.wap > 0"><b class="text-purple">{{ main.formatDisplayNumber(fam.wap) }}</b></td>
+              <td v-else class="text-grey">-</td>
+              <td v-if="fam.price > 0" class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(fam.price) }}</td>
+              <td v-else class="text-grey">-</td>
               <td>
                 <v-btn icon variant="text" size="x-small" color="purple" @click.stop="openPieL1(fam)" :title="$t('stock_distribution')"><v-icon size="16">mdi-chart-pie</v-icon></v-btn>
                 <v-btn icon variant="text" size="x-small" color="teal" @click.stop="openLineChart({ type:'family', familyId:fam.id, familyName:fam.name })" :title="$t('price_history')"><v-icon size="16">mdi-chart-line</v-icon></v-btn>
@@ -150,7 +153,7 @@
       <div v-if="drillLevel === 2 && drillType === 'FishType'" class="wh-panel-card">
         <div class="wh-panel-header"><v-icon size="16" color="#00ACC1" class="mr-1">mdi-fish</v-icon><span>{{ $t('fish_name_level') }} - {{ drillFamilyName }}</span></div>
         <table class="wh-detail-table">
-          <thead><tr><th>{{ $t('fish_name') }}</th><th>{{ $t('entries_count') }}</th><th>{{ $t('package_count') }}</th><th>{{ $t('package_type_size') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
+          <thead><tr><th>{{ $t('fish_name') }}</th><th>{{ $t('entries_count') }}</th><th>{{ $t('package_count') }}</th><th>{{ $t('package_type_size') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }}/Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
           <tbody>
             <tr v-for="fn in fishNames" :key="fn.id" class="wh-stock-row" @click="drillIntoFishName(fn)">
               <td class="font-weight-bold">{{ fn.name }}</td>
@@ -158,8 +161,10 @@
               <td><v-chip v-if="fn.packages" size="x-small" color="teal" variant="tonal">{{ fn.packages }}</v-chip><span v-else class="text-grey">-</span></td>
               <td>{{ fn.packageTypeNames }}</td>
               <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(fn.weight) }}</td>
-              <td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(fn.wap) }}</v-chip></td>
-              <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(fn.price) }}</td>
+              <td v-if="fn.wap > 0"><b class="text-purple">{{ main.formatDisplayNumber(fn.wap) }}</b></td>
+              <td v-else class="text-grey">-</td>
+              <td v-if="fn.price > 0" class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(fn.price) }}</td>
+              <td v-else class="text-grey">-</td>
               <td>
                 <v-btn icon variant="text" size="x-small" color="teal" @click.stop="openLineChart({ type:'article', stockableId:fn.id, articleName:fn.name })" :title="$t('price_history')"><v-icon size="16">mdi-chart-line</v-icon></v-btn>
                 <v-btn icon variant="text" size="x-small" color="#5C6BC0" @click.stop="drillIntoFishName(fn)"><v-icon size="16">mdi-arrow-right</v-icon></v-btn>
@@ -174,8 +179,8 @@
       <div v-if="drillLevel === 1 && drillType === 'GuanoType'" class="wh-panel-card">
         <div class="wh-panel-header"><v-icon size="16" color="#FB8C00" class="mr-1">mdi-leaf</v-icon><span>{{ $t('guano_level') }}</span></div>
         <table class="wh-detail-table">
-          <thead><tr><th>{{ $t('guano_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
-          <tbody><tr v-for="row in guanoArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(row.wap) }}</v-chip></td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
+          <thead><tr><th>{{ $t('guano_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
+          <tbody><tr v-for="row in guanoArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
         </table>
         <div v-if="!guanoArticles.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
       </div>
@@ -184,8 +189,8 @@
       <div v-if="drillLevel === 1 && drillType === 'PackageType'" class="wh-panel-card">
         <div class="wh-panel-header"><v-icon size="16" color="#6D4C41" class="mr-1">mdi-package-variant</v-icon><span>{{ $t('package_level') }}</span></div>
         <table class="wh-detail-table">
-          <thead><tr><th>{{ $t('package_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('wap') }} ({{ main.currency }})</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
-          <tbody><tr v-for="row in packageArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(row.wap) }}</v-chip></td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
+          <thead><tr><th>{{ $t('package_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
+          <tbody><tr v-for="row in packageArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
         </table>
         <div v-if="!packageArticles.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
       </div>
@@ -238,14 +243,15 @@
                   <td><v-chip v-if="bal.source_type" size="x-small" :color="srcColor(bal.source_type)" variant="tonal">{{ srcLabel(bal.source_type) }}</v-chip><span v-else class="text-grey">-</span></td>
                   <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(bal.total_weight) }}</td>
                   <td><v-chip v-if="bal.package_count" size="x-small" color="teal" variant="tonal">{{ bal.package_count }}</v-chip><span v-else class="text-grey">-</span></td>
-                  <td><v-chip size="x-small" color="indigo" variant="tonal">{{ main.formatDisplayNumber(bal.wap) }}</v-chip></td>
-                  <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(bal.total_price) }}</td>
+                  <td v-if="bal.wap > 0"><b class="text-purple">{{ main.formatDisplayNumber(bal.wap) }}</b></td>
+                  <td v-else class="text-grey">-</td>
+                  <td v-if="bal.total_price > 0" class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(bal.total_price) }}</td>
+                  <td v-else class="text-grey">-</td>
                   <td><v-chip size="x-small" :color="Number(bal.remaining_weight) > 0 ? 'success' : 'grey'" variant="tonal" class="font-weight-bold">{{ main.formatDisplayNumber(bal.remaining_weight) }}</v-chip></td>
                   <td class="text-no-wrap">
                     <v-btn v-if="bal.source_type" icon variant="text" size="x-small" color="blue" @click.stop="goToSource(bal)" :title="$t('view_source')"><v-icon size="14">mdi-open-in-new</v-icon></v-btn>
                     <v-btn icon variant="text" size="x-small" color="purple" @click.stop="openPieL2(bal)" :title="$t('stock_distribution')"><v-icon size="14">mdi-chart-pie</v-icon></v-btn>
                     <v-btn icon variant="text" size="x-small" color="teal" @click.stop="openLineChart({ type:'article', stockableId:bal.stockable_id, articleName:bal.articleName })" :title="$t('price_history')"><v-icon size="14">mdi-chart-line</v-icon></v-btn>
-                    <v-btn icon variant="text" size="x-small" color="orange" @click.stop="openWapDialog(bal)" :title="$t('edit_wap')"><v-icon size="14">mdi-pencil</v-icon></v-btn>
                   </td>
                 </tr>
                 <!-- Expanded operations -->
@@ -298,26 +304,6 @@
         </div>
         <div v-else class="text-center text-caption text-medium-emphasis pa-8"><v-icon size="40" color="grey" class="mb-2">mdi-chart-box-outline</v-icon><div>{{ $t('no_chart_data') }}</div></div>
       </v-card-text>
-    </v-card>
-  </v-dialog>
-
-  <!-- === WAP DIALOG === -->
-  <v-dialog v-model="wapDialog" max-width="420">
-    <v-card class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4"><v-icon size="20" color="orange" class="mr-2">mdi-calculator</v-icon><span class="text-subtitle-1 font-weight-bold">{{ $t('edit_wap') }}</span><v-spacer></v-spacer><v-btn icon variant="text" size="small" @click="wapDialog = false"><v-icon>mdi-close</v-icon></v-btn></v-card-title>
-      <v-divider></v-divider>
-      <v-card-text class="pa-5">
-        <div v-if="wapBalance" class="mb-4">
-          <v-chip size="small" color="indigo" variant="tonal" class="mr-2">{{ wapBalance.reception_tracking_number || '-' }}</v-chip>
-          <span class="text-caption text-medium-emphasis">{{ wapBalance.articleName || sLabel(wapBalance) }}</span>
-        </div>
-        <v-text-field v-model.number="wapValue" type="number" :label="$t('wap') + ' (' + main.currency + '/Kg)'" density="compact" variant="outlined" rounded color="orange" hide-details min="0" step="0.01"></v-text-field>
-      </v-card-text>
-      <v-card-actions class="pa-4 pt-0">
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="wapDialog = false">{{ $t('cancel') }}</v-btn>
-        <v-btn color="orange" variant="tonal" rounded :loading="wapSaving" @click="saveWap" prepend-icon="mdi-check">{{ $t('save') }}</v-btn>
-      </v-card-actions>
     </v-card>
   </v-dialog>
 </v-card>

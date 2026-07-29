@@ -144,8 +144,6 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("warehouses/with-stock", [WarehouseController::class, "warehousesWithStock"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/articles", [WarehouseController::class, "warehouseArticles"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/balances-for-transfer", [WarehouseController::class, "warehouseBalancesForTransfer"])->middleware('check.permission:warehouses.view');
-        Route::post("warehouses/calculate-wap", [WarehouseController::class, "calculateWap"])->middleware('check.permission:warehouses.edit');
-        Route::put("warehouses/balance-wap/{balanceId}", [WarehouseController::class, "updateBalanceWap"])->middleware('check.permission:warehouses.edit');
         Route::get("warehouses", [WarehouseController::class, "index"])->middleware('check.permission:warehouses.view');
         Route::post("warehouses", [WarehouseController::class, "store"])->middleware('check.permission:warehouses.create');
         Route::put("warehouses/{warehouse}", [WarehouseController::class, "update"])->middleware('check.permission:warehouses.edit');
@@ -264,6 +262,11 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("fish-types", [App\Http\Controllers\FishTypeController::class, "store"]);
         Route::put("fish-types/{id}", [App\Http\Controllers\FishTypeController::class, "update"]);
         Route::delete("fish-types/{id}", [App\Http\Controllers\FishTypeController::class, "destroy"]);
+
+        Route::get("fish-types/{fishType}/waps", [App\Http\Controllers\FishTypeWapController::class, "index"]);
+        Route::post("fish-types/{fishType}/waps", [App\Http\Controllers\FishTypeWapController::class, "store"]);
+        Route::put("fish-type-waps/{id}", [App\Http\Controllers\FishTypeWapController::class, "update"]);
+        Route::delete("fish-type-waps/{id}", [App\Http\Controllers\FishTypeWapController::class, "destroy"]);
 
         Route::get("fish-process-types", [App\Http\Controllers\FishProcessTypeController::class, "index"]);
         Route::post("fish-process-types", [App\Http\Controllers\FishProcessTypeController::class, "store"]);

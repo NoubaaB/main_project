@@ -26,8 +26,6 @@ class WarehouseController extends Controller
             'warehouse_type' => 'nullable|string|in:FishType,GuanoType,PackageType',
             'has_sejour' => 'boolean',
             'operation_service_fee' => 'nullable|numeric|min:0',
-            'wap_days' => 'nullable|integer|min:1',
-            'wap_sells_count' => 'nullable|integer|min:1',
             'is_allow_price' => 'nullable|boolean',
         ]);
         $warehouse = Warehouse::create($data);
@@ -44,8 +42,6 @@ class WarehouseController extends Controller
             'warehouse_type' => 'nullable|string|in:FishType,GuanoType,PackageType',
             'has_sejour' => 'boolean',
             'operation_service_fee' => 'nullable|numeric|min:0',
-            'wap_days' => 'nullable|integer|min:1',
-            'wap_sells_count' => 'nullable|integer|min:1',
             'is_allow_price' => 'nullable|boolean',
         ]);
         $warehouse->update($data);
@@ -126,61 +122,6 @@ class WarehouseController extends Controller
         $balances = $query->orderBy('date', 'asc')->get();
 
         return response()->json(['balances' => $balances]);
-    }
-
-    /**
-     * Calculate WAP from latest sell records for a specific article type.
-     */
-    public function calculateWap(Request $request)
-    {
-        $request->validate([
-            'warehouse_id' => 'required|exists:warehouses,id',
-            'stockable_type' => 'required|string',
-            'stockable_id' => 'required|integer',
-            'date' => 'required|date',
-        ]);
-
-        $warehouse = Warehouse::findOrFail($request->warehouse_id);
-        $days = $warehouse->wap_days ?? 30;
-        $count = $warehouse->wap_sells_count ?? 3;
-        $dateFrom = date('Y-m-d', strtotime("-{$days} days", strtotime($request->date)));
-
-        $sells = \App\Models\DetailShipping::where('stockable_type', $request->stockable_type)
-            ->where('stockable_id', $request->stockable_id)
-            ->whereHas('shipping', function ($q) use ($dateFrom, $request) {
-                $q->where('date', '>=', $dateFrom)
-                    ->where('date', '<=', $request->date);
-            })
-            ->whereNotNull('unit_price')
-            ->where('unit_price', '>', 0)
-            ->orderByDesc('created_at')
-            ->limit($count)
-            ->get();
-
-        $avgPrice = $sells->count() > 0 ? $sells->avg('unit_price') : 0;
-
-        return response()->json([
-            'wap' => round($avgPrice, 2),
-            'sells_used' => $sells->count(),
-            'days_range' => $days,
-        ]);
-    }
-
-    /**
-     * Manually update WAP (unit_price) on a WarehouseBalance record.
-     */
-    public function updateBalanceWap(Request $request, $balanceId)
-    {
-        $balance = WarehouseBalance::findOrFail($balanceId);
-        $data = $request->validate([
-            'unit_price' => 'required|numeric|min:0',
-        ]);
-        $balance->update([
-            'unit_price' => $data['unit_price'],
-            'total_price' => round($data['unit_price'] * $balance->total_weight, 2),
-        ]);
-        $this->broadcastChange('WarehouseBalance', 'updated', $balance->id, $balance->toArray());
-        return response()->json(['balance' => $balance]);
     }
 
     /**

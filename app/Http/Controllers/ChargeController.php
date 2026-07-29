@@ -339,6 +339,15 @@ class ChargeController extends Controller
         $trackingNumber = $charge->reception_tracking_number[0] ?? null;
 
         if ($dc->warehouse_operation === 'stock_in') {
+            $unitPrice = $dc->unit_price ?? 0;
+            if (str_contains($dc->stockable_type ?? '', 'FishType')) {
+                $wap = \App\Models\FishTypeWap::getWapForFishType($dc->stockable_id, $dc->warehouse_id, $charge->date);
+                if ($wap !== null) {
+                    $unitPrice = $wap;
+                    $totalPrice = round($wap * (float)$weight, 2);
+                }
+            }
+
             // Create a new warehouse balance entry
             WarehouseBalance::create([
                 'warehouse_id' => $dc->warehouse_id,
@@ -350,7 +359,7 @@ class ChargeController extends Controller
                 'total_weight' => $weight,
                 'remaining_weight' => $weight,
                 'total_price' => $totalPrice,
-                'unit_price' => $dc->unit_price ?? 0,
+                'unit_price' => $unitPrice,
                 'package_count' => $packages,
                 'package_type_id' => $dc->package_type_id,
                 'supplier_name' => $supplierName ?: null,
