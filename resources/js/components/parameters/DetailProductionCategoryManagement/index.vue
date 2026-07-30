@@ -96,7 +96,7 @@ export default {
       items: [], loading: false, selectedCategoryId: null, columnFilters: {},
       dialog: false, editing: null, form: this.emptyForm(), saving: false,
       confirmDeleteDialog: false, deleteTarget: null, deleting: false,
-      booleanKeys: ['allow_weight','allow_unit_price','allow_price','allow_package_type','allow_nbr_box','allow_warehouse','allow_detail_truck_id','include_in_invoice'],
+      booleanKeys: ['allow_weight','allow_unit_price','allow_price','allow_package_type','allow_nbr_box','allow_warehouse','allow_detail_truck_id','include_in_invoice','allow_secondary_packaging'],
       toggleFields: [
         { key: 'allow_weight', label: 'allow_weight', icon: 'mdi-weight-kilogram', activeColor: '#2196F3' },
         { key: 'allow_unit_price', label: 'allow_unit_price', icon: 'mdi-cash', activeColor: '#4CAF50' },
@@ -106,6 +106,7 @@ export default {
         { key: 'allow_warehouse', label: 'allow_warehouse', icon: 'mdi-warehouse', activeColor: '#009688' },
         { key: 'allow_detail_truck_id', label: 'allow_detail_truck_id', icon: 'mdi-truck', activeColor: '#795548' },
         { key: 'include_in_invoice', label: 'include_in_invoice', icon: 'mdi-file-document-check-outline', activeColor: '#FF5722' },
+        { key: 'allow_secondary_packaging', label: 'allow_secondary_packaging', icon: 'mdi-layers-outline', activeColor: '#00897B' },
       ],
     };
   },
@@ -131,7 +132,7 @@ export default {
     _onModelChanged(data) {
       if (['DetailProductionCategory', 'ProductionCategory'].includes(data.model)) this.fetchItems();
     },
-    emptyForm() { return { name_fr:'',name_en:'',name_es:'',description:'',article_type:'text',fish_type_filter:'all',allow_weight:false,allow_unit_price:false,allow_price:false,allow_package_type:false,allow_nbr_box:false,allow_warehouse:false,warehouse_operation:null,allow_detail_truck_id:false,include_in_invoice:true,production_category_id:null }; },
+    emptyForm() { return { name_fr:'',name_en:'',name_es:'',description:'',article_type:'text',fish_type_filter:'all',allow_weight:false,allow_unit_price:false,allow_price:false,allow_package_type:false,allow_nbr_box:false,allow_warehouse:false,warehouse_operation:null,allow_detail_truck_id:false,include_in_invoice:true,allow_secondary_packaging:false,production_category_id:null }; },
     getCategoryName(categoryId) {
       const cat = useProductionCategory().list.find(c => c.id === categoryId);
       return cat ? (cat[`name_${this.main.lang?.code || 'en'}`] || cat.name || `#${categoryId}`) : `#${categoryId}`;

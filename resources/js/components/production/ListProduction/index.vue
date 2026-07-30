@@ -72,6 +72,33 @@
               <span class="text-caption font-weight-bold">{{ $t('equilibrium') }}:</span>
               <b :style="{ color: totalEquilibrium >= 0 ? '#4CAF50' : '#EF5350' }" class="text-caption">{{ main.formatDisplayNumber(Math.abs(totalEquilibrium)) }} Kg ({{ $t(totalEquilibrium >= 0 ? 'surplus' : 'shortage') }})</b>
             </div>
+            <v-divider class="my-1"></v-divider>
+            <div class="lp-stat-item mt-1 pa-2 rounded-lg" style="background: rgba(84, 110, 122, 0.05); border: 1px solid rgba(84, 110, 122, 0.15)">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <div class="d-flex align-center ga-1">
+                  <v-icon size="14" color="#546E7A">mdi-layers-outline</v-icon>
+                  <span class="text-caption font-weight-bold" style="color: #37474F">{{ $t('secondary_packaging_config') }}</span>
+                </div>
+                <v-chip size="x-small" color="#546E7A" variant="elevated" class="font-weight-bold">
+                  {{ main.formatDisplayNumber(secondaryPackagingStats.total_cost) }} {{ main.currency }}
+                </v-chip>
+              </div>
+              <div class="d-flex flex-column ga-1 mt-1">
+                <div
+                  v-for="comp in secondaryPackagingStats.items"
+                  :key="comp.key"
+                  class="d-flex align-center justify-space-between px-2 py-1 rounded"
+                  :style="{ background: comp.qte > 0 ? 'rgba(84, 110, 122, 0.08)' : 'transparent', opacity: comp.qte > 0 ? 1 : 0.5 }"
+                >
+                  <span class="text-caption font-weight-medium">{{ comp.label }}</span>
+                  <div class="d-flex align-center ga-2 text-caption">
+                    <span v-if="comp.qte > 0" class="text-medium-emphasis"><b>{{ main.formatDisplayNumber(comp.qte) }}</b></span>
+                    <span v-else class="text-grey">-</span>
+                    <b class="text-blue-grey-darken-3">{{ main.formatDisplayNumber(comp.total_cost) }} {{ main.currency }}</b>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </v-col>
@@ -175,15 +202,16 @@
               <div class="lp-expand-content">
                 <div v-for="(grp,gi) in groupDetails(item)" :key="gi" class="lp-detail-group mb-2">
                   <div class="lp-detail-group-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${main.lang?.code}`]||grp.category.name:'-' }}</b></div>
-                  <table class="lp-detail-table"><thead><tr><th>{{ $t('classification') }}</th><th>{{ $t('product') }}</th><th>{{ $t('product_family') }}</th><th>{{ $t('warehouse') }}</th><th>{{ $t('total_weight') }}</th><th>{{ $t('unit_price') }}</th><th>{{ $t('total_price') }}</th><th>{{ $t('package_type') }}</th><th>{{ $t('total_package_count') }}</th></tr></thead>
+                  <table class="lp-detail-table"><thead><tr><th>{{ $t('classification') }}</th><th>{{ $t('product') }}</th><th>{{ $t('product_family') }}</th><th>{{ $t('warehouse') }}</th><th>{{ $t('total_weight') }}</th><th>{{ $t('unit_price') }}</th><th>{{ $t('total_price') }}</th><th>{{ $t('secondary_packaging_cost') }}</th><th>{{ $t('package_type') }}</th><th>{{ $t('total_package_count') }}</th></tr></thead>
                   <tbody><tr v-for="dc in grp.items" :key="dc.id">
                     <td><v-chip size="x-small" color="#00897B" variant="tonal">{{ dc.stockable_type||$t('text') }}</v-chip></td>
                     <td class="font-weight-bold">{{ articleName(dc) }}</td><td>{{ articleFamily(dc) }}</td>
                     <td><span v-if="dc.warehouse">{{ dc.warehouse[`name_${main.lang?.code}`]||dc.warehouse.name }}</span><span v-else>{{ $t('non_stockable') }}</span></td>
                     <td>{{ main.formatDisplayNumber(dc.weight) }}</td><td>{{ main.formatDisplayNumber(dc.unit_price) }}</td><td>{{ main.formatDisplayNumber(dc.total_price) }}</td>
+                    <td><span v-if="dc.secondary_packaging_cost > 0" class="font-weight-bold text-blue-grey">{{ main.formatDisplayNumber(dc.secondary_packaging_cost) }} {{ main.currency }}</span><span v-else class="text-grey">-</span></td>
                     <td>{{ dc.package_type?dc.package_type.name:'N/A' }}</td><td>{{ dc.nbr_box||'-' }}</td>
                   </tr></tbody>
-                  <tfoot><tr class="lp-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalW) }}</td><td></td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalP) }}</td><td colspan="2"></td></tr></tfoot>
+                  <tfoot><tr class="lp-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalW) }}</td><td></td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalP) }}</td><td colspan="3"></td></tr></tfoot>
                   </table>
                 </div>
               </div>

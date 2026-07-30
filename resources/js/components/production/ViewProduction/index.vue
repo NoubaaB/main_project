@@ -23,6 +23,15 @@
       <div class="mt-5"><div class="text-subtitle-1 font-weight-bold mb-3"><v-icon size="20" color="#00897B" class="mr-2">mdi-table</v-icon>{{ $t('details') }}</div>
         <v-data-table :headers="detailHeaders" :items="production.detail_productions || []" density="comfortable" class="rounded-lg" hover>
           <template v-slot:[`item.article`]="{ item }"><span v-if="item.article_description">{{ item.article_description }}</span><span v-else-if="item.stockable_type">{{ main.getStockableName(item.stockable_id, item.stockable_type) }}</span><span v-else class="text-grey">-</span></template>
+          <template v-slot:[`item.package_type`]="{ item }">
+            <span v-if="item.package_type">{{ item.package_type.name_fr || item.package_type.name_en || `#${item.package_type_id}` }}</span>
+            <span v-else-if="item.package_type_id">#{{ item.package_type_id }}</span>
+            <span v-else class="text-grey">-</span>
+          </template>
+          <template v-slot:[`item.nbr_box`]="{ item }">
+            <v-chip v-if="item.nbr_box != null" size="x-small" color="teal" variant="tonal" class="font-weight-bold">{{ item.nbr_box }} {{ $t('boxes') }}</v-chip>
+            <span v-else class="text-grey">-</span>
+          </template>
           <template v-slot:[`item.weight`]="{ item }">{{ item.weight ? main.formatDisplayNumber(item.weight) + ' Kg' : '-' }}</template>
           <template v-slot:[`item.total_price`]="{ item }">{{ item.total_price ? main.formatDisplayNumber(item.total_price) + ' ' + main.currency : '-' }}</template>
           <template v-slot:[`item.warehouse`]="{ item }">{{ item.warehouse ? item.warehouse.name : '-' }}</template>
@@ -259,12 +268,19 @@ export default {
       const sp = this.production?.quality_control?.species;
       return Array.isArray(sp) && sp.length ? sp.join(', ') : '-';
     },
-    detailHeaders() { return [
-      { title: this.$t('type_article'), key: 'article', align: 'center', sortable: false },
-      { title: this.$t('weight'), key: 'weight', align: 'center' },
-      { title: this.$t('total_price'), key: 'total_price', align: 'center' },
-      { title: this.$t('warehouse'), key: 'warehouse', align: 'center', sortable: false },
-    ]; },
+    detailHeaders() {
+      const h = [
+        { title: this.$t('type_article'), key: 'article', align: 'center', sortable: false },
+      ];
+      if (this.production?.detail_productions?.some(d => d.package_type_id || d.nbr_box != null)) {
+        h.push({ title: this.$t('package_type'), key: 'package_type', align: 'center', sortable: false });
+        h.push({ title: this.$t('nbr_boxes'), key: 'nbr_box', align: 'center' });
+      }
+      h.push({ title: this.$t('weight'), key: 'weight', align: 'center' });
+      h.push({ title: this.$t('total_price'), key: 'total_price', align: 'center' });
+      h.push({ title: this.$t('warehouse'), key: 'warehouse', align: 'center', sortable: false });
+      return h;
+    },
     vpTotalWeight() { return (this.production?.detail_productions || []).reduce((s, d) => s + Number(d.weight || 0), 0); },
     vpTotalPrice() { return (this.production?.detail_productions || []).reduce((s, d) => s + Number(d.total_price || 0), 0); },
     detailCategoryStats() {

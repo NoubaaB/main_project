@@ -134,6 +134,14 @@
             <template #item.article="{ item }">
               <v-chip size="small" color="#42A5F5" variant="tonal">{{ getArticleName(item, group.category) }}</v-chip>
             </template>
+            <template #item.package_type="{ item }">
+              <v-chip v-if="item.package_type_id" size="small" color="#42A5F5" variant="tonal">{{ getPackageTypeName(item.package_type_id) }}</v-chip>
+              <span v-else class="text-grey">-</span>
+            </template>
+            <template #item.nbr_box="{ item }">
+              <v-chip v-if="item.nbr_box != null" size="small" color="teal" variant="tonal" class="font-weight-bold">{{ item.nbr_box }} {{ $t('boxes') }}</v-chip>
+              <span v-else class="text-grey">-</span>
+            </template>
             <template #item.weight="{ item }">{{ main.formatDisplayNumber(item.weight) }}</template>
             <template #item.weight_invoice="{ item }">{{ main.formatDisplayNumber(item.weight_invoice) }}</template>
             <template #item.gap="{ item }"><v-chip size="x-small" :color="Math.abs(Number(item.weight||0)-Number(item.weight_invoice||0))<0.01?'success':'warning'" variant="tonal">{{ main.formatDisplayNumber(Math.abs(Number(item.weight||0)-Number(item.weight_invoice||0))) }}</v-chip></template>
@@ -334,8 +342,16 @@ export default {
       const t = this.auth.truck.list.find(t => t.id === truckId);
       return t?.registration_plate || `#${truckId}`;
     },
+    getPackageTypeName(packageTypeId) {
+      const pkg = this.auth.package_type.list.find(p => p.id === packageTypeId);
+      return pkg ? (pkg[`name_${this.lang}`] || pkg.name_en || pkg.name_fr || `#${packageTypeId}`) : '-';
+    },
     getTableHeaders(category) {
       const h = [{ title: this.$t('type_article'), key: 'article', sortable: false }];
+      if (category.allow_package_type || category.allow_nbr_box) {
+        h.push({ title: this.$t('package_type'), key: 'package_type', sortable: false });
+        h.push({ title: this.$t('nbr_boxes'), key: 'nbr_box', sortable: false });
+      }
       if (category.allow_weight) h.push({ title: this.$t('weight') + ' (Kg)', key: 'weight', sortable: false });
       if (category.allow_weight) h.push({ title: this.$t('total_weight_invoice') + ' (Kg)', key: 'weight_invoice', sortable: false });
       if (category.allow_weight) h.push({ title: this.$t('gap'), key: 'gap', sortable: false });
@@ -350,6 +366,8 @@ export default {
     },
     getDisplayValue(item, key, category) {
       if (key === 'article') return this.getArticleName(item, category);
+      if (key === 'package_type') return item.package_type_id ? this.getPackageTypeName(item.package_type_id) : '';
+      if (key === 'nbr_box') return item.nbr_box != null ? String(item.nbr_box) : '';
       if (key === 'truck') return item.truck_id ? this.getTruckName(item.truck_id) : '';
       if (key === 'gap') { const g = Math.abs(Number(item.weight||0) - Number(item.weight_invoice||0)); return g > 0 ? String(g) : '0'; }
       if (['weight', 'weight_invoice', 'unit_price', 'total_price'].includes(key)) return item[key] != null ? String(item[key]) : '';

@@ -74,6 +74,7 @@ export default {
     },
     totalWeight() { return this.colFilteredItems.reduce((s, c) => s + Number(c.total_weight || 0), 0) },
     totalPrice() { return this.colFilteredItems.reduce((s, c) => s + Number(c.total_price || 0), 0) },
+    totalSecondaryPackagingCost() { return this.colFilteredItems.reduce((s, c) => s + Number(c.total_secondary_packaging_cost || 0), 0) },
     totalInvoiced() { return this.colFilteredItems.filter(c => c._is_invoiced).length },
     totalNotInvoiced() { return this.colFilteredItems.filter(c => !c._is_invoiced).length },
     totalInvoiceWeight() { return this.colFilteredItems.filter(c => c._is_invoiced).reduce((s, c) => s + Number(c.total_weight || 0), 0) },
@@ -89,6 +90,54 @@ export default {
     },
     totalEquilibrium() {
       return (this.analyticsData?.equilibrium || []).reduce((s, p) => s + (p.y || 0), 0);
+    },
+    secondaryPackagingStats() {
+      const comps = {
+        caisses: { key: 'caisses', label: this.$t('caisses'), qte: 0, total_cost: 0 },
+        cellophane: { key: 'cellophane', label: this.$t('cellophane'), qte: 0, total_cost: 0 },
+        plastique: { key: 'plastique', label: this.$t('plastique'), qte: 0, total_cost: 0 },
+        strapex: { key: 'strapex', label: this.$t('strapex'), qte: 0, total_cost: 0 },
+        palletes: { key: 'palletes', label: this.$t('palletes'), qte: 0, total_cost: 0 },
+        scotch: { key: 'scotch', label: this.$t('scotch'), qte: 0, total_cost: 0 },
+      };
+
+      let directSum = 0;
+
+      this.colFilteredItems.forEach(prod => {
+        directSum += Number(prod.total_secondary_packaging_cost || 0);
+        const details = prod.detail_productions || [];
+        details.forEach(dp => {
+          let secDetails = dp.secondary_packaging_details;
+          if (typeof secDetails === 'string') {
+            try { secDetails = JSON.parse(secDetails); } catch (e) { secDetails = null; }
+          }
+          if (secDetails) {
+            const nbrBox = Number(secDetails.nbr_box || dp.nbr_box || 0);
+            ['caisses', 'cellophane', 'plastique', 'strapex', 'palletes', 'scotch'].forEach(comp => {
+              const qte = Number(secDetails[`${comp}_qte`] || 0);
+              const price = Number(secDetails[`${comp}_price`] || 0);
+              const compQte = nbrBox * qte;
+              const compCost = compQte * price;
+              comps[comp].qte += compQte;
+              comps[comp].total_cost += compCost;
+            });
+          }
+        });
+      });
+
+      const items = Object.values(comps).map(c => ({
+        ...c,
+        qte: Math.round(c.qte * 1000) / 1000,
+        total_cost: Math.round(c.total_cost * 100) / 100,
+      }));
+
+      const calculatedTotal = items.reduce((sum, i) => sum + i.total_cost, 0);
+      const grandTotal = Math.max(Math.round(calculatedTotal * 100) / 100, Math.round(directSum * 100) / 100);
+
+      return {
+        items,
+        total_cost: grandTotal,
+      };
     },
     categoryStats() {
       const lang = this.main.lang?.code || 'en'; const map = {};

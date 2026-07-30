@@ -25,4 +25,9 @@ class PackageType extends Model
     {
         return $this->morphMany(NonWarehouseStockableOperation::class, 'stockable');
     }
+
+    public function secondaryConfigs(): HasMany
+    {
+        return $this->hasMany(PackageSecondaryConfig::class);
+    }
 }

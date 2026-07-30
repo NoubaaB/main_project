@@ -339,6 +339,12 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("package-types", [App\Http\Controllers\PackageTypeController::class, "store"]);
         Route::put("package-types/{packageType}", [App\Http\Controllers\PackageTypeController::class, "update"]);
         Route::delete("package-types/{packageType}", [App\Http\Controllers\PackageTypeController::class, "destroy"]);
+
+        Route::get("package-secondary-configs", [App\Http\Controllers\PackageSecondaryConfigController::class, "index"]);
+        Route::post("package-secondary-configs", [App\Http\Controllers\PackageSecondaryConfigController::class, "store"]);
+        Route::put("package-secondary-configs/{id}", [App\Http\Controllers\PackageSecondaryConfigController::class, "update"]);
+        Route::delete("package-secondary-configs/{id}", [App\Http\Controllers\PackageSecondaryConfigController::class, "destroy"]);
+        Route::get("package-secondary-configs/active", [App\Http\Controllers\PackageSecondaryConfigController::class, "getActiveConfig"]);
         #endregion
     
         #region Bank Names

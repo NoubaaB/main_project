@@ -46,11 +46,14 @@
           <div v-for="(stat, si) in warehouseStats" :key="si" class="wh-stat-item mb-2">
             <div class="d-flex align-center justify-space-between mb-1">
               <v-chip size="x-small" color="#5C6BC0" variant="tonal" class="font-weight-bold"><v-icon size="12" class="mr-1">{{ tIcon(stat.type) }}</v-icon>{{ stat.name }} ({{ stat.count }})</v-chip>
-              <v-chip size="x-small" color="#5C6BC0" variant="elevated" class="font-weight-bold">{{ totalWeight > 0 ? Math.round(stat.weight / totalWeight * 1000) / 10 : 0 }}%</v-chip>
+              <v-chip size="x-small" color="#5C6BC0" variant="elevated" class="font-weight-bold">
+                {{ stat.type === 'PackageType' ? (totalPackages > 0 ? Math.round(stat.package_count / totalPackages * 1000) / 10 : 0) : (totalWeight > 0 ? Math.round(stat.weight / totalWeight * 1000) / 10 : 0) }}%
+              </v-chip>
             </div>
-            <v-progress-linear :model-value="totalWeight > 0 ? (stat.weight / totalWeight * 100) : 0" color="#5C6BC0" bg-color="#C5CAE9" height="5" rounded class="mb-1"></v-progress-linear>
+            <v-progress-linear :model-value="stat.type === 'PackageType' ? (totalPackages > 0 ? (stat.package_count / totalPackages * 100) : 0) : (totalWeight > 0 ? (stat.weight / totalWeight * 100) : 0)" color="#5C6BC0" bg-color="#C5CAE9" height="5" rounded class="mb-1"></v-progress-linear>
             <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="#5C6BC0">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#5C6BC0">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+              <div v-if="stat.type === 'PackageType'" class="d-flex align-center ga-1"><v-icon size="12" color="#5C6BC0">mdi-package-variant-closed</v-icon><span class="text-medium-emphasis">{{ $t('caisses') }}:</span><b style="color:#5C6BC0">{{ main.formatDisplayNumber(stat.package_count) }} {{ $t('boxes') }}</b></div>
+              <div v-else class="d-flex align-center ga-1"><v-icon size="12" color="#5C6BC0">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#5C6BC0">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
               <div class="d-flex align-center ga-1"><v-icon size="12" color="#FF9800">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('value') }}:</span><b style="color:#FF9800">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
             </div>
           </div>
@@ -58,10 +61,9 @@
           <!-- Totals -->
           <div class="d-flex flex-column ga-1">
             <div class="d-flex align-center ga-1"><v-icon size="14" color="#26A69A">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b class="text-teal text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
+            <div v-if="totalPackages > 0" class="d-flex align-center ga-1"><v-icon size="14" color="#6D4C41">mdi-package-variant-closed</v-icon><span class="text-caption font-weight-bold">{{ $t('caisses') }}:</span><b style="color:#6D4C41" class="text-caption">{{ main.formatDisplayNumber(totalPackages) }} {{ $t('boxes') }}</b></div>
             <div class="d-flex align-center ga-1"><v-icon size="14" color="#FF9800">mdi-cash</v-icon><span class="text-caption font-weight-bold">{{ $t('total_stock_value') }}:</span><b class="text-amber-darken-2 text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-package-variant-closed</v-icon><span class="text-caption font-weight-bold">{{ $t('total_articles') }}:</span><b class="text-blue text-caption">{{ totalBalances }}</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#AB47BC">mdi-arrow-up-bold</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_in') }}:</span><b style="color:#AB47BC" class="text-caption">{{ main.formatDisplayNumber(totalStockIn) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#EF5350">mdi-arrow-down-bold</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }}:</span><b class="text-error text-caption">{{ main.formatDisplayNumber(totalStockOut) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-format-list-bulleted-type</v-icon><span class="text-caption font-weight-bold">{{ $t('total_articles') }}:</span><b class="text-blue text-caption">{{ totalBalances }}</b></div>
           </div>
         </div>
       </v-col>
@@ -106,11 +108,14 @@
       <div v-if="drillLevel === 0" class="wh-panel-card">
         <div class="wh-panel-header"><v-icon size="16" color="#5C6BC0" class="mr-1">mdi-shape-outline</v-icon><span>{{ $t('article_type_level') }}</span></div>
         <table class="wh-detail-table">
-          <thead><tr><th>{{ $t('article_type_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
+          <thead><tr><th>{{ $t('article_type_name') }}</th><th>{{ $t('quantity') }}</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('actions') }}</th></tr></thead>
           <tbody>
             <tr v-for="row in articleTypes" :key="row.type" class="wh-stock-row" @click="drillIntoType(row.type)">
               <td><div class="d-flex align-center ga-2"><v-icon size="18" :color="tColor(row.type)">{{ tIcon(row.type) }}</v-icon><span class="font-weight-bold">{{ typeName(row.type) }}</span></div></td>
-              <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td>
+              <td class="font-weight-bold text-teal">
+                <span v-if="row.type === 'PackageType'">{{ main.formatDisplayNumber(row.package_count) }} {{ $t('boxes') }}</span>
+                <span v-else>{{ main.formatDisplayNumber(row.weight) }} Kg</span>
+              </td>
               <td v-if="row.price > 0" class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td>
               <td v-else class="text-grey">-</td>
               <td>
@@ -175,22 +180,132 @@
         <div v-if="!fishNames.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
       </div>
 
-      <!-- === LEVEL 1: GUANO TABLE === -->
+      <!-- === LEVEL 1: GUANO TABLE WITH DATE OF ENTRY === -->
       <div v-if="drillLevel === 1 && drillType === 'GuanoType'" class="wh-panel-card">
         <div class="wh-panel-header"><v-icon size="16" color="#FB8C00" class="mr-1">mdi-leaf</v-icon><span>{{ $t('guano_level') }}</span></div>
         <table class="wh-detail-table">
-          <thead><tr><th>{{ $t('guano_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
-          <tbody><tr v-for="row in guanoArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
+          <thead>
+            <tr>
+              <th style="width:30px"></th>
+              <th>{{ $t('date') }}</th>
+              <th>{{ $t('guano_name') }}</th>
+              <th>{{ $t('reception_tracking_number_col') }}</th>
+              <th>{{ $t('suppliers') }}</th>
+              <th>{{ $t('source') }}</th>
+              <th>{{ $t('total_weight') }} (Kg)</th>
+              <th>{{ $t('total_price') }} ({{ main.currency }})</th>
+              <th>{{ $t('remaining') }} (Kg)</th>
+              <th>{{ $t('actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="bal in guanoArticles" :key="bal.id">
+              <tr class="wh-balance-row" :class="{ 'wh-finished': bal.is_finished }" @click="toggleExpand(bal.id)">
+                <td><v-icon size="16" :color="expandedBalances[bal.id] ? '#FB8C00' : 'grey'">{{ expandedBalances[bal.id] ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon></td>
+                <td>{{ main.formateDate(bal.date) }}</td>
+                <td class="font-weight-bold">{{ bal.articleName || sLabel(bal) }}</td>
+                <td><v-chip size="x-small" color="amber-darken-3" variant="tonal">{{ bal.reception_tracking_number || '-' }}</v-chip></td>
+                <td>{{ bal.supplier_name || '-' }}</td>
+                <td><v-chip v-if="bal.source_type" size="x-small" :color="srcColor(bal.source_type)" variant="tonal">{{ srcLabel(bal.source_type) }}</v-chip><span v-else class="text-grey">-</span></td>
+                <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(bal.total_weight) }}</td>
+                <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(bal.total_price) }}</td>
+                <td><v-chip size="x-small" :color="Number(bal.remaining_weight) > 0 ? 'success' : 'grey'" variant="tonal" class="font-weight-bold">{{ main.formatDisplayNumber(bal.remaining_weight) }}</v-chip></td>
+                <td>
+                  <v-btn v-if="bal.source_type" icon variant="text" size="x-small" color="blue" @click.stop="goToSource(bal)" :title="$t('view_source')"><v-icon size="14">mdi-open-in-new</v-icon></v-btn>
+                </td>
+              </tr>
+              <!-- Expanded operations -->
+              <tr v-if="expandedBalances[bal.id] && bal.operations && bal.operations.length">
+                <td :colspan="10" class="pa-0">
+                  <div class="wh-ops-panel">
+                    <div class="wh-ops-header"><v-icon size="14" color="error" class="mr-1">mdi-arrow-up</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }} ({{ bal.operations.length }})</span></div>
+                    <table class="wh-detail-table wh-ops-table">
+                      <thead><tr><th>{{ $t('date') }}</th><th>{{ $t('weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('source') }}</th><th>{{ $t('client') }}</th><th>{{ $t('actions') }}</th></tr></thead>
+                      <tbody>
+                        <tr v-for="op in bal.operations" :key="op.id" class="wh-out-row">
+                          <td>{{ main.formateDate(op.date) }}</td>
+                          <td class="font-weight-bold text-error">-{{ main.formatDisplayNumber(op.weight) }}</td>
+                          <td>{{ main.formatDisplayNumber(op.total_price) }}</td>
+                          <td><v-chip size="x-small" :color="srcColor(op.source_type)" variant="tonal">{{ srcLabel(op.source_type) }}</v-chip></td>
+                          <td>{{ op.client_name || '-' }}</td>
+                          <td><v-btn v-if="op.source_type" icon variant="text" size="x-small" color="blue" @click.stop="goToSourceOp(op)" :title="$t('view_source')"><v-icon size="14">mdi-open-in-new</v-icon></v-btn></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+              <tr v-else-if="expandedBalances[bal.id]"><td :colspan="10" class="text-center text-caption text-medium-emphasis pa-3">{{ $t('no_data_available') }}</td></tr>
+            </template>
+          </tbody>
         </table>
         <div v-if="!guanoArticles.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
       </div>
 
-      <!-- === LEVEL 1: PACKAGE TABLE === -->
+      <!-- === LEVEL 1: PACKAGE TABLE WITH DATE OF ENTRY === -->
       <div v-if="drillLevel === 1 && drillType === 'PackageType'" class="wh-panel-card">
         <div class="wh-panel-header"><v-icon size="16" color="#6D4C41" class="mr-1">mdi-package-variant</v-icon><span>{{ $t('package_level') }}</span></div>
         <table class="wh-detail-table">
-          <thead><tr><th>{{ $t('package_name') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }} ({{ main.currency }})</th></tr></thead>
-          <tbody><tr v-for="row in packageArticles" :key="row.name"><td class="font-weight-bold">{{ row.name }}</td><td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(row.weight) }}</td><td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(row.price) }}</td></tr></tbody>
+          <thead>
+            <tr>
+              <th style="width:30px"></th>
+              <th>{{ $t('date') }}</th>
+              <th>{{ $t('package_name') }}</th>
+              <th>{{ $t('reception_tracking_number_col') }}</th>
+              <th>{{ $t('suppliers') }}</th>
+              <th>{{ $t('source') }}</th>
+              <th>{{ $t('package_count') }}</th>
+              <th>{{ $t('total_weight') }} (Kg)</th>
+              <th>{{ $t('total_price') }} ({{ main.currency }})</th>
+              <th>{{ $t('remaining') }}</th>
+              <th>{{ $t('actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="bal in packageArticles" :key="bal.id">
+              <tr class="wh-balance-row" :class="{ 'wh-finished': bal.is_finished }" @click="toggleExpand(bal.id)">
+                <td><v-icon size="16" :color="expandedBalances[bal.id] ? '#6D4C41' : 'grey'">{{ expandedBalances[bal.id] ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon></td>
+                <td>{{ main.formateDate(bal.date) }}</td>
+                <td class="font-weight-bold">{{ bal.articleName || sLabel(bal) }}</td>
+                <td><v-chip size="x-small" color="brown" variant="tonal">{{ bal.reception_tracking_number || '-' }}</v-chip></td>
+                <td>{{ bal.supplier_name || '-' }}</td>
+                <td><v-chip v-if="bal.source_type" size="x-small" :color="srcColor(bal.source_type)" variant="tonal">{{ srcLabel(bal.source_type) }}</v-chip><span v-else class="text-grey">-</span></td>
+                <td><v-chip size="x-small" color="teal" variant="tonal">{{ bal.package_count || 0 }}</v-chip></td>
+                <td class="font-weight-bold text-teal">{{ main.formatDisplayNumber(bal.total_weight) }}</td>
+                <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(bal.total_price) }}</td>
+                <td>
+                  <v-chip size="x-small" :color="getRemainingPackageCount(bal) > 0 ? 'success' : 'grey'" variant="tonal" class="font-weight-bold">
+                    {{ getRemainingPackageCount(bal) }}
+                  </v-chip>
+                </td>
+                <td>
+                  <v-btn v-if="bal.source_type" icon variant="text" size="x-small" color="blue" @click.stop="goToSource(bal)" :title="$t('view_source')"><v-icon size="14">mdi-open-in-new</v-icon></v-btn>
+                </td>
+              </tr>
+              <!-- Expanded operations -->
+              <tr v-if="expandedBalances[bal.id] && bal.operations && bal.operations.length">
+                <td :colspan="11" class="pa-0">
+                  <div class="wh-ops-panel">
+                    <div class="wh-ops-header"><v-icon size="14" color="error" class="mr-1">mdi-arrow-up</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }} ({{ bal.operations.length }})</span></div>
+                    <table class="wh-detail-table wh-ops-table">
+                      <thead><tr><th>{{ $t('date') }}</th><th>{{ $t('package_count') }}</th><th>{{ $t('total_price') }} ({{ main.currency }})</th><th>{{ $t('source') }}</th><th>{{ $t('client') }}</th><th>{{ $t('actions') }}</th></tr></thead>
+                      <tbody>
+                        <tr v-for="op in bal.operations" :key="op.id" class="wh-out-row">
+                          <td>{{ main.formateDate(op.date) }}</td>
+                          <td class="font-weight-bold text-error">-{{ op.package_count || 0 }}</td>
+                          <td>{{ main.formatDisplayNumber(op.total_price) }}</td>
+                          <td><v-chip size="x-small" :color="srcColor(op.source_type)" variant="tonal">{{ srcLabel(op.source_type) }}</v-chip></td>
+                          <td>{{ op.client_name || '-' }}</td>
+                          <td><v-btn v-if="op.source_type" icon variant="text" size="x-small" color="blue" @click.stop="goToSourceOp(op)" :title="$t('view_source')"><v-icon size="14">mdi-open-in-new</v-icon></v-btn></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+              <tr v-else-if="expandedBalances[bal.id]"><td :colspan="11" class="text-center text-caption text-medium-emphasis pa-3">{{ $t('no_data_available') }}</td></tr>
+            </template>
+          </tbody>
         </table>
         <div v-if="!packageArticles.length" class="text-center text-caption text-medium-emphasis pa-6">{{ $t('no_data_available') }}</div>
       </div>

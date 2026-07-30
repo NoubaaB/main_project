@@ -27,6 +27,7 @@ class WarehouseController extends Controller
             'has_sejour' => 'boolean',
             'operation_service_fee' => 'nullable|numeric|min:0',
             'is_allow_price' => 'nullable|boolean',
+            'allow_production_effect' => 'nullable|boolean',
         ]);
         $warehouse = Warehouse::create($data);
         $this->broadcastChange('Warehouse', 'created', $warehouse->id, $warehouse->toArray());
@@ -43,6 +44,7 @@ class WarehouseController extends Controller
             'has_sejour' => 'boolean',
             'operation_service_fee' => 'nullable|numeric|min:0',
             'is_allow_price' => 'nullable|boolean',
+            'allow_production_effect' => 'nullable|boolean',
         ]);
         $warehouse->update($data);
         $this->broadcastChange('Warehouse', 'updated', $warehouse->id, $warehouse->toArray());

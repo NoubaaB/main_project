@@ -91,6 +91,14 @@
               </div>
             </template>
             <template #item.article="{ item }"><v-chip size="small" color="#00897B" variant="tonal">{{ getArticleName(item, group.category) }}</v-chip></template>
+            <template #item.package_type="{ item }">
+              <v-chip v-if="item.package_type_id" size="small" color="#00897B" variant="tonal">{{ getPackageTypeName(item.package_type_id) }}</v-chip>
+              <span v-else class="text-grey">-</span>
+            </template>
+            <template #item.nbr_box="{ item }">
+              <v-chip v-if="item.nbr_box != null" size="small" color="teal" variant="tonal" class="font-weight-bold">{{ item.nbr_box }} {{ $t('boxes') }}</v-chip>
+              <span v-else class="text-grey">-</span>
+            </template>
             <template #item.weight="{ item }">{{ main.formatDisplayNumber(item.weight) }}</template>
             <template #item.weight_invoice="{ item }">{{ main.formatDisplayNumber(item.weight_invoice) }}</template>
             <template #item.unit_price="{ item }">{{ main.formatDisplayNumber(item.unit_price) }}</template>
@@ -195,9 +203,20 @@ export default {
       return [];
     },
     getArticleName(item, cat) { if (cat.article_type === 'text') return item.article_description || '-'; return this.getStockOpts(cat).find(o => o.value === item.stockable_id)?.title || '-'; },
-    getWarehouseName(id) { return this.auth.warehouse.list.find(w => w.id === id)?.name || `#${id}`; },
+    getWarehouseName(id) {
+      const w = this.auth.warehouse.list.find(w => w.id === id);
+      return w ? w.name : `#${id}`;
+    },
+    getPackageTypeName(id) {
+      const p = this.auth.package_type.list.find(p => p.id === id);
+      return p ? (p[`name_${this.lang}`] || p.name_en || `#${id}`) : '-';
+    },
     getHeaders(cat) {
       const h = [{ title: this.$t('type_article'), key: 'article', sortable: false }];
+      if (cat.allow_package_type || cat.allow_nbr_box || cat.allow_secondary_packaging) {
+        h.push({ title: this.$t('package_type'), key: 'package_type', sortable: false });
+        h.push({ title: this.$t('nbr_boxes'), key: 'nbr_box', sortable: false });
+      }
       if (cat.allow_weight) h.push({ title: this.$t('weight') + ' (Kg)', key: 'weight', sortable: false });
       if (cat.allow_weight) h.push({ title: this.$t('total_weight_invoice'), key: 'weight_invoice', sortable: false });
       if (cat.allow_unit_price) h.push({ title: this.$t('unit_price'), key: 'unit_price', sortable: false });
@@ -209,6 +228,8 @@ export default {
     getFilterableColumns(cat) { return this.getHeaders(cat).filter(h => h.key !== 'actions'); },
     getDisplayValue(item, key, cat) {
       if (key === 'article') return this.getArticleName(item, cat);
+      if (key === 'package_type') return item.package_type_id ? this.getPackageTypeName(item.package_type_id) : '';
+      if (key === 'nbr_box') return item.nbr_box != null ? String(item.nbr_box) : '';
       if (key === 'warehouse') return item.warehouse_id ? this.getWarehouseName(item.warehouse_id) : '';
       if (['weight', 'weight_invoice', 'unit_price', 'total_price'].includes(key)) return item[key] != null ? String(item[key]) : '';
       return item[key] != null ? String(item[key]) : '';

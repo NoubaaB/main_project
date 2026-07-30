@@ -13,13 +13,14 @@ class Warehouse extends Model
     protected $fillable = [
         'name', 'description', 'warehouse_category_id',
         'warehouse_type', 'has_sejour', 'operation_service_fee',
-        'is_allow_price',
+        'is_allow_price', 'allow_production_effect',
         'total_weight',
     ];
 
     protected $casts = [
         'has_sejour' => 'boolean',
         'is_allow_price' => 'boolean',
+        'allow_production_effect' => 'boolean',
         'operation_service_fee' => 'decimal:2',
         'total_weight' => 'decimal:2',
     ];

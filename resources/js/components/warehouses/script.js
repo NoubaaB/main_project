@@ -47,11 +47,14 @@ export default {
       const groups = {};
       this.filteredBalances.forEach(b => {
         const t = b.stockable_type || 'Other';
-        if (!groups[t]) groups[t] = { type: t, weight: 0, price: 0 };
+        if (!groups[t]) groups[t] = { type: t, weight: 0, package_count: 0, price: 0 };
         const w = Number(b.remaining_weight || 0);
+        const pkgs = this.getRemainingPackageCount(b);
         const wapVal = Number(b.wap || 0);
+        const priceVal = wapVal > 0 ? wapVal * w : Number(b.total_price || 0);
         groups[t].weight += w;
-        groups[t].price += wapVal > 0 ? wapVal * w : 0;
+        groups[t].package_count += pkgs;
+        groups[t].price += priceVal;
       });
       return this.applyFilters(Object.values(groups), 'level0');
     },
@@ -77,32 +80,38 @@ export default {
       })), 'level1_fish');
     },
     guanoArticles() {
-      const groups = {};
-      this.filteredBalances.filter(b => b.stockable_type === 'GuanoType').forEach(b => {
-        const nm = this.sLabel(b);
-        if (!groups[nm]) groups[nm] = { name: nm, weight: 0, price: 0 };
-        const w = Number(b.remaining_weight || 0);
-        groups[nm].weight += w;
-        groups[nm].price += 0;
-      });
-      return this.applyFilters(Object.values(groups).map(g => ({
-        ...g,
-        wap: 0,
-      })), 'level1_guano');
+      return this.applyFilters(this.filteredBalances
+        .filter(b => b.stockable_type === 'GuanoType')
+        .map(b => {
+          const w = Number(b.remaining_weight || b.total_weight || 0);
+          const wapVal = Number(b.wap || 0);
+          const priceVal = wapVal > 0 ? wapVal * w : Number(b.total_price || 0);
+          return {
+            ...b,
+            wap: Math.round(wapVal * 100) / 100,
+            total_price: Math.round(priceVal * 100) / 100,
+            articleName: this.sLabel(b),
+            _date_display: b.date ? String(b.date).substring(0, 10) : '-',
+            _source_label: b.source_type ? this.srcLabel(b.source_type) : '-',
+          };
+        }), 'level1_guano');
     },
     packageArticles() {
-      const groups = {};
-      this.filteredBalances.filter(b => b.stockable_type === 'PackageType').forEach(b => {
-        const nm = this.sLabel(b);
-        if (!groups[nm]) groups[nm] = { name: nm, weight: 0, price: 0 };
-        const w = Number(b.remaining_weight || 0);
-        groups[nm].weight += w;
-        groups[nm].price += 0;
-      });
-      return this.applyFilters(Object.values(groups).map(g => ({
-        ...g,
-        wap: 0,
-      })), 'level1_package');
+      return this.applyFilters(this.filteredBalances
+        .filter(b => b.stockable_type === 'PackageType')
+        .map(b => {
+          const w = Number(b.remaining_weight || b.total_weight || 0);
+          const wapVal = Number(b.wap || 0);
+          const priceVal = wapVal > 0 ? wapVal * w : Number(b.total_price || 0);
+          return {
+            ...b,
+            wap: Math.round(wapVal * 100) / 100,
+            total_price: Math.round(priceVal * 100) / 100,
+            articleName: this.sLabel(b),
+            _date_display: b.date ? String(b.date).substring(0, 10) : '-',
+            _source_label: b.source_type ? this.srcLabel(b.source_type) : '-',
+          };
+        }), 'level1_package');
     },
     fishNames() {
       if (this.drillLevel < 2 || !this.drillFamilyId) return [];
@@ -166,7 +175,12 @@ export default {
       ];
     },
     filteredBalances() {
-      return this.balances.filter(b => !b.is_finished || Number(b.remaining_weight) > 0);
+      return this.balances.filter(b => {
+        if (b.stockable_type === 'PackageType') {
+          return !b.is_finished || this.getRemainingPackageCount(b) > 0;
+        }
+        return !b.is_finished || Number(b.remaining_weight) > 0;
+      });
     },
     breadcrumbs() {
       const bc = [{ label: this.$t('warehouse_dashboard'), level: 0, icon: 'mdi-warehouse' }];
@@ -181,12 +195,22 @@ export default {
       }
       return bc;
     },
-    totalWeight() { return this.filteredBalances.reduce((s, b) => s + Number(b.remaining_weight || 0), 0) },
+    totalWeight() {
+      return this.filteredBalances
+        .filter(b => b.stockable_type !== 'PackageType')
+        .reduce((s, b) => s + Number(b.remaining_weight || 0), 0);
+    },
+    totalPackages() {
+      return this.filteredBalances
+        .filter(b => b.stockable_type === 'PackageType')
+        .reduce((s, b) => s + this.getRemainingPackageCount(b), 0);
+    },
     totalPrice() {
       return this.filteredBalances.reduce((s, b) => {
         const w = Number(b.remaining_weight || 0);
         const wapVal = Number(b.wap || 0);
-        return s + (wapVal > 0 ? wapVal * w : 0);
+        const priceVal = wapVal > 0 ? wapVal * w : Number(b.total_price || 0);
+        return s + priceVal;
       }, 0);
     },
     totalBalances() { return this.filteredBalances.length },
@@ -201,14 +225,17 @@ export default {
       const groups = {};
       this.filteredBalances.forEach(b => {
         const t = b.stockable_type || 'Other';
-        if (!groups[t]) groups[t] = { type: t, name: this.typeName(t), count: 0, weight: 0, price: 0 };
+        if (!groups[t]) groups[t] = { type: t, name: this.typeName(t), count: 0, weight: 0, package_count: 0, price: 0 };
         const w = Number(b.remaining_weight || 0);
+        const pkgs = this.getRemainingPackageCount(b);
         const wapVal = Number(b.wap || 0);
+        const priceVal = wapVal > 0 ? wapVal * w : Number(b.total_price || 0);
         groups[t].count++;
         groups[t].weight += w;
-        groups[t].price += wapVal > 0 ? wapVal * w : 0;
+        groups[t].package_count += pkgs;
+        groups[t].price += priceVal;
       });
-      return Object.values(groups).sort((a, b) => b.weight - a.weight);
+      return Object.values(groups).sort((a, b) => (b.type === 'PackageType' ? b.package_count : b.weight) - (a.type === 'PackageType' ? a.package_count : a.weight));
     },
     // Dashboard analytics chart
     dashChartSeries() {
@@ -376,6 +403,12 @@ export default {
       else if (st === 'DetailProduction') this.$router.push({ name: 'edit_production', params: { id: op.source_id } });
       else if (st === 'DetailShipping') this.$router.push({ name: 'edit_shipping', params: { id: op.source_id } });
       else if (st === 'WarehouseTransfer') this.$router.push({ name: 'edit_warehouse_transfer', params: { id: op.source_id } });
+    },
+    getRemainingPackageCount(bal) {
+      if (!bal) return 0;
+      const initial = Number(bal.package_count || 0);
+      const out = (bal.operations || []).reduce((s, op) => s + Number(op.package_count || 0), 0);
+      return Math.max(0, Math.round((initial - out) * 100) / 100);
     },
 
     onDateRangeVCChange(val) {

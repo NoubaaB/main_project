@@ -38,6 +38,7 @@
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
             <template v-slot:[`item.has_sejour`]="{ item }"><v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">{{ item.has_sejour ? $t('yes') : $t('no') }}</v-chip></template>
+            <template v-slot:[`item.allow_production_effect`]="{ item }"><v-chip :color="item.allow_production_effect ? '#a21ee5' : 'grey'" size="small" variant="tonal">{{ item.allow_production_effect ? $t('yes') : $t('no') }}</v-chip></template>
             <template v-slot:[`item.operation_service_fee`]="{ item }">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '-' }}</template>
             <template v-slot:[`item.category`]="{ item }"><v-chip :color="categoryColor(item.category?.name)" size="small" variant="tonal">{{ item.category?.name || 'N/A' }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
@@ -238,8 +239,11 @@
           <v-textarea v-model="warehouseForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" rows="2"></v-textarea>
           <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" clearable></v-select>
           <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" clearable></v-select>
-          <v-switch v-model="warehouseForm.has_sejour" :label="$t('has_sejour')" color="warning" density="compact" class="mb-3"></v-switch>
-          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" type="number"></v-text-field>
+          <v-switch v-model="warehouseForm.has_sejour" :label="$t('has_sejour')" color="warning" density="compact" class="mb-1" hide-details></v-switch>
+          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mt-3" type="number"></v-text-field>
+          <v-divider class="my-3"></v-divider>
+          <div class="text-caption font-weight-bold text-purple mb-2">{{ $t('enabled_fields') }}</div>
+          <v-switch v-model="warehouseForm.allow_production_effect" :label="$t('allow_production_effect')" color="#a21ee5" density="compact" hide-details></v-switch>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
@@ -304,7 +308,7 @@ export default {
       loadingWarehouses: false,
       warehouseDialog: false,
       editingWarehouse: null,
-      warehouseForm: { name: '', description: '', warehouse_type: null, warehouse_category_id: null, has_sejour: false, operation_service_fee: 0 },
+      warehouseForm: { name: '', description: '', warehouse_type: null, warehouse_category_id: null, has_sejour: false, operation_service_fee: 0, allow_production_effect: false },
       warehouseColumnFilters: {},
       categories: [],
       loadingCategories: false,
@@ -336,6 +340,7 @@ export default {
         { title: this.$t('category'), key: 'category', align: 'center' },
         { title: this.$t('warehouse_type'), key: 'warehouse_type', align: 'center' },
         { title: this.$t('has_sejour'), key: 'has_sejour', align: 'center' },
+        { title: this.$t('allow_production_effect'), key: 'allow_production_effect', align: 'center' },
         { title: this.$t('operation_service_fee'), key: 'operation_service_fee', align: 'center' },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
@@ -441,8 +446,8 @@ export default {
     openWarehouseDialog(item) {
       this.editingWarehouse = item;
       this.warehouseForm = item
-        ? { name: item.name, description: item.description, warehouse_type: item.warehouse_type, warehouse_category_id: item.warehouse_category_id, has_sejour: item.has_sejour || false, operation_service_fee: item.operation_service_fee || 0 }
-        : { name: '', description: '', warehouse_type: null, warehouse_category_id: null, has_sejour: false, operation_service_fee: 0 };
+        ? { name: item.name, description: item.description, warehouse_type: item.warehouse_type, warehouse_category_id: item.warehouse_category_id, has_sejour: item.has_sejour || false, operation_service_fee: item.operation_service_fee || 0, allow_production_effect: item.allow_production_effect || false }
+        : { name: '', description: '', warehouse_type: null, warehouse_category_id: null, has_sejour: false, operation_service_fee: 0, allow_production_effect: false };
       this.warehouseDialog = true;
     },
     async saveWarehouse() {

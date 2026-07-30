@@ -6,8 +6,10 @@ use App\Models\Production;
 use App\Models\DetailProduction;
 use App\Models\Charge;
 use App\Models\FishProcessType;
+use App\Models\Warehouse;
 use App\Models\WarehouseBalance;
 use App\Models\WarehouseBalanceOperation;
+use App\Models\PackageSecondaryConfig;
 use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -263,6 +265,7 @@ class ProductionController extends Controller
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
+                'total_secondary_packaging_cost' => 0,
                 'production_category_id' => $data['production_category_id'],
                 'reception_tracking_number' => $data['reception_tracking_number'] ?? null,
                 'tracking_onp_numbers' => $data['tracking_onp_numbers'] ?? null,
@@ -276,11 +279,16 @@ class ProductionController extends Controller
                 'client_id' => $data['client_id'] ?? null,
             ]);
 
+            $totalSecondaryPackagingCost = 0;
 
             foreach ($data['details'] as $detail) {
+                $detail = $this->enrichDetailWithSecondaryPackaging($detail, $data['date']);
+                $totalSecondaryPackagingCost += (float) ($detail['secondary_packaging_cost'] ?? 0);
                 $dp = $production->detailProductions()->create($detail);
                 $this->processWarehouseOperation($dp, $production);
             }
+
+            $production->update(['total_secondary_packaging_cost' => round($totalSecondaryPackagingCost, 2)]);
 
             $production->load('productionCategory', 'supplier', 'client', 'charge.detailCharges.stockable', 'supplierInvoice', 'clientInvoice', 'detailProductions.detailProductionCategory', 'detailProductions.stockable', 'detailProductions.warehouse', 'detailProductions.packageType');
             $this->computeEquilibrium($production);
@@ -352,6 +360,7 @@ class ProductionController extends Controller
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
+                'total_secondary_packaging_cost' => 0,
                 'production_category_id' => $data['production_category_id'],
                 'reception_tracking_number' => $data['reception_tracking_number'] ?? null,
                 'tracking_onp_numbers' => $data['tracking_onp_numbers'] ?? null,
@@ -365,11 +374,16 @@ class ProductionController extends Controller
                 'client_id' => $data['client_id'] ?? null,
             ]);
 
+            $totalSecondaryPackagingCost = 0;
 
             foreach ($data['details'] as $detail) {
+                $detail = $this->enrichDetailWithSecondaryPackaging($detail, $data['date']);
+                $totalSecondaryPackagingCost += (float) ($detail['secondary_packaging_cost'] ?? 0);
                 $dp = $production->detailProductions()->create($detail);
                 $this->processWarehouseOperation($dp, $production);
             }
+
+            $production->update(['total_secondary_packaging_cost' => round($totalSecondaryPackagingCost, 2)]);
 
             $production->load('productionCategory', 'supplier', 'client', 'charge.detailCharges.stockable', 'supplierInvoice', 'clientInvoice', 'detailProductions.detailProductionCategory', 'detailProductions.stockable', 'detailProductions.warehouse', 'detailProductions.packageType');
             $this->computeEquilibrium($production);
@@ -484,7 +498,7 @@ class ProductionController extends Controller
 
     private function processWarehouseOperation(DetailProduction $dp, Production $production): void
     {
-        if (!$dp->warehouse_id || !$dp->warehouse_operation || !$dp->stockable_type || !$dp->stockable_id)
+        if (!$dp->warehouse_id)
             return;
 
         $weight = $dp->weight ?? 0;
@@ -514,50 +528,108 @@ class ProductionController extends Controller
             }
         }
 
-        if ($dp->warehouse_operation === 'stock_in') {
-            WarehouseBalance::create([
-                'warehouse_id' => $dp->warehouse_id,
-                'stockable_type' => $dp->stockable_type,
-                'stockable_id' => $dp->stockable_id,
-                'reception_tracking_number' => $trackingNumber,
-                'warehouse_operation' => 'stock_in',
-                'date' => $balanceDate,
-                'total_weight' => $weight,
-                'remaining_weight' => $weight,
-                'total_price' => $totalPrice,
-                'unit_price' => $dp->unit_price ?? 0,
-                'package_count' => $packages,
-                'package_type_id' => $dp->package_type_id,
-                'supplier_name' => $supplierName ?: null,
-                'origin_name' => $originName,
-                'fishery_name' => $fisheryName,
-                'source_type' => 'DetailProduction',
-                'source_id' => $dp->id,
-                'is_finished' => false,
-            ]);
-        } else {
-            $balance = WarehouseBalance::where('warehouse_id', $dp->warehouse_id)
-                ->where('stockable_type', $dp->stockable_type)
-                ->where('stockable_id', $dp->stockable_id)
-                ->where('warehouse_operation', 'stock_in')
-                ->where('is_finished', false)
-                ->when($trackingNumber, fn($q) => $q->where('reception_tracking_number', $trackingNumber))
-                ->orderBy('date', 'asc')
-                ->first();
-
-            if ($balance) {
-                WarehouseBalanceOperation::create([
-                    'warehouse_balance_id' => $balance->id,
-                    'date' => $production->date,
-                    'weight' => $weight,
-                    'unit_price' => $dp->unit_price ?? 0,
+        // 1. Primary Stock Operation (for stockable items like FishType, GuanoType, PackageType)
+        if ($dp->warehouse_operation && $dp->stockable_type && $dp->stockable_id) {
+            if ($dp->warehouse_operation === 'stock_in') {
+                WarehouseBalance::create([
+                    'warehouse_id' => $dp->warehouse_id,
+                    'stockable_type' => $dp->stockable_type,
+                    'stockable_id' => $dp->stockable_id,
+                    'reception_tracking_number' => $trackingNumber,
+                    'warehouse_operation' => 'stock_in',
+                    'date' => $balanceDate,
+                    'total_weight' => $weight,
+                    'remaining_weight' => $weight,
                     'total_price' => $totalPrice,
+                    'unit_price' => $dp->unit_price ?? 0,
                     'package_count' => $packages,
+                    'package_type_id' => $dp->package_type_id,
+                    'supplier_name' => $supplierName ?: null,
+                    'origin_name' => $originName,
+                    'fishery_name' => $fisheryName,
                     'source_type' => 'DetailProduction',
                     'source_id' => $dp->id,
-                    'client_name' => null,
+                    'is_finished' => false,
                 ]);
-                $balance->recalculateRemaining();
+            } else {
+                $balance = WarehouseBalance::where('warehouse_id', $dp->warehouse_id)
+                    ->where('stockable_type', $dp->stockable_type)
+                    ->where('stockable_id', $dp->stockable_id)
+                    ->where('warehouse_operation', 'stock_in')
+                    ->where('is_finished', false)
+                    ->when($trackingNumber, fn($q) => $q->where('reception_tracking_number', $trackingNumber))
+                    ->orderBy('date', 'asc')
+                    ->first();
+
+                if ($balance) {
+                    WarehouseBalanceOperation::create([
+                        'warehouse_balance_id' => $balance->id,
+                        'date' => $production->date,
+                        'weight' => $weight,
+                        'unit_price' => $dp->unit_price ?? 0,
+                        'total_price' => $totalPrice,
+                        'package_count' => $packages,
+                        'source_type' => 'DetailProduction',
+                        'source_id' => $dp->id,
+                        'client_name' => null,
+                    ]);
+                    $balance->recalculateRemaining();
+                }
+            }
+        }
+
+        // 2. Secondary Packaging Stock-out from Warehouse when category & warehouse toggles are enabled
+        $category = $dp->detailProductionCategory;
+        if ($category && $category->allow_secondary_packaging) {
+            $targetWarehouseId = null;
+            if ($dp->warehouse && $dp->warehouse->allow_production_effect) {
+                $targetWarehouseId = $dp->warehouse_id;
+            } else {
+                $effWarehouse = Warehouse::where('allow_production_effect', true)->first();
+                if ($effWarehouse) {
+                    $targetWarehouseId = $effWarehouse->id;
+                }
+            }
+
+            if ($targetWarehouseId) {
+                $packageTypeId = $dp->package_type_id;
+                $nbrBox = (float) ($dp->nbr_box ?? 0);
+                if ($packageTypeId && $nbrBox > 0) {
+                    $remainingToDeduct = $nbrBox;
+                    $packageBalances = WarehouseBalance::where('warehouse_id', $targetWarehouseId)
+                        ->where(function ($q) use ($packageTypeId) {
+                            $q->where(function ($q2) use ($packageTypeId) {
+                                $q2->where('stockable_type', 'PackageType')
+                                   ->where('stockable_id', $packageTypeId);
+                            })->orWhere('package_type_id', $packageTypeId);
+                        })
+                        ->where('warehouse_operation', 'stock_in')
+                        ->where('is_finished', false)
+                        ->orderBy('date', 'asc')
+                        ->get();
+
+                    foreach ($packageBalances as $packageBalance) {
+                        if ($remainingToDeduct <= 0) break;
+                        $alreadyOut = (float) $packageBalance->operations()->sum('package_count');
+                        $avail = max(0, (float)($packageBalance->package_count ?? 0) - $alreadyOut);
+                        if ($avail <= 0) continue;
+
+                        $deductCount = min($remainingToDeduct, $avail);
+                        WarehouseBalanceOperation::create([
+                            'warehouse_balance_id' => $packageBalance->id,
+                            'date' => $production->date,
+                            'weight' => 0,
+                            'unit_price' => $packageBalance->unit_price ?? 0,
+                            'total_price' => round(($packageBalance->unit_price ?? 0) * $deductCount, 2),
+                            'package_count' => $deductCount,
+                            'source_type' => 'DetailProduction',
+                            'source_id' => $dp->id,
+                            'client_name' => null,
+                        ]);
+                        $packageBalance->recalculateRemaining();
+                        $remainingToDeduct -= $deductCount;
+                    }
+                }
             }
         }
     }
@@ -565,23 +637,21 @@ class ProductionController extends Controller
     private function reverseWarehouseOperations(Production $production): void
     {
         foreach ($production->detailProductions as $dp) {
-            if (!$dp->warehouse_id || !$dp->stockable_type || !$dp->stockable_id)
+            if (!$dp->warehouse_id)
                 continue;
 
-            if ($dp->warehouse_operation === 'stock_in') {
-                WarehouseBalance::where('source_type', 'DetailProduction')
-                    ->where('source_id', $dp->id)
-                    ->delete();
-            } else {
-                $ops = WarehouseBalanceOperation::where('source_type', 'DetailProduction')
-                    ->where('source_id', $dp->id)
-                    ->get();
-                foreach ($ops as $op) {
-                    $balance = $op->warehouseBalance;
-                    $op->delete();
-                    if ($balance)
-                        $balance->recalculateRemaining();
-                }
+            WarehouseBalance::where('source_type', 'DetailProduction')
+                ->where('source_id', $dp->id)
+                ->delete();
+
+            $ops = WarehouseBalanceOperation::where('source_type', 'DetailProduction')
+                ->where('source_id', $dp->id)
+                ->get();
+            foreach ($ops as $op) {
+                $balance = $op->warehouseBalance;
+                $op->delete();
+                if ($balance)
+                    $balance->recalculateRemaining();
             }
         }
     }
@@ -631,5 +701,59 @@ class ProductionController extends Controller
             'equilibrium' => $equilibrium,
             'equilibrium_status' => $status,
         ]);
+    }
+
+    /**
+     * Enrich detail production input with secondary packaging cost calculation if enabled for category.
+     */
+    private function enrichDetailWithSecondaryPackaging(array $detail, string $date): array
+    {
+        $detailCategoryId = $detail['detail_production_category_id'] ?? null;
+        $packageTypeId = $detail['package_type_id'] ?? null;
+        $nbrBox = (float) ($detail['nbr_box'] ?? 0);
+
+        if (!$detailCategoryId || !$packageTypeId || $nbrBox <= 0) {
+            $detail['secondary_packaging_cost'] = 0;
+            $detail['secondary_packaging_details'] = null;
+            return $detail;
+        }
+
+        $category = \App\Models\DetailProductionCategory::find($detailCategoryId);
+        if (!$category || !$category->allow_secondary_packaging) {
+            $detail['secondary_packaging_cost'] = 0;
+            $detail['secondary_packaging_details'] = null;
+            return $detail;
+        }
+
+        $config = \App\Models\PackageSecondaryConfig::getConfigForPackageAndDate($packageTypeId, $date);
+        if (!$config) {
+            $detail['secondary_packaging_cost'] = 0;
+            $detail['secondary_packaging_details'] = null;
+            return $detail;
+        }
+
+        $unitCost = $config->computeUnitCost();
+        $totalSecCost = round($nbrBox * $unitCost, 2);
+
+        $detail['secondary_packaging_cost'] = $totalSecCost;
+        $detail['secondary_packaging_details'] = [
+            'config_id' => $config->id,
+            'unit_cost' => $unitCost,
+            'nbr_box' => $nbrBox,
+            'caisses_qte' => (float) $config->caisses_qte,
+            'caisses_price' => (float) $config->caisses_price,
+            'cellophane_qte' => (float) $config->cellophane_qte,
+            'cellophane_price' => (float) $config->cellophane_price,
+            'plastique_qte' => (float) $config->plastique_qte,
+            'plastique_price' => (float) $config->plastique_price,
+            'strapex_qte' => (float) $config->strapex_qte,
+            'strapex_price' => (float) $config->strapex_price,
+            'palletes_qte' => (float) $config->palletes_qte,
+            'palletes_price' => (float) $config->palletes_price,
+            'scotch_qte' => (float) $config->scotch_qte,
+            'scotch_price' => (float) $config->scotch_price,
+        ];
+
+        return $detail;
     }
 }

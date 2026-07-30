@@ -13,6 +13,7 @@ class DetailProduction extends Model
     protected $fillable = [
         'production_id', 'detail_production_category_id', 'article_description',
         'stockable_type', 'stockable_id', 'weight', 'unit_price', 'total_price',
+        'secondary_packaging_cost', 'secondary_packaging_details',
         'package_type_id', 'nbr_box', 'warehouse_id', 'warehouse_operation', 'truck_id',
     ];
 
@@ -20,6 +21,8 @@ class DetailProduction extends Model
         'weight' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'secondary_packaging_cost' => 'decimal:2',
+        'secondary_packaging_details' => 'array',
         'nbr_box' => 'decimal:2',
     ];
 

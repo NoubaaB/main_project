@@ -36,6 +36,7 @@ class DetailProductionCategoryController extends Controller
             'allow_detail_truck_id' => 'boolean',
             'fish_type_filter' => 'nullable|string|in:all,fresh,frozen',
             'include_in_invoice' => 'boolean',
+            'allow_secondary_packaging' => 'boolean',
             'production_category_id' => 'required|exists:production_categories,id',
         ]);
         $item = DetailProductionCategory::create($data);
@@ -62,6 +63,7 @@ class DetailProductionCategoryController extends Controller
             'allow_detail_truck_id' => 'boolean',
             'fish_type_filter' => 'nullable|string|in:all,fresh,frozen',
             'include_in_invoice' => 'boolean',
+            'allow_secondary_packaging' => 'boolean',
             'production_category_id' => 'required|exists:production_categories,id',
         ]);
         $item->update($data);

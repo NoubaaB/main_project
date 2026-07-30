@@ -85,6 +85,15 @@
             <span v-else-if="item.stockable_type">{{ main.getStockableName(item.stockable_id, item.stockable_type) }}</span>
             <span v-else class="text-grey">-</span>
           </template>
+          <template v-slot:[`item.package_type`]="{ item }">
+            <span v-if="item.package_type">{{ item.package_type.name_fr || item.package_type.name_en || `#${item.package_type_id}` }}</span>
+            <span v-else-if="item.package_type_id">#{{ item.package_type_id }}</span>
+            <span v-else class="text-grey">-</span>
+          </template>
+          <template v-slot:[`item.nbr_box`]="{ item }">
+            <v-chip v-if="item.nbr_box != null" size="x-small" color="teal" variant="tonal" class="font-weight-bold">{{ item.nbr_box }} {{ $t('boxes') }}</v-chip>
+            <span v-else class="text-grey">-</span>
+          </template>
           <template v-slot:[`item.weight`]="{ item }">{{ item.weight ? main.formatDisplayNumber(item.weight) + ' Kg' : '-' }}</template>
           <template v-slot:[`item.unit_price`]="{ item }">{{ item.unit_price ? main.formatDisplayNumber(item.unit_price) : '-' }}</template>
           <template v-slot:[`item.total_price`]="{ item }">{{ item.total_price ? main.formatDisplayNumber(item.total_price) + ' ' + main.currency : '-' }}</template>
@@ -117,14 +126,19 @@ export default {
   computed: {
     main() { return useMain(); },
     detailHeaders() {
-      return [
+      const h = [
         { title: this.$t('type_article'), key: 'article', align: 'center', sortable: false },
-        { title: this.$t('weight'), key: 'weight', align: 'center' },
-        { title: this.$t('unit_price'), key: 'unit_price', align: 'center' },
-        { title: this.$t('total_price'), key: 'total_price', align: 'center' },
-        { title: this.$t('warehouse'), key: 'warehouse', align: 'center', sortable: false },
-        { title: this.$t('warehouse_operation'), key: 'warehouse_operation', align: 'center', sortable: false },
       ];
+      if (this.charge?.detail_charges?.some(d => d.package_type_id || d.nbr_box != null)) {
+        h.push({ title: this.$t('package_type'), key: 'package_type', align: 'center', sortable: false });
+        h.push({ title: this.$t('nbr_boxes'), key: 'nbr_box', align: 'center' });
+      }
+      h.push({ title: this.$t('weight'), key: 'weight', align: 'center' });
+      h.push({ title: this.$t('unit_price'), key: 'unit_price', align: 'center' });
+      h.push({ title: this.$t('total_price'), key: 'total_price', align: 'center' });
+      h.push({ title: this.$t('warehouse'), key: 'warehouse', align: 'center', sortable: false });
+      h.push({ title: this.$t('warehouse_operation'), key: 'warehouse_operation', align: 'center', sortable: false });
+      return h;
     },
   },
   mounted() { this.fetchCharge(); },
