@@ -412,6 +412,12 @@ const routes = [
                                 keeplive: true,
                                 component: () => import("@/components/parameters/StaticChargeManagement/index.vue")
                             },
+                            {
+                                path: "cost-configuration-management",
+                                name: "cost_configuration_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/CostConfigurationManagement/index.vue")
+                            },
                         ]
                     },
                     // =======================================

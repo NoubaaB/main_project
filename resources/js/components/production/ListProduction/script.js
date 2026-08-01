@@ -93,12 +93,12 @@ export default {
     },
     secondaryPackagingStats() {
       const comps = {
-        caisses: { key: 'caisses', label: this.$t('caisses'), qte: 0, total_cost: 0 },
-        cellophane: { key: 'cellophane', label: this.$t('cellophane'), qte: 0, total_cost: 0 },
-        plastique: { key: 'plastique', label: this.$t('plastique'), qte: 0, total_cost: 0 },
-        strapex: { key: 'strapex', label: this.$t('strapex'), qte: 0, total_cost: 0 },
-        palletes: { key: 'palletes', label: this.$t('palletes'), qte: 0, total_cost: 0 },
-        scotch: { key: 'scotch', label: this.$t('scotch'), qte: 0, total_cost: 0 },
+        caisses: { key: 'caisses', label: this.$t('caisses'), unit: 'U', qte: 0, total_cost: 0 },
+        cellophane: { key: 'cellophane', label: this.$t('cellophane'), unit: 'Kg', qte: 0, total_cost: 0 },
+        plastique: { key: 'plastique', label: this.$t('plastique'), unit: 'Kg', qte: 0, total_cost: 0 },
+        strapex: { key: 'strapex', label: this.$t('strapex'), unit: 'm', qte: 0, total_cost: 0 },
+        palletes: { key: 'palletes', label: this.$t('palletes'), unit: 'U', qte: 0, total_cost: 0 },
+        scotch: { key: 'scotch', label: this.$t('scotch'), unit: 'Rouleau', qte: 0, total_cost: 0 },
       };
 
       let directSum = 0;
@@ -113,14 +113,30 @@ export default {
           }
           if (secDetails) {
             const nbrBox = Number(secDetails.nbr_box || dp.nbr_box || 0);
-            ['caisses', 'cellophane', 'plastique', 'strapex', 'palletes', 'scotch'].forEach(comp => {
-              const qte = Number(secDetails[`${comp}_qte`] || 0);
-              const price = Number(secDetails[`${comp}_price`] || 0);
-              const compQte = nbrBox * qte;
-              const compCost = compQte * price;
-              comps[comp].qte += compQte;
-              comps[comp].total_cost += compCost;
-            });
+            if (Array.isArray(secDetails.components) && secDetails.components.length > 0) {
+              secDetails.components.forEach(c => {
+                const k = c.key || c.name;
+                if (!comps[k]) {
+                  comps[k] = { key: k, label: c.name || k, unit: c.unit || '', qte: 0, total_cost: 0 };
+                }
+                if (c.unit && !comps[k].unit) comps[k].unit = c.unit;
+                const qte = Number(c.qte || 0);
+                const price = Number(c.price || 0);
+                const compQte = nbrBox * qte;
+                const compCost = compQte * price;
+                comps[k].qte += compQte;
+                comps[k].total_cost += compCost;
+              });
+            } else {
+              ['caisses', 'cellophane', 'plastique', 'strapex', 'palletes', 'scotch'].forEach(comp => {
+                const qte = Number(secDetails[`${comp}_qte`] || 0);
+                const price = Number(secDetails[`${comp}_price`] || 0);
+                const compQte = nbrBox * qte;
+                const compCost = compQte * price;
+                comps[comp].qte += compQte;
+                comps[comp].total_cost += compCost;
+              });
+            }
           }
         });
       });

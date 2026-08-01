@@ -27,6 +27,7 @@ class PackageSecondaryConfig extends Model
         'scotch_qte',
         'scotch_price',
         'unit_cost',
+        'components',
     ];
 
     protected $casts = [
@@ -45,7 +46,10 @@ class PackageSecondaryConfig extends Model
         'scotch_qte' => 'decimal:4',
         'scotch_price' => 'decimal:4',
         'unit_cost' => 'decimal:4',
+        'components' => 'array',
     ];
+
+    protected $appends = ['resolved_components'];
 
     public function packageType()
     {
@@ -53,16 +57,43 @@ class PackageSecondaryConfig extends Model
     }
 
     /**
-     * Compute unit cost for 1 package from the 6 components
+     * Get resolved list of components (with defaults if components column is empty)
+     */
+    public function getResolvedComponentsAttribute(): array
+    {
+        if (is_array($this->components) && count($this->components) > 0) {
+            return array_map(function ($c) {
+                return [
+                    'key' => $c['key'] ?? ('comp_' . uniqid()),
+                    'name' => $c['name'] ?? '',
+                    'unit' => $c['unit'] ?? 'U',
+                    'qte' => (float) ($c['qte'] ?? 0),
+                    'price' => (float) ($c['price'] ?? 0),
+                    'is_custom' => (bool) ($c['is_custom'] ?? false),
+                ];
+            }, $this->components);
+        }
+
+        return [
+            ['key' => 'caisses', 'name' => 'Caisses', 'unit' => 'U', 'qte' => (float) $this->caisses_qte, 'price' => (float) $this->caisses_price, 'is_custom' => false],
+            ['key' => 'cellophane', 'name' => 'Cellophane', 'unit' => 'Kg', 'qte' => (float) $this->cellophane_qte, 'price' => (float) $this->cellophane_price, 'is_custom' => false],
+            ['key' => 'plastique', 'name' => 'Plastique', 'unit' => 'Kg', 'qte' => (float) $this->plastique_qte, 'price' => (float) $this->plastique_price, 'is_custom' => false],
+            ['key' => 'strapex', 'name' => 'Strapex', 'unit' => 'm', 'qte' => (float) $this->strapex_qte, 'price' => (float) $this->strapex_price, 'is_custom' => false],
+            ['key' => 'palletes', 'name' => 'Palletes', 'unit' => 'U', 'qte' => (float) $this->palletes_qte, 'price' => (float) $this->palletes_price, 'is_custom' => false],
+            ['key' => 'scotch', 'name' => 'Scotch', 'unit' => 'Rouleau', 'qte' => (float) $this->scotch_qte, 'price' => (float) $this->scotch_price, 'is_custom' => false],
+        ];
+    }
+
+    /**
+     * Compute unit cost for 1 package from components
      */
     public function computeUnitCost(): float
     {
-        $cost = (float) $this->caisses_qte * (float) $this->caisses_price
-            + (float) $this->cellophane_qte * (float) $this->cellophane_price
-            + (float) $this->plastique_qte * (float) $this->plastique_price
-            + (float) $this->strapex_qte * (float) $this->strapex_price
-            + (float) $this->palletes_qte * (float) $this->palletes_price
-            + (float) $this->scotch_qte * (float) $this->scotch_price;
+        $comps = $this->resolved_components;
+        $cost = 0;
+        foreach ($comps as $c) {
+            $cost += ((float) ($c['qte'] ?? 0)) * ((float) ($c['price'] ?? 0));
+        }
 
         return round($cost, 4);
     }

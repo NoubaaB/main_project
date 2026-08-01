@@ -61,7 +61,7 @@
             </v-col>
             <!-- Total Price -->
             <v-col cols="12" md="6" v-if="group.category.allow_price">
-              <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#42A5F5" class="text-charge" hide-details min="0" readonly></v-text-field>
+              <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#42A5F5" class="text-charge" hide-details min="0" :readonly="group.category.allow_weight && group.category.allow_unit_price"></v-text-field>
             </v-col>
             <!-- Warehouse -->
             <v-col cols="12" md="6" v-if="group.category.allow_warehouse">
@@ -256,6 +256,8 @@ export default {
       if (category.allow_weight && (!f.weight || f.weight <= 0)) return false;
       // Unit price required if enabled
       if (category.allow_unit_price && (!f.unit_price || f.unit_price <= 0)) return false;
+      // Total price required if allow_price enabled without allow_weight OR allow_unit_price
+      if (category.allow_price && (!category.allow_weight || !category.allow_unit_price) && (!f.total_price || f.total_price <= 0)) return false;
       // Package type required if enabled
       if (category.allow_package_type && !f.package_type_id) return false;
       // Warehouse required if enabled

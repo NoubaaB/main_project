@@ -216,6 +216,7 @@ export default {
           ['mdi-calendar-clock', this.$t("fortnight_settings"), "fortnight_settings", 'settings.fortnight'],
           ['mdi-chart-areaspline', this.$t("chart_management"), "chart_management", 'settings.charts'],
           ['mdi-cash-lock-open', this.$t("static_charge_management"), "static_charge_management", 'settings.static_charges'],
+          ['mdi-calculator-variant-outline', this.$t("cost_configuration_management"), "cost_configuration_management", 'settings.charges'],
         ], null],
         ['mdi-shield-account', this.$t('user_management'), null, "admin_users", 'users.manage'],
       ];

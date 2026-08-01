@@ -34,6 +34,10 @@
           </template>
           <template v-slot:[`item.weight`]="{ item }">{{ item.weight ? main.formatDisplayNumber(item.weight) + ' Kg' : '-' }}</template>
           <template v-slot:[`item.total_price`]="{ item }">{{ item.total_price ? main.formatDisplayNumber(item.total_price) + ' ' + main.currency : '-' }}</template>
+          <template v-slot:[`item.secondary_packaging_cost`]="{ item }">
+            <span v-if="item.secondary_packaging_cost > 0" class="font-weight-bold text-blue-grey">{{ main.formatDisplayNumber(item.secondary_packaging_cost) }} {{ main.currency }}</span>
+            <span v-else class="text-grey">-</span>
+          </template>
           <template v-slot:[`item.warehouse`]="{ item }">{{ item.warehouse ? item.warehouse.name : '-' }}</template>
         </v-data-table>
       </div>
@@ -45,8 +49,8 @@
         </div>
         <v-row dense>
           <!-- Weight & Price by Detail Category -->
-          <v-col cols="12" md="5">
-            <div class="vp-stat-panel">
+          <v-col cols="12" sm="6" lg="3">
+            <div class="vp-stat-panel" style="height:100%">
               <div class="vp-stat-panel-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-tag-multiple</v-icon>{{ $t('production_category') }}</div>
               <div v-for="(grp, gi) in detailCategoryStats" :key="gi" class="vp-stat-item mb-2">
                 <div class="d-flex align-center justify-space-between mb-1">
@@ -65,8 +69,8 @@
           </v-col>
 
           <!-- Production Balance -->
-          <v-col cols="12" md="4">
-            <div class="vp-stat-panel">
+          <v-col cols="12" sm="6" lg="3">
+            <div class="vp-stat-panel" style="height:100%">
               <div class="vp-stat-panel-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-scale-balance</v-icon>{{ $t('production_balance') }}</div>
               <!-- Fresh Reception from Charge -->
               <div class="vp-stat-item mb-2">
@@ -138,8 +142,41 @@
             </div>
           </v-col>
 
+          <!-- Secondary Packaging Configuration -->
+          <v-col cols="12" sm="6" lg="3">
+            <div class="vp-stat-panel" style="height:100%;display:flex;flex-direction:column">
+              <div class="vp-stat-panel-header d-flex align-center justify-space-between mb-2">
+                <div class="d-flex align-center">
+                  <v-icon size="16" color="#546E7A" class="mr-1">mdi-layers-outline</v-icon>
+                  <span>{{ $t('secondary_packaging_config') }}</span>
+                </div>
+                <v-chip size="x-small" color="#546E7A" variant="elevated" class="font-weight-bold ml-1">
+                  {{ main.formatDisplayNumber(secondaryPackagingStats.total_cost) }} {{ main.currency }}
+                </v-chip>
+              </div>
+              <div class="d-flex flex-column ga-1 flex-grow-1">
+                <div
+                  v-for="comp in secondaryPackagingStats.items"
+                  :key="comp.key"
+                  class="vp-stat-item px-2 py-1 rounded d-flex align-center justify-space-between"
+                  :style="{ background: comp.qte > 0 ? 'rgba(84, 110, 122, 0.08)' : 'transparent', opacity: comp.qte > 0 ? 1 : 0.5 }"
+                >
+                  <span class="text-caption font-weight-medium">
+                    {{ comp.label }}
+                    <span v-if="comp.unit" class="text-grey text-caption font-weight-bold" style="opacity: 0.8">({{ comp.unit }})</span>
+                  </span>
+                  <div class="d-flex align-center ga-2 text-caption">
+                    <span v-if="comp.qte > 0" class="text-medium-emphasis"><b>{{ main.formatDisplayNumber(comp.qte) }}</b> {{ comp.unit || '' }}</span>
+                    <span v-else class="text-grey">-</span>
+                    <b class="text-blue-grey-darken-3">{{ main.formatDisplayNumber(comp.total_cost) }} {{ main.currency }}</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </v-col>
+
           <!-- Donut Chart -->
-          <v-col cols="12" md="3">
+          <v-col cols="12" sm="6" lg="3">
             <div class="vp-stat-panel" style="height:100%;display:flex;flex-direction:column">
               <div class="vp-stat-panel-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-chart-donut</v-icon>{{ $t('weight_distribution') }}</div>
               <apexchart v-if="balanceDonutSeries.some(v => v > 0)" type="donut" :height="240" :options="balanceDonutOptions" :series="balanceDonutSeries"></apexchart>
@@ -206,9 +243,11 @@
       </div>
       <div style="height:3px;background:linear-gradient(90deg,#006064,#26C6DA,#006064);border-radius:2px;margin:12px 0 20px"></div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
-        <tr><td class="pi-l">{{ $t('qc_lot_id') }}</td><td class="pi-v">{{ qc.lot_id||'-' }}</td><td class="pi-l">{{ $t('qc_species') }}</td><td class="pi-v">{{ qc.species||'-' }}</td></tr>
-        <tr><td class="pi-l">{{ $t('qc_quantity_kg') }}</td><td class="pi-v">{{ qc.quantity_kg ? qc.quantity_kg+' Kg' : '-' }}</td><td class="pi-l">{{ $t('qc_temperature') }}</td><td class="pi-v">{{ qc.temperature!=null ? qc.temperature+'°C' : '-' }}</td></tr>
-        <tr><td class="pi-l">{{ $t('qc_inspector') }}</td><td class="pi-v">{{ qc.inspector_name||'-' }}</td><td class="pi-l">{{ $t('qc_inspection_date') }}</td><td class="pi-v">{{ qc.inspection_date ? main.formateDate(qc.inspection_date) : '-' }}</td></tr>
+        <tbody>
+          <tr><td class="pi-l">{{ $t('qc_lot_id') }}</td><td class="pi-v">{{ qc.lot_id||'-' }}</td><td class="pi-l">{{ $t('qc_species') }}</td><td class="pi-v">{{ qc.species||'-' }}</td></tr>
+          <tr><td class="pi-l">{{ $t('qc_quantity_kg') }}</td><td class="pi-v">{{ qc.quantity_kg ? qc.quantity_kg+' Kg' : '-' }}</td><td class="pi-l">{{ $t('qc_temperature') }}</td><td class="pi-v">{{ qc.temperature!=null ? qc.temperature+'°C' : '-' }}</td></tr>
+          <tr><td class="pi-l">{{ $t('qc_inspector') }}</td><td class="pi-v">{{ qc.inspector_name||'-' }}</td><td class="pi-l">{{ $t('qc_inspection_date') }}</td><td class="pi-v">{{ qc.inspection_date ? main.formateDate(qc.inspection_date) : '-' }}</td></tr>
+        </tbody>
       </table>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr><th class="pg-h" style="text-align:left">{{ $t('qc_criteria') }}</th><th v-for="g in vpGrades" :key="g" class="pg-h">{{ $t('qc_grade_'+g) }}</th></tr></thead>
@@ -278,8 +317,71 @@ export default {
       }
       h.push({ title: this.$t('weight'), key: 'weight', align: 'center' });
       h.push({ title: this.$t('total_price'), key: 'total_price', align: 'center' });
+      if (this.production?.detail_productions?.some(d => Number(d.secondary_packaging_cost || 0) > 0)) {
+        h.push({ title: this.$t('secondary_packaging_cost'), key: 'secondary_packaging_cost', align: 'center' });
+      }
       h.push({ title: this.$t('warehouse'), key: 'warehouse', align: 'center', sortable: false });
       return h;
+    },
+    secondaryPackagingStats() {
+      const comps = {
+        caisses: { key: 'caisses', label: this.$t('caisses'), unit: 'U', qte: 0, total_cost: 0 },
+        cellophane: { key: 'cellophane', label: this.$t('cellophane'), unit: 'Kg', qte: 0, total_cost: 0 },
+        plastique: { key: 'plastique', label: this.$t('plastique'), unit: 'Kg', qte: 0, total_cost: 0 },
+        strapex: { key: 'strapex', label: this.$t('strapex'), unit: 'm', qte: 0, total_cost: 0 },
+        palletes: { key: 'palletes', label: this.$t('palletes'), unit: 'U', qte: 0, total_cost: 0 },
+        scotch: { key: 'scotch', label: this.$t('scotch'), unit: 'Rouleau', qte: 0, total_cost: 0 },
+      };
+
+      let directSum = Number(this.production?.total_secondary_packaging_cost || 0);
+      const details = this.production?.detail_productions || [];
+      details.forEach(dp => {
+        let secDetails = dp.secondary_packaging_details;
+        if (typeof secDetails === 'string') {
+          try { secDetails = JSON.parse(secDetails); } catch (e) { secDetails = null; }
+        }
+        if (secDetails) {
+          const nbrBox = Number(secDetails.nbr_box || dp.nbr_box || 0);
+          if (Array.isArray(secDetails.components) && secDetails.components.length > 0) {
+            secDetails.components.forEach(c => {
+              const k = c.key || c.name;
+              if (!comps[k]) {
+                comps[k] = { key: k, label: c.name || k, unit: c.unit || '', qte: 0, total_cost: 0 };
+              }
+              if (c.unit && !comps[k].unit) comps[k].unit = c.unit;
+              const qte = Number(c.qte || 0);
+              const price = Number(c.price || 0);
+              const compQte = nbrBox * qte;
+              const compCost = compQte * price;
+              comps[k].qte += compQte;
+              comps[k].total_cost += compCost;
+            });
+          } else {
+            ['caisses', 'cellophane', 'plastique', 'strapex', 'palletes', 'scotch'].forEach(comp => {
+              const qte = Number(secDetails[`${comp}_qte`] || 0);
+              const price = Number(secDetails[`${comp}_price`] || 0);
+              const compQte = nbrBox * qte;
+              const compCost = compQte * price;
+              comps[comp].qte += compQte;
+              comps[comp].total_cost += compCost;
+            });
+          }
+        }
+      });
+
+      const items = Object.values(comps).map(c => ({
+        ...c,
+        qte: Math.round(c.qte * 1000) / 1000,
+        total_cost: Math.round(c.total_cost * 100) / 100,
+      }));
+
+      const calculatedTotal = items.reduce((sum, i) => sum + i.total_cost, 0);
+      const grandTotal = Math.max(Math.round(calculatedTotal * 100) / 100, Math.round(directSum * 100) / 100);
+
+      return {
+        items,
+        total_cost: grandTotal,
+      };
     },
     vpTotalWeight() { return (this.production?.detail_productions || []).reduce((s, d) => s + Number(d.weight || 0), 0); },
     vpTotalPrice() { return (this.production?.detail_productions || []).reduce((s, d) => s + Number(d.total_price || 0), 0); },

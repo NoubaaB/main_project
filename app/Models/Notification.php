@@ -69,6 +69,7 @@ class Notification extends Model
             'StorageInvoice'     => 'warehouses.view',
             'OrderTransfer'      => 'supplier_invoices.view',
             'FortnightActivity'  => 'workforce.view',
+            'CostConfiguration'  => 'settings.charges',
         ];
     }
 
@@ -88,6 +89,7 @@ class Notification extends Model
             'StorageInvoice'     => 'storage_invoices',
             'OrderTransfer'      => 'order_transfers_page',
             'FortnightActivity'  => 'fortnight_management',
+            'CostConfiguration'  => 'cost_configuration_management',
         ];
     }
 }

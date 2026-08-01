@@ -121,71 +121,82 @@
 
             <v-divider class="my-3"></v-divider>
 
-            <!-- 6 Components Fields Grid (qte & price for each) -->
-            <div class="text-caption font-weight-bold text-blue-grey mb-2">{{ $t('secondary_packaging') }} Components (Quantity & Price per package)</div>
+            <!-- Components Fields Grid (Measure, Quantity & Price per package) -->
+            <div class="d-flex align-center justify-space-between mb-2">
+              <div class="text-caption font-weight-bold text-blue-grey">{{ $t('secondary_packaging') }} Components (Measure, Quantity & Price per package)</div>
+              <v-btn size="small" color="#546E7A" variant="tonal" rounded prepend-icon="mdi-plus" @click="addSecondaryComponent">
+                {{ $t('add_component') }}
+              </v-btn>
+            </div>
+
             <v-row dense>
-              <!-- Caisses -->
-              <v-col cols="6" sm="4">
+              <v-col v-for="(comp, cIdx) in secondaryForm.components" :key="comp.key || cIdx" cols="12" sm="6">
                 <v-card variant="tonal" color="#546E7A" class="pa-2 rounded-lg mb-2">
-                  <div class="text-caption font-weight-bold mb-1">{{ $t('caisses') }}</div>
+                  <div class="d-flex align-center justify-space-between mb-1">
+                    <div class="text-caption font-weight-bold text-truncate flex-grow-1 mr-1">
+                      <v-text-field
+                        v-if="comp.is_custom"
+                        v-model="comp.name"
+                        :placeholder="$t('component_name')"
+                        variant="underlined"
+                        density="compact"
+                        hide-details
+                        color="#546E7A"
+                        class="text-caption font-weight-bold pa-0 ma-0"
+                      ></v-text-field>
+                      <span v-else>{{ comp.name }}</span>
+                    </div>
+                    <v-btn
+                      v-if="comp.is_custom"
+                      icon="mdi-close-circle"
+                      size="x-small"
+                      variant="text"
+                      color="error"
+                      @click="removeSecondaryComponent(cIdx)"
+                      :title="$t('remove_component')"
+                    ></v-btn>
+                  </div>
                   <v-row dense>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.caisses_qte" type="number" step="0.001" min="0" :label="$t('caisses_qte')" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.caisses_price" type="number" step="0.001" min="0" :label="$t('caisses_price') + ' (DH)'" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                  </v-row>
-                </v-card>
-              </v-col>
-
-              <!-- Cellophane -->
-              <v-col cols="6" sm="4">
-                <v-card variant="tonal" color="#546E7A" class="pa-2 rounded-lg mb-2">
-                  <div class="text-caption font-weight-bold mb-1">{{ $t('cellophane') }}</div>
-                  <v-row dense>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.cellophane_qte" type="number" step="0.001" min="0" :label="$t('cellophane_qte')" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.cellophane_price" type="number" step="0.001" min="0" :label="$t('cellophane_price') + ' (DH)'" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                  </v-row>
-                </v-card>
-              </v-col>
-
-              <!-- Plastique -->
-              <v-col cols="6" sm="4">
-                <v-card variant="tonal" color="#546E7A" class="pa-2 rounded-lg mb-2">
-                  <div class="text-caption font-weight-bold mb-1">{{ $t('plastique') }}</div>
-                  <v-row dense>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.plastique_qte" type="number" step="0.001" min="0" :label="$t('plastique_qte')" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.plastique_price" type="number" step="0.001" min="0" :label="$t('plastique_price') + ' (DH)'" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                  </v-row>
-                </v-card>
-              </v-col>
-
-              <!-- Strapex -->
-              <v-col cols="6" sm="4">
-                <v-card variant="tonal" color="#546E7A" class="pa-2 rounded-lg mb-2">
-                  <div class="text-caption font-weight-bold mb-1">{{ $t('strapex') }}</div>
-                  <v-row dense>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.strapex_qte" type="number" step="0.001" min="0" :label="$t('strapex_qte')" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.strapex_price" type="number" step="0.001" min="0" :label="$t('strapex_price') + ' (DH)'" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                  </v-row>
-                </v-card>
-              </v-col>
-
-              <!-- Palletes -->
-              <v-col cols="6" sm="4">
-                <v-card variant="tonal" color="#546E7A" class="pa-2 rounded-lg mb-2">
-                  <div class="text-caption font-weight-bold mb-1">{{ $t('palletes') }}</div>
-                  <v-row dense>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.palletes_qte" type="number" step="0.001" min="0" :label="$t('palletes_qte')" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.palletes_price" type="number" step="0.001" min="0" :label="$t('palletes_price') + ' (DH)'" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                  </v-row>
-                </v-card>
-              </v-col>
-
-              <!-- Scotch -->
-              <v-col cols="6" sm="4">
-                <v-card variant="tonal" color="#546E7A" class="pa-2 rounded-lg mb-2">
-                  <div class="text-caption font-weight-bold mb-1">{{ $t('scotch') }}</div>
-                  <v-row dense>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.scotch_qte" type="number" step="0.001" min="0" :label="$t('scotch_qte')" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
-                    <v-col cols="6"><v-text-field v-model.number="secondaryForm.scotch_price" type="number" step="0.001" min="0" :label="$t('scotch_price') + ' (DH)'" variant="outlined" density="compact" rounded color="#546E7A" hide-details></v-text-field></v-col>
+                    <v-col cols="4">
+                      <v-combobox
+                        v-model="comp.unit"
+                        :items="['U', 'Kg', 'g', 'm', 'Rouleau', 'Pièce', 'Carton', 'L']"
+                        :label="$t('measure')"
+                        variant="outlined"
+                        density="compact"
+                        rounded
+                        color="#546E7A"
+                        hide-details
+                      ></v-combobox>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model.number="comp.qte"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        :label="$t('qte')"
+                        variant="outlined"
+                        density="compact"
+                        rounded
+                        color="#546E7A"
+                        hide-details
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model.number="comp.price"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        :label="$t('price') + ' (DH)'"
+                        variant="outlined"
+                        density="compact"
+                        rounded
+                        color="#546E7A"
+                        hide-details
+                      ></v-text-field>
+                    </v-col>
                   </v-row>
                 </v-card>
               </v-col>
@@ -226,12 +237,25 @@
             </template>
             <template v-slot:[`item.breakdown`]="{ item }">
               <div class="text-caption ga-1 d-flex flex-wrap">
-                <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.caisses_qte > 0">Caisses: {{ item.caisses_qte }}x{{ item.caisses_price }}</v-chip>
-                <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.cellophane_qte > 0">Cello: {{ item.cellophane_qte }}x{{ item.cellophane_price }}</v-chip>
-                <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.plastique_qte > 0">Plast: {{ item.plastique_qte }}x{{ item.plastique_price }}</v-chip>
-                <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.strapex_qte > 0">Strap: {{ item.strapex_qte }}x{{ item.strapex_price }}</v-chip>
-                <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.palletes_qte > 0">Pallet: {{ item.palletes_qte }}x{{ item.palletes_price }}</v-chip>
-                <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.scotch_qte > 0">Scotch: {{ item.scotch_qte }}x{{ item.scotch_price }}</v-chip>
+                <template v-if="item.resolved_components && item.resolved_components.length">
+                  <v-chip
+                    v-for="(comp, cIdx) in item.resolved_components.filter(c => c.qte > 0)"
+                    :key="cIdx"
+                    size="x-small"
+                    variant="tonal"
+                    color="blue-grey"
+                  >
+                    {{ comp.name }} ({{ comp.unit || 'U' }}): {{ comp.qte }}x{{ comp.price }}
+                  </v-chip>
+                </template>
+                <template v-else>
+                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.caisses_qte > 0">Caisses (U): {{ item.caisses_qte }}x{{ item.caisses_price }}</v-chip>
+                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.cellophane_qte > 0">Cello (Kg): {{ item.cellophane_qte }}x{{ item.cellophane_price }}</v-chip>
+                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.plastique_qte > 0">Plast (Kg): {{ item.plastique_qte }}x{{ item.plastique_price }}</v-chip>
+                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.strapex_qte > 0">Strap (m): {{ item.strapex_qte }}x{{ item.strapex_price }}</v-chip>
+                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.palletes_qte > 0">Pallet (U): {{ item.palletes_qte }}x{{ item.palletes_price }}</v-chip>
+                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.scotch_qte > 0">Scotch (Rouleau): {{ item.scotch_qte }}x{{ item.scotch_price }}</v-chip>
+                </template>
               </div>
             </template>
             <template v-slot:[`item.unit_cost`]="{ item }">
@@ -298,12 +322,7 @@ export default {
       secondaryDateRangeVC: { start: new Date(), end: new Date() },
       secondaryForm: {
         is_range: false,
-        caisses_qte: 0, caisses_price: 0,
-        cellophane_qte: 0, cellophane_price: 0,
-        plastique_qte: 0, plastique_price: 0,
-        strapex_qte: 0, strapex_price: 0,
-        palletes_qte: 0, palletes_price: 0,
-        scotch_qte: 0, scotch_price: 0,
+        components: [],
       },
     };
   },
@@ -347,13 +366,10 @@ export default {
       return d ? (typeof d === 'string' ? d.substring(0, 10) : new Date(d).toISOString().substring(0, 10)) : '-';
     },
     calculatedUnitCost() {
-      const f = this.secondaryForm;
-      const total = (Number(f.caisses_qte || 0) * Number(f.caisses_price || 0))
-        + (Number(f.cellophane_qte || 0) * Number(f.cellophane_price || 0))
-        + (Number(f.plastique_qte || 0) * Number(f.plastique_price || 0))
-        + (Number(f.strapex_qte || 0) * Number(f.strapex_price || 0))
-        + (Number(f.palletes_qte || 0) * Number(f.palletes_price || 0))
-        + (Number(f.scotch_qte || 0) * Number(f.scotch_price || 0));
+      if (!this.secondaryForm.components) return 0;
+      const total = this.secondaryForm.components.reduce((sum, c) => {
+        return sum + (Number(c.qte || 0) * Number(c.price || 0));
+      }, 0);
       return Math.round(total * 10000) / 10000;
     },
     filteredItems() {
@@ -371,8 +387,18 @@ export default {
   beforeUnmount() { mitt.off('model-changed', this._onMC); },
   methods: {
     _onMC(d) {
-      if (d.model === 'PackageType') this.fetchItems();
-      if (d.model === 'PackageSecondaryConfig' && this.selectedPackage) this.fetchSecondaryRules();
+      if (d.model === 'PackageType') {
+        this.fetchItems();
+        if (d.action && d.user_id !== this.main.user?.id) {
+          this.snackbar = { show: true, message: `${this.$t('package_type')} ${d.action}`, color: 'info' };
+        }
+      }
+      if (d.model === 'PackageSecondaryConfig' && this.selectedPackage) {
+        this.fetchSecondaryRules();
+        if (d.action && d.user_id !== this.main.user?.id) {
+          this.snackbar = { show: true, message: `${this.$t('secondary_packaging_config')} ${d.action}`, color: 'info' };
+        }
+      }
     },
     getColumnOptions(key) { const set = new Set(); this.items.forEach(i => set.add(String(i[key] ?? ''))); return [...set].sort(); },
     async fetchItems() {
@@ -415,6 +441,16 @@ export default {
     },
 
     // Secondary Packaging Configuration Methods
+    defaultSecondaryComponents() {
+      return [
+        { key: 'caisses', name: this.$t('caisses'), unit: 'U', qte: 0, price: 0, is_custom: false },
+        { key: 'cellophane', name: this.$t('cellophane'), unit: 'Kg', qte: 0, price: 0, is_custom: false },
+        { key: 'plastique', name: this.$t('plastique'), unit: 'Kg', qte: 0, price: 0, is_custom: false },
+        { key: 'strapex', name: this.$t('strapex'), unit: 'm', qte: 0, price: 0, is_custom: false },
+        { key: 'palletes', name: this.$t('palletes'), unit: 'U', qte: 0, price: 0, is_custom: false },
+        { key: 'scotch', name: this.$t('scotch'), unit: 'Rouleau', qte: 0, price: 0, is_custom: false },
+      ];
+    },
     openSecondaryDialog(pkg) {
       this.selectedPackage = pkg;
       this.resetSecondaryForm();
@@ -427,13 +463,24 @@ export default {
       this.secondaryDateRangeVC = { start: new Date(), end: new Date() };
       this.secondaryForm = {
         is_range: false,
-        caisses_qte: 0, caisses_price: 0,
-        cellophane_qte: 0, cellophane_price: 0,
-        plastique_qte: 0, plastique_price: 0,
-        strapex_qte: 0, strapex_price: 0,
-        palletes_qte: 0, palletes_price: 0,
-        scotch_qte: 0, scotch_price: 0,
+        components: this.defaultSecondaryComponents(),
       };
+    },
+    addSecondaryComponent() {
+      if (!this.secondaryForm.components) this.secondaryForm.components = [];
+      this.secondaryForm.components.push({
+        key: 'comp_' + Date.now(),
+        name: '',
+        unit: 'U',
+        qte: 0,
+        price: 0,
+        is_custom: true,
+      });
+    },
+    removeSecondaryComponent(idx) {
+      if (this.secondaryForm.components) {
+        this.secondaryForm.components.splice(idx, 1);
+      }
     },
     async fetchSecondaryRules() {
       if (!this.selectedPackage) return;
@@ -454,15 +501,27 @@ export default {
       } else {
         this.secondarySingleDateVC = s;
       }
-      this.secondaryForm = {
-        is_range: !!rule.date_end,
-        caisses_qte: Number(rule.caisses_qte || 0), caisses_price: Number(rule.caisses_price || 0),
-        cellophane_qte: Number(rule.cellophane_qte || 0), cellophane_price: Number(rule.cellophane_price || 0),
-        plastique_qte: Number(rule.plastique_qte || 0), plastique_price: Number(rule.plastique_price || 0),
-        strapex_qte: Number(rule.strapex_qte || 0), strapex_price: Number(rule.strapex_price || 0),
-        palletes_qte: Number(rule.palletes_qte || 0), palletes_price: Number(rule.palletes_price || 0),
-        scotch_qte: Number(rule.scotch_qte || 0), scotch_price: Number(rule.scotch_price || 0),
-      };
+      let comps = rule.resolved_components || rule.components;
+      if (!comps || !comps.length) {
+        comps = [
+          { key: 'caisses', name: this.$t('caisses'), unit: 'U', qte: Number(rule.caisses_qte || 0), price: Number(rule.caisses_price || 0), is_custom: false },
+          { key: 'cellophane', name: this.$t('cellophane'), unit: 'Kg', qte: Number(rule.cellophane_qte || 0), price: Number(rule.cellophane_price || 0), is_custom: false },
+          { key: 'plastique', name: this.$t('plastique'), unit: 'Kg', qte: Number(rule.plastique_qte || 0), price: Number(rule.plastique_price || 0), is_custom: false },
+          { key: 'strapex', name: this.$t('strapex'), unit: 'm', qte: Number(rule.strapex_qte || 0), price: Number(rule.strapex_price || 0), is_custom: false },
+          { key: 'palletes', name: this.$t('palletes'), unit: 'U', qte: Number(rule.palletes_qte || 0), price: Number(rule.palletes_price || 0), is_custom: false },
+          { key: 'scotch', name: this.$t('scotch'), unit: 'Rouleau', qte: Number(rule.scotch_qte || 0), price: Number(rule.scotch_price || 0), is_custom: false },
+        ];
+      } else {
+        comps = comps.map(c => ({
+          key: c.key || ('comp_' + Math.random()),
+          name: c.name || '',
+          unit: c.unit || 'U',
+          qte: Number(c.qte || 0),
+          price: Number(c.price || 0),
+          is_custom: !!c.is_custom,
+        }));
+      }
+      this.secondaryForm.components = comps;
     },
     async saveSecondaryRule() {
       if (!this.selectedPackage) return;
@@ -475,12 +534,7 @@ export default {
           package_type_id: this.selectedPackage.id,
           date_start: startDate,
           date_end: endDate,
-          caisses_qte: this.secondaryForm.caisses_qte, caisses_price: this.secondaryForm.caisses_price,
-          cellophane_qte: this.secondaryForm.cellophane_qte, cellophane_price: this.secondaryForm.cellophane_price,
-          plastique_qte: this.secondaryForm.plastique_qte, plastique_price: this.secondaryForm.plastique_price,
-          strapex_qte: this.secondaryForm.strapex_qte, strapex_price: this.secondaryForm.strapex_price,
-          palletes_qte: this.secondaryForm.palletes_qte, palletes_price: this.secondaryForm.palletes_price,
-          scotch_qte: this.secondaryForm.scotch_qte, scotch_price: this.secondaryForm.scotch_price,
+          components: this.secondaryForm.components || [],
         };
 
         if (this.editingSecondaryRule) {

@@ -90,9 +90,9 @@
                   class="d-flex align-center justify-space-between px-2 py-1 rounded"
                   :style="{ background: comp.qte > 0 ? 'rgba(84, 110, 122, 0.08)' : 'transparent', opacity: comp.qte > 0 ? 1 : 0.5 }"
                 >
-                  <span class="text-caption font-weight-medium">{{ comp.label }}</span>
+                  <span class="text-caption font-weight-medium">{{ comp.label }} <span v-if="comp.unit" class="text-grey text-caption font-weight-bold" style="opacity: 0.8">({{ comp.unit }})</span></span>
                   <div class="d-flex align-center ga-2 text-caption">
-                    <span v-if="comp.qte > 0" class="text-medium-emphasis"><b>{{ main.formatDisplayNumber(comp.qte) }}</b></span>
+                    <span v-if="comp.qte > 0" class="text-medium-emphasis"><b>{{ main.formatDisplayNumber(comp.qte) }}</b> {{ comp.unit || '' }}</span>
                     <span v-else class="text-grey">-</span>
                     <b class="text-blue-grey-darken-3">{{ main.formatDisplayNumber(comp.total_cost) }} {{ main.currency }}</b>
                   </div>

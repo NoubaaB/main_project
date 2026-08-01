@@ -740,6 +740,7 @@ class ProductionController extends Controller
             'config_id' => $config->id,
             'unit_cost' => $unitCost,
             'nbr_box' => $nbrBox,
+            'components' => $config->resolved_components,
             'caisses_qte' => (float) $config->caisses_qte,
             'caisses_price' => (float) $config->caisses_price,
             'cellophane_qte' => (float) $config->cellophane_qte,

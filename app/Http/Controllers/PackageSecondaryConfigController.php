@@ -38,9 +38,25 @@ class PackageSecondaryConfigController extends Controller
             'palletes_price' => 'nullable|numeric|min:0',
             'scotch_qte' => 'nullable|numeric|min:0',
             'scotch_price' => 'nullable|numeric|min:0',
+            'components' => 'nullable|array',
+            'components.*.key' => 'nullable|string',
+            'components.*.name' => 'nullable|string',
+            'components.*.unit' => 'nullable|string',
+            'components.*.qte' => 'nullable|numeric|min:0',
+            'components.*.price' => 'nullable|numeric|min:0',
+            'components.*.is_custom' => 'nullable|boolean',
         ]);
 
         $item = new PackageSecondaryConfig($data);
+        if (isset($data['components']) && is_array($data['components'])) {
+            foreach ($data['components'] as $comp) {
+                $k = $comp['key'] ?? '';
+                if (in_array($k, ['caisses', 'cellophane', 'plastique', 'strapex', 'palletes', 'scotch'])) {
+                    $item->{"{$k}_qte"} = (float) ($comp['qte'] ?? 0);
+                    $item->{"{$k}_price"} = (float) ($comp['price'] ?? 0);
+                }
+            }
+        }
         $item->unit_cost = $item->computeUnitCost();
         $item->save();
         $item->load('packageType');
@@ -68,9 +84,25 @@ class PackageSecondaryConfigController extends Controller
             'palletes_price' => 'nullable|numeric|min:0',
             'scotch_qte' => 'nullable|numeric|min:0',
             'scotch_price' => 'nullable|numeric|min:0',
+            'components' => 'nullable|array',
+            'components.*.key' => 'nullable|string',
+            'components.*.name' => 'nullable|string',
+            'components.*.unit' => 'nullable|string',
+            'components.*.qte' => 'nullable|numeric|min:0',
+            'components.*.price' => 'nullable|numeric|min:0',
+            'components.*.is_custom' => 'nullable|boolean',
         ]);
 
         $item->fill($data);
+        if (isset($data['components']) && is_array($data['components'])) {
+            foreach ($data['components'] as $comp) {
+                $k = $comp['key'] ?? '';
+                if (in_array($k, ['caisses', 'cellophane', 'plastique', 'strapex', 'palletes', 'scotch'])) {
+                    $item->{"{$k}_qte"} = (float) ($comp['qte'] ?? 0);
+                    $item->{"{$k}_price"} = (float) ($comp['price'] ?? 0);
+                }
+            }
+        }
         $item->unit_cost = $item->computeUnitCost();
         $item->save();
         $item->load('packageType');

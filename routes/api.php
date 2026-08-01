@@ -399,6 +399,12 @@ Route::middleware(["auth:sanctum"])->group(
         //  USER STATISTICS ROUTES
         // ═══════════════════════════════════════════
         Route::get("user-statistics", [App\Http\Controllers\UserStatisticsController::class, "index"]);
+        // ═══════════════════════════════════════════
+        //  COST CONFIGURATION ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("cost-configurations/categories-and-sources", [App\Http\Controllers\CostConfigurationController::class, "categoriesAndSources"]);
+        Route::post("cost-configurations/evaluate", [App\Http\Controllers\CostConfigurationController::class, "evaluate"]);
+        Route::apiResource("cost-configurations", App\Http\Controllers\CostConfigurationController::class);
     }
 );
 #endregion

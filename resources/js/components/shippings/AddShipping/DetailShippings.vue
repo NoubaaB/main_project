@@ -73,7 +73,7 @@
                   <v-text-field v-model.number="entryForms[group.category.id].unit_price" type="number" :label="$t('unit_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" @input="recalcForm(group.category)"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6" v-if="group.category.allow_price">
-                  <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" readonly></v-text-field>
+                  <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" :readonly="group.category.allow_weight && group.category.allow_unit_price"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6" v-if="group.category.allow_package_type">
                   <v-autocomplete v-model="entryForms[group.category.id].package_type_id" :items="packageTypeOptions" :label="$t('package_type')" chips density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details clearable @update:modelValue="recalcForm(group.category)"></v-autocomplete>
@@ -110,7 +110,7 @@
                 <v-text-field v-model.number="entryForms[group.category.id].unit_price" type="number" :label="$t('unit_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" @input="recalcForm(group.category)"></v-text-field>
               </v-col>
               <v-col cols="12" md="6" v-if="group.category.allow_price">
-                <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" readonly></v-text-field>
+                <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" :readonly="group.category.allow_weight && group.category.allow_unit_price"></v-text-field>
               </v-col>
               <v-col cols="12" md="6" v-if="group.category.allow_package_type">
                 <v-autocomplete v-model="entryForms[group.category.id].package_type_id" :items="packageTypeOptions" :label="$t('package_type')" chips density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details clearable @update:modelValue="recalcForm(group.category)"></v-autocomplete>
@@ -223,6 +223,7 @@ export default {
       else { if (!f.stockable_id) return false; }
       if (category.allow_weight && (!f.weight || f.weight <= 0)) return false;
       if (category.allow_unit_price && (!f.unit_price || f.unit_price <= 0)) return false;
+      if (category.allow_price && (!category.allow_weight || !category.allow_unit_price) && (!f.total_price || f.total_price <= 0)) return false;
       if (category.allow_package_type && !f.package_type_id) return false;
       if (category.allow_warehouse && !f.warehouse_id) return false;
       return true;
