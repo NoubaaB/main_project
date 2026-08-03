@@ -45,13 +45,26 @@ export default {
     lang() { return this.main.lang?.code || 'en' },
     articleTypes() {
       const groups = {};
-      this.filteredBalances.forEach(b => {
+      this.balances.forEach(b => {
         const t = b.stockable_type || 'Other';
-        if (!groups[t]) groups[t] = { type: t, weight: 0, package_count: 0, price: 0 };
+        if (!groups[t]) groups[t] = { type: t, weight: 0, package_count: 0, price: 0, ecart: 0 };
         const w = Number(b.remaining_weight || 0);
         const pkgs = this.getRemainingPackageCount(b);
         const wapVal = Number(b.wap || 0);
         const priceVal = wapVal > 0 ? wapVal * w : Number(b.total_price || 0);
+
+        if (t === 'PackageType') {
+          const outPkg = (b.operations || []).reduce((sum, op) => sum + Number(op.package_count || 0), 0);
+          const invOps = (b.operations || []).filter(op => op.source_type === 'DetailInventory');
+          let ec = 0;
+          if (invOps.length > 0) {
+            ec = invOps.reduce((sum, op) => sum + Number(op.package_count || 0), 0);
+          } else {
+            ec = Math.round((Number(b.package_count || 0) - (outPkg + pkgs)) * 100) / 100;
+          }
+          groups[t].ecart += ec;
+        }
+
         groups[t].weight += w;
         groups[t].package_count += pkgs;
         groups[t].price += priceVal;
@@ -103,6 +116,17 @@ export default {
           const w = Number(b.remaining_weight || b.total_weight || 0);
           const wapVal = Number(b.wap || 0);
           const priceVal = wapVal > 0 ? wapVal * w : Number(b.total_price || 0);
+          const outPkg = (b.operations || []).reduce((sum, op) => sum + Number(op.package_count || 0), 0);
+          const remainingPkg = this.getRemainingPackageCount(b);
+
+          const invOps = (b.operations || []).filter(op => op.source_type === 'DetailInventory');
+          let ecart = 0;
+          if (invOps.length > 0) {
+            ecart = invOps.reduce((sum, op) => sum + Number(op.package_count || 0), 0);
+          } else {
+            ecart = Math.round((Number(b.package_count || 0) - (outPkg + remainingPkg)) * 100) / 100;
+          }
+
           return {
             ...b,
             wap: Math.round(wapVal * 100) / 100,
@@ -110,8 +134,14 @@ export default {
             articleName: this.sLabel(b),
             _date_display: b.date ? String(b.date).substring(0, 10) : '-',
             _source_label: b.source_type ? this.srcLabel(b.source_type) : '-',
+            out_packages: outPkg,
+            remaining_packages: remainingPkg,
+            ecart: ecart,
           };
         }), 'level1_package');
+    },
+    totalEcart() {
+      return this.packageArticles.reduce((sum, b) => sum + (Number(b.ecart) || 0), 0);
     },
     fishNames() {
       if (this.drillLevel < 2 || !this.drillFamilyId) return [];
@@ -158,28 +188,41 @@ export default {
     fishArticles() {
       return this.applyFilters(this.rawFishArticles, 'level3');
     },
+    isProductionEffectWarehouse() {
+      if (!this.selectedWarehouseIds || !this.selectedWarehouseIds.length) return false;
+      const allW = (this.warehouses && this.warehouses.length) ? this.warehouses : this.allWarehouses;
+      const selectedW = allW.filter(w => this.selectedWarehouseIds.includes(w.id || w.value));
+      return selectedW.length > 0 && selectedW.some(w => !!w.allow_production_effect);
+    },
     l2Headers() {
       const c = this.main.currency;
-      return [
+      const headers = [
         { key: '_date_display', label: this.$t('date'), filterable: true },
         { key: 'reception_tracking_number', label: this.$t('reception_tracking_number_col'), filterable: true },
         { key: 'supplier_name', label: this.$t('suppliers'), filterable: true },
         { key: 'origin_name', label: this.$t('origin'), filterable: true },
         { key: 'fishery_name', label: this.$t('fishery'), filterable: true },
         { key: '_source_label', label: this.$t('source'), filterable: true },
-        { key: 'total_weight', label: this.$t('total_weight') + ' (Kg)', filterable: false },
-        { key: 'package_count', label: this.$t('package_count'), filterable: false },
-        { key: 'wap', label: this.$t('wap') + ` (${c}/Kg)`, filterable: false },
-        { key: 'total_price', label: this.$t('total_price') + ` (${c})`, filterable: false },
-        { key: 'remaining_weight', label: this.$t('remaining') + ' (Kg)', filterable: false },
       ];
+      if (!this.isProductionEffectWarehouse) {
+        headers.push({ key: 'total_weight', label: this.$t('total_weight') + ' (Kg)', filterable: false });
+      }
+      headers.push({ key: 'package_count', label: this.$t('package_count'), filterable: false });
+      if (!this.isProductionEffectWarehouse) {
+        headers.push({ key: 'wap', label: this.$t('wap') + ` (${c}/Kg)`, filterable: false });
+      }
+      headers.push({ key: 'total_price', label: this.$t('total_price') + ` (${c})`, filterable: false });
+      if (!this.isProductionEffectWarehouse) {
+        headers.push({ key: 'remaining_weight', label: this.$t('remaining') + ' (Kg)', filterable: false });
+      }
+      return headers;
     },
     filteredBalances() {
       return this.balances.filter(b => {
         if (b.stockable_type === 'PackageType') {
-          return !b.is_finished || this.getRemainingPackageCount(b) > 0;
+          return !b.is_finished && this.getRemainingPackageCount(b) > 0;
         }
-        return !b.is_finished || Number(b.remaining_weight) > 0;
+        return !b.is_finished && Number(b.remaining_weight) > 0;
       });
     },
     breadcrumbs() {

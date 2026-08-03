@@ -27,6 +27,22 @@
           <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
           <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#546E7A" class="param-filter-input" style="color:#546E7A" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#546E7A" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
         </template>
+        <template v-slot:[`item.components`]="{ item }">
+          <div v-if="item.components && item.components.length" class="d-flex flex-wrap ga-1 justify-center">
+            <v-chip
+              v-for="comp in item.components"
+              :key="comp.id"
+              size="x-small"
+              color="#546E7A"
+              variant="tonal"
+              class="font-weight-bold"
+            >
+              {{ comp.target_package_type ? (comp.target_package_type['name_' + main.lang.short] || comp.target_package_type.name_fr) : `#${comp.target_package_type_id}` }}
+              ({{ Number(comp.multiplier) }}x)
+            </v-chip>
+          </div>
+          <span v-else class="text-grey text-caption">-</span>
+        </template>
         <template v-slot:[`item.actions`]="{ item }">
           <v-btn icon size="x-small" variant="tonal" color="#546E7A" @click="openSecondaryDialog(item)" class="mr-1" :title="$t('secondary_packaging_config')">
             <v-icon size="16">mdi-layers-outline</v-icon>
@@ -38,7 +54,7 @@
     </v-card-text>
 
     <!-- Edit/Add Package Dialog -->
-    <v-dialog v-model="dialog" max-width="600" persistent>
+    <v-dialog v-model="dialog" max-width="650" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
           <v-icon color="#546E7A" class="mr-2">mdi-package-variant-closed</v-icon>
@@ -54,6 +70,64 @@
             <v-col cols="6"><v-text-field v-model="form.type_emballage" :label="$t('packaging_type')" variant="outlined" density="compact" rounded color="#546E7A"></v-text-field></v-col>
             <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#546E7A" rows="2"></v-textarea></v-col>
           </v-row>
+
+          <v-divider class="my-3"></v-divider>
+
+          <!-- Linked Package Components Section -->
+          <div class="d-flex align-center justify-space-between mb-2">
+            <div class="text-subtitle-2 font-weight-bold text-blue-grey d-flex align-center">
+              <v-icon size="18" color="#546E7A" class="mr-1">mdi-link-variant</v-icon>
+              {{ $t('linked_packages') }}
+            </div>
+            <v-btn size="small" color="#546E7A" variant="tonal" rounded prepend-icon="mdi-plus" @click="addLinkedPackageComponent">
+              {{ $t('add_linked_package') }}
+            </v-btn>
+          </div>
+
+          <div v-if="form.components && form.components.length">
+            <v-card v-for="(comp, cIdx) in form.components" :key="cIdx" variant="outlined" color="#546E7A" class="pa-3 rounded-lg mb-2">
+              <div class="d-flex align-center ga-2">
+                <v-autocomplete
+                  v-model="comp.target_package_type_id"
+                  :items="targetPackageOptions"
+                  item-title="title"
+                  item-value="value"
+                  :label="$t('target_package_type')"
+                  variant="outlined"
+                  density="compact"
+                  rounded
+                  color="#546E7A"
+                  hide-details
+                  class="flex-grow-1"
+                ></v-autocomplete>
+
+                <v-text-field
+                  v-model.number="comp.multiplier"
+                  type="number"
+                  step="0.0001"
+                  min="0.0001"
+                  :label="$t('multiplier')"
+                  variant="outlined"
+                  density="compact"
+                  rounded
+                  color="#546E7A"
+                  hide-details
+                  style="max-width: 140px"
+                ></v-text-field>
+
+                <v-btn
+                  icon="mdi-delete"
+                  size="small"
+                  variant="text"
+                  color="error"
+                  @click="removeLinkedPackageComponent(cIdx)"
+                ></v-btn>
+              </div>
+            </v-card>
+          </div>
+          <div v-else class="text-caption text-grey text-center pa-3" style="border: 1px dashed rgba(84, 110, 122, 0.3); border-radius: 8px">
+            {{ $t('no_data') }} — {{ $t('add_linked_package') }}
+          </div>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
@@ -306,7 +380,7 @@ export default {
     return {
       items: [], loading: false,
       dialog: false, editing: null, saving: false,
-      form: { name_fr: '', name_en: '', name_es: '', name_in_invoice: '', size: '', description: '', type_emballage: '' },
+      form: { name_fr: '', name_en: '', name_es: '', name_in_invoice: '', size: '', description: '', type_emballage: '', components: [] },
       columnFilters: {},
       deleteDialog: false, deleteTarget: null,
       snackbar: { show: false, message: '', color: 'success' },
@@ -336,8 +410,18 @@ export default {
         { title: this.$t('name_in_invoice'), key: 'name_in_invoice', align: 'center' },
         { title: this.$t('size'), key: 'size', align: 'center' },
         { title: this.$t('packaging_type'), key: 'type_emballage', align: 'center' },
+        { title: this.$t('linked_packages'), key: 'components', align: 'center', sortable: false },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
+    },
+    targetPackageOptions() {
+      const currentId = this.editing ? this.editing.id : null;
+      return this.items
+        .filter(i => i.id !== currentId)
+        .map(i => ({
+          title: i['name_' + this.main.lang.short] || i.name_fr || i.name_en || `#${i.id}`,
+          value: i.id
+        }));
     },
     secondaryHeaders() {
       return [
@@ -409,18 +493,55 @@ export default {
     openDialog(item) {
       this.editing = item;
       this.form = item
-        ? { name_fr: item.name_fr, name_en: item.name_en || '', name_es: item.name_es || '', name_in_invoice: item.name_in_invoice || '', size: item.size || '', description: item.description || '', type_emballage: item.type_emballage || '' }
-        : { name_fr: '', name_en: '', name_es: '', name_in_invoice: '', size: '', description: '', type_emballage: '' };
+        ? {
+            name_fr: item.name_fr,
+            name_en: item.name_en || '',
+            name_es: item.name_es || '',
+            name_in_invoice: item.name_in_invoice || '',
+            size: item.size || '',
+            description: item.description || '',
+            type_emballage: item.type_emballage || '',
+            components: (item.components || []).map(c => ({
+              target_package_type_id: c.target_package_type_id,
+              multiplier: Number(c.multiplier ?? 1.0)
+            }))
+          }
+        : {
+            name_fr: '',
+            name_en: '',
+            name_es: '',
+            name_in_invoice: '',
+            size: '',
+            description: '',
+            type_emballage: '',
+            components: []
+          };
       this.dialog = true;
+    },
+    addLinkedPackageComponent() {
+      if (!this.form.components) this.form.components = [];
+      this.form.components.push({
+        target_package_type_id: null,
+        multiplier: 1.0000
+      });
+    },
+    removeLinkedPackageComponent(index) {
+      if (this.form.components) {
+        this.form.components.splice(index, 1);
+      }
     },
     async save() {
       this.saving = true;
       try {
+        const payload = {
+          ...this.form,
+          size: this.form.size !== null && this.form.size !== undefined ? String(this.form.size) : '',
+        };
         if (this.editing) {
-          await axios.put(`/api/package-types/${this.editing.id}`, this.form);
+          await axios.put(`/api/package-types/${this.editing.id}`, payload);
           this.snackbar = { show: true, message: this.$t('package_type_updated'), color: 'success' };
         } else {
-          await axios.post('/api/package-types', this.form);
+          await axios.post('/api/package-types', payload);
           this.snackbar = { show: true, message: this.$t('package_type_created'), color: 'success' };
         }
         this.dialog = false;

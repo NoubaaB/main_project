@@ -81,13 +81,21 @@ class WarehouseBalance extends Model
     }
 
     /**
-     * Recalculate remaining weight from operations and update is_finished.
+     * Recalculate remaining weight and package count from operations and update is_finished.
      */
     public function recalculateRemaining(): void
     {
-        $totalOut = $this->operations()->sum('weight');
-        $this->remaining_weight = max(0, $this->total_weight - $totalOut);
-        $this->is_finished = $this->remaining_weight <= 0;
+        $totalOutWeight = (float) $this->operations()->sum('weight');
+        $this->remaining_weight = max(0, (float) $this->total_weight - $totalOutWeight);
+
+        if ($this->stockable_type === 'PackageType' || (float) $this->package_count > 0) {
+            $totalOutPackages = (float) $this->operations()->sum('package_count');
+            $remainingPackages = max(0, (float) $this->package_count - $totalOutPackages);
+            $this->is_finished = ($remainingPackages <= 0);
+        } else {
+            $this->is_finished = ($this->remaining_weight <= 0);
+        }
+
         $this->save();
     }
 

@@ -239,24 +239,26 @@
             {{ $t('qc_general_info') }}
           </div>
           <table class="qc-print-info-table">
-            <tr>
-              <td class="qc-print-info-label">{{ $t('qc_inspector') }}</td>
-              <td class="qc-print-info-value">{{ form.inspector_name || '-' }}</td>
-              <td class="qc-print-info-label">{{ $t('qc_inspection_date') }}</td>
-              <td class="qc-print-info-value">{{ form.inspection_date || '-' }}</td>
-            </tr>
-            <tr>
-              <td class="qc-print-info-label">{{ $t('qc_temperature') }}</td>
-              <td class="qc-print-info-value">{{ form.temperature != null ? form.temperature + '°C' : '-' }}</td>
-              <td class="qc-print-info-label">{{ $t('qc_overall_status') }}</td>
-              <td class="qc-print-info-value">
-                <span :class="'qc-print-status qc-print-status-' + form.status">{{ getStatusLabel(form.status) }}</span>
-              </td>
-            </tr>
-            <tr v-if="form.notes">
-              <td class="qc-print-info-label">{{ $t('qc_notes') }}</td>
-              <td class="qc-print-info-value" colspan="3">{{ form.notes }}</td>
-            </tr>
+            <tbody>
+              <tr>
+                <td class="qc-print-info-label">{{ $t('qc_inspector') }}</td>
+                <td class="qc-print-info-value">{{ form.inspector_name || '-' }}</td>
+                <td class="qc-print-info-label">{{ $t('qc_inspection_date') }}</td>
+                <td class="qc-print-info-value">{{ form.inspection_date || '-' }}</td>
+              </tr>
+              <tr>
+                <td class="qc-print-info-label">{{ $t('qc_temperature') }}</td>
+                <td class="qc-print-info-value">{{ form.temperature != null ? form.temperature + '°C' : '-' }}</td>
+                <td class="qc-print-info-label">{{ $t('qc_overall_status') }}</td>
+                <td class="qc-print-info-value">
+                  <span :class="'qc-print-status qc-print-status-' + form.status">{{ getStatusLabel(form.status) }}</span>
+                </td>
+              </tr>
+              <tr v-if="form.notes">
+                <td class="qc-print-info-label">{{ $t('qc_notes') }}</td>
+                <td class="qc-print-info-value" colspan="3">{{ form.notes }}</td>
+              </tr>
+            </tbody>
           </table>
         </div>
 

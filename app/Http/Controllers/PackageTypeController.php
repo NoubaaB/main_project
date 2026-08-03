@@ -12,7 +12,7 @@ class PackageTypeController extends Controller
 
     public function index()
     {
-        $package_types = PackageType::orderBy('name_fr')->get();
+        $package_types = PackageType::with('components.targetPackageType')->orderBy('name_fr')->get();
         return response()->json(['package_types' => $package_types]);
     }
 
@@ -22,19 +22,40 @@ class PackageTypeController extends Controller
             'name_fr' => 'required|string|max:255',
             'name_en' => 'nullable|string|max:255',
             'name_es' => 'nullable|string|max:255',
-            'size' => 'nullable|string|max:255',
+            'name_in_invoice' => 'nullable|string|max:255',
+            'size' => 'nullable|max:255',
             'description' => 'nullable|string|max:1000',
             'type_emballage' => 'nullable|string|max:255',
+            'components' => 'nullable|array',
+            'components.*.target_package_type_id' => 'required|exists:package_types,id',
+            'components.*.multiplier' => 'nullable|numeric|min:0.0001',
         ]);
 
+        $components = $validated['components'] ?? [];
+        unset($validated['components']);
+
         $packageType = PackageType::create($validated);
-        $this->broadcastChange('PackageType', 'created', $packageType->id);
+
+        if (!empty($components)) {
+            foreach ($components as $comp) {
+                if (!empty($comp['target_package_type_id'])) {
+                    $packageType->components()->create([
+                        'target_package_type_id' => $comp['target_package_type_id'],
+                        'multiplier' => $comp['multiplier'] ?? 1.0000,
+                    ]);
+                }
+            }
+        }
+
+        $packageType->load('components.targetPackageType');
+        $this->broadcastChange('PackageType', 'created', $packageType->id, $packageType->toArray());
 
         return response()->json(['package_type' => $packageType], 201);
     }
 
     public function show(PackageType $packageType)
     {
+        $packageType->load('components.targetPackageType');
         return response()->json(['package_type' => $packageType]);
     }
 
@@ -44,13 +65,35 @@ class PackageTypeController extends Controller
             'name_fr' => 'required|string|max:255',
             'name_en' => 'nullable|string|max:255',
             'name_es' => 'nullable|string|max:255',
-            'size' => 'nullable|string|max:255',
+            'name_in_invoice' => 'nullable|string|max:255',
+            'size' => 'nullable|max:255',
             'description' => 'nullable|string|max:1000',
             'type_emballage' => 'nullable|string|max:255',
+            'components' => 'nullable|array',
+            'components.*.target_package_type_id' => 'required|exists:package_types,id',
+            'components.*.multiplier' => 'nullable|numeric|min:0.0001',
         ]);
 
+        $hasComponents = array_key_exists('components', $validated);
+        $components = $validated['components'] ?? [];
+        unset($validated['components']);
+
         $packageType->update($validated);
-        $this->broadcastChange('PackageType', 'updated', $packageType->id);
+
+        if ($hasComponents) {
+            $packageType->components()->delete();
+            foreach ($components as $comp) {
+                if (!empty($comp['target_package_type_id'])) {
+                    $packageType->components()->create([
+                        'target_package_type_id' => $comp['target_package_type_id'],
+                        'multiplier' => $comp['multiplier'] ?? 1.0000,
+                    ]);
+                }
+            }
+        }
+
+        $packageType->load('components.targetPackageType');
+        $this->broadcastChange('PackageType', 'updated', $packageType->id, $packageType->toArray());
 
         return response()->json(['package_type' => $packageType]);
     }

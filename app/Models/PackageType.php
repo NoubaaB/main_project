@@ -30,4 +30,14 @@ class PackageType extends Model
     {
         return $this->hasMany(PackageSecondaryConfig::class);
     }
+
+    public function components(): HasMany
+    {
+        return $this->hasMany(PackageTypeComponent::class, 'package_type_id');
+    }
+
+    public function parentLinks(): HasMany
+    {
+        return $this->hasMany(PackageTypeComponent::class, 'target_package_type_id');
+    }
 }

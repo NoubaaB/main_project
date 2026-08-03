@@ -117,8 +117,11 @@
             {{ item.enable_invoices ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
           </v-icon>
         </template>
+        <template v-slot:[`item.shippings_count`]="{ item }">
+          <v-chip color="#4643a0" size="small" variant="tonal">{{ item.shippings_count ?? item.sells_count ?? 0 }}</v-chip>
+        </template>
         <template v-slot:[`item.sells_count`]="{ item }">
-          <v-chip color="#4643a0" size="small" variant="tonal">{{ item.sells_count || 0 }}</v-chip>
+          <v-chip color="#4643a0" size="small" variant="tonal">{{ item.shippings_count ?? item.sells_count ?? 0 }}</v-chip>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
           <v-btn icon size="x-small" variant="tonal" color="#4643a0" @click="openDialog(item)" class="mr-1">
@@ -262,7 +265,7 @@ export default {
         { title: this.$t('clients'), key: 'enable_clients', align: 'center' },
         { title: this.$t('direction'), key: 'enable_direction', align: 'center' },
         { title: this.$t('enable_invoices'), key: 'enable_invoices', align: 'center' },
-        { title: this.$t('sells_count'), key: 'sells_count', align: 'center' },
+        { title: this.$t('shippings_count'), key: 'shippings_count', align: 'center' },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
     },
@@ -298,13 +301,13 @@ export default {
     },
     clearAllColumnFilters() { this.columnFilters = {}; },
     _onModelChanged(data) {
-      if (data.model === 'shippingCategory') this.fetchCategories();
+      if (['ShippingCategory', 'shippingCategory', 'sellCategory'].includes(data.model)) this.fetchCategories();
     },
     async fetchCategories() {
       this.loading = true;
       try {
         const res = await axios.get('/api/shipping-categories');
-        this.categories = res.data.sell_categories || [];
+        this.categories = res.data.shipping_categories || res.data.sell_categories || [];
         this.shippingCategoryStore.list = this.categories;
       } catch (e) { console.error(e); }
       this.loading = false;

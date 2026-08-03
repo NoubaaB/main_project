@@ -129,7 +129,7 @@ export default {
   beforeUnmount() { mitt.off('model-changed', this._onModelChanged); },
   methods: {
     _onModelChanged(data) {
-      if (['DetailshippingCategory', 'shippingCategory'].includes(data.model)) this.fetchItems();
+      if (['DetailShippingCategory', 'DetailshippingCategory', 'ShippingCategory', 'shippingCategory', 'sellCategory'].includes(data.model)) this.fetchItems();
     },
     emptyForm() { return { name_fr:'',name_en:'',name_es:'',description:'',article_type:'text',fish_type_filter:'all',allow_weight:false,allow_unit_price:false,allow_price:false,allow_package_type:false,allow_nbr_box:false,allow_warehouse:false,warehouse_operation:null,allow_detail_truck_id:false,include_in_invoice:true,shipping_category_id:null }; },
     getCategoryName(categoryId) {
@@ -151,7 +151,19 @@ export default {
     },
     articleTypeColor(t) { return {text:'grey',FishType:'blue',GuanoType:'brown',PackageType:'green'}[t]||'grey'; },
     fishFilterColor(f) { return {all:'info',fresh:'cyan',frozen:'indigo'}[f]||'grey'; },
-    async fetchItems() { this.loading=true; try { const r=await axios.get('/api/detail-shipping-categories'); this.items=r.data.detail_sell_categories||[]; useDetailShippingCategory().list=this.items; } catch(e){console.error(e);} this.loading=false; },
+    async fetchItems() {
+      this.loading = true;
+      try {
+        const r = await axios.get('/api/detail-shipping-categories');
+        this.items = r.data.detail_shipping_categories || r.data.detail_sell_categories || [];
+        useDetailShippingCategory().list = this.items;
+        if (!useShippingCategory().list.length) {
+          const catRes = await axios.get('/api/shipping-categories');
+          useShippingCategory().list = catRes.data.shipping_categories || catRes.data.sell_categories || [];
+        }
+      } catch(e) { console.error(e); }
+      this.loading = false;
+    },
     openDialog(item) { this.editing=item; this.form=item?{...item}:this.emptyForm(); if(!item) this.form.shipping_category_id=this.selectedCategoryId; this.dialog=true; },
     async save() { this.saving=true; try { if(this.editing) { await axios.put(`/api/detail-shipping-categories/${this.editing.id}`,this.form); this.main.add_snackbar({show:true,message:this.$t('detail_category_updated'),color:'success'}); } else { await axios.post('/api/detail-shipping-categories',this.form); this.main.add_snackbar({show:true,message:this.$t('detail_category_created'),color:'success'}); } this.dialog=false; await this.fetchItems(); } catch(e){console.error(e); this.main.add_snackbar({show:true,message:this.$t('detail_category_save_error'),color:'error'});} this.saving=false; },
     confirmDelete(item) { this.deleteTarget=item; this.confirmDeleteDialog=true; },

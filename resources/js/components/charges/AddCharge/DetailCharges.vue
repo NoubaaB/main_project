@@ -61,7 +61,7 @@
             </v-col>
             <!-- Total Price -->
             <v-col cols="12" md="6" v-if="group.category.allow_price">
-              <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#42A5F5" class="text-charge" hide-details min="0" :readonly="group.category.allow_weight && group.category.allow_unit_price"></v-text-field>
+              <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#42A5F5" class="text-charge" hide-details min="0" :readonly="(group.category.allow_weight || group.category.allow_nbr_box) && group.category.allow_unit_price"></v-text-field>
             </v-col>
             <!-- Warehouse -->
             <v-col cols="12" md="6" v-if="group.category.allow_warehouse">
@@ -74,7 +74,7 @@
             </v-col>
             <!-- Nbr Box -->
             <v-col cols="12" md="6" v-if="group.category.allow_nbr_box">
-              <v-text-field v-model.number="entryForms[group.category.id].nbr_box" type="number" :label="$t('nbr_boxes')" density="compact" variant="outlined" rounded color="#42A5F5" class="text-charge" hide-details min="0" readonly></v-text-field>
+              <v-text-field v-model.number="entryForms[group.category.id].nbr_box" type="number" :label="$t('nbr_boxes')" density="compact" variant="outlined" rounded color="#42A5F5" class="text-charge" hide-details min="0" :readonly="!!group.category.allow_weight" @input="recalcForm(group.category)"></v-text-field>
             </v-col>
             <!-- Truck -->
             <v-col cols="12" md="6" v-if="group.category.allow_detail_truck_id">
@@ -415,20 +415,29 @@ export default {
     recalcForm(category) {
       const f = this.entryForms[category.id];
       if (!f) return;
-      // Auto-calc total_price = weight * unit_price
+
       const w = parseFloat(f.weight) || 0;
       const up = parseFloat(f.unit_price) || 0;
-      if (category.allow_weight && category.allow_unit_price) {
-        f.total_price = Math.round(w * up * 100) / 100;
-      }
-      // Auto-calc nbr_box = weight / package_type.size
-      if (category.allow_package_type && category.allow_nbr_box && f.package_type_id) {
+
+      // Auto-calc nbr_box = weight / package_type.size if allow_weight is enabled
+      if (category.allow_weight && category.allow_package_type && category.allow_nbr_box && f.package_type_id) {
         const pkg = this.auth.package_type.list.find(p => p.id === f.package_type_id);
         if (pkg && pkg.size > 0) {
           f.nbr_box = Math.round((w / pkg.size) * 100) / 100;
         }
-      } else {
+      } else if (category.allow_weight && !category.allow_package_type) {
         f.nbr_box = null;
+      }
+
+      const nbrBox = parseFloat(f.nbr_box) || 0;
+
+      // Auto-calc total_price: primary unit_price * weight, if weight is not present/provided, unit_price * nbr_boxes
+      if (category.allow_price && category.allow_unit_price && up > 0) {
+        if (category.allow_weight && w > 0) {
+          f.total_price = Math.round(w * up * 100) / 100;
+        } else if (category.allow_nbr_box && nbrBox > 0) {
+          f.total_price = Math.round(nbrBox * up * 100) / 100;
+        }
       }
     },
     onWeightInput(category) {

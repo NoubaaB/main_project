@@ -498,8 +498,7 @@ class ProductionController extends Controller
 
     private function processWarehouseOperation(DetailProduction $dp, Production $production): void
     {
-        if (!$dp->warehouse_id)
-            return;
+        $dp->loadMissing(['detailProductionCategory', 'warehouse']);
 
         $weight = $dp->weight ?? 0;
         $totalPrice = $dp->total_price ?? 0;
@@ -528,8 +527,8 @@ class ProductionController extends Controller
             }
         }
 
-        // 1. Primary Stock Operation (for stockable items like FishType, GuanoType, PackageType)
-        if ($dp->warehouse_operation && $dp->stockable_type && $dp->stockable_id) {
+        // 1. Primary Stock Operation (if warehouse_id is present on $dp)
+        if ($dp->warehouse_id && $dp->warehouse_operation && $dp->stockable_type && $dp->stockable_id) {
             if ($dp->warehouse_operation === 'stock_in') {
                 WarehouseBalance::create([
                     'warehouse_id' => $dp->warehouse_id,
@@ -580,33 +579,124 @@ class ProductionController extends Controller
 
         // 2. Secondary Packaging Stock-out from Warehouse when category & warehouse toggles are enabled
         $category = $dp->detailProductionCategory;
-        if ($category && $category->allow_secondary_packaging) {
-            $targetWarehouseId = null;
-            if ($dp->warehouse && $dp->warehouse->allow_production_effect) {
+        if (!$category || $category->allow_secondary_packaging || $category->allow_package_type || $category->allow_nbr_box) {
+            $targetWarehouseId = $dp->warehouse_id;
+            if (!$targetWarehouseId && $dp->warehouse && $dp->warehouse->allow_production_effect) {
                 $targetWarehouseId = $dp->warehouse_id;
-            } else {
+            }
+            if (!$targetWarehouseId) {
                 $effWarehouse = Warehouse::where('allow_production_effect', true)->first();
                 if ($effWarehouse) {
                     $targetWarehouseId = $effWarehouse->id;
                 }
             }
 
-            if ($targetWarehouseId) {
-                $packageTypeId = $dp->package_type_id;
-                $nbrBox = (float) ($dp->nbr_box ?? 0);
-                if ($packageTypeId && $nbrBox > 0) {
-                    $remainingToDeduct = $nbrBox;
-                    $packageBalances = WarehouseBalance::where('warehouse_id', $targetWarehouseId)
-                        ->where(function ($q) use ($packageTypeId) {
-                            $q->where(function ($q2) use ($packageTypeId) {
+            $packageTypeId = $dp->package_type_id;
+            $nbrBox = (float) ($dp->nbr_box ?? 0);
+            if ($packageTypeId && $nbrBox > 0) {
+                $rawDeductions = [];
+
+                // a) Direct component links where package_type_id = $packageTypeId
+                $directLinks = \App\Models\PackageTypeComponent::where('package_type_id', $packageTypeId)->get();
+                foreach ($directLinks as $link) {
+                    $rawDeductions[] = [
+                        'package_type_id' => $link->target_package_type_id,
+                        'count' => $nbrBox * (float) ($link->multiplier ?? 1.0),
+                    ];
+                }
+
+                // b) Parent component links where target_package_type_id = $packageTypeId
+                $parentLinks = \App\Models\PackageTypeComponent::where('target_package_type_id', $packageTypeId)->get();
+                foreach ($parentLinks as $link) {
+                    $rawDeductions[] = [
+                        'package_type_id' => $link->package_type_id,
+                        'count' => $nbrBox * (float) ($link->multiplier ?? 1.0),
+                    ];
+                }
+
+                // c) Secondary Packaging Config components (e.g. caisses, cellophane, plastique, etc.)
+                $secConfig = \App\Models\PackageSecondaryConfig::getConfigForPackageAndDate($packageTypeId, $production->date);
+                if ($secConfig) {
+                    foreach ($secConfig->resolved_components as $comp) {
+                        $cQte = (float) ($comp['qte'] ?? 0);
+                        if ($cQte > 0) {
+                            $cName = trim($comp['name'] ?? '');
+                            $cKey = trim($comp['key'] ?? '');
+
+                            $matchedPkg = null;
+                            if ($cName !== '') {
+                                $matchedPkg = \App\Models\PackageType::where('name_fr', 'LIKE', '%' . $cName . '%')
+                                    ->orWhere('name_en', 'LIKE', '%' . $cName . '%')
+                                    ->orWhere('name_es', 'LIKE', '%' . $cName . '%')
+                                    ->first();
+                            }
+                            if (!$matchedPkg && $cKey !== '') {
+                                $matchedPkg = \App\Models\PackageType::where('name_fr', 'LIKE', '%' . $cKey . '%')
+                                    ->orWhere('name_en', 'LIKE', '%' . $cKey . '%')
+                                    ->orWhere('name_es', 'LIKE', '%' . $cKey . '%')
+                                    ->first();
+                            }
+                            if ($matchedPkg && $matchedPkg->id !== $packageTypeId) {
+                                $rawDeductions[] = [
+                                    'package_type_id' => $matchedPkg->id,
+                                    'count' => $nbrBox * $cQte,
+                                ];
+                            }
+                        }
+                    }
+                }
+
+                // Fallback to deducting $packageTypeId itself if no component rules matched
+                if (empty($rawDeductions)) {
+                    $rawDeductions[] = [
+                        'package_type_id' => $packageTypeId,
+                        'count' => $nbrBox,
+                    ];
+                }
+
+                // Deduplicate by package_type_id
+                $groupedDeductions = [];
+                foreach ($rawDeductions as $item) {
+                    $pid = $item['package_type_id'];
+                    if (!isset($groupedDeductions[$pid])) {
+                        $groupedDeductions[$pid] = 0;
+                    }
+                    $groupedDeductions[$pid] += $item['count'];
+                }
+
+                foreach ($groupedDeductions as $pTypeId => $remainingToDeduct) {
+                    // FIFO query: Order chronologically by date asc, id asc
+                    $query = WarehouseBalance::where(function ($q) use ($pTypeId) {
+                            $q->where(function ($q2) use ($pTypeId) {
                                 $q2->where('stockable_type', 'PackageType')
-                                   ->where('stockable_id', $packageTypeId);
-                            })->orWhere('package_type_id', $packageTypeId);
+                                   ->where('stockable_id', $pTypeId);
+                            })->orWhere('package_type_id', $pTypeId);
                         })
                         ->where('warehouse_operation', 'stock_in')
-                        ->where('is_finished', false)
-                        ->orderBy('date', 'asc')
+                        ->where('is_finished', false);
+
+                    if ($targetWarehouseId) {
+                        $query->where('warehouse_id', $targetWarehouseId);
+                    }
+
+                    $packageBalances = $query->orderBy('date', 'asc')
+                        ->orderBy('id', 'asc')
                         ->get();
+
+                    // If stock is insufficient in targetWarehouseId, fetch remaining open balances across all warehouses FIFO
+                    if ($packageBalances->isEmpty() && $targetWarehouseId) {
+                        $packageBalances = WarehouseBalance::where(function ($q) use ($pTypeId) {
+                                $q->where(function ($q2) use ($pTypeId) {
+                                    $q2->where('stockable_type', 'PackageType')
+                                       ->where('stockable_id', $pTypeId);
+                                })->orWhere('package_type_id', $pTypeId);
+                            })
+                            ->where('warehouse_operation', 'stock_in')
+                            ->where('is_finished', false)
+                            ->orderBy('date', 'asc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+                    }
 
                     foreach ($packageBalances as $packageBalance) {
                         if ($remainingToDeduct <= 0) break;
@@ -627,6 +717,7 @@ class ProductionController extends Controller
                             'client_name' => null,
                         ]);
                         $packageBalance->recalculateRemaining();
+                        $this->broadcastChange('WarehouseBalance', 'updated', $packageBalance->id, $packageBalance->toArray());
                         $remainingToDeduct -= $deductCount;
                     }
                 }
@@ -637,9 +728,6 @@ class ProductionController extends Controller
     private function reverseWarehouseOperations(Production $production): void
     {
         foreach ($production->detailProductions as $dp) {
-            if (!$dp->warehouse_id)
-                continue;
-
             WarehouseBalance::where('source_type', 'DetailProduction')
                 ->where('source_id', $dp->id)
                 ->delete();

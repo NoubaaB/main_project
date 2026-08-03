@@ -41,6 +41,7 @@ class ShippingController extends Controller
             'details.*.warehouse_id' => 'nullable|exists:warehouses,id',
             'details.*.warehouse_operation' => 'nullable|string|in:stock_in,stock_out',
             'details.*.truck_id' => 'nullable|exists:trucks,id',
+            'details.*.selected_balance_id' => 'nullable|integer',
         ]);
 
         return DB::transaction(function () use ($data) {
@@ -67,7 +68,7 @@ class ShippingController extends Controller
 
             foreach ($data['details'] as $detail) {
                 $ds = $shipping->detailShippings()->create($detail);
-                $this->processWarehouseOperation($ds, $shipping);
+                $this->processWarehouseOperation($ds, $shipping, $detail);
             }
 
             $shipping->load('shippingCategory', 'client', 'trucks', 'origin', 'clientInvoice', 'detailShippings.detailShippingCategory', 'detailShippings.stockable', 'detailShippings.warehouse', 'detailShippings.packageType');
@@ -121,6 +122,7 @@ class ShippingController extends Controller
             'details.*.warehouse_id' => 'nullable|exists:warehouses,id',
             'details.*.warehouse_operation' => 'nullable|string|in:stock_in,stock_out',
             'details.*.truck_id' => 'nullable|exists:trucks,id',
+            'details.*.selected_balance_id' => 'nullable|integer',
         ]);
 
         // Capture old state for audit trail
@@ -152,7 +154,7 @@ class ShippingController extends Controller
 
             foreach ($data['details'] as $detail) {
                 $ds = $shipping->detailShippings()->create($detail);
-                $this->processWarehouseOperation($ds, $shipping);
+                $this->processWarehouseOperation($ds, $shipping, $detail);
             }
 
             $shipping->load('shippingCategory', 'client', 'trucks', 'origin', 'clientInvoice', 'detailShippings.detailShippingCategory', 'detailShippings.stockable', 'detailShippings.warehouse', 'detailShippings.packageType');
@@ -232,59 +234,164 @@ class ShippingController extends Controller
         return response()->json(['exists' => false]);
     }
 
-    private function processWarehouseOperation(DetailShipping $ds, Shipping $shipping): void
+    private function processWarehouseOperation(DetailShipping $ds, Shipping $shipping, array $detailData = []): void
     {
-        if (!$ds->warehouse_id || !$ds->warehouse_operation || !$ds->stockable_type || !$ds->stockable_id)
-            return;
+        $ds->loadMissing(['warehouse']);
 
         $weight = $ds->weight ?? 0;
         $totalPrice = $ds->total_price ?? 0;
         $packages = $ds->nbr_box ?? 0;
         $clientName = $shipping->client?->name ?? '';
 
-        if ($ds->warehouse_operation === 'stock_in') {
-            WarehouseBalance::create([
-                'warehouse_id' => $ds->warehouse_id,
-                'stockable_type' => $ds->stockable_type,
-                'stockable_id' => $ds->stockable_id,
-                'reception_tracking_number' => null,
-                'warehouse_operation' => 'stock_in',
-                'date' => $shipping->date,
-                'total_weight' => $weight,
-                'remaining_weight' => $weight,
-                'total_price' => $totalPrice,
-                'unit_price' => $ds->unit_price ?? 0,
-                'package_count' => $packages,
-                'package_type_id' => $ds->package_type_id,
-                'client_name' => $clientName ?: null,
-                'origin_name' => $shipping->origin?->name,
-                'source_type' => 'DetailShipping',
-                'source_id' => $ds->id,
-                'is_finished' => false,
-            ]);
-        } else {
-            // stock_out: find matching balance
-            $balance = WarehouseBalance::where('warehouse_id', $ds->warehouse_id)
-                ->where('stockable_type', $ds->stockable_type)
-                ->where('stockable_id', $ds->stockable_id)
-                ->where('warehouse_operation', 'stock_in')
-                ->where('is_finished', false)
-                ->orderBy('date', 'asc')
-                ->first();
-
-            if ($balance) {
-                WarehouseBalanceOperation::create([
-                    'warehouse_balance_id' => $balance->id,
+        if ($ds->warehouse_id && $ds->warehouse_operation && $ds->stockable_type && $ds->stockable_id) {
+            if ($ds->warehouse_operation === 'stock_in') {
+                WarehouseBalance::create([
+                    'warehouse_id' => $ds->warehouse_id,
+                    'stockable_type' => $ds->stockable_type,
+                    'stockable_id' => $ds->stockable_id,
+                    'reception_tracking_number' => null,
+                    'warehouse_operation' => 'stock_in',
                     'date' => $shipping->date,
-                    'weight' => $weight,
-                    'unit_price' => $ds->unit_price ?? 0,
+                    'total_weight' => $weight,
+                    'remaining_weight' => $weight,
                     'total_price' => $totalPrice,
+                    'unit_price' => $ds->unit_price ?? 0,
                     'package_count' => $packages,
+                    'package_type_id' => $ds->package_type_id ?? ($ds->stockable_type === 'PackageType' ? $ds->stockable_id : null),
+                    'client_name' => $clientName ?: null,
+                    'origin_name' => $shipping->origin?->name,
                     'source_type' => 'DetailShipping',
                     'source_id' => $ds->id,
-                    'client_name' => $clientName ?: null,
+                    'is_finished' => false,
                 ]);
-                $balance->recalculateRemaining();
+            } else {
+                // stock_out: find matching balance by selected_balance_id or fallback to earliest open balance
+                $balance = null;
+                $selBalId = $detailData['selected_balance_id'] ?? null;
+                if ($selBalId) {
+                    $balance = WarehouseBalance::find($selBalId);
+                }
+
+                if (!$balance) {
+                    $balance = WarehouseBalance::where('warehouse_id', $ds->warehouse_id)
+                        ->where('stockable_type', $ds->stockable_type)
+                        ->where('stockable_id', $ds->stockable_id)
+                        ->where('warehouse_operation', 'stock_in')
+                        ->where('is_finished', false)
+                        ->orderBy('date', 'asc')
+                        ->first();
+                }
+
+                if ($balance) {
+                    WarehouseBalanceOperation::create([
+                        'warehouse_balance_id' => $balance->id,
+                        'date' => $shipping->date,
+                        'weight' => $weight,
+                        'unit_price' => $ds->unit_price ?? 0,
+                        'total_price' => $totalPrice,
+                        'package_count' => $packages,
+                        'source_type' => 'DetailShipping',
+                        'source_id' => $ds->id,
+                        'client_name' => $clientName ?: null,
+                    ]);
+                    $balance->recalculateRemaining();
+                }
+            }
+        }
+
+        // Secondary Packaging / Linked Package Component Stock-out from Emballage Warehouse
+        $targetWarehouseId = null;
+        if ($ds->warehouse_id && $ds->warehouse && $ds->warehouse->allow_production_effect) {
+            $targetWarehouseId = $ds->warehouse_id;
+        } else {
+            $effWarehouse = \App\Models\Warehouse::where('allow_production_effect', true)->first();
+            if ($effWarehouse) {
+                $targetWarehouseId = $effWarehouse->id;
+            }
+        }
+
+        if ($targetWarehouseId) {
+            $packageTypeId = $ds->package_type_id;
+            $nbrBox = (float) ($ds->nbr_box ?? 0);
+            if ($packageTypeId && $nbrBox > 0) {
+                $packagesToDeduct = [];
+
+                // a) Linked Package Components (e.g. Carton linked to Package 24)
+                $parentLinks = \App\Models\PackageTypeComponent::where('target_package_type_id', $packageTypeId)->get();
+
+                if ($parentLinks->count() > 0) {
+                    foreach ($parentLinks as $link) {
+                        $packagesToDeduct[] = [
+                            'package_type_id' => $link->package_type_id,
+                            'count' => $nbrBox * (float) ($link->multiplier ?? 1.0),
+                        ];
+                    }
+                } else {
+                    $packagesToDeduct[] = [
+                        'package_type_id' => $packageTypeId,
+                        'count' => $nbrBox,
+                    ];
+                }
+
+                // b) Secondary Packaging Config Components (e.g. caisses, cellophane, plastik, etc.)
+                $secConfig = \App\Models\PackageSecondaryConfig::getConfigForPackageAndDate($packageTypeId, $shipping->date);
+                if ($secConfig) {
+                    foreach ($secConfig->resolved_components as $comp) {
+                        $cQte = (float) ($comp['qte'] ?? 0);
+                        if ($cQte > 0 && !empty($comp['name'])) {
+                            $cName = trim($comp['name']);
+                            $matchedPkg = \App\Models\PackageType::where('name_fr', 'LIKE', $cName)
+                                ->orWhere('name_en', 'LIKE', $cName)
+                                ->orWhere('name_es', 'LIKE', $cName)
+                                ->first();
+                            if ($matchedPkg && $matchedPkg->id !== $packageTypeId) {
+                                $packagesToDeduct[] = [
+                                    'package_type_id' => $matchedPkg->id,
+                                    'count' => $nbrBox * $cQte,
+                                ];
+                            }
+                        }
+                    }
+                }
+
+                foreach ($packagesToDeduct as $pkgItem) {
+                    $pTypeId = $pkgItem['package_type_id'];
+                    $remainingToDeduct = $pkgItem['count'];
+
+                    $packageBalances = WarehouseBalance::where('warehouse_id', $targetWarehouseId)
+                        ->where(function ($q) use ($pTypeId) {
+                            $q->where(function ($q2) use ($pTypeId) {
+                                $q2->where('stockable_type', 'PackageType')
+                                   ->where('stockable_id', $pTypeId);
+                            })->orWhere('package_type_id', $pTypeId);
+                        })
+                        ->where('warehouse_operation', 'stock_in')
+                        ->where('is_finished', false)
+                        ->orderBy('date', 'asc')
+                        ->get();
+
+                    foreach ($packageBalances as $packageBalance) {
+                        if ($remainingToDeduct <= 0) break;
+                        $alreadyOut = (float) $packageBalance->operations()->sum('package_count');
+                        $avail = max(0, (float)($packageBalance->package_count ?? 0) - $alreadyOut);
+                        if ($avail <= 0) continue;
+
+                        $deductCount = min($remainingToDeduct, $avail);
+                        WarehouseBalanceOperation::create([
+                            'warehouse_balance_id' => $packageBalance->id,
+                            'date' => $shipping->date,
+                            'weight' => 0,
+                            'unit_price' => $packageBalance->unit_price ?? 0,
+                            'total_price' => round(($packageBalance->unit_price ?? 0) * $deductCount, 2),
+                            'package_count' => $deductCount,
+                            'source_type' => 'DetailShipping',
+                            'source_id' => $ds->id,
+                            'client_name' => $clientName ?: null,
+                        ]);
+                        $packageBalance->recalculateRemaining();
+                        $remainingToDeduct -= $deductCount;
+                    }
+                }
             }
         }
     }
@@ -292,17 +399,13 @@ class ShippingController extends Controller
     private function reverseWarehouseOperations(Shipping $shipping): void
     {
         foreach ($shipping->detailShippings as $ds) {
-            if (!$ds->warehouse_id || !$ds->stockable_type || !$ds->stockable_id)
-                continue;
+            WarehouseBalance::where('source_type', 'DetailShipping')
+                ->where('source_id', $ds->id)
+                ->delete();
 
-            if ($ds->warehouse_operation === 'stock_in') {
-                WarehouseBalance::where('source_type', 'DetailShipping')
-                    ->where('source_id', $ds->id)
-                    ->delete();
-            } else {
-                $ops = WarehouseBalanceOperation::where('source_type', 'DetailShipping')
-                    ->where('source_id', $ds->id)
-                    ->get();
+            $ops = WarehouseBalanceOperation::where('source_type', 'DetailShipping')
+                ->where('source_id', $ds->id)
+                ->get();
                 foreach ($ops as $op) {
                     $balance = $op->warehouseBalance;
                     $op->delete();
@@ -311,7 +414,6 @@ class ShippingController extends Controller
                 }
             }
         }
-    }
 }
 
 

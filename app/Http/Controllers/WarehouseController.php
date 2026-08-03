@@ -108,11 +108,10 @@ class WarehouseController extends Controller
             'stockable_id' => 'nullable|integer',
         ]);
 
-        $query = WarehouseBalance::with(['stockable'])
+        $query = WarehouseBalance::with(['stockable', 'operations'])
             ->where('warehouse_id', $request->warehouse_id)
             ->where('warehouse_operation', 'stock_in')
-            ->where('is_finished', false)
-            ->where('remaining_weight', '>', 0);
+            ->where('is_finished', false);
 
         if ($request->stockable_type) {
             $query->where('stockable_type', $request->stockable_type);

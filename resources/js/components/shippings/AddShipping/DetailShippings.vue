@@ -53,12 +53,19 @@
               </v-col>
               <!-- Balance Info -->
               <v-col cols="12" v-if="getSelBal(group.category)" class="py-1">
-                <div class="d-flex align-center ga-2 px-2">
+                <div class="d-flex align-center ga-2 px-2 flex-wrap">
                   <v-icon size="16" color="teal">mdi-information-outline</v-icon>
-                  <span class="text-caption text-medium-emphasis">{{ $t('remaining_weight') }}:</span>
-                  <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold">{{ main.formatDisplayNumber(getSelBalRemain(group.category)) }} Kg</v-chip>
+                  <span class="text-caption text-medium-emphasis">{{ $t('remaining_stock') }}:</span>
+                  <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold">{{ main.formatDisplayNumber(getSelBalRemain(group.category)) }} {{ getSelBalUnit(group.category) }}</v-chip>
                   <span class="text-caption text-medium-emphasis">{{ $t('initial_stock') }}:</span>
-                  <v-chip size="x-small" color="grey" variant="tonal">{{ main.formatDisplayNumber(getSelBal(group.category).total_weight) }} Kg</v-chip>
+                  <v-chip size="x-small" color="grey" variant="tonal">
+                    <template v-if="getSelBal(group.category).stockable_type === 'PackageType' && getSelBal(group.category).package_count > 0">
+                      {{ main.formatDisplayNumber(getSelBal(group.category).package_count) }} {{ $t('boxes') }}
+                    </template>
+                    <template v-else>
+                      {{ main.formatDisplayNumber(getSelBal(group.category).total_weight) }} Kg
+                    </template>
+                  </v-chip>
                 </div>
               </v-col>
               <!-- Remaining fields after tracking selected -->
@@ -75,11 +82,11 @@
                 <v-col cols="12" md="6" v-if="group.category.allow_price">
                   <v-text-field v-model.number="entryForms[group.category.id].total_price" type="number" :label="$t('total_price') + ' (Dh)'" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" :readonly="group.category.allow_weight && group.category.allow_unit_price"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="6" v-if="group.category.allow_package_type">
+                <v-col cols="12" md="6" v-if="group.category.allow_package_type && group.category.article_type !== 'PackageType'">
                   <v-autocomplete v-model="entryForms[group.category.id].package_type_id" :items="packageTypeOptions" :label="$t('package_type')" chips density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details clearable @update:modelValue="recalcForm(group.category)"></v-autocomplete>
                 </v-col>
                 <v-col cols="12" md="6" v-if="group.category.allow_nbr_box">
-                  <v-text-field v-model.number="entryForms[group.category.id].nbr_box" type="number" :label="$t('nbr_boxes')" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" hide-details min="0" readonly></v-text-field>
+                  <v-text-field v-model.number="entryForms[group.category.id].nbr_box" type="number" :label="$t('nbr_boxes')" density="compact" variant="outlined" rounded color="#4643a0" class="text-shipping" min="0" :readonly="group.category.article_type !== 'PackageType'" @input="recalcForm(group.category)" :hint="group.category.article_type === 'PackageType' ? getWtHint(group.category) : ''" persistent-hint :error="isWtOver(group.category)" :error-messages="isWtOver(group.category) ? [$t('exceeds_stock', { qty: main.formatDisplayNumber(getSelBalRemain(group.category)) })] : []"></v-text-field>
                 </v-col>
               </template>
             </template>
@@ -232,12 +239,16 @@ export default {
     removeGroup(catId) { const items = this.shippingStore.shipping.details.filter(d => d.detail_shipping_category_id === catId); items.forEach(d => this.shippingStore.remove_detail(d._uid)); this.activeSections = this.activeSections.filter(id => id !== catId); delete this.entryForms[catId]; },
     addArticle(cat) {
       const f = this.entryForms[cat.id]; if (!f) return;
-      if (cat.allow_weight && cat.allow_unit_price && !cat.allow_price) f.total_price = (parseFloat(f.weight) || 0) * (parseFloat(f.unit_price) || 0);
+      if (cat.article_type === 'PackageType') { f.package_type_id = f.stockable_id; }
+      this.recalcForm(cat);
       this.shippingStore.add_detail(cat.id);
       const last = this.shippingStore.shipping.details[this.shippingStore.shipping.details.length - 1];
-      Object.assign(last, { article_description: f.article_description || null, stockable_type: cat.article_type !== 'text' ? cat.article_type : null, stockable_id: f.stockable_id, weight: f.weight, unit_price: f.unit_price, total_price: f.total_price, weight_invoice: f.weight_invoice, warehouse_id: f.warehouse_id, warehouse_operation: cat.warehouse_operation || (f.warehouse_id ? 'stock_out' : null), package_type_id: f.package_type_id, nbr_box: f.nbr_box, selected_balance_id: f.selected_balance_id });
+      Object.assign(last, { article_description: f.article_description || null, stockable_type: cat.article_type !== 'text' ? cat.article_type : null, stockable_id: f.stockable_id, weight: f.weight, unit_price: f.unit_price, total_price: f.total_price, weight_invoice: f.weight_invoice, warehouse_id: f.warehouse_id, warehouse_operation: cat.warehouse_operation || (f.warehouse_id ? 'stock_out' : null), package_type_id: f.package_type_id || (cat.article_type === 'PackageType' ? f.stockable_id : null), nbr_box: f.nbr_box, selected_balance_id: f.selected_balance_id });
       // Track local deduction for frontend sync
-      if (f.selected_balance_id && f.weight > 0) { this._addDeduction(f.selected_balance_id, f.weight); }
+      if (f.selected_balance_id) {
+        const qty = (cat.article_type === 'PackageType' && f.nbr_box > 0) ? f.nbr_box : (f.weight || 0);
+        if (qty > 0) this._addDeduction(f.selected_balance_id, qty);
+      }
       this.shippingStore.recalc_totals(); this.initForm(cat.id, cat);
       this.$nextTick(() => { const c = this.$refs['group_' + cat.id]; const el = c?.[0] || c; if (el) { const input = el.querySelector('input'); if (input) input.focus(); } });
     },
@@ -326,14 +337,24 @@ export default {
       const f = this.entryForms[category.id];
       if (!f) return;
       const w = parseFloat(f.weight) || 0;
+      const nbrBox = parseFloat(f.nbr_box) || 0;
       const up = parseFloat(f.unit_price) || 0;
-      if (category.allow_weight && category.allow_unit_price) {
-        f.total_price = Math.round(w * up * 100) / 100;
+
+      if (category.article_type === 'PackageType') {
+        f.package_type_id = f.stockable_id;
+        const qty = nbrBox > 0 ? nbrBox : w;
+        if (category.allow_unit_price && qty > 0) {
+          f.total_price = Math.round(qty * up * 100) / 100;
+        }
+      } else {
+        if (category.allow_weight && category.allow_unit_price) {
+          f.total_price = Math.round(w * up * 100) / 100;
+        }
+        if (category.allow_package_type && category.allow_nbr_box && f.package_type_id) {
+          const pkg = this.auth.package_type.list.find(p => p.id === f.package_type_id);
+          if (pkg && pkg.size > 0 && w > 0) { f.nbr_box = Math.round((w / pkg.size) * 100) / 100; }
+        } else if (category.article_type !== 'PackageType') { f.nbr_box = null; }
       }
-      if (category.allow_package_type && category.allow_nbr_box && f.package_type_id) {
-        const pkg = this.auth.package_type.list.find(p => p.id === f.package_type_id);
-        if (pkg && pkg.size > 0) { f.nbr_box = Math.round((w / pkg.size) * 100) / 100; }
-      } else { f.nbr_box = null; }
     },
     onWeightInput(category) {
       const f = this.entryForms[category.id];
@@ -369,18 +390,44 @@ export default {
       const map = {};
       bals.forEach(b => {
         const key = `${b.stockable_type}_${b.stockable_id}`;
-        if (!map[key]) { const name = b.stockable ? (b.stockable[`name_${this.lang}`] || b.stockable.name_en || b.stockable.name_fr || `#${b.stockable_id}`) : `#${b.stockable_id}`; map[key] = { id: b.stockable_id, type: b.stockable_type, name, total: 0 }; }
+        if (!map[key]) {
+          const name = b.stockable ? (b.stockable[`name_${this.lang}`] || b.stockable.name_en || b.stockable.name_fr || `#${b.stockable_id}`) : `#${b.stockable_id}`;
+          map[key] = { id: b.stockable_id, type: b.stockable_type, name, totalW: 0, totalPkg: 0 };
+        }
         const ded = this._getDeduction(b.id);
-        map[key].total += Math.max(0, parseFloat(b.remaining_weight) - ded);
+        const remW = Math.max(0, parseFloat(b.remaining_weight || 0) - ded);
+        const outPkg = (b.operations || []).reduce((s, op) => s + (parseFloat(op.package_count) || 0), 0);
+        const remPkg = Math.max(0, parseFloat(b.package_count || 0) - outPkg - ded);
+        map[key].totalW += remW;
+        map[key].totalPkg += remPkg;
       });
-      return Object.values(map).filter(a => a.total > 0).map(a => ({ title: a.name, value: a.id, remainLabel: `${this.main.formatDisplayNumber(a.total)} Kg` }));
+      return Object.values(map)
+        .filter(a => a.type === 'PackageType' ? (a.totalPkg > 0 || a.totalW > 0) : a.totalW > 0)
+        .map(a => {
+          let remainLabel = `${this.main.formatDisplayNumber(a.totalW)} Kg`;
+          if (a.type === 'PackageType' && a.totalPkg > 0) {
+            remainLabel = `${this.main.formatDisplayNumber(a.totalPkg)} ${this.$t('boxes')}`;
+          }
+          return { title: a.name, value: a.id, remainLabel };
+        });
     },
     getWhBalanceOpts(category) {
       const f = this.entryForms[category.id]; if (!f) return [];
       return (this.whBalances[category.id] || []).filter(b => b.stockable_id === f.stockable_id).map(b => {
         const ded = this._getDeduction(b.id);
-        const remain = Math.max(0, parseFloat(b.remaining_weight) - ded);
-        return { title: `${b.reception_tracking_number || '-'} - (${this.main.formatDisplayNumber(remain)} Kg)`, sub: `${this.$t('date')}: ${b.date ? b.date.substring(0, 10) : '-'} · ${b.supplier_name || ''}`, value: b.id, _remain: remain };
+        const remW = Math.max(0, parseFloat(b.remaining_weight || 0) - ded);
+        const outPkg = (b.operations || []).reduce((s, op) => s + (parseFloat(op.package_count) || 0), 0);
+        const remPkg = Math.max(0, parseFloat(b.package_count || 0) - outPkg - ded);
+        const isPkg = b.stockable_type === 'PackageType';
+        const remain = isPkg && remPkg > 0 ? remPkg : remW;
+        const unit = isPkg && remPkg > 0 ? this.$t('boxes') : 'Kg';
+
+        return {
+          title: `${b.reception_tracking_number || '-'} - (${this.main.formatDisplayNumber(remain)} ${unit})`,
+          sub: `${this.$t('date')}: ${b.date ? b.date.substring(0, 10) : '-'} · ${b.supplier_name || ''}`,
+          value: b.id,
+          _remain: remain,
+        };
       }).filter(o => o._remain > 0);
     },
     getSelBal(category) {
@@ -389,7 +436,19 @@ export default {
     },
     getSelBalRemain(category) {
       const bal = this.getSelBal(category); if (!bal) return 0;
-      return Math.max(0, parseFloat(bal.remaining_weight) - this._getDeduction(bal.id));
+      const ded = this._getDeduction(bal.id);
+      const isPkg = bal.stockable_type === 'PackageType';
+      if (isPkg) {
+        const outPkg = (bal.operations || []).reduce((s, op) => s + (parseFloat(op.package_count) || 0), 0);
+        const remPkg = Math.max(0, parseFloat(bal.package_count || 0) - outPkg - ded);
+        if (remPkg > 0) return remPkg;
+      }
+      return Math.max(0, parseFloat(bal.remaining_weight || 0) - ded);
+    },
+    getSelBalUnit(category) {
+      const bal = this.getSelBal(category); if (!bal) return 'Kg';
+      if (bal.stockable_type === 'PackageType') return this.$t('boxes');
+      return 'Kg';
     },
     onWhChange(category) {
       const f = this.entryForms[category.id];
@@ -397,12 +456,34 @@ export default {
       if (f?.warehouse_id) { this.fetchWhBalances(category); } else { this.whBalances[category.id] = []; this.whBalances = { ...this.whBalances }; }
     },
     clearWh(category) { const f = this.entryForms[category.id]; if (f) { f.warehouse_id = null; f.stockable_id = null; f.selected_balance_id = null; } this.whBalances[category.id] = []; this.whBalances = { ...this.whBalances }; },
-    onWhArticleChange(category) { const f = this.entryForms[category.id]; if (f) f.selected_balance_id = null; },
+    onWhArticleChange(category) {
+      const f = this.entryForms[category.id];
+      if (f) {
+        f.selected_balance_id = null;
+        if (category.article_type === 'PackageType') { f.package_type_id = f.stockable_id; }
+      }
+    },
     clearWhArticle(category) { const f = this.entryForms[category.id]; if (f) { f.stockable_id = null; f.selected_balance_id = null; } },
-    onBalSelect(category) { /* balance selected, rest of fields now visible */ },
+    onBalSelect(category) {
+      const f = this.entryForms[category.id];
+      if (f && category.article_type === 'PackageType') { f.package_type_id = f.stockable_id; }
+    },
     clearBal(category) { const f = this.entryForms[category.id]; if (f) f.selected_balance_id = null; },
-    isWtOver(category) { const bal = this.getSelBal(category); if (!bal) return false; const f = this.entryForms[category.id]; return f?.weight > 0 && f.weight > this.getSelBalRemain(category); },
-    getWtHint(category) { const bal = this.getSelBal(category); if (!bal) return ''; const f = this.entryForms[category.id]; if (!f?.weight || f.weight <= 0) return ''; const r = this.getSelBalRemain(category) - f.weight; return r >= 0 ? `${this.$t('stock_after_sell')}: ${this.main.formatDisplayNumber(r)} Kg` : ''; },
+    isWtOver(category) {
+      const bal = this.getSelBal(category); if (!bal) return false;
+      const f = this.entryForms[category.id];
+      const qty = (category.article_type === 'PackageType' && f?.nbr_box > 0) ? f.nbr_box : f?.weight;
+      return qty > 0 && qty > this.getSelBalRemain(category);
+    },
+    getWtHint(category) {
+      const bal = this.getSelBal(category); if (!bal) return '';
+      const f = this.entryForms[category.id];
+      const qty = (category.article_type === 'PackageType' && f?.nbr_box > 0) ? f.nbr_box : f?.weight;
+      if (!qty || qty <= 0) return '';
+      const r = this.getSelBalRemain(category) - qty;
+      const unit = this.getSelBalUnit(category);
+      return r >= 0 ? `${this.$t('stock_after_sell')}: ${this.main.formatDisplayNumber(r)} ${unit}` : '';
+    },
     // === Local deduction tracking (frontend sync) ===
     _addDeduction(balId, weight) { if (!this.localDeductions[balId]) this.localDeductions[balId] = 0; this.localDeductions[balId] += parseFloat(weight) || 0; this.localDeductions = { ...this.localDeductions }; },
     _removeDeduction(balId, weight) { if (!this.localDeductions[balId]) return; this.localDeductions[balId] -= parseFloat(weight) || 0; if (this.localDeductions[balId] <= 0) delete this.localDeductions[balId]; this.localDeductions = { ...this.localDeductions }; },
