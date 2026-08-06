@@ -175,7 +175,6 @@ export default {
           ['mdi-view-list-outline', this.$t("list_charge"), "list_charge"],
         ], null, 'charges.view'],
         ['mdi-factory', this.$t('production'), [
-          ['mdi-sticker-plus-outline', this.$t("add_production"), "add_production"],
           ['mdi-format-list-bulleted', this.$t("production_list"), "production_list"],
           ['mdi-link-variant', this.$t("charge_production_management"), "charge_production_management"],
         ], null, 'production.view'],
