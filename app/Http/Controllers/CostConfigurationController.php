@@ -52,6 +52,8 @@ class CostConfigurationController extends Controller
             'formula'      => 'required|string|max:1000',
             'description'  => 'nullable|string|max:2000',
             'enabled'      => 'nullable|boolean',
+            'show_in_chart' => 'nullable|boolean',
+            'chart_color'  => 'nullable|string|max:9',
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -97,6 +99,8 @@ class CostConfigurationController extends Controller
             'formula'      => 'required|string|max:1000',
             'description'  => 'nullable|string|max:2000',
             'enabled'      => 'nullable|boolean',
+            'show_in_chart' => 'nullable|boolean',
+            'chart_color'  => 'nullable|string|max:9',
         ]);
 
         $oldData = $costConfiguration->toArray();

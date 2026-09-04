@@ -159,6 +159,18 @@
           </v-chip>
         </template>
 
+        <!-- Jupiter Chart Column -->
+        <template v-slot:[`item.show_in_chart`]="{ item }">
+          <div v-if="item.show_in_chart" class="d-flex align-center ga-1">
+            <span
+              style="width: 12px; height: 12px; border-radius: 50%; display: inline-block;"
+              :style="{ background: item.chart_color || '#FF5722' }"
+            ></span>
+            <v-icon size="16" color="#FF6F00">mdi-chart-line</v-icon>
+          </div>
+          <v-icon v-else size="16" color="grey-lighten-1">mdi-minus</v-icon>
+        </template>
+
         <!-- Actions Column -->
         <template v-slot:[`item.actions`]="{ item }">
           <v-btn
@@ -274,6 +286,40 @@
                   hide-details
                   class="ms-2"
                 ></v-switch>
+              </v-col>
+
+              <!-- Jupiter Dashboard Chart Integration -->
+              <v-col cols="12">
+                <v-divider class="mb-3"></v-divider>
+                <div class="text-subtitle-2 font-weight-bold d-flex align-center mb-2" style="color: #FF6F00">
+                  <v-icon size="18" color="#FF6F00" class="mr-1">mdi-chart-line</v-icon>
+                  {{ $t('jupiter_chart_integration') }}
+                </div>
+                <div class="d-flex align-center ga-4 flex-wrap">
+                  <v-switch
+                    v-model="form.show_in_chart"
+                    :label="$t('show_in_jupiter_chart')"
+                    color="#FF6F00"
+                    density="compact"
+                    hide-details
+                  ></v-switch>
+                  <div v-if="form.show_in_chart" class="d-flex align-center ga-2">
+                    <span class="text-caption font-weight-medium text-medium-emphasis">{{ $t('chart_line_color') }}:</span>
+                    <input
+                      type="color"
+                      v-model="form.chart_color"
+                      style="width: 40px; height: 32px; border: 2px solid rgba(255,111,0,.3); border-radius: 8px; cursor: pointer; padding: 2px;"
+                    />
+                    <v-chip
+                      size="small"
+                      variant="flat"
+                      :style="{ background: form.chart_color, color: '#fff' }"
+                      class="font-weight-bold"
+                    >
+                      {{ form.chart_color }}
+                    </v-chip>
+                  </div>
+                </div>
               </v-col>
               <v-col cols="12">
                 <v-textarea
@@ -679,6 +725,8 @@ export default {
         formula: '',
         description: '',
         enabled: true,
+        show_in_chart: false,
+        chart_color: '#FF6F00',
       },
 
       unitOptions: ['KG', 'DH', 'DH/KG', '%', 'DH/TON', 'MAD', 'USD'],
@@ -726,6 +774,7 @@ export default {
         { title: this.$t('formula_variables'), key: 'variables', align: 'start', sortable: false },
         { title: this.$t('formula'), key: 'formula', align: 'center' },
         { title: this.$t('status'), key: 'enabled', align: 'center' },
+        { title: this.$t('chart'), key: 'show_in_chart', align: 'center', sortable: false },
         { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
       ];
     },
@@ -993,6 +1042,8 @@ export default {
           formula: item.formula || '',
           description: item.description || '',
           enabled: item.enabled !== undefined ? item.enabled : true,
+          show_in_chart: item.show_in_chart || false,
+          chart_color: item.chart_color || '#FF6F00',
         };
       } else {
         this.form = {
@@ -1008,6 +1059,8 @@ export default {
           formula: '((c2 + c3) / c1) * 100',
           description: '',
           enabled: true,
+          show_in_chart: false,
+          chart_color: '#FF6F00',
         };
       }
 

@@ -161,6 +161,7 @@ export default {
     _rawLinks: function () {
       return [
         ['mdi-chart-box-outline', this.$t("main_dashboard"), null, "main_dashboard"],
+        ['mdi-orbit-variant', this.$t("jupiter_dashboard"), null, "jupiter_dashboard"],
         ['mdi-chart-timeline-variant-shimmer', this.$t("user_statistics"), null, "user_statistics", 'user_statistics.view'],
         ['mdi-robot', this.$t("ai_prompt"), null, "ai_prompt", 'ai_prompt.view'],
         ['mdi-warehouse', this.$t('warehouses'), [

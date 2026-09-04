@@ -20,12 +20,15 @@ class CostConfiguration extends Model
         'formula',
         'description',
         'enabled',
+        'show_in_chart',
+        'chart_color',
         'created_by',
     ];
 
     protected $casts = [
-        'variables' => 'array',
-        'enabled'   => 'boolean',
+        'variables'     => 'array',
+        'enabled'       => 'boolean',
+        'show_in_chart' => 'boolean',
     ];
 
     /**

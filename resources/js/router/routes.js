@@ -47,6 +47,12 @@ const routes = [
                         component: () => import("@/components/dashboard/MainDashboard.vue")
                     },
                     {
+                        path: "/jupiter-dashboard",
+                        name: "jupiter_dashboard",
+                        keeplive: true,
+                        component: () => import("@/components/jupiter_dashboard/index.vue")
+                    },
+                    {
                         path: "/user-statistics",
                         name: "user_statistics",
                         keeplive: false,

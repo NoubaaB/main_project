@@ -400,6 +400,12 @@ Route::middleware(["auth:sanctum"])->group(
         // ═══════════════════════════════════════════
         Route::get("user-statistics", [App\Http\Controllers\UserStatisticsController::class, "index"]);
         // ═══════════════════════════════════════════
+        //  JUPITER DASHBOARD ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("jupiter-dashboard/chart-data", [App\Http\Controllers\JupiterDashboardController::class, "chartData"]);
+        Route::get("jupiter-dashboard/filter-options", [App\Http\Controllers\JupiterDashboardController::class, "filterOptions"]);
+
+        // ═══════════════════════════════════════════
         //  COST CONFIGURATION ROUTES
         // ═══════════════════════════════════════════
         Route::get("cost-configurations/categories-and-sources", [App\Http\Controllers\CostConfigurationController::class, "categoriesAndSources"]);
