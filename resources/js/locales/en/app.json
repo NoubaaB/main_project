@@ -1599,7 +1599,6 @@
   "cnss": "CNSS",
   "tva_number": "TVA Number",
   "logo_invoice": "Invoice Logo",
-  "logo_origin": "Origin Logo",
   "settings_saved": "Settings Saved Successfully",
   "logo_uploaded": "Logo Uploaded Successfully",
   "created_by": "Created By",
@@ -2005,5 +2004,6 @@
   "show_in_jupiter_chart": "Show in Jupiter Chart",
   "chart_line_color": "Line Color",
   "cost_lines": "Cost Lines",
-  "chart": "Chart"
+  "chart": "Chart",
+  "drag_drop_or_click": "Drag & drop or click to browse"
 }

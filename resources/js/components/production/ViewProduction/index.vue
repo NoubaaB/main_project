@@ -275,6 +275,7 @@
 <script>
 import axios from 'axios';
 import { useMain } from '@/stores/Main';
+import { useCompanySettings } from '@/stores/CompanySettings';
 import { useFishProcessType } from '@/stores/FishProcessType';
 import QualityControlDialog from '../QualityControl/QualityControlDialog.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
@@ -296,7 +297,11 @@ export default {
     criteriaKeys() { return ['skin_grade','eye_grade','gills_grade','abdomen_grade','backbone_grade','organs_grade','texture_grade','odor_grade']; },
     vpCriteria() { return CRITERIA; },
     vpGrades() { return GRADES; },
-    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
+    logoUrl() {
+      const cs = useCompanySettings();
+      if (cs.settings.logo_invoice_url) return cs.settings.logo_invoice_url;
+      return new URL('/storage/images/logo_login.png', window.location.origin).href;
+    },
     vpProductionLabel() {
       if (!this.production) return '';
       const cat = this.production.production_category?.name || '';

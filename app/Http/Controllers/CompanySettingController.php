@@ -22,9 +22,6 @@ class CompanySettingController extends Controller
         if (!empty($settings['logo_invoice_path'])) {
             $settings['logo_invoice_url'] = asset('storage/' . $settings['logo_invoice_path']);
         }
-        if (!empty($settings['logo_origin_path'])) {
-            $settings['logo_origin_url'] = asset('storage/' . $settings['logo_origin_path']);
-        }
         if (!empty($settings['logo_invoice_body_path'])) {
             $settings['logo_invoice_body_url'] = asset('storage/' . $settings['logo_invoice_body_path']);
         }
@@ -56,9 +53,6 @@ class CompanySettingController extends Controller
         if (!empty($allSettings['logo_invoice_path'])) {
             $allSettings['logo_invoice_url'] = asset('storage/' . $allSettings['logo_invoice_path']);
         }
-        if (!empty($allSettings['logo_origin_path'])) {
-            $allSettings['logo_origin_url'] = asset('storage/' . $allSettings['logo_origin_path']);
-        }
         if (!empty($allSettings['logo_invoice_body_path'])) {
             $allSettings['logo_invoice_body_url'] = asset('storage/' . $allSettings['logo_invoice_body_path']);
         }
@@ -78,7 +72,7 @@ class CompanySettingController extends Controller
     public function uploadLogo(Request $request)
     {
         $request->validate([
-            'logo_type' => 'required|in:logo_invoice,logo_origin,logo_invoice_body',
+            'logo_type' => 'required|in:logo_invoice,logo_invoice_body',
             'logo'      => 'required|image|mimes:png,jpg,jpeg,svg,webp|max:2048',
         ]);
 
@@ -100,9 +94,6 @@ class CompanySettingController extends Controller
         if (!empty($allSettings['logo_invoice_path'])) {
             $allSettings['logo_invoice_url'] = asset('storage/' . $allSettings['logo_invoice_path']);
         }
-        if (!empty($allSettings['logo_origin_path'])) {
-            $allSettings['logo_origin_url'] = asset('storage/' . $allSettings['logo_origin_path']);
-        }
         if (!empty($allSettings['logo_invoice_body_path'])) {
             $allSettings['logo_invoice_body_url'] = asset('storage/' . $allSettings['logo_invoice_body_path']);
         }
@@ -113,5 +104,26 @@ class CompanySettingController extends Controller
             'path'    => $path,
             'url'     => asset('storage/' . $path),
         ]);
+    }
+
+    /**
+     * Public endpoint – returns logo URLs without authentication.
+     * Used by login page and other unauthenticated views.
+     */
+    public function publicLogos()
+    {
+        $logos = [];
+
+        $invoicePath = CompanySetting::getValue('logo_invoice_path');
+        if ($invoicePath) {
+            $logos['logo_invoice_url'] = asset('storage/' . $invoicePath);
+        }
+
+        $bodyPath = CompanySetting::getValue('logo_invoice_body_path');
+        if ($bodyPath) {
+            $logos['logo_invoice_body_url'] = asset('storage/' . $bodyPath);
+        }
+
+        return response()->json($logos);
     }
 }

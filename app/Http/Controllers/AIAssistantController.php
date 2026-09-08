@@ -309,8 +309,10 @@ class AIAssistantController extends Controller
         $result = $this->executeActionPlan($actionPlan);
 
         if ($user) {
-            ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $data['message'] ?? 'Confirmed action']);
-            ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $result['html']]);
+            ChatMessage::withoutEvents(function () use ($user, $data, $result) {
+                ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $data['message'] ?? 'Confirmed action']);
+                ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $result['html']]);
+            });
         }
 
         return response()->json(['answer' => $result['html'], 'affected_models' => $result['affected_models']], 200);
@@ -403,8 +405,10 @@ class AIAssistantController extends Controller
 
             $user = $request->user();
             if ($user) {
-                ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}"]);
-                ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $answer) {
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}"]);
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+                });
             }
 
             return response()->json(['answer' => $answer], 200);
@@ -458,8 +462,10 @@ class AIAssistantController extends Controller
 
             $user = $request->user();
             if ($user) {
-                ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}"]);
-                ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $html]);
+                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $html) {
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}"]);
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $html]);
+                });
             }
 
             return response()->json([
@@ -535,7 +541,7 @@ class AIAssistantController extends Controller
                 if (!isset($modelMap[$modelName]))
                     continue;
                 $class = $modelMap[$modelName]['class'];
-                $record = $class::create($pc['fields'] ?? []);
+                $record = $class::withoutEvents(fn () => $class::create($pc['fields'] ?? []));
                 $results[] = "✅ Created {$modelName} #{$record->id}";
                 $affectedModels[] = $modelName;
 
@@ -563,25 +569,29 @@ class AIAssistantController extends Controller
                 if ($intent === 'create') {
                     $records = $action['records'] ?? [];
                     $created = 0;
-                    foreach ($records as $rec) {
-                        $class::create($rec);
-                        $created++;
-                    }
+                    $class::withoutEvents(function () use ($class, $records, &$created) {
+                        foreach ($records as $rec) {
+                            $class::create($rec);
+                            $created++;
+                        }
+                    });
                     $results[] = "✅ Created {$created} {$modelName} record(s)";
                 }
 
                 if ($intent === 'delete') {
                     $ids = $action['ids'] ?? [];
                     $deleted = 0;
-                    foreach ($ids as $id) {
-                        $record = $class::find($id);
-                        if ($record) {
-                            $record->delete();
-                            $deleted++;
+                    $class::withoutEvents(function () use ($class, $ids, &$deleted) {
+                        foreach ($ids as $id) {
+                            $record = $class::find($id);
+                            if ($record) {
+                                $record->delete();
+                                $deleted++;
+                            }
                         }
-                    }
+                    });
                     $softLabel = ($action['soft_delete'] ?? false) ? ' (soft-deleted)' : ' (permanently deleted)';
-                    $results[] = "🗑️ Deleted {$deleted} {$modelName} record(s){$softLabel}";
+                    $results[] = "🗑️  Deleted {$deleted} {$modelName} record(s){$softLabel}";
                 }
             }
 
@@ -865,8 +875,10 @@ class AIAssistantController extends Controller
     {
         $user = $request->user();
         if ($user) {
-            ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
-            ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+            ChatMessage::withoutEvents(function () use ($user, $question, $answer) {
+                ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
+                ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+            });
         }
     }
 

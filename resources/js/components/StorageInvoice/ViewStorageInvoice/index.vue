@@ -132,6 +132,7 @@
 <script>
 import axios from 'axios';
 import { useMain } from '@/stores/Main';
+import { useCompanySettings } from '@/stores/CompanySettings';
 import print from 'vue3-print-nb';
 
 export default {
@@ -146,7 +147,11 @@ export default {
   },
   computed: {
     main() { return useMain(); },
-    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
+    logoUrl() {
+      const cs = useCompanySettings();
+      if (cs.settings.logo_invoice_url) return cs.settings.logo_invoice_url;
+      return new URL('/storage/images/logo_login.png', window.location.origin).href;
+    },
     lineHeaders() {
       return [
         { title: this.$t('prestations'), key: 'description', align: 'start' },

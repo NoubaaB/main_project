@@ -2,6 +2,7 @@ import axios from 'axios';
 import mitt from '@/plugins/mitt';
 import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
+import { useCompanySettings } from '@/stores/CompanySettings';
 import * as XLSX from 'xlsx';
 
 export default {
@@ -27,7 +28,11 @@ export default {
   computed: {
     main() { return useMain(); },
     auth() { return useAuth(); },
-    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
+    logoUrl() {
+      const cs = useCompanySettings();
+      if (cs.settings.logo_invoice_url) return cs.settings.logo_invoice_url;
+      return new URL('/storage/images/logo_login.png', window.location.origin).href;
+    },
     sejourWarehouses() { return this.warehouses.filter(w => w.has_sejour); },
     allSelected() { return this.colFilteredItems.length > 0 && this.colFilteredItems.every(i => this.selectedIds.includes(i.id)); },
     someSelected() { return this.colFilteredItems.some(i => this.selectedIds.includes(i.id)); },

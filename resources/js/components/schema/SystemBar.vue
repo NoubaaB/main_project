@@ -317,6 +317,7 @@
     import { useAuth } from "@/stores/Auth";
     import { useOnlineUsers } from "@/stores/OnlineUsers";
     import { useNotificationCenter } from "@/stores/NotificationCenter";
+    import { useCompanySettings } from "@/stores/CompanySettings";
     import { usePwa } from "@/stores/pwa";
     import annyang from "annyang";
 
@@ -347,6 +348,8 @@
                 return this.getLangFlag(this.main.lang.code);
             },
             miniLogoUrl: function () {
+                const cs = useCompanySettings();
+                if (cs.settings.logo_invoice_body_url) return cs.settings.logo_invoice_body_url;
                 return new URL('/images/jupiter-logo.png', window.location.origin).href;
             },
             pwa: function () {

@@ -5,7 +5,7 @@
             <v-col class="auth-title-col">
                 <div class="auth-title-wrapper">
                   <v-img
-                    src="/images/jupiter-logo.png"
+                    :src="logoUrl"
                     width="200"
                     height="200"
                     class="auth-animated-title"
@@ -138,6 +138,7 @@
         minLength,
     } from "@vuelidate/validators";
     import { useAuth } from "@/stores/Auth";
+    import axios from 'axios';
     export default {
         data() {
             return {
@@ -146,6 +147,7 @@
                 loading: false,
                 loginError: false,
                 accountDisabled: false,
+                logoUrl: '/images/jupiter-logo.png',
             }
         },
         computed: {
@@ -161,7 +163,16 @@
                 return useAuth();
             }
         },
+        mounted() {
+            this.fetchLogo();
+        },
         methods: {
+            async fetchLogo() {
+                try {
+                    const r = await axios.get('/api/public/company-logos');
+                    if (r.data.logo_invoice_body_url) this.logoUrl = r.data.logo_invoice_body_url;
+                } catch(e) { /* fallback to static logo */ }
+            },
             submit: function () {
                 this.loading = true;
                 this.loginError = false;

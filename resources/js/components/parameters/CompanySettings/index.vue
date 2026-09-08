@@ -52,17 +52,67 @@
         <!-- Section: Logos -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-image</v-icon>{{ $t('company_logos') }}</div>
         <v-row dense>
+          <!-- Logo Invoice -->
           <v-col cols="12" md="4">
-            <v-file-input v-model="logoInvoiceFile" :label="$t('logo_invoice')" density="compact" variant="outlined" rounded color="#546E7A" hide-details accept="image/*" prepend-icon="mdi-file-image" @update:model-value="uploadLogo('logo_invoice')"></v-file-input>
-            <img v-if="logoInvoiceUrl" :src="logoInvoiceUrl" style="max-height:60px;margin-top:8px;border-radius:8px;border:1px solid #eee" />
+            <div class="logo-label">{{ $t('logo_invoice') }}</div>
+            <div
+              class="logo-dropzone"
+              :class="{ 'logo-dropzone-dragover': dragOver.logo_invoice, 'logo-dropzone-has-image': logoInvoiceUrl }"
+              @click="triggerFileInput('logo_invoice')"
+              @dragover.prevent="dragOver.logo_invoice = true"
+              @dragleave.prevent="dragOver.logo_invoice = false"
+              @drop.prevent="onDrop($event, 'logo_invoice')"
+            >
+              <!-- Loading spinner -->
+              <div v-if="uploading.logo_invoice" class="logo-dropzone-loading">
+                <v-progress-circular indeterminate color="#546E7A" size="32" width="3"></v-progress-circular>
+              </div>
+              <!-- Image preview -->
+              <template v-else-if="logoInvoiceUrl">
+                <img :src="logoInvoiceUrl" class="logo-preview-img" alt="Logo Invoice" />
+                <div class="logo-overlay">
+                  <v-btn icon size="x-small" variant="flat" color="error" @click.stop="removeLogo('logo_invoice')">
+                    <v-icon size="16">mdi-close</v-icon>
+                  </v-btn>
+                </div>
+              </template>
+              <!-- Placeholder -->
+              <template v-else>
+                <v-icon size="48" class="logo-placeholder-icon">mdi-image-off-outline</v-icon>
+                <div class="logo-placeholder-text">{{ $t('drag_drop_or_click') }}</div>
+              </template>
+              <input type="file" ref="fileInput_logo_invoice" accept="image/*" style="display:none" @change="onFileSelected($event, 'logo_invoice')" />
+            </div>
           </v-col>
+
+          <!-- Logo Invoice Body -->
           <v-col cols="12" md="4">
-            <v-file-input v-model="logoInvoiceBodyFile" :label="$t('logo_invoice_body')" density="compact" variant="outlined" rounded color="#546E7A" hide-details accept="image/*" prepend-icon="mdi-file-image" @update:model-value="uploadLogo('logo_invoice_body')"></v-file-input>
-            <img v-if="logoInvoiceBodyUrl" :src="logoInvoiceBodyUrl" style="max-height:60px;margin-top:8px;border-radius:8px;border:1px solid #eee" />
-          </v-col>
-          <v-col cols="12" md="4">
-            <v-file-input v-model="logoOriginFile" :label="$t('logo_origin')" density="compact" variant="outlined" rounded color="#546E7A" hide-details accept="image/*" prepend-icon="mdi-file-image" @update:model-value="uploadLogo('logo_origin')"></v-file-input>
-            <img v-if="logoOriginUrl" :src="logoOriginUrl" style="max-height:60px;margin-top:8px;border-radius:8px;border:1px solid #eee" />
+            <div class="logo-label">{{ $t('logo_invoice_body') }}</div>
+            <div
+              class="logo-dropzone"
+              :class="{ 'logo-dropzone-dragover': dragOver.logo_invoice_body, 'logo-dropzone-has-image': logoInvoiceBodyUrl }"
+              @click="triggerFileInput('logo_invoice_body')"
+              @dragover.prevent="dragOver.logo_invoice_body = true"
+              @dragleave.prevent="dragOver.logo_invoice_body = false"
+              @drop.prevent="onDrop($event, 'logo_invoice_body')"
+            >
+              <div v-if="uploading.logo_invoice_body" class="logo-dropzone-loading">
+                <v-progress-circular indeterminate color="#546E7A" size="32" width="3"></v-progress-circular>
+              </div>
+              <template v-else-if="logoInvoiceBodyUrl">
+                <img :src="logoInvoiceBodyUrl" class="logo-preview-img" alt="Logo Invoice Body" />
+                <div class="logo-overlay">
+                  <v-btn icon size="x-small" variant="flat" color="error" @click.stop="removeLogo('logo_invoice_body')">
+                    <v-icon size="16">mdi-close</v-icon>
+                  </v-btn>
+                </div>
+              </template>
+              <template v-else>
+                <v-icon size="48" class="logo-placeholder-icon">mdi-image-off-outline</v-icon>
+                <div class="logo-placeholder-text">{{ $t('drag_drop_or_click') }}</div>
+              </template>
+              <input type="file" ref="fileInput_logo_invoice_body" accept="image/*" style="display:none" @change="onFileSelected($event, 'logo_invoice_body')" />
+            </div>
           </v-col>
         </v-row>
 
@@ -70,6 +120,7 @@
       </v-form>
     </v-card-text>
 
+    <!-- Summary Snackbar -->
     <v-snackbar v-model="snack.show" :timeout="4000" :color="snack.color" location="top right">{{ snack.msg }}<template #actions><v-btn variant="text" size="small" @click="snack.show=false">{{ $t('close') }}</v-btn></template></v-snackbar>
   </v-card>
 </template>
@@ -83,12 +134,13 @@ export default {
   data() {
     return {
       form: { company_name:'',director_name:'',director_gender:'male',company_origin:'',company_address:'',swift_code:'',phone_number:'',fax_number:'',email:'',bank_name:'',bank_account_number:'',capital:'',ice:'',rc:'',cnss:'',tva_number:'' },
-      logoInvoiceFile: null, logoInvoiceBodyFile: null, logoOriginFile: null,
-      logoInvoiceUrl: '', logoInvoiceBodyUrl: '', logoOriginUrl: '',
+      logoInvoiceUrl: '', logoInvoiceBodyUrl: '',
       saving: false,
       snack: { show:false, msg:'', color:'success' },
       genderOptions: [{ title: this.$t('male'), value: 'male' }, { title: this.$t('female'), value: 'female' }],
       csStore: useCompanySettings(),
+      dragOver: { logo_invoice: false, logo_invoice_body: false },
+      uploading: { logo_invoice: false, logo_invoice_body: false },
     };
   },
   mounted() { this.loadFromStore(); },
@@ -109,7 +161,6 @@ export default {
       Object.keys(this.form).forEach(k => { if (s[k] !== undefined) this.form[k] = s[k] || ''; });
       this.logoInvoiceUrl = s.logo_invoice_url || '';
       this.logoInvoiceBodyUrl = s.logo_invoice_body_url || '';
-      this.logoOriginUrl = s.logo_origin_url || '';
     },
     async fetchSettings() {
       try {
@@ -134,12 +185,27 @@ export default {
       }
       this.saving = false;
     },
-    async uploadLogo(type) {
-      let file;
-      if (type === 'logo_invoice') file = this.logoInvoiceFile;
-      else if (type === 'logo_invoice_body') file = this.logoInvoiceBodyFile;
-      else file = this.logoOriginFile;
-      if (!file) return;
+
+    // ── Logo upload helpers ──
+    triggerFileInput(type) {
+      const ref = this.$refs[`fileInput_${type}`];
+      if (ref) ref.click();
+    },
+    onFileSelected(event, type) {
+      const file = event.target.files[0];
+      if (file) this.uploadLogo(type, file);
+      // Reset input so re-selecting the same file triggers change
+      event.target.value = '';
+    },
+    onDrop(event, type) {
+      this.dragOver[type] = false;
+      const file = event.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        this.uploadLogo(type, file);
+      }
+    },
+    async uploadLogo(type, file) {
+      this.uploading[type] = true;
       const fd = new FormData();
       fd.append('logo', file);
       fd.append('logo_type', type);
@@ -147,13 +213,17 @@ export default {
         const r = await axios.post('/api/company-settings/upload-logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         if (type === 'logo_invoice') this.logoInvoiceUrl = r.data.url;
         else if (type === 'logo_invoice_body') this.logoInvoiceBodyUrl = r.data.url;
-        else this.logoOriginUrl = r.data.url;
         // Update the Pinia store with the new logo URL
         this.csStore.setSettings({ [`${type}_url`]: r.data.url, [`${type}_path`]: r.data.path });
         this.snack = { show:true, msg: this.$t('logo_uploaded'), color:'success' };
       } catch(e) {
         this.snack = { show:true, msg: this.$t('error_occurred'), color:'error' };
       }
+      this.uploading[type] = false;
+    },
+    removeLogo(type) {
+      if (type === 'logo_invoice') this.logoInvoiceUrl = '';
+      else if (type === 'logo_invoice_body') this.logoInvoiceBodyUrl = '';
     },
   },
 };
@@ -165,4 +235,111 @@ export default {
 .cs-hero-inner{position:relative;z-index:1;padding:22px 26px;color:#fff}
 .cs-hero-icon{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.15)}
 .cs-hero-title{font-size:19px;font-weight:800;letter-spacing:.3px}
+
+/* ── Logo Dropzone ── */
+.logo-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: #546E7A;
+  margin-bottom: 6px;
+}
+
+.logo-dropzone {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 180px;
+  border: 2px dashed rgba(84, 110, 122, 0.5);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: rgba(84, 110, 122, 0.03);
+  overflow: hidden;
+}
+
+.logo-dropzone:hover {
+  border-color: rgba(84, 110, 122, 0.8);
+  background: rgba(84, 110, 122, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(84, 110, 122, 0.12);
+}
+
+.logo-dropzone-dragover {
+  border-color: #546E7A !important;
+  background: rgba(84, 110, 122, 0.1) !important;
+  box-shadow: 0 0 0 4px rgba(84, 110, 122, 0.15) !important;
+  transform: scale(1.02);
+}
+
+.logo-dropzone-has-image {
+  border-style: solid;
+  border-color: rgba(84, 110, 122, 0.2);
+}
+
+.logo-dropzone-has-image:hover {
+  border-color: rgba(84, 110, 122, 0.4);
+}
+
+/* Placeholder icon + text */
+.logo-placeholder-icon {
+  color: rgba(84, 110, 122, 0.25);
+  transition: color 0.2s ease;
+}
+.logo-dropzone:hover .logo-placeholder-icon {
+  color: rgba(84, 110, 122, 0.45);
+}
+.logo-placeholder-text {
+  font-size: 11px;
+  color: rgba(84, 110, 122, 0.45);
+  margin-top: 6px;
+  text-align: center;
+  line-height: 1.3;
+  padding: 0 12px;
+  font-weight: 500;
+}
+.logo-dropzone:hover .logo-placeholder-text {
+  color: rgba(84, 110, 122, 0.7);
+}
+
+/* Image preview */
+.logo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 12px;
+  transition: opacity 0.2s ease;
+}
+
+/* Hover overlay with remove button */
+.logo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  border-radius: 14px;
+}
+.logo-dropzone:hover .logo-overlay {
+  opacity: 1;
+}
+
+/* Loading spinner */
+.logo-dropzone-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
 </style>
+

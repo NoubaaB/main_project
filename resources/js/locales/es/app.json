@@ -1592,7 +1592,6 @@
   "cnss": "CNSS",
   "tva_number": "Número de IVA",
   "logo_invoice": "Logo Factura",
-  "logo_origin": "Logo Origen",
   "settings_saved": "Configuraciones Guardadas Exitosamente",
   "logo_uploaded": "Logo Subido Exitosamente",
   "logo_invoice_body": "Logo Cuerpo Factura",
@@ -1961,5 +1960,6 @@
   "show_in_jupiter_chart": "Mostrar en gráfico Jupiter",
   "chart_line_color": "Color de la línea",
   "cost_lines": "Líneas de Costo",
-  "chart": "Gráfico"
+  "chart": "Gráfico",
+  "drag_drop_or_click": "Arrastrar y soltar o haga clic para buscar"
 }

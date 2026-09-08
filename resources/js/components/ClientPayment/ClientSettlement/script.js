@@ -58,7 +58,11 @@ export default {
     },
     bankNameStore() { return useBankName(); },
     companySettings() { return useCompanySettings(); },
-    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
+    logoUrl() {
+      const cs = useCompanySettings();
+      if (cs.settings.logo_invoice_url) return cs.settings.logo_invoice_url;
+      return new URL('/storage/images/logo_login.png', window.location.origin).href;
+    },
     bankNameItems() {
       return this.bankNameStore.list.map(b => ({ title: b.name, value: b.name }));
     },

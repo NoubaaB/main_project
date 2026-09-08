@@ -49,7 +49,17 @@
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>
             <th v-for="col in columns" :key="col.key" class="param-th">
-              <div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">
+              <template v-if="col.key === 'data-table-select'">
+                <v-checkbox-btn
+                  :model-value="selectAll"
+                  :indeterminate="someSelected && !selectAll"
+                  color="#42A5F5"
+                  density="compact"
+                  hide-details
+                  @update:model-value="toggleSelectAll"
+                ></v-checkbox-btn>
+              </template>
+              <div v-else class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">
                 {{ col.title }}
                 <v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon>
               </div>
@@ -296,6 +306,12 @@ export default {
     hasActiveColumnFilters() {
       return Object.values(this.columnFilters).some(f => f && f.length > 0);
     },
+    selectAll() {
+      return this.selectedIds.length === this.filteredItems.length && this.filteredItems.length > 0;
+    },
+    someSelected() {
+      return this.selectedIds.length > 0;
+    },
   },
   mounted() { this.fetchData(); },
   methods: {
@@ -314,6 +330,9 @@ export default {
       return [...set].sort();
     },
     clearAllColumnFilters() { this.columnFilters = {}; },
+    toggleSelectAll(v) {
+      this.selectedIds = v ? this.filteredItems.map(i => i.id) : [];
+    },
     async fetchData() {
       this.loading = true;
       await this.workforceStore.fetch();

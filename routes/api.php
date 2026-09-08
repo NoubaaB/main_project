@@ -24,6 +24,9 @@ Route::controller(AuthController::class)->group(function () {
     //login route
     Route::post("login", "login");
 });
+
+// Public company logos endpoint (no auth required – used by login page)
+Route::get("public/company-logos", [App\Http\Controllers\CompanySettingController::class, "publicLogos"]);
 #endregion 
 
 

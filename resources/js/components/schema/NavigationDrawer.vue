@@ -30,7 +30,25 @@
     <!-- ======== RAIL MODE: flat icons only ======== -->
     <v-list v-if="main.sidebar_mini" nav density="compact" class="nav-list">
       <template v-for="([icon, text, childrens, url], i) in flatLinks" :key="'rail-'+i">
+        <!-- AI Prompt: glowing border wrapper (rail) -->
+        <div v-if="url === 'ai_prompt'" class="ai-glow-wrapper ai-glow-rail">
+          <v-list-item
+            class="nav-list-item ai-prompt-item"
+            :value="text"
+            rounded="lg"
+            color="info"
+            :exact="true"
+            :to="{ name: url }"
+          >
+            <template v-slot:prepend>
+              <v-icon :size="22">{{ icon }}</v-icon>
+            </template>
+            <v-tooltip activator="parent" location="end">{{ text }}</v-tooltip>
+          </v-list-item>
+        </div>
+        <!-- Normal items -->
         <v-list-item
+          v-else
           class="nav-list-item"
           :value="text"
           rounded="lg"
@@ -49,8 +67,22 @@
     <!-- ======== EXPANDED MODE: groups ======== -->
     <v-list v-else v-model:opened="open" nav density="compact" class="nav-list">
       <template v-for="([icon, text, childrens, url], i) in links" :key="'exp-'+i">
+        <!-- AI Prompt: glowing border wrapper (expanded) -->
+        <div v-if="childrens == null && url === 'ai_prompt'" class="ai-glow-wrapper">
+          <v-list-item
+            class="nav-list-item ai-prompt-item"
+            :prepend-icon="icon"
+            :title="text"
+            :value="text"
+            rounded="lg"
+            color="info"
+            :exact="true"
+            :to="{ name: url }"
+          ></v-list-item>
+        </div>
+        <!-- Normal leaf items -->
         <v-list-item
-          v-if="childrens == null"
+          v-else-if="childrens == null"
           class="nav-list-item"
           :prepend-icon="icon"
           :title="text"
@@ -289,6 +321,37 @@ export default {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+/* ---------- Auto-hide scrollbar ---------- */
+.nav-drawer-premium :deep(.v-navigation-drawer__content) {
+  overflow-y: auto;
+  scrollbar-width: none;                      /* Firefox: hide by default */
+  -ms-overflow-style: none;                   /* IE/Edge legacy */
+  transition: scrollbar-color 0.3s ease;
+}
+.nav-drawer-premium :deep(.v-navigation-drawer__content)::-webkit-scrollbar {
+  width: 4px;
+}
+.nav-drawer-premium :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+.nav-drawer-premium :deep(.v-navigation-drawer__content)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Show scrollbar on hover */
+.nav-drawer-premium:hover :deep(.v-navigation-drawer__content) {
+  scrollbar-width: thin;                      /* Firefox: show thin scrollbar */
+  scrollbar-color: rgba(128,128,128,0.4) transparent;
+}
+.nav-drawer-premium:hover :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb {
+  background: rgba(128,128,128,0.4);
+}
+.nav-drawer-premium:hover :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb:hover {
+  background: rgba(128,128,128,0.6);
+}
+
 /* ---------- Brand Section ---------- */
 .nav-brand-section {
   display: flex;
@@ -417,5 +480,92 @@ export default {
   inset: 0;
   z-index: 1004;
   cursor: default;
+}
+
+/* ============================================================
+   AI Prompt — Animated Glowing Border
+   ============================================================ */
+
+/* Rotating hue keyframes for the border gradient */
+@keyframes ai-border-rotate {
+  0%   { --ai-angle: 0deg; }
+  100% { --ai-angle: 360deg; }
+}
+
+@keyframes ai-glow-pulse {
+  0%, 100% { opacity: 0.6; filter: blur(6px); }
+  50%      { opacity: 1;   filter: blur(10px); }
+}
+
+/* Wrapper that creates the glowing border via pseudo-elements */
+.ai-glow-wrapper {
+  position: relative;
+  border-radius: 12px;
+  padding: 2px;               /* thickness of the glowing border */
+  margin-bottom: 2px;
+  isolation: isolate;
+  /* Conic gradient border — animates via CSS Houdini if supported, else fallback */
+  background:
+    conic-gradient(
+      from var(--ai-angle, 0deg),
+      #a855f7,   /* purple  */
+      #06b6d4,   /* cyan    */
+      #ec4899,   /* magenta */
+      #3b82f6,   /* blue    */
+      #a855f7    /* loop    */
+    );
+  animation: ai-border-rotate 3s linear infinite;
+}
+
+/* Outer glow shadow layer */
+.ai-glow-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  background:
+    conic-gradient(
+      from var(--ai-angle, 0deg),
+      #a855f7,
+      #06b6d4,
+      #ec4899,
+      #3b82f6,
+      #a855f7
+    );
+  z-index: -1;
+  animation: ai-glow-pulse 2.5s ease-in-out infinite;
+}
+
+/* Inner solid fill so only the border ring shows through */
+.ai-glow-wrapper :deep(.v-list-item) {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-radius: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle inner icon shimmer */
+.ai-prompt-item :deep(.v-icon) {
+  animation: ai-icon-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes ai-icon-shimmer {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.4)); }
+  33%      { filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.7)); }
+  66%      { filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.7)); }
+}
+
+/* Rail mode: make wrapper fit the compact size */
+.ai-glow-rail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Register the custom property for smooth conic-gradient animation (CSS Houdini) */
+@property --ai-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }
 </style>

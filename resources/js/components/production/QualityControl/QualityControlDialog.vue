@@ -235,6 +235,7 @@
 import axios from 'axios';
 import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
+import { useCompanySettings } from '@/stores/CompanySettings';
 import { CRITERIA, GRADES, GRADE_COLORS, GRADE_ICONS, DECISION_COLORS, APPROVAL_COLORS, computeGrade } from './qcCriteria';
 import print from 'vue3-print-nb';
 
@@ -273,7 +274,11 @@ export default {
   computed: {
     main() { return useMain(); },
     auth() { return useAuth(); },
-    logoUrl() { return new URL('/storage/images/logo_login.png', window.location.origin).href; },
+    logoUrl() {
+      const cs = useCompanySettings();
+      if (cs.settings.logo_invoice_url) return cs.settings.logo_invoice_url;
+      return new URL('/storage/images/logo_login.png', window.location.origin).href;
+    },
     fishTypeNames() {
       const lang = this.main.lang?.code || 'en';
       return (this.main.getFishTypes || []).map(ft => ft[`name_${lang}`] || ft.name).filter(Boolean);

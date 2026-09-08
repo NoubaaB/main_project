@@ -251,9 +251,6 @@ class AuthController extends Controller implements HasMiddleware
         if (!empty($company_settings['logo_invoice_path'])) {
             $company_settings['logo_invoice_url'] = asset('storage/' . $company_settings['logo_invoice_path']);
         }
-        if (!empty($company_settings['logo_origin_path'])) {
-            $company_settings['logo_origin_url'] = asset('storage/' . $company_settings['logo_origin_path']);
-        }
         if (!empty($company_settings['logo_invoice_body_path'])) {
             $company_settings['logo_invoice_body_url'] = asset('storage/' . $company_settings['logo_invoice_body_path']);
         }

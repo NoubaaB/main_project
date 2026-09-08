@@ -115,12 +115,17 @@
 <script>
 import { useMain } from "@/stores/Main";
 import { useAuth } from "@/stores/Auth";
+import { useCompanySettings } from "@/stores/CompanySettings";
 
 export default {
   computed: {
     main() { return useMain(); },
     auth() { return useAuth(); },
-    logoUrl() { return new URL('/images/jupiter-logo.png', window.location.origin).href; },
+    logoUrl() {
+      const cs = useCompanySettings();
+      if (cs.settings.logo_invoice_body_url) return cs.settings.logo_invoice_body_url;
+      return new URL('/images/jupiter-logo.png', window.location.origin).href;
+    },
   },
 };
 </script>
