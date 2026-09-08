@@ -15,26 +15,21 @@ class ModelChangeObserver
         }
 
         $userName = 'System';
+        $userId = null;
         $user = auth()->user();
         if ($user) {
             $userName = $user->name;
+            $userId = $user->id;
         }
 
         $modelName = class_basename($model);
-
-        // DEBUG: Log what triggers the broadcast with a short stack trace
-        \Log::info("[ModelChangeObserver] {$action} {$modelName} #{$model->id}", [
-            'trace' => collect(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10))
-                ->map(fn($f) => ($f['class'] ?? '') . ($f['type'] ?? '') . ($f['function'] ?? '') . ' @ ' . basename($f['file'] ?? '') . ':' . ($f['line'] ?? ''))
-                ->take(8)
-                ->toArray(),
-        ]);
 
         // Get the record data (with relations if loaded)
         $recordData = $model->toArray();
 
         try {
-            event(new ModelChanged($modelName, $action, $model->id ?? 0, $userName, $recordData));
+            broadcast(new ModelChanged($modelName, $action, $model->id ?? 0, $userName, $recordData, $userId))
+                ->toOthers();
         } catch (\Throwable $e) {
             // Don't break the main operation if broadcasting fails
             report($e);

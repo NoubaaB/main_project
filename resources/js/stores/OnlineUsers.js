@@ -120,20 +120,26 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
          * 3) Emit mitt bus event so DataTable pages (Charge, Sell) re-fetch
          */
         handleModelChange(data) {
-            const actionLabels = { created: 'created', updated: 'updated', deleted: 'deleted' };
-            const actionLabel = actionLabels[data.action] || data.action;
-            this.showSnackbar(`${data.user_name} ${actionLabel} a ${data.model} record`, 'info');
+            const auth = useAuth();
+            const isOwnAction = data.actor_id && auth.user && data.actor_id === auth.user.id;
 
-            // Update local store list for reference data models
-            this.updateLocalStore(data);
+            // Only show snackbar + notification to OTHER users, not the actor
+            if (!isOwnAction) {
+                const actionLabels = { created: 'created', updated: 'updated', deleted: 'deleted' };
+                const actionLabel = actionLabels[data.action] || data.action;
+                this.showSnackbar(`${data.user_name} ${actionLabel} a ${data.model} record`, 'info');
 
-            // Push to NotificationCenter for real-time notifications
-            try {
-                const notifCenter = useNotificationCenter();
-                notifCenter.handleRealtimeNotification(data);
-            } catch (e) {
-                console.warn('[WebSocket] Failed to push notification:', e);
+                // Push to NotificationCenter for real-time notifications
+                try {
+                    const notifCenter = useNotificationCenter();
+                    notifCenter.handleRealtimeNotification(data);
+                } catch (e) {
+                    console.warn('[WebSocket] Failed to push notification:', e);
+                }
             }
+
+            // Always update local store list for ALL users (keeps data in sync)
+            this.updateLocalStore(data);
 
             // Emit event for DataTable-based pages (Charge, Sell, etc.) to re-fetch
             mitt.emit('model-changed', data);

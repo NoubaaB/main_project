@@ -125,13 +125,14 @@
                       <v-icon size="16" color="#2196F3">mdi-chart-box-outline</v-icon>
                       <span class="ai-chart-label">Chart View</span>
                     </div>
-                    <div class="ai-chart-content" v-html="m.text"></div>
+                    <div class="ai-chart-content" :id="'ai-dynamic-' + (m.id || i)"></div>
                   </div>
                 </template>
 
                 <!-- Normal message -->
                 <template v-else>
-                  <div class="ai-msg-text" v-html="m.text"></div>
+                  <div v-if="m.role === 'agent'" class="ai-msg-text" :id="'ai-dynamic-' + (m.id || i)"></div>
+                  <div v-else class="ai-msg-text" v-html="m.text"></div>
                 </template>
 
                 <!-- Timestamp + inline actions -->
@@ -258,6 +259,7 @@
 <script>
 import { useAIPrompt } from '@/stores/AIPrompt';
 import { useMain } from '@/stores/Main';
+import { loadExternalContent } from '@/helpers/dynamic-loader';
 import * as XLSX from 'xlsx';
 
 export default {
@@ -315,7 +317,10 @@ export default {
       this.isOpen = !this.isOpen;
       if (this.isOpen) {
         this.loadHistoryIfNeeded();
-        this.$nextTick(() => this.scrollToBottom(true));
+        this.$nextTick(() => {
+          this.renderAllDynamicContent();
+          this.scrollToBottom(true);
+        });
       }
     },
     closeAssistant() {
@@ -417,7 +422,10 @@ export default {
       if (!this.ai_prompt.history_loaded) {
         await this.ai_prompt.loadChatHistory();
         this.initChat();
-        this.$nextTick(() => this.scrollToBottom(true));
+        this.$nextTick(() => {
+          this.renderAllDynamicContent();
+          this.scrollToBottom(true);
+        });
       }
     },
     async loadMore() {
@@ -426,6 +434,7 @@ export default {
       await this.ai_prompt.loadMoreHistory();
       // Restore scroll position so the user doesn't jump
       this.$nextTick(() => {
+        this.renderAllDynamicContent();
         if (container) {
           const newHeight = container.scrollHeight;
           container.scrollTop = newHeight - prevHeight;
@@ -456,6 +465,32 @@ export default {
     isTableMessage(m) {
       if (!m.text || m.typing) return false;
       return m.text.includes('<table') || m.text.includes('&lt;table');
+    },
+    /**
+     * Render all agent messages using the dynamic loader.
+     * This properly executes <script> tags (ApexCharts, Vue apps, etc.)
+     * that v-html would silently ignore.
+     */
+    renderAllDynamicContent() {
+      if (!this._renderedIds) this._renderedIds = new Set();
+      const msgs = this.messages;
+      for (let i = 0; i < msgs.length; i++) {
+        const m = msgs[i];
+        if (m.role !== 'agent' || m.typing || !m.text) continue;
+        const key = m.id || i;
+        if (this._renderedIds.has(key)) continue;
+        const containerId = `ai-dynamic-${key}`;
+        const el = document.getElementById(containerId);
+        if (!el) continue;
+        // For messages with scripts (charts, Vue apps), use the full dynamic loader
+        if (m.text.includes('<script') || m.text.includes('ApexCharts') || m.text.includes('createApp')) {
+          loadExternalContent(m.text, containerId);
+        } else {
+          // Plain HTML — just set innerHTML directly (faster)
+          el.innerHTML = m.text;
+        }
+        this._renderedIds.add(key);
+      }
     },
     exportBubbleExcel(event, m) {
       // Find the bubble element that contains the text
@@ -537,6 +572,7 @@ export default {
         this.sending = false;
         this.loading = false;
         this.$nextTick(() => {
+          this.renderAllDynamicContent();
           this.scrollToBottom(true);
           this.$refs.messageInput?.focus();
         });
@@ -640,7 +676,10 @@ export default {
     window.addEventListener('resize', this._onResize);
     if (this.isOpen) {
       this.loadHistoryIfNeeded();
-      this.scrollToBottom();
+      this.$nextTick(() => {
+        this.renderAllDynamicContent();
+        this.scrollToBottom();
+      });
     } else {
       this.ai_prompt.loadChatHistory().then(() => {
         this.initChat();
@@ -1005,6 +1044,26 @@ export default {
   justify-content: flex-start;
   gap: 8px;
   align-items: flex-end;
+  animation: ai-msg-appear 0.3s ease, ai-agent-glow-border 2s ease-out forwards;
+}
+
+/* Glowing border that appears on new agent messages then fades out */
+@keyframes ai-agent-glow-border {
+  0% {
+    filter: drop-shadow(0 0 0px transparent);
+  }
+  15% {
+    filter: drop-shadow(0 0 12px rgba(33, 150, 243, 0.7)) drop-shadow(0 0 24px rgba(100, 181, 246, 0.4));
+  }
+  40% {
+    filter: drop-shadow(0 0 10px rgba(0, 188, 212, 0.6)) drop-shadow(0 0 20px rgba(128, 222, 234, 0.3));
+  }
+  65% {
+    filter: drop-shadow(0 0 8px rgba(103, 58, 183, 0.5)) drop-shadow(0 0 16px rgba(149, 117, 205, 0.25));
+  }
+  100% {
+    filter: drop-shadow(0 0 0px transparent);
+  }
 }
 
 .ai-msg-user {
@@ -1021,6 +1080,24 @@ export default {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(33, 150, 243, 0.5), 0 0 16px rgba(33, 150, 243, 0.2);
+  border: 1.5px solid rgba(100, 181, 246, 0.6);
+  animation: ai-avatar-pulse 3s ease-in-out infinite;
+}
+
+@keyframes ai-avatar-pulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(33, 150, 243, 0.45), 0 0 14px rgba(33, 150, 243, 0.15);
+    border-color: rgba(100, 181, 246, 0.5);
+  }
+  33% {
+    box-shadow: 0 0 10px rgba(0, 188, 212, 0.5), 0 0 20px rgba(0, 188, 212, 0.18);
+    border-color: rgba(128, 222, 234, 0.55);
+  }
+  66% {
+    box-shadow: 0 0 10px rgba(103, 58, 183, 0.45), 0 0 18px rgba(149, 117, 205, 0.15);
+    border-color: rgba(179, 157, 219, 0.5);
+  }
 }
 
 /* ---------- Message Bubbles ---------- */

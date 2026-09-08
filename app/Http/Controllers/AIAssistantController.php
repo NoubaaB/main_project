@@ -541,7 +541,7 @@ class AIAssistantController extends Controller
                 if (!isset($modelMap[$modelName]))
                     continue;
                 $class = $modelMap[$modelName]['class'];
-                $record = $class::withoutEvents(fn () => $class::create($pc['fields'] ?? []));
+                $record = $class::withoutEvents(fn() => $class::create($pc['fields'] ?? []));
                 $results[] = "✅ Created {$modelName} #{$record->id}";
                 $affectedModels[] = $modelName;
 
@@ -931,6 +931,7 @@ class AIAssistantController extends Controller
      */
     private function buildAnswerPrompt(string $question, string $messages, string $schema, string $comments, ?string $result, ?string $sqlError, string $businessCtx, string $routes): string
     {
+        $id = uniqid('ai_');
         $dataSection = '';
         if ($sqlError) {
             $dataSection = "SQL Error occurred: {$sqlError}. Inform the user politely and suggest they rephrase.";
@@ -960,6 +961,23 @@ class AIAssistantController extends Controller
         === DATA ===
         {$dataSection}
 
+        === RENDERING RULES ===
+        IMPORTANT: The following libraries are ALREADY loaded in the page. Do NOT re-import them:
+        - Vue 3 (via global `Vue` object, use `const { createApp } = Vue`)
+        - Vuetify 3 (via global `vuetify` instance, already created)
+        - ApexCharts (via global `ApexCharts` constructor)
+        - MDI icons via CSS
+
+        STRUCTURE your answer as ONLY this HTML pattern:
+        <div id="ai_{$id}"><v-container class="rounded-xl"> <!-- YOUR VUETIFY TEMPLATE HERE --> </v-container></div>
+        <script>
+        const {{ createApp }} = Vue;
+        createApp({{
+          data() {{ return {{ /* your data */ }} }},
+          mounted() {{ /* ApexCharts init if needed */ }}
+        }}).use(vuetify).mount('#ai_{$id}');
+        </script>
+
         === RESPONSE RULES ===
         1. NEVER invent data. Only use the data provided above.
         2. Detect the user's language from their question and respond in the SAME language.
@@ -973,11 +991,16 @@ class AIAssistantController extends Controller
            - Clean borders, padding, proper headers
            - Alternating row colors for readability
            - Right-aligned numbers
-        6. For chart-worthy data (trends, comparisons): generate ApexCharts code in a <div>.
+        6. For chart-worthy data (trends, comparisons): use ApexCharts with `new ApexCharts(document.querySelector('#aichart_{$id}'), options).render()`.
+           - For chart div, use: <div id="aichart_{$id}"></div>
+           - Initialize in the mounted() hook of the Vue app.
+           - Set explicit chart height (e.g. height: 300) to avoid NaN errors.
         7. Keep answers concise but complete. No unnecessary preamble.
         8. If the user asks a general question about the app (not data), answer based on your knowledge of the system.
         9. Always be helpful, professional, and friendly.
-        10. don't get users conversation history.
+        10. NEVER instantiate Vue or Vuetify again (no createVuetify). NEVER use fetch, axios, or any HTTP calls.
+        11. NEVER use <body>, <html>, <head> tags. Give ONLY the HTML+script code. No markdown wrappers.
+        12. don't get users conversation history.
         11. IMPORTANT NAV BUTTONS: Use the APPLICATION ROUTES map above to provide navigation buttons.
             - When discussing specific records (Charge, Sell, Invoice, etc.) or when the user asks "where can I...", "how do I go to...", "take me to...", ALWAYS provide a clickable button.
             - MUST use the class "ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small bg-primary text-white ml-2 rounded-pill px-4 py-1".
