@@ -1961,5 +1961,15 @@
   "chart_line_color": "Color de la línea",
   "cost_lines": "Líneas de Costo",
   "chart": "Gráfico",
-  "drag_drop_or_click": "Arrastrar y soltar o haga clic para buscar"
+  "drag_drop_or_click": "Arrastrar y soltar o haga clic para buscar",
+  "sort_asc": "Orden ascendente",
+  "sort_desc": "Orden descendente",
+  "clear_sort": "Borrar orden",
+  "clear_filters": "Borrar filtros",
+  "clear_all_filters": "Borrar todos los filtros",
+  "filter_column": "Filtrar columna",
+  "min_value": "Mín",
+  "max_value": "Máx",
+  "contains": "Contiene",
+  "no_results_filter": "No hay resultados que coincidan con los filtros actuales"
 }

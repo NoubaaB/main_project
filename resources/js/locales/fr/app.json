@@ -1961,5 +1961,15 @@
   "chart_line_color": "Couleur de la ligne",
   "cost_lines": "Lignes de Coût",
   "chart": "Graphique",
-  "drag_drop_or_click": "Glisser-déposer ou cliquer pour parcourir"
+  "drag_drop_or_click": "Glisser-déposer ou cliquer pour parcourir",
+  "sort_asc": "Trier croissant",
+  "sort_desc": "Trier décroissant",
+  "clear_sort": "Effacer le tri",
+  "clear_filters": "Effacer les filtres",
+  "clear_all_filters": "Effacer tous les filtres",
+  "filter_column": "Filtrer la colonne",
+  "min_value": "Min",
+  "max_value": "Max",
+  "contains": "Contient",
+  "no_results_filter": "Aucun résultat ne correspond aux filtres actuels"
 }

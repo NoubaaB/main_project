@@ -510,16 +510,109 @@
               <template v-if="breakdownTab === 'workforces'">
                 <!-- Summary table -->
                 <v-table v-if="!drilldownItem" density="compact" class="rounded-lg fnm-breakdown-table" id="fnm-breakdown-print-area">
+                  <!-- Clear filters bar -->
+                  <template v-if="hasActiveWfFilters || wfSortRules.length">
+                    <div class="fnm-filter-bar">
+                      <v-chip size="x-small" color="info" variant="tonal" class="mr-1" v-if="activeWfFilterCount">
+                        <v-icon start size="12">mdi-filter</v-icon>
+                        {{ activeWfFilterCount }} {{ $t('clear_filters').toLowerCase() }}
+                      </v-chip>
+                      <v-chip size="x-small" color="purple" variant="tonal" class="mr-1" v-if="wfSortRules.length">
+                        <v-icon start size="12">mdi-sort</v-icon>
+                        {{ wfSortRules.length }} sort{{ wfSortRules.length > 1 ? 's' : '' }}
+                      </v-chip>
+                      <v-btn size="x-small" variant="text" color="error" @click.stop="clearWfFilters" class="ml-1">
+                        <v-icon start size="14">mdi-filter-remove</v-icon>
+                        {{ $t('clear_all_filters') }}
+                      </v-btn>
+                    </div>
+                  </template>
                   <thead>
                     <tr>
                       <th v-for="col in visibleWorkforceColumns" :key="'th-'+col.key"
-                        :class="col.type === 'chip' ? '' : 'text-center'"
+                        :class="[col.type === 'chip' ? '' : 'text-center', 'fnm-th-sortable']"
                         :style="col.headerColor ? 'color:'+col.headerColor : ''"
-                      >{{ $t(col.label) }}</th>
+                      >
+                        <div class="fnm-th-inner">
+                          <!-- Sort toggle area -->
+                          <span class="fnm-th-label" @click.stop="toggleWfSort(col.key)" :title="$t('sort_asc')">
+                            {{ $t(col.label) }}
+                            <span v-if="getWfSortDir(col.key)" class="fnm-sort-indicator">
+                              <v-icon size="14" :color="col.headerColor || '#42A5F5'">
+                                {{ getWfSortDir(col.key) === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                              </v-icon>
+                              <span v-if="wfSortRules.length > 1" class="fnm-sort-badge">{{ getWfSortIndex(col.key) }}</span>
+                            </span>
+                          </span>
+                          <!-- Filter menu -->
+                          <v-menu :close-on-content-click="false" location="bottom center" offset="4" max-width="220">
+                            <template v-slot:activator="{ props }">
+                              <v-btn v-bind="props" icon variant="text" size="x-small"
+                                :color="isWfColFiltered(col.key) ? '#42A5F5' : 'grey'"
+                                class="fnm-filter-btn" @click.stop="ensureWfFilter(col.key)"
+                              >
+                                <v-icon size="14">{{ isWfColFiltered(col.key) ? 'mdi-filter' : 'mdi-filter-outline' }}</v-icon>
+                              </v-btn>
+                            </template>
+                            <v-card min-width="180" class="pa-3 fnm-filter-card">
+                              <div class="text-caption font-weight-bold mb-2" style="color:#42A5F5;">
+                                <v-icon size="14" class="mr-1">mdi-filter</v-icon>{{ $t('filter_column') }}
+                              </div>
+                              <!-- Text filter -->
+                              <template v-if="getWfColFilterType(col) === 'text'">
+                                <v-text-field
+                                  :model-value="wfColumnFilters[col.key] ? wfColumnFilters[col.key].text : ''"
+                                  @update:model-value="v => { ensureWfFilter(col.key); wfColumnFilters[col.key].text = v; }"
+                                  :placeholder="$t('contains') + '...'"
+                                  density="compact" variant="outlined" hide-details
+                                  prepend-inner-icon="mdi-magnify" clearable
+                                  class="fnm-filter-input"
+                                />
+                              </template>
+                              <!-- Boolean filter -->
+                              <template v-else-if="getWfColFilterType(col) === 'boolean'">
+                                <v-btn-toggle
+                                  :model-value="wfColumnFilters[col.key] ? wfColumnFilters[col.key].bool : ''"
+                                  @update:model-value="v => { ensureWfFilter(col.key); wfColumnFilters[col.key].bool = v; }"
+                                  density="compact" mandatory color="#42A5F5" variant="outlined" divided class="w-100"
+                                >
+                                  <v-btn value="" size="small">{{ $t('all') }}</v-btn>
+                                  <v-btn value="true" size="small">{{ $t('yes') }}</v-btn>
+                                  <v-btn value="false" size="small">{{ $t('no') }}</v-btn>
+                                </v-btn-toggle>
+                              </template>
+                              <!-- Range filter (number/currency) -->
+                              <template v-else>
+                                <div class="d-flex ga-2">
+                                  <v-text-field
+                                    :model-value="wfColumnFilters[col.key] ? wfColumnFilters[col.key].min : ''"
+                                    @update:model-value="v => { ensureWfFilter(col.key); wfColumnFilters[col.key].min = v; }"
+                                    :placeholder="$t('min_value')" type="number"
+                                    density="compact" variant="outlined" hide-details
+                                    class="fnm-filter-input"
+                                  />
+                                  <v-text-field
+                                    :model-value="wfColumnFilters[col.key] ? wfColumnFilters[col.key].max : ''"
+                                    @update:model-value="v => { ensureWfFilter(col.key); wfColumnFilters[col.key].max = v; }"
+                                    :placeholder="$t('max_value')" type="number"
+                                    density="compact" variant="outlined" hide-details
+                                    class="fnm-filter-input"
+                                  />
+                                </div>
+                              </template>
+                              <!-- Clear this column filter -->
+                              <v-btn v-if="isWfColFiltered(col.key)" size="x-small" variant="text" color="error"
+                                class="mt-2" block @click="wfColumnFilters[col.key] = { text: '', bool: '', min: '', max: '' }">
+                                <v-icon start size="12">mdi-close</v-icon>{{ $t('clear_filters') }}
+                              </v-btn>
+                            </v-card>
+                          </v-menu>
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="w in filteredWorkforces" :key="'w-' + w.id" class="fnm-clickable-row" @click="drilldownItem = w">
+                    <tr v-for="w in sortedFilteredWorkforces" :key="'w-' + w.id" class="fnm-clickable-row" @click="drilldownItem = w">
                       <td v-for="col in visibleWorkforceColumns" :key="'td-'+col.key+'-'+w.id"
                         :class="col.type === 'chip' ? '' : 'text-center'"
                         :style="col.bold ? 'font-weight:700;color:#42A5F5;' : (col.cellColor ? 'font-weight:700;color:'+col.cellColor : '')"
@@ -540,6 +633,13 @@
                         <template v-else-if="col.type === 'currency'">{{ formatNumber(w[col.key]) }}</template>
                         <!-- Text / Number -->
                         <template v-else>{{ getCellValue(w, col) }}</template>
+                      </td>
+                    </tr>
+                    <!-- Empty state when filters produce no results -->
+                    <tr v-if="sortedFilteredWorkforces.length === 0">
+                      <td :colspan="visibleWorkforceColumns.length" class="text-center pa-6 text-grey">
+                        <v-icon size="32" color="grey" class="mb-2">mdi-filter-off-outline</v-icon>
+                        <div>{{ $t('no_results_filter') }}</div>
                       </td>
                     </tr>
                     <tr class="fnm-breakdown-total-row">
@@ -1038,7 +1138,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="w in (filteredWorkforces || breakdownData.workforces)" :key="'pw-'+w.id">
+            <tr v-for="w in (sortedFilteredWorkforces || breakdownData.workforces)" :key="'pw-'+w.id">
               <td v-for="col in visibleWorkforceColumns" :key="'ptd-'+col.key+'-'+w.id"
                 :style="'padding:6px 10px;border:1px solid #ddd;' + (col.type !== 'chip' ? 'text-align:center;' : '') + (col.cellColor ? 'font-weight:700;color:'+col.cellColor+';' : '') + (col.bold ? 'font-weight:700;color:#1565C0;' : '')"
               >
@@ -1266,6 +1366,10 @@ export default {
       ],
       colSettingsDialog: false,
       colDragIdx: null,
+      // Column filter/sort state for workforce breakdown table
+      wfSortRules: [],         // [{key, dir}] multi-sort: dir = 'asc' | 'desc'
+      wfColumnFilters: {},     // { column_key: { text, min, max, bool } }
+      wfFilterMenuCol: null,   // which column's filter menu is open
       allWorkforceColumns: [
         { key: 'name', label: 'full_name', type: 'chip', visible: true, locked: true },
         { key: 'matricule', label: 'matricule', type: 'text', visible: true },
@@ -1392,6 +1496,88 @@ export default {
       if (this.showNonDeclared) return wfs.filter(w => w.salary_statement === false);
       return wfs;
     },
+    /** Apply column filters + multi-sort on top of declared/non-declared filter */
+    sortedFilteredWorkforces() {
+      let result = [...this.filteredWorkforces];
+      // Apply column filters
+      const filters = this.wfColumnFilters;
+      for (const colKey of Object.keys(filters)) {
+        const f = filters[colKey];
+        if (!f) continue;
+        const col = this.allWorkforceColumns.find(c => c.key === colKey);
+        if (!col) continue;
+        result = result.filter(w => {
+          const raw = this.getRawCellValue(w, col);
+          // Text/chip filter
+          if (f.text && f.text.trim()) {
+            const val = String(raw || '').toLowerCase();
+            if (!val.includes(f.text.trim().toLowerCase())) return false;
+          }
+          // Boolean filter
+          if (f.bool !== undefined && f.bool !== null && f.bool !== '') {
+            const boolVal = f.bool === 'true' || f.bool === true;
+            if (raw !== boolVal) return false;
+          }
+          // Min/max range filter
+          const numVal = parseFloat(raw);
+          if (f.min !== '' && f.min !== undefined && f.min !== null) {
+            if (isNaN(numVal) || numVal < parseFloat(f.min)) return false;
+          }
+          if (f.max !== '' && f.max !== undefined && f.max !== null) {
+            if (isNaN(numVal) || numVal > parseFloat(f.max)) return false;
+          }
+          return true;
+        });
+      }
+      // Apply multi-sort
+      if (this.wfSortRules.length > 0) {
+        result.sort((a, b) => {
+          for (const rule of this.wfSortRules) {
+            const col = this.allWorkforceColumns.find(c => c.key === rule.key);
+            if (!col) continue;
+            const valA = this.getRawCellValue(a, col);
+            const valB = this.getRawCellValue(b, col);
+            let cmp = 0;
+            if (typeof valA === 'number' && typeof valB === 'number') {
+              cmp = valA - valB;
+            } else if (typeof valA === 'boolean' && typeof valB === 'boolean') {
+              cmp = (valA === valB) ? 0 : (valA ? -1 : 1);
+            } else {
+              cmp = String(valA || '').localeCompare(String(valB || ''), undefined, { numeric: true });
+            }
+            if (cmp !== 0) return rule.dir === 'desc' ? -cmp : cmp;
+          }
+          return 0;
+        });
+      }
+      return result;
+    },
+    /** Whether any column filter is active */
+    hasActiveWfFilters() {
+      for (const key of Object.keys(this.wfColumnFilters)) {
+        const f = this.wfColumnFilters[key];
+        if (!f) continue;
+        if (f.text && f.text.trim()) return true;
+        if (f.bool !== undefined && f.bool !== null && f.bool !== '') return true;
+        if (f.min !== '' && f.min !== undefined && f.min !== null) return true;
+        if (f.max !== '' && f.max !== undefined && f.max !== null) return true;
+      }
+      return false;
+    },
+    /** Count of active column filters */
+    activeWfFilterCount() {
+      let count = 0;
+      for (const key of Object.keys(this.wfColumnFilters)) {
+        const f = this.wfColumnFilters[key];
+        if (!f) continue;
+        if ((f.text && f.text.trim()) || (f.bool !== undefined && f.bool !== null && f.bool !== '') ||
+            (f.min !== '' && f.min !== undefined && f.min !== null) ||
+            (f.max !== '' && f.max !== undefined && f.max !== null)) {
+          count++;
+        }
+      }
+      return count;
+    },
     sectionTotals() {
       const secs = this.breakdownData.sections || [];
       return {
@@ -1415,7 +1601,7 @@ export default {
       };
     },
     workforceTotals() {
-      const wfs = this.filteredWorkforces;
+      const wfs = this.sortedFilteredWorkforces;
       return {
         q1_count: wfs.reduce((s, r) => s + r.q1_count, 0),
         q1_total: wfs.reduce((s, r) => s + r.q1_total, 0),
@@ -1701,6 +1887,61 @@ export default {
       if (col.type === 'computed_non_declared') return this.formatNumber(this.getNonDeclared(w));
       return w[col.key] || '-';
     },
+    /** Get raw (unformatted) cell value for sorting and filtering */
+    getRawCellValue(w, col) {
+      if (col.type === 'computed_declared') return this.getDeclared(w);
+      if (col.type === 'computed_non_declared') return this.getNonDeclared(w);
+      if (col.type === 'currency' || col.type === 'number') return parseFloat(w[col.key]) || 0;
+      if (col.type === 'boolean') return !!w[col.key];
+      return w[col.key] || '';
+    },
+    /** Toggle sort on a column: none → asc → desc → remove */
+    toggleWfSort(colKey) {
+      const idx = this.wfSortRules.findIndex(r => r.key === colKey);
+      if (idx === -1) {
+        this.wfSortRules.push({ key: colKey, dir: 'asc' });
+      } else if (this.wfSortRules[idx].dir === 'asc') {
+        this.wfSortRules[idx].dir = 'desc';
+      } else {
+        this.wfSortRules.splice(idx, 1);
+      }
+    },
+    /** Get current sort direction for a column */
+    getWfSortDir(colKey) {
+      const rule = this.wfSortRules.find(r => r.key === colKey);
+      return rule ? rule.dir : null;
+    },
+    /** Get sort priority index (1-based) for multi-sort badge */
+    getWfSortIndex(colKey) {
+      const idx = this.wfSortRules.findIndex(r => r.key === colKey);
+      return idx >= 0 ? idx + 1 : 0;
+    },
+    /** Check if a column has an active filter */
+    isWfColFiltered(colKey) {
+      const f = this.wfColumnFilters[colKey];
+      if (!f) return false;
+      return (f.text && f.text.trim()) ||
+             (f.bool !== undefined && f.bool !== null && f.bool !== '') ||
+             (f.min !== '' && f.min !== undefined && f.min !== null) ||
+             (f.max !== '' && f.max !== undefined && f.max !== null);
+    },
+    /** Clear all column filters and sorts */
+    clearWfFilters() {
+      this.wfColumnFilters = {};
+      this.wfSortRules = [];
+    },
+    /** Get column filter type for the filter menu UI */
+    getWfColFilterType(col) {
+      if (col.type === 'chip' || col.type === 'text') return 'text';
+      if (col.type === 'boolean') return 'boolean';
+      return 'range'; // number, currency, computed_declared, computed_non_declared
+    },
+    /** Ensure filter object exists for a column key */
+    ensureWfFilter(colKey) {
+      if (!this.wfColumnFilters[colKey]) {
+        this.wfColumnFilters[colKey] = { text: '', bool: '', min: '', max: '' };
+      }
+    },
     getColExcelValue(w, col) {
       if (col.type === 'boolean') return w[col.key] ? this.$t('yes') : this.$t('no');
       if (col.type === 'computed_declared') return this.getDeclared(w);
@@ -1985,7 +2226,7 @@ export default {
             if (c.type === 'currency') return `${label} (${currency})`;
             return label;
           });
-          const rows = (this.filteredWorkforces || bd.workforces || []).map(w =>
+          const rows = (this.sortedFilteredWorkforces || bd.workforces || []).map(w =>
             cols.map(c => this.getColExcelValue(w, c))
           );
           rows.push([]);
@@ -2593,6 +2834,67 @@ export default {
 .fnm-breakdown-table th { font-size: 11px !important; text-transform: uppercase; letter-spacing: .5px; background: rgba(var(--v-theme-surface-variant), .04); }
 .fnm-breakdown-table td { font-size: 13px; }
 .fnm-breakdown-total-row { background: rgba(33,150,243,.04); border-top: 2px solid rgba(33,150,243,.2); }
+
+/* Sortable table headers */
+.fnm-th-sortable { cursor: default; padding: 6px 4px !important; }
+.fnm-th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  justify-content: inherit;
+}
+.fnm-th-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  user-select: none;
+  border-radius: 4px;
+  padding: 2px 4px;
+  transition: background .15s ease;
+}
+.fnm-th-label:hover { background: rgba(33,150,243,.1); }
+.fnm-sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: 1px;
+}
+.fnm-sort-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: #42A5F5;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.fnm-filter-btn {
+  opacity: .4;
+  transition: opacity .15s ease;
+  flex-shrink: 0;
+}
+.fnm-th-inner:hover .fnm-filter-btn,
+.fnm-filter-btn[aria-expanded="true"] { opacity: 1; }
+.fnm-filter-card {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.12) !important;
+}
+.fnm-filter-input {
+  font-size: 12px;
+}
+.fnm-filter-bar {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: rgba(33,150,243,.03);
+  border-bottom: 1px solid rgba(33,150,243,.1);
+}
 
 /* Clickable rows */
 .fnm-clickable-row { cursor: pointer; transition: background .15s ease; }

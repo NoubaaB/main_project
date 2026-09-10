@@ -2005,5 +2005,15 @@
   "chart_line_color": "Line Color",
   "cost_lines": "Cost Lines",
   "chart": "Chart",
-  "drag_drop_or_click": "Drag & drop or click to browse"
+  "drag_drop_or_click": "Drag & drop or click to browse",
+  "sort_asc": "Sort Ascending",
+  "sort_desc": "Sort Descending",
+  "clear_sort": "Clear Sort",
+  "clear_filters": "Clear Filters",
+  "clear_all_filters": "Clear All Filters",
+  "filter_column": "Filter Column",
+  "min_value": "Min",
+  "max_value": "Max",
+  "contains": "Contains",
+  "no_results_filter": "No results match the current filters"
 }
