@@ -133,6 +133,19 @@
                 <template v-else>
                   <div v-if="m.role === 'agent'" class="ai-msg-text" :id="'ai-dynamic-' + (m.id || i)"></div>
                   <div v-else class="ai-msg-text" v-html="m.text"></div>
+                  <!-- Excel file download badge -->
+                  <a
+                    v-if="m.file_url && m.role === 'user'"
+                    :href="m.file_url"
+                    target="_blank"
+                    download
+                    class="ai-excel-dl-badge"
+                    :title="$t('download_file')"
+                  >
+                    <v-icon size="15" color="#1B5E20" class="mr-1">mdi-file-excel-outline</v-icon>
+                    <span class="ai-excel-dl-badge-name">{{ m.file_name || 'Excel file' }}</span>
+                    <v-icon size="13" color="#2E7D32" class="ml-1">mdi-download</v-icon>
+                  </a>
                 </template>
 
                 <!-- Timestamp + inline actions -->
@@ -212,14 +225,20 @@
             </button>
           </div>
           <div class="ai-input-wrapper">
-            <input
+            <v-textarea
               ref="messageInput"
               v-model="input"
               :placeholder="excelFile ? $t('describe_what_to_do_with_excel') : $t('type_a_message')"
               class="ai-chat-input"
-              @keyup.enter="send"
+              auto-grow
+              rows="1"
+              max-rows="5"
+              variant="plain"
+              hide-details
+              density="compact"
+              @keydown.enter.exact.prevent="send"
               :disabled="loading"
-            />
+            ></v-textarea>
             <input
               ref="excelInput"
               type="file"
@@ -316,6 +335,8 @@ export default {
       }
       this.isOpen = !this.isOpen;
       if (this.isOpen) {
+        // Clear rendered cache — DOM is fresh after v-if toggle
+        this._renderedIds = new Set();
         this.loadHistoryIfNeeded();
         this.$nextTick(() => {
           this.renderAllDynamicContent();
@@ -410,7 +431,11 @@ export default {
     },
     async clearAssistantMessage() {
       await this.ai_prompt.clearHistory();
+      this._renderedIds = new Set();
       this.initChat();
+      this.$nextTick(() => {
+        this.renderAllDynamicContent();
+      });
     },
     initChat() {
       if (this.ai_prompt.assistant_messages.length === 0) {
@@ -524,11 +549,14 @@ export default {
       const text = (this.input || '').trim();
       if (!text) return;
 
+      const hasExcel = !!this.excelData;
       const userMsg = {
         id: Date.now() + Math.random(),
         role: 'user',
-        text: text,
+        text: hasExcel ? `📊 [Excel: ${this.excelData.filename}] ${text}` : text,
         ts: Date.now(),
+        file_url: null,
+        file_name: hasExcel ? this.excelData.filename : null,
       };
 
       this.ai_prompt.add_assistant_messages(userMsg);
@@ -548,8 +576,13 @@ export default {
 
       try {
         if (this.excelData) {
-          // Send with Excel data
-          await this.ai_prompt.askWithExcel(userMsg.text, this.excelData);
+          // Send with Excel data + raw file for storage
+          const result = await this.ai_prompt.askWithExcel(userMsg.text, this.excelData, this.excelFile);
+          // Update user message with file_url from server
+          if (result && result.file_url) {
+            userMsg.file_url = result.file_url;
+            userMsg.file_name = result.file_name || this.excelData.filename;
+          }
           this.excelFile = null;
           this.excelData = null;
         } else {
@@ -618,6 +651,24 @@ export default {
     onExcelSelected(event) {
       const file = event.target.files?.[0];
       if (!file) return;
+
+      // Validate file size (10MB max)
+      const maxSizeMB = 10;
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        this.main.add_snackbar({ show: true, message: this.$t('excel_file_too_large'), color: 'error' });
+        event.target.value = '';
+        return;
+      }
+
+      // Validate file format
+      const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+      const ext = '.' + file.name.split('.').pop().toLowerCase();
+      if (!allowedExtensions.includes(ext)) {
+        this.main.add_snackbar({ show: true, message: this.$t('excel_invalid_format'), color: 'error' });
+        event.target.value = '';
+        return;
+      }
+
       this.excelFile = file;
 
       const reader = new FileReader();
@@ -1313,6 +1364,37 @@ export default {
   color: #ffcdd2;
 }
 
+/* Excel file download badge */
+.ai-excel-dl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: rgba(200, 230, 201, 0.9);
+  border: 1px solid rgba(129, 199, 132, 0.6);
+  border-radius: 8px;
+  color: #1B5E20;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  max-width: 100%;
+}
+.ai-excel-dl-badge:hover {
+  background: rgba(165, 214, 167, 0.95);
+  box-shadow: 0 1px 4px rgba(46, 125, 50, 0.18);
+  text-decoration: none;
+  color: #1B5E20;
+}
+.ai-excel-dl-badge-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
 .ai-action-btn.ai-action-active {
   color: #2196F3;
 }
@@ -1384,12 +1466,41 @@ export default {
 .ai-chat-input {
   flex: 1;
   background: transparent;
-  border: none;
-  outline: none;
   color: var(--ai-input-color);
   font-size: 13.5px;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  padding: 9px 0;
+}
+.ai-chat-input :deep(textarea) {
+  padding: 8px 0 !important;
+  line-height: 1.4 !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition: scrollbar-color 0.3s ease;
+}
+
+/* Webkit Scrollbar */
+.ai-chat-input :deep(textarea)::-webkit-scrollbar {
+  width: 4px;
+}
+.ai-chat-input :deep(textarea)::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+.ai-chat-input :deep(textarea)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Show on hover */
+.ai-chat-input:hover :deep(textarea) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128,128,128,0.4) transparent;
+}
+.ai-chat-input:hover :deep(textarea)::-webkit-scrollbar-thumb {
+  background: rgba(128,128,128,0.4);
+}
+.ai-chat-input:hover :deep(textarea)::-webkit-scrollbar-thumb:hover {
+  background: rgba(128,128,128,0.6);
 }
 
 .ai-chat-input::placeholder {

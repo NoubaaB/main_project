@@ -16,6 +16,7 @@ class CustomService
         // $this->model = env('OLLAMA_MODEL', 'gemma4:31b');
         // $this->model = env('OLLAMA_MODEL', 'gemini-3-flash-preview:cloud');
         $this->model = env('OLLAMA_MODEL', 'gemma4:31b-cloud');
+        // $this->model = "gpt-oss:120b-cloud";
     }
 
     /**

@@ -37,11 +37,13 @@ class ChatMessageController extends Controller
 
         return response()->json([
             'messages' => $messages->map(fn($m) => [
-                'id'       => $m->id,
-                'role'     => $m->role,
-                'text'     => $m->text,
-                'ts'       => (int) ($m->created_at->timestamp * 1000),
-                'reaction' => $m->reaction,
+                'id'        => $m->id,
+                'role'      => $m->role,
+                'text'      => $m->text,
+                'ts'        => (int) ($m->created_at->timestamp * 1000),
+                'reaction'  => $m->reaction,
+                'file_url'  => $m->file_path ? asset('storage/' . $m->file_path) : null,
+                'file_name' => $m->file_name,
             ])->values(),
             'has_more'       => $hasMore,
             'next_before_id' => $nextBeforeId,

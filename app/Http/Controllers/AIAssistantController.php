@@ -9,6 +9,7 @@ use App\Models\ChatMessage;
 use App\Services\CustomService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -70,8 +71,8 @@ class AIAssistantController extends Controller
         }
         $intent = $intentData['intent'] ?? 'read';
 
-        // "" Handle WRITE/DELETE intents ""
-        if (in_array($intent, ['create', 'delete'])) {
+        // "" Handle WRITE/UPDATE/DELETE intents ""
+        if (in_array($intent, ['create', 'update', 'delete'])) {
             return $this->handleWriteIntent($request, $question, $messages, $intentData, $schema, $tableComments, $businessCtx);
         }
 
@@ -101,7 +102,10 @@ class AIAssistantController extends Controller
         }
 
         $routes = $this->getAppRoutes();
-        $answerPrompt = $this->buildAnswerPrompt($question, $messages, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes);
+
+        // Check for previously uploaded Excel files the user might be referencing
+        $excelContext = $this->getExcelContextFromHistory($request);
+        $answerPrompt = $this->buildAnswerPrompt($question, $messages, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes, $excelContext);
         $answer = $this->ai->generateAnswer($answerPrompt);
 
         if (!$answer) {
@@ -184,6 +188,30 @@ class AIAssistantController extends Controller
                 $action['records'] = $validatedRecords;
             }
 
+            if ($intent === 'update') {
+                $records = $action['records'] ?? [];
+                $validatedRecords = [];
+                $columns = $modelMap[$modelName]['columns'];
+
+                foreach ($records as $record) {
+                    $cleaned = [];
+                    foreach ($record as $field => $value) {
+                        if ($field === 'id' || in_array($field, $columns)) {
+                            $cleaned[$field] = $value;
+                        }
+                    }
+                    // Must have an id to update
+                    if (!empty($cleaned) && isset($cleaned['id'])) {
+                        $validatedRecords[] = $cleaned;
+                    }
+                }
+                if (empty($validatedRecords)) {
+                    $errors[] = "No valid records with IDs found to update for $modelName.";
+                    continue;
+                }
+                $action['records'] = $validatedRecords;
+            }
+
             if ($intent === 'delete') {
                 // If IDs provided, verify they exist
                 $ids = $action['ids'] ?? [];
@@ -244,8 +272,9 @@ class AIAssistantController extends Controller
         $confirmHtml = $this->buildConfirmationHtml($pendingAction);
 
         // Store pending action as a special hidden tag in the answer
-        $pendingJson = htmlspecialchars(json_encode($pendingAction), ENT_QUOTES, 'UTF-8');
-        $answer = $confirmHtml . '<div class="ai-pending-action" style="display:none" data-action=\'' . $pendingJson . '\'></div>';
+        // Use base64_encode to avoid any HTML quote escaping issues with complex SQL queries
+        $pendingJson = base64_encode(json_encode($pendingAction));
+        $answer = $confirmHtml . '<div class="ai-pending-action" style="display:none" data-action="' . $pendingJson . '"></div>';
 
         $this->persistMessages($request, $question, $answer);
         return response()->json(['answer' => $answer, 'pending_action' => $pendingAction], 200);
@@ -321,25 +350,38 @@ class AIAssistantController extends Controller
     /**
      * Handle AI assistant request with Excel data.
      * The frontend parses the Excel file using SheetJS and sends headers + rows as JSON.
+     * The raw file is also uploaded for storage and future reference.
      */
     public function askWithExcel(Request $request)
     {
         $request->validate([
             'message' => 'required|string|max:2000',
-            'excel_data' => 'required|array',
-            'excel_data.headers' => 'required|array',
-            'excel_data.rows' => 'required|array',
-            'excel_data.filename' => 'nullable|string',
-            'excel_data.sheet_name' => 'nullable|string',
+            'excel_data' => 'required|string', // JSON string from FormData
+            'file' => 'nullable|file|max:10240|mimes:xlsx,xls,csv',
         ]);
 
+        // Parse excel_data from JSON string (FormData sends as string)
+        $excelData = json_decode($request->input('excel_data'), true);
+        if (!is_array($excelData) || empty($excelData['headers']) || empty($excelData['rows'])) {
+            return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;">Invalid Excel data format.</div>'], 422);
+        }
+
         $message = $request->input('message');
-        $excelData = $request->input('excel_data');
         $headers = $excelData['headers'] ?? [];
         $rows = $excelData['rows'] ?? [];
         $filename = $excelData['filename'] ?? 'uploaded_file.xlsx';
         $sheetName = $excelData['sheet_name'] ?? 'Sheet1';
         $totalRows = count($rows);
+
+        // Store the uploaded file if provided
+        $filePath = null;
+        $fileUrl = null;
+        if ($request->hasFile('file')) {
+            $uploadedFile = $request->file('file');
+            $storedName = time() . '_' . uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $uploadedFile->getClientOriginalName());
+            $filePath = $uploadedFile->storeAs('chat_excels', $storedName, 'public');
+            $fileUrl = asset('storage/' . $filePath);
+        }
 
         // Build a text representation of the Excel data (limit preview for AI context)
         $previewRows = array_slice($rows, 0, 200);
@@ -355,11 +397,12 @@ class AIAssistantController extends Controller
             $excelText .= "\n... and " . ($totalRows - 200) . " more rows (not shown)\n";
         }
 
-        // Detect intent: does the user want to INSERT, SUMMARIZE, or SEARCH?
+        // Detect intent: does the user want to INSERT, UPDATE, DELETE, or ANALYZE?
         $schema = $this->getSchemaString();
         $modelMapStr = $this->getModelMapString();
+        $fkLookup = $this->buildForeignKeyLookupTable();
 
-        $prompt = $this->buildExcelPrompt($message, $excelText, $schema, $modelMapStr, $headers, $totalRows);
+        $prompt = $this->buildExcelPrompt($message, $excelText, $schema, $modelMapStr, $headers, $totalRows, $fkLookup);
 
         $this->ai = new CustomService();
         $aiResponse = $this->ai->classifyIntent($prompt);
@@ -405,16 +448,19 @@ class AIAssistantController extends Controller
 
             $user = $request->user();
             if ($user) {
-                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $answer) {
-                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}"]);
+                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $answer, $filePath) {
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}", 'file_path' => $filePath, 'file_name' => $filename]);
                     ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
                 });
             }
 
-            return response()->json(['answer' => $answer], 200);
+            return response()->json(['answer' => $answer, 'file_url' => $fileUrl, 'file_name' => $filename], 200);
         }
 
-        // Handle INSERT intent  propose an action plan to insert Excel rows into DB
+        // Get FK lookup array for resolving names → IDs in records
+        $fkLookupArray = $this->getForeignKeyLookupArray();
+
+        // Handle CREATE intent — propose an action plan to insert Excel rows into DB
         if ($intent === 'create') {
             $actions = $parsed['actions'] ?? [];
             if (empty($actions)) {
@@ -423,9 +469,10 @@ class AIAssistantController extends Controller
 
             // Map Excel rows to model records based on AI's field mapping
             $mappedActions = [];
+            $allUnresolved = [];
             foreach ($actions as $action) {
                 $modelName = $action['model'] ?? '';
-                $fieldMapping = $action['field_mapping'] ?? []; // AI provides {excel_col: db_field}
+                $fieldMapping = $action['field_mapping'] ?? [];
                 $records = [];
 
                 if (!empty($fieldMapping)) {
@@ -445,6 +492,11 @@ class AIAssistantController extends Controller
                     $records = $action['records'];
                 }
 
+                // Resolve foreign keys: replace names with real IDs
+                $resolved = $this->resolveForeignKeysInRecords($records, $fkLookupArray);
+                $records = $resolved['records'];
+                $allUnresolved = array_merge($allUnresolved, $resolved['unresolved']);
+
                 $mappedActions[] = [
                     'model' => $modelName,
                     'records' => $records,
@@ -454,27 +506,152 @@ class AIAssistantController extends Controller
             $totalRecords = array_sum(array_map(fn($a) => count($a['records']), $mappedActions));
 
             // Build confirmation HTML
-            $html = $this->buildConfirmationHtml([
+            $pendingAction = [
                 'intent' => 'create',
                 'actions' => $mappedActions,
                 'pre_create' => $parsed['pre_create'] ?? [],
-            ], '📊 Excel Import');
+            ];
+            $html = $this->buildConfirmationHtml($pendingAction);
+            $pendingJson = base64_encode(json_encode($pendingAction));
+            $html .= '<div class="ai-pending-action" style="display:none" data-action="' . $pendingJson . '"></div>';
+
+            // Add unresolved FK warnings
+            if (!empty($allUnresolved)) {
+                $html .= '<div style="background:#FFF3E0;border-radius:8px;padding:10px;margin-top:8px;border-left:3px solid #FF9800;font-size:12px;">';
+                $html .= '<strong style="color:#E65100;">⚠️ Some foreign keys could not be resolved:</strong><ul style="margin:4px 0 0 16px;">';
+                foreach (array_unique($allUnresolved) as $warn) {
+                    $html .= '<li>' . htmlspecialchars($warn) . '</li>';
+                }
+                $html .= '</ul></div>';
+            }
 
             $user = $request->user();
             if ($user) {
-                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $html) {
-                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}"]);
+                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $html, $filePath) {
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}", 'file_path' => $filePath, 'file_name' => $filename]);
                     ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $html]);
                 });
             }
 
             return response()->json([
                 'answer' => $html,
-                'pending_action' => [
-                    'intent' => 'create',
-                    'actions' => $mappedActions,
-                    'pre_create' => $parsed['pre_create'] ?? [],
-                ],
+                'pending_action' => $pendingAction,
+                'file_url' => $fileUrl,
+                'file_name' => $filename,
+            ], 200);
+        }
+
+        // Handle UPDATE intent — map Excel rows to update records
+        if ($intent === 'update') {
+            $actions = $parsed['actions'] ?? [];
+            if (empty($actions)) {
+                return response()->json(['answer' => '<div style="padding:8px;color:#FF9800;">Could not determine which model to update.</div>'], 200);
+            }
+
+            $mappedActions = [];
+            $allUnresolved = [];
+            foreach ($actions as $action) {
+                $modelName = $action['model'] ?? '';
+                $fieldMapping = $action['field_mapping'] ?? [];
+                $idColumn = $action['id_column'] ?? null;
+                $records = [];
+
+                if (!empty($fieldMapping)) {
+                    foreach ($rows as $row) {
+                        $rec = [];
+                        foreach ($fieldMapping as $excelCol => $dbField) {
+                            $colIdx = array_search($excelCol, $headers);
+                            if ($colIdx !== false && isset($row[$colIdx])) {
+                                $rec[$dbField] = $row[$colIdx];
+                            }
+                        }
+                        // Try to get the ID from the id_column
+                        if ($idColumn) {
+                            $idIdx = array_search($idColumn, $headers);
+                            if ($idIdx !== false && isset($row[$idIdx])) {
+                                $rec['id'] = intval($row[$idIdx]);
+                            }
+                        }
+                        if (!empty($rec) && isset($rec['id'])) {
+                            $records[] = $rec;
+                        }
+                    }
+                } elseif (!empty($action['records'])) {
+                    $records = $action['records'];
+                }
+
+                // Resolve foreign keys
+                $resolved = $this->resolveForeignKeysInRecords($records, $fkLookupArray);
+                $records = $resolved['records'];
+                $allUnresolved = array_merge($allUnresolved, $resolved['unresolved']);
+
+                $mappedActions[] = [
+                    'model' => $modelName,
+                    'records' => $records,
+                ];
+            }
+
+            $pendingAction = [
+                'intent' => 'update',
+                'actions' => $mappedActions,
+            ];
+            $html = $this->buildConfirmationHtml($pendingAction);
+            $pendingJson = base64_encode(json_encode($pendingAction));
+            $html .= '<div class="ai-pending-action" style="display:none" data-action="' . $pendingJson . '"></div>';
+
+            if (!empty($allUnresolved)) {
+                $html .= '<div style="background:#FFF3E0;border-radius:8px;padding:10px;margin-top:8px;border-left:3px solid #FF9800;font-size:12px;">';
+                $html .= '<strong style="color:#E65100;">⚠️ Some foreign keys could not be resolved:</strong><ul style="margin:4px 0 0 16px;">';
+                foreach (array_unique($allUnresolved) as $warn) {
+                    $html .= '<li>' . htmlspecialchars($warn) . '</li>';
+                }
+                $html .= '</ul></div>';
+            }
+
+            $user = $request->user();
+            if ($user) {
+                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $html, $filePath) {
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}", 'file_path' => $filePath, 'file_name' => $filename]);
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $html]);
+                });
+            }
+
+            return response()->json([
+                'answer' => $html,
+                'pending_action' => $pendingAction,
+                'file_url' => $fileUrl,
+                'file_name' => $filename,
+            ], 200);
+        }
+
+        // Handle DELETE intent — identify records to delete
+        if ($intent === 'delete') {
+            $actions = $parsed['actions'] ?? [];
+            if (empty($actions)) {
+                return response()->json(['answer' => '<div style="padding:8px;color:#FF9800;">Could not determine which records to delete.</div>'], 200);
+            }
+
+            $pendingAction = [
+                'intent' => 'delete',
+                'actions' => $actions,
+            ];
+            $html = $this->buildConfirmationHtml($pendingAction);
+            $pendingJson = base64_encode(json_encode($pendingAction));
+            $html .= '<div class="ai-pending-action" style="display:none" data-action="' . $pendingJson . '"></div>';
+
+            $user = $request->user();
+            if ($user) {
+                ChatMessage::withoutEvents(function () use ($user, $filename, $message, $html, $filePath) {
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => "📊 [Excel: {$filename}] {$message}", 'file_path' => $filePath, 'file_name' => $filename]);
+                    ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $html]);
+                });
+            }
+
+            return response()->json([
+                'answer' => $html,
+                'pending_action' => $pendingAction,
+                'file_url' => $fileUrl,
+                'file_name' => $filename,
             ], 200);
         }
 
@@ -483,9 +660,90 @@ class AIAssistantController extends Controller
     }
 
     /**
+     * Retrieve Excel context from recent chat history.
+     * Scans the user's recent messages for uploaded Excel files,
+     * reads the most recent one from storage, and returns a text preview.
+     */
+    private function getExcelContextFromHistory(Request $request): ?string
+    {
+        $user = $request->user();
+        if (!$user)
+            return null;
+
+        // Find the most recent user message with a file_path
+        $recentExcel = ChatMessage::where('user_id', $user->id)
+            ->where('role', 'user')
+            ->whereNotNull('file_path')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$recentExcel || !$recentExcel->file_path)
+            return null;
+
+        $fullPath = Storage::disk('public')->path($recentExcel->file_path);
+        if (!file_exists($fullPath))
+            return null;
+
+        try {
+            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+
+            if ($ext === 'csv') {
+                // Parse CSV
+                $handle = fopen($fullPath, 'r');
+                if (!$handle)
+                    return null;
+                $allRows = [];
+                while (($row = fgetcsv($handle)) !== false) {
+                    $allRows[] = $row;
+                }
+                fclose($handle);
+                if (count($allRows) < 2)
+                    return null;
+                $headers = $allRows[0];
+                $dataRows = array_slice($allRows, 1);
+            } else {
+                // Parse XLSX/XLS using PhpSpreadsheet (if available) or fallback
+                if (class_exists(\PhpOffice\PhpSpreadsheet\IOFactory::class)) {
+                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($fullPath);
+                    $sheet = $spreadsheet->getActiveSheet();
+                    $allRows = $sheet->toArray(null, true, true, false);
+                    if (count($allRows) < 2)
+                        return null;
+                    $headers = $allRows[0];
+                    $dataRows = array_slice($allRows, 1);
+                } else {
+                    // If PhpSpreadsheet is not installed, return file info only
+                    return "Previously uploaded Excel file: {$recentExcel->file_name} (stored but cannot be re-read without PhpSpreadsheet library)";
+                }
+            }
+
+            $fileName = $recentExcel->file_name ?? basename($recentExcel->file_path);
+            $totalRows = count($dataRows);
+            $previewRows = array_slice($dataRows, 0, 200);
+
+            $excelText = "=== PREVIOUSLY UPLOADED EXCEL FILE ===\n";
+            $excelText .= "File: {$fileName} | Total Rows: {$totalRows}\n";
+            $excelText .= "Headers: " . implode(' | ', array_map('strval', $headers)) . "\n\n";
+
+            foreach ($previewRows as $i => $row) {
+                $values = array_map(fn($v) => is_null($v) ? '' : (string) $v, $row);
+                $excelText .= "Row " . ($i + 1) . ": " . implode(' | ', $values) . "\n";
+            }
+
+            if ($totalRows > 200) {
+                $excelText .= "\n... and " . ($totalRows - 200) . " more rows (not shown)\n";
+            }
+
+            return $excelText;
+        } catch (\Throwable $e) {
+            return "Previously uploaded Excel file: {$recentExcel->file_name} (error reading: {$e->getMessage()})";
+        }
+    }
+
+    /**
      * Build prompt for Excel data intent classification.
      */
-    private function buildExcelPrompt(string $message, string $excelText, string $schema, string $modelMap, array $headers, int $totalRows): string
+    private function buildExcelPrompt(string $message, string $excelText, string $schema, string $modelMap, array $headers, int $totalRows, string $fkLookup = ''): string
     {
         $headersList = implode(', ', $headers);
         return <<<PROMPT
@@ -494,6 +752,8 @@ class AIAssistantController extends Controller
 
         === DATABASE SCHEMA ===
         {$schema}
+
+        {$fkLookup}
 
         === EXCEL FILE DATA ===
         {$excelText}
@@ -507,16 +767,32 @@ class AIAssistantController extends Controller
         Classify the user's intent regarding this Excel data. Return ONLY valid JSON.
         
         INTENTS:
-        1. "analyze"  User wants to SUMMARIZE, UNDERSTAND, SEARCH, or GET STATISTICS from the Excel data.
-        2. "create"  User wants to INSERT/IMPORT the Excel data into a database table.
+        1. "analyze" — User wants to SUMMARIZE, UNDERSTAND, SEARCH, or GET STATISTICS from the Excel data.
+        2. "create" — User wants to INSERT/IMPORT the Excel data into a database table.
+        3. "update" — User wants to UPDATE existing records based on Excel data.
+        4. "delete" — User wants to DELETE records that match the Excel data.
         
         For "analyze": return {"intent":"analyze"}
         
         For "create": Map Excel columns to database model fields. Return:
         {"intent":"create","actions":[{"model":"ModelName","field_mapping":{"ExcelColumnName":"db_field_name"}}],"pre_create":[],"missing_info":[]}
         
+        For "update": Map Excel columns to model fields. Each record MUST include the "id" field. Return:
+        {"intent":"update","actions":[{"model":"ModelName","field_mapping":{"ExcelColumnName":"db_field_name"},"id_column":"ExcelColumnWithId"}],"missing_info":[]}
+        
+        For "delete": Identify records to delete. Return:
+        {"intent":"delete","actions":[{"model":"ModelName","ids":[1,2,3],"description":"Deleting records from Excel"}],"missing_info":[]}
+        
+        CRITICAL FOREIGN KEY RULES:
+        - The FOREIGN KEY LOOKUP TABLE above contains the REAL database IDs for all FK columns.
+        - When an Excel column contains NAMES (like "Ahmed", "Ali", "Section A") and the target DB field is a foreign key (_id column), 
+          you MUST resolve the name to the real ID from the lookup table.
+        - In the field_mapping, map the Excel column to the _id field (e.g., "workforce" → "workforce_id").
+        - In the records array (if you generate one), use the REAL integer ID, NOT the name string.
+        - If a name from Excel doesn't match any entry in the lookup table, add it to "missing_info".
+        
         The field_mapping maps Excel column headers to the corresponding database column names.
-        Match columns by semantic similarity (e.g. "Nom" → "full_name", "Prix" → "price").
+        Match columns by semantic similarity (e.g. "Nom" → "full_name", "Prix" → "price", "workforce" → "workforce_id").
         
         Return ONLY the JSON. No text before or after.
         PROMPT;
@@ -567,31 +843,72 @@ class AIAssistantController extends Controller
                 $affectedModels[] = $modelName;
 
                 if ($intent === 'create') {
-                    $records = $action['records'] ?? [];
-                    $created = 0;
-                    $class::withoutEvents(function () use ($class, $records, &$created) {
-                        foreach ($records as $rec) {
-                            $class::create($rec);
-                            $created++;
-                        }
-                    });
-                    $results[] = "✅ Created {$created} {$modelName} record(s)";
+                    if (!empty($action['sql'])) {
+                        DB::insert($action['sql']);
+                        $created = count($action['records'] ?? []);
+                        // If AI omitted records, at least say 1 was created
+                        if ($created === 0) $created = 1;
+                        $results[] = "✅ Created {$created} {$modelName} record(s)";
+                    } else {
+                        $records = $action['records'] ?? [];
+                        $created = 0;
+                        $class::withoutEvents(function () use ($class, $records, &$created) {
+                            foreach ($records as $rec) {
+                                $class::create($rec);
+                                $created++;
+                            }
+                        });
+                        $results[] = "✅ Created {$created} {$modelName} record(s)";
+                    }
+                }
+
+                if ($intent === 'update') {
+                    if (!empty($action['sql'])) {
+                        $updated = DB::update($action['sql']);
+                        $results[] = "✏️ Updated {$updated} {$modelName} record(s)";
+                    } else {
+                        $records = $action['records'] ?? [];
+                        $updated = 0;
+                        $class::withoutEvents(function () use ($class, $records, &$updated) {
+                            foreach ($records as $rec) {
+                                $id = $rec['id'] ?? null;
+                                if (!$id)
+                                    continue;
+                                $model = $class::find($id);
+                                if (!$model)
+                                    continue;
+                                // Remove protected fields before update
+                                $fields = array_diff_key($rec, array_flip(['id', 'created_at', 'updated_at', 'deleted_at']));
+                                if (!empty($fields)) {
+                                    $model->update($fields);
+                                    $updated++;
+                                }
+                            }
+                        });
+                        $results[] = "✏️ Updated {$updated} {$modelName} record(s)";
+                    }
                 }
 
                 if ($intent === 'delete') {
-                    $ids = $action['ids'] ?? [];
-                    $deleted = 0;
-                    $class::withoutEvents(function () use ($class, $ids, &$deleted) {
-                        foreach ($ids as $id) {
-                            $record = $class::find($id);
-                            if ($record) {
-                                $record->delete();
-                                $deleted++;
+                    if (!empty($action['sql'])) {
+                        $deleted = DB::delete($action['sql']);
+                        $softLabel = ($action['soft_delete'] ?? false) ? ' (soft-deleted)' : ' (permanently deleted)';
+                        $results[] = "🗑️  Deleted {$deleted} {$modelName} record(s){$softLabel}";
+                    } else {
+                        $ids = $action['ids'] ?? [];
+                        $deleted = 0;
+                        $class::withoutEvents(function () use ($class, $ids, &$deleted) {
+                            foreach ($ids as $id) {
+                                $record = $class::find($id);
+                                if ($record) {
+                                    $record->delete();
+                                    $deleted++;
+                                }
                             }
-                        }
-                    });
-                    $softLabel = ($action['soft_delete'] ?? false) ? ' (soft-deleted)' : ' (permanently deleted)';
-                    $results[] = "🗑️  Deleted {$deleted} {$modelName} record(s){$softLabel}";
+                        });
+                        $softLabel = ($action['soft_delete'] ?? false) ? ' (soft-deleted)' : ' (permanently deleted)';
+                        $results[] = "🗑️  Deleted {$deleted} {$modelName} record(s){$softLabel}";
+                    }
                 }
             }
 
@@ -718,6 +1035,229 @@ class AIAssistantController extends Controller
         return $output;
     }
 
+    /**
+     * Build a lookup table string for all foreign key columns.
+     * For each FK column (ending in _id), load real {id: "display_name"} from the referenced table.
+     * This gives the AI and the resolver the data needed to map human names → real IDs.
+     */
+    private function buildForeignKeyLookupTable(): string
+    {
+        $modelMap = $this->getModelMap();
+        $output = "=== FOREIGN KEY LOOKUP TABLE ===\n";
+        $output .= "Use these REAL IDs when mapping Excel values to FK columns.\n\n";
+        $processedTables = [];
+
+        foreach ($modelMap as $modelName => $info) {
+            if (in_array($modelName, self::PROTECTED_MODELS))
+                continue;
+
+            foreach ($info['column_details'] ?? [] as $colName => $detail) {
+                // Only FK columns (MUL key = foreign key index)
+                if ($detail['key'] !== 'MUL' || !str_ends_with($colName, '_id'))
+                    continue;
+
+                // Derive the referenced model name from the column (e.g., workforce_id → Workforce)
+                $refName = str_replace('_id', '', $colName);
+                $refModelName = str_replace(' ', '', ucwords(str_replace('_', ' ', $refName)));
+
+                if (isset($processedTables[$refModelName]))
+                    continue;
+                if (!isset($modelMap[$refModelName]))
+                    continue;
+
+                $refClass = $modelMap[$refModelName]['class'];
+                try {
+                    // Try to find the best "name" column for display
+                    $refColumns = $modelMap[$refModelName]['columns'];
+                    $nameField = null;
+                    foreach (['full_name', 'name', 'title', 'label', 'designation'] as $candidate) {
+                        if (in_array($candidate, $refColumns)) {
+                            $nameField = $candidate;
+                            break;
+                        }
+                    }
+                    if (!$nameField)
+                        continue;
+
+                    // Load up to 500 records for the lookup
+                    $query = $refClass::query();
+                    if (in_array('deleted_at', $refColumns)) {
+                        $query->whereNull('deleted_at');
+                    }
+                    $records = $query->select(['id', $nameField])->limit(500)->get();
+
+                    if ($records->isEmpty())
+                        continue;
+
+                    $output .= "{$colName} → {$refModelName} (match by '{$nameField}'):\n";
+                    foreach ($records as $rec) {
+                        $output .= "  ID={$rec->id}: \"{$rec->{$nameField} }\"\n";
+                    }
+                    $output .= "\n";
+
+                    $processedTables[$refModelName] = [
+                        'class' => $refClass,
+                        'name_field' => $nameField,
+                        'fk_column' => $colName,
+                    ];
+                } catch (\Throwable $e) {
+                    continue;
+                }
+            }
+        }
+
+        return $output;
+    }
+
+    /**
+     * Get the FK lookup as a structured array for programmatic resolution.
+     * Returns: ['workforce_id' => ['class' => ..., 'name_field' => 'full_name', 'records' => [{id, name}, ...]]]
+     */
+    private function getForeignKeyLookupArray(): array
+    {
+        $modelMap = $this->getModelMap();
+        $result = [];
+        $processedTables = [];
+
+        foreach ($modelMap as $modelName => $info) {
+            if (in_array($modelName, self::PROTECTED_MODELS))
+                continue;
+
+            foreach ($info['column_details'] ?? [] as $colName => $detail) {
+                if ($detail['key'] !== 'MUL' || !str_ends_with($colName, '_id'))
+                    continue;
+
+                $refName = str_replace('_id', '', $colName);
+                $refModelName = str_replace(' ', '', ucwords(str_replace('_', ' ', $refName)));
+
+                if (isset($processedTables[$refModelName]))
+                    continue;
+                if (!isset($modelMap[$refModelName]))
+                    continue;
+
+                $refClass = $modelMap[$refModelName]['class'];
+                try {
+                    $refColumns = $modelMap[$refModelName]['columns'];
+                    $nameField = null;
+                    foreach (['full_name', 'name', 'title', 'label', 'designation'] as $candidate) {
+                        if (in_array($candidate, $refColumns)) {
+                            $nameField = $candidate;
+                            break;
+                        }
+                    }
+                    if (!$nameField)
+                        continue;
+
+                    $query = $refClass::query();
+                    if (in_array('deleted_at', $refColumns)) {
+                        $query->whereNull('deleted_at');
+                    }
+                    $records = $query->select(['id', $nameField])->limit(500)->get();
+
+                    $lookup = [];
+                    foreach ($records as $rec) {
+                        $lookup[] = ['id' => $rec->id, 'name' => $rec->{$nameField}];
+                    }
+
+                    $result[$colName] = [
+                        'class' => $refClass,
+                        'name_field' => $nameField,
+                        'model_name' => $refModelName,
+                        'records' => $lookup,
+                    ];
+
+                    $processedTables[$refModelName] = true;
+                } catch (\Throwable $e) {
+                    continue;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Resolve foreign keys in a set of records.
+     * Replaces human-readable names with real database IDs using fuzzy matching.
+     *
+     * @param array $records Array of records to resolve
+     * @param array $fkLookup FK lookup from getForeignKeyLookupArray()
+     * @return array ['records' => resolved records, 'unresolved' => fields that couldn't be matched]
+     */
+    private function resolveForeignKeysInRecords(array $records, array $fkLookup): array
+    {
+        $resolved = [];
+        $unresolved = [];
+
+        foreach ($records as $record) {
+            $resolvedRecord = $record;
+
+            foreach ($record as $field => $value) {
+                // Skip if the field doesn't end in _id or if the value is already a valid integer
+                if (!str_ends_with($field, '_id'))
+                    continue;
+                if (is_int($value) || (is_numeric($value) && intval($value) == $value))
+                    continue;
+                if (empty($value))
+                    continue;
+
+                // This value is a string in an _id field — needs resolution
+                if (!isset($fkLookup[$field]))
+                    continue;
+
+                $lookupRecords = $fkLookup[$field]['records'];
+                $matched = false;
+                $valueStr = trim(strtolower((string) $value));
+
+                // 1. Try exact match
+                foreach ($lookupRecords as $lr) {
+                    if (strtolower(trim($lr['name'])) === $valueStr) {
+                        $resolvedRecord[$field] = $lr['id'];
+                        $matched = true;
+                        break;
+                    }
+                }
+
+                // 2. Try contains match
+                if (!$matched) {
+                    foreach ($lookupRecords as $lr) {
+                        $lrName = strtolower(trim($lr['name']));
+                        if (str_contains($lrName, $valueStr) || str_contains($valueStr, $lrName)) {
+                            $resolvedRecord[$field] = $lr['id'];
+                            $matched = true;
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Try similar_text (fuzzy) with > 70% similarity
+                if (!$matched) {
+                    $bestScore = 0;
+                    $bestId = null;
+                    foreach ($lookupRecords as $lr) {
+                        similar_text($valueStr, strtolower(trim($lr['name'])), $pct);
+                        if ($pct > $bestScore && $pct >= 70) {
+                            $bestScore = $pct;
+                            $bestId = $lr['id'];
+                        }
+                    }
+                    if ($bestId !== null) {
+                        $resolvedRecord[$field] = $bestId;
+                        $matched = true;
+                    }
+                }
+
+                if (!$matched) {
+                    $unresolved[] = "Could not resolve '{$value}' for field '{$field}'";
+                }
+            }
+
+            $resolved[] = $resolvedRecord;
+        }
+
+        return ['records' => $resolved, 'unresolved' => $unresolved];
+    }
+
     // """""""""""""""""""""""""""""""""""""""""
     //  Confirmation & Extraction Helpers
     // """""""""""""""""""""""""""""""""""""""""
@@ -729,10 +1269,24 @@ class AIAssistantController extends Controller
     {
         $intent = $plan['intent'] ?? 'create';
         $isDelete = $intent === 'delete';
-        $color = $isDelete ? '#D32F2F' : '#1976D2';
-        $bgGradient = $isDelete ? 'linear-gradient(135deg,#FFEBEE,#FFCDD2)' : 'linear-gradient(135deg,#E3F2FD,#BBDEFB)';
-        $icon = $isDelete ? '🗑️' : '📝';
-        $title = $isDelete ? 'Delete Confirmation' : 'Create Confirmation';
+        $isUpdate = $intent === 'update';
+
+        if ($isDelete) {
+            $color = '#D32F2F';
+            $bgGradient = 'linear-gradient(135deg,#FFEBEE,#FFCDD2)';
+            $icon = '🗑️';
+            $title = 'Delete Confirmation';
+        } elseif ($isUpdate) {
+            $color = '#F57C00';
+            $bgGradient = 'linear-gradient(135deg,#FFF3E0,#FFE0B2)';
+            $icon = '✏️';
+            $title = 'Update Confirmation';
+        } else {
+            $color = '#1976D2';
+            $bgGradient = 'linear-gradient(135deg,#E3F2FD,#BBDEFB)';
+            $icon = '📝';
+            $title = 'Create Confirmation';
+        }
 
         $html = "<div style='background:{$bgGradient};border-radius:12px;padding:16px;border-left:4px solid {$color};'>";
         $html .= "<div style='font-weight:700;color:{$color};margin-bottom:10px;font-size:14px;'>{$icon} {$title}</div>";
@@ -756,9 +1310,12 @@ class AIAssistantController extends Controller
             if ($intent === 'create') {
                 $count = count($action['records'] ?? []);
                 $html .= "<li>Create <strong>{$count}</strong> {$model} record(s)</li>";
+            } elseif ($intent === 'update') {
+                $count = count($action['records'] ?? []);
+                $html .= "<li>Update <strong>{$count}</strong> {$model} record(s)</li>";
             } else {
                 $count = count($action['ids'] ?? []);
-                $softLabel = ($action['soft_delete'] ?? false) ? '(soft-delete, recoverable)' : '<span style="color:#D32F2F;font-weight:700;">(š ï¸ permanent!)</span>';
+                $softLabel = ($action['soft_delete'] ?? false) ? '(soft-delete, recoverable)' : '<span style="color:#D32F2F;font-weight:700;">(⚠️ permanent!)</span>';
                 $desc = $action['description'] ?? '';
                 $html .= "<li>Delete <strong>{$count}</strong> {$model} record(s) {$softLabel}" . ($desc ? "  {$desc}" : '') . "</li>";
             }
@@ -767,7 +1324,7 @@ class AIAssistantController extends Controller
 
         // Show errors
         if (!empty($plan['errors'])) {
-            $html .= "<div style='color:#EF6C00;font-size:12px;margin-bottom:8px;'>š ï¸ Warnings: " . implode(', ', $plan['errors']) . "</div>";
+            $html .= "<div style='color:#EF6C00;font-size:12px;margin-bottom:8px;'>⚠️ Warnings: " . implode(', ', $plan['errors']) . "</div>";
         }
 
         $html .= "<div style='font-size:13px;color:#333;'>Reply <strong>\"yes\"</strong> to confirm or <strong>\"no\"</strong> to cancel.</div>";
@@ -792,23 +1349,56 @@ class AIAssistantController extends Controller
     private function extractPendingAction(string $messagesJson): ?array
     {
         $messages = json_decode($messagesJson, true);
-        if (!is_array($messages))
+        if (!is_array($messages)) {
+            \Illuminate\Support\Facades\Log::error('extractPendingAction: messagesJson is not a valid JSON array');
             return null;
+        }
 
         // Search backwards for the most recent pending action
         for ($i = count($messages) - 1; $i >= 0; $i--) {
             $msg = $messages[$i];
             $text = $msg['text'] ?? '';
 
-            // Look for the hidden pending action div
-            if (preg_match('/data-action=\'([^\']+)\'/', $text, $m)) {
-                $decoded = json_decode(htmlspecialchars_decode($m[1], ENT_QUOTES), true);
-                if (is_array($decoded) && isset($decoded['intent'])) {
-                    return $decoded;
+            if (str_contains($text, 'data-action=')) {
+                \Illuminate\Support\Facades\Log::info("extractPendingAction found data-action in msg $i. Length: " . strlen($text));
+                
+                // 1. Try base64 encoded format (safest, no quote issues)
+                if (preg_match('/data-action=["\']?([a-zA-Z0-9+\/]+={0,2})["\']?/', $text, $m)) {
+                    \Illuminate\Support\Facades\Log::info("extractPendingAction base64 regex matched. Match length: " . strlen($m[1]));
+                    $decoded = json_decode(base64_decode($m[1]), true);
+                    if (is_array($decoded) && isset($decoded['intent'])) {
+                        \Illuminate\Support\Facades\Log::info("extractPendingAction base64 decoded successfully. Intent: " . $decoded['intent']);
+                        return $decoded;
+                    } else {
+                        \Illuminate\Support\Facades\Log::error("extractPendingAction base64 decode failed or missing intent. Decoded: " . print_r($decoded, true));
+                    }
+                } else {
+                    \Illuminate\Support\Facades\Log::info("extractPendingAction base64 regex DID NOT match.");
+                }
+
+                // 2. Fallback for older messages using HTML entities (might fail on unescaped quotes)
+                if (preg_match('/data-action=(["\'])(.*?)\1/s', $text, $m)) {
+                    $raw = $m[2];
+                    \Illuminate\Support\Facades\Log::info("extractPendingAction fallback regex matched. Raw length: " . strlen($raw));
+                    // Try decoding HTML entities
+                    $decoded = json_decode(htmlspecialchars_decode($raw, ENT_QUOTES), true);
+                    
+                    // Sometimes frontend innerHTML fully unescapes things
+                    if (!is_array($decoded) || !isset($decoded['intent'])) {
+                        $decoded = json_decode($raw, true);
+                    }
+
+                    if (is_array($decoded) && isset($decoded['intent'])) {
+                        \Illuminate\Support\Facades\Log::info("extractPendingAction fallback decoded successfully. Intent: " . $decoded['intent']);
+                        return $decoded;
+                    } else {
+                        \Illuminate\Support\Facades\Log::error("extractPendingAction fallback decode failed. Decoded: " . print_r($decoded, true));
+                    }
                 }
             }
         }
 
+        \Illuminate\Support\Facades\Log::info("extractPendingAction found no pending action in " . count($messages) . " messages.");
         return null;
     }
 
@@ -836,33 +1426,40 @@ class AIAssistantController extends Controller
         INTENT RULES:
         1. "read"  The user wants to QUERY, VIEW, LIST, COUNT, or ANALYZE existing data. Example: "how many charges?", "show suppliers", "total sales"
         2. "create"  The user wants to ADD, CREATE, INSERT, REGISTER, or ENTRY new records into the database. Example: "create a section", "add activity", "insert supplier", "entry workforce"
-        3. "delete"  The user wants to DELETE, REMOVE, or SUPPRESS records. Example: "delete supplier 5", "remove this ship"
-        4. "confirm"  The user is confirming a previous action proposal by saying: yes, ok, oui, confirm, go ahead, d'accord, proceed
-        5. "cancel"  The user is cancelling by saying: no, cancel, stop, annuler
+        3. "update"  The user wants to UPDATE, MODIFY, EDIT, or CHANGE existing records. Example: "update workforce price", "change section name", "modify supplier"
+        4. "delete"  The user wants to DELETE, REMOVE, or SUPPRESS records. Example: "delete supplier 5", "remove this ship"
+        5. "confirm"  The user is confirming a previous action proposal by saying: yes, ok, oui, confirm, go ahead, d'accord, proceed
+        6. "cancel"  The user is cancelling by saying: no, cancel, stop, annuler
 
         CRITICAL: If the user uses words like "create", "add", "insert", "entry", "register", "new", "ajouter", "créer", "enregistrer"  the intent is ALWAYS "create", NEVER "read".
+        CRITICAL: If the user uses words like "update", "modify", "edit", "change", "modifier", "mettre à jour", "changer"  the intent is ALWAYS "update", NEVER "read".
         CRITICAL: If the user uses words like "delete", "remove", "supprimer"  the intent is ALWAYS "delete", NEVER "read".
         CRITICAL: There is NO limit on the number of records. If the user asks to create 50, 100, 500 or more records, generate ALL of them in the "records" array. Never truncate or limit the output.
 
-        CRITICAL TABLE STUDY RULES (for CREATE intent):
+        CRITICAL TABLE STUDY RULES (for CREATE/UPDATE intent):
         Before generating any records, you MUST carefully study the AVAILABLE MODELS section above. Pay attention to:
         1. **Column types**: Use the correct data type for each field (string, integer, decimal, date, enum, etc.)
         2. **Required vs nullable**: If a column is "required", you MUST provide a value. If "nullable", you MAY omit it.
         3. **Enum columns**: Only use the allowed values listed in the type (e.g. enum('Q1','Q2') means only 'Q1' or 'Q2' are valid).
-        4. **Foreign keys [FK]**: These columns reference another table's ID. Use only valid existing IDs or ask the user which FK value to use via "missing_info".
+        4. **Foreign keys [FK]**: These columns reference another table's ID. Use valid IDs if known. If you only know the text/name, you MUST use a SQL subquery in your SQL string. Example: (SELECT `id` FROM `workforces` WHERE `full_name` = 'Ahmed Alami')
         5. **Default values**: If a column has a default, you can omit it and the database will use the default.
-        6. **Only use fillable fields**: Only include fields listed in the "fillable" attribute. Never include id, created_at, updated_at, or deleted_at.
+        6. **Only use fillable fields**: Only include fields listed in the "fillable" attribute. Never include id, created_at, updated_at, or deleted_at in the 'records' array (but DO include them in the 'sql' query like NOW()).
         7. **Decimal fields**: Use numeric values (not strings) for decimal/numeric columns.
         8. **Date fields**: Use 'YYYY-MM-DD' format for date columns.
         If you are unsure about a required field value, add it to "missing_info" array instead of guessing.
 
-        For CREATE: use exact model names from the AVAILABLE MODELS list. Put ALL field values in "records" array. Generate every single record the user asks for. Example:
-        {"intent":"create","actions":[{"model":"Section","records":[{"name":"test","daily_price":100}]}],"pre_create":[],"missing_info":[]}
+        CRITICAL SQL RULE: You MUST provide a raw SQL query in the "sql" field for any create, update, or delete action. The query must use the actual database table name.
 
-        For bulk CREATE (e.g. "add 30 workforces"): generate all 30 records in the "records" array with realistic data.
+        For CREATE: use exact model names from the AVAILABLE MODELS list. Put ALL field values in "records" array AND provide the "sql" field with an INSERT statement. Example:
+        {"intent":"create","actions":[{"model":"Section","sql":"INSERT INTO `sections` (`name`, `daily_price`, `created_at`, `updated_at`) VALUES ('test', 100, NOW(), NOW())","records":[{"name":"test","daily_price":100}]}],"pre_create":[],"missing_info":[]}
 
-        For DELETE: provide "ids" array if known, or "lookup" object to search by name. Example:
-        {"intent":"delete","actions":[{"model":"Supplier","ids":[5],"description":"Supplier #5"}]}
+        For bulk CREATE (e.g. "add 30 workforces"): generate all 30 records in the "records" array with realistic data, and write a single bulk INSERT SQL query in the "sql" field (e.g. VALUES (...), (...), ...).
+
+        For UPDATE: provide the "sql" field with an UPDATE statement. Also include "records" for validation. Example:
+        {"intent":"update","actions":[{"model":"Section","sql":"UPDATE `sections` SET `name` = 'new name', `daily_price` = 200, `updated_at` = NOW() WHERE `id` = 5","records":[{"id":5,"name":"new name","daily_price":200}]}],"missing_info":[]}
+
+        For DELETE: provide the "sql" field with a DELETE statement (or UPDATE for soft-delete). Provide "ids" array. Example:
+        {"intent":"delete","actions":[{"model":"Supplier","sql":"DELETE FROM `suppliers` WHERE `id` = 5","ids":[5],"description":"Supplier #5"}]}
 
         Return ONLY the JSON. No text before or after.
         PROMPT;
@@ -929,7 +1526,7 @@ class AIAssistantController extends Controller
     /**
      * Build the answer/analysis prompt from the retrieved data.
      */
-    private function buildAnswerPrompt(string $question, string $messages, string $schema, string $comments, ?string $result, ?string $sqlError, string $businessCtx, string $routes): string
+    private function buildAnswerPrompt(string $question, string $messages, string $schema, string $comments, ?string $result, ?string $sqlError, string $businessCtx, string $routes, ?string $excelContext = null): string
     {
         $id = uniqid('ai_');
         $dataSection = '';
@@ -939,6 +1536,11 @@ class AIAssistantController extends Controller
             $dataSection = "The database query returned NO results. Tell the user there is no data matching their question.";
         } else {
             $dataSection = "Database query results (use this as the SINGLE source of truth): {$result}";
+        }
+
+        $excelSection = '';
+        if ($excelContext) {
+            $excelSection = "\n        === UPLOADED EXCEL FILE DATA ===\n        The user has previously uploaded an Excel file. If their question relates to this file, use this data to answer:\n        {$excelContext}\n";
         }
 
         return <<<PROMPT
@@ -960,6 +1562,7 @@ class AIAssistantController extends Controller
 
         === DATA ===
         {$dataSection}
+        {$excelSection}
 
         === RENDERING RULES ===
         IMPORTANT: The following libraries are ALREADY loaded in the page. Do NOT re-import them:

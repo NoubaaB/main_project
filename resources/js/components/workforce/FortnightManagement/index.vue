@@ -18,7 +18,7 @@
     <v-card-text class="pa-4">
       <v-row>
         <!-- ============= LEFT PANEL ============= -->
-        <v-col cols="12" md="4">
+        <v-col cols="12" md="3">
           <v-card variant="outlined" class="rounded-xl pa-4" color="info">
             <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
               <v-icon color="info" class="mr-2" size="20">mdi-information-outline</v-icon>
@@ -220,7 +220,7 @@
         </v-col>
 
         <!-- ============= RIGHT PANEL - CALENDAR ============= -->
-        <v-col cols="12" md="8">
+        <v-col cols="12" md="9">
           <v-card variant="outlined" class="rounded-xl" color="info">
             <!-- Calendar Header -->
             <div class="fnm-cal-header">
@@ -558,16 +558,38 @@
                               <div class="text-caption font-weight-bold mb-2" style="color:#42A5F5;">
                                 <v-icon size="14" class="mr-1">mdi-filter</v-icon>{{ $t('filter_column') }}
                               </div>
-                              <!-- Text filter -->
+                              <!-- Text/Chip filter: checklist of unique values -->
                               <template v-if="getWfColFilterType(col) === 'text'">
                                 <v-text-field
-                                  :model-value="wfColumnFilters[col.key] ? wfColumnFilters[col.key].text : ''"
-                                  @update:model-value="v => { ensureWfFilter(col.key); wfColumnFilters[col.key].text = v; }"
-                                  :placeholder="$t('contains') + '...'"
+                                  :model-value="wfColumnFilters[col.key] ? wfColumnFilters[col.key].search : ''"
+                                  @update:model-value="v => { ensureWfFilter(col.key); wfColumnFilters[col.key].search = v; }"
+                                  :placeholder="$t('search') + '...'"
                                   density="compact" variant="outlined" hide-details
                                   prepend-inner-icon="mdi-magnify" clearable
-                                  class="fnm-filter-input"
+                                  class="fnm-filter-input mb-2"
                                 />
+                                <!-- Select All / Deselect All -->
+                                <div class="d-flex align-center justify-space-between mb-1">
+                                  <v-btn size="x-small" variant="text" color="primary" @click="selectAllWfFilterValues(col)">
+                                    {{ $t('all') }}
+                                  </v-btn>
+                                  <v-btn size="x-small" variant="text" color="grey" @click="deselectAllWfFilterValues(col)">
+                                    {{ $t('clear_sort') }}
+                                  </v-btn>
+                                </div>
+                                <div class="fnm-filter-checklist">
+                                  <template v-for="val in getFilteredUniqueValues(col)" :key="val">
+                                    <label class="fnm-filter-check-item">
+                                      <v-checkbox
+                                        :model-value="isWfValueChecked(col.key, val)"
+                                        @update:model-value="v => toggleWfFilterValue(col.key, val, v)"
+                                        density="compact" hide-details color="#42A5F5"
+                                        class="fnm-filter-checkbox"
+                                      />
+                                      <span class="fnm-filter-check-label text-truncate">{{ val || '-' }}</span>
+                                    </label>
+                                  </template>
+                                </div>
                               </template>
                               <!-- Boolean filter -->
                               <template v-else-if="getWfColFilterType(col) === 'boolean'">
@@ -602,7 +624,7 @@
                               </template>
                               <!-- Clear this column filter -->
                               <v-btn v-if="isWfColFiltered(col.key)" size="x-small" variant="text" color="error"
-                                class="mt-2" block @click="wfColumnFilters[col.key] = { text: '', bool: '', min: '', max: '' }">
+                                class="mt-2" block @click="clearWfColFilter(col.key)">
                                 <v-icon start size="12">mdi-close</v-icon>{{ $t('clear_filters') }}
                               </v-btn>
                             </v-card>
@@ -1508,10 +1530,10 @@ export default {
         if (!col) continue;
         result = result.filter(w => {
           const raw = this.getRawCellValue(w, col);
-          // Text/chip filter
-          if (f.text && f.text.trim()) {
-            const val = String(raw || '').toLowerCase();
-            if (!val.includes(f.text.trim().toLowerCase())) return false;
+          // Checklist filter (text/chip columns)
+          if (f.checked && f.checked.length > 0) {
+            const val = String(raw || '');
+            if (!f.checked.includes(val)) return false;
           }
           // Boolean filter
           if (f.bool !== undefined && f.bool !== null && f.bool !== '') {
@@ -1557,7 +1579,7 @@ export default {
       for (const key of Object.keys(this.wfColumnFilters)) {
         const f = this.wfColumnFilters[key];
         if (!f) continue;
-        if (f.text && f.text.trim()) return true;
+        if (f.checked && f.checked.length > 0) return true;
         if (f.bool !== undefined && f.bool !== null && f.bool !== '') return true;
         if (f.min !== '' && f.min !== undefined && f.min !== null) return true;
         if (f.max !== '' && f.max !== undefined && f.max !== null) return true;
@@ -1570,7 +1592,7 @@ export default {
       for (const key of Object.keys(this.wfColumnFilters)) {
         const f = this.wfColumnFilters[key];
         if (!f) continue;
-        if ((f.text && f.text.trim()) || (f.bool !== undefined && f.bool !== null && f.bool !== '') ||
+        if ((f.checked && f.checked.length > 0) || (f.bool !== undefined && f.bool !== null && f.bool !== '') ||
             (f.min !== '' && f.min !== undefined && f.min !== null) ||
             (f.max !== '' && f.max !== undefined && f.max !== null)) {
           count++;
@@ -1920,7 +1942,7 @@ export default {
     isWfColFiltered(colKey) {
       const f = this.wfColumnFilters[colKey];
       if (!f) return false;
-      return (f.text && f.text.trim()) ||
+      return (f.checked && f.checked.length > 0) ||
              (f.bool !== undefined && f.bool !== null && f.bool !== '') ||
              (f.min !== '' && f.min !== undefined && f.min !== null) ||
              (f.max !== '' && f.max !== undefined && f.max !== null);
@@ -1934,13 +1956,72 @@ export default {
     getWfColFilterType(col) {
       if (col.type === 'chip' || col.type === 'text') return 'text';
       if (col.type === 'boolean') return 'boolean';
-      return 'range'; // number, currency, computed_declared, computed_non_declared
+      return 'range';
     },
     /** Ensure filter object exists for a column key */
     ensureWfFilter(colKey) {
       if (!this.wfColumnFilters[colKey]) {
-        this.wfColumnFilters[colKey] = { text: '', bool: '', min: '', max: '' };
+        this.wfColumnFilters[colKey] = { checked: [], search: '', bool: '', min: '', max: '' };
       }
+    },
+    /** Clear a single column filter */
+    clearWfColFilter(colKey) {
+      this.wfColumnFilters[colKey] = { checked: [], search: '', bool: '', min: '', max: '' };
+    },
+    /** Get all unique values for a text/chip column from current data */
+    getUniqueColValues(col) {
+      const wfs = this.filteredWorkforces;
+      const vals = new Set();
+      for (const w of wfs) {
+        const v = String(w[col.key] || '');
+        vals.add(v);
+      }
+      return [...vals].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    },
+    /** Get unique values filtered by the search box */
+    getFilteredUniqueValues(col) {
+      const all = this.getUniqueColValues(col);
+      const f = this.wfColumnFilters[col.key];
+      if (!f || !f.search || !f.search.trim()) return all;
+      const q = f.search.trim().toLowerCase();
+      return all.filter(v => v.toLowerCase().includes(q));
+    },
+    /** Check if a value is in the checked list for a column */
+    isWfValueChecked(colKey, val) {
+      const f = this.wfColumnFilters[colKey];
+      if (!f || !f.checked || f.checked.length === 0) return true; // all checked by default when no filter
+      return f.checked.includes(val);
+    },
+    /** Toggle a value in the checked list */
+    toggleWfFilterValue(colKey, val, checked) {
+      this.ensureWfFilter(colKey);
+      const f = this.wfColumnFilters[colKey];
+      // If checked array is empty (means "all selected"), populate it with all values first
+      if (f.checked.length === 0) {
+        const col = this.allWorkforceColumns.find(c => c.key === colKey);
+        f.checked = [...this.getUniqueColValues(col)];
+      }
+      if (checked) {
+        if (!f.checked.includes(val)) f.checked.push(val);
+      } else {
+        f.checked = f.checked.filter(v => v !== val);
+      }
+      // If all values are checked again, clear the filter
+      const col = this.allWorkforceColumns.find(c => c.key === colKey);
+      const allVals = this.getUniqueColValues(col);
+      if (f.checked.length >= allVals.length) {
+        f.checked = [];
+      }
+    },
+    /** Select all values for a column filter */
+    selectAllWfFilterValues(col) {
+      this.ensureWfFilter(col.key);
+      this.wfColumnFilters[col.key].checked = [];
+    },
+    /** Deselect all values for a column filter */
+    deselectAllWfFilterValues(col) {
+      this.ensureWfFilter(col.key);
+      this.wfColumnFilters[col.key].checked = ['__none__']; // impossible value = show nothing
     },
     getColExcelValue(w, col) {
       if (col.type === 'boolean') return w[col.key] ? this.$t('yes') : this.$t('no');
@@ -2894,6 +2975,34 @@ export default {
   padding: 6px 12px;
   background: rgba(33,150,243,.03);
   border-bottom: 1px solid rgba(33,150,243,.1);
+}
+.fnm-filter-checklist {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid rgba(var(--v-border-color), .12);
+  border-radius: 8px;
+  padding: 2px;
+}
+.fnm-filter-check-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .1s ease;
+}
+.fnm-filter-check-item:hover {
+  background: rgba(33,150,243,.06);
+}
+.fnm-filter-checkbox {
+  flex-shrink: 0;
+  max-width: 28px;
+}
+.fnm-filter-check-label {
+  font-size: 12px;
+  line-height: 1.3;
+  max-width: 140px;
 }
 
 /* Clickable rows */

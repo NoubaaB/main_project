@@ -1,4 +1,4 @@
-﻿import { defineStore } from "pinia";
+import { defineStore } from "pinia";
 import { useAuth } from "./Auth";
 import { useMain } from "./Main";
 import { useCorporal } from "./Corporal";
@@ -252,10 +252,15 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 this.assistant_messages.push(errMsg);
             });
         },
-        askWithExcel: async function (message, excelData) {
-            return await axios.post(`/api/ai-assistant/excel`, {
-                message,
-                excel_data: excelData,
+        askWithExcel: async function (message, excelData, file) {
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('excel_data', JSON.stringify(excelData));
+            if (file) {
+                formData.append('file', file);
+            }
+            return await axios.post(`/api/ai-assistant/excel`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             }).then(response => {
                 const reply = {
                     id: Date.now() + Math.random(),
@@ -380,6 +385,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
                     text: m.text,
                     ts: m.ts,
                     reaction: m.reaction || null,
+                    file_url: m.file_url || null,
+                    file_name: m.file_name || null,
                     persisted: true,
                 }));
                 this.assistant_messages = msgs;
@@ -411,6 +418,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
                     text: m.text,
                     ts: m.ts,
                     reaction: m.reaction || null,
+                    file_url: m.file_url || null,
+                    file_name: m.file_name || null,
                     persisted: true,
                 }));
                 // Prepend older messages
