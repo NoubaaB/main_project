@@ -150,7 +150,21 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
          */
         updateLocalStore(data) {
             const { model, action, record_id, record_data } = data;
-            if (!record_id) return;
+
+            // If record_id is 0 or missing with empty record_data (AI Assistant bulk operation),
+            // try to do a full store refresh for stores that support fetch()
+            const isAiBulk = !record_id || (record_id === 0 && (!record_data || (typeof record_data === 'object' && Object.keys(record_data).length === 0)));
+            if (isAiBulk) {
+                const fetchableStores = {
+                    'Corporal': () => useCorporal(),
+                    'Section': () => useSection(),
+                    'Workforce': () => useWorkforce(),
+                };
+                if (fetchableStores[model]) {
+                    try { fetchableStores[model]().fetch(); } catch (e) { /* ignore */ }
+                }
+                return;
+            }
 
             // Stores that need full re-fetch (have relationships loaded via fetch())
             const fetchOnChange = ['Corporal', 'Section', 'Workforce'];

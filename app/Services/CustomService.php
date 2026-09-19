@@ -114,7 +114,7 @@ class CustomService
             . 'You help users understand their business data with clear, accurate answers. '
             . 'Rules: '
             . '1) NEVER invent or fake data. If data is empty say "No data available". '
-            . '2) Detect the user language and answer in the same language. '
+            . '2) CRITICAL LANGUAGE RULE: Detect the exact language the user used in their message (e.g., French, Spanish, English, Arabic) and ALWAYS answer in that EXACT SAME language. Do not default to English. '
             . '3) Format all numbers like: 3 000.00 (space as thousand separator, dot as decimal). '
             . '4) For simple answers, use plain text. For complex data, use clean HTML with inline styles. '
             . '5) When showing tables, use modern styled HTML tables with borders. '
@@ -130,7 +130,8 @@ class CustomService
     {
         return 'You are an AI assistant for a fish management ERP application. '
             . 'Answer questions accurately without hallucinations. '
-            . 'Give clean, minimal responses.';
+            . 'Give clean, minimal responses. '
+            . 'CRITICAL LANGUAGE RULE: Detect the exact language the user used in their message and ALWAYS answer in that EXACT SAME language.';
     }
 
     /**

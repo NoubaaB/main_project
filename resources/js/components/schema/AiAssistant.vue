@@ -26,11 +26,17 @@
     <transition name="ai-panel-slide">
       <div
         v-if="isOpen"
-        class="ai-chat-panel"
+        ref="chatPanel"
+        :class="['ai-chat-panel', { 'ai-expanded': isExpanded, 'ai-resizing': isResizing }]"
+        :style="expandedStyle"
         role="dialog"
         aria-modal="true"
         :aria-label="$t('ai_assistant')"
       >
+        <!-- Resizers (visible only when expanded) -->
+        <div v-if="isExpanded" class="ai-resizer ai-resizer-top" @pointerdown.prevent="startResize('top', $event)"></div>
+        <div v-if="isExpanded" class="ai-resizer ai-resizer-left" @pointerdown.prevent="startResize('left', $event)"></div>
+        <div v-if="isExpanded" class="ai-resizer ai-resizer-top-left" @pointerdown.prevent="startResize('top-left', $event)"></div>
         <!-- Header -->
         <header class="ai-chat-header">
           <div class="ai-header-left">
@@ -48,6 +54,18 @@
             </div>
           </div>
           <div class="ai-header-actions">
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              @click="toggleExpand"
+              :title="isExpanded ? ($t('shrink_chat') || 'Shrink') : ($t('expand_chat') || 'Expand')"
+              class="ai-header-btn"
+            >
+              <v-icon size="18" color="rgba(255,255,255,0.85)">
+                {{ isExpanded ? 'mdi-arrow-collapse' : 'mdi-arrow-expand-all' }}
+              </v-icon>
+            </v-btn>
             <v-btn
               icon
               size="x-small"
@@ -177,6 +195,15 @@
                     >
                       <v-icon size="13">{{ m.reaction === 'dislike' ? 'mdi-thumb-down' : 'mdi-thumb-down-outline' }}</v-icon>
                     </button>
+                    <!-- Reply (hover only) -->
+                    <button
+                      v-if="hoveredMsgId === m.id"
+                      class="ai-action-btn ai-action-reply"
+                      @click.stop="replyToMessage(m)"
+                      :title="$t('reply') || 'Reply'"
+                    >
+                      <v-icon size="13">mdi-reply</v-icon>
+                    </button>
                     <!-- Delete (hover only) -->
                     <button
                       v-if="hoveredMsgId === m.id"
@@ -198,6 +225,28 @@
                     {{ $t('export_excel') }}
                   </button>
                 </div>
+                <!-- Confirm / Cancel buttons for pending actions -->
+                <div
+                  v-if="!m.typing && m.role === 'agent' && m.pending_action && !m._action_resolved"
+                  class="ai-pending-action-btns"
+                >
+                  <button
+                    class="ai-confirm-btn"
+                    @click.stop="confirmPendingAction(m)"
+                    :disabled="loading"
+                  >
+                    <v-icon size="14" class="me-1">mdi-check-circle-outline</v-icon>
+                    {{ $t('ai_confirm_yes') }}
+                  </button>
+                  <button
+                    class="ai-cancel-btn"
+                    @click.stop="cancelPendingAction(m)"
+                    :disabled="loading"
+                  >
+                    <v-icon size="14" class="me-1">mdi-close-circle-outline</v-icon>
+                    {{ $t('ai_confirm_no') }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -216,6 +265,16 @@
 
         <!-- Input area -->
         <div class="ai-chat-input-area">
+          <!-- Replying to indicator -->
+          <div v-if="replyingTo" class="ai-reply-indicator">
+            <div class="ai-reply-content">
+              <strong>Replying to:</strong>
+              <div class="ai-reply-text">{{ truncateHtml(replyingTo.text) }}</div>
+            </div>
+            <button class="ai-reply-cancel" @click="replyingTo = null" title="Cancel reply">
+              <v-icon size="14">mdi-close</v-icon>
+            </button>
+          </div>
           <!-- Excel file attachment indicator -->
           <div v-if="excelFile" class="ai-excel-badge">
             <v-icon size="14" color="#4CAF50">mdi-file-excel</v-icon>
@@ -285,6 +344,7 @@ export default {
   data() {
     return {
       isOpen: false,
+      isExpanded: false,
       loading: false,
       input: '',
       sending: false,
@@ -305,6 +365,16 @@ export default {
       fabDragOffsetY: 0,
       fabHasDragged: false,
       fabCorner: 'bottom-right', // current snap corner
+      // Resize state
+      isResizing: false,
+      resizeDir: null,
+      resizeStartX: 0,
+      resizeStartY: 0,
+      resizeStartWidth: 0,
+      resizeStartHeight: 0,
+      customWidth: null,
+      customHeight: null,
+      replyingTo: null,
     };
   },
   computed: {
@@ -326,8 +396,23 @@ export default {
       if (this.fabX === null || this.fabY === null) return { bottom: '24px', right: '24px', top: 'auto', left: 'auto' };
       return { left: this.fabX + 'px', top: this.fabY + 'px', right: 'auto', bottom: 'auto' };
     },
+    expandedStyle() {
+      if (!this.isExpanded) return {};
+      const style = {};
+      if (this.customWidth) style.width = `${this.customWidth}px`;
+      if (this.customHeight) style.height = `${this.customHeight}px`;
+      return style;
+    },
   },
   methods: {
+    toggleExpand() {
+      this.isExpanded = !this.isExpanded;
+      if (this.isExpanded) {
+        this.$nextTick(() => {
+          this.scrollToBottom(true);
+        });
+      }
+    },
     toggleAssistant() {
       // Snap to bottom-right when opening
       if (!this.isOpen) {
@@ -429,6 +514,52 @@ export default {
       this.fabY = pos.y;
       setTimeout(() => { this.fabSnapping = false; }, 350);
     },
+    // ---- Resize logic ----
+    startResize(dir, e) {
+      if (e.button !== 0) return; // left click only
+      this.isResizing = true;
+      this.resizeDir = dir;
+      this.resizeStartX = e.clientX;
+      this.resizeStartY = e.clientY;
+      
+      const el = this.$refs.chatPanel;
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        this.resizeStartWidth = rect.width;
+        this.resizeStartHeight = rect.height;
+      }
+      
+      window.addEventListener('pointermove', this.onResizeMove);
+      window.addEventListener('pointerup', this.onResizeEnd);
+      
+      // Prevent text selection while dragging
+      document.body.style.userSelect = 'none';
+    },
+    onResizeMove(e) {
+      if (!this.isResizing) return;
+      
+      const dx = e.clientX - this.resizeStartX;
+      const dy = e.clientY - this.resizeStartY;
+      
+      if (this.resizeDir === 'left' || this.resizeDir === 'top-left') {
+        let newWidth = this.resizeStartWidth - dx;
+        newWidth = Math.max(400, Math.min(newWidth, window.innerWidth * 0.95));
+        this.customWidth = newWidth;
+      }
+      
+      if (this.resizeDir === 'top' || this.resizeDir === 'top-left') {
+        let newHeight = this.resizeStartHeight - dy;
+        newHeight = Math.max(560, Math.min(newHeight, window.innerHeight * 0.95));
+        this.customHeight = newHeight;
+      }
+    },
+    onResizeEnd(e) {
+      this.isResizing = false;
+      this.resizeDir = null;
+      window.removeEventListener('pointermove', this.onResizeMove);
+      window.removeEventListener('pointerup', this.onResizeEnd);
+      document.body.style.userSelect = '';
+    },
     async clearAssistantMessage() {
       await this.ai_prompt.clearHistory();
       this._renderedIds = new Set();
@@ -481,6 +612,23 @@ export default {
       const hh = String(d.getHours()).padStart(2, '0');
       const mm = String(d.getMinutes()).padStart(2, '0');
       return `${hh}:${mm}`;
+    },
+    replyToMessage(m) {
+      this.replyingTo = m;
+      this.$nextTick(() => {
+        this.$refs.messageInput?.focus();
+      });
+    },
+    truncateHtml(html, len = 60) {
+      if (!html) return '';
+      // Remove script and style blocks (use RegExp constructor to avoid Vue SFC parser issues)
+      let cleaned = html.replace(new RegExp('<' + 'script[\\s\\S]*?</' + 'script>', 'gi'), '');
+      cleaned = cleaned.replace(new RegExp('<' + 'style[\\s\\S]*?</' + 'style>', 'gi'), '');
+      // Remove hidden elements (display:none)
+      cleaned = cleaned.replace(new RegExp('<[^>]*display\\s*:\\s*none[^>]*>[\\s\\S]*?</[^>]+>', 'gi'), '');
+      // Strip remaining HTML tags
+      const text = cleaned.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+      return text.length > len ? text.substring(0, len) + '...' : text;
     },
     isChartMessage(m) {
       if (!m.text || m.typing) return false;
@@ -550,10 +698,105 @@ export default {
       if (!text) return;
 
       const hasExcel = !!this.excelData;
+
+      // Check if user is confirming or cancelling a pending action
+      const confirmWords = ['yes', 'oui', 'ok', 'confirm', 'go ahead', 'proceed', 'd\'accord', 'valider', 'confirmer', 'نعم', 'si'];
+      const cancelWords = ['no', 'non', 'cancel', 'stop', 'annuler', 'لا'];
+      const textLower = text.toLowerCase().trim();
+
+      const lastPendingAction = this.findLastPendingAction();
+
+      if (lastPendingAction && !hasExcel) {
+        const isConfirm = confirmWords.some(w => textLower === w || textLower.startsWith(w + ' '));
+        const isCancel = cancelWords.some(w => textLower === w || textLower.startsWith(w + ' '));
+
+        if (isConfirm) {
+          // Route through executeAction directly — bypasses fragile regex extraction
+          const userMsg = {
+            id: Date.now() + Math.random(),
+            role: 'user',
+            text: text,
+            ts: Date.now(),
+          };
+          this.ai_prompt.add_assistant_messages(userMsg);
+          this.input = '';
+          this.$nextTick(() => this.scrollToBottom(true));
+
+          this.typingPlaceholder = {
+            id: 'typing_' + Date.now() + '_' + Math.random(),
+            role: 'agent',
+            typing: true,
+            text: '',
+            ts: Date.now(),
+          };
+          this.sending = true;
+          this.loading = true;
+
+          try {
+            // Mark the pending action message as resolved
+            lastPendingAction._action_resolved = true;
+            await this.ai_prompt.executeAction(lastPendingAction.pending_action, text);
+          } catch (err) {
+            this.ai_prompt.add_assistant_messages({
+              id: Date.now() + Math.random(),
+              role: 'agent',
+              text: 'Sorry - failed to execute action. Please try again.',
+              ts: Date.now(),
+            });
+          } finally {
+            this.typingPlaceholder = null;
+            this.sending = false;
+            this.loading = false;
+            this.$nextTick(() => {
+              this.renderAllDynamicContent();
+              this.scrollToBottom(true);
+              this.$refs.messageInput?.focus();
+            });
+          }
+          return;
+        }
+
+        if (isCancel) {
+          // Mark as resolved and show cancel message
+          lastPendingAction._action_resolved = true;
+          const userMsg = {
+            id: Date.now() + Math.random(),
+            role: 'user',
+            text: text,
+            ts: Date.now(),
+          };
+          this.ai_prompt.add_assistant_messages(userMsg);
+          this.ai_prompt.add_assistant_messages({
+            id: Date.now() + Math.random(),
+            role: 'agent',
+            text: '<div style="background:#ECEFF1;border-radius:12px;padding:14px;border-left:4px solid #607D8B;"><strong style="color:#455A64;">🚫 Action cancelled.</strong> No changes were made.</div>',
+            ts: Date.now(),
+          });
+          this.input = '';
+          this.$nextTick(() => {
+            this.renderAllDynamicContent();
+            this.scrollToBottom(true);
+            this.$refs.messageInput?.focus();
+          });
+          return;
+        }
+      }
+      let finalMsgText = text;
+      
+      // If we are replying to a message, inject the reference block
+      if (this.replyingTo) {
+        const quotedText = this.truncateHtml(this.replyingTo.text, 200);
+        finalMsgText = `<div class="ai-replied-msg" style="border-left: 3px solid #ccc; padding-left: 10px; margin-bottom: 10px; color: #ffffff; font-size: 0.9em; background: rgb(58 119 143 / 40%); padding: 8px; border-radius: 13px; }">
+          <strong style="color:#333;">Replying to:</strong><br/>
+          <em>${quotedText}</em>
+        </div>
+        ${text}`;
+      }
+
       const userMsg = {
         id: Date.now() + Math.random(),
         role: 'user',
-        text: hasExcel ? `📊 [Excel: ${this.excelData.filename}] ${text}` : text,
+        text: hasExcel ? `📊 [Excel: ${this.excelData.filename}] ${finalMsgText}` : finalMsgText,
         ts: Date.now(),
         file_url: null,
         file_name: hasExcel ? this.excelData.filename : null,
@@ -561,6 +804,7 @@ export default {
 
       this.ai_prompt.add_assistant_messages(userMsg);
       this.input = '';
+      this.replyingTo = null; // Clear reply state
       this.$nextTick(() => this.scrollToBottom(true));
 
       this.typingPlaceholder = {
@@ -687,8 +931,27 @@ export default {
             return;
           }
 
-          const headers = jsonData[0].map(h => String(h).trim());
-          const rows = jsonData.slice(1).filter(r => r.some(c => c !== ''));
+          // Smart header detection: find the first row with 2+ non-empty cells
+          // Excel files often have title rows, metadata, or empty rows before the actual headers
+          let headerRowIdx = 0;
+          for (let ri = 0; ri < Math.min(jsonData.length, 10); ri++) {
+            const nonEmptyCells = jsonData[ri].filter(c => c !== '' && c !== null && c !== undefined);
+            if (nonEmptyCells.length >= 2) {
+              headerRowIdx = ri;
+              break;
+            }
+          }
+
+          const headers = jsonData[headerRowIdx].map(h => String(h ?? '').trim()).filter(h => h !== '');
+          const rows = jsonData.slice(headerRowIdx + 1).filter(r => r.some(c => c !== '' && c !== null && c !== undefined));
+
+          // If only 1 header was found (likely still a title row), try next rows
+          if (headers.length < 2) {
+            this.main.add_snackbar({ show: true, message: this.$t('excel_empty_error'), color: 'warning' });
+            this.excelFile = null;
+            this.excelData = null;
+            return;
+          }
 
           this.excelData = {
             headers,
@@ -710,6 +973,95 @@ export default {
     removeExcel() {
       this.excelFile = null;
       this.excelData = null;
+    },
+    /**
+     * Find the last agent message that has a pending_action and is not yet resolved.
+     */
+    findLastPendingAction() {
+      const msgs = this.ai_prompt.assistant_messages;
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const m = msgs[i];
+        if (m.role === 'agent' && m.pending_action && !m._action_resolved) {
+          return m;
+        }
+      }
+      return null;
+    },
+    /**
+     * Confirm a pending action by clicking the confirm button.
+     */
+    async confirmPendingAction(msg) {
+      if (!msg.pending_action || msg._action_resolved) return;
+
+      msg._action_resolved = true;
+
+      // Add user "Confirmed" message
+      this.ai_prompt.add_assistant_messages({
+        id: Date.now() + Math.random(),
+        role: 'user',
+        text: '✅ ' + this.$t('ai_confirm_yes'),
+        ts: Date.now(),
+      });
+      this.$nextTick(() => this.scrollToBottom(true));
+
+      this.typingPlaceholder = {
+        id: 'typing_' + Date.now() + '_' + Math.random(),
+        role: 'agent',
+        typing: true,
+        text: '',
+        ts: Date.now(),
+      };
+      this.sending = true;
+      this.loading = true;
+
+      try {
+        await this.ai_prompt.executeAction(msg.pending_action, this.$t('ai_confirm_yes'));
+      } catch (err) {
+        this.ai_prompt.add_assistant_messages({
+          id: Date.now() + Math.random(),
+          role: 'agent',
+          text: 'Sorry - failed to execute action. Please try again.',
+          ts: Date.now(),
+        });
+      } finally {
+        this.typingPlaceholder = null;
+        this.sending = false;
+        this.loading = false;
+        this.$nextTick(() => {
+          this.renderAllDynamicContent();
+          this.scrollToBottom(true);
+          this.$refs.messageInput?.focus();
+        });
+      }
+    },
+    /**
+     * Cancel a pending action by clicking the cancel button.
+     */
+    cancelPendingAction(msg) {
+      if (!msg.pending_action || msg._action_resolved) return;
+
+      msg._action_resolved = true;
+
+      // Add user "Cancelled" message
+      this.ai_prompt.add_assistant_messages({
+        id: Date.now() + Math.random(),
+        role: 'user',
+        text: '❌ ' + this.$t('ai_confirm_no'),
+        ts: Date.now(),
+      });
+
+      // Add cancel response
+      this.ai_prompt.add_assistant_messages({
+        id: Date.now() + Math.random(),
+        role: 'agent',
+        text: '<div style="background:#ECEFF1;border-radius:12px;padding:14px;border-left:4px solid #607D8B;"><strong style="color:#455A64;">🚫 Action cancelled.</strong> No changes were made.</div>',
+        ts: Date.now(),
+      });
+
+      this.$nextTick(() => {
+        this.renderAllDynamicContent();
+        this.scrollToBottom(true);
+      });
     },
   },
   mounted() {
@@ -961,7 +1313,45 @@ export default {
   background: var(--ai-panel-bg);
   box-shadow: var(--ai-panel-shadow);
   border: 1px solid var(--ai-panel-border);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.ai-chat-panel.ai-expanded {
+  width: min(800px, 95vw);
+  height: min(800px, 85vh);
+  bottom: max(24px, 5vh); /* Give it a bit more room when expanded */
+}
+
+.ai-chat-panel.ai-resizing {
+  transition: none !important;
+}
+
+/* ---------- Resizers ---------- */
+.ai-resizer {
+  position: absolute;
+  z-index: 10;
+}
+.ai-resizer-top {
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+}
+.ai-resizer-left {
+  top: 0;
+  left: -3px;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+.ai-resizer-top-left {
+  top: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+  z-index: 11;
 }
 
 /* ---------- Header ---------- */
@@ -1440,6 +1830,44 @@ export default {
   30% { transform: translateY(-8px); opacity: 1; }
 }
 
+/* ---------- Replying Indicator ---------- */
+.ai-reply-indicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(128, 128, 128, 0.05);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+  padding: 8px 14px;
+  font-size: 12px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+.ai-reply-content {
+  flex-grow: 1;
+  overflow: hidden;
+  color: var(--ai-time-color);
+}
+.ai-reply-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+  opacity: 0.8;
+}
+.ai-reply-cancel {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ai-time-color);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ai-reply-cancel:hover {
+  color: #d32f2f;
+}
+
 /* ---------- Input Area ---------- */
 .ai-chat-input-area {
   padding: 10px 14px 14px;
@@ -1908,5 +2336,66 @@ export default {
   border-color: rgba(76, 175, 80, 0.5);
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
   transform: translateY(-1px);
+}
+
+/* ---------- Pending Action Confirm/Cancel Buttons ---------- */
+.ai-pending-action-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.ai-confirm-btn,
+.ai-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: none;
+  letter-spacing: 0.3px;
+}
+
+.ai-confirm-btn {
+  background: linear-gradient(135deg, #4CAF50, #43A047);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.ai-confirm-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #43A047, #388E3C);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  transform: translateY(-1px);
+}
+
+.ai-cancel-btn {
+  background: linear-gradient(135deg, #EF5350, #E53935);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
+}
+
+.ai-cancel-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #E53935, #D32F2F);
+  box-shadow: 0 4px 12px rgba(239, 83, 80, 0.4);
+  transform: translateY(-1px);
+}
+
+.ai-confirm-btn:disabled,
+.ai-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Dark theme adjustments */
+.ai-theme-dark .ai-pending-action-btns {
+  border-top-color: rgba(255, 255, 255, 0.08);
 }
 </style>

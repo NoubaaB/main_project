@@ -9,11 +9,6 @@ class ModelChangeObserver
 {
     private function broadcast(Model $model, string $action): void
     {
-        // Skip broadcasting for AI assistant requests to avoid noisy notifications
-        if ($this->isAiAssistantRequest()) {
-            return;
-        }
-
         $userName = 'System';
         $userId = null;
         $user = auth()->user();
@@ -49,18 +44,5 @@ class ModelChangeObserver
     public function deleted(Model $model): void
     {
         $this->broadcast($model, 'deleted');
-    }
-
-    /**
-     * Check if the current request is an AI assistant API call.
-     */
-    private function isAiAssistantRequest(): bool
-    {
-        $request = request();
-        if (!$request) {
-            return false;
-        }
-
-        return $request->is('api/ai-assistant', 'api/ai-assistant/*');
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\ChatMessage;
 use App\Services\CustomService;
+use App\Events\ModelChanged;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -31,10 +32,7 @@ class AIAssistantController extends Controller
     private const PROTECTED_MODELS = [
         'User',
         'Role',
-        'PasswordReset',
         'ChatMessage',
-        'ChargeAuditLog',
-        'SellAuditLog',
     ];
 
     public function __construct()
@@ -138,10 +136,6 @@ class AIAssistantController extends Controller
         $errors = [];
         $validatedActions = [];
 
-        // Get user's AI CRUD permissions
-        $user = $request->user();
-        $allowedCrud = $user?->allowed_ai_crud ?? [];
-
         foreach ($actions as $action) {
             $modelName = $action['model'] ?? '';
 
@@ -154,14 +148,6 @@ class AIAssistantController extends Controller
             // Check protected
             if (in_array($modelName, self::PROTECTED_MODELS)) {
                 $errors[] = "Model '$modelName' is protected and cannot be modified by the AI.";
-                continue;
-            }
-
-            // Check user permission for this model + operation
-            $operation = $intent; // 'create' or 'delete'
-            $modelPerms = $allowedCrud[$modelName] ?? [];
-            if (!in_array($operation, $modelPerms)) {
-                $errors[] = "You don't have permission to {$operation} {$modelName} records via AI.";
                 continue;
             }
 
@@ -193,6 +179,8 @@ class AIAssistantController extends Controller
                 $validatedRecords = [];
                 $columns = $modelMap[$modelName]['columns'];
 
+                \Illuminate\Support\Facades\Log::info("AI Update intent for model={$modelName}. Records count=" . count($records) . ", SQL=" . ($action['sql'] ?? 'none') . ", Raw records=" . json_encode($records));
+
                 foreach ($records as $record) {
                     $cleaned = [];
                     foreach ($record as $field => $value) {
@@ -205,11 +193,47 @@ class AIAssistantController extends Controller
                         $validatedRecords[] = $cleaned;
                     }
                 }
+
+                // If no records with IDs, try to resolve
                 if (empty($validatedRecords)) {
-                    $errors[] = "No valid records with IDs found to update for $modelName.";
-                    continue;
+                    // Extract the update fields from records (without id)
+                    $updateFields = [];
+                    foreach ($records as $record) {
+                        foreach ($record as $field => $value) {
+                            if ($field !== 'id' && in_array($field, $columns)) {
+                                $updateFields[$field] = $value;
+                            }
+                        }
+                        if (!empty($updateFields))
+                            break;
+                    }
+
+                    // Fetch all IDs from the model and build update records
+                    $class = $modelMap[$modelName]['class'];
+                    $allIds = $class::pluck('id')->toArray();
+
+                    if (!empty($updateFields) && !empty($allIds)) {
+                        foreach ($allIds as $id) {
+                            $rec = array_merge(['id' => $id], $updateFields);
+                            $validatedRecords[] = $rec;
+                        }
+                        $action['description'] = ($action['description'] ?? "Update $modelName") . " (all " . count($allIds) . " records)";
+                        $action['records'] = $validatedRecords;
+                        \Illuminate\Support\Facades\Log::info("AI Update: Built " . count($validatedRecords) . " bulk update records for {$modelName}");
+                    }
+                    // If we have SQL but no update fields from records, estimate count from table
+                    elseif (!empty($action['sql'])) {
+                        $estimatedCount = count($allIds);
+                        $action['records'] = [];
+                        $action['estimated_count'] = $estimatedCount;
+                        \Illuminate\Support\Facades\Log::info("AI Update: SQL-based update for {$modelName}, estimated {$estimatedCount} records");
+                    } else {
+                        $errors[] = "No valid records with IDs found to update for $modelName.";
+                        continue;
+                    }
+                } else {
+                    $action['records'] = $validatedRecords;
                 }
-                $action['records'] = $validatedRecords;
             }
 
             if ($intent === 'delete') {
@@ -225,6 +249,16 @@ class AIAssistantController extends Controller
                     $found = $class::where($field, 'LIKE', "%$value%")->pluck('id')->toArray();
                     $action['ids'] = $found;
                     $action['description'] = ($action['description'] ?? '') . " (found " . count($found) . " records matching '$value')";
+                }
+
+                // If still no IDs and no lookup, user wants to delete ALL records
+                if (empty($action['ids']) && empty($lookup)) {
+                    $class = $modelMap[$modelName]['class'];
+                    $allIds = $class::pluck('id')->toArray();
+                    if (!empty($allIds)) {
+                        $action['ids'] = $allIds;
+                        $action['description'] = ($action['description'] ?? '') . " (all " . count($allIds) . " records)";
+                    }
                 }
 
                 if (empty($action['ids'])) {
@@ -245,17 +279,11 @@ class AIAssistantController extends Controller
             if (!isset($modelMap[$pcModel]) || in_array($pcModel, self::PROTECTED_MODELS)) {
                 continue;
             }
-            // Check user permission for pre_create (always 'create')
-            $pcPerms = $allowedCrud[$pcModel] ?? [];
-            if (!in_array('create', $pcPerms)) {
-                $errors[] = "You don't have permission to create {$pcModel} records via AI.";
-                continue;
-            }
             $validatedPreCreate[] = $pc;
         }
 
         if (!empty($errors) && empty($validatedActions)) {
-            $answer = '<div style="padding:8px;color:#D32F2F;"><strong>š ï¸ Cannot execute:</strong><ul>' .
+            $answer = '<div style="padding:8px;color:#D32F2F;"><strong>⚠️ Cannot execute:</strong><ul>' .
                 implode('', array_map(fn($e) => "<li>$e</li>", $errors)) . '</ul></div>';
             $this->persistMessages($request, $question, $answer);
             return response()->json(['answer' => $answer], 200);
@@ -314,24 +342,21 @@ class AIAssistantController extends Controller
 
         $actionPlan = $data['action_plan'];
         $user = $request->user();
-        $allowedCrud = $user?->allowed_ai_crud ?? [];
         $intent = $actionPlan['intent'] ?? 'create';
 
-        // Verify permissions before execution
+        // Only block protected models
         foreach ($actionPlan['actions'] ?? [] as $action) {
             $modelName = $action['model'] ?? '';
-            $modelPerms = $allowedCrud[$modelName] ?? [];
-            if (!in_array($intent, $modelPerms)) {
-                $error = "You don't have permission to {$intent} {$modelName} records via AI.";
-                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>š ï¸ ' . $error . '</strong></div>'], 403);
+            if (in_array($modelName, self::PROTECTED_MODELS)) {
+                $error = "Model '$modelName' is protected and cannot be modified by the AI.";
+                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>⚠️ ' . $error . '</strong></div>'], 403);
             }
         }
         foreach ($actionPlan['pre_create'] ?? [] as $pc) {
             $pcModel = $pc['model'] ?? '';
-            $pcPerms = $allowedCrud[$pcModel] ?? [];
-            if (!in_array('create', $pcPerms)) {
-                $error = "You don't have permission to create {$pcModel} records via AI.";
-                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>š ï¸ ' . $error . '</strong></div>'], 403);
+            if (in_array($pcModel, self::PROTECTED_MODELS)) {
+                $error = "Model '$pcModel' is protected and cannot be modified by the AI.";
+                return response()->json(['answer' => '<div style="padding:8px;color:#D32F2F;"><strong>⚠️ ' . $error . '</strong></div>'], 403);
             }
         }
 
@@ -371,6 +396,33 @@ class AIAssistantController extends Controller
         $rows = $excelData['rows'] ?? [];
         $filename = $excelData['filename'] ?? 'uploaded_file.xlsx';
         $sheetName = $excelData['sheet_name'] ?? 'Sheet1';
+
+        // Smart header detection: if headers look like a title row (only 1 non-empty cell),
+        // scan the first data rows to find the real header row
+        $nonEmptyHeaders = array_filter($headers, fn($h) => !empty(trim((string) $h)));
+        if (count($nonEmptyHeaders) <= 1 && count($rows) > 0) {
+            \Illuminate\Support\Facades\Log::info("Excel: Detected title row in headers, scanning data rows for real headers...");
+            for ($ri = 0; $ri < min(count($rows), 10); $ri++) {
+                $candidateRow = $rows[$ri];
+                $nonEmpty = array_filter($candidateRow, fn($c) => !empty(trim((string) ($c ?? ''))));
+                if (count($nonEmpty) >= 2) {
+                    // This row looks like real headers
+                    $headers = array_map(fn($h) => trim((string) ($h ?? '')), $candidateRow);
+                    // Remove empty trailing headers
+                    while (count($headers) > 0 && empty($headers[count($headers) - 1])) {
+                        array_pop($headers);
+                    }
+                    // Remove this row and all rows before it from data
+                    $rows = array_slice($rows, $ri + 1);
+                    // Also filter out empty rows
+                    $rows = array_filter($rows, fn($r) => count(array_filter($r, fn($c) => !empty(trim((string) ($c ?? ''))))) > 0);
+                    $rows = array_values($rows);
+                    \Illuminate\Support\Facades\Log::info("Excel: Found real headers at data row {$ri}: " . json_encode($headers));
+                    break;
+                }
+            }
+        }
+
         $totalRows = count($rows);
 
         // Store the uploaded file if provided
@@ -383,18 +435,14 @@ class AIAssistantController extends Controller
             $fileUrl = asset('storage/' . $filePath);
         }
 
-        // Build a text representation of the Excel data (limit preview for AI context)
-        $previewRows = array_slice($rows, 0, 200);
+        // Build a text representation of the Excel data
         $excelText = "File: {$filename} | Sheet: {$sheetName} | Total Rows: {$totalRows}\n";
         $excelText .= "Headers: " . implode(' | ', $headers) . "\n\n";
-        foreach ($previewRows as $i => $row) {
+        foreach ($rows as $i => $row) {
             $values = array_map(function ($v) {
                 return is_null($v) ? '' : (string) $v;
             }, $row);
             $excelText .= "Row " . ($i + 1) . ": " . implode(' | ', $values) . "\n";
-        }
-        if ($totalRows > 200) {
-            $excelText .= "\n... and " . ($totalRows - 200) . " more rows (not shown)\n";
         }
 
         // Detect intent: does the user want to INSERT, UPDATE, DELETE, or ANALYZE?
@@ -420,30 +468,47 @@ class AIAssistantController extends Controller
 
         // Handle ANALYZE / SUMMARIZE / SEARCH intents  use the answer generator
         if (in_array($intent, ['read', 'analyze', 'summarize', 'search'])) {
-            $analysisPrompt = <<<PROMPT
-            === EXCEL DATA ===
-            {$excelText}
+            // Detect if user wants to simply DISPLAY/SHOW all data — build table directly, no AI truncation
+            $displayKeywords = ['display', 'show', 'afficher', 'montrer', 'voir', 'list all', 'show all', 'display all', 'afficher tout', 'montrer tout', 'show data', 'display data', 'afficher les données', 'montrer les données', 'all data', 'toutes les données'];
+            $msgLower = strtolower($message);
+            $isDisplayRequest = false;
+            foreach ($displayKeywords as $kw) {
+                if (str_contains($msgLower, $kw)) {
+                    $isDisplayRequest = true;
+                    break;
+                }
+            }
 
-            === USER REQUEST ===
-            {$message}
+            if ($isDisplayRequest) {
+                // Build HTML table directly — no AI involvement, no truncation
+                $answer = $this->buildExcelDisplayHtml($headers, $rows, $filename, $totalRows);
+            } else {
+                $analysisPrompt = <<<PROMPT
+                === EXCEL DATA ===
+                {$excelText}
 
-            === TASK ===
-            Analyze the Excel data above based on the user's request. 
-            - If the user wants a summary, provide a clear summary with key statistics.
-            - If the user wants to search, find matching rows and present them clearly.
-            - Format your response as clean HTML with inline styles.
-            - Use styled tables if showing data.
-            - Detect the user's language and answer in the same language.
-            - Format numbers with spaces as thousands separator:
-              * COUNTS (quantities, number of records, IDs): INTEGERS with NO decimals (e.g., 1 250 items).
-              * PRICES (amounts in MAD): 2 decimals (e.g., 12 500.00 MAD).
-              * WEIGHTS (KG): 2 decimals (e.g., 1 500.00 KG).
-              * PERCENTAGES: 1 decimal (e.g., 85.3%).
-            PROMPT;
+                === USER REQUEST ===
+                {$message}
 
-            $answer = $this->ai->generateAnswer($analysisPrompt);
-            if (!$answer) {
-                $answer = '<div style="padding:8px;color:#D32F2F;">Sorry, could not analyze the Excel data.</div>';
+                === TASK ===
+                Analyze the Excel data above based on the user's request. 
+                - If the user wants a summary, provide a clear summary with key statistics.
+                - If the user wants to search, find matching rows and present them clearly.
+                - CRITICAL: You MUST show ALL data rows. NEVER truncate, shorten, summarize, or use "..." or ellipsis. Display EVERY SINGLE ROW from the Excel data.
+                - Format your response as clean HTML with inline styles.
+                - Use styled tables if showing data — include ALL rows, not a subset.
+                - Detect the user's language and answer in the same language.
+                - Format numbers with spaces as thousands separator:
+                  * COUNTS (quantities, number of records, IDs): INTEGERS with NO decimals (e.g., 1 250 items).
+                  * PRICES (amounts in MAD): 2 decimals (e.g., 12 500.00 MAD).
+                  * WEIGHTS (KG): 2 decimals (e.g., 1 500.00 KG).
+                  * PERCENTAGES: 1 decimal (e.g., 85.3%).
+                PROMPT;
+
+                $answer = $this->ai->generateAnswer($analysisPrompt);
+                if (!$answer) {
+                    $answer = '<div style="padding:8px;color:#D32F2F;">Sorry, could not analyze the Excel data.</div>';
+                }
             }
 
             $user = $request->user();
@@ -475,12 +540,25 @@ class AIAssistantController extends Controller
                 $fieldMapping = $action['field_mapping'] ?? [];
                 $records = [];
 
+                \Illuminate\Support\Facades\Log::info("Excel CREATE: model={$modelName}, field_mapping=" . json_encode($fieldMapping) . ", headers=" . json_encode($headers) . ", rows_count=" . count($rows));
+
                 if (!empty($fieldMapping)) {
+                    // Build case-insensitive header index for robust matching
+                    $headerIndexMap = [];
+                    foreach ($headers as $idx => $h) {
+                        $headerIndexMap[strtolower(trim((string) $h))] = $idx;
+                    }
+
                     foreach ($rows as $row) {
                         $rec = [];
                         foreach ($fieldMapping as $excelCol => $dbField) {
+                            // Try exact match first
                             $colIdx = array_search($excelCol, $headers);
-                            if ($colIdx !== false && isset($row[$colIdx])) {
+                            // Then case-insensitive
+                            if ($colIdx === false) {
+                                $colIdx = $headerIndexMap[strtolower(trim((string) $excelCol))] ?? false;
+                            }
+                            if ($colIdx !== false && isset($row[$colIdx]) && $row[$colIdx] !== '') {
                                 $rec[$dbField] = $row[$colIdx];
                             }
                         }
@@ -488,8 +566,100 @@ class AIAssistantController extends Controller
                             $records[] = $rec;
                         }
                     }
-                } elseif (!empty($action['records'])) {
+
+                    \Illuminate\Support\Facades\Log::info("Excel CREATE: AI field_mapping produced " . count($records) . " records");
+                }
+
+                // FALLBACK: if AI field_mapping produced 0 records, try automatic header-to-column matching
+                if (empty($records) && !empty($rows)) {
+                    \Illuminate\Support\Facades\Log::warning("Excel CREATE: AI field_mapping failed, attempting automatic column matching for model={$modelName}");
+
+                    $modelMap = $this->getModelMap();
+                    $modelInfo = $modelMap[$modelName] ?? null;
+                    $fillableColumns = [];
+
+                    if ($modelInfo) {
+                        try {
+                            $modelInstance = new $modelInfo['class'];
+                            $fillableColumns = $modelInstance->getFillable();
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::error("Excel CREATE: Could not get fillable columns: " . $e->getMessage());
+                        }
+                    }
+
+                    if (!empty($fillableColumns)) {
+                        // Build a mapping: try to match each Excel header to a fillable column
+                        $autoMapping = [];
+                        $headerIndexMap = [];
+                        foreach ($headers as $idx => $h) {
+                            $headerIndexMap[strtolower(trim((string) $h))] = $idx;
+                        }
+
+                        foreach ($fillableColumns as $col) {
+                            $colLower = strtolower($col);
+                            // Try direct match (header == column name)
+                            if (isset($headerIndexMap[$colLower])) {
+                                $autoMapping[$headers[$headerIndexMap[$colLower]]] = $col;
+                                continue;
+                            }
+                            // Try without underscores (e.g., "fullname" matches "full_name")
+                            $colNoUnderscore = str_replace('_', '', $colLower);
+                            foreach ($headerIndexMap as $hLower => $hIdx) {
+                                $hNoUnderscore = str_replace(['_', ' ', '-'], '', $hLower);
+                                if ($hNoUnderscore === $colNoUnderscore) {
+                                    $autoMapping[$headers[$hIdx]] = $col;
+                                    break;
+                                }
+                            }
+                            // Try partial match for common patterns (e.g., "nom" in "full_name")
+                            if (!isset($autoMapping[$col])) {
+                                $commonAliases = [
+                                    'full_name' => ['name', 'nom', 'full name', 'fullname', 'nom complet', 'nombre'],
+                                    'matricule' => ['matricule', 'mat', 'registration'],
+                                    'nationality' => ['nationality', 'nationalité', 'nationalite', 'nation'],
+                                    'sex' => ['sex', 'sexe', 'gender', 'genre'],
+                                    'cni' => ['cni', 'cin', 'id card', 'carte', 'identity'],
+                                    'is_migrant' => ['migrant', 'is_migrant', 'ismigrant'],
+                                    'salary_statement' => ['salary_statement', 'salary statement', 'salaire'],
+                                    'fixed_daily_pay' => ['fixed_daily_pay', 'fixed daily pay', 'fixe'],
+                                    'cnss_id' => ['cnss', 'cnss_id', 'social security'],
+                                    'daily_price' => ['daily_price', 'daily price', 'prix', 'price', 'salaire journalier', 'prix journalier'],
+                                ];
+                                $aliases = $commonAliases[$col] ?? [];
+                                foreach ($aliases as $alias) {
+                                    $aliasLower = strtolower($alias);
+                                    if (isset($headerIndexMap[$aliasLower])) {
+                                        $autoMapping[$headers[$headerIndexMap[$aliasLower]]] = $col;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        \Illuminate\Support\Facades\Log::info("Excel CREATE: Auto-mapping result: " . json_encode($autoMapping));
+
+                        if (!empty($autoMapping)) {
+                            foreach ($rows as $row) {
+                                $rec = [];
+                                foreach ($autoMapping as $excelCol => $dbField) {
+                                    $colIdx = array_search($excelCol, $headers);
+                                    if ($colIdx !== false && isset($row[$colIdx]) && $row[$colIdx] !== '') {
+                                        $rec[$dbField] = $row[$colIdx];
+                                    }
+                                }
+                                if (!empty($rec)) {
+                                    $records[] = $rec;
+                                }
+                            }
+                            \Illuminate\Support\Facades\Log::info("Excel CREATE: Auto-mapping produced " . count($records) . " records");
+                        }
+                    }
+                }
+
+                // Last resort fallback: if still 0 records and AI provided records directly
+                if (empty($records) && !empty($action['records'])) {
                     $records = $action['records'];
+                    \Illuminate\Support\Facades\Log::info("Excel CREATE: Using AI-provided records directly, count=" . count($records));
                 }
 
                 // Resolve foreign keys: replace names with real IDs
@@ -557,17 +727,30 @@ class AIAssistantController extends Controller
                 $records = [];
 
                 if (!empty($fieldMapping)) {
+                    // Build case-insensitive header index for robust matching
+                    $headerIndexMap = [];
+                    foreach ($headers as $idx => $h) {
+                        $headerIndexMap[strtolower(trim($h))] = $idx;
+                    }
+
                     foreach ($rows as $row) {
                         $rec = [];
                         foreach ($fieldMapping as $excelCol => $dbField) {
+                            // Try exact match first, then case-insensitive
                             $colIdx = array_search($excelCol, $headers);
-                            if ($colIdx !== false && isset($row[$colIdx])) {
+                            if ($colIdx === false) {
+                                $colIdx = $headerIndexMap[strtolower(trim($excelCol))] ?? false;
+                            }
+                            if ($colIdx !== false && isset($row[$colIdx]) && $row[$colIdx] !== '') {
                                 $rec[$dbField] = $row[$colIdx];
                             }
                         }
-                        // Try to get the ID from the id_column
+                        // Try to get the ID from the id_column (also case-insensitive)
                         if ($idColumn) {
                             $idIdx = array_search($idColumn, $headers);
+                            if ($idIdx === false) {
+                                $idIdx = $headerIndexMap[strtolower(trim($idColumn))] ?? false;
+                            }
                             if ($idIdx !== false && isset($row[$idIdx])) {
                                 $rec['id'] = intval($row[$idIdx]);
                             }
@@ -719,7 +902,7 @@ class AIAssistantController extends Controller
 
             $fileName = $recentExcel->file_name ?? basename($recentExcel->file_path);
             $totalRows = count($dataRows);
-            $previewRows = array_slice($dataRows, 0, 200);
+            $previewRows = $dataRows;
 
             $excelText = "=== PREVIOUSLY UPLOADED EXCEL FILE ===\n";
             $excelText .= "File: {$fileName} | Total Rows: {$totalRows}\n";
@@ -728,10 +911,6 @@ class AIAssistantController extends Controller
             foreach ($previewRows as $i => $row) {
                 $values = array_map(fn($v) => is_null($v) ? '' : (string) $v, $row);
                 $excelText .= "Row " . ($i + 1) . ": " . implode(' | ', $values) . "\n";
-            }
-
-            if ($totalRows > 200) {
-                $excelText .= "\n... and " . ($totalRows - 200) . " more rows (not shown)\n";
             }
 
             return $excelText;
@@ -767,7 +946,7 @@ class AIAssistantController extends Controller
         Classify the user's intent regarding this Excel data. Return ONLY valid JSON.
         
         INTENTS:
-        1. "analyze" — User wants to SUMMARIZE, UNDERSTAND, SEARCH, or GET STATISTICS from the Excel data.
+        1. "analyze" — User wants to SUMMARIZE, UNDERSTAND, SEARCH, DISPLAY, SHOW, or GET STATISTICS from the Excel data.
         2. "create" — User wants to INSERT/IMPORT the Excel data into a database table.
         3. "update" — User wants to UPDATE existing records based on Excel data.
         4. "delete" — User wants to DELETE records that match the Excel data.
@@ -776,6 +955,13 @@ class AIAssistantController extends Controller
         
         For "create": Map Excel columns to database model fields. Return:
         {"intent":"create","actions":[{"model":"ModelName","field_mapping":{"ExcelColumnName":"db_field_name"}}],"pre_create":[],"missing_info":[]}
+        
+        CRITICAL FIELD_MAPPING RULES FOR CREATE:
+        - The keys in field_mapping MUST be the EXACT Excel column header names (case-sensitive, matching the headers above).
+        - The values must be the database column names from the model schema.
+        - You MUST map ALL relevant Excel columns, not just a subset.
+        - Example: if headers are "Name", "Price", "Date" → field_mapping should be {"Name":"full_name","Price":"price","Date":"date"}
+        - NEVER truncate or shorten the field_mapping. Map every column that has a corresponding DB field.
         
         For "update": Map Excel columns to model fields. Each record MUST include the "id" field. Return:
         {"intent":"update","actions":[{"model":"ModelName","field_mapping":{"ExcelColumnName":"db_field_name"},"id_column":"ExcelColumnWithId"}],"missing_info":[]}
@@ -810,6 +996,9 @@ class AIAssistantController extends Controller
 
         try {
             DB::beginTransaction();
+
+            // Track models that used raw SQL (bypass ORM, need manual broadcast)
+            $sqlAffectedModels = [];
 
             // Execute pre_create first (dependencies)
             foreach ($plan['pre_create'] ?? [] as $pc) {
@@ -846,19 +1035,27 @@ class AIAssistantController extends Controller
                     if (!empty($action['sql'])) {
                         DB::insert($action['sql']);
                         $created = count($action['records'] ?? []);
-                        // If AI omitted records, at least say 1 was created
-                        if ($created === 0) $created = 1;
+                        if ($created === 0)
+                            $created = 1;
                         $results[] = "✅ Created {$created} {$modelName} record(s)";
+                        $sqlAffectedModels[] = ['model' => $modelName, 'action' => 'created'];
                     } else {
                         $records = $action['records'] ?? [];
                         $created = 0;
-                        $class::withoutEvents(function () use ($class, $records, &$created) {
-                            foreach ($records as $rec) {
-                                $class::create($rec);
-                                $created++;
-                            }
-                        });
-                        $results[] = "✅ Created {$created} {$modelName} record(s)";
+
+                        if (empty($records)) {
+                            \Illuminate\Support\Facades\Log::warning("executeActionPlan: No records to create for model={$modelName}. Action data: " . json_encode(array_keys($action)));
+                            $results[] = "⚠️ No records to create for {$modelName}";
+                        } else {
+                            \Illuminate\Support\Facades\Log::info("executeActionPlan: Creating " . count($records) . " records for model={$modelName}. Sample: " . json_encode($records[0] ?? []));
+                            $class::withoutEvents(function () use ($class, $records, &$created) {
+                                foreach ($records as $rec) {
+                                    $class::create($rec);
+                                    $created++;
+                                }
+                            });
+                            $results[] = "✅ Created {$created} {$modelName} record(s)";
+                        }
                     }
                 }
 
@@ -866,6 +1063,7 @@ class AIAssistantController extends Controller
                     if (!empty($action['sql'])) {
                         $updated = DB::update($action['sql']);
                         $results[] = "✏️ Updated {$updated} {$modelName} record(s)";
+                        $sqlAffectedModels[] = ['model' => $modelName, 'action' => 'updated'];
                     } else {
                         $records = $action['records'] ?? [];
                         $updated = 0;
@@ -894,6 +1092,7 @@ class AIAssistantController extends Controller
                         $deleted = DB::delete($action['sql']);
                         $softLabel = ($action['soft_delete'] ?? false) ? ' (soft-deleted)' : ' (permanently deleted)';
                         $results[] = "🗑️  Deleted {$deleted} {$modelName} record(s){$softLabel}";
+                        $sqlAffectedModels[] = ['model' => $modelName, 'action' => 'deleted'];
                     } else {
                         $ids = $action['ids'] ?? [];
                         $deleted = 0;
@@ -914,6 +1113,29 @@ class AIAssistantController extends Controller
 
             DB::commit();
 
+            // ---- Broadcast AFTER commit so data is available when frontend refetches ----
+            $userName = auth()->user()->name ?? 'AI Assistant';
+            $userId = auth()->id();
+            $broadcastedModels = [];
+
+            foreach (array_unique($affectedModels) as $affectedModel) {
+                try {
+                    broadcast(new ModelChanged(
+                        $affectedModel,
+                        $intent === 'create' ? 'created' : ($intent === 'update' ? 'updated' : 'deleted'),
+                        0,
+                        $userName,
+                        [],
+                        $userId
+                    ));
+                    $broadcastedModels[] = $affectedModel;
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
+            \Illuminate\Support\Facades\Log::info("AI Assistant: Broadcasted model changes for: " . implode(', ', $broadcastedModels));
+
             $html = '<div style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:12px;padding:16px;border-left:4px solid #4CAF50;">';
             $html .= '<div style="font-weight:700;color:#2E7D32;margin-bottom:8px;">✅ Action completed successfully</div>';
             $html .= '<ul style="margin:0;padding-left:20px;color:#333;">';
@@ -926,7 +1148,7 @@ class AIAssistantController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             $html = '<div style="background:#FFEBEE;border-radius:12px;padding:16px;border-left:4px solid #D32F2F;">'
-                . '<strong style="color:#D32F2F;">❌ Error:</strong> ' . htmlspecialchars($e->getMessage())
+                . '<strong style="color:#D32F2F;">❌ Error:</strong> ' . htmlspecialchars($e->getMessage())
                 . '</div>';
             return ['html' => $html, 'affected_models' => []];
         }
@@ -1305,22 +1527,37 @@ class AIAssistantController extends Controller
         // Show main actions
         $html .= "<div style='margin-bottom:8px;color:#555;font-size:13px;'><strong>Actions:</strong></div>";
         $html .= "<ul style='margin:0 0 12px 0;padding-left:20px;font-size:13px;'>";
+        $grandTotal = 0;
         foreach ($plan['actions'] as $action) {
             $model = $action['model'] ?? '?';
             if ($intent === 'create') {
                 $count = count($action['records'] ?? []);
+                $grandTotal += $count;
                 $html .= "<li>Create <strong>{$count}</strong> {$model} record(s)</li>";
             } elseif ($intent === 'update') {
                 $count = count($action['records'] ?? []);
-                $html .= "<li>Update <strong>{$count}</strong> {$model} record(s)</li>";
+                // Use estimated_count for SQL-based updates
+                if ($count === 0 && isset($action['estimated_count'])) {
+                    $count = $action['estimated_count'];
+                }
+                $grandTotal += $count;
+                $desc = $action['description'] ?? '';
+                $html .= "<li>Update <strong>{$count}</strong> {$model} record(s)" . ($desc ? " — {$desc}" : '') . "</li>";
             } else {
                 $count = count($action['ids'] ?? []);
+                $grandTotal += $count;
                 $softLabel = ($action['soft_delete'] ?? false) ? '(soft-delete, recoverable)' : '<span style="color:#D32F2F;font-weight:700;">(⚠️ permanent!)</span>';
                 $desc = $action['description'] ?? '';
                 $html .= "<li>Delete <strong>{$count}</strong> {$model} record(s) {$softLabel}" . ($desc ? "  {$desc}" : '') . "</li>";
             }
         }
         $html .= "</ul>";
+
+        // Show total records summary
+        if ($grandTotal > 0) {
+            $actionLabel = $isDelete ? 'deleted' : ($isUpdate ? 'updated' : 'created');
+            $html .= "<div style='font-size:13px;color:{$color};font-weight:600;margin-bottom:8px;'>📊 Total: <strong>{$grandTotal}</strong> record(s) will be {$actionLabel}</div>";
+        }
 
         // Show errors
         if (!empty($plan['errors'])) {
@@ -1344,6 +1581,47 @@ class AIAssistantController extends Controller
     }
 
     /**
+     * Build a styled HTML table displaying ALL Excel data without truncation.
+     * This is used when the user asks to "display" or "show" data — bypasses AI to avoid truncation.
+     */
+    private function buildExcelDisplayHtml(array $headers, array $rows, string $filename, int $totalRows): string
+    {
+        $html = '<div style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);border-radius:12px;padding:16px;border-left:4px solid #1976D2;margin-bottom:8px;">';
+        $html .= '<div style="font-weight:700;color:#1565C0;margin-bottom:8px;font-size:14px;">📊 ' . htmlspecialchars($filename) . '</div>';
+        $html .= '<div style="color:#555;font-size:13px;margin-bottom:12px;">Total rows: <strong>' . $totalRows . '</strong></div>';
+        $html .= '<div style="overflow-x:auto;max-height:600px;overflow-y:auto;">';
+        $html .= '<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:8px;overflow:hidden;">';
+
+        // Header row
+        $html .= '<thead><tr>';
+        $html .= '<th style="background:#1565C0;color:#fff;padding:8px 10px;text-align:center;font-weight:600;border:1px solid #1976D2;position:sticky;top:0;z-index:1;">#</th>';
+        foreach ($headers as $header) {
+            $html .= '<th style="background:#1565C0;color:#fff;padding:8px 10px;text-align:left;font-weight:600;border:1px solid #1976D2;white-space:nowrap;position:sticky;top:0;z-index:1;">' . htmlspecialchars($header) . '</th>';
+        }
+        $html .= '</tr></thead>';
+
+        // Data rows — ALL of them, no truncation
+        $html .= '<tbody>';
+        foreach ($rows as $i => $row) {
+            $bgColor = ($i % 2 === 0) ? '#fff' : '#F5F5F5';
+            $html .= '<tr style="background:' . $bgColor . ';">';
+            $html .= '<td style="padding:6px 10px;border:1px solid #E0E0E0;text-align:center;color:#757575;font-weight:500;">' . ($i + 1) . '</td>';
+            foreach ($headers as $colIdx => $header) {
+                $value = $row[$colIdx] ?? '';
+                $displayValue = is_null($value) ? '' : htmlspecialchars((string) $value);
+                // Right-align if numeric
+                $align = is_numeric($value) ? 'text-align:right;' : 'text-align:left;';
+                $html .= '<td style="padding:6px 10px;border:1px solid #E0E0E0;' . $align . '">' . $displayValue . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        $html .= '</tbody></table>';
+        $html .= '</div></div>';
+
+        return $html;
+    }
+
+    /**
      * Extract pending action from conversation messages.
      */
     private function extractPendingAction(string $messagesJson): ?array
@@ -1361,7 +1639,7 @@ class AIAssistantController extends Controller
 
             if (str_contains($text, 'data-action=')) {
                 \Illuminate\Support\Facades\Log::info("extractPendingAction found data-action in msg $i. Length: " . strlen($text));
-                
+
                 // 1. Try base64 encoded format (safest, no quote issues)
                 if (preg_match('/data-action=["\']?([a-zA-Z0-9+\/]+={0,2})["\']?/', $text, $m)) {
                     \Illuminate\Support\Facades\Log::info("extractPendingAction base64 regex matched. Match length: " . strlen($m[1]));
@@ -1382,7 +1660,7 @@ class AIAssistantController extends Controller
                     \Illuminate\Support\Facades\Log::info("extractPendingAction fallback regex matched. Raw length: " . strlen($raw));
                     // Try decoding HTML entities
                     $decoded = json_decode(htmlspecialchars_decode($raw, ENT_QUOTES), true);
-                    
+
                     // Sometimes frontend innerHTML fully unescapes things
                     if (!is_array($decoded) || !isset($decoded['intent'])) {
                         $decoded = json_decode($raw, true);
@@ -1437,7 +1715,7 @@ class AIAssistantController extends Controller
         CRITICAL: There is NO limit on the number of records. If the user asks to create 50, 100, 500 or more records, generate ALL of them in the "records" array. Never truncate or limit the output.
 
         CRITICAL TABLE STUDY RULES (for CREATE/UPDATE intent):
-        Before generating any records, you MUST carefully study the AVAILABLE MODELS section above. Pay attention to:
+        Before generating any records, you MUST carefully study the AVAILABLE MODELS section above AND the DATABASE SCHEMA. Pay attention to:
         1. **Column types**: Use the correct data type for each field (string, integer, decimal, date, enum, etc.)
         2. **Required vs nullable**: If a column is "required", you MUST provide a value. If "nullable", you MAY omit it.
         3. **Enum columns**: Only use the allowed values listed in the type (e.g. enum('Q1','Q2') means only 'Q1' or 'Q2' are valid).
@@ -1446,6 +1724,11 @@ class AIAssistantController extends Controller
         6. **Only use fillable fields**: Only include fields listed in the "fillable" attribute. Never include id, created_at, updated_at, or deleted_at in the 'records' array (but DO include them in the 'sql' query like NOW()).
         7. **Decimal fields**: Use numeric values (not strings) for decimal/numeric columns.
         8. **Date fields**: Use 'YYYY-MM-DD' format for date columns.
+        9. **JSON/Array columns (CRITICAL)**: Check the schema "casts" and "LaravelType" fields. If a column has LaravelType "json_array" or cast type "array"/"json", it stores a JSON array. 
+           - In SQL: wrap the value as a JSON string like '["value1","value2"]' or '["26-00011"]'. NEVER pass a plain string like '26-00011'.
+           - In "records" array: pass an actual array like ["value1","value2"] or ["26-00011"]. NEVER pass a plain string.
+           - Example: reception_tracking_number is a JSON array column. Correct SQL: SET `reception_tracking_number` = '["26-00011"]'. Correct record: {"reception_tracking_number": ["26-00011"]}
+        10. **Boolean columns**: Use true/false in records, and 1/0 in SQL.
         If you are unsure about a required field value, add it to "missing_info" array instead of guessing.
 
         CRITICAL SQL RULE: You MUST provide a raw SQL query in the "sql" field for any create, update, or delete action. The query must use the actual database table name.
@@ -1506,14 +1789,19 @@ class AIAssistantController extends Controller
         5. For pivot/many-to-many tables (charge_suppliers, charge_ships, truck_charge, sell_clients, sell_ships, truck_sell), use JOIN through them.
         6. Format dates using DATE_FORMAT() when displaying dates.
         7. Use COALESCE for nullable fields to avoid NULL in results.
-        8. LIMIT results to 500 rows max unless the user asks for all.
+        8. LIMIT results to 5000 rows max unless the user asks for all or specifically requests to see all data.
         9. For aggregations (SUM, COUNT, AVG), always include meaningful GROUP BY and aliases.
         10. The currency is MAD (Moroccan Dirham).
         11. Weight is measured in KG (kilograms).
         12. "charges" = purchases/incoming fish. "sells" = outgoing sales to clients.
-        13. warehouse_stockable_tracking_number_operations is a polymorphic table (sourceable_type + sourceable_id) linking to both charges and sells.
-        14. Fish types are in "fish_types" table, fish families in "fish_families" table.
-        15. don't get users conversation history.
+        13. warehouse_stockable_tracking_number_operations is a polymorphic table (sourceable_type + sourceable_id) linking to both charges and sells. Contains unit_price, total_price, total_weight, total_package_count.
+        14. non_warehouse_stockable_operations: For items that don't go through warehouse (direct charges like services).
+        15. Fish types are in "fish_types" table, fish families in "fish_families" table.
+        16. don't get users conversation history.
+        17. **JSON columns**: Check the schema for columns with LaravelType "json_array" or cast "array". These store JSON arrays (e.g. reception_tracking_number, tracking_onp_numbers). When querying these columns:
+            - To search inside: use JSON_CONTAINS() or JSON_SEARCH(). Example: JSON_CONTAINS(reception_tracking_number, '"26-00011"')
+            - To extract values: use JSON_UNQUOTE(JSON_EXTRACT(column, '$[0]'))
+            - When displaying: use JSON_UNQUOTE() to remove quotes from the output
 
         === CONVERSATION HISTORY ===
         {$messages}
@@ -1580,10 +1868,9 @@ class AIAssistantController extends Controller
           mounted() {{ /* ApexCharts init if needed */ }}
         }}).use(vuetify).mount('#ai_{$id}');
         </script>
-
         === RESPONSE RULES ===
         1. NEVER invent data. Only use the data provided above.
-        2. Detect the user's language from their question and respond in the SAME language.
+        2. CRITICAL LANGUAGE RULE: Detect the exact language the user used in their question (e.g., French, Spanish, English, Arabic) and ALWAYS respond in that EXACT SAME language. Do not mix languages or default to English.
         3. Format numbers with spaces as thousands separator. CRITICAL FORMATTING RULES:
            - COUNTS (quantities, number of records, IDs, number of items, package count): display as INTEGERS with NO decimals. Example: 1 250 records, 35 items, ID #12.
            - PRICES (amounts, costs, unit_price, total_price, totals in MAD): display with exactly 2 decimals. Example: 12 500.00 MAD, 3 200.50 MAD.
@@ -1727,7 +2014,7 @@ class AIAssistantController extends Controller
             ], $columns);
         }
 
-        // Add model relationships
+        // Add model relationships, casts, and fillable fields
         $models = $this->getAllModels();
         foreach ($models as $model) {
             try {
@@ -1740,6 +2027,35 @@ class AIAssistantController extends Controller
                         \Illuminate\Database\Eloquent\SoftDeletes::class,
                         class_uses_recursive($model)
                     );
+
+                    // Add fillable fields
+                    $schema[$table]['fillable'] = $modelInstance->getFillable();
+
+                    // Add casts — tells the AI the exact Laravel data type for each column
+                    // e.g. 'array' means JSON array, 'boolean', 'decimal:2', 'date', etc.
+                    $casts = $modelInstance->getCasts();
+                    if (!empty($casts)) {
+                        $schema[$table]['casts'] = $casts;
+
+                        // Annotate JSON columns explicitly in the column list
+                        foreach ($schema[$table]['columns'] as &$col) {
+                            $field = $col['Field'];
+                            if (isset($casts[$field])) {
+                                $castType = $casts[$field];
+                                if (in_array($castType, ['array', 'json', 'collection', 'object'])) {
+                                    $col['LaravelType'] = 'json_array';
+                                    $col['Note'] = 'This column stores a JSON array. When writing SQL, use JSON format: \'["value1","value2"]\'. When using Eloquent, pass a PHP array.';
+                                } elseif ($castType === 'boolean') {
+                                    $col['LaravelType'] = 'boolean';
+                                } elseif (str_starts_with($castType, 'decimal')) {
+                                    $col['LaravelType'] = $castType;
+                                } elseif ($castType === 'date' || $castType === 'datetime') {
+                                    $col['LaravelType'] = $castType;
+                                }
+                            }
+                        }
+                        unset($col);
+                    }
                 }
             } catch (\Throwable $e) {
                 continue;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FortnightActivity;
+use App\Models\WorkforceFortnightPayment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Traits\BroadcastsModelChanges;
@@ -84,6 +85,19 @@ class FortnightActivityController extends Controller
             $data['fortnight_period'] = $day <= 15 ? 'Q1' : 'Q2';
         }
 
+        // Check if the target fortnight is marked as paid
+        $isPaid = WorkforceFortnightPayment::where('workforce_id', $data['workforce_id'])
+            ->where('year', date('Y', strtotime($data['date'])))
+            ->where('month', date('n', strtotime($data['date'])))
+            ->where('fortnight_period', $data['fortnight_period'])
+            ->value('is_paid');
+
+        if ($isPaid) {
+            return response()->json([
+                'message' => 'Cannot add activity: The payment for this fortnight period has already been processed.'
+            ], 422);
+        }
+
         $activity = FortnightActivity::create($data);
         $activity->load(['section', 'corporal', 'workforce']);
         $this->broadcastChange('FortnightActivity', 'created', $activity->id, $activity->toArray());
@@ -130,6 +144,22 @@ class FortnightActivityController extends Controller
             }
         }
 
+        $dateToCheck = $data['date'] ?? $activity->date;
+        $day = (int) date('d', strtotime($dateToCheck));
+        $period = $day <= 15 ? 'Q1' : 'Q2';
+
+        $isPaid = WorkforceFortnightPayment::where('workforce_id', $activity->workforce_id)
+            ->where('year', date('Y', strtotime($dateToCheck)))
+            ->where('month', date('n', strtotime($dateToCheck)))
+            ->where('fortnight_period', $period)
+            ->value('is_paid');
+
+        if ($isPaid) {
+            return response()->json([
+                'message' => 'Cannot update activity: The payment for this fortnight period has already been processed.'
+            ], 422);
+        }
+
         $activity->update($data);
         $activity = $activity->fresh()->load(['section', 'corporal', 'workforce']);
         $this->broadcastChange('FortnightActivity', 'updated', $activity->id, $activity->toArray());
@@ -145,6 +175,22 @@ class FortnightActivityController extends Controller
     public function destroy($id): JsonResponse
     {
         $activity = FortnightActivity::findOrFail($id);
+
+        $day = (int) date('d', strtotime($activity->date));
+        $period = $day <= 15 ? 'Q1' : 'Q2';
+
+        $isPaid = WorkforceFortnightPayment::where('workforce_id', $activity->workforce_id)
+            ->where('year', date('Y', strtotime($activity->date)))
+            ->where('month', date('n', strtotime($activity->date)))
+            ->where('fortnight_period', $period)
+            ->value('is_paid');
+
+        if ($isPaid) {
+            return response()->json([
+                'message' => 'Cannot delete activity: The payment for this fortnight period has already been processed.'
+            ], 422);
+        }
+
         $activityId = $activity->id;
         $activity->delete();
         $this->broadcastChange('FortnightActivity', 'deleted', $activityId);
@@ -248,6 +294,24 @@ class FortnightActivityController extends Controller
             $query->whereIn('workforce_id', $request->workforce_ids);
         }
 
+        // Before deleting, check if any of these periods are paid
+        // We will fetch the activities first to check their dates and workforces
+        $activitiesToDelete = $query->get();
+        foreach ($activitiesToDelete as $act) {
+            $day = (int) date('d', strtotime($act->date));
+            $period = $day <= 15 ? 'Q1' : 'Q2';
+            $isPaid = WorkforceFortnightPayment::where('workforce_id', $act->workforce_id)
+                ->where('year', date('Y', strtotime($act->date)))
+                ->where('month', date('n', strtotime($act->date)))
+                ->where('fortnight_period', $period)
+                ->value('is_paid');
+            if ($isPaid) {
+                 return response()->json([
+                    'message' => 'Cannot delete activities: One or more selected activities belong to a fortnight period that has already been paid.'
+                 ], 422);
+            }
+        }
+
         $deleted = $query->delete();
 
         $this->broadcastChange('FortnightActivity', 'deleted', 0);
@@ -334,6 +398,13 @@ class FortnightActivityController extends Controller
         }
 
         $activities = $query->get();
+        
+        // Fetch payments for the given month
+        $paymentsQuery = WorkforceFortnightPayment::where('year', $year)->where('month', $month);
+        if ($request->has('workforce_ids') && is_array($request->workforce_ids) && count($request->workforce_ids) > 0) {
+            $paymentsQuery->whereIn('workforce_id', $request->workforce_ids);
+        }
+        $payments = $paymentsQuery->get()->groupBy('workforce_id');
 
         // Group by section
         $sections = [];
@@ -404,6 +475,14 @@ class FortnightActivityController extends Controller
                 }
                 $workforces[$wKey][$half . '_count']++;
                 $workforces[$wKey][$half . '_total'] += $price;
+                
+                // Add payment status
+                if (!isset($workforces[$wKey]['is_paid_q1'])) {
+                    $wPayments = $payments->get($wKey) ?? collect([]);
+                    $workforces[$wKey]['is_paid_q1'] = $wPayments->where('fortnight_period', 'Q1')->first()->is_paid ?? false;
+                    $workforces[$wKey]['is_paid_q2'] = $wPayments->where('fortnight_period', 'Q2')->first()->is_paid ?? false;
+                }
+
                 // Track distinct work dates for work/non-work days
                 $dateStr = date('Y-m-d', strtotime($act->date));
                 $workforces[$wKey][$half . '_dates'][] = $dateStr;

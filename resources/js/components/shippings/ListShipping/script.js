@@ -135,6 +135,11 @@ export default {
     onMC(d) {
       if (d.model === 'Shipping') {
         const rd = d.record_data;
+        // If record_data is empty (AI Assistant bulk operation) or action is 'refresh', do full refetch
+        if (d.action === 'refresh' || !rd || (typeof rd === 'object' && Object.keys(rd).length === 0) || (Array.isArray(rd) && rd.length === 0)) {
+          this.fetchShippings();
+          return;
+        }
         if ((d.action === 'created' || d.action === 'updated') && rd && rd.date) {
           const shipDate = typeof rd.date === 'string' ? rd.date.slice(0, 10) : rd.date;
           const ds = this.fmtDate(this.dateRange[0]);

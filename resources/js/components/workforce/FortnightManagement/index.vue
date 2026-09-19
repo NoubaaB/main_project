@@ -491,6 +491,21 @@
                   hide-details
                   class="flex-grow-0"
                 ></v-checkbox>
+
+                <v-divider vertical class="mx-1" style="height:28px;"></v-divider>
+
+                <!-- Full name search -->
+                <v-text-field
+                  v-model="workforceSearch"
+                  :label="$t('search_workforce_name')"
+                  density="compact"
+                  variant="outlined"
+                  hide-details
+                  prepend-inner-icon="mdi-magnify"
+                  clearable
+                  class="flex-grow-1"
+                  style="min-width: 200px; max-width: 300px;"
+                ></v-text-field>
               </div>
 
               <!-- Breadcrumb -->
@@ -535,15 +550,25 @@
                       >
                         <div class="fnm-th-inner">
                           <!-- Sort toggle area -->
-                          <span class="fnm-th-label" @click.stop="toggleWfSort(col.key)" :title="$t('sort_asc')">
-                            {{ $t(col.label) }}
-                            <span v-if="getWfSortDir(col.key)" class="fnm-sort-indicator">
-                              <v-icon size="14" :color="col.headerColor || '#42A5F5'">
-                                {{ getWfSortDir(col.key) === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
-                              </v-icon>
-                              <span v-if="wfSortRules.length > 1" class="fnm-sort-badge">{{ getWfSortIndex(col.key) }}</span>
+                          <div class="d-flex align-center">
+                            <v-checkbox-btn
+                              v-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'"
+                              :model-value="isAllPaid(col.key)"
+                              @update:model-value="v => toggleAllPayments(col.period, v)"
+                              color="success"
+                              class="mr-1"
+                              @click.stop
+                            ></v-checkbox-btn>
+                            <span class="fnm-th-label" @click.stop="toggleWfSort(col.key)" :title="$t('sort_asc')">
+                              {{ $t(col.label) }}
+                              <span v-if="getWfSortDir(col.key)" class="fnm-sort-indicator">
+                                <v-icon size="14" :color="col.headerColor || '#42A5F5'">
+                                  {{ getWfSortDir(col.key) === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                </v-icon>
+                                <span v-if="wfSortRules.length > 1" class="fnm-sort-badge">{{ getWfSortIndex(col.key) }}</span>
+                              </span>
                             </span>
-                          </span>
+                          </div>
                           <!-- Filter menu -->
                           <v-menu :close-on-content-click="false" location="bottom center" offset="4" max-width="220">
                             <template v-slot:activator="{ props }">
@@ -651,6 +676,17 @@
                         <!-- Computed declared/non-declared -->
                         <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(getDeclared(w)) }}</template>
                         <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(getNonDeclared(w)) }}</template>
+                        <!-- Checkbox Q1/Q2 -->
+                        <template v-else-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'">
+                          <v-checkbox
+                            :model-value="w[col.key]"
+                            @update:model-value="v => togglePaymentStatus(w, col.period, v)"
+                            density="compact"
+                            hide-details
+                            color="success"
+                            @click.stop
+                          ></v-checkbox>
+                        </template>
                         <!-- Currency -->
                         <template v-else-if="col.type === 'currency'">{{ formatNumber(w[col.key]) }}</template>
                         <!-- Text / Number -->
@@ -678,6 +714,7 @@
                           <template v-else-if="col.key === 'q2_non_work_days'">{{ workforceTotals.q2_non_work_days }}</template>
                           <template v-else-if="col.key === 'q2_total'">{{ formatNumber(workforceTotals.q2_total) }}</template>
                           <template v-else-if="col.key === 'month_total'">{{ formatNumber(workforceTotals.month_total) }}</template>
+                          <template v-else-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'">-</template>
                           <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(workforceTotals.declared) }}</template>
                           <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(workforceTotals.non_declared) }}</template>
                         </td>
@@ -1371,6 +1408,7 @@ export default {
       breakdownPeriod: 'month',
       showDeclared: true,
       showNonDeclared: true,
+      workforceSearch: '',
       drilldownItem: null,
       monthNames: [
         this.$t('month_january') || 'January', this.$t('month_february') || 'February',
@@ -1409,6 +1447,8 @@ export default {
         { key: 'q2_non_work_days', label: 'non_work_days_q2', type: 'number', visible: true, period: 'q2' },
         { key: 'q2_total', label: 'q2_total', type: 'currency', visible: true, period: 'q2' },
         { key: 'month_total', label: 'month_total', type: 'currency', visible: true, period: 'month', bold: true },
+        { key: 'is_paid_q1', label: 'q1_paid', type: 'checkbox_q1', visible: true, period: 'q1' },
+        { key: 'is_paid_q2', label: 'q2_paid', type: 'checkbox_q2', visible: true, period: 'q2' },
         { key: 'declared', label: 'declared', type: 'computed_declared', visible: true, headerColor: '#2E7D32', cellColor: '#2E7D32' },
         { key: 'non_declared', label: 'non_declared', type: 'computed_non_declared', visible: true, headerColor: '#E65100', cellColor: '#E65100' },
       ],
@@ -1511,11 +1551,16 @@ export default {
      * Non-Declared = salary_statement disabled (false)
      */
     filteredWorkforces() {
-      const wfs = this.breakdownData.workforces || [];
-      if (this.showDeclared && this.showNonDeclared) return wfs;
+      let wfs = this.breakdownData.workforces || [];
+      
       if (!this.showDeclared && !this.showNonDeclared) return [];
-      if (this.showDeclared) return wfs.filter(w => w.salary_statement === true);
-      if (this.showNonDeclared) return wfs.filter(w => w.salary_statement === false);
+      if (this.showDeclared && !this.showNonDeclared) wfs = wfs.filter(w => w.salary_statement === true);
+      if (!this.showDeclared && this.showNonDeclared) wfs = wfs.filter(w => w.salary_statement === false);
+      
+      if (this.workforceSearch && this.workforceSearch.trim() !== '') {
+        const query = this.workforceSearch.trim().toLowerCase();
+        wfs = wfs.filter(w => (w.name || '').toLowerCase().includes(query));
+      }
       return wfs;
     },
     /** Apply column filters + multi-sort on top of declared/non-declared filter */
@@ -1884,6 +1929,78 @@ export default {
     formatNumber(n) {
       if (this.main.formatDisplayNumber) return this.main.formatDisplayNumber(n);
       return Number(n || 0).toFixed(2);
+    },
+    async togglePaymentStatus(workforce, periodStr, isPaid) {
+      // periodStr is 'q1' or 'q2'. API expects 'Q1' or 'Q2'
+      const periodParam = periodStr.toUpperCase();
+      try {
+        await axios.post('/api/workforce-payments/toggle', {
+          workforce_id: workforce.id,
+          year: this.currentYear,
+          month: this.currentMonth + 1,
+          fortnight_period: periodParam,
+          is_paid: isPaid,
+        });
+        
+        // Update local state
+        workforce[`is_paid_${periodStr}`] = isPaid;
+        
+        this.notification.push({
+          title: this.$t('success'),
+          message: this.$t('payment_status_updated'),
+          icon: 'mdi-check-circle',
+          color: 'success'
+        });
+      } catch (error) {
+        console.error(error);
+        this.notification.push({
+          title: this.$t('error'),
+          message: error.response?.data?.message || this.$t('error_occurred'),
+          icon: 'mdi-alert-circle',
+          color: 'error'
+        });
+      }
+    },
+    async toggleAllPayments(periodStr, isPaid) {
+      const periodParam = periodStr.toUpperCase();
+      const workforces = this.sortedFilteredWorkforces;
+      const workforceIds = workforces.map(w => w.id);
+      if (!workforceIds.length) return;
+
+      try {
+        await axios.post('/api/workforce-payments/bulk-toggle', {
+          workforce_ids: workforceIds,
+          year: this.currentYear,
+          month: this.currentMonth + 1,
+          fortnight_period: periodParam,
+          is_paid: isPaid,
+        });
+        
+        // Update local state for all currently visible workforces
+        workforces.forEach(w => {
+          w[`is_paid_${periodStr}`] = isPaid;
+        });
+
+        this.notification.push({
+          title: this.$t('success'),
+          message: this.$t('toggle_all_paid'),
+          icon: 'mdi-check-all',
+          color: 'success'
+        });
+      } catch (error) {
+        console.error(error);
+        this.notification.push({
+          title: this.$t('error'),
+          message: error.response?.data?.message || this.$t('error_occurred'),
+          icon: 'mdi-alert-circle',
+          color: 'error'
+        });
+      }
+    },
+    isAllPaid(colKey) {
+      const workforces = this.sortedFilteredWorkforces;
+      if (!workforces || !workforces.length) return false;
+      return workforces.every(w => w[colKey]);
     },
     // ---- Column Management ----
     colDragStart(idx) { this.colDragIdx = idx; },

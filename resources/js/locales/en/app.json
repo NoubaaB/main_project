@@ -1939,5 +1939,17 @@
   "min_value": "Min",
   "max_value": "Max",
   "contains": "Contains",
-  "no_results_filter": "No results match the current filters"
+  "no_results_filter": "No results match the current filters",
+  "q1_paid": "1st Q1 Paid",
+  "q2_paid": "2nd Q2 Paid",
+  "fortnight_paid_locked": "Locked",
+  "payment_status_updated": "Payment status updated",
+  "search_workforce_name": "Search by full name",
+  "toggle_all_paid": "Toggle All Paid",
+  "ai_confirm_yes": "Confirm",
+  "ai_confirm_no": "Cancel",
+  "shrink_chat": "Shrink Chat",
+  "remove": "Remove",
+  "reply": "Reply",
+  "remove_message": "Remove Message"
 }

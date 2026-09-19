@@ -175,6 +175,9 @@ Route::middleware(["auth:sanctum"])->group(
         Route::delete("detail-inventory-categories/{id}", [App\Http\Controllers\DetailInventoryCategoryController::class, "destroy"]);
 
         // Sejour Rates
+        Route::get('/workforces/{workforce}/fortnight-activities', [App\Http\Controllers\FortnightActivityController::class, 'index']);
+        Route::post('/workforce-payments/toggle', [\App\Http\Controllers\WorkforcePaymentController::class, 'toggle']);
+        Route::post('/workforce-payments/bulk-toggle', [\App\Http\Controllers\WorkforcePaymentController::class, 'bulkToggle']);
         Route::get("warehouses/{warehouse}/sejour-rates", [SejourRateController::class, "index"]);
         Route::post("warehouses/{warehouse}/sejour-rates", [SejourRateController::class, "store"]);
         Route::put("warehouses/sejour-rates/{id}", [SejourRateController::class, "update"]);

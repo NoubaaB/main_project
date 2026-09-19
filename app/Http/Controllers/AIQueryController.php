@@ -60,10 +60,10 @@ class AIQueryController extends Controller
                 $headers = $file['headers'] ?? [];
                 $rows = $file['rows'] ?? [];
                 $rowCount = count($rows);
-                $preview = array_slice($rows, 0, 50); // Send up to 50 rows as preview
+                $preview = $rows;
                 $excelContext .= "\nFile: {$fileName} ({$rowCount} rows)\n";
                 $excelContext .= "Headers: " . implode(', ', $headers) . "\n";
-                $excelContext .= "Data (first " . min(50, $rowCount) . " rows):\n";
+                $excelContext .= "Data:\n";
                 foreach ($preview as $row) {
                     $excelContext .= json_encode($row) . "\n";
                 }

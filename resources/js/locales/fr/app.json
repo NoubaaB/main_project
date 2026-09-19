@@ -1939,5 +1939,13 @@
   "min_value": "Min",
   "max_value": "Max",
   "contains": "Contains",
-  "no_results_filter": "Non résultats match le actuel Filtres"
+  "no_results_filter": "Non résultats match le actuel Filtres",
+  "q1_paid": "1ère Q1 Payé",
+  "q2_paid": "2ème Q2 Payé",
+  "fortnight_paid_locked": "Verrouillé",
+  "payment_status_updated": "Statut de paiement mis à jour",
+  "search_workforce_name": "Rechercher par nom complet",
+  "toggle_all_paid": "Basculer tout payé",
+  "ai_confirm_yes": "Confirmer",
+  "ai_confirm_no": "Annuler"
 }

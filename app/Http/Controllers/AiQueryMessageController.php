@@ -85,7 +85,7 @@ class AiQueryMessageController extends Controller
     /**
      * DELETE /api/ai-query-messages/{id}
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(Request $request, $id): JsonResponse
     {
         $deleted = AiQueryMessage::where('id', $id)
             ->where('user_id', $request->user()->id)
@@ -101,7 +101,7 @@ class AiQueryMessageController extends Controller
     /**
      * POST /api/ai-query-messages/{id}/react
      */
-    public function react(Request $request, int $id): JsonResponse
+    public function react(Request $request, $id): JsonResponse
     {
         $data = $request->validate([
             'reaction' => 'nullable|in:like,dislike',
