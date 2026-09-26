@@ -11,12 +11,31 @@ class CustomService
      */
     private string $model;
 
+    /**
+     * The thinking/reasoning level to use.
+     *
+     * GPT-OSS supports: low, medium, high.
+     */
+    private string $thinkingLevel = 'high';
+
     public function __construct()
     {
         // $this->model = env('OLLAMA_MODEL', 'gemma4:31b');
         // $this->model = env('OLLAMA_MODEL', 'gemini-3-flash-preview:cloud');
-        $this->model = env('OLLAMA_MODEL', 'gemma4:31b-cloud');
-        // $this->model = "gpt-oss:120b-cloud";
+        // $this->model = env('OLLAMA_MODEL', 'gemma4:31b-cloud');
+
+        $this->model = 'gpt-oss:120b-cloud';
+    }
+
+    /**
+     * Set the thinking level.
+     */
+    public function setThinkingLevel(string $level): self
+    {
+        if (in_array($level, ['low', 'medium', 'high'])) {
+            $this->thinkingLevel = $level;
+        }
+        return $this;
     }
 
     /**
@@ -28,7 +47,9 @@ class CustomService
         $response = Ollama::agent($this->getSystemPrompt())
             ->prompt($prompt_question)
             ->model($this->model)
+            ->think($this->thinkingLevel)
             ->ask();
+
         try {
             return $this->cleanResponse($response['response'] ?? null);
         } catch (\Exception $e) {
@@ -46,9 +67,12 @@ class CustomService
         $response = Ollama::agent($this->getSQLSystemPrompt())
             ->prompt($prompt)
             ->model($this->model)
+            ->think($this->thinkingLevel)
             ->ask();
+
         try {
             $sql = $response['response'] ?? null;
+
             return $this->cleanSQL($sql);
         } catch (\Exception $e) {
             report($e);
@@ -65,7 +89,9 @@ class CustomService
         $response = Ollama::agent($this->getAnswerSystemPrompt())
             ->prompt($prompt)
             ->model($this->model)
+            ->think($this->thinkingLevel)
             ->ask();
+
         try {
             return $this->cleanResponse($response['response'] ?? null);
         } catch (\Exception $e) {
@@ -83,7 +109,9 @@ class CustomService
         $response = Ollama::agent($this->getIntentSystemPrompt())
             ->prompt($prompt)
             ->model($this->model)
+            ->think($this->thinkingLevel)
             ->ask();
+
         try {
             return $this->cleanJSON($response['response'] ?? null);
         } catch (\Exception $e) {
@@ -165,15 +193,21 @@ class CustomService
      */
     private function cleanSQL(?string $sql): ?string
     {
-        if (!$sql)
+        if (!$sql) {
             return null;
+        }
+
         $sql = trim($sql);
+
         // Remove markdown code fences
         $sql = preg_replace('/^```(?:sql|mysql)?\s*/i', '', $sql);
         $sql = preg_replace('/\s*```$/', '', $sql);
+
         $sql = trim($sql);
+
         // Remove trailing semicolons (DB::select doesn't need them)
         $sql = rtrim($sql, ';');
+
         return $sql ?: null;
     }
 
@@ -182,12 +216,16 @@ class CustomService
      */
     private function cleanResponse(?string $text): ?string
     {
-        if (!$text)
+        if (!$text) {
             return null;
+        }
+
         $text = trim($text);
+
         // Remove wrapping ```html fences if present
         $text = preg_replace('/^```(?:html)?\s*/i', '', $text);
         $text = preg_replace('/\s*```$/', '', $text);
+
         return trim($text) ?: null;
     }
 
@@ -196,17 +234,23 @@ class CustomService
      */
     private function cleanJSON(?string $text): ?string
     {
-        if (!$text)
+        if (!$text) {
             return null;
+        }
+
         $text = trim($text);
+
         // Remove markdown code fences
         $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
         $text = preg_replace('/\s*```$/', '', $text);
+
         $text = trim($text);
+
         // Extract first JSON object
         if (preg_match('/\{[\s\S]*\}/', $text, $m)) {
             return $m[0];
         }
+
         return $text ?: null;
     }
 }

@@ -45,6 +45,9 @@ class AIQueryController extends Controller
         $theme = $data['theme'];
         $messages = $data['messages'];
         $excelFiles = $data['excel_files'] ?? [];
+        $thinkingLevel = $request->input('thinking_level', 'high');
+
+        $this->ai->setThinkingLevel($thinkingLevel);
 
         // "" Step 1: Get schema ""
         $schema = $this->getSchemaString();

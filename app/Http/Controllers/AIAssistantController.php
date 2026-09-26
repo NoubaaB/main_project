@@ -53,6 +53,9 @@ class AIAssistantController extends Controller
 
         $question = $data['message'];
         $messages = $data['messages'];
+        $thinkingLevel = $request->input('thinking_level', 'high');
+
+        $this->ai->setThinkingLevel($thinkingLevel);
 
         // "" Step 1: Build context ""
         $schema = $this->getSchemaString();
@@ -453,6 +456,9 @@ class AIAssistantController extends Controller
         $prompt = $this->buildExcelPrompt($message, $excelText, $schema, $modelMapStr, $headers, $totalRows, $fkLookup);
 
         $this->ai = new CustomService();
+        if ($request->has('thinking_level')) {
+            $this->ai->setThinkingLevel($request->input('thinking_level', 'high'));
+        }
         $aiResponse = $this->ai->classifyIntent($prompt);
 
         if (!$aiResponse) {

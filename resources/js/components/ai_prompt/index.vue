@@ -193,6 +193,38 @@
           style="display:none"
           @change="onExcelSelected"
         />
+        <v-menu location="top" :close-on-content-click="true" :offset="10">
+          <template v-slot:activator="{ props }">
+            <div
+              class="aiq-excel-btn"
+              v-bind="props"
+              :style="{ cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }"
+              title="Thinking Level"
+            >
+              <v-icon size="16">mdi-brain</v-icon>
+            </div>
+          </template>
+          <v-list density="compact" bg-color="var(--aiq-card-bg)">
+            <v-list-item @click="ai_prompt.thinking_level = 'low'" :active="ai_prompt.thinking_level === 'low'">
+              <template v-slot:prepend>
+                <v-icon size="14" :color="ai_prompt.thinking_level === 'low' ? 'primary' : 'transparent'" class="mr-2">mdi-check</v-icon>
+              </template>
+              <v-list-item-title style="font-size: 13px;">Low</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="ai_prompt.thinking_level = 'medium'" :active="ai_prompt.thinking_level === 'medium'">
+              <template v-slot:prepend>
+                <v-icon size="14" :color="ai_prompt.thinking_level === 'medium' ? 'primary' : 'transparent'" class="mr-2">mdi-check</v-icon>
+              </template>
+              <v-list-item-title style="font-size: 13px;">Medium</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="ai_prompt.thinking_level = 'high'" :active="ai_prompt.thinking_level === 'high'">
+              <template v-slot:prepend>
+                <v-icon size="14" :color="ai_prompt.thinking_level === 'high' ? 'primary' : 'transparent'" class="mr-2">mdi-check</v-icon>
+              </template>
+              <v-list-item-title style="font-size: 13px;">High</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
         <button
           class="aiq-excel-btn"
           @click="$refs.excelInput.click()"

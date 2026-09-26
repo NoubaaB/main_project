@@ -5,6 +5,8 @@ import { useCorporal } from "./Corporal";
 import { useSection } from "./Section";
 import { useWorkforce } from "./Workforce";
 import mitt from '@/plugins/mitt.js';
+import { useStorage } from '@vueuse/core';
+
 export const useAIPrompt = defineStore("ai_prompt", {
     state: () => {
         return {
@@ -22,6 +24,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
             query_has_more: false,
             query_next_before_id: null,
             query_history_loaded: false,
+            thinking_level: useStorage('ai_thinking_level', 'low'),
         };
     },
     actions: {
@@ -42,7 +45,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 message,
                 id,
                 theme,
-                messages
+                messages,
+                thinking_level: this.thinking_level
             }).then(response => {
                 this.messages.push({
                     text: response.data.answer,
@@ -70,7 +74,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 id,
                 theme,
                 messages,
-                excel_files: excelFiles
+                excel_files: excelFiles,
+                thinking_level: this.thinking_level
             }).then(response => {
                 this.messages.push({
                     text: response.data.answer,
@@ -190,7 +195,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
             let id = this.assistant_messages.length + 1;
             return await axios.post(`/api/ai-assistant`, {
                 message,
-                messages
+                messages,
+                thinking_level: this.thinking_level
             }).then(response => {
                 const reply = {
                     id,
@@ -256,6 +262,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
             const formData = new FormData();
             formData.append('message', message);
             formData.append('excel_data', JSON.stringify(excelData));
+            formData.append('thinking_level', this.thinking_level);
             if (file) {
                 formData.append('file', file);
             }

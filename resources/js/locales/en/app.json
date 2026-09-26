@@ -1951,5 +1951,10 @@
   "shrink_chat": "Shrink Chat",
   "remove": "Remove",
   "reply": "Reply",
-  "remove_message": "Remove Message"
+  "remove_message": "Remove Message",
+  "expand_chat": "Expand Chat",
+  "low": "Low",
+  "medium": "Medium",
+  "high": "High",
+  "cin": "CIN"
 }

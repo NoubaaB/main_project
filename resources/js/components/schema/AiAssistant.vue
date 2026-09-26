@@ -305,15 +305,56 @@
               style="display:none"
               @change="onExcelSelected"
             />
-            <button
+        <v-menu  class="ai-thinking-level-menu" location="top" :close-on-content-click="true" :offset="10">
+          <template v-slot:activator="{ props }">
+            <div
               class="ai-excel-btn"
-              @click="$refs.excelInput.click()"
-              :disabled="loading"
-              :title="$t('import_excel')"
-              :class="{ 'ai-excel-btn-active': excelFile }"
+              v-bind="props"
+              :style="{ cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }"
+              title="Thinking Level"
             >
-              <v-icon size="16">mdi-file-excel-outline</v-icon>
-            </button>
+              <v-icon size="16">mdi-brain</v-icon>
+            </div>
+          </template>
+          <v-list lines="one" density="compact" nav class="rounded-xl">
+            <v-list-item rounded="xl" @click="ai_prompt.thinking_level = 'low'" :active="ai_prompt.thinking_level === 'low'">
+              <template v-slot:prepend>
+                <v-icon  :color="ai_prompt.thinking_level === 'low' ? 'primary' : 'transparent'">mdi-check</v-icon>
+              </template>
+              <template v-slot:append>
+                <v-icon>mdi-gauge-empty</v-icon>
+              </template>
+              <v-list-item-title >{{ $t('low') }}</v-list-item-title>
+            </v-list-item>
+            <v-list-item rounded="xl" @click="ai_prompt.thinking_level = 'medium'" :active="ai_prompt.thinking_level === 'medium'">
+              <template v-slot:prepend>
+                <v-icon :color="ai_prompt.thinking_level === 'medium' ? 'primary' : 'transparent'">mdi-check</v-icon>
+              </template>
+              <template v-slot:append>
+                <v-icon>mdi-gauge</v-icon>
+              </template>
+              <v-list-item-title >{{ $t('medium') }}</v-list-item-title>
+            </v-list-item>
+            <v-list-item rounded="xl" @click="ai_prompt.thinking_level = 'high'" :active="ai_prompt.thinking_level === 'high'">
+              <template v-slot:prepend>
+                <v-icon :color="ai_prompt.thinking_level === 'high' ? 'primary' : 'transparent'">mdi-check</v-icon>
+              </template>
+              <template v-slot:append>
+                <v-icon>mdi-gauge-full</v-icon>
+              </template>
+              <v-list-item-title >{{ $t('high') }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+        <button
+          class="ai-excel-btn"
+          @click="$refs.excelInput.click()"
+          :disabled="loading"
+          :title="$t('import_excel')"
+          :class="{ 'ai-excel-btn-active': excelFile }"
+        >
+          <v-icon size="16">mdi-file-excel-outline</v-icon>
+        </button>
             <button
               class="ai-send-btn"
               @click="send"
@@ -2397,5 +2438,9 @@ export default {
 /* Dark theme adjustments */
 .ai-theme-dark .ai-pending-action-btns {
   border-top-color: rgba(255, 255, 255, 0.08);
+}
+.ai-thinking-level-menu{
+  z-index: 999999 !important;
+
 }
 </style>
