@@ -412,6 +412,18 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("jupiter-dashboard/filter-options", [App\Http\Controllers\JupiterDashboardController::class, "filterOptions"]);
 
         // ═══════════════════════════════════════════
+        //  RECORD ISSUE ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("record-issues", [App\Http\Controllers\RecordIssueController::class, "index"]);
+        Route::get("record-issues/open", [App\Http\Controllers\RecordIssueController::class, "openIssues"]);
+        Route::get("record-issues/counts", [App\Http\Controllers\RecordIssueController::class, "openCounts"]);
+        Route::post("record-issues/batch-counts", [App\Http\Controllers\RecordIssueController::class, "batchCounts"]);
+        Route::post("record-issues", [App\Http\Controllers\RecordIssueController::class, "store"]);
+        Route::put("record-issues/{recordIssue}", [App\Http\Controllers\RecordIssueController::class, "update"]);
+        Route::post("record-issues/{recordIssue}/resolve", [App\Http\Controllers\RecordIssueController::class, "resolve"]);
+        Route::delete("record-issues/{recordIssue}", [App\Http\Controllers\RecordIssueController::class, "destroy"]);
+
+        // ═══════════════════════════════════════════
         //  COST CONFIGURATION ROUTES
         // ═══════════════════════════════════════════
         Route::get("cost-configurations/categories-and-sources", [App\Http\Controllers\CostConfigurationController::class, "categoriesAndSources"]);

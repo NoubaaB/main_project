@@ -228,6 +228,8 @@ export default {
         this.fetchCharges();
       } else if (d.model === 'QualityControl') {
         this.fetchCharges();
+      } else if (d.model === 'RecordIssue') {
+        this._fetchIssueCounts('Charge');
       }
       if (d.model === 'FiscalYearClosing') this.fetchClosedYears();
     },
@@ -263,8 +265,19 @@ export default {
         const p = { date_start: this.fmtDate(ds), date_end: this.fmtDate(de) };
         const r = await axios.get('/api/charges/get_charges', { params: p });
         this.charges = (r.data.charges || []).map(c => this.mapCharge(c));
+        // Fetch open issue counts and merge
+        this._fetchIssueCounts('Charge');
       } catch (e) { console.error(e) }
       this.loading = false;
+    },
+    async _fetchIssueCounts(type) {
+      try {
+        const ids = this.charges.map(c => c.id);
+        if (!ids.length) return;
+        const r = await axios.post('/api/record-issues/batch-counts', { record_type: type, record_ids: ids });
+        const counts = r.data.counts || {};
+        this.charges = this.charges.map(c => ({ ...c, _open_issues: counts[c.id] || 0 }));
+      } catch (e) { /* silent */ }
     },
     fmtDate(d) { if (!d) return ''; if (typeof d === 'string') return d; const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${day}` },
     cellText(key, item) {

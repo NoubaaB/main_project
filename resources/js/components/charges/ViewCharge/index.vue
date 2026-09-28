@@ -11,6 +11,7 @@
         </div>
         <div>
           <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'list_charge' })" class="mr-2">{{ $t('back') }}</v-btn>
+          <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-flag-outline" @click="issueDialog = true" v-if="charge">{{ $t('record_issues') }}</v-btn>
           <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-history" @click="auditDialog = true" v-if="charge">{{ $t('audit_log') }}</v-btn>
         </div>
       </div>
@@ -18,6 +19,9 @@
 
     <!-- Audit Log Dialog -->
     <AuditLogDialog v-model="auditDialog" auditable-type="Charge" :auditable-id="Number($route.params.id)" module-color="#42A5F5" />
+
+    <!-- Record Issue Dialog -->
+    <RecordIssueDialog v-model="issueDialog" record-type="Charge" :record-id="Number($route.params.id)" module-color="#42A5F5" />
 
     <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="info"></v-progress-circular></v-card-text>
 
@@ -118,11 +122,12 @@
 import axios from 'axios';
 import { useMain } from '@/stores/Main';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
 
 export default {
   name: 'ViewCharge',
-  components: { AuditLogDialog },
-  data() { return { charge: null, loading: true, auditDialog: false }; },
+  components: { AuditLogDialog, RecordIssueDialog },
+  data() { return { charge: null, loading: true, auditDialog: false, issueDialog: false }; },
   computed: {
     main() { return useMain(); },
     detailHeaders() {

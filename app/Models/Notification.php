@@ -70,6 +70,7 @@ class Notification extends Model
             'OrderTransfer'      => 'supplier_invoices.view',
             'FortnightActivity'  => 'workforce.view',
             'CostConfiguration'  => 'settings.charges',
+            'RecordIssue'        => '',
         ];
     }
 
@@ -90,6 +91,7 @@ class Notification extends Model
             'OrderTransfer'      => 'order_transfers_page',
             'FortnightActivity'  => 'fortnight_management',
             'CostConfiguration'  => 'cost_configuration_management',
+            'RecordIssue'        => '',
         ];
     }
 }

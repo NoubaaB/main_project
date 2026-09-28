@@ -4,12 +4,17 @@
       <div class="d-flex align-center ga-4"><div class="vs-hero-icon"><v-icon size="28" color="white">mdi-eye</v-icon></div><div><div class="vs-hero-title">{{ $t('view_shipping') }} #{{ sell?.id }}</div><div class="text-white text-caption" style="opacity:.7">{{ sell ? main.formateDate(shipping.date) : '' }}</div></div></div>
       <div class="d-flex ga-2">
         <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'list_shipping' })">{{ $t('back') }}</v-btn>
+        <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-flag-outline" @click="issueDialog = true" v-if="shipping">{{ $t('record_issues') }}</v-btn>
         <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-history" @click="auditDialog = true" v-if="shipping">{{ $t('audit_log') }}</v-btn>
       </div>
     </div></div>
 
     <!-- Audit Log Dialog -->
     <AuditLogDialog v-model="auditDialog" auditable-type="Shipping" :auditable-id="Number($route.params.id)" module-color="#FB8C00" />
+
+    <!-- Record Issue Dialog -->
+    <RecordIssueDialog v-model="issueDialog" record-type="Shipping" :record-id="Number($route.params.id)" module-color="#4643a0" />
+
     <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="#4643a0"></v-progress-circular></v-card-text>
     <v-card-text v-else-if="shipping" class="pa-5">
       <v-row>
@@ -45,10 +50,11 @@
 import axios from 'axios';
 import { useMain } from '@/stores/Main';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
 export default {
   name: 'ViewShipping',
-  components: { AuditLogDialog },
-  data() { return { shipping: null, loading: true, auditDialog: false }; },
+  components: { AuditLogDialog, RecordIssueDialog },
+  data() { return { shipping: null, loading: true, auditDialog: false, issueDialog: false }; },
   computed: {
     main() { return useMain(); },
     lang() { return this.main.lang?.code || 'en'; },

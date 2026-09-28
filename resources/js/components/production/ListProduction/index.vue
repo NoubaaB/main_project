@@ -189,6 +189,7 @@
                   <v-btn v-if="auth.hasPermission('production.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_production',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
                   <v-btn v-if="auth.hasPermission('production.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1"><v-icon size="14">mdi-delete</v-icon></v-btn>
                   <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
+                  <v-btn icon size="x-small" variant="tonal" :color="(item._open_issues||0) > 0 ? 'error' : '#00897B'" @click="openIssueDialog(item.id)" class="ml-1"><v-badge v-if="(item._open_issues||0) > 0" :content="item._open_issues" color="error" floating><v-icon size="14">mdi-flag-outline</v-icon></v-badge><v-icon v-else size="14">mdi-flag-outline</v-icon><v-tooltip activator="parent" location="top">{{ $t('record_issues') }}</v-tooltip></v-btn>
                 </template>
                 <template v-else-if="h.key==='_invoice_state'">
                   <v-chip v-if="item._is_invoiced && item._invoice_type === 'supplier'" size="x-small" color="orange-darken-4" variant="tonal" prepend-icon="mdi-truck-delivery">{{ item._invoice_state }}</v-chip>
@@ -229,18 +230,20 @@
   <v-dialog v-model="deleteDialog" max-width="450"><v-card class="rounded-xl"><v-card-title class="pa-5 pb-2 d-flex align-center"><v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>{{ $t('confirm_delete') }}</v-card-title><v-card-text class="pa-5 pt-2">{{ deleteBulk?$t('confirm_bulk_delete_message',{count:selected.length}):$t('confirm_delete_production_message') }}</v-card-text><v-card-actions class="pa-5 pt-0"><v-spacer></v-spacer><v-btn @click="deleteDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="error" variant="flat" rounded @click="execDelete" :loading="deleting">{{ $t('delete') }}</v-btn></v-card-actions></v-card></v-dialog>
 </v-card>
 <AuditLogDialog v-model="auditLogDialogOpen" auditable-type="Production" :auditable-id="auditLogRecordId" module-color="#00897B" />
+<RecordIssueDialog v-model="issueDialogOpen" record-type="Production" :record-id="issueDialogRecordId" module-color="#00897B" @issue-changed="fetchProductions" />
 </template>
 <script>
 import script from './script.js';
 import AddProduction from '../AddProduction/index.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
-  components:{...script.components,AddProduction,AuditLogDialog},
-  data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,productionTabs:[{value:0,label:'list_production',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('production.create')?[{value:1,label:'add_production',icon:'mdi-sticker-plus-outline'}]:[])]}},
+  components:{...script.components,AddProduction,AuditLogDialog,RecordIssueDialog},
+  data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,productionTabs:[{value:0,label:'list_production',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('production.create')?[{value:1,label:'add_production',icon:'mdi-sticker-plus-outline'}]:[])]}},
   computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
-  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
+  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true},activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0){this.fetchProductions();this.fetchAnalytics()}},showInvoice(v){if(v&&this.uninvoicedSelectedProductions.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths());if(this.$route.query.tab==='add')this.activeTab=1},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
