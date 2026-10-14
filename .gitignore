@@ -17,3 +17,5 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+database_villamar.sql
+filtered_dump.sql

@@ -16,6 +16,8 @@ export const useClientInvoice = defineStore("clientInvoice", {
             allow_qr_code: false,
             allow_bg_image: true,
             use_simple_invoice: false,
+            use_export_layout: false,
+            show_intermediary_info: true,
             final_page_rows_nbr: 35,
             active_page_rows_nbr: 32,
             g_items: [],
@@ -112,7 +114,9 @@ export const useClientInvoice = defineStore("clientInvoice", {
                 let res = await axios.get(this.api_url + '/client-invoices-by-ids', {
                     params: { ids }
                 });
-                let data = this.formatedClientInvoiceData(res.data.client_invoices);
+                const invoices = res.data.client_invoices || [];
+                this.use_export_layout = invoices.some(inv => inv.type_invoice === 'export');
+                let data = this.formatedClientInvoiceData(invoices);
                 // Initialize headers if not set yet
                 if (!this._headers.length) this.initHeaders();
                 return data;

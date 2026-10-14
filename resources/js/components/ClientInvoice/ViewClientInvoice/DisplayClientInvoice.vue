@@ -82,7 +82,7 @@
             <div class="title_doughnut_top"></div>
         </div>
         <!-- TITLE -->
-        <template v-if="clientInvoice.use_export_layout">
+        <template v-if="!clientInvoice.use_export_layout">
             <div class="content-wrap">
                 <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="clientInvoice.allow_bg_image"/>
                 <!-- START: Invoice table -->
@@ -219,44 +219,44 @@
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t('company') }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{ client_invoice_detail.invoice.client.name }} </v-col>
+                            <v-col> {{ client_invoice_detail?.invoice?.client?.name || client_invoice_detail?.client_name || '' }} </v-col>
                         </v-row>
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t("address") }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{ client_invoice_detail.invoice.client.address }}</v-col>
+                            <v-col> {{ client_invoice_detail?.invoice?.client?.address || (Array.isArray(client_invoice_detail?.address) ? client_invoice_detail.address[0] : client_invoice_detail?.address) || '' }}</v-col>
                         </v-row>
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t("country") }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{ client_invoice_detail.invoice.client.country }} </v-col>
+                            <v-col> {{ client_invoice_detail?.invoice?.client?.country || '' }} </v-col>
                         </v-row>
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t("shipment_country") }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{  client_invoice_detail.invoice.shipment_country}} </v-col>
+                            <v-col> {{ client_invoice_detail?.invoice?.shipment_country || client_invoice_detail?.shipment_country || '' }} </v-col>
                         </v-row>
                     </v-col>
                     <v-col class="invoice-details ml-1 py-1">
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t('company') }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{ client_invoice_detail.invoice.intermediary_company }} </v-col>
+                            <v-col> {{ client_invoice_detail?.invoice?.intermediary_company || client_invoice_detail?.intermediary_company || '' }} </v-col>
                         </v-row>
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t("address") }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{ client_invoice_detail.invoice.intermediary_address }}</v-col>
+                            <v-col> {{ client_invoice_detail?.invoice?.intermediary_address || client_invoice_detail?.intermediary_address || '' }}</v-col>
                         </v-row>
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t("country") }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{ client_invoice_detail.invoice.intermediary_country }} </v-col>
+                            <v-col> {{ client_invoice_detail?.invoice?.intermediary_country || client_invoice_detail?.intermediary_country || '' }} </v-col>
                         </v-row>
                         <v-row no-gutters class="text-center">
                             <v-col>{{ $t("importer_country") }}</v-col>
                             <v-col cols="1">:</v-col>
-                            <v-col> {{  company_settings.settings.company_origin}} </v-col>
+                            <v-col> {{ company_settings?.settings?.company_origin || '' }} </v-col>
                         </v-row>
                     </v-col>
                 </v-row>
@@ -314,7 +314,7 @@
                         <v-row no-gutters class="text-center bg-cyan-lighten-5 rounded-b-lg">
                             <v-col class="mx-5">
                                 <v-checkbox v-for="incoterm in incoterms" :key="incoterm" 
-                                    :model-value="incoterm == client_invoice_detail.invoice.incoterm"
+                                    :model-value="incoterm == (client_invoice_detail?.invoice?.incoterm || client_invoice_detail?.incoterm)"
                                     color="cyan-darken-4"
                                     class="my-2"
                                     :label="incoterm"
@@ -333,7 +333,7 @@
                                         <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_gross_weight") }} :</div>
                                     </v-col>
                                     <v-col cols="5" class="bg-cyan-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
-                                        <strong>{{main.formatDisplayNumber(client_invoice_detail.invoice.total_gross_weight)}} Kg</strong>
+                                        <strong>{{main.formatDisplayNumber(client_invoice_detail?.invoice?.total_gross_weight || client_invoice_detail?.total_gross_weight || 0)}} Kg</strong>
                                     </v-col>
                                 </v-row>
                                 <v-row>
@@ -553,10 +553,11 @@
 
             },
             main_currency : function(){
-                if(this.client_invoice_detail.invoice.currency){
-                    return this.main.currencies.find(c => c.short == this.client_invoice_detail.invoice.currency);
+                const code = this.client_invoice_detail?.invoice?.currency || this.client_invoice_detail?.currency;
+                if(code){
+                    return this.main.currencies.find(c => c.short == code) || { currency: code, unit: code, subunit: '' };
                 }
-                return this.main.currencies.find(c => c.short == this.main_currency.currency);
+                return this.main.currencies.find(c => c.short == this.main.currency) || { currency: this.main.currency, unit: this.main.currency, subunit: '' };
             },
             isExport() {
                 return this.client_invoice_detail?.type_invoice === 'export';
@@ -582,16 +583,15 @@
                 return mapped;
             },
             getHeaderExportKeys:function(){
-                if(this.client_invoice_detail.invoice.export_details.length==0){
-                   return []
+                const details = this.client_invoice_detail?.invoice?.export_details || this.client_invoice_detail?.export_details;
+                if(!details || details.length === 0){
+                   return [];
                 }
-             return Object.keys(this.client_invoice_detail.invoice.export_details[0])
+                return Object.keys(details[0] || {});
             },
             getItemsExport:function(){
-                if(this.client_invoice_detail.invoice.export_details.length==0){
-                   return []
-                }
-             return this.client_invoice_detail.invoice.export_details;
+                const details = this.client_invoice_detail?.invoice?.export_details || this.client_invoice_detail?.export_details;
+                return details || [];
             },
             // sortedItems: sort by sortKey / sortDesc (uses this.items)
             sortedItems() {
