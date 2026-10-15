@@ -34,6 +34,11 @@ class PackageTypeController extends Controller
         $components = $validated['components'] ?? [];
         unset($validated['components']);
 
+        $validated['name_en'] = $validated['name_en'] ?? $validated['name_fr'] ?? $request->input('name', '');
+        $validated['name_es'] = $validated['name_es'] ?? $validated['name_fr'] ?? $request->input('name', '');
+        $validated['size'] = (int)($validated['size'] ?? 0);
+        $validated['name_in_invoice'] = $validated['name_in_invoice'] ?? $validated['name_fr'] ?? '';
+
         $packageType = PackageType::create($validated);
 
         if (!empty($components)) {

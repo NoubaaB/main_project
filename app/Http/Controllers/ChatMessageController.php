@@ -93,7 +93,7 @@ class ChatMessageController extends Controller
      * DELETE /api/chat-messages/{id}
      * Delete a single message by ID (only if owned by the authenticated user).
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(Request $request, $id): JsonResponse
     {
         $deleted = ChatMessage::where('id', $id)
             ->where('user_id', $request->user()->id)
@@ -110,7 +110,7 @@ class ChatMessageController extends Controller
      * POST /api/chat-messages/{id}/react
      * Set or clear a reaction (like/dislike) on a message.
      */
-    public function react(Request $request, int $id): JsonResponse
+    public function react(Request $request, $id): JsonResponse
     {
         $data = $request->validate([
             'reaction' => 'nullable|in:like,dislike',

@@ -111,7 +111,7 @@
                                             </span>
                                         </span>
     
-                                        <span v-if="is_show" class="drag-handle mx-0 px-0" title="Drag to reorder" @mousedown.stop>
+                                        <span v-if="is_show" class="drag-handle mx-0 px-0" :title="$t('drag_to_reorder')" @mousedown.stop>
                                             <v-icon>mdi-drag</v-icon>
                                         </span>
     
@@ -119,7 +119,7 @@
                                             v-if="is_show"
                                             class="resize-handle"
                                             @mousedown.prevent="onResizeMouseDown($event, h.key)"
-                                            title="Drag to resize"
+                                            :title="$t('drag_to_resize')"
                                         ></span>
                                     </span>
                                 </th>

@@ -134,24 +134,19 @@ class WarehouseController extends Controller
         $maxDate = $request->input('max_date');
 
         if ($maxDate) {
-            // Date-filtered: calculate dynamically from balances
-            $warehouseIds = WarehouseBalance::where('warehouse_operation', 'stock_in')
+            // Date-filtered: calculate dynamically from balances using a single aggregated query
+            $stockByWarehouse = WarehouseBalance::where('warehouse_operation', 'stock_in')
                 ->where('is_finished', false)
                 ->where('remaining_weight', '>', 0)
                 ->where('date', '<=', $maxDate)
-                ->pluck('warehouse_id')
-                ->unique();
+                ->groupBy('warehouse_id')
+                ->selectRaw('warehouse_id, ROUND(SUM(remaining_weight), 2) as total_stock')
+                ->pluck('total_stock', 'warehouse_id');
 
-            $warehouses = Warehouse::whereIn('id', $warehouseIds)
+            $warehouses = Warehouse::whereIn('id', $stockByWarehouse->keys())
                 ->get()
-                ->map(function ($w) use ($maxDate) {
-                    $totalStock = WarehouseBalance::where('warehouse_id', $w->id)
-                        ->where('warehouse_operation', 'stock_in')
-                        ->where('is_finished', false)
-                        ->where('remaining_weight', '>', 0)
-                        ->where('date', '<=', $maxDate)
-                        ->sum('remaining_weight');
-                    $w->total_stock = round($totalStock, 2);
+                ->map(function ($w) use ($stockByWarehouse) {
+                    $w->total_stock = (float) ($stockByWarehouse[$w->id] ?? 0);
                     return $w;
                 });
         } else {
@@ -159,7 +154,7 @@ class WarehouseController extends Controller
             $warehouses = Warehouse::where('total_weight', '>', 0)
                 ->get()
                 ->map(function ($w) {
-                    $w->total_stock = $w->total_weight;
+                    $w->total_stock = (float) $w->total_weight;
                     return $w;
                 });
         }

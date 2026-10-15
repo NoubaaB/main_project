@@ -165,6 +165,9 @@
   <!-- Reopen Year Dialog -->
   <v-dialog v-model="reopenDialog" max-width="450"><v-card class="rounded-xl"><v-card-title class="pa-5 pb-2"><v-icon color="warning" class="mr-2">mdi-lock-open</v-icon>{{ $t('reopen_year') }}</v-card-title><v-card-text class="pa-5 pt-2">{{ $t('confirm_reopen_year', {year:currentYear}) }}</v-card-text><v-card-actions class="pa-5 pt-0"><v-spacer/><v-btn @click="reopenDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="warning" variant="flat" rounded @click="doReopenYear" :loading="reopening">{{ $t('reopen_year') }}</v-btn></v-card-actions></v-card></v-dialog>
 
+  <!-- Summary Snackbar -->
+  <v-snackbar v-for="(sb, i) in main.snackbars" :key="i" v-model="sb.show" :color="sb.color" :timeout="3000" location="bottom right">{{ sb.message }}</v-snackbar>
+
   <!-- Print Trigger Floating Bar -->
   <div v-if="printReady" class="d-flex align-center ga-2 pa-3" style="position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(230,81,0,.95);border-radius:16px;box-shadow:0 8px 32px rgba(230,81,0,.4)">
     <v-icon color="white" size="20">mdi-file-document-outline</v-icon>

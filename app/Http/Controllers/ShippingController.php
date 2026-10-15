@@ -202,6 +202,11 @@ class ShippingController extends Controller
 
         if ($request->has('date_start') && $request->has('date_end')) {
             $query->whereBetween('date', [$request->date_start, $request->date_end]);
+        } elseif ($request->has('per_page') || $request->has('page')) {
+            $perPage = (int) $request->input('per_page', 50);
+            return response()->json(['shippings' => $query->orderBy('date', 'desc')->paginate($perPage)->items()]);
+        } elseif (!$request->has('all')) {
+            $query->where('date', '>=', now()->startOfYear()->toDateString());
         }
 
         return response()->json(['shippings' => $query->orderBy('date', 'desc')->get()]);

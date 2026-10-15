@@ -23,10 +23,8 @@ class ClientInvoiceController extends Controller
                 'client',
                 'shippings.client',
                 'shippings.shippingCategory',
-                'shippings.detailShippings',
                 'productions.client',
                 'productions.productionCategory',
-                'productions.detailProductions',
             ])
             ->orderBy('date', 'desc')
             ->get();

@@ -14,7 +14,7 @@
         class="ai-fab"
         rounded
         elevation="0"
-        aria-label="Open assistant"
+        :aria-label="$t('open_assistant')"
       >
         <div class="ai-fab-inner">
           <v-icon size="26" color="white">{{ isOpen ? 'mdi-close' : 'mdi-robot-happy-outline' }}</v-icon>
@@ -268,10 +268,10 @@
           <!-- Replying to indicator -->
           <div v-if="replyingTo" class="ai-reply-indicator">
             <div class="ai-reply-content">
-              <strong>Replying to:</strong>
+              <strong>{{ $t('replying_to') }}:</strong>
               <div class="ai-reply-text">{{ truncateHtml(replyingTo.text) }}</div>
             </div>
-            <button class="ai-reply-cancel" @click="replyingTo = null" title="Cancel reply">
+            <button class="ai-reply-cancel" @click="replyingTo = null" :title="$t('cancel_reply')">
               <v-icon size="14">mdi-close</v-icon>
             </button>
           </div>
@@ -311,7 +311,7 @@
               class="ai-excel-btn"
               v-bind="props"
               :style="{ cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }"
-              title="Thinking Level"
+              :title="$t('thinking_level')"
             >
               <v-icon size="16">mdi-brain</v-icon>
             </div>

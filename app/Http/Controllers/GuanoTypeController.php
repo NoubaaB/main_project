@@ -28,6 +28,10 @@ class GuanoTypeController extends Controller
             'description' => 'nullable|string|max:1000',
         ]);
 
+        $validated['name_en'] = $validated['name_en'] ?? $validated['name_fr'] ?? $request->input('name', '');
+        $validated['name_es'] = $validated['name_es'] ?? $validated['name_fr'] ?? $request->input('name', '');
+        $validated['name_in_invoice'] = $validated['name_in_invoice'] ?? $validated['name_fr'] ?? '';
+
         $guanoType = GuanoType::create($validated);
         $this->broadcastChange('GuanoType', 'created', $guanoType->id);
 

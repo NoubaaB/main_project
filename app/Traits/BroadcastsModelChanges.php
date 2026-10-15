@@ -39,6 +39,9 @@ trait BroadcastsModelChanges
                 $model, $action, $recordId, $userName, $recordData, $userId, $permissionKey
             ))->toOthers();
 
+            // Invalidate master data cache on any model change
+            \Illuminate\Support\Facades\Cache::forget('auth_bootstrap_data');
+
             // Persist notifications for all eligible users (only for tracked modules)
             if ($permissionKey) {
                 $this->createNotifications($model, $action, $recordId, $recordData, $userName, $userId, $permissionKey);

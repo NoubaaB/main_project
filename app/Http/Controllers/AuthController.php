@@ -222,66 +222,68 @@ class AuthController extends Controller implements HasMiddleware
 
     function getData(): array
     {
-        $suppliers = Supplier::all();
-        $ships = Ship::all();
-        $fish_types = FishType::all();
-        $fish_families = FishFamily::all();
-        $package_types = PackageType::all();
-        $guano_types = GuanoType::all();
-        $warehouses = Warehouse::with('category')->get();
-        $warehouse_categories = WarehouseCategory::all();
-        $fisheries = Fishery::all();
-        $origins = Origin::all();
-        $charge_categories = ChargeCategory::withCount('charges')->get();
-        $shipping_categories = ShippingCategory::withCount('shippings')->get();
-        $production_categories = ProductionCategory::withCount('productions')->get();
-        $detail_charge_categories = DetailChargeCategory::all();
-        $detail_shipping_categories = DetailShippingCategory::all();
-        $detail_production_categories = DetailProductionCategory::all();
-        $detail_inventory_categories = DetailInventoryCategory::all();
-        $warehouse_transfer_categories = WarehouseTransferCategory::all();
-        $clients = Client::all();
-        $formulas = Formula::all();
-        $trucks = Truck::all();
-        $fish_process_types = FishProcessType::all();
-        $roles = \App\Models\Role::withCount('users')->get();
+        return \Illuminate\Support\Facades\Cache::remember('auth_bootstrap_data', 3600, function () {
+            $suppliers = Supplier::all();
+            $ships = Ship::all();
+            $fish_types = FishType::all();
+            $fish_families = FishFamily::all();
+            $package_types = PackageType::all();
+            $guano_types = GuanoType::all();
+            $warehouses = Warehouse::with('category')->get();
+            $warehouse_categories = WarehouseCategory::all();
+            $fisheries = Fishery::all();
+            $origins = Origin::all();
+            $charge_categories = ChargeCategory::withCount('charges')->get();
+            $shipping_categories = ShippingCategory::withCount('shippings')->get();
+            $production_categories = ProductionCategory::withCount('productions')->get();
+            $detail_charge_categories = DetailChargeCategory::all();
+            $detail_shipping_categories = DetailShippingCategory::all();
+            $detail_production_categories = DetailProductionCategory::all();
+            $detail_inventory_categories = DetailInventoryCategory::all();
+            $warehouse_transfer_categories = WarehouseTransferCategory::all();
+            $clients = Client::all();
+            $formulas = Formula::all();
+            $trucks = Truck::all();
+            $fish_process_types = FishProcessType::all();
+            $roles = \App\Models\Role::withCount('users')->get();
 
-        // Company settings as key-value with logo URLs resolved
-        $company_settings = CompanySetting::getAllSettings();
-        if (!empty($company_settings['logo_invoice_path'])) {
-            $company_settings['logo_invoice_url'] = asset('storage/' . $company_settings['logo_invoice_path']);
-        }
-        if (!empty($company_settings['logo_invoice_body_path'])) {
-            $company_settings['logo_invoice_body_url'] = asset('storage/' . $company_settings['logo_invoice_body_path']);
-        }
+            // Company settings as key-value with logo URLs resolved
+            $company_settings = CompanySetting::getAllSettings();
+            if (!empty($company_settings['logo_invoice_path'])) {
+                $company_settings['logo_invoice_url'] = asset('storage/' . $company_settings['logo_invoice_path']);
+            }
+            if (!empty($company_settings['logo_invoice_body_path'])) {
+                $company_settings['logo_invoice_body_url'] = asset('storage/' . $company_settings['logo_invoice_body_path']);
+            }
 
-        return [
-            "suppliers" => $suppliers,
-            "ships" => $ships,
-            "fish_types" => $fish_types,
-            "fish_families" => $fish_families,
-            "fish_process_types" => $fish_process_types,
-            "package_types" => $package_types,
-            "guano_types" => $guano_types,
-            "warehouses" => $warehouses,
-            "warehouse_categories" => $warehouse_categories,
-            "charge_categories" => $charge_categories,
-            "shipping_categories" => $shipping_categories,
-            "clients" => $clients,
-            "fisheries" => $fisheries,
-            "origins" => $origins,
-            "formulas" => $formulas,
-            "trucks" => $trucks,
-            "production_categories" => $production_categories,
-            "detail_charge_categories" => $detail_charge_categories,
-            "detail_shipping_categories" => $detail_shipping_categories,
-            "detail_production_categories" => $detail_production_categories,
-            "detail_inventory_categories" => $detail_inventory_categories,
-            "warehouse_transfer_categories" => $warehouse_transfer_categories,
-            "roles" => $roles,
-            "company_settings" => $company_settings,
-            "custom_charts" => CustomChart::with('series')->where('is_active', true)->orderBy('display_order')->get(),
-            "static_charges" => StaticCharge::orderBy('created_at', 'desc')->get(),
-        ];
+            return [
+                "suppliers" => $suppliers,
+                "ships" => $ships,
+                "fish_types" => $fish_types,
+                "fish_families" => $fish_families,
+                "fish_process_types" => $fish_process_types,
+                "package_types" => $package_types,
+                "guano_types" => $guano_types,
+                "warehouses" => $warehouses,
+                "warehouse_categories" => $warehouse_categories,
+                "charge_categories" => $charge_categories,
+                "shipping_categories" => $shipping_categories,
+                "clients" => $clients,
+                "fisheries" => $fisheries,
+                "origins" => $origins,
+                "formulas" => $formulas,
+                "trucks" => $trucks,
+                "production_categories" => $production_categories,
+                "detail_charge_categories" => $detail_charge_categories,
+                "detail_shipping_categories" => $detail_shipping_categories,
+                "detail_production_categories" => $detail_production_categories,
+                "detail_inventory_categories" => $detail_inventory_categories,
+                "warehouse_transfer_categories" => $warehouse_transfer_categories,
+                "roles" => $roles,
+                "company_settings" => $company_settings,
+                "custom_charts" => CustomChart::with('series')->where('is_active', true)->orderBy('display_order')->get(),
+                "static_charges" => StaticCharge::orderBy('created_at', 'desc')->get(),
+            ];
+        });
     }
 }

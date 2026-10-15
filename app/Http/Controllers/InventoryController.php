@@ -45,9 +45,8 @@ class InventoryController extends Controller
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
-                'inventory_tracking_numbers' => $data['inventory_tracking_number'] ?? null,
+                'inventory_tracking_number' => $data['inventory_tracking_number'] ?? null,
                 'description' => $data['description'] ?? null,
-                'user_id' => $request->user()?->id,
             ]);
 
             foreach ($data['details'] as $detail) {
@@ -106,7 +105,7 @@ class InventoryController extends Controller
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
-                'inventory_tracking_numbers' => $data['inventory_tracking_number'] ?? null,
+                'inventory_tracking_number' => $data['inventory_tracking_number'] ?? null,
                 'description' => $data['description'] ?? null,
             ]);
 
@@ -152,6 +151,11 @@ class InventoryController extends Controller
 
         if ($request->has('date_start') && $request->has('date_end')) {
             $query->whereBetween('date', [$request->date_start, $request->date_end]);
+        } elseif ($request->has('per_page') || $request->has('page')) {
+            $perPage = (int) $request->input('per_page', 50);
+            return response()->json(['inventories' => $query->orderBy('date', 'desc')->paginate($perPage)->items()]);
+        } elseif (!$request->has('all')) {
+            $query->where('date', '>=', now()->startOfYear()->toDateString());
         }
 
         $inventories = $query->orderBy('date', 'desc')->get();

@@ -199,7 +199,7 @@
               class="aiq-excel-btn"
               v-bind="props"
               :style="{ cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }"
-              title="Thinking Level"
+              :title="$t('thinking_level')"
             >
               <v-icon size="16">mdi-brain</v-icon>
             </div>
