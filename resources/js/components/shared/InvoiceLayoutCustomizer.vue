@@ -381,39 +381,95 @@
             {{ $t('apply_preset_desc') }}
           </p>
 
+          <!-- CATEGORY FILTER CHIPS -->
+          <div class="preset-category-filters mb-3">
+            <v-chip
+              size="x-small"
+              :variant="selectedPresetCategory === 'all' ? 'flat' : 'tonal'"
+              :color="selectedPresetCategory === 'all' ? themeAccentColor : undefined"
+              class="preset-filter-chip font-weight-bold"
+              @click="selectedPresetCategory = 'all'"
+            >
+              {{ $t('palette_cat_all') }} ({{ presetCategoryCounts.all }})
+            </v-chip>
+
+            <v-chip
+              size="x-small"
+              :variant="selectedPresetCategory === 'client' ? 'flat' : 'tonal'"
+              :color="selectedPresetCategory === 'client' ? '#00838F' : undefined"
+              class="preset-filter-chip font-weight-bold"
+              @click="selectedPresetCategory = 'client'"
+            >
+              <v-icon size="11" class="mr-1">mdi-account-tie-outline</v-icon>
+              {{ $t('palette_cat_client') }} ({{ presetCategoryCounts.client }})
+            </v-chip>
+
+            <v-chip
+              size="x-small"
+              :variant="selectedPresetCategory === 'supplier' ? 'flat' : 'tonal'"
+              :color="selectedPresetCategory === 'supplier' ? '#E65100' : undefined"
+              class="preset-filter-chip font-weight-bold"
+              @click="selectedPresetCategory = 'supplier'"
+            >
+              <v-icon size="11" class="mr-1">mdi-truck-delivery-outline</v-icon>
+              {{ $t('palette_cat_supplier') }} ({{ presetCategoryCounts.supplier }})
+            </v-chip>
+
+            <v-chip
+              size="x-small"
+              :variant="selectedPresetCategory === 'executive' ? 'flat' : 'tonal'"
+              :color="selectedPresetCategory === 'executive' ? 'purple-darken-1' : undefined"
+              class="preset-filter-chip font-weight-bold"
+              @click="selectedPresetCategory = 'executive'"
+            >
+              <v-icon size="11" class="mr-1">mdi-crown-outline</v-icon>
+              {{ $t('palette_cat_executive') }} ({{ presetCategoryCounts.executive }})
+            </v-chip>
+          </div>
+
           <v-row dense>
-            <v-col cols="12" sm="6" v-for="preset in colorPresets" :key="preset.nameKey">
+            <v-col cols="12" sm="6" v-for="preset in filteredPresets" :key="preset.nameKey" class="preset-col">
               <div
-                class="preset-card pa-3 rounded-lg border d-flex align-center justify-space-between cursor-pointer"
+                class="preset-card pa-2 px-2 px-sm-3 rounded-lg border d-flex align-center justify-space-between cursor-pointer"
                 :class="{
                   'preset-card-active': isPresetActive(preset) && isClient,
                   'preset-card-active-supplier': isPresetActive(preset) && !isClient
                 }"
                 @click="applyPreset(preset)"
               >
-                <div class="d-flex align-center">
-                  <div class="preset-swatch mr-3 d-flex overflow-hidden rounded elevation-1">
-                    <div :style="{ background: preset.primary, width: '22px', height: '22px' }"></div>
-                    <div :style="{ background: preset.secondary, width: '22px', height: '22px' }"></div>
+                <!-- Left: Swatch + Title/Hex (Strictly truncated and inner) -->
+                <div class="d-flex align-center preset-info-section">
+                  <div class="preset-swatch mr-2 d-flex overflow-hidden rounded elevation-1 flex-shrink-0">
+                    <div :style="{ background: preset.primary, width: '18px', height: '18px' }"></div>
+                    <div :style="{ background: preset.secondary, width: '18px', height: '18px' }"></div>
                   </div>
-                  <div>
-                    <div class="text-subtitle-2 font-weight-bold d-flex align-center">
-                      {{ $t(preset.nameKey) }}
-                      <v-icon v-if="isPresetActive(preset)" size="14" color="success" class="ml-1">mdi-check-circle</v-icon>
+                  <div class="preset-labels-wrap">
+                    <div class="preset-title-text text-truncate" :title="$t(preset.nameKey)">
+                      <span class="text-truncate">{{ $t(preset.nameKey) }}</span>
+                      <v-icon v-if="isPresetActive(preset)" size="13" color="success" class="ml-1 flex-shrink-0">mdi-check-circle</v-icon>
                     </div>
-                    <div class="text-caption text-medium-emphasis">{{ preset.primary }} / {{ preset.secondary }}</div>
+                    <div class="preset-sub-text text-caption text-medium-emphasis text-truncate">
+                      {{ preset.primary }} / {{ preset.secondary }}
+                    </div>
                   </div>
                 </div>
-                <v-btn
-                  size="x-small"
-                  :variant="isPresetActive(preset) ? 'flat' : 'tonal'"
-                  rounded
-                  :color="isPresetActive(preset) ? 'success' : themeAccentColor"
-                  @click.stop="applyPreset(preset)"
-                >
-                  <v-icon v-if="isPresetActive(preset)" size="13" class="mr-1">mdi-check</v-icon>
-                  {{ isPresetActive(preset) ? $t('applied') : $t('apply') }}
-                </v-btn>
+
+                <!-- Right: Apply / Applied v-chip (Inner, Truncated, auto-hides text when narrow/crowded) -->
+                <div class="preset-chip-wrapper flex-shrink-0 ml-1 d-flex align-center justify-end">
+                  <v-chip
+                    size="x-small"
+                    :variant="isPresetActive(preset) ? 'flat' : 'tonal'"
+                    :color="isPresetActive(preset) ? 'success' : themeAccentColor"
+                    class="preset-action-chip font-weight-bold"
+                    :title="isPresetActive(preset) ? $t('applied') : $t('apply')"
+                    @click.stop="applyPreset(preset)"
+                  >
+                    <v-icon size="12" class="preset-chip-icon flex-shrink-0">
+                      {{ isPresetActive(preset) ? 'mdi-check' : 'mdi-plus' }}
+                    </v-icon>
+                    <span class="preset-chip-label text-truncate">{{ isPresetActive(preset) ? $t('applied') : $t('apply') }}</span>
+                  </v-chip>
+                </div>
               </div>
             </v-col>
           </v-row>
@@ -736,15 +792,37 @@ export default {
         { date: '02/10/2026', desc: 'Octopus Vulgaris (Cleaned Flower)', sub: 'T2 Flower IQF • 70 Cartons', weight: '850.00', price: '85.00', total: '72,250.00' },
         { date: '03/10/2026', desc: 'Sepia Officinalis (Block Frozen)', sub: 'Size 400-600g • 30 Blocks', weight: '600.00', price: '55.00', total: '33,000.00' },
       ],
+      selectedPresetCategory: 'all',
       colorPresets: [
-        { nameKey: 'preset_cyan_ocean', primary: '#006064', secondary: '#4DD0E1' },
-        { nameKey: 'preset_deep_navy', primary: '#01579B', secondary: '#4FC3F7' },
-        { nameKey: 'preset_warm_amber', primary: '#E65100', secondary: '#FFB74D' },
-        { nameKey: 'preset_emerald_mint', primary: '#004D40', secondary: '#26A69A' },
-        { nameKey: 'preset_royal_indigo', primary: '#1A237E', secondary: '#7986CB' },
-        { nameKey: 'preset_slate_modern', primary: '#263238', secondary: '#78909C' },
-        { nameKey: 'preset_crimson_rose', primary: '#880E4F', secondary: '#EC407A' },
-        { nameKey: 'preset_purple_luxe', primary: '#4A148C', secondary: '#AB47BC' },
+        // Client Signature (Ocean, Cyan, Blues, Teals)
+        { nameKey: 'preset_cyan_ocean', primary: '#006064', secondary: '#4DD0E1', category: 'client' },
+        { nameKey: 'preset_deep_navy', primary: '#01579B', secondary: '#4FC3F7', category: 'client' },
+        { nameKey: 'preset_sapphire_blue', primary: '#0D47A1', secondary: '#64B5F6', category: 'client' },
+        { nameKey: 'preset_caribbean_teal', primary: '#004D40', secondary: '#26A69A', category: 'client' },
+        { nameKey: 'preset_arctic_cyan', primary: '#00838F', secondary: '#80DEEA', category: 'client' },
+        { nameKey: 'preset_pacific_azure', primary: '#0277BD', secondary: '#81D4FA', category: 'client' },
+        { nameKey: 'preset_glacier_steel', primary: '#2E3B4E', secondary: '#5C7CFA', category: 'client' },
+        { nameKey: 'preset_coastal_breeze', primary: '#00695C', secondary: '#80CBC4', category: 'client' },
+
+        // Supplier Signature (Warm Amber, Terracotta, Copper, Bronze, Earth, Harvest)
+        { nameKey: 'preset_warm_amber', primary: '#E65100', secondary: '#FFB74D', category: 'supplier' },
+        { nameKey: 'preset_sunset_bronze', primary: '#BF360C', secondary: '#FF8A65', category: 'supplier' },
+        { nameKey: 'preset_terracotta_rust', primary: '#D84315', secondary: '#FFAB91', category: 'supplier' },
+        { nameKey: 'preset_copper_gold', primary: '#A04000', secondary: '#F39C12', category: 'supplier' },
+        { nameKey: 'preset_burnt_umber', primary: '#4E342E', secondary: '#BCAAA4', category: 'supplier' },
+        { nameKey: 'preset_golden_harvest', primary: '#F57F17', secondary: '#FDD835', category: 'supplier' },
+        { nameKey: 'preset_sienna_wood', primary: '#6D4C41', secondary: '#D7CCC8', category: 'supplier' },
+        { nameKey: 'preset_autumn_crimson', primary: '#B71C1C', secondary: '#FF8A80', category: 'supplier' },
+
+        // Executive & Modern (Emerald, Indigo, Slate, Crimson, Purple, Wine, Onyx, Gold)
+        { nameKey: 'preset_emerald_mint', primary: '#1B5E20', secondary: '#66BB6A', category: 'executive' },
+        { nameKey: 'preset_royal_indigo', primary: '#1A237E', secondary: '#7986CB', category: 'executive' },
+        { nameKey: 'preset_slate_modern', primary: '#263238', secondary: '#78909C', category: 'executive' },
+        { nameKey: 'preset_crimson_rose', primary: '#880E4F', secondary: '#EC407A', category: 'executive' },
+        { nameKey: 'preset_purple_luxe', primary: '#4A148C', secondary: '#AB47BC', category: 'executive' },
+        { nameKey: 'preset_burgundy_wine', primary: '#581845', secondary: '#C70039', category: 'executive' },
+        { nameKey: 'preset_charcoal_onyx', primary: '#212121', secondary: '#9E9E9E', category: 'executive' },
+        { nameKey: 'preset_golden_obsidian', primary: '#1E1E1E', secondary: '#D4AF37', category: 'executive' },
       ],
     };
   },
@@ -842,6 +920,24 @@ export default {
         'xx-large': '1.8rem',
       };
       return map[this.form.footer_director_size] || this.form.footer_director_size || 'x-large';
+    },
+    filteredPresets() {
+      if (this.selectedPresetCategory === 'all') {
+        const preferred = this.isClient ? 'client' : 'supplier';
+        return [...this.colorPresets].sort((a, b) => {
+          if (a.category === preferred && b.category !== preferred) return -1;
+          if (b.category === preferred && a.category !== preferred) return 1;
+          return 0;
+        });
+      }
+      return this.colorPresets.filter(p => p.category === this.selectedPresetCategory);
+    },
+    presetCategoryCounts() {
+      const counts = { all: this.colorPresets.length, client: 0, supplier: 0, executive: 0 };
+      this.colorPresets.forEach(p => {
+        if (counts[p.category] !== undefined) counts[p.category]++;
+      });
+      return counts;
     },
   },
   watch: {
@@ -1190,8 +1286,119 @@ export default {
 .customizer-tabs :deep(.v-btn__prepend) {
   margin-inline-end: 4px !important;
 }
+/* ════ Category Filter Chips ════ */
+.preset-category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.preset-filter-chip {
+  cursor: pointer;
+  letter-spacing: 0.1px !important;
+  font-size: 10px !important;
+  height: 22px !important;
+  transition: all 0.15s ease-in-out;
+}
+.customizer-dark .preset-filter-chip {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ════ Curated Color Palettes Strict Inner & Truncated Layout ════ */
+.preset-col {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  container-type: inline-size;
+}
 .preset-card {
+  position: relative !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  gap: 4px;
   transition: all 0.2s ease-in-out;
+}
+.preset-info-section {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+}
+.preset-labels-wrap {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+}
+.preset-title-text {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  line-height: 1.3 !important;
+}
+.preset-sub-text {
+  font-size: 10px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+}
+.preset-chip-wrapper {
+  max-width: 48% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+.preset-action-chip {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  height: 22px !important;
+  padding: 0 6px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+}
+.preset-action-chip :deep(.v-chip__content) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+.preset-chip-icon {
+  margin-right: 4px;
+}
+.preset-chip-label {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 48px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+@container (max-width: 215px) {
+  .preset-chip-label {
+    display: none !important;
+  }
+  .preset-action-chip {
+    padding: 0 5px !important;
+    max-width: 24px !important;
+    min-width: 24px !important;
+    justify-content: center !important;
+  }
+  .preset-chip-icon {
+    margin-right: 0 !important;
+    margin-inline-end: 0 !important;
+  }
 }
 
 /* ════ Real Invoice Layout Live Preview Sheet (ALWAYS 100% LIGHT PAPER TEMPLATE) ════ */
