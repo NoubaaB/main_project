@@ -234,7 +234,7 @@ export default {
     pinSide(k) { return this.pinState[k] || null; },
     getPinLeft(key) { let o = 0; for (const h of this.headers) { if (h.key === key) break; if (this.pinState[h.key] === 'left') o += (this.colWidths[h.key] || 120); } return o; },
     getPinRight(key) { let o = 0; const rev = [...this.headers].reverse(); for (const h of rev) { if (h.key === key) break; if (this.pinState[h.key] === 'right') o += (this.colWidths[h.key] || 120); } return o; },
-    colPinStyle(key, z) { const side = this.pinSide(key); if (!side) return {}; if (side === 'left') return { position: 'sticky', left: this.getPinLeft(key) + 'px', zIndex: z, background: '#F5F5F5' }; return { position: 'sticky', right: this.getPinRight(key) + 'px', zIndex: z, background: '#F5F5F5' }; },
+    colPinStyle(key, z) { const side = this.pinSide(key); if (!side) return {}; const bg = this.main?.is_dark ? '#1c1f28' : '#F5F5F5'; if (side === 'left') return { position: 'sticky', left: this.getPinLeft(key) + 'px', zIndex: z, background: bg }; return { position: 'sticky', right: this.getPinRight(key) + 'px', zIndex: z, background: bg }; },
     measureColWidths() { this.$nextTick(() => { const ths = this.$refs.tableWrap?.querySelectorAll('thead th'); if (!ths) return; const w = {}; ths.forEach((th, i) => { const key = this.headers[i]?.key; if (key) w[key] = th.offsetWidth; }); this.colWidths = w; }); },
     // Drag columns
     onDragStart(key) { this.dragCol = key; },

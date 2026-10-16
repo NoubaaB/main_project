@@ -178,7 +178,7 @@ export default {
     togglePin(k) { const cur = this.pinState[k]; if (!cur) this.pinState[k] = 'left'; else if (cur === 'left') this.pinState[k] = 'right'; else delete this.pinState[k]; this.pinState = { ...this.pinState }; },
     isPinned(k) { return !!this.pinState[k]; },
     pinSide(k) { return this.pinState[k] || null; },
-    colPinStyle(key, z) { const side = this.pinSide(key); if (!side) return {}; return { position: 'sticky', [side]: '0px', zIndex: z, background: '#F5F5F5' }; },
+    colPinStyle(key, z) { const side = this.pinSide(key); if (!side) return {}; const bg = this.main?.is_dark ? '#1c1f28' : '#F5F5F5'; return { position: 'sticky', [side]: '0px', zIndex: z, background: bg }; },
     onDragStart(key) { this.dragCol = key; },
     onDragOver(key, e) { e.preventDefault(); this.dragOverCol = key; },
     onDragEnd() {

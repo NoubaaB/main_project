@@ -209,6 +209,14 @@ export default {
 .ot-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
 .ot-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
 .ot-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+:deep(.v-theme--dark) .ot-col-pin,
+:deep(.v-theme--dark) .ot-th-pin,
+.v-theme--dark .ot-col-pin,
+.v-theme--dark .ot-th-pin {
+  background: #1c1f28 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 2px 0 4px -2px rgba(0,0,0,.4) !important;
+}
 .ot-th-dragover{background:rgba(0,137,123,.08)!important}
 .ot-th-inner{display:flex;align-items:center;justify-content:center;gap:2px}
 .ot-th-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.7;cursor:pointer}
@@ -216,5 +224,9 @@ export default {
 .sort-badge{font-size:9px;background:#00897B;color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center}
 .ot-row:hover{background:rgba(0,137,123,.04)}
 .ot-tfoot td{padding:10px 12px;border-top:2px solid rgba(0,137,123,.2);color:#00897B;font-size:14px}
+:deep(.v-theme--dark) .ot-tfoot td,
+.v-theme--dark .ot-tfoot td {
+  color: #26A69A !important;
+}
 .text-ot{color:#00897B!important}
 </style>

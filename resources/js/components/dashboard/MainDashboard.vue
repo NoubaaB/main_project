@@ -244,5 +244,14 @@ export default {
 .chart-card { transition: box-shadow .2s; }
 .chart-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1) !important; }
 .stat-card { background: linear-gradient(135deg, #f5fdff 0%, #e0f7fa 100%); }
+:deep(.v-theme--dark) .stat-card,
+.v-theme--dark .stat-card {
+  background: linear-gradient(135deg, #0e2a30 0%, #16353d 100%) !important;
+  border: 1px solid rgba(0, 188, 212, 0.25) !important;
+}
 .stat-value { font-size: 32px; font-weight: 800; color: #00838F; }
+:deep(.v-theme--dark) .stat-value,
+.v-theme--dark .stat-value {
+  color: #26c6da !important;
+}
 </style>

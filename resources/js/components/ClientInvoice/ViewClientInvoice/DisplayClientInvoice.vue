@@ -319,16 +319,16 @@
                 v-if="allow_summary"
                 >   
                     <v-col cols="2" class="text-center mx-3 ">
-                        <v-row no-gutters class="bg-cyan-darken-4 rounded-t-lg">
+                        <v-row no-gutters class="rounded-t-lg text-white font-weight-bold" :style="{ backgroundColor: invoicePrimaryColor }">
                             <v-col>
                                 {{ $t('incoterm') }}
                             </v-col>
                         </v-row>
-                        <v-row no-gutters class="text-center bg-cyan-lighten-5 rounded-b-lg">
+                        <v-row no-gutters class="text-center rounded-b-lg border" :style="{ backgroundColor: invoicePrimaryColor + '08' }">
                             <v-col class="mx-5">
                                 <v-checkbox v-for="incoterm in incoterms" :key="incoterm" 
                                     :model-value="incoterm == (client_invoice_detail?.invoice?.incoterm || client_invoice_detail?.incoterm)"
-                                    color="cyan-darken-4"
+                                    :color="invoicePrimaryColor"
                                     class="my-2"
                                     :label="incoterm"
                                     readonly
@@ -342,23 +342,23 @@
                         <v-row class="ma-1">
                             <v-col>
                                 <v-row class="text-center">
-                                    <v-col class="bg-cyan-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
+                                    <v-col class="rounded-ts-lg py-0 pr-0 pl-2 text-center text-white font-weight-bold" :style="{ backgroundColor: invoicePrimaryColor }">
                                         <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_gross_weight") }} :</div>
                                     </v-col>
-                                    <v-col cols="5" class="bg-cyan-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
+                                    <v-col cols="5" class="rounded-te-lg py-0 pl-0 pr-2 text-left pl-5 bg-grey-lighten-5">
                                         <strong>{{main.formatDisplayNumber(client_invoice_detail?.invoice?.total_gross_weight || client_invoice_detail?.total_gross_weight || 0)}} Kg</strong>
                                     </v-col>
                                 </v-row>
                                 <v-row>
                                     <v-col class="px-0 py-1">
-                                        <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2"></v-divider>
+                                        <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2" :style="{ borderColor: invoiceSecondaryColor + '80 !important' }"></v-divider>
                                     </v-col>
                                 </v-row>
                                 <v-row class="text-center">
-                                    <v-col class="bg-cyan-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
+                                    <v-col class="rounded-bs-lg py-0 pr-0 pl-2 text-center text-white font-weight-bold" :style="{ backgroundColor: invoiceSecondaryColor }">
                                         <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
                                     </v-col>
-                                    <v-col cols="5" class="bg-cyan-lighten-5 rounded-be-lg py-0 pl-0 pr-2 text-left pl-5">
+                                    <v-col cols="5" class="rounded-be-lg py-0 pl-0 pr-2 text-left pl-5 bg-grey-lighten-5">
                                         <strong>{{main.formatDisplayNumber(export_total.weight)}} Kg</strong>
                                     </v-col>
                                 </v-row>

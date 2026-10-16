@@ -40,21 +40,19 @@ export default {
       },
     },  
     watch: {
-      "main.is_dark": function (value) {
+      "main.is_dark": {
+        immediate: true,
+        handler(value) {
           const theme = value ? "dark" : "light";
-          // this.$vuetify.theme.global.name = theme;
-          this.$vuetify.theme.change(theme)
+          if (this.$vuetify?.theme?.change) {
+            this.$vuetify.theme.change(theme);
+          } else if (this.$vuetify?.theme?.global) {
+            this.$vuetify.theme.global.name = theme;
+          }
           localStorage.setItem("theme", theme);
-          // document.documentElement.style.setProperty(
-          //     "--theme",
-          //     // this.configuration[theme]
-          // );
-          // document.documentElement.style.setProperty(
-          //     "--inverse_theme",
-          //     value ? "black" : "white"
-          // );
+        },
       },
-  },
+    },
 }
 </script>
 

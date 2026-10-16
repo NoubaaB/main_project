@@ -332,7 +332,7 @@ export default {
     },
     mainChartOptions() {
       return {
-        chart: { type: 'area', toolbar: { show: true }, fontFamily: 'inherit', zoom: { enabled: true } },
+        chart: { type: 'area', toolbar: { show: true }, fontFamily: 'inherit', zoom: { enabled: true }, background: 'transparent' },
         colors: ['#1E88E5'],
         stroke: { curve: 'smooth', width: 3 },
         fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
@@ -340,8 +340,9 @@ export default {
         xaxis: { categories: this.aggregatedChartData.map(d => d.label), labels: { rotate: -45, rotateAlways: this.aggregatedChartData.length > 15 } },
         yaxis: { labels: { formatter: v => this.fmt(v) + ' ' + this.currency } },
         tooltip: { y: { formatter: v => this.fmt(v) + ' ' + this.currency } },
-        grid: { borderColor: 'rgba(0,0,0,0.06)' },
+        grid: { borderColor: this.main?.is_dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
         dataLabels: { enabled: this.chartPeriod !== 'daily', formatter: v => this.fmt(v), style: { fontSize: '11px' } },
+        theme: { mode: this.main?.is_dark ? 'dark' : 'light' },
       };
     },
     // Section chart
@@ -350,15 +351,16 @@ export default {
     },
     sectionChartOptions() {
       return {
-        chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'inherit' },
+        chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'inherit', background: 'transparent' },
         colors: ['#EF6C00'],
         plotOptions: { bar: { borderRadius: 8, horizontal: false, columnWidth: '60%', distributed: true } },
         xaxis: { categories: this.stats.sections.map(s => s.name) },
         yaxis: { labels: { formatter: v => this.fmt(v) } },
         tooltip: { y: { formatter: v => this.fmt(v) + ' ' + this.currency + ' (' + this.$t('count') + ')' } },
-        grid: { borderColor: 'rgba(0,0,0,0.06)' },
+        grid: { borderColor: this.main?.is_dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
         dataLabels: { enabled: true, formatter: v => this.fmt(v), style: { fontSize: '11px' } },
         legend: { show: false },
+        theme: { mode: this.main?.is_dark ? 'dark' : 'light' },
       };
     },
     // Corporal chart
@@ -367,15 +369,16 @@ export default {
     },
     corporalChartOptions() {
       return {
-        chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'inherit' },
+        chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'inherit', background: 'transparent' },
         colors: ['#7B1FA2'],
         plotOptions: { bar: { borderRadius: 8, horizontal: false, columnWidth: '60%', distributed: true } },
         xaxis: { categories: this.stats.corporals.map(c => c.name) },
         yaxis: { labels: { formatter: v => this.fmt(v) } },
         tooltip: { y: { formatter: v => this.fmt(v) + ' ' + this.currency } },
-        grid: { borderColor: 'rgba(0,0,0,0.06)' },
+        grid: { borderColor: this.main?.is_dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
         dataLabels: { enabled: true, formatter: v => this.fmt(v), style: { fontSize: '11px' } },
         legend: { show: false },
+        theme: { mode: this.main?.is_dark ? 'dark' : 'light' },
       };
     },
   },
@@ -533,9 +536,14 @@ export default {
 .wfs-year-select { flex-shrink: 0; }
 
 /* KPI Cards */
-.wfs-kpi-card { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid rgba(0,0,0,.06); border-radius: 16px; padding: 16px 18px; transition: box-shadow .2s ease, transform .2s ease; }
-.wfs-kpi-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.06); transform: translateY(-2px); }
+.wfs-kpi-card { display: flex; align-items: center; gap: 14px; background: rgb(var(--v-theme-surface)); border: 1px solid rgba(var(--v-border-color),.12); border-radius: 16px; padding: 16px 18px; transition: box-shadow .2s ease, transform .2s ease; }
+.wfs-kpi-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
 .wfs-kpi-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .wfs-kpi-val { font-size: 18px; font-weight: 800; line-height: 1.2; display: block; }
-.wfs-kpi-lbl { font-size: 12px; color: #666; font-weight: 500; }
+.wfs-kpi-lbl { font-size: 12px; color: rgba(var(--v-theme-on-surface),.7); font-weight: 500; }
+:deep(.v-theme--dark) .wfs-kpi-card,
+.v-theme--dark .wfs-kpi-card {
+  background: #1e222b !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
 </style>

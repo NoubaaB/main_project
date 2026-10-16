@@ -52,10 +52,10 @@
         <table class="lwt-detail-table" ref="mainTable">
           <thead>
             <tr>
-              <th class="text-center" style="width:50px;position:sticky;left:0;z-index:3;background:#F5F5F5"><v-checkbox-btn v-model="selectAll" color="#F9A825" density="compact" hide-details></v-checkbox-btn></th>
+              <th class="text-center" :style="{width:'50px',position:'sticky',left:0,zIndex:3,background:main?.is_dark?'#1c1f28':'#F5F5F5'}"><v-checkbox-btn v-model="selectAll" color="#F9A825" density="compact" hide-details></v-checkbox-btn></th>
               <th v-for="h in headers" :key="h.key"
                 :class="['text-center',{pinned:isPinned(h.key)}]"
-                :style="isPinned(h.key)?{position:'sticky',[pinSide(h.key)]:pinSide(h.key)==='left'?getPinLeft(h.key)+'px':getPinRight(h.key)+'px',zIndex:2,background:'#F5F5F5'}:{}"
+                :style="isPinned(h.key)?{position:'sticky',[pinSide(h.key)]:pinSide(h.key)==='left'?getPinLeft(h.key)+'px':getPinRight(h.key)+'px',zIndex:2,background:main?.is_dark?'#1c1f28':'#F5F5F5'}:{}"
                 :draggable="!h.fixed" @dragstart="onDragStart(h.key)" @dragover="onDragOver(h.key,$event)" @dragend="onDragEnd()"
               >
                 <div class="d-flex align-center justify-center ga-1">
@@ -77,10 +77,10 @@
           <tbody>
             <template v-for="item in colFilteredItems" :key="item.id">
               <tr class="lwt-row" :class="{selected:selected.includes(item.id)}">
-                <td class="text-center" style="position:sticky;left:0;z-index:1;background:#F5F5F5"><v-checkbox-btn v-model="selected" :value="item.id" color="#F9A825" density="compact" hide-details></v-checkbox-btn></td>
+                <td class="text-center" :style="{position:'sticky',left:0,zIndex:1,background:main?.is_dark?'#1c1f28':'#F5F5F5'}"><v-checkbox-btn v-model="selected" :value="item.id" color="#F9A825" density="compact" hide-details></v-checkbox-btn></td>
                 <td v-for="h in headers" :key="h.key" class="text-center"
                   :class="{pinned:isPinned(h.key)}"
-                  :style="isPinned(h.key)?{position:'sticky',[pinSide(h.key)]:pinSide(h.key)==='left'?getPinLeft(h.key)+'px':getPinRight(h.key)+'px',zIndex:1,background:'#F5F5F5'}:{}"
+                  :style="isPinned(h.key)?{position:'sticky',[pinSide(h.key)]:pinSide(h.key)==='left'?getPinLeft(h.key)+'px':getPinRight(h.key)+'px',zIndex:1,background:main?.is_dark?'#1c1f28':'#F5F5F5'}:{}"
                 >
                   <template v-if="h.key==='expand'"><v-btn icon variant="text" size="x-small" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                   <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
@@ -181,4 +181,10 @@ export default {
 .lwt-expand-panel { background: rgba(249,168,37,.03); border-top: 1px dashed rgba(249,168,37,.2); }
 .lwt-sub-table th { font-size: 10px; background: rgba(249,168,37,.06); }
 .pinned { box-shadow: 2px 0 4px rgba(0,0,0,.06); }
+:deep(.v-theme--dark) .pinned,
+.v-theme--dark .pinned {
+  box-shadow: 2px 0 4px rgba(0,0,0,.4);
+  background: #1c1f28 !important;
+  color: #f1f5f9 !important;
+}
 </style>

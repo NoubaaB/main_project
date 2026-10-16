@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app :theme="main.is_dark ? 'dark' : 'light'">
     <!-- snack-bar start -->
     <SnackBar/>
     <!-- snack-bar end -->

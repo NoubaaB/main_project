@@ -318,7 +318,7 @@ export default {
     },
     dashChartOptions() {
       return {
-        chart: { type: 'line', toolbar: { show: true }, zoom: { enabled: true } },
+        chart: { type: 'line', toolbar: { show: true }, zoom: { enabled: true }, background: 'transparent' },
         stroke: { width: [3, 3], curve: 'smooth' },
         colors: ['#5C6BC0', '#EF5350'],
         xaxis: { type: 'category', labels: { rotate: -45, style: { fontSize: '10px' } } },
@@ -328,6 +328,7 @@ export default {
         ],
         tooltip: { shared: true },
         legend: { position: 'top', fontSize: '11px' },
+        theme: { mode: this.main?.is_dark ? 'dark' : 'light' },
       };
     },
     dateFrom() {
@@ -345,7 +346,7 @@ export default {
     // Chart options
     pieOptions() {
       return {
-        chart: { type: 'pie', events: { dataPointSelection: (e, c, cfg) => this.onPieClick(cfg.dataPointIndex) } },
+        chart: { type: 'pie', events: { dataPointSelection: (e, c, cfg) => this.onPieClick(cfg.dataPointIndex) }, background: 'transparent' },
         labels: this.pieLabels,
         colors: this.pieColors.length ? this.pieColors : undefined,
         legend: { position: 'bottom', fontSize: '12px' },
@@ -357,11 +358,12 @@ export default {
           },
         },
         responsive: [{ breakpoint: 480, options: { chart: { width: 320 }, legend: { position: 'bottom' } } }],
+        theme: { mode: this.main?.is_dark ? 'dark' : 'light' },
       };
     },
     lineOptions() {
       return {
-        chart: { type: 'line', toolbar: { show: true }, zoom: { enabled: true } },
+        chart: { type: 'line', toolbar: { show: true }, zoom: { enabled: true }, background: 'transparent' },
         stroke: { width: 3, curve: 'smooth' },
         colors: ['#26A69A'],
         xaxis: { categories: this.lineCategories, labels: { rotate: -45, style: { fontSize: '10px' } } },
@@ -370,6 +372,7 @@ export default {
         ],
         tooltip: { shared: true },
         legend: { position: 'top' },
+        theme: { mode: this.main?.is_dark ? 'dark' : 'light' },
       };
     },
   },

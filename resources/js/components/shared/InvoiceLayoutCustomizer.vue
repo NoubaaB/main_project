@@ -1,6 +1,6 @@
 <template>
   <v-dialog v-model="internalOpen" max-width="1320" width="96vw" scrollable>
-    <v-card class="rounded-xl overflow-hidden invoice-customizer-card d-flex flex-column" style="height: 90vh; max-height: 860px;">
+    <v-card class="rounded-xl overflow-hidden invoice-customizer-card d-flex flex-column" :class="{ 'customizer-dark': isDark, 'customizer-light': !isDark }" :theme="isDark ? 'dark' : 'light'" style="height: 90vh; max-height: 860px;">
       <!-- HERO HEADER -->
       <div class="customizer-hero px-5 py-3 text-white d-flex align-center justify-space-between flex-shrink-0" :style="{ background: heroGradient }">
         <div class="d-flex align-center">
@@ -27,10 +27,10 @@
       <!-- SPLIT MAIN BODY: CONTROLS (LEFT) + LIVE PREVIEW (RIGHT) -->
       <div class="customizer-split-body d-flex flex-column flex-md-row flex-grow-1 overflow-hidden" style="min-height: 0;">
         <!-- LEFT PANE: CONTROLS & PINNED TABS -->
-        <div class="customizer-controls-pane d-flex flex-column" style="width: 490px; min-width: 430px; max-width: 520px; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.1); background: #ffffff; min-height: 0;">
+        <div class="customizer-controls-pane d-flex flex-column" style="width: 490px; min-width: 430px; max-width: 520px; flex-shrink: 0; min-height: 0;">
           <!-- TABS PINNED AT TOP OF CONTROLS (ALWAYS 100% VISIBLE) -->
-          <div class="tabs-pin-bar bg-grey-lighten-5 border-b flex-shrink-0">
-            <v-tabs v-model="tab" density="compact" :color="moduleColor" grow class="customizer-tabs px-1" :show-arrows="false">
+          <div class="tabs-pin-bar border-b flex-shrink-0">
+            <v-tabs v-model="tab" density="compact" :color="themeAccentColor" grow class="customizer-tabs px-1" :show-arrows="false">
               <v-tab value="header" class="text-none font-weight-bold" prepend-icon="mdi-page-layout-header">
                 {{ $t('header_wrap_settings') }}
               </v-tab>
@@ -47,8 +47,8 @@
           <div class="controls-scroll pa-5 overflow-y-auto flex-grow-1" style="min-height: 0;">
         <!-- TAB 1: HEADER WRAP -->
         <div v-show="tab === 'header'">
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: moduleColor }">
-            <v-icon class="mr-2" size="18" :color="moduleColor">mdi-tune-variant</v-icon>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: themeAccentColor }">
+            <v-icon class="mr-2" size="18" :color="themeAccentColor">mdi-tune-variant</v-icon>
             {{ $t('header_size_and_dimensions') }}
           </div>
 
@@ -63,8 +63,8 @@
                 max="5.0"
                 step="0.1"
                 thumb-label
-                :color="moduleColor"
-                track-color="grey-lighten-2"
+                :color="themeAccentColor"
+                :track-color="isDark ? 'grey-darken-3' : 'grey-lighten-2'"
                 @update:model-value="onHeaderDividedSlider"
               >
                 <template #append>
@@ -83,8 +83,8 @@
                 max="1.0"
                 step="0.05"
                 thumb-label
-                :color="moduleColor"
-                track-color="grey-lighten-2"
+                :color="themeAccentColor"
+                :track-color="isDark ? 'grey-darken-3' : 'grey-lighten-2'"
                 @update:model-value="onHeaderStrickSlider"
               >
                 <template #append>
@@ -105,8 +105,8 @@
                 max="10.0"
                 step="0.5"
                 thumb-label
-                :color="moduleColor"
-                track-color="grey-lighten-2"
+                :color="themeAccentColor"
+                :track-color="isDark ? 'grey-darken-3' : 'grey-lighten-2'"
                 @update:model-value="onHeaderLogoSlider"
               >
                 <template #append>
@@ -123,7 +123,7 @@
                 variant="outlined"
                 density="compact"
                 rounded
-                :color="moduleColor"
+                :color="themeAccentColor"
                 hide-details
               ></v-select>
             </v-col>
@@ -138,7 +138,7 @@
                 variant="outlined"
                 density="compact"
                 rounded
-                :color="moduleColor"
+                :color="themeAccentColor"
                 clearable
                 hide-details
               ></v-text-field>
@@ -152,7 +152,7 @@
                 variant="outlined"
                 density="compact"
                 rounded
-                :color="moduleColor"
+                :color="themeAccentColor"
                 hide-details
               ></v-select>
             </v-col>
@@ -161,26 +161,26 @@
           <v-divider class="my-4"></v-divider>
 
           <!-- Colors -->
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: moduleColor }">
-            <v-icon class="mr-2" size="18" :color="moduleColor">mdi-palette-outline</v-icon>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: themeAccentColor }">
+            <v-icon class="mr-2" size="18" :color="themeAccentColor">mdi-palette-outline</v-icon>
             {{ $t('header_colors') }}
           </div>
 
           <!-- Line 1: 2 columns (Primary Color & Secondary Color) -->
           <v-row dense class="mb-2">
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('primary_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('primary_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.header_primary_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.header_primary_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.header_primary_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
 
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('secondary_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('secondary_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.header_secondary_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.header_secondary_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.header_secondary_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
           </v-row>
@@ -188,18 +188,18 @@
           <!-- Line 2: 2 columns (Title Text Color & Title Background Color) -->
           <v-row dense>
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('title_text_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('title_text_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.header_text_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.header_text_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.header_text_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
 
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('title_bg_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('title_bg_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.header_bg_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.header_bg_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.header_bg_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
           </v-row>
@@ -207,8 +207,8 @@
 
         <!-- TAB 2: FOOTER WRAP -->
         <div v-show="tab === 'footer'">
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: moduleColor }">
-            <v-icon class="mr-2" size="18" :color="moduleColor">mdi-tune-variant</v-icon>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: themeAccentColor }">
+            <v-icon class="mr-2" size="18" :color="themeAccentColor">mdi-tune-variant</v-icon>
             {{ $t('footer_size_and_dimensions') }}
           </div>
 
@@ -223,8 +223,8 @@
                 max="5.0"
                 step="0.1"
                 thumb-label
-                :color="moduleColor"
-                track-color="grey-lighten-2"
+                :color="themeAccentColor"
+                :track-color="isDark ? 'grey-darken-3' : 'grey-lighten-2'"
                 @update:model-value="onFooterDividedSlider"
               >
                 <template #append>
@@ -243,8 +243,8 @@
                 max="1.0"
                 step="0.05"
                 thumb-label
-                :color="moduleColor"
-                track-color="grey-lighten-2"
+                :color="themeAccentColor"
+                :track-color="isDark ? 'grey-darken-3' : 'grey-lighten-2'"
                 @update:model-value="onFooterStrickSlider"
               >
                 <template #append>
@@ -263,7 +263,7 @@
                 variant="outlined"
                 density="compact"
                 rounded
-                :color="moduleColor"
+                :color="themeAccentColor"
                 hide-details
               ></v-select>
             </v-col>
@@ -276,7 +276,7 @@
                 variant="outlined"
                 density="compact"
                 rounded
-                :color="moduleColor"
+                :color="themeAccentColor"
                 hide-details
               ></v-select>
             </v-col>
@@ -291,7 +291,7 @@
                 variant="outlined"
                 density="compact"
                 rounded
-                :color="moduleColor"
+                :color="themeAccentColor"
                 clearable
                 hide-details
               ></v-text-field>
@@ -305,7 +305,7 @@
                 variant="outlined"
                 density="compact"
                 rounded
-                :color="moduleColor"
+                :color="themeAccentColor"
                 hide-details
               ></v-select>
             </v-col>
@@ -316,7 +316,7 @@
               <v-switch
                 v-model="form.footer_show_director"
                 :label="$t('show_director_signature_block')"
-                :color="moduleColor"
+                :color="themeAccentColor"
                 inset
                 density="compact"
                 hide-details
@@ -327,26 +327,26 @@
           <v-divider class="my-4"></v-divider>
 
           <!-- Colors -->
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: moduleColor }">
-            <v-icon class="mr-2" size="18" :color="moduleColor">mdi-palette-outline</v-icon>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: themeAccentColor }">
+            <v-icon class="mr-2" size="18" :color="themeAccentColor">mdi-palette-outline</v-icon>
             {{ $t('footer_colors') }}
           </div>
 
           <!-- Line 1: 2 columns (Primary Color & Secondary Color) -->
           <v-row dense class="mb-2">
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('primary_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('primary_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.footer_primary_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.footer_primary_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.footer_primary_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
 
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('secondary_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('secondary_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.footer_secondary_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.footer_secondary_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.footer_secondary_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
           </v-row>
@@ -354,18 +354,18 @@
           <!-- Line 2: 2 columns (Director Text Color & Director Background Color) -->
           <v-row dense>
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('director_text_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('director_text_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.footer_text_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.footer_text_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.footer_text_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
 
             <v-col cols="6">
-              <label class="text-caption font-weight-bold d-block mb-1 text-grey-darken-3">{{ $t('director_bg_color') }}</label>
+              <label class="control-label text-caption font-weight-bold d-block mb-1">{{ $t('director_bg_color') }}</label>
               <div class="d-flex align-center">
                 <input type="color" v-model="form.footer_bg_color" class="color-picker-input mr-2 flex-shrink-0" />
-                <v-text-field v-model="form.footer_bg_color" density="compact" variant="outlined" rounded :color="moduleColor" hide-details></v-text-field>
+                <v-text-field v-model="form.footer_bg_color" density="compact" variant="outlined" rounded :color="themeAccentColor" hide-details></v-text-field>
               </div>
             </v-col>
           </v-row>
@@ -373,8 +373,8 @@
 
         <!-- TAB 3: PRESETS -->
         <div v-show="tab === 'presets'">
-          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: moduleColor }">
-            <v-icon class="mr-2" size="18" :color="moduleColor">mdi-brush</v-icon>
+          <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center" :style="{ color: themeAccentColor }">
+            <v-icon class="mr-2" size="18" :color="themeAccentColor">mdi-brush</v-icon>
             {{ $t('curated_color_palettes') }}
           </div>
           <p class="text-caption text-medium-emphasis mb-3">
@@ -382,23 +382,37 @@
           </p>
 
           <v-row dense>
-            <v-col cols="12" sm="6" v-for="preset in colorPresets" :key="preset.name">
+            <v-col cols="12" sm="6" v-for="preset in colorPresets" :key="preset.nameKey">
               <div
-                class="preset-card pa-3 rounded-lg border d-flex align-center justify-space-between"
+                class="preset-card pa-3 rounded-lg border d-flex align-center justify-space-between cursor-pointer"
+                :class="{
+                  'preset-card-active': isPresetActive(preset) && isClient,
+                  'preset-card-active-supplier': isPresetActive(preset) && !isClient
+                }"
                 @click="applyPreset(preset)"
               >
                 <div class="d-flex align-center">
-                  <div class="preset-swatch mr-3 d-flex overflow-hidden rounded">
+                  <div class="preset-swatch mr-3 d-flex overflow-hidden rounded elevation-1">
                     <div :style="{ background: preset.primary, width: '22px', height: '22px' }"></div>
                     <div :style="{ background: preset.secondary, width: '22px', height: '22px' }"></div>
                   </div>
                   <div>
-                    <div class="text-subtitle-2 font-weight-bold">{{ $t(preset.nameKey) }}</div>
-                    <div class="text-caption text-grey">{{ preset.primary }} / {{ preset.secondary }}</div>
+                    <div class="text-subtitle-2 font-weight-bold d-flex align-center">
+                      {{ $t(preset.nameKey) }}
+                      <v-icon v-if="isPresetActive(preset)" size="14" color="success" class="ml-1">mdi-check-circle</v-icon>
+                    </div>
+                    <div class="text-caption text-medium-emphasis">{{ preset.primary }} / {{ preset.secondary }}</div>
                   </div>
                 </div>
-                <v-btn size="x-small" variant="tonal" rounded :color="moduleColor">
-                  {{ $t('apply') }}
+                <v-btn
+                  size="x-small"
+                  :variant="isPresetActive(preset) ? 'flat' : 'tonal'"
+                  rounded
+                  :color="isPresetActive(preset) ? 'success' : themeAccentColor"
+                  @click.stop="applyPreset(preset)"
+                >
+                  <v-icon v-if="isPresetActive(preset)" size="13" class="mr-1">mdi-check</v-icon>
+                  {{ isPresetActive(preset) ? $t('applied') : $t('apply') }}
                 </v-btn>
               </div>
             </v-col>
@@ -408,20 +422,20 @@
     </div>
 
     <!-- RIGHT PANE: LIVE PREVIEW & VISIBLE NICER TABLE -->
-    <div class="customizer-preview-pane d-flex flex-column flex-grow-1" style="background: #eef2f6; min-width: 0; min-height: 0;">
+    <div class="customizer-preview-pane d-flex flex-column flex-grow-1" style="min-width: 0; min-height: 0;">
           <!-- PREVIEW TOOLBAR -->
-          <div class="preview-toolbar px-4 py-2 bg-white border-b d-flex align-center justify-space-between flex-shrink-0">
+          <div class="preview-toolbar px-4 py-2 border-b d-flex align-center justify-space-between flex-shrink-0">
             <div class="d-flex align-center">
-              <v-icon size="18" class="mr-2" :color="moduleColor">mdi-eye-outline</v-icon>
-              <span class="text-caption font-weight-bold text-uppercase text-medium-emphasis">
+              <v-icon size="18" class="mr-2" :color="themeAccentColor">mdi-eye-outline</v-icon>
+              <span class="text-caption font-weight-bold text-uppercase preview-title-text">
                 {{ $t('live_preview') }}
               </span>
-              <v-chip size="x-small" variant="tonal" :color="moduleColor" class="ml-2 font-weight-bold text-uppercase">
+              <v-chip size="x-small" variant="tonal" :color="themeAccentColor" class="ml-2 font-weight-bold text-uppercase">
                 {{ invoiceType === 'client' ? $t('client_invoice') : $t('supplier_invoice') }}
               </v-chip>
             </div>
             <div class="d-flex align-center ga-2">
-              <v-chip size="x-small" variant="outlined" color="grey-darken-1" class="font-weight-medium">
+              <v-chip size="x-small" variant="outlined" :color="isDark ? 'grey-lighten-1' : 'grey-darken-1'" class="font-weight-medium">
                 {{ form.header_style || 'curved' }} • {{ form.header_divided_height }} / {{ form.footer_divided_height }}
               </v-chip>
             </div>
@@ -429,7 +443,8 @@
 
           <!-- PREVIEW VIEWPORT CANVAS -->
           <div class="preview-canvas-viewport pa-4 overflow-y-auto overflow-x-hidden flex-grow-1 d-flex justify-center" style="min-height: 0;">
-            <div class="invoice-preview-sheet elevation-3 rounded-lg overflow-hidden bg-white mb-2" style="width: 100%; max-width: 740px; align-self: flex-start;">
+            <v-theme-provider theme="light">
+              <div class="invoice-preview-sheet elevation-3 rounded-lg overflow-hidden bg-white mb-2" style="width: 100%; max-width: 740px; align-self: flex-start;">
               <!-- Real Header Wrap -->
               <div class="header-wrap">
                 <v-row no-gutters>
@@ -579,6 +594,7 @@
                 </v-row>
               </div>
             </div>
+            </v-theme-provider>
           </div>
         </div>
       </div>
@@ -586,7 +602,7 @@
       <v-divider></v-divider>
 
       <!-- CARD ACTIONS -->
-      <v-card-actions class="pa-4 bg-grey-lighten-5 d-flex align-center justify-space-between">
+      <v-card-actions class="customizer-actions pa-4 d-flex align-center justify-space-between">
         <v-btn
           variant="text"
           color="error"
@@ -603,7 +619,7 @@
             {{ $t('cancel') }}
           </v-btn>
           <v-btn
-            :style="{ background: moduleColor, color: '#fff' }"
+            :style="{ background: themeAccentColor, color: isDark ? '#121212' : '#fff' }"
             variant="flat"
             rounded
             prepend-icon="mdi-content-save-check"
@@ -619,7 +635,7 @@
 
     <!-- CONFIRM RESET DIALOG -->
     <v-dialog v-model="confirmResetDialog" max-width="420">
-      <v-card class="rounded-xl">
+      <v-card class="rounded-xl" :class="{ 'customizer-dark': isDark }" :theme="isDark ? 'dark' : 'light'">
         <v-card-title class="pa-5 pb-2 d-flex align-center text-error">
           <v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>
           {{ $t('confirm_reset') }}
@@ -642,14 +658,14 @@
       v-model="summarySnackbar.show"
       :timeout="6000"
       location="top right"
-      color="surface"
+      :color="isDark ? '#1e222b' : 'surface'"
       rounded="lg"
       elevation="12"
       min-width="360"
       max-width="420"
       @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
     >
-      <v-progress-linear :model-value="snackbarProgress" :color="moduleColor" height="3" class="mb-2" rounded></v-progress-linear>
+      <v-progress-linear :model-value="snackbarProgress" :color="themeAccentColor" height="3" class="mb-2" rounded></v-progress-linear>
       <div class="d-flex align-center mb-2">
         <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
         <span class="text-subtitle-1 font-weight-bold">{{ summarySnackbar.title }}</span>
@@ -684,6 +700,7 @@
 
 <script>
 import { useInvoiceLayout } from '@/stores/InvoiceLayout';
+import { useMain } from '@/stores/Main';
 import mitt from '@/plugins/mitt';
 
 export default {
@@ -732,6 +749,18 @@ export default {
     };
   },
   computed: {
+    mainStore() {
+      return useMain();
+    },
+    isDark() {
+      return !!(this.mainStore?.is_dark || (this.$vuetify?.theme?.current?.dark ?? false));
+    },
+    themeAccentColor() {
+      if (this.isDark) {
+        return this.isClient ? '#4DD0E1' : '#FFB74D';
+      }
+      return this.moduleColor;
+    },
     styleOptions() {
       return [
         { title: this.$t('style_curved_wave'), value: 'curved' },
@@ -774,6 +803,11 @@ export default {
       return this.isClient ? '#00838F' : '#E65100';
     },
     heroGradient() {
+      if (this.isDark) {
+        return this.isClient
+          ? 'linear-gradient(135deg, #002b2e 0%, #004d40 45%, #006064 100%)'
+          : 'linear-gradient(135deg, #371400 0%, #5d2200 45%, #8c3200 100%)';
+      }
       return this.isClient
         ? 'linear-gradient(135deg, #006064 0%, #00838F 40%, #26C6DA 100%)'
         : 'linear-gradient(135deg, #E65100 0%, #F57C00 40%, #FFB74D 100%)';
@@ -899,6 +933,11 @@ export default {
       this.form.footer_text_color = preset.primary;
       this.syncLiveToStore();
     },
+    isPresetActive(preset) {
+      if (!this.form.header_primary_color || !preset.primary) return false;
+      return this.form.header_primary_color.toUpperCase() === preset.primary.toUpperCase() &&
+             this.form.header_secondary_color?.toUpperCase() === preset.secondary.toUpperCase();
+    },
     syncLiveToStore() {
       // Temporarily reflect in local store for instant live preview behind the dialog
       this.layoutStore.settings[this.invoiceType] = {
@@ -968,11 +1007,14 @@ export default {
   align-items: center;
   justify-content: center;
 }
+.cursor-pointer {
+  cursor: pointer;
+}
 .color-picker-input {
   width: 40px;
   height: 40px;
   min-width: 40px;
-  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  border: 1.5px solid rgba(0, 0, 0, 0.18);
   border-radius: 8px;
   cursor: pointer;
   padding: 2px;
@@ -981,33 +1023,238 @@ export default {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .color-picker-input:hover {
-  border-color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(0, 0, 0, 0.38);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
-.preset-card {
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
+
+/* ════ LIGHT THEME CUSTOMIZER STYLING ════ */
+.invoice-customizer-card.customizer-light {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
 }
-.preset-card:hover {
-  border-color: rgba(var(--v-theme-primary), 0.6) !important;
+.customizer-light .customizer-controls-pane {
+  background-color: #ffffff !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.customizer-light .tabs-pin-bar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.customizer-light .controls-scroll {
+  background-color: #ffffff !important;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+.customizer-light .control-label {
+  color: #374151 !important;
+}
+.customizer-light .preview-toolbar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.customizer-light .preview-title-text {
+  color: #1e293b !important;
+}
+.customizer-light .customizer-preview-pane,
+.customizer-light .preview-canvas-viewport {
+  background-color: #f1f5f9 !important;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+.customizer-light .customizer-actions {
+  background-color: #ffffff !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.customizer-light .preset-card {
+  background-color: #f8fafc !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #1e293b !important;
+}
+.customizer-light .preset-card:hover {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.24) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.customizer-light .preset-card-active {
+  border-color: #006064 !important;
+  box-shadow: 0 0 0 2px rgba(0, 96, 100, 0.3) !important;
+  background-color: #e0f7fa !important;
+}
+.customizer-light .preset-card-active-supplier {
+  border-color: #E65100 !important;
+  box-shadow: 0 0 0 2px rgba(230, 81, 0, 0.3) !important;
+  background-color: #fff3e0 !important;
 }
 
-/* ════ Real Invoice Layout Preview Sheet ════ */
-.live-preview-section {
-  background: #f8fafc;
+/* ════ DARK THEME CUSTOMIZER STYLING ════ */
+.invoice-customizer-card.customizer-dark {
+  background-color: #16181f !important;
+  color: #f1f5f9 !important;
 }
-.invoice-preview-sheet {
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  overflow: hidden;
+.customizer-dark .customizer-controls-pane {
+  background-color: #1c1f28 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.customizer-dark .tabs-pin-bar {
+  background-color: #14161d !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.customizer-dark .controls-scroll {
+  background-color: #1c1f28 !important;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.customizer-dark .control-label {
+  color: #cbd5e1 !important;
+}
+.customizer-dark .color-picker-input {
+  background: #252a36 !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.customizer-dark .color-picker-input:hover {
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.customizer-dark .preview-toolbar {
+  background-color: #14161d !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.customizer-dark .preview-title-text {
+  color: #f1f5f9 !important;
+}
+.customizer-dark .customizer-preview-pane,
+.customizer-dark .preview-canvas-viewport {
+  background-color: #0d0f14 !important;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.customizer-dark .customizer-actions {
+  background-color: #14161d !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.customizer-dark .preset-card {
+  background-color: #232733 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f1f5f9 !important;
+}
+.customizer-dark .preset-card:hover {
+  background-color: #2a2f3e !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.customizer-dark .preset-card-active {
+  border-color: #4DD0E1 !important;
+  box-shadow: 0 0 0 2px rgba(77, 208, 225, 0.4) !important;
+  background-color: #0c2b30 !important;
+}
+.customizer-dark .preset-card-active-supplier {
+  border-color: #FFB74D !important;
+  box-shadow: 0 0 0 2px rgba(255, 183, 77, 0.4) !important;
+  background-color: #381f08 !important;
+}
+
+/* ════ SHARED UI & TABS STYLING ════ */
+.customizer-split-body {
   position: relative;
   width: 100%;
 }
+.customizer-controls-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.tabs-pin-bar {
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.controls-scroll {
+  scrollbar-width: thin;
+}
+.customizer-preview-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.preview-canvas-viewport {
+  scrollbar-width: thin;
+}
+.customizer-tabs :deep(.v-tab) {
+  min-width: unset !important;
+  padding: 0 10px !important;
+  font-size: 11.5px !important;
+  letter-spacing: normal !important;
+}
+.customizer-tabs :deep(.v-btn__prepend) {
+  margin-inline-end: 4px !important;
+}
+.preset-card {
+  transition: all 0.2s ease-in-out;
+}
+
+/* ════ Real Invoice Layout Live Preview Sheet (ALWAYS 100% LIGHT PAPER TEMPLATE) ════ */
+.invoice-preview-sheet {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  position: relative;
+  width: 100%;
+}
+.invoice-preview-sheet .preview-middle-body {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-top: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+.invoice-preview-sheet .preview-meta-grid {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+}
+.invoice-preview-sheet .preview-table-container {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.invoice-preview-sheet .preview-table {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+}
+.invoice-preview-sheet .preview-table th {
+  color: #ffffff !important;
+  letter-spacing: 0.03rem;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+.invoice-preview-sheet .preview-table td {
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+.invoice-preview-sheet .preview-table-row {
+  background-color: #ffffff !important;
+}
+.invoice-preview-sheet .preview-table-row:nth-child(even) {
+  background-color: #f8fafc !important;
+}
+.invoice-preview-sheet .preview-table-row:hover {
+  background-color: #f1f5f9 !important;
+}
+.invoice-preview-sheet .words-pill {
+  background-color: #f8fafc !important;
+}
+.invoice-preview-sheet .text-grey-darken-3,
+.invoice-preview-sheet .text-grey-darken-4 {
+  color: #0f172a !important;
+}
+.invoice-preview-sheet .text-grey-darken-1,
+.invoice-preview-sheet .text-grey-darken-2 {
+  color: #64748b !important;
+}
+
+/* Header & Footer Wrap Dimensions & Clip Paths */
 .header-wrap, .footer-wrap {
   position: relative;
   width: 100%;
@@ -1069,50 +1316,6 @@ export default {
   width: 6cm;
 }
 
-/* Split Layout Styling */
-.customizer-split-body {
-  position: relative;
-  width: 100%;
-}
-.customizer-controls-pane {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-.tabs-pin-bar {
-  z-index: 2;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-.controls-scroll {
-  scrollbar-width: thin;
-}
-.customizer-preview-pane {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-.preview-canvas-viewport {
-  scrollbar-width: thin;
-}
-.preview-table th {
-  letter-spacing: 0.03rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.preview-table td {
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-.preview-table-row:hover {
-  background-color: rgba(0, 0, 0, 0.03) !important;
-}
-.customizer-tabs :deep(.v-tab) {
-  min-width: unset !important;
-  padding: 0 10px !important;
-  font-size: 11.5px !important;
-  letter-spacing: normal !important;
-}
-.customizer-tabs :deep(.v-btn__prepend) {
-  margin-inline-end: 4px !important;
-}
 @media (max-width: 959px) {
   .customizer-split-body {
     flex-direction: column !important;

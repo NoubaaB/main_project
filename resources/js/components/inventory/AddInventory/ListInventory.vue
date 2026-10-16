@@ -152,7 +152,7 @@ export default {
   components: { ...script.components, AuditLogDialog },
   data() { return { ...script.data.call(this), auditLogDialogOpen: false, auditLogRecordId: 0 }; },
   computed:{...script.computed,selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
-  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
+  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths())},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
@@ -171,6 +171,14 @@ export default {
 .li-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
 .li-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
 .li-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+:deep(.v-theme--dark) .li-col-pin,
+:deep(.v-theme--dark) .li-th-pin,
+.v-theme--dark .li-col-pin,
+.v-theme--dark .li-th-pin {
+  background: #1c1f28 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 2px 0 4px -2px rgba(0,0,0,.4) !important;
+}
 .li-th-dragover{background:rgba(109,76,65,.08)!important}
 .li-th-inner{display:flex;align-items:center;justify-content:center;gap:2px}
 .li-th-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.7;cursor:pointer}
@@ -179,6 +187,10 @@ export default {
 .li-row:hover{background:rgba(109,76,65,.04)}
 .li-row-expanded{background:rgba(109,76,65,.06)}
 .li-tfoot td{padding:10px 12px;border-top:2px solid rgba(109,76,65,.2);color:#6D4C41;font-size:14px}
+:deep(.v-theme--dark) .li-tfoot td,
+.v-theme--dark .li-tfoot td {
+  color: #BCAAA4 !important;
+}
 .li-expand-content{padding:12px 24px;background:rgba(var(--v-border-color),.03)}
 .li-detail-group{border:1px solid rgba(var(--v-border-color),.12);border-radius:10px;overflow:hidden}
 .li-detail-group-header{padding:8px 14px;background:rgba(109,76,65,.06);font-size:13px}

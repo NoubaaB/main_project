@@ -191,25 +191,28 @@ export default {
     },
     dailyChartOptions() {
       return {
-        chart: { toolbar: { show: false }, fontFamily: 'Inter', stacked: true },
+        chart: { toolbar: { show: false }, fontFamily: 'Inter', stacked: true, background: 'transparent' },
         xaxis: { categories: (this.stats?.global_daily || []).map(d => d.date), labels: { rotate: -45, style: { fontSize: '10px' } } },
         colors: ['#4CAF50', '#FF9800', '#EF5350'],
         stroke: { curve: 'smooth', width: 2 },
         fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.1 } },
         dataLabels: { enabled: false },
         tooltip: { theme: this.main.is_dark ? 'dark' : 'light' },
-        grid: { borderColor: 'rgba(0,0,0,0.06)' },
+        grid: { borderColor: this.main.is_dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+        theme: { mode: this.main.is_dark ? 'dark' : 'light' },
       };
     },
     moduleSeries() { return (this.stats?.module_breakdown || []).map(m => m.count); },
     moduleChartOptions() {
       return {
+        chart: { background: 'transparent' },
         labels: (this.stats?.module_breakdown || []).map(m => m.auditable_type),
         colors: ['#7C4DFF', '#00BFA5', '#FF6D00', '#2979FF', '#F50057', '#00E676', '#FFD600', '#AA00FF', '#00B8D4', '#C51162'],
         legend: { position: 'bottom', fontSize: '12px' },
         dataLabels: { enabled: true, formatter: (v) => Math.round(v) + '%' },
         tooltip: { theme: this.main.is_dark ? 'dark' : 'light' },
         plotOptions: { pie: { donut: { size: '55%', labels: { show: true, total: { show: true, label: this.$t('total'), fontSize: '14px' } } } } },
+        theme: { mode: this.main.is_dark ? 'dark' : 'light' },
       };
     },
     hourlySeries() {
@@ -219,14 +222,15 @@ export default {
     },
     hourlyChartOptions() {
       return {
-        chart: { toolbar: { show: false }, fontFamily: 'Inter' },
+        chart: { toolbar: { show: false }, fontFamily: 'Inter', background: 'transparent' },
         xaxis: { categories: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`) },
         colors: ['#7C4DFF'],
         plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
         fill: { type: 'gradient', gradient: { shade: 'light', type: 'vertical', opacityFrom: 1, opacityTo: 0.7 } },
         dataLabels: { enabled: false },
         tooltip: { theme: this.main.is_dark ? 'dark' : 'light' },
-        grid: { borderColor: 'rgba(0,0,0,0.06)' },
+        grid: { borderColor: this.main.is_dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+        theme: { mode: this.main.is_dark ? 'dark' : 'light' },
       };
     },
     sparkOpts() {

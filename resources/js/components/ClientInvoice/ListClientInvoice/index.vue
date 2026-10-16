@@ -169,7 +169,7 @@ import script from './script.js';
 export default {
   ...script,
   computed:{...script.computed,selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
-  methods:{...script.methods,colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:'#F5F5F5'};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:'#F5F5F5'};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
+  methods:{...script.methods,colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch||{},headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths())},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
@@ -190,6 +190,14 @@ export default {
 .lc-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
 .lc-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
 .lc-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+:deep(.v-theme--dark) .lc-col-pin,
+:deep(.v-theme--dark) .lc-th-pin,
+.v-theme--dark .lc-col-pin,
+.v-theme--dark .lc-th-pin {
+  background: #1c1f28 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 2px 0 4px -2px rgba(0,0,0,.4) !important;
+}
 .lc-th-dragover{background:rgba(0,131,143,.08)!important}
 .lc-th-inner{display:flex;align-items:center;justify-content:center;gap:2px}
 .lc-th-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.7;cursor:pointer}
@@ -198,6 +206,10 @@ export default {
 .lc-row:hover{background:rgba(0,131,143,.04)}
 .lc-row-expanded{background:rgba(0,131,143,.06)}
 .lc-tfoot td{padding:10px 12px;border-top:2px solid rgba(0,131,143,.2);color:#006064;font-size:14px}
+:deep(.v-theme--dark) .lc-tfoot td,
+.v-theme--dark .lc-tfoot td {
+  color: #4DD0E1 !important;
+}
 .lc-expand-content{padding:12px 24px;background:rgba(var(--v-border-color),.03)}
 .lc-detail-group{border:1px solid rgba(var(--v-border-color),.12);border-radius:10px;overflow:hidden}
 .lc-detail-group-header{padding:8px 14px;background:rgba(0,131,143,.06);font-size:13px}
