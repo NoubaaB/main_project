@@ -61,7 +61,7 @@
                             </h4>
                         </v-col>
                             <v-divider vertical class="mx-0 px-0 my-1" color="light-blue-lighten-1" thickness="2" opacity="1"></v-divider>
-                        <v-col>
+                        <v-col cols="5">
                             <h4>
                                 {{ $t("date") }} :
                                  {{ main.formateDate(supplier_invoice_detail.date) }}
