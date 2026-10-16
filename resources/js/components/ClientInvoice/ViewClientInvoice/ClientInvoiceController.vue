@@ -15,6 +15,21 @@
                         </v-btn>
                     </v-col>
                 </v-row>
+                <v-row class="mt-1">
+                    <v-col cols="12">
+                        <v-btn
+                            rounded
+                            block
+                            variant="tonal"
+                            color="#00838F"
+                            prepend-icon="mdi-palette-swatch-outline"
+                            @click="layoutCustomizerOpen = true"
+                            class="font-weight-bold"
+                        >
+                            {{ $t('customize_invoice_layout') }}
+                        </v-btn>
+                    </v-col>
+                </v-row>
                 <v-divider opacity="0.2" variant="dashed" thickness="2" color="#00838F" class="my-5"></v-divider>
                 <v-row>
                     <v-col>
@@ -184,6 +199,12 @@
                     </v-col>
                 </v-row>
             </v-col>
+
+            <!-- Invoice Layout Customizer Modal -->
+            <InvoiceLayoutCustomizer
+                v-model="layoutCustomizerOpen"
+                invoiceType="client"
+            />
         </v-row>
 </template>
 
@@ -191,11 +212,16 @@
 import { useClientInvoice } from '@/stores/ClientInvoice';
 import print from 'vue3-print-nb'
 import * as XLSX from 'xlsx';
+import InvoiceLayoutCustomizer from '@/components/shared/InvoiceLayoutCustomizer.vue';
 
 export default {
         directives: { print },
+        components: {
+            InvoiceLayoutCustomizer,
+        },
         data() {
             return {
+                layoutCustomizerOpen: false,
                 printInvoice : {
                     id: "invoice",
                     closeCallback : (vue) => {

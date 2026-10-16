@@ -378,6 +378,14 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("company-settings/upload-logo", [App\Http\Controllers\CompanySettingController::class, "uploadLogo"]);
 
         // ═══════════════════════════════════════════
+        //  INVOICE LAYOUT SETTINGS ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("invoice-layout-settings", [App\Http\Controllers\InvoiceLayoutSettingController::class, "index"]);
+        Route::get("invoice-layout-settings/{type}", [App\Http\Controllers\InvoiceLayoutSettingController::class, "show"]);
+        Route::put("invoice-layout-settings/{type}", [App\Http\Controllers\InvoiceLayoutSettingController::class, "update"]);
+        Route::post("invoice-layout-settings/{type}/reset", [App\Http\Controllers\InvoiceLayoutSettingController::class, "reset"]);
+
+        // ═══════════════════════════════════════════
         //  CUSTOM CHART ROUTES
         // ═══════════════════════════════════════════
         Route::get("custom-charts", [App\Http\Controllers\CustomChartController::class, "index"]);

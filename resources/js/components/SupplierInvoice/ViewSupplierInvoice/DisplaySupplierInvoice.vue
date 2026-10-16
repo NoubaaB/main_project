@@ -2,24 +2,37 @@
     <div 
     class="invoice-wrap pa-0 _invoice_page"
     :class="{'border-dashed border-md border-info':is_show}"
+    :style="invoiceWrapCustomStyle"
     >
         <div class="header-wrap">
             <v-row no-gutters>
-                <v-col cols="12" class="bg-light-blue-darken-4 header-wrap-strick">
+                <v-col cols="12" class="header-wrap-strick" :style="{ backgroundColor: layout.header_primary_color || '#01579B', height: layout.header_strick_height || '0.3cm' }">
                 </v-col>
             </v-row>
-            <v-row no-gutters class="header-wrap-divided bg-light-blue-lighten-2 ">
-                <v-col cols="4" class="bg-light-blue-darken-4 text-center-h-v pl-3">
-                    <img class="header-img" :src="'/storage/images/invoice_title.png'"/>
+            <v-row no-gutters class="header-wrap-divided" :style="{ background: headerDividedBg, height: layout.header_divided_height || '3cm' }">
+                <v-col cols="4" class="text-center-h-v pl-3" :style="{ backgroundColor: layout.header_primary_color || '#01579B' }">
+                    <img class="header-img" :style="{ width: layout.header_logo_width || '6cm' }" :src="'/storage/images/invoice_title.png'"/>
                 </v-col>
-                <v-col cols="2" class="bg-light-blue-darken-4 header-cursev-dark">
-                    
-                </v-col>
-                <v-col cols="2" class="bg-white header-cursev-light">
-    
-                </v-col>
-                <v-col cols="*" class="bg-white text-light-blue-darken-4 text-center-h-v invoice-title">
-                    {{ $t('invoice') }}
+                <template v-if="layout.header_style === 'curved' || !layout.header_style">
+                    <v-col cols="2" class="header-cursev-dark" :style="{ backgroundColor: layout.header_primary_color || '#01579B' }"></v-col>
+                    <v-col cols="2" class="header-cursev-light" :style="{ backgroundColor: layout.header_bg_color || '#FFFFFF' }"></v-col>
+                </template>
+                <template v-else-if="layout.header_style === 'slant'">
+                    <v-col cols="3" class="header-slant-dark" :style="{ backgroundColor: layout.header_primary_color || '#01579B' }"></v-col>
+                    <v-col cols="1" class="header-slant-light" :style="{ backgroundColor: layout.header_bg_color || '#FFFFFF' }"></v-col>
+                </template>
+                <template v-else-if="layout.header_style === 'straight'">
+                    <v-col cols="auto" style="width: 14px; background: rgba(0,0,0,0.12);"></v-col>
+                </template>
+                <template v-else-if="layout.header_style === 'rounded'">
+                    <v-col cols="2" style="border-top-right-radius: 40px; border-bottom-right-radius: 40px;" :style="{ backgroundColor: layout.header_primary_color || '#01579B' }"></v-col>
+                    <v-col cols="1"></v-col>
+                </template>
+                <template v-else-if="layout.header_style === 'minimal'">
+                    <v-col cols="auto" style="width: 4px; background: rgba(0,0,0,0.08);"></v-col>
+                </template>
+                <v-col cols="*" class="text-center-h-v invoice-title" :style="{ backgroundColor: layout.header_bg_color || '#FFFFFF', color: layout.header_text_color || '#01579B', fontSize: layoutTitleFontSize }">
+                    {{ layout.header_title_text || $t('invoice') }}
                 </v-col>
             </v-row>
         </div>
@@ -29,8 +42,8 @@
             <v-row no-gutters>
                 <v-col>
                     <v-row >
-                        <v-col class="text-center text-light-blue-darken-4 d-flex">
-                            <div class="ml-5 bg-light-blue-darken-4 chevron" v-for="n in 10" :key="n" ></div>
+                        <v-col class="text-center d-flex" :style="{ color: invoicePrimaryColor }">
+                            <div class="ml-5 chevron" :style="{ backgroundColor: invoicePrimaryColor }" v-for="n in 10" :key="n" ></div>
                         </v-col>
                     </v-row>
                     <v-row >
@@ -53,14 +66,14 @@
                     </v-row>
                 </v-col>
                 <v-col >
-                    <v-row  class="text-center-h-v text-center bg-light-blue-lighten-2 rounded-s-xl">
+                    <v-row  class="text-center-h-v text-center rounded-s-xl text-white" :style="{ backgroundColor: invoiceSecondaryColor }">
                         <v-col>
                             <h4>
                                 {{$t('invoice_n°') }}:
                                  {{ supplier_invoice_detail.tracking_numbers }}
                             </h4>
                         </v-col>
-                            <v-divider vertical class="mx-0 px-0 my-1" color="light-blue-lighten-1" thickness="2" opacity="1"></v-divider>
+                            <v-divider vertical class="mx-0 px-0 my-1" :style="{ borderColor: 'rgba(255,255,255,0.4) !important' }" thickness="2" opacity="1"></v-divider>
                         <v-col cols="5">
                             <h4>
                                 {{ $t("date") }} :
@@ -69,12 +82,12 @@
                         </v-col>
                     </v-row>
                     <v-row >
-                        <v-col class="text-center text-light-blue-darken-4 d-flex ">
+                        <v-col class="text-center d-flex" :style="{ color: invoicePrimaryColor }">
                             <div cols="1" class="text-center ml-3" v-if="supplierInvoice.allow_qr_code">
                                 <div class="corner-only" v-html="qr_code_generate">
                                 </div>
                             </div>
-                            <div v-else class="bg-light-blue-lighten-2 sparkle" v-for="n in 13" :key="n" ></div>
+                            <div v-else class="sparkle" :style="{ backgroundColor: invoiceSecondaryColor }" v-for="n in 13" :key="n" ></div>
                         </v-col>
                     </v-row>
                 </v-col>
@@ -83,14 +96,14 @@
         </div>
         <!-- TITLE -->
         
-        <div class="content-wrap">
+        <div class="content-wrap" :style="contentWrapCustomStyle">
             <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="supplierInvoice.allow_bg_image"/>
             <!-- START: Invoice table -->
             <div class="invoice-table-wrap mt-0 pt-0">
                 <div class="table-scroll">
                     <table class="invoice-table" role="table">
                         <thead>
-                            <tr role="row" class="bg-light-blue-darken-4">
+                            <tr role="row" class="text-white" :style="{ backgroundColor: invoicePrimaryColor }">
                             <th
                                 v-for="(h, idx) in displayedHeaders"
                                 :key="h.key"
@@ -153,15 +166,15 @@
             no-gutters
             v-if="allow_summary"
             >
-                <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-75 border-info text-blue text-center">
+                <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-75 text-center" :style="{ borderColor: invoicePrimaryColor + '80 !important' }">
                     <v-row >
-                        <v-col class="text-light-blue-lighten-1 numeric-font">
+                        <v-col class="numeric-font" :style="{ color: invoicePrimaryColor, opacity: 0.85 }">
                             {{ $t("present invoice") }} :
                         </v-col>
                     </v-row>
-                    <v-divider opacity="0.5" variant="dashed" thickness="1"></v-divider>
+                    <v-divider opacity="0.5" variant="dashed" thickness="1" :style="{ borderColor: invoicePrimaryColor + '40 !important' }"></v-divider>
                     <v-row>
-                        <v-col class="text-light-blue-darken-4 numeric-font">
+                        <v-col class="numeric-font font-weight-bold" :style="{ color: invoicePrimaryColor }">
                             {{convertSumPriceToWord}}
                         </v-col>
                     </v-row>
@@ -170,7 +183,7 @@
                     <v-row class="ma-1">
                         <v-col>
                             <v-row class="text-center">
-                                <v-col class="bg-light-blue-darken-4 rounded-ts-lg py-0 pr-0 pl-2 text-center">
+                                <v-col class="rounded-ts-lg py-0 pr-0 pl-2 text-center text-white font-weight-bold" :style="{ backgroundColor: invoicePrimaryColor }">
                                     <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_price") }} :</div>
                                 </v-col>
                                 <v-col class="bg-light-blue-lighten-5 rounded-te-lg py-0 pl-0 pr-2 text-left pl-5">
@@ -179,11 +192,11 @@
                             </v-row>
                             <v-row>
                                 <v-col class="px-0 py-1">
-                                    <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2"></v-divider>
+                                    <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2" :style="{ borderColor: invoiceSecondaryColor + '80 !important' }"></v-divider>
                                 </v-col>
                             </v-row>
                             <v-row class="text-center">
-                                <v-col class="bg-light-blue-lighten-2 rounded-bs-lg py-0 pr-0 pl-2 text-center text-white">
+                                <v-col class="rounded-bs-lg py-0 pr-0 pl-2 text-center text-white font-weight-bold" :style="{ backgroundColor: invoiceSecondaryColor }">
                                     <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
                                 </v-col>
                                 <v-col class="bg-light-blue-lighten-5 rounded-be-lg py-0 pl-0 pr-2 text-left pl-5">
@@ -206,27 +219,36 @@
 
         <!-- FOOTER -->
         <div class="footer-wrap">
-            <v-row no-gutters class="footer-wrap-divided bg-light-blue-lighten-2">
-                <v-col cols="4" class="bg-white text-light-blue-darken-4 text-center px-8 invoice-director">
-                    <div class="mb-2">
-                        {{ $t("director") }}
+            <v-row no-gutters class="footer-wrap-divided" :style="{ background: footerDividedBg, height: layout.footer_divided_height || '3cm' }">
+                <v-col v-if="layout.footer_show_director !== false" cols="4" class="text-center px-8 invoice-director" :style="{ backgroundColor: layout.footer_bg_color || '#FFFFFF', color: layout.footer_text_color || '#01579B' }">
+                    <div class="mb-2" :style="{ fontSize: layoutDirectorFontSize }">
+                        {{ layout.footer_director_title || $t("director") }}
                     </div>
-                    <v-divider opacity=".7" thickness="2" class="mb-8 text-light-blue-darken-4"></v-divider>
-                    <v-divider opacity=".5" thickness="2" variant="dashed" class="text-light-blue-lighten-2 mx-5"></v-divider>
+                    <v-divider opacity=".7" thickness="2" class="mb-8" :style="{ borderColor: (layout.footer_primary_color || '#01579B') + ' !important' }"></v-divider>
+                    <v-divider v-if="layout.footer_line_style !== 'none'" opacity=".5" thickness="2" :variant="layout.footer_line_style || 'dashed'" class="mx-5" :style="{ borderColor: (layout.footer_secondary_color || '#4FC3F7') + ' !important' }"></v-divider>
                 </v-col>
-                <v-col cols="2" class="bg-white footer-cursev-light">
-    
-                </v-col>
-                <v-col cols="2" class="bg-light-blue-darken-4 footer-cursev-dark">
-                    
-                </v-col>
-                <v-col cols="4" class="bg-light-blue-darken-4">
-    
-                </v-col>
+                <template v-if="layout.footer_style === 'curved' || !layout.footer_style">
+                    <v-col cols="2" class="footer-cursev-light" :style="{ backgroundColor: layout.footer_bg_color || '#FFFFFF' }"></v-col>
+                    <v-col cols="2" class="footer-cursev-dark" :style="{ backgroundColor: layout.footer_primary_color || '#01579B' }"></v-col>
+                </template>
+                <template v-else-if="layout.footer_style === 'slant'">
+                    <v-col cols="1" class="footer-slant-light" :style="{ backgroundColor: layout.footer_bg_color || '#FFFFFF' }"></v-col>
+                    <v-col cols="3" class="footer-slant-dark" :style="{ backgroundColor: layout.footer_primary_color || '#01579B' }"></v-col>
+                </template>
+                <template v-else-if="layout.footer_style === 'straight'">
+                    <v-col cols="auto" style="width: 14px; background: rgba(0,0,0,0.12);"></v-col>
+                </template>
+                <template v-else-if="layout.footer_style === 'rounded'">
+                    <v-col cols="1"></v-col>
+                    <v-col cols="2" style="border-top-left-radius: 40px; border-bottom-left-radius: 40px;" :style="{ backgroundColor: layout.footer_primary_color || '#01579B' }"></v-col>
+                </template>
+                <template v-else-if="layout.footer_style === 'minimal'">
+                    <v-col cols="auto" style="width: 4px; background: rgba(0,0,0,0.08);"></v-col>
+                </template>
+                <v-col cols="*" :style="{ backgroundColor: layout.footer_primary_color || '#01579B' }"></v-col>
             </v-row>
             <v-row no-gutters>
-                <v-col cols="12" class="bg-light-blue-darken-4 footer-wrap-strick">
-    
+                <v-col cols="12" class="footer-wrap-strick" :style="{ backgroundColor: layout.footer_primary_color || '#01579B', height: layout.footer_strick_height || '0.3cm' }">
                 </v-col>
             </v-row>
         </div>
@@ -239,6 +261,7 @@
     import { useSupplierInvoice } from '@/stores/SupplierInvoice';
     import writtenNumber from 'written-number';
     import { QRCodeSVG } from '@cheprasov/qrcode';
+    import { useInvoiceLayout } from '@/stores/InvoiceLayout';
 
     export default {
         props:{
@@ -278,6 +301,7 @@
             }
         },
         mounted() {
+            this.invoiceLayout.initSync();
             // initialize widths/order on mount
             if (typeof this.initColumns === 'function') this.initColumns();
             // defensive global mouseup (stops drag/resizing if mouse released outside)
@@ -297,6 +321,71 @@
             truck: () => useTruck(),
             main: () => useMain(),
             supplierInvoice: () => useSupplierInvoice(),
+            invoiceLayout: () => useInvoiceLayout(),
+            layout: function () {
+                return this.invoiceLayout.getLayout('supplier');
+            },
+            invoicePrimaryColor: function () {
+                return this.layout.header_primary_color || '#01579B';
+            },
+            invoiceSecondaryColor: function () {
+                return this.layout.header_secondary_color || '#4FC3F7';
+            },
+            invoiceWrapCustomStyle: function () {
+                const l = this.layout;
+                return {
+                    '--header-wrap-divided-height': l.header_divided_height || '3cm',
+                    '--header-wrap-strick-height': l.header_strick_height || '0.3cm',
+                    '--footer-wrap-divided-height': l.footer_divided_height || '3cm',
+                    '--footer-wrap-strick-height': l.footer_strick_height || '0.3cm',
+                    '--invoice-primary-color': this.invoicePrimaryColor,
+                    '--invoice-secondary-color': this.invoiceSecondaryColor,
+                };
+            },
+            contentWrapCustomStyle: function () {
+                const l = this.layout;
+                const hD = l.header_divided_height || '3cm';
+                const hS = l.header_strick_height || '0.3cm';
+                const fD = l.footer_divided_height || '3cm';
+                const fS = l.footer_strick_height || '0.3cm';
+                return {
+                    height: `calc(var(--invoice-height) - (${hD}) - (${fD}) - (${hS}) - (${fS}) - var(--title-wrap-height) - var(--title-wrap-margin-top-height))`,
+                    position: 'relative',
+                };
+            },
+            headerDividedBg: function () {
+                const l = this.layout;
+                if (l.header_style === 'gradient') {
+                    return `linear-gradient(135deg, ${l.header_primary_color || '#01579B'} 0%, ${l.header_secondary_color || '#4FC3F7'} 100%)`;
+                }
+                return l.header_secondary_color || '#4FC3F7';
+            },
+            footerDividedBg: function () {
+                const l = this.layout;
+                if (l.footer_style === 'gradient') {
+                    return `linear-gradient(135deg, ${l.footer_primary_color || '#01579B'} 0%, ${l.footer_secondary_color || '#4FC3F7'} 100%)`;
+                }
+                return l.footer_secondary_color || '#4FC3F7';
+            },
+            layoutTitleFontSize: function () {
+                const map = {
+                    'medium': '1.5rem',
+                    'large': '2rem',
+                    'x-large': '2.4rem',
+                    'xx-large': '3rem',
+                    'xxx-large': 'xxx-large',
+                };
+                return map[this.layout.header_title_size] || this.layout.header_title_size || 'xxx-large';
+            },
+            layoutDirectorFontSize: function () {
+                const map = {
+                    'medium': '1.1rem',
+                    'large': '1.3rem',
+                    'x-large': 'x-large',
+                    'xx-large': '1.8rem',
+                };
+                return map[this.layout.footer_director_size] || this.layout.footer_director_size || 'x-large';
+            },
             is_show: function () {
                 return this.supplierInvoice.is_show;
             },
@@ -540,6 +629,18 @@
     }
     .header-cursev-light{
         clip-path: polygon(115% 108%, 26% 101% , -9% 119.38%, 77% 120.35%, -0.5% 100.27%, 4% 99.15%, 4.5% 98.97%, 5% 98.74%, 6% 98.47%, 7% 98.14%, 8% 97.76%, 9.00% 97.34%, 10.00% 96.87%, 11.00% 96.35%, 12.00% 95.78%, 13.00% 95.16%, 14.00% 94.50%, 15.00% 93.79%, 16.00% 93.04%, 17.00% 92.24%, 18.00% 91.40%, 19.00% 90.51%, 20.00% 89.59%, 21.00% 88.62%, 22.00% 87.61%, 23.00% 86.57%, 24.00% 85.48%, 25.00% 84.36%, 26.00% 83.21%, 27.00% 82.02%, 28.00% 80.79%, 29.00% 79.54%, 30.00% 78.25%, 31.00% 76.93%, 32.00% 75.59%, 33.00% 74.21%, 34.00% 72.81%, 35.00% 71.39%, 36.00% 69.95%, 37.00% 68.48%, 38.00% 66.99%, 39.00% 65.49%, 40.00% 63.96%, 41.00% 62.42%, 42.00% 60.87%, 43.00% 59.30%, 44.00% 57.73%, 45.00% 56.14%, 46.00% 54.55%, 47.00% 52.95%, 48.00% 51.34%, 49.00% 49.73%, 50.00% 48.12%, 51.00% 46.52%, 52.00% 44.91%, 53.00% 43.30%, 54.00% 41.70%, 55.00% 40.11%, 56.00% 38.52%, 57.00% 36.95%, 58.00% 35.38%, 59.00% 33.83%, 60.00% 32.29%, 61.00% 30.76%, 62.00% 29.26%, 63.00% 27.77%, 64.00% 26.30%, 65.00% 24.86%, 66.00% 23.44%, 67.00% 22.04%, 68.00% 20.66%, 69.00% 19.32%, 70.00% 18.00%, 71.00% 16.71%, 72.00% 15.46%, 73.00% 14.23%, 74.00% 13.04%, 75.00% 11.89%, 76.00% 10.77%, 77.00% 9.68%, 78.00% 8.64%, 79.00% 7.63%, 80.00% 6.66%, 81.00% 5.74%, 82.00% 4.85%, 83.00% 4.01%, 84.00% 3.21%, 85.00% 2.46%, 86.00% 1.75%, 87.00% 1.09%, 88.00% 0.47%, 89.00% -0.10%, 90.00% -0.62%, 91.00% -1.09%, 92.00% -1.51%, 93.00% -1.89%, 94.00% -2.22%, 95.00% -2.49%, 96.00% -2.72%, 97.00% -2.90%, 98.00% -3.02%, 99.00% -3.10%, 100.00% -3.13%);
+    }
+    .header-slant-dark{
+        clip-path: polygon(0 0, 100% 0, 45% 100%, 0 100%);
+    }
+    .header-slant-light{
+        clip-path: polygon(45% 0, 100% 0, 100% 100%, 0 100%);
+    }
+    .footer-slant-light{
+        clip-path: polygon(0 0, 100% 0, 55% 100%, 0 100%);
+    }
+    .footer-slant-dark{
+        clip-path: polygon(55% 0, 100% 0, 100% 100%, 0 100%);
     }
     .header-img{
         width: 6cm;
