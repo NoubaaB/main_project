@@ -3,35 +3,83 @@
     <!-- Hero Header -->
     <div class="fnm-hero">
       <div class="fnm-hero-inner">
-        <div class="d-flex align-center ga-4">
-          <div class="fnm-hero-icon">
-            <v-icon size="28" color="white">mdi-calendar-month</v-icon>
+        <div class="d-flex flex-wrap align-center justify-space-between ga-3">
+          <div class="d-flex align-center ga-4">
+            <div class="fnm-hero-icon">
+              <v-icon size="28" color="white">mdi-calendar-month</v-icon>
+            </div>
+            <div>
+              <div class="fnm-hero-title">{{ $t('fortnight_management') }}</div>
+              <div class="text-white text-caption" style="opacity:.85">{{ $t('manage_fortnight_desc') }}</div>
+            </div>
           </div>
-          <div>
-            <div class="fnm-hero-title">{{ $t('fortnight_management') }}</div>
-            <div class="text-white text-caption" style="opacity:.7">{{ $t('manage_fortnight_desc') }}</div>
+
+          <!-- Hero Right: Quick Stats & View Switcher -->
+          <div class="d-flex flex-wrap align-center ga-3">
+            <div class="fnm-hero-stat d-none d-sm-flex align-center ga-2">
+              <v-icon size="16" color="white">mdi-account-group</v-icon>
+              <span class="text-caption font-weight-medium">{{ (breakdownData.workforces || []).length }} {{ $t('workforces') }}</span>
+            </div>
+            <div class="fnm-hero-stat d-none d-sm-flex align-center ga-2">
+              <v-icon size="16" color="white">mdi-cash-multiple</v-icon>
+              <span class="text-caption font-weight-bold">{{ formatNumber(summary.month_total) }} {{ main.currency || 'DH' }}</span>
+            </div>
+
+            <!-- View Switcher -->
+            <v-btn-toggle
+              v-model="viewMode"
+              mandatory
+              density="compact"
+              rounded="pill"
+              class="fnm-hero-toggle"
+            >
+              <v-btn value="all" size="small" prepend-icon="mdi-view-dashboard-outline">
+                {{ $t('all_views') }}
+              </v-btn>
+              <v-btn value="calendar" size="small" prepend-icon="mdi-calendar-month-outline">
+                {{ $t('calendar_and_entry') }}
+              </v-btn>
+              <v-btn value="breakdown" size="small" prepend-icon="mdi-chart-box-outline">
+                {{ $t('activity_breakdown') }}
+              </v-btn>
+            </v-btn-toggle>
           </div>
         </div>
       </div>
     </div>
 
     <v-card-text class="pa-4">
-      <v-row>
+      <v-row v-show="viewMode === 'all' || viewMode === 'calendar'">
         <!-- ============= LEFT PANEL ============= -->
         <v-col cols="12" md="3">
-          <v-card variant="outlined" class="rounded-xl pa-4" color="info">
-            <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
-              <v-icon color="info" class="mr-2" size="20">mdi-information-outline</v-icon>
-              {{ $t('information') }}
+          <v-card elevation="0" class="rounded-2xl border pa-4 fnm-panel-card bg-surface">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="d-flex align-center ga-2">
+                <div class="fnm-panel-icon-wrap">
+                  <v-icon color="#42A5F5" size="18">mdi-calendar-edit</v-icon>
+                </div>
+                <div>
+                  <div class="text-subtitle-2 font-weight-bold">{{ $t('activity_entry') }}</div>
+                  <div class="text-caption text-medium-emphasis">{{ $t('daily_workforce_entry') }}</div>
+                </div>
+              </div>
+              <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-medium">
+                {{ selectedWorkforceIds.length }} {{ $t('total_selected') }}
+              </v-chip>
             </div>
 
-            <!-- Date display -->
-            <div class="mb-3">
-              <div class="text-caption text-grey">{{ $t('date') }}</div>
+            <!-- Date capsule -->
+            <div class="fnm-date-capsule mb-3 pa-2 rounded-xl border d-flex align-center justify-space-between">
               <div class="d-flex align-center ga-2">
-                <v-icon size="18" color="info">mdi-calendar</v-icon>
-                <span class="font-weight-bold">{{ formattedDate }}</span>
+                <v-avatar size="32" color="#42A5F5" class="text-white">
+                  <v-icon size="16">mdi-calendar</v-icon>
+                </v-avatar>
+                <div>
+                  <div class="text-caption text-medium-emphasis">{{ $t('date') }}</div>
+                  <div class="font-weight-bold text-body-2">{{ formattedDate }}</div>
+                </div>
               </div>
+              <v-btn size="x-small" variant="text" color="#42A5F5" rounded @click="goToday">{{ $t('today') }}</v-btn>
             </div>
 
             <!-- Workforce selector -->
@@ -45,28 +93,33 @@
               density="compact"
               variant="outlined"
               rounded
-              color="info"
-              class="text-info mb-3"
+              color="#42A5F5"
+              class="text-workforce mb-3"
               clearable
               multiple
               chips
               closable-chips
+              prepend-inner-icon="mdi-account-hard-hat"
               @update:model-value="onWorkforceChange"
             >
               <template #chip="{ item, props }">
-                <v-chip v-bind="props" size="small" color="info" variant="tonal" closable>{{ item.title }}</v-chip>
+                <v-chip v-bind="props" size="small" color="#42A5F5" variant="tonal" closable>{{ item.title }}</v-chip>
               </template>
               <template #item="{ item, props }">
-                <v-list-item v-bind="props">
+                <v-list-item v-bind="props" class="rounded-lg my-1">
                   <template #prepend>
+                    <div class="fnm-avatar-circle mr-2">
+                      {{ getWorkforceInitials(item.raw) }}
+                    </div>
                     <v-checkbox-btn
                       :model-value="selectedWorkforceIds.includes(item.value)"
-                      color="info"
+                      color="#42A5F5"
                       density="compact"
                       class="mr-1"
                     ></v-checkbox-btn>
                   </template>
-                  <v-list-item-subtitle>{{ item.raw.matricule }}</v-list-item-subtitle>
+                  <v-list-item-title class="font-weight-medium">{{ item.raw.full_name }}</v-list-item-title>
+                  <v-list-item-subtitle class="text-caption text-medium-emphasis">{{ item.raw.matricule }}</v-list-item-subtitle>
                 </v-list-item>
               </template>
             </v-autocomplete>
@@ -81,8 +134,8 @@
               density="compact"
               variant="outlined"
               rounded
-              color="info"
-              class="text-info mb-3"
+              color="#42A5F5"
+              class="text-workforce mb-3"
               clearable
               prepend-inner-icon="mdi-sitemap-outline"
               @update:model-value="onSectionChange"
@@ -99,8 +152,8 @@
               density="compact"
               variant="outlined"
               rounded
-              color="info"
-              class="text-info mb-3"
+              color="#42A5F5"
+              class="text-workforce mb-3"
               clearable
               prepend-inner-icon="mdi-account-tie"
               @update:model-value="onCorporalChange"
@@ -114,12 +167,13 @@
               density="compact"
               variant="outlined"
               rounded
-              color="info"
-              class="text-info mb-3"
+              color="#42A5F5"
+              class="text-workforce mb-3"
               type="number"
               min="0"
               step="0.01"
               :prefix="'Dh'"
+              prepend-inner-icon="mdi-cash"
               :readonly="priceReadonly"
             ></v-text-field>
 
@@ -150,9 +204,11 @@
             <!-- Submit button -->
             <v-btn
               block
-              color="info"
+              color="#42A5F5"
               variant="flat"
               rounded
+              class="text-white font-weight-bold fnm-btn-primary mb-2"
+              elevation="2"
               :disabled="!canSubmitActivity"
               :loading="submitting"
               @click="submitActivity"
@@ -167,7 +223,7 @@
               color="error"
               variant="outlined"
               rounded
-              class="mt-2"
+              class="fnm-btn-delete"
               :disabled="!canDeleteActivities"
               :loading="deleting"
               @click="bulkDeleteActivities"
@@ -178,64 +234,76 @@
 
             <v-divider class="my-4"></v-divider>
 
-            <!-- ============= SUMMARY ============= -->
+            <!-- ============= SUMMARY KPI CARDS ============= -->
             <!-- 1st Fortnight -->
-            <div class="fnm-summary-block mb-3">
-              <div class="text-subtitle-2 font-weight-bold">{{ $t('first_fortnight') }}</div>
-              <div class="d-flex justify-space-between align-center mt-1">
-                <div class="text-caption text-grey">{{ $t('fortnight_amount') }}</div>
-                <div class="font-weight-bold text-info">Dh {{ formatNumber(summary.first_fortnight.total) }}</div>
-              </div>
-              <div class="d-flex justify-space-between align-center">
-                <div class="text-caption text-grey">{{ $t('working_days') }}</div>
+            <div class="fnm-kpi-card mb-3 pa-3 rounded-xl border">
+              <div class="d-flex align-center justify-space-between mb-1">
                 <div class="d-flex align-center ga-1">
-                  <v-icon size="14">mdi-calendar-check</v-icon>
-                  <span>{{ summary.first_fortnight.working_days }}</span>
+                  <v-icon size="16" color="#42A5F5">mdi-numeric-1-circle</v-icon>
+                  <span class="text-caption font-weight-bold">{{ $t('first_fortnight') }}</span>
                 </div>
+                <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-medium">
+                  <v-icon start size="10">mdi-calendar-check</v-icon>
+                  {{ summary.first_fortnight.working_days }} {{ $t('days') }}
+                </v-chip>
+              </div>
+              <div class="text-h6 font-weight-bold text-workforce fnm-currency-num">
+                Dh {{ formatNumber(summary.first_fortnight.total) }}
               </div>
             </div>
 
             <!-- 2nd Fortnight -->
-            <div class="fnm-summary-block mb-3">
-              <div class="text-subtitle-2 font-weight-bold">{{ $t('second_fortnight') }}</div>
-              <div class="d-flex justify-space-between align-center mt-1">
-                <div class="text-caption text-grey">{{ $t('fortnight_amount') }}</div>
-                <div class="font-weight-bold text-info">Dh {{ formatNumber(summary.second_fortnight.total) }}</div>
-              </div>
-              <div class="d-flex justify-space-between align-center">
-                <div class="text-caption text-grey">{{ $t('working_days') }}</div>
+            <div class="fnm-kpi-card mb-3 pa-3 rounded-xl border">
+              <div class="d-flex align-center justify-space-between mb-1">
                 <div class="d-flex align-center ga-1">
-                  <v-icon size="14">mdi-calendar-check</v-icon>
-                  <span>{{ summary.second_fortnight.working_days }}</span>
+                  <v-icon size="16" color="#42A5F5">mdi-numeric-2-circle</v-icon>
+                  <span class="text-caption font-weight-bold">{{ $t('second_fortnight') }}</span>
                 </div>
+                <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-medium">
+                  <v-icon start size="10">mdi-calendar-check</v-icon>
+                  {{ summary.second_fortnight.working_days }} {{ $t('days') }}
+                </v-chip>
+              </div>
+              <div class="text-h6 font-weight-bold text-workforce fnm-currency-num">
+                Dh {{ formatNumber(summary.second_fortnight.total) }}
               </div>
             </div>
 
             <!-- Month Total -->
-            <div class="fnm-summary-total pa-3 rounded-lg">
-              <div class="text-subtitle-2 font-weight-bold">{{ $t('total_month_amount') }} {{ monthNames[currentMonth] }}</div>
-              <div class="text-h6 font-weight-bold text-info mt-1">Dh {{ formatNumber(summary.month_total) }}</div>
+            <div class="fnm-kpi-card-total pa-3 rounded-xl border">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <div class="d-flex align-center ga-1">
+                  <v-icon size="16" color="#1565C0">mdi-sigma</v-icon>
+                  <span class="text-caption font-weight-bold text-medium-emphasis">{{ $t('total_month_amount') }} {{ monthNames[currentMonth] }}</span>
+                </div>
+              </div>
+              <div class="text-h6 font-weight-black text-primary fnm-currency-num">
+                Dh {{ formatNumber(summary.month_total) }}
+              </div>
             </div>
           </v-card>
         </v-col>
 
         <!-- ============= RIGHT PANEL - CALENDAR ============= -->
         <v-col cols="12" md="9">
-          <v-card variant="outlined" class="rounded-xl" color="info">
+          <v-card elevation="0" class="rounded-2xl border fnm-cal-card bg-surface">
             <!-- Calendar Header -->
             <div class="fnm-cal-header">
               <div class="d-flex align-center ga-2">
-                <v-btn icon size="small" variant="text" @click="prevMonth"><v-icon>mdi-chevron-left</v-icon></v-btn>
-                <v-btn variant="tonal" color="info" size="small" rounded @click="goToday">{{ $t('today') }}</v-btn>
-                <v-btn icon size="small" variant="text" @click="nextMonth"><v-icon>mdi-chevron-right</v-icon></v-btn>
+                <v-btn icon size="small" variant="tonal" rounded @click="prevMonth"><v-icon size="18">mdi-chevron-left</v-icon></v-btn>
+                <v-btn variant="tonal" color="#42A5F5" size="small" rounded class="font-weight-medium" @click="goToday">{{ $t('today') }}</v-btn>
+                <v-btn icon size="small" variant="tonal" rounded @click="nextMonth"><v-icon size="18">mdi-chevron-right</v-icon></v-btn>
               </div>
-              <div class="fnm-cal-title">
-                {{ monthNames[currentMonth] }} {{ currentYear }} | {{ currentHalf === 1 ? $t('first_fortnight') : $t('second_fortnight') }}
+              <div class="fnm-cal-title d-flex align-center ga-2">
+                <span>{{ monthNames[currentMonth] }} {{ currentYear }}</span>
+                <v-chip size="small" color="#42A5F5" variant="flat" class="text-white font-weight-bold">
+                  {{ currentHalf === 1 ? 'Q1: ' + $t('first_fortnight') : 'Q2: ' + $t('second_fortnight') }}
+                </v-chip>
               </div>
-              <div class="d-flex align-center ga-1">
+              <div class="d-flex align-center ga-2">
                 <v-btn
                   :variant="multiSelectMode ? 'flat' : 'outlined'"
-                  :color="multiSelectMode ? 'warning' : 'info'"
+                  :color="multiSelectMode ? 'warning' : '#42A5F5'"
                   size="small"
                   rounded
                   @click="toggleMultiSelect"
@@ -243,7 +311,7 @@
                 >
                   {{ multiSelectMode ? $t('selection_mode_on') : $t('selection_mode') }}
                 </v-btn>
-                <v-btn-toggle v-model="currentHalf" mandatory variant="outlined" density="compact" color="info" rounded>
+                <v-btn-toggle v-model="currentHalf" mandatory variant="outlined" density="compact" color="#42A5F5" rounded class="fnm-segmented-toggle">
                   <v-btn :value="1" size="small">Q1</v-btn>
                   <v-btn :value="2" size="small">Q2</v-btn>
                 </v-btn-toggle>
@@ -329,7 +397,7 @@
                     <v-card class="rounded-lg pa-0" elevation="8" min-width="280">
                       <div class="fnm-more-header">
                         <v-icon size="16" color="white" class="mr-1">mdi-calendar</v-icon>
-                        {{ cell.dateStr }} â€” {{ cell.activities.length }} {{ $t('activities') }}
+                        {{ cell.dateStr }} — {{ cell.activities.length }} {{ $t('activities') }}
                       </div>
                       <div class="fnm-more-list">
                         <div
@@ -404,15 +472,23 @@
       </v-row>
 
       <!-- ============= BREAKDOWN SUMMARY ============= -->
-      <v-row class="mt-2">
+      <v-row class="mt-2" v-show="viewMode === 'all' || viewMode === 'breakdown'">
         <v-col cols="12">
-          <v-card variant="outlined" class="rounded-xl" color="info">
-            <v-card-title class="d-flex align-center justify-space-between pa-4 pb-2">
-              <div class="d-flex align-center">
-                <v-icon color="info" class="mr-2">mdi-chart-box-outline</v-icon>
-                <span class="text-subtitle-1 font-weight-bold">{{ $t('activity_breakdown') }}</span>
+          <v-card elevation="0" class="rounded-2xl border fnm-breakdown-card bg-surface">
+            <v-card-title class="d-flex flex-wrap align-center justify-space-between pa-4 pb-2 ga-3">
+              <div class="d-flex align-center ga-3">
+                <div class="fnm-panel-icon-wrap">
+                  <v-icon color="#42A5F5" size="20">mdi-chart-box-outline</v-icon>
+                </div>
+                <div>
+                  <div class="text-subtitle-1 font-weight-bold">{{ $t('activity_breakdown') }}</div>
+                  <div class="text-caption text-medium-emphasis">{{ $t('workforces_activities') }}</div>
+                </div>
+                <v-chip size="small" color="#42A5F5" variant="tonal" class="font-weight-medium ml-1">
+                  {{ printDataRowCount }} {{ $t('records') || 'Records' }}
+                </v-chip>
               </div>
-              <div class="d-flex ga-2">
+              <div class="d-flex align-center ga-2">
                 <v-btn
                   color="grey-darken-1"
                   variant="tonal"
@@ -425,12 +501,13 @@
                   <v-tooltip activator="parent" location="bottom">{{ $t('configure_columns') }}</v-tooltip>
                 </v-btn>
                 <v-btn
-                  v-print="printCfg"
-                  color="info"
+                  color="#42A5F5"
                   variant="flat"
                   rounded
                   size="small"
+                  class="text-white font-weight-medium"
                   prepend-icon="mdi-printer"
+                  @click="openPrintDialog"
                 >
                   {{ $t('print') }}
                 </v-btn>
@@ -439,6 +516,7 @@
                   variant="flat"
                   rounded
                   size="small"
+                  class="font-weight-medium"
                   prepend-icon="mdi-microsoft-excel"
                   :loading="exporting"
                   @click="exportToExcel"
@@ -447,11 +525,11 @@
                 </v-btn>
               </div>
             </v-card-title>
-            <v-card-text class="pa-4 pt-0">
-              <!-- Period Toggle + Declaration Checkboxes -->
-              <div class="d-flex flex-wrap align-center ga-3 mb-4">
+            <v-card-text class="pa-4 pt-1">
+              <!-- Period Toggle + Declaration Chips + Search Toolbar -->
+              <div class="d-flex flex-wrap align-center ga-3 mb-4 fnm-breakdown-toolbar pa-2 rounded-xl border">
                 <!-- Entity toggle (Workforces / Sections / Corporals) -->
-                <v-btn-toggle v-model="breakdownTab" mandatory variant="outlined" density="compact" color="#42A5F5" rounded>
+                <v-btn-toggle v-model="breakdownTab" mandatory variant="outlined" density="compact" color="#42A5F5" rounded class="fnm-segmented-toggle">
                   <v-btn value="workforces" size="small" prepend-icon="mdi-account-multiple">
                     {{ $t('workforces_activities') }}
                   </v-btn>
@@ -463,36 +541,42 @@
                   </v-btn>
                 </v-btn-toggle>
 
-                <v-divider vertical class="mx-1" style="height:28px;"></v-divider>
+                <v-divider vertical class="mx-1 d-none d-sm-block" style="height:28px;"></v-divider>
 
                 <!-- Period toggle (Q1 / Q2 / Month) -->
-                <v-btn-toggle v-model="breakdownPeriod" mandatory variant="outlined" density="compact" color="#42A5F5" rounded>
+                <v-btn-toggle v-model="breakdownPeriod" mandatory variant="outlined" density="compact" color="#42A5F5" rounded class="fnm-segmented-toggle">
                   <v-btn value="q1" size="small" prepend-icon="mdi-numeric-1-circle-outline">Q1</v-btn>
                   <v-btn value="q2" size="small" prepend-icon="mdi-numeric-2-circle-outline">Q2</v-btn>
                   <v-btn value="month" size="small" prepend-icon="mdi-calendar-month">{{ $t('month') }}</v-btn>
                 </v-btn-toggle>
 
-                <v-divider vertical class="mx-1" style="height:28px;"></v-divider>
+                <v-divider vertical class="mx-1 d-none d-sm-block" style="height:28px;"></v-divider>
 
-                <!-- Declaration checkboxes -->
-                <v-checkbox
-                  v-model="showDeclared"
-                  :label="$t('declared')"
-                  density="compact"
-                  color="#42A5F5"
-                  hide-details
-                  class="flex-grow-0"
-                ></v-checkbox>
-                <v-checkbox
-                  v-model="showNonDeclared"
-                  :label="$t('non_declared')"
-                  density="compact"
-                  color="warning"
-                  hide-details
-                  class="flex-grow-0"
-                ></v-checkbox>
+                <!-- Declaration filter chips -->
+                <div class="d-flex align-center ga-2">
+                  <v-chip
+                    :variant="showDeclared ? 'flat' : 'outlined'"
+                    color="#2E7D32"
+                    size="small"
+                    class="cursor-pointer font-weight-medium"
+                    @click="showDeclared = !showDeclared"
+                  >
+                    <v-icon start size="14">{{ showDeclared ? 'mdi-check-circle' : 'mdi-checkbox-blank-circle-outline' }}</v-icon>
+                    {{ $t('declared') }}
+                  </v-chip>
+                  <v-chip
+                    :variant="showNonDeclared ? 'flat' : 'outlined'"
+                    color="#E65100"
+                    size="small"
+                    class="cursor-pointer font-weight-medium"
+                    @click="showNonDeclared = !showNonDeclared"
+                  >
+                    <v-icon start size="14">{{ showNonDeclared ? 'mdi-check-circle' : 'mdi-checkbox-blank-circle-outline' }}</v-icon>
+                    {{ $t('non_declared') }}
+                  </v-chip>
+                </div>
 
-                <v-divider vertical class="mx-1" style="height:28px;"></v-divider>
+                <v-spacer></v-spacer>
 
                 <!-- Full name search -->
                 <v-text-field
@@ -500,11 +584,13 @@
                   :label="$t('search_workforce_name')"
                   density="compact"
                   variant="outlined"
+                  rounded
+                  color="#42A5F5"
                   hide-details
                   prepend-inner-icon="mdi-magnify"
                   clearable
-                  class="flex-grow-1"
-                  style="min-width: 200px; max-width: 300px;"
+                  class="fnm-search-input"
+                  style="min-width: 200px; max-width: 280px;"
                 ></v-text-field>
               </div>
 
@@ -528,7 +614,7 @@
                   <!-- Clear filters bar -->
                   <template v-if="hasActiveWfFilters || wfSortRules.length">
                     <div class="fnm-filter-bar">
-                      <v-chip size="x-small" color="info" variant="tonal" class="mr-1" v-if="activeWfFilterCount">
+                      <v-chip size="x-small" color="#42A5F5" variant="tonal" class="mr-1" v-if="activeWfFilterCount">
                         <v-icon start size="12">mdi-filter</v-icon>
                         {{ activeWfFilterCount }} {{ $t('clear_filters').toLowerCase() }}
                       </v-chip>
@@ -664,11 +750,16 @@
                         :class="col.type === 'chip' ? '' : 'text-center'"
                         :style="col.bold ? 'font-weight:700;color:#42A5F5;' : (col.cellColor ? 'font-weight:700;color:'+col.cellColor : '')"
                       >
-                        <!-- Chip (name) -->
-                        <v-chip v-if="col.type === 'chip'" size="small" color="#42A5F5" variant="tonal" label>
-                          <v-icon start size="14">mdi-account</v-icon>
-                          {{ w[col.key] }}
-                        </v-chip>
+                        <!-- Avatar + Name -->
+                        <div v-if="col.type === 'chip'" class="d-flex align-center ga-2 py-1">
+                          <div class="fnm-wf-avatar">
+                            {{ getWorkforceInitials(w) }}
+                          </div>
+                          <div class="text-left">
+                            <div class="font-weight-bold text-body-2 fnm-wf-name">{{ w[col.key] || w.name || w.full_name }}</div>
+                            <div class="text-caption text-medium-emphasis">{{ w.matricule || '-' }}</div>
+                          </div>
+                        </div>
                         <!-- Boolean icon -->
                         <v-icon v-else-if="col.type === 'boolean'" :color="w[col.key] ? (col.color || 'success') : 'grey'" size="18">
                           {{ w[col.key] ? 'mdi-check-circle' : 'mdi-close-circle-outline' }}
@@ -953,20 +1044,62 @@
                 </v-table>
               </template>
 
-              <!-- Grand Total -->
-              <div class="mt-4 pa-3 rounded-lg" style="background: linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%);">
-                <v-row>
-                  <v-col cols="4" class="text-center">
-                    <div class="text-caption text-grey">{{ $t('first_fortnight') }}</div>
-                    <div class="text-h6 font-weight-bold text-info">{{ formatNumber(grandTotals.q1_total) }} {{ main.currency || 'DH' }}</div>
+              <!-- Grand Total Executive KPI Cards -->
+              <div class="mt-4">
+                <v-row class="ga-0">
+                  <v-col cols="12" md="4" class="pa-2">
+                    <div class="fnm-executive-kpi pa-4 rounded-2xl border">
+                      <div class="d-flex align-center justify-space-between mb-2">
+                        <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase letter-spacing-1">{{ $t('first_fortnight') }} (Q1)</span>
+                        <v-avatar size="32" color="#E3F2FD" class="text-primary">
+                          <v-icon size="18" color="#1565C0">mdi-numeric-1-circle</v-icon>
+                        </v-avatar>
+                      </div>
+                      <div class="text-h5 font-weight-bold text-workforce fnm-currency-num">
+                        {{ formatNumber(grandTotals.q1_total) }} <span class="text-caption font-weight-bold">{{ main.currency || 'DH' }}</span>
+                      </div>
+                      <div class="d-flex align-center ga-2 mt-2 text-caption text-medium-emphasis">
+                        <v-icon size="14">mdi-calendar-check</v-icon>
+                        <span>{{ workforceTotals.q1_work_days }} {{ $t('working_days') }}</span>
+                      </div>
+                    </div>
                   </v-col>
-                  <v-col cols="4" class="text-center">
-                    <div class="text-caption text-grey">{{ $t('second_fortnight') }}</div>
-                    <div class="text-h6 font-weight-bold text-info">{{ formatNumber(grandTotals.q2_total) }} {{ main.currency || 'DH' }}</div>
+
+                  <v-col cols="12" md="4" class="pa-2">
+                    <div class="fnm-executive-kpi pa-4 rounded-2xl border">
+                      <div class="d-flex align-center justify-space-between mb-2">
+                        <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase letter-spacing-1">{{ $t('second_fortnight') }} (Q2)</span>
+                        <v-avatar size="32" color="#E3F2FD" class="text-primary">
+                          <v-icon size="18" color="#1565C0">mdi-numeric-2-circle</v-icon>
+                        </v-avatar>
+                      </div>
+                      <div class="text-h5 font-weight-bold text-workforce fnm-currency-num">
+                        {{ formatNumber(grandTotals.q2_total) }} <span class="text-caption font-weight-bold">{{ main.currency || 'DH' }}</span>
+                      </div>
+                      <div class="d-flex align-center ga-2 mt-2 text-caption text-medium-emphasis">
+                        <v-icon size="14">mdi-calendar-check</v-icon>
+                        <span>{{ workforceTotals.q2_work_days }} {{ $t('working_days') }}</span>
+                      </div>
+                    </div>
                   </v-col>
-                  <v-col cols="4" class="text-center">
-                    <div class="text-caption text-grey">{{ $t('total_month') }}</div>
-                    <div class="text-h6 font-weight-bold" style="color: #7B1FA2;">{{ formatNumber(grandTotals.month_total) }} {{ main.currency || 'DH' }}</div>
+
+                  <v-col cols="12" md="4" class="pa-2">
+                    <div class="fnm-executive-kpi fnm-executive-kpi--hero pa-4 rounded-2xl">
+                      <div class="d-flex align-center justify-space-between mb-2">
+                        <span class="text-caption font-weight-bold text-white text-uppercase letter-spacing-1">{{ $t('total_month') }} {{ monthNames[currentMonth] }}</span>
+                        <v-avatar size="32" color="rgba(255,255,255,0.2)" class="text-white">
+                          <v-icon size="18" color="white">mdi-cash-multiple</v-icon>
+                        </v-avatar>
+                      </div>
+                      <div class="text-h5 font-weight-black text-white fnm-currency-num">
+                        {{ formatNumber(grandTotals.month_total) }} <span class="text-caption font-weight-bold" style="opacity:0.8">{{ main.currency || 'DH' }}</span>
+                      </div>
+                      <div class="d-flex flex-wrap align-center ga-3 mt-2 text-caption text-white" style="opacity: 0.95;">
+                        <span>{{ $t('declared') }}: <strong>{{ formatNumber(workforceTotals.declared) }}</strong></span>
+                        <span>&bull;</span>
+                        <span>{{ $t('non_declared') }}: <strong>{{ formatNumber(workforceTotals.non_declared) }}</strong></span>
+                      </div>
+                    </div>
                   </v-col>
                 </v-row>
               </div>
@@ -984,10 +1117,10 @@
 
     <!-- ============= EDIT ACTIVITY DIALOG ============= -->
     <v-dialog v-model="editDialog" max-width="450" persistent>
-      <v-card class="rounded-xl">
+      <v-card class="rounded-2xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-pencil</v-icon>
-          {{ $t('edit_activity') }}
+          <v-icon color="#42A5F5" class="mr-2">mdi-pencil</v-icon>
+          <span class="font-weight-bold">{{ $t('edit_activity') }}</span>
         </v-card-title>
         <v-card-text class="pa-5">
           <v-row>
@@ -998,8 +1131,9 @@
                 item-value="id"
                 item-title="name"
                 :label="$t('section_affiliated')"
-                density="compact" variant="outlined" rounded color="info" class="text-info"
+                density="compact" variant="outlined" rounded color="#42A5F5" class="text-workforce"
                 clearable
+                prepend-inner-icon="mdi-sitemap-outline"
                 :disabled="!!editForm.corporal_id"
                 @update:model-value="onEditSectionChange"
               ></v-autocomplete>
@@ -1011,8 +1145,9 @@
                 item-value="id"
                 item-title="full_name"
                 :label="$t('corporal')"
-                density="compact" variant="outlined" rounded color="info" class="text-info"
+                density="compact" variant="outlined" rounded color="#42A5F5" class="text-workforce"
                 clearable
+                prepend-inner-icon="mdi-account-tie"
                 :disabled="!!editForm.section_id"
                 @update:model-value="onEditCorporalChange"
               ></v-autocomplete>
@@ -1021,8 +1156,10 @@
               <v-text-field
                 v-model.number="editForm.price"
                 :label="$t('price')"
-                density="compact" variant="outlined" rounded color="info" class="text-info"
+                density="compact" variant="outlined" rounded color="#42A5F5" class="text-workforce"
                 type="number" min="0" step="0.01"
+                prefix="Dh"
+                prepend-inner-icon="mdi-cash"
                 :readonly="editPriceReadonly"
               ></v-text-field>
             </v-col>
@@ -1030,8 +1167,8 @@
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
-          <v-btn @click="editDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="saveEditActivity" :loading="editSaving">{{ $t('save') }}</v-btn>
+          <v-btn @click="editDialog = false" variant="text" rounded>{{ $t('cancel') }}</v-btn>
+          <v-btn color="#42A5F5" variant="flat" rounded class="text-white font-weight-medium" @click="saveEditActivity" :loading="editSaving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -1057,7 +1194,7 @@
 
         <!-- Summary bar -->
         <div v-if="dayDetailActivities.length" class="fnm-dd-summary">
-          <v-chip size="small" color="info" variant="flat" prepend-icon="mdi-account-group">
+          <v-chip size="small" color="#42A5F5" variant="flat" prepend-icon="mdi-account-group" class="text-white">
             {{ dayDetailWorkforceCount }} {{ $t('workforces') }}
           </v-chip>
           <v-chip size="small" color="purple" variant="flat" prepend-icon="mdi-sigma">
@@ -1071,7 +1208,7 @@
         <!-- Activity list -->
         <v-card-text class="pa-0" style="max-height: 420px;">
           <div v-if="dayDetailLoading" class="d-flex justify-center pa-8">
-            <v-progress-circular indeterminate color="info" />
+            <v-progress-circular indeterminate color="#42A5F5" />
           </div>
           <div v-else-if="!dayDetailActivities.length" class="text-center pa-8 text-grey">
             <v-icon size="48" color="grey-lighten-1">mdi-calendar-blank</v-icon>
@@ -1081,16 +1218,16 @@
             <template v-for="(act, idx) in dayDetailActivities" :key="act.id">
               <v-list-item class="fnm-dd-item rounded-lg mb-1" :ripple="false">
                 <template #prepend>
-                  <v-avatar size="38" :color="act.section ? 'info' : 'purple'" class="mr-3">
+                  <v-avatar size="38" :color="act.section ? '#42A5F5' : 'purple'" class="mr-3">
                     <span class="text-white text-caption font-weight-bold">{{ getWorkforceInitials(act.workforce) }}</span>
                   </v-avatar>
                 </template>
                 <v-list-item-title class="font-weight-bold text-body-2">
-                  {{ act.workforce ? act.workforce.full_name : 'â€”' }}
+                  {{ act.workforce ? act.workforce.full_name : '—' }}
                   <v-chip v-if="act.workforce" size="x-small" variant="outlined" color="grey" class="ml-1">{{ act.workforce.matricule }}</v-chip>
                 </v-list-item-title>
                 <v-list-item-subtitle class="d-flex align-center ga-2 mt-1">
-                  <v-chip v-if="act.section" size="x-small" color="info" variant="tonal" prepend-icon="mdi-sitemap-outline">
+                  <v-chip v-if="act.section" size="x-small" color="#42A5F5" variant="tonal" prepend-icon="mdi-sitemap-outline">
                     {{ act.section.name }}
                   </v-chip>
                   <v-chip v-if="act.corporal" size="x-small" color="purple" variant="tonal" prepend-icon="mdi-account-tie">
@@ -1102,7 +1239,7 @@
                 </v-list-item-subtitle>
                 <template #append>
                   <div class="d-flex ga-1">
-                    <v-btn icon size="x-small" variant="text" color="info" @click="editActivityFromDetail(act)">
+                    <v-btn icon size="x-small" variant="text" color="#42A5F5" @click="editActivityFromDetail(act)">
                       <v-icon size="16">mdi-pencil</v-icon>
                       <v-tooltip activator="parent" location="top">{{ $t('edit_activity') }}</v-tooltip>
                     </v-btn>
@@ -1121,18 +1258,19 @@
     </v-dialog>
 
     <!-- ============= COLUMN SETTINGS DIALOG ============= -->
-    <v-dialog v-model="colSettingsDialog" max-width="460" persistent>
+    <v-dialog v-model="colSettingsDialog" max-width="480" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-table-cog</v-icon>
+          <v-icon color="#42A5F5" class="mr-2">mdi-table-cog</v-icon>
           {{ $t('configure_columns') }}
           <v-spacer></v-spacer>
           <v-btn icon size="x-small" variant="text" @click="colSettingsDialog = false"><v-icon>mdi-close</v-icon></v-btn>
         </v-card-title>
         <v-card-text class="pa-5 pt-2">
-          <div class="d-flex ga-2 mb-3">
-            <v-btn size="x-small" variant="tonal" color="info" rounded @click="toggleAllColumns(true)" prepend-icon="mdi-eye">{{ $t('show_all') }}</v-btn>
+          <div class="d-flex flex-wrap ga-2 mb-3">
+            <v-btn size="x-small" variant="tonal" color="#42A5F5" rounded @click="toggleAllColumns(true)" prepend-icon="mdi-eye">{{ $t('show_all') }}</v-btn>
             <v-btn size="x-small" variant="tonal" color="warning" rounded @click="toggleAllColumns(false)" prepend-icon="mdi-eye-off">{{ $t('hide_all') }}</v-btn>
+            <v-btn size="x-small" variant="tonal" color="error" rounded @click="resetColumnsToDefault" prepend-icon="mdi-restore">{{ $t('reset_columns_default') }}</v-btn>
           </div>
           <div class="text-caption text-grey mb-2">{{ $t('drag_to_reorder') }}</div>
           <div class="col-settings-list">
@@ -1155,6 +1293,7 @@
                 color="#42A5F5"
                 hide-details
                 class="col-settings-cb"
+                @update:model-value="onColumnVisibilityChange"
               ></v-checkbox>
               <span class="col-settings-label" :class="{ 'text-grey': !col.visible }">{{ $t(col.label) }}</span>
               <v-chip v-if="col.period" size="x-small" :color="col.period === 'q1' ? 'blue-lighten-4' : col.period === 'q2' ? 'orange-lighten-4' : 'purple-lighten-4'" variant="flat" class="ml-auto">
@@ -1167,200 +1306,777 @@
     </v-dialog>
   </v-card>
 
-  <!-- ============= HIDDEN PRINT AREA ============= -->
-  <div style="display:none">
-    <div id="fnm-print-area">
-      <div style="padding:30px 40px;max-width:900px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a">
-        <!-- Logo + Company -->
-        <div style="text-align:center;margin-bottom:16px">
-          <img :src="printLogoUrl" alt="Logo" style="height:65px;margin-bottom:4px" />
-        </div>
-        <!-- Title -->
-        <div style="text-align:center;margin-bottom:12px">
-          <div style="display:inline-block;border:2px solid #333;padding:6px 28px;font-size:14px;font-weight:700;letter-spacing:1px">{{ $t('activity_breakdown') }}</div>
-        </div>
-        <!-- Context row -->
-        <div style="display:flex;justify-content:space-between;margin-bottom:18px;font-size:12px;color:#555">
-          <div><b>{{ $t('month') }}:</b> {{ monthNames[currentMonth] }} {{ currentYear }}</div>
-          <div><b>{{ $t('period') }}:</b> {{ printPeriodLabel }}</div>
-          <div><b>{{ $t('tab') }}:</b> {{ printTabLabel }}</div>
-          <div v-if="drilldownItem"><b>{{ printTabLabel }}:</b> {{ drilldownItem.name }}</div>
-        </div>
-
-        <!-- ==== WORKFORCES SUMMARY ==== -->
-        <table v-if="breakdownTab === 'workforces' && !drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:#E3F2FD">
-              <th v-for="col in visibleWorkforceColumns" :key="'pth-'+col.key"
-                :style="'padding:8px 10px;border:1px solid #ccc;' + (col.type === 'chip' ? 'text-align:left' : 'text-align:center') + (col.headerColor ? ';color:'+col.headerColor : '')"
-              >{{ $t(col.label) }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="w in (sortedFilteredWorkforces || breakdownData.workforces)" :key="'pw-'+w.id">
-              <td v-for="col in visibleWorkforceColumns" :key="'ptd-'+col.key+'-'+w.id"
-                :style="'padding:6px 10px;border:1px solid #ddd;' + (col.type !== 'chip' ? 'text-align:center;' : '') + (col.cellColor ? 'font-weight:700;color:'+col.cellColor+';' : '') + (col.bold ? 'font-weight:700;color:#1565C0;' : '')"
-              >
-                <template v-if="col.type === 'boolean'">{{ w[col.key] ? $t('yes') : $t('no') }}</template>
-                <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(getDeclared(w)) }}</template>
-                <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(getNonDeclared(w)) }}</template>
-                <template v-else-if="col.type === 'currency'">{{ formatNumber(w[col.key]) }}</template>
-                <template v-else>{{ w[col.key] || '-' }}</template>
-              </td>
-            </tr>
-            <tr style="background:#E3F2FD;font-weight:700">
-              <td style="padding:8px 10px;border:1px solid #ccc" :colspan="totalColspan">{{ $t('total') }}</td>
-              <template v-for="col in visibleWorkforceColumns" :key="'ptot-'+col.key">
-                <td v-if="col.period || col.type === 'computed_declared' || col.type === 'computed_non_declared'"
-                  :style="'padding:8px 10px;text-align:center;border:1px solid #ccc;' + (col.cellColor ? 'color:'+col.cellColor+';' : '') + (col.bold ? 'color:#1565C0;' : '')"
-                >
-                  <template v-if="col.key === 'q1_work_days'">{{ workforceTotals.q1_work_days }}</template>
-                  <template v-else-if="col.key === 'q1_non_work_days'">{{ workforceTotals.q1_non_work_days }}</template>
-                  <template v-else-if="col.key === 'q1_total'">{{ formatNumber(workforceTotals.q1_total) }}</template>
-                  <template v-else-if="col.key === 'q2_work_days'">{{ workforceTotals.q2_work_days }}</template>
-                  <template v-else-if="col.key === 'q2_non_work_days'">{{ workforceTotals.q2_non_work_days }}</template>
-                  <template v-else-if="col.key === 'q2_total'">{{ formatNumber(workforceTotals.q2_total) }}</template>
-                  <template v-else-if="col.key === 'month_total'">{{ formatNumber(workforceTotals.month_total) }}</template>
-                  <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(workforceTotals.declared) }}</template>
-                  <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(workforceTotals.non_declared) }}</template>
-                </td>
-              </template>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- ==== WORKFORCES DRILLDOWN ==== -->
-        <table v-if="breakdownTab === 'workforces' && drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:#E3F2FD">
-              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('date') }}</th>
-              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('section') }} / {{ $t('corporal') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('price') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="act in drilldownItem.activities" :key="'pa-'+act.id">
-              <td style="padding:6px 10px;border:1px solid #ddd">{{ main.formateDate(act.date) }}</td>
-              <td style="padding:6px 10px;border:1px solid #ddd">{{ act.section_name || act.corporal_name || '-' }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700">{{ formatNumber(act.price) }} {{ main.currency || 'DH' }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- ==== SECTIONS SUMMARY ==== -->
-        <table v-if="breakdownTab === 'sections' && !drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:#FFF3E0">
-              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('name') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in breakdownData.sections" :key="'ps-'+s.id">
-              <td style="padding:6px 10px;border:1px solid #ddd">{{ s.name }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ s.q1_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(s.q1_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ s.q2_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(s.q2_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#E65100">{{ formatNumber(s.month_total) }}</td>
-            </tr>
-            <tr style="background:#FFF3E0;font-weight:700">
-              <td style="padding:8px 10px;border:1px solid #ccc">{{ $t('total') }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ sectionTotals.q1_count }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(sectionTotals.q1_total) }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ sectionTotals.q2_count }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(sectionTotals.q2_total) }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc;color:#E65100">{{ formatNumber(sectionTotals.month_total) }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- ==== SECTIONS/CORPORALS DRILLDOWN (workforces list) ==== -->
-        <table v-if="(breakdownTab === 'sections' || breakdownTab === 'corporals') && drilldownItem && drilldownItem.workforces" style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr :style="{background: breakdownTab==='sections'?'#FFF3E0':'#F3E5F5'}">
-              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('full_name') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('matricule') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('nationality') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('sex') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ $t('is_migrant') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="wf in drilldownItem.workforces" :key="'pdw-'+wf.id">
-              <td style="padding:6px 10px;border:1px solid #ddd">{{ wf.name }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.matricule }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.nationality }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ $t(wf.sex) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.is_migrant ? $t('yes') : $t('no') }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.q1_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(wf.q1_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ wf.q2_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(wf.q2_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#1565C0">{{ formatNumber(wf.month_total) }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- ==== CORPORALS SUMMARY ==== -->
-        <table v-if="breakdownTab === 'corporals' && !drilldownItem" style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:#F3E5F5">
-              <th style="padding:8px 10px;text-align:left;border:1px solid #ccc">{{ $t('name') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q1 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('count') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc">Q2 {{ $t('total') }}</th>
-              <th style="padding:8px 10px;text-align:center;border:1px solid #ccc;font-weight:700">{{ $t('month_total') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="c in breakdownData.corporals" :key="'pc-'+c.id">
-              <td style="padding:6px 10px;border:1px solid #ddd">{{ c.name }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ c.q1_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(c.q1_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ c.q2_count }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">{{ formatNumber(c.q2_total) }}</td>
-              <td style="padding:6px 10px;text-align:center;border:1px solid #ddd;font-weight:700;color:#7B1FA2">{{ formatNumber(c.month_total) }}</td>
-            </tr>
-            <tr style="background:#F3E5F5;font-weight:700">
-              <td style="padding:8px 10px;border:1px solid #ccc">{{ $t('total') }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ corporalTotals.q1_count }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(corporalTotals.q1_total) }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ corporalTotals.q2_count }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc">{{ formatNumber(corporalTotals.q2_total) }}</td>
-              <td style="padding:8px 10px;text-align:center;border:1px solid #ccc;color:#7B1FA2">{{ formatNumber(corporalTotals.month_total) }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Grand Total footer -->
-        <div style="margin-top:20px;display:flex;justify-content:space-around;padding:12px;border:2px solid #1565C0;border-radius:8px">
-          <div style="text-align:center"><div style="font-size:11px;color:#888">{{ $t('first_fortnight') }}</div><div style="font-size:16px;font-weight:800;color:#1565C0">{{ formatNumber(grandTotals.q1_total) }} {{ main.currency || 'DH' }}</div></div>
-          <div style="text-align:center"><div style="font-size:11px;color:#888">{{ $t('second_fortnight') }}</div><div style="font-size:16px;font-weight:800;color:#1565C0">{{ formatNumber(grandTotals.q2_total) }} {{ main.currency || 'DH' }}</div></div>
-          <div style="text-align:center"><div style="font-size:11px;color:#888">{{ $t('total_month') }}</div><div style="font-size:16px;font-weight:800;color:#7B1FA2">{{ formatNumber(grandTotals.month_total) }} {{ main.currency || 'DH' }}</div></div>
-        </div>
-
-        <!-- Footer -->
-        <div v-if="companySettings.company_name" style="text-align:center;margin-top:20px;border-top:1px solid #ccc;padding-top:8px;font-size:10px;color:#888">
-          <div>{{ companySettings.company_name }} - {{ companySettings.company_address || '' }}</div>
+    <!-- ============= PRINT PREVIEW & CUSTOMIZATION MODAL ============= -->
+  <v-dialog
+    v-model="printPreviewDialog"
+    max-width="1440"
+    transition="dialog-bottom-transition"
+  >
+    <v-card class="rounded-xl overflow-hidden fnm-print-dialog-card">
+      <!-- Modal Header -->
+      <div class="fnm-print-modal-header">
+        <div class="d-flex align-center ga-3">
+          <div class="fnm-print-header-icon">
+            <v-icon size="24" color="#fff">mdi-printer-eye</v-icon>
+          </div>
           <div>
-            <span v-if="companySettings.rc">RC: {{ companySettings.rc }}</span>
-            <span v-if="companySettings.ice"> | ICE: {{ companySettings.ice }}</span>
+            <div class="text-h6 font-weight-bold text-white leading-tight">{{ $t('print_preview') }}</div>
+            <div class="text-caption text-white opacity-80">{{ $t('print_customization_desc') }}</div>
+          </div>
+        </div>
+
+        <v-spacer></v-spacer>
+
+        <!-- Zoom Controls -->
+        <!-- Zoom Controls -->
+        <div class="d-none d-sm-flex align-center ga-1 mr-3 fnm-zoom-pill">
+          <v-btn
+            size="x-small"
+            variant="text"
+            rounded="pill"
+            :color="printSettings.zoom === 75 ? '#1565C0' : 'grey-darken-2'"
+            :class="{ 'font-weight-bold bg-white elevation-1': printSettings.zoom === 75 }"
+            @click="printSettings.zoom = 75; savePrintSettings()"
+          >
+            75%
+          </v-btn>
+          <v-btn
+            size="x-small"
+            variant="text"
+            rounded="pill"
+            :color="printSettings.zoom === 90 ? '#1565C0' : 'grey-darken-2'"
+            :class="{ 'font-weight-bold bg-white elevation-1': printSettings.zoom === 90 }"
+            @click="printSettings.zoom = 90; savePrintSettings()"
+          >
+            90%
+          </v-btn>
+          <v-btn
+            size="x-small"
+            variant="text"
+            rounded="pill"
+            :color="printSettings.zoom === 100 ? '#1565C0' : 'grey-darken-2'"
+            :class="{ 'font-weight-bold bg-white elevation-1': printSettings.zoom === 100 }"
+            @click="printSettings.zoom = 100; savePrintSettings()"
+          >
+            100%
+          </v-btn>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex align-center ga-2">
+          <v-btn
+            @click="triggerPrint"
+            color="white"
+            class="text-primary font-weight-bold"
+            rounded="pill"
+            prepend-icon="mdi-printer"
+            elevation="2"
+          >
+            {{ $t('print_now') }}
+          </v-btn>
+          <v-btn
+            icon
+            variant="text"
+            color="white"
+            @click="printPreviewDialog = false"
+          >
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- Modal Body (Two-column layout: Controls + Preview) -->
+      <v-card-text class="pa-0 fnm-print-modal-body">
+        <div class="fnm-print-layout">
+          <!-- Left Sidebar: Customization Controls -->
+          <div class="fnm-print-sidebar">
+            <div class="pa-4">
+              <!-- Orientation -->
+              <div class="fnm-print-ctrl-group">
+                <div class="fnm-ctrl-title">
+                  <v-icon size="16" color="#42A5F5" class="mr-1">mdi-page-layout-header</v-icon>
+                  {{ $t('orientation') }}
+                </div>
+                <v-btn-toggle
+                  v-model="printSettings.orientation"
+                  mandatory
+                  density="compact"
+                  color="#42A5F5"
+                  class="fnm-segmented-toggle w-100 mb-4"
+                  @update:model-value="savePrintSettings"
+                >
+                  <v-btn value="landscape" class="flex-grow-1" prepend-icon="mdi-phone-rotate-landscape">
+                    {{ $t('landscape') }}
+                  </v-btn>
+                  <v-btn value="portrait" class="flex-grow-1" prepend-icon="mdi-phone-rotate-portrait">
+                    {{ $t('portrait') }}
+                  </v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <!-- Density Scale -->
+              <div class="fnm-print-ctrl-group">
+                <div class="fnm-ctrl-title">
+                  <v-icon size="16" color="#42A5F5" class="mr-1">mdi-format-size</v-icon>
+                  {{ $t('font_size_scale') }}
+                </div>
+                <v-btn-toggle
+                  v-model="printSettings.density"
+                  mandatory
+                  density="compact"
+                  color="#42A5F5"
+                  class="fnm-segmented-toggle w-100 mb-4"
+                  @update:model-value="savePrintSettings"
+                >
+                  <v-btn value="compact" class="flex-grow-1">
+                    {{ $t('compact') }}
+                  </v-btn>
+                  <v-btn value="standard" class="flex-grow-1">
+                    {{ $t('standard') }}
+                  </v-btn>
+                  <v-btn value="spacious" class="flex-grow-1">
+                    {{ $t('spacious') }}
+                  </v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <!-- Document Elements Toggles -->
+              <div class="fnm-print-ctrl-group">
+                <div class="fnm-ctrl-title">
+                  <v-icon size="16" color="#42A5F5" class="mr-1">mdi-layers-outline</v-icon>
+                  {{ $t('table_styling') }}
+                </div>
+                <div class="fnm-switch-list">
+                  <v-switch
+                    v-model="printSettings.showLogo"
+                    density="compact"
+                    color="#42A5F5"
+                    hide-details
+                    :label="$t('show_company_logo')"
+                    @update:model-value="savePrintSettings"
+                  ></v-switch>
+                  <v-switch
+                    v-model="printSettings.showCompanyInfo"
+                    density="compact"
+                    color="#42A5F5"
+                    hide-details
+                    :label="$t('show_company_info')"
+                    @update:model-value="savePrintSettings"
+                  ></v-switch>
+                  <v-switch
+                    v-model="printSettings.showMetadataBanner"
+                    density="compact"
+                    color="#42A5F5"
+                    hide-details
+                    :label="$t('show_metadata_banner')"
+                    @update:model-value="savePrintSettings"
+                  ></v-switch>
+                  <v-switch
+                    v-model="printSettings.zebraStriping"
+                    density="compact"
+                    color="#42A5F5"
+                    hide-details
+                    :label="$t('zebra_striping')"
+                    @update:model-value="savePrintSettings"
+                  ></v-switch>
+                  <v-switch
+                    v-model="printSettings.showGrandTotals"
+                    density="compact"
+                    color="#42A5F5"
+                    hide-details
+                    :label="$t('show_grand_totals')"
+                    @update:model-value="savePrintSettings"
+                  ></v-switch>
+                  <v-switch
+                    v-model="printSettings.showSignatures"
+                    density="compact"
+                    color="#42A5F5"
+                    hide-details
+                    :label="$t('show_signatures')"
+                    @update:model-value="savePrintSettings"
+                  ></v-switch>
+                  <v-switch
+                    v-model="printSettings.showNotes"
+                    density="compact"
+                    color="#42A5F5"
+                    hide-details
+                    :label="$t('show_notes')"
+                    @update:model-value="savePrintSettings"
+                  ></v-switch>
+                </div>
+              </div>
+
+              <!-- Notes Textarea -->
+              <div v-if="printSettings.showNotes" class="mt-3">
+                <v-textarea
+                  v-model="printSettings.notes"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  color="#42A5F5"
+                  rows="2"
+                  hide-details
+                  :placeholder="$t('print_notes_placeholder')"
+                  @update:model-value="savePrintSettings"
+                ></v-textarea>
+              </div>
+
+              <!-- Columns Selection (Workforce summary tab) -->
+              <div v-if="breakdownTab === 'workforces' && !drilldownItem" class="fnm-print-ctrl-group mt-4">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="fnm-ctrl-title mb-0">
+                    <v-icon size="16" color="#42A5F5" class="mr-1">mdi-table-column</v-icon>
+                    {{ $t('print_columns') }} ({{ activePrintColumns.length }})
+                  </div>
+                  <v-btn
+                    size="x-small"
+                    variant="text"
+                    color="#42A5F5"
+                    rounded="pill"
+                    prepend-icon="mdi-restore"
+                    class="text-none font-weight-bold"
+                    @click="syncPrintColumnsWithTable"
+                  >
+                    {{ $t('reset_to_table_columns') }}
+                  </v-btn>
+                </div>
+                <div class="fnm-print-cols-box">
+                  <div class="d-flex ga-1 mb-2">
+                    <v-btn size="x-small" variant="tonal" color="#42A5F5" rounded="pill" prepend-icon="mdi-eye" class="text-none font-weight-bold" @click="toggleAllPrintColumns(true)">
+                      {{ $t('show_all') }}
+                    </v-btn>
+                    <v-btn size="x-small" variant="tonal" color="warning" rounded="pill" prepend-icon="mdi-eye-off" class="text-none font-weight-bold" @click="toggleAllPrintColumns(false)">
+                      {{ $t('hide_all') }}
+                    </v-btn>
+                  </div>
+                  <div class="text-caption text-grey mb-1 d-flex align-center" style="font-size: 11px;">
+                    <v-icon size="14" class="mr-1">mdi-cursor-move</v-icon>
+                    {{ $t('drag_to_reorder') }}
+                  </div>
+                  <div class="fnm-print-cols-list">
+                    <div
+                      v-for="(col, pIdx) in printColumns"
+                      :key="'pcol-'+col.key"
+                      class="fnm-print-col-row"
+                      :class="{
+                        'fnm-print-col-row--dragging': printColDragIdx === pIdx,
+                        'fnm-print-col-row--dragover': printColDragOverIdx === pIdx,
+                        'fnm-print-col-row--locked': col.locked
+                      }"
+                      :draggable="!col.locked"
+                      @dragstart="onPrintColDragStart(pIdx, $event)"
+                      @dragover="onPrintColDragOver(pIdx, $event)"
+                      @dragleave="onPrintColDragLeave(pIdx, $event)"
+                      @drop="onPrintColDrop(pIdx, $event)"
+                      @dragend="onPrintColDragEnd"
+                    >
+                      <v-icon
+                        v-if="!col.locked"
+                        size="16"
+                        class="fnm-print-drag-handle mr-1"
+                      >mdi-drag-vertical</v-icon>
+                      <v-icon
+                        v-else
+                        size="16"
+                        class="mr-1 text-grey-lighten-1"
+                      >mdi-lock-outline</v-icon>
+                      <v-checkbox
+                        :model-value="isPrintColSelected(col.key)"
+                        :disabled="col.locked"
+                        density="compact"
+                        color="#42A5F5"
+                        hide-details
+                        class="flex-grow-1"
+                        @update:model-value="(val) => onPrintColumnToggle(col.key, val)"
+                      >
+                        <template #label>
+                          <span class="text-caption" :class="{ 'font-weight-bold': col.locked }">
+                            {{ $t(col.label) }}
+                          </span>
+                          <v-chip
+                            v-if="col.period"
+                            size="x-small"
+                            :color="col.period === 'q1' ? 'blue-lighten-4' : col.period === 'q2' ? 'orange-lighten-4' : 'purple-lighten-4'"
+                            variant="flat"
+                            class="ml-auto px-1"
+                            style="font-size: 9px; height: 16px;"
+                          >
+                            {{ col.period === 'month' ? $t('month') : col.period.toUpperCase() }}
+                          </v-chip>
+                        </template>
+                      </v-checkbox>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Area: Live Printable Document Stage -->
+          <div class="fnm-print-stage">
+            <div
+              class="fnm-print-sheet-scaler"
+              :style="{ zoom: printSettings.zoom / 100, transformOrigin: 'top center' }"
+            >
+              <!-- ============= PRINTABLE AREA (#fnm-print-area) ============= -->
+              <div
+                id="fnm-print-area"
+                class="fnm-print-sheet"
+                :class="[
+                  'fnm-print-' + printSettings.orientation,
+                  'fnm-density-' + printSettings.density,
+                  { 'fnm-zebra-table': printSettings.zebraStriping }
+                ]"
+              >
+
+                <!-- Document Header -->
+                <div class="fnm-pdoc-header">
+                  <!-- Company Column -->
+                  <div class="fnm-pdoc-company-col">
+                    <img
+                      v-if="printSettings.showLogo"
+                      :src="printLogoUrl"
+                      alt="Logo"
+                      class="fnm-pdoc-logo"
+                    />
+                    <div v-if="printSettings.showCompanyInfo && companySettings.company_name" class="fnm-pdoc-company-info">
+                      <div class="fnm-pdoc-company-name">{{ companySettings.company_name }}</div>
+                      <div v-if="companySettings.company_address" class="fnm-pdoc-company-sub">{{ companySettings.company_address }}</div>
+                      <div class="fnm-pdoc-company-reg">
+                        <span v-if="companySettings.rc">RC: {{ companySettings.rc }}</span>
+                        <span v-if="companySettings.ice"> | ICE: {{ companySettings.ice }}</span>
+                        <span v-if="companySettings.cnss"> | CNSS: {{ companySettings.cnss }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Title Column -->
+                  <div class="fnm-pdoc-title-col">
+                    <div class="fnm-pdoc-title-box">
+                      <div class="fnm-pdoc-title-main">{{ $t('activity_breakdown') }}</div>
+                      <div class="fnm-pdoc-title-tab">{{ printTabLabel }}</div>
+                    </div>
+                    <div class="fnm-pdoc-period-badge">
+                      <span>{{ monthNames[currentMonth] }} {{ currentYear }}</span>
+                      <span class="mx-1">&bull;</span>
+                      <span>{{ printPeriodLabel }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Metadata Column -->
+                  <div class="fnm-pdoc-meta-col">
+                    <div class="fnm-pdoc-meta-card">
+                      <div class="fnm-pdoc-meta-line">
+                        <span class="fnm-pdoc-meta-label">{{ $t('report_ref') }}:</span>
+                        <span class="fnm-pdoc-meta-value">FNM-{{ currentYear }}{{ String(currentMonth + 1).padStart(2, '0') }}-{{ breakdownPeriod.toUpperCase() }}</span>
+                      </div>
+                      <div class="fnm-pdoc-meta-line">
+                        <span class="fnm-pdoc-meta-label">{{ $t('printed_at') }}:</span>
+                        <span class="fnm-pdoc-meta-value">{{ printDateTimeFormatted }}</span>
+                      </div>
+                      <div class="fnm-pdoc-meta-line">
+                        <span class="fnm-pdoc-meta-label">{{ $t('status') }}:</span>
+                        <span class="fnm-pdoc-meta-value">{{ filterDeclaredLabel }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Metadata Banner Strip -->
+                <div v-if="printSettings.showMetadataBanner" class="fnm-pdoc-meta-strip">
+                  <div class="fnm-pdoc-strip-cell">
+                    <b>{{ $t('period') }}:</b> {{ printPeriodLabel }}
+                  </div>
+                  <div class="fnm-pdoc-strip-cell">
+                    <b>{{ $t('tab') }}:</b> {{ printTabLabel }}
+                  </div>
+                  <div v-if="drilldownItem" class="fnm-pdoc-strip-cell">
+                    <b>{{ printTabLabel }}:</b> {{ drilldownItem.name }}
+                  </div>
+                  <div class="fnm-pdoc-strip-cell">
+                    <b>{{ $t('count') }}:</b> {{ printDataRowCount }}
+                  </div>
+                  <div class="fnm-pdoc-strip-cell">
+                    <b>{{ $t('currency') || 'Devise' }}:</b> {{ main.currency || 'DH' }}
+                  </div>
+                </div>
+
+                <!-- ================= TABLE: WORKFORCES SUMMARY ================= -->
+                <div v-if="breakdownTab === 'workforces' && !drilldownItem" class="fnm-pdoc-table-wrap">
+                  <table class="fnm-pdoc-table">
+                    <thead>
+                      <tr class="fnm-pdoc-head-tr">
+                        <th
+                          v-for="col in activePrintColumns"
+                          :key="'pth-'+col.key"
+                          :class="getPrintColAlignClass(col)"
+                          class="fnm-pdoc-th"
+                        >
+                          {{ $t(col.label) }}
+                          <span v-if="col.period" class="fnm-pdoc-th-period">
+                            ({{ col.period === 'month' ? $t('month') : col.period.toUpperCase() }})
+                          </span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(w, rIdx) in (sortedFilteredWorkforces || breakdownData.workforces)"
+                        :key="'pw-'+w.id"
+                        class="fnm-pdoc-body-tr"
+                        :class="{ 'fnm-pdoc-row-alt': printSettings.zebraStriping && rIdx % 2 === 1 }"
+                      >
+                        <td
+                          v-for="col in activePrintColumns"
+                          :key="'ptd-'+col.key+'-'+w.id"
+                          :class="getPrintColAlignClass(col)"
+                          class="fnm-pdoc-td"
+                        >
+                          <template v-if="col.type === 'boolean'">
+                            <span :class="w[col.key] ? 'fnm-badge-yes' : 'fnm-badge-no'">
+                              {{ w[col.key] ? $t('yes') : $t('no') }}
+                            </span>
+                          </template>
+                          <template v-else-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'">
+                            <span :class="w[col.key] ? 'fnm-badge-paid' : 'fnm-badge-unpaid'">
+                              {{ w[col.key] ? $t('paid') : $t('unpaid') }}
+                            </span>
+                          </template>
+                          <template v-else-if="col.type === 'computed_declared'">
+                            <span class="font-weight-bold text-success">{{ formatNumber(getDeclared(w)) }}</span>
+                          </template>
+                          <template v-else-if="col.type === 'computed_non_declared'">
+                            <span class="font-weight-bold text-warning">{{ formatNumber(getNonDeclared(w)) }}</span>
+                          </template>
+                          <template v-else-if="col.type === 'currency'">
+                            <span :class="{ 'font-weight-bold text-primary': col.bold }">{{ formatNumber(w[col.key]) }}</span>
+                          </template>
+                          <template v-else-if="col.type === 'number'">
+                            {{ w[col.key] ?? 0 }}
+                          </template>
+                          <template v-else>
+                            {{ w[col.key] || '-' }}
+                          </template>
+                        </td>
+                      </tr>
+
+                      <!-- 1:1 Aligned Totals Row (No colspan drift) -->
+                      <tr class="fnm-pdoc-total-tr">
+                        <td
+                          v-for="(col, cIdx) in activePrintColumns"
+                          :key="'ptot-'+col.key"
+                          :class="getPrintColAlignClass(col)"
+                          class="fnm-pdoc-total-td"
+                        >
+                          <template v-if="(activePrintColumns.some(c => c.key === 'name') ? col.key === 'name' : cIdx === 0)">
+                            <b>{{ $t('total') }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'q1_work_days'">
+                            <b>{{ workforceTotals.q1_work_days }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'q1_non_work_days'">
+                            <b>{{ workforceTotals.q1_non_work_days }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'q1_total'">
+                            <b>{{ formatNumber(workforceTotals.q1_total) }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'q2_work_days'">
+                            <b>{{ workforceTotals.q2_work_days }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'q2_non_work_days'">
+                            <b>{{ workforceTotals.q2_non_work_days }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'q2_total'">
+                            <b>{{ formatNumber(workforceTotals.q2_total) }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'month_total'">
+                            <b class="text-primary">{{ formatNumber(workforceTotals.month_total) }}</b>
+                          </template>
+                          <template v-else-if="col.type === 'computed_declared'">
+                            <b class="text-success">{{ formatNumber(workforceTotals.declared) }}</b>
+                          </template>
+                          <template v-else-if="col.type === 'computed_non_declared'">
+                            <b class="text-warning">{{ formatNumber(workforceTotals.non_declared) }}</b>
+                          </template>
+                          <template v-else>
+                            &nbsp;
+                          </template>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- ================= TABLE: WORKFORCES DRILLDOWN ================= -->
+                <div v-if="breakdownTab === 'workforces' && drilldownItem" class="fnm-pdoc-table-wrap">
+                  <table class="fnm-pdoc-table">
+                    <thead>
+                      <tr class="fnm-pdoc-head-tr">
+                        <th class="fnm-pdoc-th text-left">{{ $t('date') }}</th>
+                        <th class="fnm-pdoc-th text-left">{{ $t('section') }} / {{ $t('corporal') }}</th>
+                        <th class="fnm-pdoc-th text-right">{{ $t('price') }} ({{ main.currency || 'DH' }})</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(act, rIdx) in drilldownItem.activities"
+                        :key="'pa-'+act.id"
+                        class="fnm-pdoc-body-tr"
+                        :class="{ 'fnm-pdoc-row-alt': printSettings.zebraStriping && rIdx % 2 === 1 }"
+                      >
+                        <td class="fnm-pdoc-td text-left">{{ main.formateDate(act.date) }}</td>
+                        <td class="fnm-pdoc-td text-left">{{ act.section_name || act.corporal_name || '-' }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold">{{ formatNumber(act.price) }}</td>
+                      </tr>
+                      <tr class="fnm-pdoc-total-tr">
+                        <td colspan="2" class="fnm-pdoc-total-td text-left"><b>{{ $t('total') }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b class="text-primary">{{ formatNumber(drilldownItem.activities.reduce((s, a) => s + parseFloat(a.price || 0), 0)) }}</b></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- ================= TABLE: SECTIONS SUMMARY ================= -->
+                <div v-if="breakdownTab === 'sections' && !drilldownItem" class="fnm-pdoc-table-wrap">
+                  <table class="fnm-pdoc-table">
+                    <thead>
+                      <tr class="fnm-pdoc-head-tr fnm-head-amber">
+                        <th class="fnm-pdoc-th text-left">{{ $t('name') }}</th>
+                        <th class="fnm-pdoc-th text-center">Q1 {{ $t('count') }}</th>
+                        <th class="fnm-pdoc-th text-right">Q1 {{ $t('total') }}</th>
+                        <th class="fnm-pdoc-th text-center">Q2 {{ $t('count') }}</th>
+                        <th class="fnm-pdoc-th text-right">Q2 {{ $t('total') }}</th>
+                        <th class="fnm-pdoc-th text-right font-weight-bold">{{ $t('month_total') }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(s, rIdx) in breakdownData.sections"
+                        :key="'ps-'+s.id"
+                        class="fnm-pdoc-body-tr"
+                        :class="{ 'fnm-pdoc-row-alt': printSettings.zebraStriping && rIdx % 2 === 1 }"
+                      >
+                        <td class="fnm-pdoc-td text-left font-weight-bold">{{ s.name }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ s.q1_count }}</td>
+                        <td class="fnm-pdoc-td text-right">{{ formatNumber(s.q1_total) }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ s.q2_count }}</td>
+                        <td class="fnm-pdoc-td text-right">{{ formatNumber(s.q2_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold text-warning">{{ formatNumber(s.month_total) }}</td>
+                      </tr>
+                      <tr class="fnm-pdoc-total-tr fnm-total-amber">
+                        <td class="fnm-pdoc-total-td text-left"><b>{{ $t('total') }}</b></td>
+                        <td class="fnm-pdoc-total-td text-center"><b>{{ sectionTotals.q1_count }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(sectionTotals.q1_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-center"><b>{{ sectionTotals.q2_count }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(sectionTotals.q2_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b class="text-warning">{{ formatNumber(sectionTotals.month_total) }}</b></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- ================= TABLE: SECTIONS/CORPORALS DRILLDOWN ================= -->
+                <div v-if="(breakdownTab === 'sections' || breakdownTab === 'corporals') && drilldownItem && drilldownItem.workforces" class="fnm-pdoc-table-wrap">
+                  <table class="fnm-pdoc-table">
+                    <thead>
+                      <tr class="fnm-pdoc-head-tr" :class="breakdownTab === 'sections' ? 'fnm-head-amber' : 'fnm-head-purple'">
+                        <th class="fnm-pdoc-th text-left">{{ $t('full_name') }}</th>
+                        <th class="fnm-pdoc-th text-center">{{ $t('matricule') }}</th>
+                        <th class="fnm-pdoc-th text-center">{{ $t('nationality') }}</th>
+                        <th class="fnm-pdoc-th text-center">{{ $t('sex') }}</th>
+                        <th class="fnm-pdoc-th text-center">{{ $t('is_migrant') }}</th>
+                        <th class="fnm-pdoc-th text-center">Q1 {{ $t('count') }}</th>
+                        <th class="fnm-pdoc-th text-right">Q1 {{ $t('total') }}</th>
+                        <th class="fnm-pdoc-th text-center">Q2 {{ $t('count') }}</th>
+                        <th class="fnm-pdoc-th text-right">Q2 {{ $t('total') }}</th>
+                        <th class="fnm-pdoc-th text-right font-weight-bold">{{ $t('month_total') }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(wf, rIdx) in drilldownItem.workforces"
+                        :key="'pdw-'+wf.id"
+                        class="fnm-pdoc-body-tr"
+                        :class="{ 'fnm-pdoc-row-alt': printSettings.zebraStriping && rIdx % 2 === 1 }"
+                      >
+                        <td class="fnm-pdoc-td text-left font-weight-bold">{{ wf.name }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ wf.matricule }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ wf.nationality }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ $t(wf.sex) }}</td>
+                        <td class="fnm-pdoc-td text-center">
+                          <span :class="wf.is_migrant ? 'fnm-badge-yes' : 'fnm-badge-no'">
+                            {{ wf.is_migrant ? $t('yes') : $t('no') }}
+                          </span>
+                        </td>
+                        <td class="fnm-pdoc-td text-center">{{ wf.q1_count }}</td>
+                        <td class="fnm-pdoc-td text-right">{{ formatNumber(wf.q1_total) }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ wf.q2_count }}</td>
+                        <td class="fnm-pdoc-td text-right">{{ formatNumber(wf.q2_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold text-primary">{{ formatNumber(wf.month_total) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- ================= TABLE: CORPORALS SUMMARY ================= -->
+                <div v-if="breakdownTab === 'corporals' && !drilldownItem" class="fnm-pdoc-table-wrap">
+                  <table class="fnm-pdoc-table">
+                    <thead>
+                      <tr class="fnm-pdoc-head-tr fnm-head-purple">
+                        <th class="fnm-pdoc-th text-left">{{ $t('name') }}</th>
+                        <th class="fnm-pdoc-th text-center">Q1 {{ $t('count') }}</th>
+                        <th class="fnm-pdoc-th text-right">Q1 {{ $t('total') }}</th>
+                        <th class="fnm-pdoc-th text-center">Q2 {{ $t('count') }}</th>
+                        <th class="fnm-pdoc-th text-right">Q2 {{ $t('total') }}</th>
+                        <th class="fnm-pdoc-th text-right font-weight-bold">{{ $t('month_total') }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(c, rIdx) in breakdownData.corporals"
+                        :key="'pc-'+c.id"
+                        class="fnm-pdoc-body-tr"
+                        :class="{ 'fnm-pdoc-row-alt': printSettings.zebraStriping && rIdx % 2 === 1 }"
+                      >
+                        <td class="fnm-pdoc-td text-left font-weight-bold">{{ c.name }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ c.q1_count }}</td>
+                        <td class="fnm-pdoc-td text-right">{{ formatNumber(c.q1_total) }}</td>
+                        <td class="fnm-pdoc-td text-center">{{ c.q2_count }}</td>
+                        <td class="fnm-pdoc-td text-right">{{ formatNumber(c.q2_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold text-purple">{{ formatNumber(c.month_total) }}</td>
+                      </tr>
+                      <tr class="fnm-pdoc-total-tr fnm-total-purple">
+                        <td class="fnm-pdoc-total-td text-left"><b>{{ $t('total') }}</b></td>
+                        <td class="fnm-pdoc-total-td text-center"><b>{{ corporalTotals.q1_count }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(corporalTotals.q1_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-center"><b>{{ corporalTotals.q2_count }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(corporalTotals.q2_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b class="text-purple">{{ formatNumber(corporalTotals.month_total) }}</b></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Grand Totals Cards Block -->
+                <div v-if="printSettings.showGrandTotals" class="fnm-pdoc-grand-totals">
+                  <div class="fnm-pdoc-gt-card">
+                    <div class="fnm-pdoc-gt-label">{{ $t('first_fortnight') }} (Q1)</div>
+                    <div class="fnm-pdoc-gt-value text-primary">
+                      {{ formatNumber(grandTotals.q1_total) }} <span class="fnm-pdoc-gt-cur">{{ main.currency || 'DH' }}</span>
+                    </div>
+                  </div>
+                  <div class="fnm-pdoc-gt-card">
+                    <div class="fnm-pdoc-gt-label">{{ $t('second_fortnight') }} (Q2)</div>
+                    <div class="fnm-pdoc-gt-value text-primary">
+                      {{ formatNumber(grandTotals.q2_total) }} <span class="fnm-pdoc-gt-cur">{{ main.currency || 'DH' }}</span>
+                    </div>
+                  </div>
+                  <div class="fnm-pdoc-gt-card fnm-pdoc-gt-card-month">
+                    <div class="fnm-pdoc-gt-label">{{ $t('total_month') }}</div>
+                    <div class="fnm-pdoc-gt-value text-purple">
+                      {{ formatNumber(grandTotals.month_total) }} <span class="fnm-pdoc-gt-cur">{{ main.currency || 'DH' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Notes / Observations Block -->
+                <div v-if="printSettings.showNotes && printSettings.notes" class="fnm-pdoc-notes-block">
+                  <div class="fnm-pdoc-notes-title">{{ $t('notes') || 'Observations' }}:</div>
+                  <div class="fnm-pdoc-notes-body">{{ printSettings.notes }}</div>
+                </div>
+
+                <!-- Official Signatures Block -->
+                <div v-if="printSettings.showSignatures" class="fnm-pdoc-signatures">
+                  <div class="fnm-pdoc-sig-box">
+                    <div class="fnm-pdoc-sig-header">{{ $t('prepared_by') }}</div>
+                    <div class="fnm-pdoc-sig-space"></div>
+                    <div class="fnm-pdoc-sig-line">{{ $t('date') }}: ____________________</div>
+                  </div>
+                  <div class="fnm-pdoc-sig-box">
+                    <div class="fnm-pdoc-sig-header">{{ $t('verified_by') }}</div>
+                    <div class="fnm-pdoc-sig-space"></div>
+                    <div class="fnm-pdoc-sig-line">{{ $t('date') }}: ____________________</div>
+                  </div>
+                  <div class="fnm-pdoc-sig-box">
+                    <div class="fnm-pdoc-sig-header">{{ $t('approved_by') }}</div>
+                    <div class="fnm-pdoc-sig-space"></div>
+                    <div class="fnm-pdoc-sig-line">{{ $t('date') }}: ____________________</div>
+                  </div>
+                </div>
+
+                <!-- Document Footer -->
+                <div class="fnm-pdoc-footer">
+                  <div v-if="printSettings.showCompanyInfo && companySettings.company_name" class="fnm-pdoc-footer-legal">
+                    <span>{{ companySettings.company_name }}</span>
+                    <span v-if="companySettings.company_address"> &bull; {{ companySettings.company_address }}</span>
+                    <span v-if="companySettings.rc"> &bull; RC: {{ companySettings.rc }}</span>
+                    <span v-if="companySettings.ice"> &bull; ICE: {{ companySettings.ice }}</span>
+                  </div>
+                  <div class="fnm-pdoc-footer-notice">
+                    <span>{{ $t('confidential_document') }}</span>
+                    <span> &bull; </span>
+                    <span>{{ $t('printed_at') }}: {{ printDateTimeFormatted }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
+
+    <!-- Summary Snackbar -->
+    <v-snackbar
+      v-model="summarySnackbar.show"
+      :timeout="8000"
+      location="top right"
+      color="surface"
+      rounded="lg"
+      elevation="12"
+      min-width="360"
+      max-width="440"
+      @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
+    >
+      <v-progress-linear :model-value="snackbarProgress" color="#42A5F5" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-2">
+        <v-icon :color="summarySnackbar.iconColor || 'success'" class="mr-2">{{ summarySnackbar.icon || 'mdi-check-circle' }}</v-icon>
+        <span class="text-subtitle-1 font-weight-bold">{{ summarySnackbar.title }}</span>
+      </div>
+      <v-divider class="mb-2"></v-divider>
+      <div class="d-flex flex-column ga-1 text-body-2">
+        <div v-if="summarySnackbar.workforce">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-account-hard-hat</v-icon>
+          <span class="text-medium-emphasis">{{ $t('workforce') }}:</span> <strong>{{ summarySnackbar.workforce }}</strong>
+        </div>
+        <div v-if="summarySnackbar.section">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-sitemap-outline</v-icon>
+          <span class="text-medium-emphasis">{{ $t('section_affiliated') }}:</span> <strong>{{ summarySnackbar.section }}</strong>
+        </div>
+        <div v-if="summarySnackbar.corporal">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-account-tie</v-icon>
+          <span class="text-medium-emphasis">{{ $t('corporal') }}:</span> <strong>{{ summarySnackbar.corporal }}</strong>
+        </div>
+        <div v-if="summarySnackbar.date">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-calendar</v-icon>
+          <span class="text-medium-emphasis">{{ $t('date') }}:</span> <strong>{{ summarySnackbar.date }}</strong>
+        </div>
+        <div v-if="summarySnackbar.days">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-calendar-check</v-icon>
+          <span class="text-medium-emphasis">{{ $t('activities_count') || $t('days') }}:</span> <strong>{{ summarySnackbar.days }}</strong>
+        </div>
+        <v-divider class="my-1" v-if="summarySnackbar.amount"></v-divider>
+        <div v-if="summarySnackbar.amount" class="d-flex ga-4">
+          <div>
+            <v-icon size="14" color="success" class="mr-1">mdi-cash</v-icon>
+            <span class="text-medium-emphasis">{{ $t('amount') }}:</span> <strong class="text-success">{{ summarySnackbar.amount }}</strong>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
+      </template>
+    </v-snackbar>
 </template>
 
 <script>
@@ -1381,6 +2097,21 @@ export default {
   data() {
     const now = new Date();
     return {
+      viewMode: 'all', // 'all' | 'calendar' | 'breakdown'
+      summarySnackbar: {
+        show: false,
+        title: '',
+        workforce: '',
+        section: '',
+        corporal: '',
+        date: '',
+        days: '',
+        amount: '',
+        icon: 'mdi-check-circle',
+        iconColor: 'success',
+      },
+      snackbarProgress: 100,
+      snackbarTimer: null,
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth(),
       currentHalf: now.getDate() <= 15 ? 1 : 2,
@@ -1430,6 +2161,25 @@ export default {
       wfSortRules: [],         // [{key, dir}] multi-sort: dir = 'asc' | 'desc'
       wfColumnFilters: {},     // { column_key: { text, min, max, bool } }
       wfFilterMenuCol: null,   // which column's filter menu is open
+      printPreviewDialog: false,
+      printColumns: [],
+      printColDragIdx: null,
+      printColDragOverIdx: null,
+      printSettings: {
+        orientation: 'landscape',
+        density: 'compact',
+        showLogo: true,
+        showCompanyInfo: true,
+        showMetadataBanner: true,
+        showGrandTotals: true,
+        showSignatures: true,
+        zebraStriping: true,
+        showNotes: false,
+        notes: '',
+        selectedColKeys: [],
+        columnOrder: [],
+        zoom: 100,
+      },
       allWorkforceColumns: [
         { key: 'name', label: 'full_name', type: 'chip', visible: true, locked: true },
         { key: 'matricule', label: 'matricule', type: 'text', visible: true },
@@ -1464,6 +2214,41 @@ export default {
     notification() { return useNotification(); },
     summary() { return this.activityStore.summary; },
     /** Columns visible in the workforce breakdown table, respecting period filter */
+    activePrintColumns() {
+      const baseList = (this.printColumns && this.printColumns.length)
+        ? this.printColumns
+        : this.visibleWorkforceColumns;
+      if (this.printSettings.selectedColKeys && this.printSettings.selectedColKeys.length > 0) {
+        return baseList.filter(c => this.printSettings.selectedColKeys.includes(c.key));
+      }
+      return baseList;
+    },
+    printDateTimeFormatted() {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    },
+    filterDeclaredLabel() {
+      if (this.showDeclared && this.showNonDeclared) return this.$t('all') || 'All';
+      if (this.showDeclared) return this.$t('declared') || 'Declared';
+      if (this.showNonDeclared) return this.$t('non_declared') || 'Non-Declared';
+      return '-';
+    },
+    printDataRowCount() {
+      if (this.breakdownTab === 'workforces') {
+        if (this.drilldownItem) return this.drilldownItem.activities ? this.drilldownItem.activities.length : 0;
+        return (this.sortedFilteredWorkforces || this.breakdownData.workforces || []).length;
+      }
+      if (this.breakdownTab === 'sections') {
+        if (this.drilldownItem) return this.drilldownItem.workforces ? this.drilldownItem.workforces.length : 0;
+        return (this.breakdownData.sections || []).length;
+      }
+      if (this.breakdownTab === 'corporals') {
+        if (this.drilldownItem) return this.drilldownItem.workforces ? this.drilldownItem.workforces.length : 0;
+        return (this.breakdownData.corporals || []).length;
+      }
+      return 0;
+    },
     visibleWorkforceColumns() {
       const p = this.breakdownPeriod;
       return this.allWorkforceColumns.filter(col => {
@@ -1723,7 +2508,19 @@ export default {
       return new URL('/storage/images/logo_login.png', window.location.origin).href;
     },
     /** Print configuration for vue3-print-nb */
-    printCfg() { return { id: 'fnm-print-area', popTitle: this.$t('activity_breakdown') }; },
+    printCfg() {
+      return {
+        id: 'fnm-print-area',
+        popTitle: `${this.$t('activity_breakdown')} - ${this.monthNames[this.currentMonth]} ${this.currentYear}`,
+        extraHead: `<style>${this.printDocStyles}</style>`,
+      };
+    },
+    printDocStyles() {
+      const density = this.printSettings.density || 'compact';
+      const cellPad = density === 'compact' ? '4px 6px' : density === 'spacious' ? '8px 12px' : '6px 8px';
+      const fontSize = density === 'compact' ? '10px' : density === 'spacious' ? '12px' : '11px';
+      return this.getPrintCss(fontSize, cellPad);
+    },
     /** Human-readable label for current breakdown tab */
     printTabLabel() {
       const labels = { workforces: this.$t('workforces_activities'), sections: this.$t('sections_activities'), corporals: this.$t('corporals_activities') };
@@ -1840,6 +2637,9 @@ export default {
     },
   },
   async mounted() {
+    this.loadColumnsConfig();
+    this.loadPrintSettings();
+    this.initPrintColumns();
     await Promise.all([
       this.workforceStore.fetch(),
       this.corporalStore.fetch(),
@@ -1857,11 +2657,35 @@ export default {
     mitt.on('model-changed', this._onModelChanged);
   },
   beforeUnmount() {
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
     if (this._onModelChanged) {
       mitt.off('model-changed', this._onModelChanged);
     }
   },
   methods: {
+    triggerSummarySnackbar({ title, workforce = '', section = '', corporal = '', date = '', days = '', amount = '', icon = 'mdi-check-circle', iconColor = 'success' }) {
+      clearInterval(this.snackbarTimer);
+      this.summarySnackbar = {
+        show: true,
+        title,
+        workforce,
+        section,
+        corporal,
+        date,
+        days: days ? String(days) : '',
+        amount,
+        icon,
+        iconColor,
+      };
+      this.snackbarProgress = 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= 1.25;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, 100);
+    },
     formatDateStr(d) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     },
@@ -1918,6 +2742,14 @@ export default {
         this.loadActivities();
         this.loadSummary();
         this.loadBreakdown();
+        this.triggerSummarySnackbar({
+          title: this.$t('realtime_sync') || 'Real-time Update',
+          workforce: data?.workforce_name || '',
+          date: data?.date || '',
+          amount: data?.price ? `${this.formatNumber(data.price)} ${this.main.currency || 'DH'}` : '',
+          icon: 'mdi-sync',
+          iconColor: '#42A5F5',
+        });
       } else {
         // Corporal, Section, or Workforce changed - re-fetch the reference store + breakdown
         if (model === 'Workforce') this.workforceStore.fetch();
@@ -1944,6 +2776,14 @@ export default {
         
         // Update local state
         workforce[`is_paid_${periodStr}`] = isPaid;
+        
+        this.triggerSummarySnackbar({
+          title: this.$t('workforce_payment_updated') || 'Payment status updated',
+          workforce: workforce.name || workforce.full_name || '',
+          amount: `${periodParam}: ${isPaid ? (this.$t('paid') || 'Paid') : (this.$t('unpaid') || 'Unpaid')}`,
+          icon: isPaid ? 'mdi-check-decagram' : 'mdi-clock-outline',
+          iconColor: isPaid ? 'success' : 'warning',
+        });
         
         this.notification.push({
           title: this.$t('success'),
@@ -2002,6 +2842,657 @@ export default {
       if (!workforces || !workforces.length) return false;
       return workforces.every(w => w[colKey]);
     },
+    // ---- Column Persistence & Print Settings ----
+    getDefaultColumns() {
+      return [
+        { key: 'name', label: 'full_name', type: 'chip', visible: true, locked: true },
+        { key: 'matricule', label: 'matricule', type: 'text', visible: true },
+        { key: 'cin', label: 'cin', type: 'text', visible: true },
+        { key: 'cnss_id', label: 'cnss_id', type: 'text', visible: true },
+        { key: 'nationality', label: 'nationality', type: 'text', visible: true },
+        { key: 'sex', label: 'sex', type: 'text', visible: true },
+        { key: 'is_migrant', label: 'is_migrant', type: 'boolean', visible: true, color: 'warning' },
+        { key: 'salary_statement', label: 'salary_statement', type: 'boolean', visible: true, color: 'success' },
+        { key: 'fixed_daily_pay', label: 'fixed_daily_pay', type: 'boolean', visible: true, color: 'info' },
+        { key: 'q1_work_days', label: 'work_days_q1', type: 'number', visible: true, period: 'q1' },
+        { key: 'q1_non_work_days', label: 'non_work_days_q1', type: 'number', visible: true, period: 'q1' },
+        { key: 'q1_total', label: 'q1_total', type: 'currency', visible: true, period: 'q1' },
+        { key: 'q2_work_days', label: 'work_days_q2', type: 'number', visible: true, period: 'q2' },
+        { key: 'q2_non_work_days', label: 'non_work_days_q2', type: 'number', visible: true, period: 'q2' },
+        { key: 'q2_total', label: 'q2_total', type: 'currency', visible: true, period: 'q2' },
+        { key: 'month_total', label: 'month_total', type: 'currency', visible: true, period: 'month', bold: true },
+        { key: 'is_paid_q1', label: 'q1_paid', type: 'checkbox_q1', visible: true, period: 'q1' },
+        { key: 'is_paid_q2', label: 'q2_paid', type: 'checkbox_q2', visible: true, period: 'q2' },
+        { key: 'declared', label: 'declared', type: 'computed_declared', visible: true, headerColor: '#2E7D32', cellColor: '#2E7D32' },
+        { key: 'non_declared', label: 'non_declared', type: 'computed_non_declared', visible: true, headerColor: '#E65100', cellColor: '#E65100' },
+      ];
+    },
+    saveColumnsConfig() {
+      try {
+        const config = this.allWorkforceColumns.map(c => ({
+          key: c.key,
+          visible: !!c.visible,
+        }));
+        localStorage.setItem('fnm_workforce_columns_config', JSON.stringify(config));
+      } catch (e) {
+        console.error('Failed to save columns configuration to localStorage:', e);
+      }
+    },
+    loadColumnsConfig() {
+      try {
+        const savedStr = localStorage.getItem('fnm_workforce_columns_config');
+        if (!savedStr) return;
+        const saved = JSON.parse(savedStr);
+        if (!Array.isArray(saved) || !saved.length) return;
+
+        const savedMap = new Map(saved.map((item, idx) => [item.key, { visible: item.visible, order: idx }]));
+        const defaultCols = this.getDefaultColumns();
+        const orderedCols = [];
+        const unmappedCols = [];
+
+        for (const col of defaultCols) {
+          if (savedMap.has(col.key)) {
+            const conf = savedMap.get(col.key);
+            orderedCols.push({
+              ...col,
+              visible: col.locked ? true : (conf.visible !== false),
+              _order: conf.order,
+            });
+          } else {
+            unmappedCols.push(col);
+          }
+        }
+
+        orderedCols.sort((a, b) => a._order - b._order);
+        orderedCols.forEach(c => delete c._order);
+
+        this.allWorkforceColumns = [...orderedCols, ...unmappedCols];
+      } catch (e) {
+        console.error('Failed to load columns configuration from localStorage:', e);
+      }
+    },
+    resetColumnsToDefault() {
+      try {
+        localStorage.removeItem('fnm_workforce_columns_config');
+        this.allWorkforceColumns = this.getDefaultColumns();
+        this.notification.push({
+          title: this.$t('success'),
+          message: this.$t('columns_reset_success'),
+          icon: 'mdi-restore',
+          color: 'info',
+        });
+      } catch (e) {
+        console.error('Failed to reset columns configuration:', e);
+      }
+    },
+    onColumnVisibilityChange() {
+      this.saveColumnsConfig();
+    },
+    savePrintSettings() {
+      try {
+        const toSave = {
+          orientation: this.printSettings.orientation,
+          density: this.printSettings.density,
+          showLogo: this.printSettings.showLogo,
+          showCompanyInfo: this.printSettings.showCompanyInfo,
+          showMetadataBanner: this.printSettings.showMetadataBanner,
+          showGrandTotals: this.printSettings.showGrandTotals,
+          showSignatures: this.printSettings.showSignatures,
+          zebraStriping: this.printSettings.zebraStriping,
+          showNotes: this.printSettings.showNotes,
+          notes: this.printSettings.notes,
+          selectedColKeys: this.printSettings.selectedColKeys,
+          columnOrder: this.printSettings.columnOrder,
+          zoom: this.printSettings.zoom,
+        };
+        localStorage.setItem('fnm_print_settings', JSON.stringify(toSave));
+      } catch (e) {
+        console.error('Failed to save print settings:', e);
+      }
+    },
+    loadPrintSettings() {
+      try {
+        const savedStr = localStorage.getItem('fnm_print_settings');
+        if (!savedStr) return;
+        const saved = JSON.parse(savedStr);
+        if (saved && typeof saved === 'object') {
+          Object.assign(this.printSettings, saved);
+        }
+      } catch (e) {
+        console.error('Failed to load print settings:', e);
+      }
+    },
+    initPrintColumns() {
+      const baseCols = [...this.visibleWorkforceColumns];
+      const savedOrder = this.printSettings.columnOrder;
+      if (Array.isArray(savedOrder) && savedOrder.length > 0) {
+        const colMap = new Map(baseCols.map(c => [c.key, c]));
+        const ordered = [];
+        savedOrder.forEach(key => {
+          if (colMap.has(key)) {
+            ordered.push(colMap.get(key));
+            colMap.delete(key);
+          }
+        });
+        colMap.forEach(col => ordered.push(col));
+        this.printColumns = ordered;
+      } else {
+        this.printColumns = baseCols;
+      }
+
+      if (!this.printSettings.selectedColKeys || !this.printSettings.selectedColKeys.length) {
+        this.printSettings.selectedColKeys = this.printColumns.map(c => c.key);
+      }
+    },
+    openPrintDialog() {
+      this.loadPrintSettings();
+      this.initPrintColumns();
+      this.printPreviewDialog = true;
+    },
+    syncPrintColumnsWithTable() {
+      this.printColumns = [...this.visibleWorkforceColumns];
+      this.printSettings.columnOrder = this.visibleWorkforceColumns.map(c => c.key);
+      this.printSettings.selectedColKeys = this.visibleWorkforceColumns.map(c => c.key);
+      this.savePrintSettings();
+    },
+    toggleAllPrintColumns(val) {
+      if (val) {
+        this.printSettings.selectedColKeys = this.printColumns.map(c => c.key);
+      } else {
+        this.printSettings.selectedColKeys = this.printColumns.filter(c => c.locked).map(c => c.key);
+      }
+      this.savePrintSettings();
+    },
+    onPrintColumnToggle(key, val) {
+      const set = new Set(this.printSettings.selectedColKeys || []);
+      if (val) set.add(key);
+      else set.delete(key);
+      this.printSettings.selectedColKeys = Array.from(set);
+      this.savePrintSettings();
+    },
+    isPrintColSelected(key) {
+      if (!this.printSettings.selectedColKeys || !this.printSettings.selectedColKeys.length) return true;
+      return this.printSettings.selectedColKeys.includes(key);
+    },
+    onPrintColDragStart(idx, e) {
+      this.printColDragIdx = idx;
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(idx));
+      }
+    },
+    onPrintColDragOver(idx, e) {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      this.printColDragOverIdx = idx;
+    },
+    onPrintColDragLeave(idx, e) {
+      if (this.printColDragOverIdx === idx) {
+        this.printColDragOverIdx = null;
+      }
+    },
+    onPrintColDrop(idx, e) {
+      e.preventDefault();
+      const from = this.printColDragIdx;
+      this.printColDragOverIdx = null;
+      if (from === null || from === idx) return;
+      const list = [...this.printColumns];
+      const item = list.splice(from, 1)[0];
+      list.splice(idx, 0, item);
+      this.printColumns = list;
+      this.printSettings.columnOrder = list.map(c => c.key);
+      this.savePrintSettings();
+    },
+    onPrintColDragEnd() {
+      this.printColDragIdx = null;
+      this.printColDragOverIdx = null;
+    },
+    getPrintColAlignClass(col) {
+      if (!col) return 'text-center';
+      if (col.key === 'name' || col.type === 'chip') return 'text-left';
+      if (col.type === 'currency' || col.type === 'number' || col.type === 'computed_declared' || col.type === 'computed_non_declared') {
+        return 'text-right';
+      }
+      return 'text-center';
+    },
+    getPrintCss(fontSize, cellPad) {
+      const isLandscape = this.printSettings.orientation === 'landscape';
+      const zebraCss = this.printSettings.zebraStriping ? '.fnm-pdoc-row-alt .fnm-pdoc-td { background-color: #f8fafc !important; }' : '';
+
+      return `
+        @page {
+          size: ${isLandscape ? 'A4 landscape' : 'A4 portrait'};
+          margin: 6mm 8mm;
+        }
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+          box-sizing: border-box !important;
+        }
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #1a1a1a !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+          font-size: ${fontSize} !important;
+          line-height: 1.35 !important;
+        }
+        #fnm-print-area {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          background: #ffffff !important;
+          display: block !important;
+        }
+        .fnm-pdoc-header {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          border-bottom: 2px solid #1565C0 !important;
+          padding-bottom: 10px !important;
+          margin-bottom: 10px !important;
+          gap: 12px !important;
+          page-break-inside: avoid !important;
+        }
+        .fnm-pdoc-company-col {
+          display: flex !important;
+          align-items: center !important;
+          gap: 10px !important;
+          flex: 1 !important;
+        }
+        .fnm-pdoc-logo {
+          height: 46px !important;
+          max-width: 130px !important;
+          object-fit: contain !important;
+        }
+        .fnm-pdoc-company-name {
+          font-size: 13px !important;
+          font-weight: 800 !important;
+          color: #0D47A1 !important;
+        }
+        .fnm-pdoc-company-sub {
+          font-size: 9.5px !important;
+          color: #555555 !important;
+        }
+        .fnm-pdoc-company-reg {
+          font-size: 8.5px !important;
+          color: #777777 !important;
+        }
+        .fnm-pdoc-title-col {
+          text-align: center !important;
+          flex: 1.3 !important;
+        }
+        .fnm-pdoc-title-main {
+          font-size: 15px !important;
+          font-weight: 800 !important;
+          color: #1565C0 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.5px !important;
+        }
+        .fnm-pdoc-title-tab {
+          font-size: 11px !important;
+          font-weight: 600 !important;
+          color: #455a64 !important;
+        }
+        .fnm-pdoc-period-badge {
+          display: inline-block !important;
+          background-color: #E3F2FD !important;
+          color: #0D47A1 !important;
+          padding: 2px 8px !important;
+          border-radius: 10px !important;
+          font-size: 10px !important;
+          font-weight: 700 !important;
+          border: 1px solid rgba(21,101,192,0.2) !important;
+        }
+        .fnm-pdoc-meta-col {
+          flex: 1 !important;
+          display: flex !important;
+          justify-content: flex-end !important;
+        }
+        .fnm-pdoc-meta-card {
+          background-color: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 6px !important;
+          padding: 5px 8px !important;
+          font-size: 9.5px !important;
+          min-width: 160px !important;
+        }
+        .fnm-pdoc-meta-line {
+          display: flex !important;
+          justify-content: space-between !important;
+          gap: 6px !important;
+          margin-bottom: 2px !important;
+        }
+        .fnm-pdoc-meta-label {
+          color: #64748b !important;
+          font-weight: 600 !important;
+        }
+        .fnm-pdoc-meta-value {
+          color: #0f172a !important;
+          font-weight: 700 !important;
+        }
+        .fnm-pdoc-meta-strip {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          gap: 6px 14px !important;
+          background-color: #f1f5f9 !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 6px !important;
+          padding: 5px 10px !important;
+          font-size: 9.5px !important;
+          margin-bottom: 10px !important;
+          page-break-inside: avoid !important;
+        }
+        .fnm-pdoc-strip-cell {
+          color: #334155 !important;
+        }
+        .fnm-pdoc-table-wrap {
+          width: 100% !important;
+          overflow: visible !important;
+          margin-bottom: 12px !important;
+        }
+        .fnm-pdoc-table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          font-variant-numeric: tabular-nums !important;
+          font-size: ${fontSize} !important;
+          table-layout: auto !important;
+        }
+        thead {
+          display: table-header-group !important;
+        }
+        tr {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .fnm-pdoc-th {
+          background-color: #E3F2FD !important;
+          color: #0D47A1 !important;
+          border: 1px solid #90CAF9 !important;
+          font-weight: 700 !important;
+          text-align: center !important;
+          padding: ${cellPad} !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          line-height: 1.2 !important;
+          vertical-align: middle !important;
+        }
+        .fnm-head-amber .fnm-pdoc-th {
+          background-color: #FFF3E0 !important;
+          color: #E65100 !important;
+          border-color: #FFCC80 !important;
+        }
+        .fnm-head-purple .fnm-pdoc-th {
+          background-color: #F3E5F5 !important;
+          color: #6A1B9A !important;
+          border-color: #CE93D8 !important;
+        }
+        .fnm-pdoc-th-period {
+          font-size: 8.5px !important;
+          font-weight: 500 !important;
+          opacity: 0.85 !important;
+          display: block !important;
+        }
+        .fnm-pdoc-td {
+          border: 1px solid #e0e0e0 !important;
+          color: #212121 !important;
+          padding: ${cellPad} !important;
+          vertical-align: middle !important;
+          line-height: 1.25 !important;
+        }
+        ${zebraCss}
+        .fnm-pdoc-total-tr {
+          background-color: #E3F2FD !important;
+          font-weight: 800 !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .fnm-total-amber {
+          background-color: #FFF3E0 !important;
+        }
+        .fnm-total-purple {
+          background-color: #F3E5F5 !important;
+        }
+        .fnm-pdoc-total-td {
+          border: 1px solid #90CAF9 !important;
+          color: #0D47A1 !important;
+          padding: ${cellPad} !important;
+        }
+        .fnm-total-amber .fnm-pdoc-total-td {
+          border-color: #FFCC80 !important;
+          color: #E65100 !important;
+        }
+        .fnm-total-purple .fnm-pdoc-total-td {
+          border-color: #CE93D8 !important;
+          color: #6A1B9A !important;
+        }
+        .fnm-badge-yes {
+          display: inline-block !important;
+          padding: 1px 5px !important;
+          border-radius: 4px !important;
+          background-color: #E8F5E9 !important;
+          color: #2E7D32 !important;
+          font-weight: 700 !important;
+          font-size: 8.5px !important;
+        }
+        .fnm-badge-no {
+          display: inline-block !important;
+          padding: 1px 5px !important;
+          border-radius: 4px !important;
+          background-color: #FFEBEE !important;
+          color: #C62828 !important;
+          font-weight: 600 !important;
+          font-size: 8.5px !important;
+        }
+        .fnm-badge-paid {
+          display: inline-block !important;
+          padding: 1px 5px !important;
+          border-radius: 4px !important;
+          background-color: #E8F5E9 !important;
+          color: #1B5E20 !important;
+          font-weight: 800 !important;
+          font-size: 8.5px !important;
+        }
+        .fnm-badge-unpaid {
+          display: inline-block !important;
+          padding: 1px 5px !important;
+          border-radius: 4px !important;
+          background-color: #ECEFF1 !important;
+          color: #546E7A !important;
+          font-weight: 600 !important;
+          font-size: 8.5px !important;
+        }
+        .fnm-pdoc-grand-totals {
+          display: flex !important;
+          justify-content: space-between !important;
+          gap: 10px !important;
+          margin: 12px 0 !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .fnm-pdoc-gt-card {
+          flex: 1 !important;
+          background-color: #f8fafc !important;
+          border: 1.5px solid #1E88E5 !important;
+          border-radius: 6px !important;
+          padding: 6px 10px !important;
+          text-align: center !important;
+        }
+        .fnm-pdoc-gt-card-month {
+          border-color: #7B1FA2 !important;
+          background-color: #FAF5FF !important;
+        }
+        .fnm-pdoc-gt-label {
+          font-size: 9px !important;
+          font-weight: 700 !important;
+          color: #64748b !important;
+          text-transform: uppercase !important;
+          margin-bottom: 2px !important;
+        }
+        .fnm-pdoc-gt-value {
+          font-size: 13px !important;
+          font-weight: 800 !important;
+        }
+        .fnm-pdoc-gt-cur {
+          font-size: 9px !important;
+          font-weight: 600 !important;
+        }
+        .fnm-pdoc-notes-block {
+          border: 1px dashed #90CAF9 !important;
+          background-color: #F8FBFE !important;
+          border-radius: 6px !important;
+          padding: 6px 10px !important;
+          margin-bottom: 12px !important;
+          font-size: 9.5px !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .fnm-pdoc-notes-title {
+          font-weight: 700 !important;
+          color: #1565C0 !important;
+          margin-bottom: 2px !important;
+        }
+        .fnm-pdoc-notes-body {
+          color: #374151 !important;
+          white-space: pre-wrap !important;
+        }
+        .fnm-pdoc-signatures {
+          display: flex !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          margin: 14px 0 8px !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .fnm-pdoc-sig-box {
+          flex: 1 !important;
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 6px !important;
+          padding: 6px 8px !important;
+          background-color: #ffffff !important;
+        }
+        .fnm-pdoc-sig-header {
+          font-size: 9.5px !important;
+          font-weight: 700 !important;
+          color: #334155 !important;
+          text-align: center !important;
+          border-bottom: 1px solid #e2e8f0 !important;
+          padding-bottom: 3px !important;
+        }
+        .fnm-pdoc-sig-space {
+          height: 38px !important;
+        }
+        .fnm-pdoc-sig-line {
+          font-size: 8.5px !important;
+          color: #64748b !important;
+          border-top: 1px dashed #cbd5e1 !important;
+          padding-top: 2px !important;
+        }
+        .fnm-pdoc-footer {
+          border-top: 1px solid #cbd5e1 !important;
+          padding-top: 6px !important;
+          margin-top: 10px !important;
+          display: flex !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          font-size: 8.5px !important;
+          color: #64748b !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .text-left { text-align: left !important; }
+        .text-center { text-align: center !important; }
+        .text-right { text-align: right !important; }
+        .text-primary { color: #1565C0 !important; }
+        .text-success { color: #2E7D32 !important; }
+        .text-warning { color: #E65100 !important; }
+        .text-purple { color: #7B1FA2 !important; }
+        .font-weight-bold { font-weight: 700 !important; }
+      `;
+    },
+    triggerPrint() {
+      const printEl = document.getElementById('fnm-print-area');
+      if (!printEl) return;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow.document;
+      const orientation = this.printSettings.orientation || 'landscape';
+      const density = this.printSettings.density || 'compact';
+      const cellPad = density === 'compact' ? '4px 6px' : density === 'spacious' ? '8px 10px' : '6px 8px';
+      const fontSize = density === 'compact' ? '10px' : density === 'spacious' ? '12px' : '11px';
+      const isLandscape = orientation === 'landscape';
+
+      const title = `${this.$t('activity_breakdown')} - ${this.monthNames[this.currentMonth]} ${this.currentYear}`;
+
+      const printHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>${title}</title>
+            <style>
+              ${this.getPrintCss(fontSize, cellPad)}
+            </style>
+          </head>
+          <body>
+            <div id="fnm-print-area" class="fnm-print-sheet fnm-print-${orientation} fnm-density-${density} ${this.printSettings.zebraStriping ? 'fnm-zebra-table' : ''}">
+              ${printEl.innerHTML}
+            </div>
+          </body>
+        </html>
+      `;
+
+      doc.open();
+      doc.write(printHtml);
+      doc.close();
+
+      const images = doc.querySelectorAll('img');
+      let loaded = 0;
+      const doPrint = () => {
+        setTimeout(() => {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          } catch (err) {
+            console.error('Print trigger error:', err);
+          } finally {
+            setTimeout(() => {
+              if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+            }, 1000);
+          }
+        }, 300);
+      };
+
+      if (images.length === 0) {
+        doPrint();
+      } else {
+        images.forEach(img => {
+          if (img.complete) {
+            loaded++;
+            if (loaded === images.length) doPrint();
+          } else {
+            img.onload = img.onerror = () => {
+              loaded++;
+              if (loaded === images.length) doPrint();
+            };
+          }
+        });
+      }
+    },
     // ---- Column Management ----
     colDragStart(idx) { this.colDragIdx = idx; },
     colDragOver(idx, e) {
@@ -2012,9 +3503,10 @@ export default {
       this.allWorkforceColumns.splice(idx, 0, moved);
       this.colDragIdx = idx;
     },
-    colDragEnd() { this.colDragIdx = null; },
+    colDragEnd() { this.colDragIdx = null; this.saveColumnsConfig(); },
     toggleAllColumns(val) {
       this.allWorkforceColumns.forEach(c => { if (!c.locked) c.visible = val; });
+      this.saveColumnsConfig();
     },
     getCellValue(w, col) {
       if (col.type === 'chip') return w[col.key] || '-';
@@ -2240,6 +3732,13 @@ export default {
           fields,
         });
 
+        this.triggerSummarySnackbar({
+          title: this.$t('workforce_activities_deleted') || 'Activities deleted successfully',
+          days: `${dates.length} ${this.$t('days_selected')}`,
+          icon: 'mdi-delete-sweep',
+          iconColor: 'error',
+        });
+
         // Reset selection and reload
         this.selectedDates = [];
         this.multiSelectMode = false;
@@ -2328,10 +3827,12 @@ export default {
     /** Get short initials from a workforce for compact display */
     getWorkforceInitials(wf) {
       if (!wf) return '?';
-      const name = wf.full_name || '';
-      const parts = name.trim().split(/\s+/);
-      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      return name.substring(0, 2).toUpperCase();
+      const name = wf.full_name || wf.name || '';
+      const parts = name.trim().split(/\s+/).filter(Boolean);
+      if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase() || '?';
     },
     onSectionChange(val) {
       if (val) {
@@ -2615,6 +4116,20 @@ export default {
           fields,
         });
 
+        const wfDisplay = ids.length === 1
+          ? (this.workforceStore.list.find(w => w.id === ids[0])?.full_name || '')
+          : `${ids.length} ${this.$t('workforces')}`;
+        this.triggerSummarySnackbar({
+          title: this.$t('workforce_activity_added') || 'Activity added successfully',
+          workforce: wfDisplay,
+          section: this.activityForm.section_id ? assignmentLabel : '',
+          corporal: this.activityForm.corporal_id ? assignmentLabel : '',
+          date: this.selectedDate,
+          amount: `${this.formatNumber(priceVal)} ${this.main.currency || 'DH'}`,
+          icon: 'mdi-check-circle',
+          iconColor: 'success',
+        });
+
         // Reload activities and summary
         await this.loadActivities();
         await this.loadSummary();
@@ -2666,6 +4181,15 @@ export default {
           fields,
         });
 
+        this.triggerSummarySnackbar({
+          title: this.$t('workforce_activity_updated') || 'Activity updated successfully',
+          section: sectionName || '',
+          corporal: corporalName || '',
+          amount: `${this.formatNumber(this.editForm.price)} ${this.main.currency || 'DH'}`,
+          icon: 'mdi-pencil-circle',
+          iconColor: '#42A5F5',
+        });
+
         await this.loadActivities();
         await this.loadSummary();
         await this.loadBreakdown();
@@ -2695,6 +4219,17 @@ export default {
           icon: 'mdi-calendar-remove',
           color: 'error',
           fields,
+        });
+
+        this.triggerSummarySnackbar({
+          title: this.$t('workforce_activities_deleted') || 'Activity deleted successfully',
+          workforce: act.workforce ? act.workforce.full_name : '',
+          section: act.section ? act.section.name : '',
+          corporal: act.corporal ? act.corporal.full_name : '',
+          date: act.date,
+          amount: `${this.formatNumber(act.price)} ${this.main.currency || 'DH'}`,
+          icon: 'mdi-delete-circle',
+          iconColor: 'error',
         });
 
         await this.loadActivities();
@@ -2727,6 +4262,15 @@ export default {
           icon: 'mdi-calendar-remove',
           color: 'error',
           fields,
+        });
+
+        this.triggerSummarySnackbar({
+          title: this.$t('workforce_activities_deleted') || 'Activities deleted successfully',
+          workforce: ids.length === 1 ? (this.workforceStore.list.find(w => w.id === ids[0])?.full_name || '') : `${ids.length} ${this.$t('workforces')}`,
+          date: this.selectedDate,
+          days: deletedCount,
+          icon: 'mdi-delete-sweep',
+          iconColor: 'error',
         });
 
         // Reload
@@ -2770,6 +4314,15 @@ export default {
           fields,
         });
 
+        this.triggerSummarySnackbar({
+          title: this.$t('workforce_activities_deleted') || 'Activities deleted successfully',
+          workforce: !this.noWorkforceSelected && wfIds.length === 1 ? (this.workforceStore.list.find(w => w.id === wfIds[0])?.full_name || '') : this.$t('all_workforces'),
+          date: cell.dateStr,
+          days: deletedCount,
+          icon: 'mdi-delete-sweep',
+          iconColor: 'error',
+        });
+
         // Reload
         await this.loadActivities();
         await this.loadSummary();
@@ -2786,37 +4339,55 @@ export default {
 
 <style scoped>
 .fnm-card { border-radius: 20px !important; overflow: visible; font-family: 'Inter', sans-serif; }
-.fnm-hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
-.fnm-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
-.fnm-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
-.fnm-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }
+.fnm-hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; min-height: 96px; }
+.fnm-hero-inner { position: relative; z-index: 1; padding: 18px 24px; color: #fff; }
+.fnm-hero-icon { width: 50px; height: 50px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.2); flex-shrink: 0; }
+.fnm-hero-title { font-size: 20px; font-weight: 800; letter-spacing: .3px; }
+.fnm-hero-stat { padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,.18); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.22); color: #fff; }
+.fnm-hero-toggle { background: rgba(255,255,255,.18) !important; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.25) !important; color: #fff !important; }
+.fnm-hero-toggle :deep(.v-btn--active) { background: #fff !important; color: #1565C0 !important; font-weight: 700 !important; }
 
-/* Summary */
-.fnm-summary-block { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(var(--v-border-color), .1); }
-.fnm-summary-total { background: linear-gradient(135deg, rgba(33,150,243,.06), rgba(33,150,243,.12)); border: 1px solid rgba(33,150,243,.2); }
+/* Left Panel */
+.fnm-panel-card { border-color: rgba(var(--v-border-color), .12) !important; }
+.fnm-panel-icon-wrap { width: 36px; height: 36px; border-radius: 10px; background: rgba(66,165,245,.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fnm-date-capsule { background: rgba(var(--v-theme-surface-variant), .03); border-color: rgba(var(--v-border-color), .1) !important; }
+.fnm-avatar-circle { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #1565C0, #42A5F5); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; letter-spacing: .3px; flex-shrink: 0; }
+.fnm-btn-primary { box-shadow: 0 4px 14px rgba(66, 165, 245, 0.35) !important; transition: all .2s ease; }
+.fnm-btn-primary:hover { box-shadow: 0 6px 18px rgba(66, 165, 245, 0.45) !important; transform: translateY(-1px); }
+.fnm-btn-delete { transition: all .2s ease; }
+.fnm-btn-delete:hover { background: rgba(244,67,54,.04); }
 
-/* Calendar Header */
-.fnm-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(var(--v-border-color), .1); }
+/* Summary KPI Cards */
+.fnm-kpi-card { background: linear-gradient(135deg, rgba(21,101,192,.02) 0%, rgba(66,165,245,.06) 100%); border-color: rgba(66,165,245,.2) !important; transition: all .15s ease; }
+.fnm-kpi-card:hover { border-color: rgba(66,165,245,.4) !important; transform: translateY(-1px); }
+.fnm-kpi-card-total { background: linear-gradient(135deg, rgba(21,101,192,.08) 0%, rgba(66,165,245,.14) 100%); border-color: rgba(21,101,192,.25) !important; }
+.fnm-currency-num { font-family: 'JetBrains Mono', 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
+.text-workforce { color: #42A5F5 !important; }
+
+/* Calendar Header & Grid */
+.fnm-cal-card { border-color: rgba(var(--v-border-color), .12) !important; }
+.fnm-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid rgba(var(--v-border-color), .1); }
 .fnm-cal-title { font-size: 16px; font-weight: 700; }
+.fnm-segmented-toggle { border-color: rgba(66,165,245,.25) !important; }
 
 /* Calendar Grid */
 .fnm-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
-.fnm-cal-dow { padding: 10px 4px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .5; border-bottom: 1px solid rgba(var(--v-border-color), .08); }
+.fnm-cal-dow { padding: 10px 4px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .6; border-bottom: 1px solid rgba(var(--v-border-color), .08); }
 
 /* Calendar Cells */
-.fnm-cal-cell { min-height: 90px; border: 1px solid rgba(var(--v-border-color), .06); padding: 4px; position: relative; cursor: pointer; transition: background .15s ease; }
-.fnm-cal-cell:hover { background: rgba(33,150,243,.03); }
+.fnm-cal-cell { min-height: 94px; border: 1px solid rgba(var(--v-border-color), .06); padding: 5px; position: relative; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.fnm-cal-cell:hover { background: rgba(66,165,245,.04); }
 .fnm-cal-cell--empty { background: transparent; cursor: default; }
-.fnm-cal-cell--outside { opacity: .3; cursor: default; }
+.fnm-cal-cell--outside { opacity: .25; cursor: default; }
 .fnm-cal-cell--future { opacity: .35; cursor: not-allowed; pointer-events: none; background: repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(0,0,0,.03) 4px, rgba(0,0,0,.03) 8px) !important; }
-.fnm-cal-cell--today { background: rgba(33,150,243,.06) !important; }
+.fnm-cal-cell--today { background: rgba(66,165,245,.08) !important; box-shadow: inset 0 0 0 1.5px #42A5F5; }
 .fnm-cal-cell--multi { background: rgba(255, 235, 59, .12) !important; }
-.fnm-cal-cell--active-half { }
+.fnm-cal-cell--active-half { background-color: rgba(66,165,245,.015); border-color: rgba(66,165,245,.14); }
 
 /* Day header: number + delete button */
 .fnm-cal-day-header { display: flex; align-items: center; justify-content: space-between; }
-.fnm-cal-day-num { font-size: 12px; font-weight: 600; padding: 2px 6px; display: inline-block; border-radius: 8px; }
-.fnm-cal-day-selected { background: #2196F3; color: #fff; }
+.fnm-cal-day-num { font-size: 12px; font-weight: 700; padding: 2px 7px; display: inline-block; border-radius: 8px; }
+.fnm-cal-day-selected { background: #42A5F5 !important; color: #fff !important; box-shadow: 0 2px 6px rgba(66,165,245,.35); }
 .fnm-cal-month-label { font-size: 9px; font-weight: 700; text-transform: uppercase; opacity: .5; margin-left: 4px; }
 
 /* Cell delete button - appears on hover */
@@ -3220,5 +4791,702 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Breakdown Table Refinements */
+.fnm-breakdown-table th { font-size: 11px !important; text-transform: uppercase; letter-spacing: .5px; background: rgba(var(--v-theme-surface-variant), .05) !important; font-weight: 700 !important; }
+.fnm-breakdown-table td { font-size: 13px; font-variant-numeric: tabular-nums; }
+.fnm-breakdown-table tbody tr:nth-child(even) { background-color: rgba(var(--v-theme-on-surface), 0.015); }
+.fnm-breakdown-table tbody tr:hover { background-color: rgba(66, 165, 245, 0.05) !important; }
+.fnm-breakdown-total-row { background: linear-gradient(135deg, rgba(21,101,192,.06) 0%, rgba(66,165,245,.1) 100%) !important; border-top: 2px solid #42A5F5 !important; font-weight: 700; }
+
+/* Workforce Avatar in Table */
+.fnm-wf-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #1565C0, #42A5F5); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; letter-spacing: .4px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(21,101,192,.2); }
+.fnm-wf-name { color: rgba(var(--v-theme-on-surface), .95); letter-spacing: .2px; font-weight: 700; }
+
+/* Executive KPI Cards */
+.fnm-executive-kpi { background: linear-gradient(135deg, rgba(21,101,192,.02) 0%, rgba(66,165,245,.06) 100%); border-color: rgba(66,165,245,.2) !important; transition: all .2s ease; }
+.fnm-executive-kpi:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); border-color: rgba(66,165,245,.35) !important; }
+.fnm-executive-kpi--hero { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 50%, #42A5F5 100%) !important; color: #fff !important; box-shadow: 0 8px 24px rgba(21,101,192,.3) !important; border: none !important; }
+.letter-spacing-1 { letter-spacing: 1px; }
+</style>
+
+<!-- ================= PRINT PREVIEW MODAL & STAGE STYLING (Unscoped for Teleported Dialog) ================= -->
+<style>
+.fnm-print-dialog-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 94vh;
+}
+.fnm-print-dialog-card ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.fnm-print-modal-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+.fnm-print-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fnm-zoom-pill {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 20px;
+}
+.fnm-print-modal-body {
+  overflow: hidden !important;
+  display: flex !important;
+  flex: 1 !important;
+  padding: 0 !important;
+  max-height: calc(94vh - 70px) !important;
+}
+.fnm-print-layout {
+  display: flex;
+  width: 100%;
+  height: calc(94vh - 70px);
+}
+.fnm-print-sidebar {
+  width: 340px;
+  min-width: 340px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fbfcfe;
+  overflow-y: auto !important;
+}
+.fnm-print-sidebar::-webkit-scrollbar,
+.fnm-print-cols-list::-webkit-scrollbar {
+  width: 5px !important;
+  height: 5px !important;
+}
+.fnm-print-sidebar::-webkit-scrollbar-button,
+.fnm-print-cols-list::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.fnm-print-sidebar::-webkit-scrollbar-track,
+.fnm-print-cols-list::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.fnm-print-sidebar::-webkit-scrollbar-thumb,
+.fnm-print-cols-list::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.35) !important;
+  border-radius: 5px !important;
+  transition: background 0.3s ease !important;
+}
+.fnm-print-sidebar::-webkit-scrollbar-thumb:hover,
+.fnm-print-cols-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.65) !important;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .fnm-print-sidebar,
+  .fnm-print-cols-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128, 128, 128, 0.4) transparent;
+  }
+}
+
+.fnm-print-ctrl-group {
+  margin-bottom: 16px;
+}
+.fnm-ctrl-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #455a64;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+.fnm-switch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fnm-print-cols-box {
+  background: #fff;
+  border: 1.5px solid rgba(66, 165, 245, 0.2);
+  border-radius: 12px;
+  padding: 10px;
+}
+.fnm-print-cols-list {
+  max-height: 240px;
+  overflow-y: auto !important;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 2px;
+}
+.fnm-print-col-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+.fnm-print-col-row:hover {
+  background: rgba(66, 165, 245, 0.07);
+  border-color: rgba(66, 165, 245, 0.35);
+}
+.fnm-print-col-row--dragging {
+  opacity: 0.35;
+  background: rgba(66, 165, 245, 0.15);
+  border: 1.5px dashed #1565C0;
+}
+.fnm-print-col-row--dragover {
+  border-color: #1565C0;
+  background: rgba(66, 165, 245, 0.14);
+  transform: translateY(2px);
+  box-shadow: 0 3px 8px rgba(21, 101, 192, 0.18);
+}
+.fnm-print-col-row--locked {
+  cursor: default;
+  background: #f8fafc;
+}
+.fnm-print-drag-handle {
+  cursor: grab;
+  color: #90a4ae;
+}
+.fnm-print-col-row:active .fnm-print-drag-handle {
+  cursor: grabbing;
+}
+
+/* Segmented Toggle Rounded Pill Style */
+.fnm-segmented-toggle {
+  border-radius: 14px !important;
+  border: 1.5px solid rgba(66, 165, 245, 0.35) !important;
+  background: #f0f7ff !important;
+  padding: 3px !important;
+  display: flex !important;
+  gap: 4px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+.fnm-segmented-toggle .v-btn {
+  border-radius: 10px !important;
+  border: none !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.2px !important;
+  transition: all 0.2s ease !important;
+}
+.fnm-segmented-toggle .v-btn--active {
+  background: #1565C0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(21, 101, 192, 0.35) !important;
+}
+.fnm-segmented-toggle .v-btn:not(.v-btn--active) {
+  background: transparent !important;
+  color: #546e7a !important;
+}
+
+/* Print Stage (Preview Container) - Sleek Auto-hide X & Y Scrollbars matching Navigation Drawer */
+.fnm-print-stage {
+  flex: 1;
+  background: #3c4043;
+  overflow: auto !important;
+  padding: 24px 20px 48px;
+  display: block;
+}
+.fnm-print-stage::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+.fnm-print-stage::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.fnm-print-stage::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.fnm-print-stage::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border-radius: 6px !important;
+  transition: background 0.3s ease !important;
+}
+.fnm-print-stage::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+.fnm-print-stage:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+.fnm-print-stage::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+.fnm-print-stage::-webkit-scrollbar-thumb:active {
+  background: #42A5F5 !important;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .fnm-print-stage {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+  }
+}
+.fnm-print-sheet-scaler {
+  display: block;
+  text-align: left;
+  margin: 0 auto;
+  width: max-content;
+  max-width: none;
+  transform-origin: top center;
+  transition: transform 0.2s ease-out;
+}
+
+/* Authentic Document Sheet - Expands to contain ALL content without clipping */
+.fnm-print-sheet {
+  background: #ffffff !important;
+  color: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  padding: 28px 32px 40px;
+  box-sizing: border-box;
+  height: auto !important;
+  display: block;
+  overflow: visible;
+  margin-bottom: 36px;
+  transition: min-width 0.2s ease;
+}
+.fnm-print-sheet.fnm-print-landscape {
+  min-width: 297mm;
+  width: max-content;
+  max-width: none;
+  min-height: 210mm;
+}
+.fnm-print-sheet.fnm-print-portrait {
+  min-width: 210mm;
+  width: max-content;
+  max-width: none;
+  min-height: 297mm;
+}
+
+/* Density Scales */
+.fnm-density-compact {
+  font-size: 11px;
+}
+.fnm-density-compact .fnm-pdoc-th,
+.fnm-density-compact .fnm-pdoc-td,
+.fnm-density-compact .fnm-pdoc-total-td {
+  padding: 4px 6px !important;
+}
+.fnm-density-standard {
+  font-size: 12px;
+}
+.fnm-density-standard .fnm-pdoc-th,
+.fnm-density-standard .fnm-pdoc-td,
+.fnm-density-standard .fnm-pdoc-total-td {
+  padding: 6px 8px !important;
+}
+.fnm-density-spacious {
+  font-size: 13px;
+}
+.fnm-density-spacious .fnm-pdoc-th,
+.fnm-density-spacious .fnm-pdoc-td,
+.fnm-density-spacious .fnm-pdoc-total-td {
+  padding: 8px 12px !important;
+}
+
+/* Document Header */
+.fnm-pdoc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #1565C0;
+  padding-bottom: 14px;
+  margin-bottom: 12px;
+  gap: 16px;
+}
+.fnm-pdoc-company-col {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.fnm-pdoc-logo {
+  height: 52px;
+  max-width: 140px;
+  object-fit: contain;
+}
+.fnm-pdoc-company-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0D47A1;
+}
+.fnm-pdoc-company-sub {
+  font-size: 10px;
+  color: #555;
+}
+.fnm-pdoc-company-reg {
+  font-size: 9px;
+  color: #777;
+}
+.fnm-pdoc-title-col {
+  text-align: center;
+  flex: 1.2;
+}
+.fnm-pdoc-title-box {
+  margin-bottom: 4px;
+}
+.fnm-pdoc-title-main {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #1565C0;
+  text-transform: uppercase;
+}
+.fnm-pdoc-title-tab {
+  font-size: 12px;
+  font-weight: 600;
+  color: #455a64;
+}
+.fnm-pdoc-period-badge {
+  display: inline-block;
+  background: #E3F2FD;
+  color: #0D47A1;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(21, 101, 192, 0.2);
+}
+.fnm-pdoc-meta-col {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+.fnm-pdoc-meta-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 10px;
+  min-width: 170px;
+}
+.fnm-pdoc-meta-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.fnm-pdoc-meta-line:last-child {
+  margin-bottom: 0;
+}
+.fnm-pdoc-meta-label {
+  color: #64748b;
+  font-weight: 600;
+}
+.fnm-pdoc-meta-value {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Metadata Strip */
+.fnm-pdoc-meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 10.5px;
+  margin-bottom: 12px;
+}
+.fnm-pdoc-strip-cell {
+  color: #334155;
+}
+
+/* Datatables */
+.fnm-pdoc-table-wrap {
+  width: 100%;
+  overflow: visible;
+  margin-bottom: 14px;
+}
+.fnm-pdoc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  table-layout: auto;
+}
+.fnm-pdoc-th {
+  background: #E3F2FD;
+  color: #0D47A1;
+  border: 1px solid #90CAF9;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.2px;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25;
+  vertical-align: middle;
+}
+.fnm-head-amber .fnm-pdoc-th {
+  background: #FFF3E0 !important;
+  color: #E65100 !important;
+  border-color: #FFCC80 !important;
+}
+.fnm-head-purple .fnm-pdoc-th {
+  background: #F3E5F5 !important;
+  color: #6A1B9A !important;
+  border-color: #CE93D8 !important;
+}
+.fnm-pdoc-th-period {
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.85;
+  margin-left: 2px;
+}
+.fnm-pdoc-td {
+  border: 1px solid #e0e0e0;
+  color: #212121;
+}
+.fnm-pdoc-row-alt .fnm-pdoc-td {
+  background: #f9fbfd;
+}
+.fnm-pdoc-total-tr {
+  background: #E3F2FD;
+  font-weight: 800;
+}
+.fnm-total-amber {
+  background: #FFF3E0 !important;
+}
+.fnm-total-purple {
+  background: #F3E5F5 !important;
+}
+.fnm-pdoc-total-td {
+  border: 1px solid #90CAF9;
+  color: #0D47A1;
+}
+.fnm-total-amber .fnm-pdoc-total-td {
+  border-color: #FFCC80 !important;
+  color: #E65100 !important;
+}
+.fnm-total-purple .fnm-pdoc-total-td {
+  border-color: #CE93D8 !important;
+  color: #6A1B9A !important;
+}
+
+/* Badges */
+.fnm-badge-yes {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #E8F5E9;
+  color: #2E7D32;
+  font-weight: 700;
+  font-size: 9.5px;
+}
+.fnm-badge-no {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #FFEBEE;
+  color: #C62828;
+  font-weight: 600;
+  font-size: 9.5px;
+}
+.fnm-badge-paid {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #E8F5E9;
+  color: #1B5E20;
+  font-weight: 800;
+  font-size: 9.5px;
+}
+.fnm-badge-unpaid {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ECEFF1;
+  color: #546E7A;
+  font-weight: 600;
+  font-size: 9.5px;
+}
+
+/* Grand Totals KPI Cards */
+.fnm-pdoc-grand-totals {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+}
+.fnm-pdoc-gt-card {
+  flex: 1;
+  background: #f8fafc;
+  border: 1.5px solid #1E88E5;
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: center;
+}
+.fnm-pdoc-gt-card-month {
+  border-color: #7B1FA2;
+  background: #FAF5FF;
+}
+.fnm-pdoc-gt-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.fnm-pdoc-gt-value {
+  font-size: 15px;
+  font-weight: 800;
+}
+.fnm-pdoc-gt-cur {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Notes Block */
+.fnm-pdoc-notes-block {
+  border: 1px dashed #90CAF9;
+  background: #F8FBFE;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-size: 10.5px;
+}
+.fnm-pdoc-notes-title {
+  font-weight: 700;
+  color: #1565C0;
+  margin-bottom: 3px;
+}
+.fnm-pdoc-notes-body {
+  color: #374151;
+  white-space: pre-wrap;
+}
+
+/* Signatures Block */
+.fnm-pdoc-signatures {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 10px;
+}
+.fnm-pdoc-sig-box {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #fff;
+}
+.fnm-pdoc-sig-header {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #334155;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+}
+.fnm-pdoc-sig-space {
+  height: 48px;
+}
+.fnm-pdoc-sig-line {
+  font-size: 9.5px;
+  color: #64748b;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 3px;
+}
+
+/* Footer */
+.fnm-pdoc-footer {
+  border-top: 1px solid #cbd5e1;
+  padding-top: 8px;
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.5px;
+  color: #64748b;
+}
+.fnm-pdoc-footer-legal {
+  font-weight: 600;
+}
+.fnm-pdoc-footer-notice {
+  font-style: italic;
+}
+
+/* ================= PRINT MEDIA OVERRIDES ================= */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #fnm-print-area,
+  #fnm-print-area * {
+    visibility: visible;
+  }
+  #fnm-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .fnm-pdoc-table {
+    page-break-inside: auto;
+  }
+  .fnm-pdoc-head-tr {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+    display: table-header-group;
+  }
+  .fnm-pdoc-body-tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .fnm-pdoc-total-tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .fnm-pdoc-grand-totals,
+  .fnm-pdoc-signatures,
+  .fnm-pdoc-footer {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+@media (max-width: 960px) {
+  .fnm-print-layout {
+    flex-direction: column !important;
+    height: auto !important;
+    max-height: calc(90vh - 60px) !important;
+  }
+  .fnm-print-sidebar {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    max-height: 280px !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+  .fnm-print-stage {
+    padding: 16px 12px 36px !important;
+  }
 }
 </style>
