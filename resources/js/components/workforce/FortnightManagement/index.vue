@@ -640,7 +640,9 @@
                             <v-checkbox-btn
                               v-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'"
                               :model-value="isAllPaid(col.key)"
-                              @update:model-value="v => toggleAllPayments(col.period, v)"
+                              :true-value="true"
+                              :false-value="false"
+                              @update:model-value="v => toggleAllPayments(col.period, Boolean(v))"
                               color="success"
                               class="mr-1"
                               @click.stop
@@ -770,8 +772,10 @@
                         <!-- Checkbox Q1/Q2 -->
                         <template v-else-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'">
                           <v-checkbox
-                            :model-value="w[col.key]"
-                            @update:model-value="v => togglePaymentStatus(w, col.period, v)"
+                            :model-value="Boolean(w[col.key])"
+                            :true-value="true"
+                            :false-value="false"
+                            @update:model-value="v => togglePaymentStatus(w, col.period, Boolean(v))"
                             density="compact"
                             hide-details
                             color="success"
@@ -2046,8 +2050,8 @@
       <v-divider class="mb-2"></v-divider>
       <div class="d-flex flex-column ga-1 text-body-2">
         <div v-if="summarySnackbar.workforce">
-          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-account-hard-hat</v-icon>
-          <span class="text-medium-emphasis">{{ $t('workforce') }}:</span> <strong>{{ summarySnackbar.workforce }}</strong>
+          <v-icon size="14" color="#42A5F5" class="mr-1">{{ summarySnackbar.workforceIcon || 'mdi-account-hard-hat' }}</v-icon>
+          <span class="text-medium-emphasis">{{ summarySnackbar.workforceLabel || $t('workforce') }}:</span> <strong>{{ summarySnackbar.workforce }}</strong>
         </div>
         <div v-if="summarySnackbar.section">
           <v-icon size="14" color="#42A5F5" class="mr-1">mdi-sitemap-outline</v-icon>
@@ -2663,12 +2667,14 @@ export default {
     }
   },
   methods: {
-    triggerSummarySnackbar({ title, workforce = '', section = '', corporal = '', date = '', days = '', amount = '', icon = 'mdi-check-circle', iconColor = 'success' }) {
+    triggerSummarySnackbar({ title, workforce = '', workforceLabel = '', workforceIcon = '', section = '', corporal = '', date = '', days = '', amount = '', icon = 'mdi-check-circle', iconColor = 'success' }) {
       clearInterval(this.snackbarTimer);
       this.summarySnackbar = {
         show: true,
         title,
         workforce,
+        workforceLabel,
+        workforceIcon,
         section,
         corporal,
         date,
@@ -2765,31 +2771,31 @@ export default {
     async togglePaymentStatus(workforce, periodStr, isPaid) {
       // periodStr is 'q1' or 'q2'. API expects 'Q1' or 'Q2'
       const periodParam = periodStr.toUpperCase();
+      const paidBool = Boolean(isPaid);
       try {
         await axios.post('/api/workforce-payments/toggle', {
           workforce_id: workforce.id,
           year: this.currentYear,
           month: this.currentMonth + 1,
           fortnight_period: periodParam,
-          is_paid: isPaid,
+          is_paid: paidBool,
         });
         
         // Update local state
-        workforce[`is_paid_${periodStr}`] = isPaid;
+        workforce[`is_paid_${periodStr}`] = paidBool;
         
+        const statusText = paidBool ? (this.$t('paid') || 'Paid') : (this.$t('unpaid') || 'Unpaid');
+        const periodTotal = workforce[`${periodStr}_total`] != null 
+          ? ` (${this.formatNumber(workforce[`${periodStr}_total`])} ${this.main.currency || 'DH'})` 
+          : '';
+
         this.triggerSummarySnackbar({
-          title: this.$t('workforce_payment_updated') || 'Payment status updated',
+          title: this.$t('payment_status_updated') || 'Payment status updated',
           workforce: workforce.name || workforce.full_name || '',
-          amount: `${periodParam}: ${isPaid ? (this.$t('paid') || 'Paid') : (this.$t('unpaid') || 'Unpaid')}`,
-          icon: isPaid ? 'mdi-check-decagram' : 'mdi-clock-outline',
-          iconColor: isPaid ? 'success' : 'warning',
-        });
-        
-        this.notification.push({
-          title: this.$t('success'),
-          message: this.$t('payment_status_updated'),
-          icon: 'mdi-check-circle',
-          color: 'success'
+          workforceIcon: 'mdi-account-hard-hat',
+          amount: `${periodParam}: ${statusText}${periodTotal}`,
+          icon: paidBool ? 'mdi-check-decagram' : 'mdi-clock-outline',
+          iconColor: paidBool ? 'success' : 'warning',
         });
       } catch (error) {
         console.error(error);
@@ -2806,6 +2812,7 @@ export default {
       const workforces = this.sortedFilteredWorkforces;
       const workforceIds = workforces.map(w => w.id);
       if (!workforceIds.length) return;
+      const paidBool = Boolean(isPaid);
 
       try {
         await axios.post('/api/workforce-payments/bulk-toggle', {
@@ -2813,19 +2820,25 @@ export default {
           year: this.currentYear,
           month: this.currentMonth + 1,
           fortnight_period: periodParam,
-          is_paid: isPaid,
+          is_paid: paidBool,
         });
         
         // Update local state for all currently visible workforces
         workforces.forEach(w => {
-          w[`is_paid_${periodStr}`] = isPaid;
+          w[`is_paid_${periodStr}`] = paidBool;
         });
 
-        this.notification.push({
-          title: this.$t('success'),
-          message: this.$t('toggle_all_paid'),
-          icon: 'mdi-check-all',
-          color: 'success'
+        const totalPrice = workforces.reduce((sum, w) => sum + Number(w[`${periodStr}_total`] || 0), 0);
+        const statusText = paidBool ? (this.$t('paid') || 'Paid') : (this.$t('unpaid') || 'Unpaid');
+
+        this.triggerSummarySnackbar({
+          title: this.$t('payment_status_updated') || 'Payment status updated',
+          workforce: `${workforces.length} ${this.$t('workforces') || 'Workforces'}`,
+          workforceLabel: this.$t('workforces') || 'Workforces',
+          workforceIcon: 'mdi-account-group',
+          amount: `${periodParam}: ${statusText} • ${this.formatNumber(totalPrice)} ${this.main.currency || 'DH'}`,
+          icon: paidBool ? 'mdi-check-all' : 'mdi-clock-outline',
+          iconColor: paidBool ? 'success' : 'warning',
         });
       } catch (error) {
         console.error(error);
@@ -2840,7 +2853,7 @@ export default {
     isAllPaid(colKey) {
       const workforces = this.sortedFilteredWorkforces;
       if (!workforces || !workforces.length) return false;
-      return workforces.every(w => w[colKey]);
+      return workforces.every(w => Boolean(w[colKey]));
     },
     // ---- Column Persistence & Print Settings ----
     getDefaultColumns() {

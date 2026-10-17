@@ -479,8 +479,10 @@ class FortnightActivityController extends Controller
                 // Add payment status
                 if (!isset($workforces[$wKey]['is_paid_q1'])) {
                     $wPayments = $payments->get($wKey) ?? collect([]);
-                    $workforces[$wKey]['is_paid_q1'] = $wPayments->where('fortnight_period', 'Q1')->first()->is_paid ?? false;
-                    $workforces[$wKey]['is_paid_q2'] = $wPayments->where('fortnight_period', 'Q2')->first()->is_paid ?? false;
+                    $q1Payment = $wPayments->where('fortnight_period', 'Q1')->first();
+                    $q2Payment = $wPayments->where('fortnight_period', 'Q2')->first();
+                    $workforces[$wKey]['is_paid_q1'] = $q1Payment ? (bool) $q1Payment->is_paid : false;
+                    $workforces[$wKey]['is_paid_q2'] = $q2Payment ? (bool) $q2Payment->is_paid : false;
                 }
 
                 // Track distinct work dates for work/non-work days

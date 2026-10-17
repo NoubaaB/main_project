@@ -17,6 +17,12 @@ class WorkforceFortnightPayment extends Model
         'is_paid',
     ];
 
+    protected $casts = [
+        'is_paid' => 'boolean',
+        'year' => 'integer',
+        'month' => 'integer',
+    ];
+
     public function workforce()
     {
         return $this->belongsTo(Workforce::class);
