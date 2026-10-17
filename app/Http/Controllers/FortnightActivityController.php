@@ -705,6 +705,9 @@ class FortnightActivityController extends Controller
             $dailyMap[$dateStr]['count']++;
         }
         $daily = array_values($dailyMap);
+        foreach ($daily as &$d) {
+            $d['total'] = round($d['total'], 2);
+        }
 
         // Section totals
         $sectionMap = [];
@@ -723,6 +726,10 @@ class FortnightActivityController extends Controller
             $sectionMap[$key]['total'] += (float) $act->price;
             $sectionMap[$key]['count']++;
         }
+        foreach ($sectionMap as &$s) {
+            $s['total'] = round($s['total'], 2);
+        }
+        usort($sectionMap, fn($a, $b) => $b['total'] <=> $a['total']);
 
         // Corporal totals
         $corporalMap = [];
@@ -741,6 +748,40 @@ class FortnightActivityController extends Controller
             $corporalMap[$key]['total'] += (float) $act->price;
             $corporalMap[$key]['count']++;
         }
+        foreach ($corporalMap as &$c) {
+            $c['total'] = round($c['total'], 2);
+        }
+        usort($corporalMap, fn($a, $b) => $b['total'] <=> $a['total']);
+
+        // Workforce totals & ranking
+        $workforceMap = [];
+        foreach ($activities as $act) {
+            if (!$act->workforce_id)
+                continue;
+            $key = $act->workforce_id;
+            if (!isset($workforceMap[$key])) {
+                $workforceMap[$key] = [
+                    'id' => $act->workforce_id,
+                    'name' => $act->workforce ? $act->workforce->full_name : 'Unknown',
+                    'matricule' => $act->workforce ? $act->workforce->matricule : '',
+                    'cin' => $act->workforce ? $act->workforce->cin : '',
+                    'section' => $act->section ? $act->section->name : '-',
+                    'corporal' => $act->corporal ? $act->corporal->full_name : '-',
+                    'total' => 0,
+                    'count' => 0,
+                    'days' => [],
+                ];
+            }
+            $workforceMap[$key]['total'] += (float) $act->price;
+            $workforceMap[$key]['count']++;
+            $workforceMap[$key]['days'][] = date('Y-m-d', strtotime($act->date));
+        }
+        foreach ($workforceMap as &$w) {
+            $w['total'] = round($w['total'], 2);
+            $w['work_days'] = count(array_unique($w['days']));
+            unset($w['days']);
+        }
+        usort($workforceMap, fn($a, $b) => $b['total'] <=> $a['total']);
 
         $grandTotal = $activities->sum('price');
 
@@ -748,6 +789,7 @@ class FortnightActivityController extends Controller
             'daily' => $daily,
             'sections' => array_values($sectionMap),
             'corporals' => array_values($corporalMap),
+            'workforces' => array_values($workforceMap),
             'grand_total' => round((float) $grandTotal, 2),
             'total_activities' => $activities->count(),
         ], 200);

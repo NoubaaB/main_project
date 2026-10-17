@@ -1316,7 +1316,10 @@
     max-width="1440"
     transition="dialog-bottom-transition"
   >
-    <v-card class="rounded-xl overflow-hidden fnm-print-dialog-card">
+    <v-card
+      class="rounded-xl overflow-hidden fnm-print-dialog-card"
+      :class="{ 'fnm-theme--dark': main.is_dark, 'fnm-theme--light': !main.is_dark }"
+    >
       <!-- Modal Header -->
       <div class="fnm-print-modal-header">
         <div class="d-flex align-center ga-3">
@@ -1332,14 +1335,13 @@
         <v-spacer></v-spacer>
 
         <!-- Zoom Controls -->
-        <!-- Zoom Controls -->
         <div class="d-none d-sm-flex align-center ga-1 mr-3 fnm-zoom-pill">
           <v-btn
             size="x-small"
             variant="text"
             rounded="pill"
-            :color="printSettings.zoom === 75 ? '#1565C0' : 'grey-darken-2'"
-            :class="{ 'font-weight-bold bg-white elevation-1': printSettings.zoom === 75 }"
+            :color="printSettings.zoom === 75 ? (main.is_dark ? '#90CAF9' : '#1565C0') : (main.is_dark ? 'grey-lighten-2' : 'grey-darken-2')"
+            :class="{ 'font-weight-bold fnm-zoom-btn--active': printSettings.zoom === 75 }"
             @click="printSettings.zoom = 75; savePrintSettings()"
           >
             75%
@@ -1348,8 +1350,8 @@
             size="x-small"
             variant="text"
             rounded="pill"
-            :color="printSettings.zoom === 90 ? '#1565C0' : 'grey-darken-2'"
-            :class="{ 'font-weight-bold bg-white elevation-1': printSettings.zoom === 90 }"
+            :color="printSettings.zoom === 90 ? (main.is_dark ? '#90CAF9' : '#1565C0') : (main.is_dark ? 'grey-lighten-2' : 'grey-darken-2')"
+            :class="{ 'font-weight-bold fnm-zoom-btn--active': printSettings.zoom === 90 }"
             @click="printSettings.zoom = 90; savePrintSettings()"
           >
             90%
@@ -1358,8 +1360,8 @@
             size="x-small"
             variant="text"
             rounded="pill"
-            :color="printSettings.zoom === 100 ? '#1565C0' : 'grey-darken-2'"
-            :class="{ 'font-weight-bold bg-white elevation-1': printSettings.zoom === 100 }"
+            :color="printSettings.zoom === 100 ? (main.is_dark ? '#90CAF9' : '#1565C0') : (main.is_dark ? 'grey-lighten-2' : 'grey-darken-2')"
+            :class="{ 'font-weight-bold fnm-zoom-btn--active': printSettings.zoom === 100 }"
             @click="printSettings.zoom = 100; savePrintSettings()"
           >
             100%
@@ -1625,7 +1627,8 @@
               <!-- ============= PRINTABLE AREA (#fnm-print-area) ============= -->
               <div
                 id="fnm-print-area"
-                class="fnm-print-sheet"
+                class="fnm-print-sheet v-theme--light"
+                data-theme="light"
                 :class="[
                   'fnm-print-' + printSettings.orientation,
                   'fnm-density-' + printSettings.density,
@@ -4852,9 +4855,22 @@ export default {
   justify-content: center;
 }
 .fnm-zoom-pill {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  padding: 3px 6px;
   border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.fnm-zoom-btn--active {
+  background: #ffffff !important;
+  color: #1565C0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18) !important;
+}
+.v-theme--dark .fnm-zoom-btn--active,
+.fnm-theme--dark .fnm-zoom-btn--active {
+  background: #1976D2 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.4) !important;
 }
 .fnm-print-modal-body {
   overflow: hidden !important;
@@ -4873,7 +4889,9 @@ export default {
   min-width: 340px;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
   background: #fbfcfe;
+  color: #1e293b;
   overflow-y: auto !important;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 .fnm-print-sidebar::-webkit-scrollbar,
 .fnm-print-cols-list::-webkit-scrollbar {
@@ -4927,9 +4945,14 @@ export default {
   flex-direction: column;
   gap: 4px;
 }
+.fnm-switch-list .v-label {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+}
 .fnm-print-cols-box {
-  background: #fff;
-  border: 1.5px solid rgba(66, 165, 245, 0.2);
+  background: #ffffff;
+  border: 1.5px solid rgba(66, 165, 245, 0.25);
   border-radius: 12px;
   padding: 10px;
 }
@@ -4970,6 +4993,7 @@ export default {
 .fnm-print-col-row--locked {
   cursor: default;
   background: #f8fafc;
+  color: #64748b;
 }
 .fnm-print-drag-handle {
   cursor: grab;
@@ -5006,6 +5030,87 @@ export default {
 .fnm-segmented-toggle .v-btn:not(.v-btn--active) {
   background: transparent !important;
   color: #546e7a !important;
+}
+
+/* ========================================================
+   DARK THEME OVERRIDES FOR PRINT PREVIEW CONTROLS & SIDEBAR
+   ======================================================== */
+.v-theme--dark .fnm-print-dialog-card,
+.fnm-theme--dark.fnm-print-dialog-card {
+  background: #181b20 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.v-theme--dark .fnm-print-sidebar,
+.fnm-theme--dark .fnm-print-sidebar {
+  background: #1a1e24 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+
+.v-theme--dark .fnm-ctrl-title,
+.fnm-theme--dark .fnm-ctrl-title {
+  color: #90caf9 !important;
+}
+
+.v-theme--dark .fnm-switch-list .v-label,
+.fnm-theme--dark .fnm-switch-list .v-label {
+  color: #e2e8f0 !important;
+  opacity: 0.95 !important;
+}
+
+.v-theme--dark .fnm-segmented-toggle,
+.fnm-theme--dark .fnm-segmented-toggle {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(66, 165, 245, 0.35) !important;
+}
+
+.v-theme--dark .fnm-segmented-toggle .v-btn:not(.v-btn--active),
+.fnm-theme--dark .fnm-segmented-toggle .v-btn:not(.v-btn--active) {
+  color: #b0bec5 !important;
+}
+
+.v-theme--dark .fnm-segmented-toggle .v-btn--active,
+.fnm-theme--dark .fnm-segmented-toggle .v-btn--active {
+  background: #1976D2 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.45) !important;
+}
+
+.v-theme--dark .fnm-print-cols-box,
+.fnm-theme--dark .fnm-print-cols-box {
+  background: #14171b !important;
+  border-color: rgba(66, 165, 245, 0.3) !important;
+}
+
+.v-theme--dark .fnm-print-col-row,
+.fnm-theme--dark .fnm-print-col-row {
+  background: #20252c !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f1f5f9 !important;
+}
+
+.v-theme--dark .fnm-print-col-row:hover,
+.fnm-theme--dark .fnm-print-col-row:hover {
+  background: rgba(66, 165, 245, 0.22) !important;
+  border-color: rgba(66, 165, 245, 0.5) !important;
+}
+
+.v-theme--dark .fnm-print-col-row--locked,
+.fnm-theme--dark .fnm-print-col-row--locked {
+  background: #16191d !important;
+  color: #94a3b8 !important;
+}
+
+.v-theme--dark .fnm-print-col-row .v-label,
+.fnm-theme--dark .fnm-print-col-row .v-label {
+  color: #f1f5f9 !important;
+}
+
+.v-theme--dark .fnm-print-stage,
+.fnm-theme--dark .fnm-print-stage {
+  background: #121417 !important;
 }
 
 /* Print Stage (Preview Container) - Sleek Auto-hide X & Y Scrollbars matching Navigation Drawer */
@@ -5065,7 +5170,7 @@ export default {
 /* Authentic Document Sheet - Expands to contain ALL content without clipping */
 .fnm-print-sheet {
   background: #ffffff !important;
-  color: #1a1a1a;
+  color: #1a1a1a !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   box-shadow: 0 14px 44px rgba(0, 0, 0, 0.4);
   border-radius: 6px;
@@ -5076,6 +5181,191 @@ export default {
   overflow: visible;
   margin-bottom: 36px;
   transition: min-width 0.2s ease;
+}
+
+/* ========================================================
+   PRINTABLE AREA (#fnm-print-area) - PERMANENT LIGHT THEME
+   The physical printed document sheet is ALWAYS pure white 
+   paper with high-contrast executive styling, completely 
+   insulated from dark theme settings.
+   ======================================================== */
+#fnm-print-area,
+#fnm-print-area * {
+  color-scheme: light !important;
+  box-sizing: border-box;
+}
+
+#fnm-print-area {
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+  border-color: #e0e0e0 !important;
+}
+
+#fnm-print-area .fnm-pdoc-header {
+  border-bottom: 2px solid #1565C0 !important;
+}
+
+#fnm-print-area .fnm-pdoc-company-name {
+  color: #0D47A1 !important;
+}
+
+#fnm-print-area .fnm-pdoc-company-sub {
+  color: #555555 !important;
+}
+
+#fnm-print-area .fnm-pdoc-company-reg {
+  color: #777777 !important;
+}
+
+#fnm-print-area .fnm-pdoc-title-main {
+  color: #1565C0 !important;
+}
+
+#fnm-print-area .fnm-pdoc-title-tab {
+  color: #455a64 !important;
+}
+
+#fnm-print-area .fnm-pdoc-period-badge {
+  background: #E3F2FD !important;
+  color: #0D47A1 !important;
+  border: 1px solid rgba(21, 101, 192, 0.2) !important;
+}
+
+#fnm-print-area .fnm-pdoc-meta-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+#fnm-print-area .fnm-pdoc-meta-label {
+  color: #64748b !important;
+}
+
+#fnm-print-area .fnm-pdoc-meta-value {
+  color: #0f172a !important;
+}
+
+#fnm-print-area .fnm-pdoc-meta-strip {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+#fnm-print-area .fnm-pdoc-strip-cell {
+  color: #334155 !important;
+}
+
+#fnm-print-area .fnm-pdoc-th {
+  background: #E3F2FD !important;
+  color: #0D47A1 !important;
+  border: 1px solid #90CAF9 !important;
+}
+
+#fnm-print-area .fnm-head-amber .fnm-pdoc-th {
+  background: #FFF3E0 !important;
+  color: #E65100 !important;
+  border-color: #FFCC80 !important;
+}
+
+#fnm-print-area .fnm-head-purple .fnm-pdoc-th {
+  background: #F3E5F5 !important;
+  color: #6A1B9A !important;
+  border-color: #CE93D8 !important;
+}
+
+#fnm-print-area .fnm-pdoc-td {
+  border: 1px solid #e0e0e0 !important;
+  color: #212121 !important;
+  background-color: #ffffff !important;
+}
+
+#fnm-print-area .fnm-pdoc-row-alt .fnm-pdoc-td {
+  background-color: #f9fbfd !important;
+}
+
+#fnm-print-area .fnm-pdoc-total-tr {
+  background: #E3F2FD !important;
+}
+
+#fnm-print-area .fnm-pdoc-total-td {
+  border: 1px solid #90CAF9 !important;
+  color: #0D47A1 !important;
+}
+
+#fnm-print-area .fnm-total-amber {
+  background: #FFF3E0 !important;
+}
+
+#fnm-print-area .fnm-total-amber .fnm-pdoc-total-td {
+  border-color: #FFCC80 !important;
+  color: #E65100 !important;
+}
+
+#fnm-print-area .fnm-total-purple {
+  background: #F3E5F5 !important;
+}
+
+#fnm-print-area .fnm-total-purple .fnm-pdoc-total-td {
+  border-color: #CE93D8 !important;
+  color: #6A1B9A !important;
+}
+
+#fnm-print-area .fnm-badge-yes {
+  background: #E8F5E9 !important;
+  color: #2E7D32 !important;
+}
+
+#fnm-print-area .fnm-badge-no {
+  background: #FFEBEE !important;
+  color: #C62828 !important;
+}
+
+#fnm-print-area .fnm-badge-paid {
+  background: #E8F5E9 !important;
+  color: #1B5E20 !important;
+}
+
+#fnm-print-area .fnm-badge-unpaid {
+  background: #ECEFF1 !important;
+  color: #546E7A !important;
+}
+
+#fnm-print-area .fnm-pdoc-gt-card {
+  background: #f8fafc !important;
+  border: 1.5px solid #1E88E5 !important;
+}
+
+#fnm-print-area .fnm-pdoc-gt-val {
+  color: #0D47A1 !important;
+}
+
+#fnm-print-area .fnm-pdoc-gt-lbl {
+  color: #455a64 !important;
+}
+
+#fnm-print-area .fnm-pdoc-sig-box {
+  background: #f8fafc !important;
+  border: 1px solid #cfd8dc !important;
+}
+
+#fnm-print-area .fnm-pdoc-sig-lbl {
+  color: #37474f !important;
+}
+
+#fnm-print-area .fnm-pdoc-notes {
+  background: #fffde7 !important;
+  border: 1px solid #fff59d !important;
+}
+
+#fnm-print-area .fnm-pdoc-notes-title {
+  color: #f57f17 !important;
+}
+
+#fnm-print-area .fnm-pdoc-notes-body {
+  color: #424242 !important;
+}
+
+#fnm-print-area .fnm-pdoc-footer {
+  border-top: 1px solid #e0e0e0 !important;
+  color: #888888 !important;
 }
 .fnm-print-sheet.fnm-print-landscape {
   min-width: 297mm;
