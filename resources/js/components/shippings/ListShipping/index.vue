@@ -1,16 +1,49 @@
 <template>
 <v-card class="ls-card" elevation="0">
-  <div class="ls-hero"><div class="ls-hero-inner">
-    <div class="d-flex align-center ga-4"><div class="ls-hero-icon"><v-icon size="28" color="white">mdi-cash-register</v-icon></div><div><div class="ls-hero-title">{{ $t('shippings') }}</div><div class="text-white text-caption" style="opacity:.7">{{ $t('datatable_shippings') }}</div></div></div>
-    <div class="ls-hero-actions"><v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchShippings" :loading="loading">{{ $t('refresh') }}</v-btn></div>
-  </div></div>
-  <!-- Tab Slider -->
-  <v-slide-group v-model="activeTab" mandatory show-arrows class="ls-tab-slider mx-4 mt-3">
-    <v-slide-group-item v-for="tab in sellTabs" :key="tab.value" v-slot="{ isSelected, toggle }">
-      <v-btn :color="isSelected ? '#4643a0' : undefined" :variant="isSelected ? 'flat' : 'text'" rounded class="mx-1" @click="toggle" :prepend-icon="tab.icon">{{ $t(tab.label) }}</v-btn>
-    </v-slide-group-item>
-  </v-slide-group>
-  <v-divider class="mx-4 mt-2" color="#4643a0"></v-divider>
+  <div class="ls-hero">
+    <div class="ls-hero-inner">
+      <div class="d-flex align-center ga-4">
+        <div class="ls-hero-icon"><v-icon size="28" color="white">mdi-truck-fast</v-icon></div>
+        <div>
+          <div class="ls-hero-title">{{ $t('shippings') }}</div>
+          <div class="text-white text-caption" style="opacity:.8">{{ $t('datatable_shippings') }}</div>
+        </div>
+      </div>
+
+      <!-- Quick KPI Badges in Hero -->
+      <div class="d-flex align-center ga-3 flex-wrap">
+        <div class="ls-hero-kpi">
+          <span class="ls-kpi-val">{{ colFilteredItems.length }}</span>
+          <span class="ls-kpi-lbl">{{ $t('records') }}</span>
+        </div>
+        <div class="ls-hero-kpi">
+          <span class="ls-kpi-val">{{ main.formatDisplayNumber(totalWeight) }} <small>Kg</small></span>
+          <span class="ls-kpi-lbl">{{ $t('total_weight') }}</span>
+        </div>
+        <div class="ls-hero-kpi">
+          <span class="ls-kpi-val">{{ main.formatDisplayNumber(totalPrice) }} <small>{{ main.currency }}</small></span>
+          <span class="ls-kpi-lbl">{{ $t('total_price') }}</span>
+        </div>
+        <div class="ls-hero-kpi">
+          <span class="ls-kpi-val">{{ totalInvoiced }} / {{ colFilteredItems.length }}</span>
+          <span class="ls-kpi-lbl">{{ $t('invoiced') }}</span>
+        </div>
+      </div>
+
+      <div class="ls-hero-actions">
+        <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchShippings" :loading="loading">{{ $t('refresh') }}</v-btn>
+        <v-btn v-if="selected.length && auth.hasPermission('shipping.delete')" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
+      </div>
+    </div>
+  </div>
+  <!-- Tab Slider (Matching Activity Breakdown Entity Toggle) -->
+  <div class="d-flex align-center justify-space-between mx-4 mt-3">
+    <SegmentedPillToggle
+      v-model="activeTab"
+      :items="sellTabs.map(t => ({ value: t.value, label: $t(t.label), icon: t.icon }))"
+      color="#4643a0"
+    />
+  </div>
   <!-- TAB: List Sell -->
   <v-card-text v-if="activeTab === 0" class="pa-4">
     <!-- Analytics Row: Calendar | Chart | Statistics -->
@@ -57,39 +90,130 @@
         </div>
       </v-col>
     </v-row>
-    <!-- Action Buttons + Panels Row -->
-    <v-row dense class="mb-3" align="start">
-      <v-col cols="6">
-        <div class="d-flex justify-center mb-2"><v-btn block :variant="showAdvanced?'flat':'outlined'" :color="showAdvanced?'success':'grey'" rounded size="small" :prepend-icon="showAdvanced?'mdi-chevron-up':'mdi-chevron-down'" @click="showAdvanced=!showAdvanced">{{ $t('advanced_filters') }}</v-btn></div>
-        <v-expand-transition><div v-if="showAdvanced" class="adv-panel pa-3 rounded-lg">
+    <!-- Unified Command & Filter Toolbar -->
+    <div class="ls-toolbar pa-2 px-3 mb-3 rounded-xl">
+      <v-row dense align="center">
+        <!-- Left: Quick Search -->
+        <v-col cols="12" md="4" sm="6">
+          <v-text-field
+            v-model="searchQuery"
+            prepend-inner-icon="mdi-magnify"
+            :placeholder="$t('search_records_placeholder')"
+            density="compact"
+            variant="outlined"
+            rounded
+            hide-details
+            clearable
+            color="#4643a0"
+            class="ls-search-field"
+          ></v-text-field>
+        </v-col>
+
+        <!-- Center: Quick Actions & Filter Triggers -->
+        <v-col cols="12" md="5" sm="6" class="d-flex align-center ga-2 flex-wrap">
+          <v-btn
+            :variant="showAdvanced ? 'flat' : 'tonal'"
+            :color="showAdvanced ? '#4643a0' : undefined"
+            rounded
+            size="small"
+            class="ls-filter-btn"
+            @click="showAdvanced = !showAdvanced"
+            :prepend-icon="showAdvanced ? 'mdi-filter-check' : 'mdi-filter-variant'"
+          >
+            {{ $t('advanced_filters') }}
+            <v-badge
+              v-if="activeFilterCount > 0"
+              :content="activeFilterCount"
+              color="#4643a0"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
+          <v-btn
+            :variant="showInvoice ? 'flat' : 'tonal'"
+            :color="showInvoice ? '#4643a0' : (uninvoicedSelectedShippings.length ? '#4643a0' : undefined)"
+            rounded
+            size="small"
+            class="ls-filter-btn"
+            :disabled="!canSetupInvoice"
+            @click="showInvoice = !showInvoice"
+            prepend-icon="mdi-receipt-text-outline"
+          >
+            {{ $t('client_invoices') }}
+            <v-badge
+              v-if="uninvoicedSelectedShippings.length"
+              :content="uninvoicedSelectedShippings.length"
+              color="#4643a0"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
+          <v-btn
+            v-if="activeFilterCount > 0"
+            variant="text"
+            color="warning"
+            rounded
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="clearAllFilters"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
+        </v-col>
+
+        <!-- Right: Actions (Records Counter & Excel) -->
+        <v-col cols="12" md="3" sm="12" class="d-flex justify-end align-center ga-2">
+          <v-chip size="small" variant="tonal" color="#4643a0" class="font-weight-medium">
+            {{ colFilteredItems.length }} / {{ shippings.length }} {{ $t('records') }}
+          </v-chip>
+          <v-btn
+            icon
+            variant="tonal"
+            color="#4CAF50"
+            size="small"
+            :title="$t('export_excel')"
+            @click="exportExcel"
+          >
+            <v-icon size="18">mdi-file-excel-outline</v-icon>
+          </v-btn>
+        </v-col>
+      </v-row>
+
+      <v-alert v-if="uninvoicedSelectedShippings.length && !canSetupInvoice" type="warning" density="compact" variant="tonal" class="mt-2 text-caption" closable>
+        {{ $t('selected_shippings_different_clients') }}
+      </v-alert>
+
+      <!-- Advanced Filters Expandable Panel -->
+      <v-expand-transition>
+        <div v-if="showAdvanced" class="adv-panel pa-3 mt-2 rounded-xl">
           <v-row dense>
-            <v-col cols="6"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details clearable></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='GuanoType'" cols="6"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='PackageType'" cols="6"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col cols="6"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='GuanoType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='PackageType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
           </v-row>
-        </div></v-expand-transition>
-      </v-col>
-      <v-col cols="6">
-        <div class="d-flex flex-column justify-center mb-2">
-          <v-btn block :variant="showInvoice?'flat':'outlined'" :color="showInvoice?'teal':'grey'" rounded size="small" :prepend-icon="showInvoice?'mdi-chevron-up':'mdi-chevron-down'" @click="showInvoice=!showInvoice" :disabled="!canSetupInvoice">{{ $t('client_invoices') }}</v-btn>
-          <v-alert v-if="uninvoicedSelectedShippings.length && !canSetupInvoice" type="warning" density="compact" variant="tonal" class="mt-1 text-caption" closable>{{ $t('selected_shippings_different_clients') }}</v-alert>
         </div>
-        <v-expand-transition><div v-if="showInvoice&&uninvoicedSelectedShippings.length" class="inv-panel pa-3 rounded-lg">
+      </v-expand-transition>
+
+      <!-- Invoice Setup Expandable Panel -->
+      <v-expand-transition>
+        <div v-if="showInvoice&&uninvoicedSelectedShippings.length" class="inv-panel pa-3 mt-2 rounded-xl">
           <v-row dense>
-            <v-col cols="6">
+            <v-col cols="12" sm="6" md="3">
               <DatePicker v-model="invForm.date" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="#4643a0" :disabled-dates="invDisabledDates" :min-date="invMinDate" :max-date="invMaxDate">
                 <template #default="{ togglePopover, inputValue }">
-                  <v-text-field :model-value="inputValue" :label="$t('invoice_date')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details readonly prepend-inner-icon="mdi-calendar" @click="togglePopover"></v-text-field>
+                  <v-text-field :model-value="inputValue" :label="$t('invoice_date')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details readonly prepend-inner-icon="mdi-calendar" @click="togglePopover"></v-text-field>
                 </template>
               </DatePicker>
             </v-col>
-            <v-col cols="6"><v-text-field :model-value="invoiceClients.join(', ')" :label="$t('clients')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details readonly></v-text-field></v-col>
-            <v-col cols="6"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details @update:model-value="onTypeInvoiceChange"></v-autocomplete></v-col>
-            <v-col cols="6"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
+            <v-col cols="12" sm="6" md="3"><v-text-field :model-value="invoiceClients.join(', ')" :label="$t('clients')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details readonly></v-text-field></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details @update:model-value="onTypeInvoiceChange"></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
           </v-row>
 
           <!-- ═══ EXPORT INFORMATION PANEL ═══ -->
@@ -100,42 +224,42 @@
 
               <v-row dense>
                 <!-- Incoterm -->
-                <v-col cols="4">
-                  <v-autocomplete v-model="invForm.incoterm" :items="['FOB','C&F','CIF']" :label="$t('select_incoterm')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details prepend-inner-icon="mdi-checkbox-marked-circle-outline"></v-autocomplete>
+                <v-col cols="12" sm="4">
+                  <v-autocomplete v-model="invForm.incoterm" :items="['FOB','C&F','CIF']" :label="$t('select_incoterm')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details prepend-inner-icon="mdi-checkbox-marked-circle-outline"></v-autocomplete>
                 </v-col>
                 <!-- Currency -->
-                <v-col cols="4">
-                  <v-autocomplete v-model="invForm.currency" :items="['USD','EUR','GBP','MAD','XOF','GHS','NGN','ZAR','CNY','JPY']" :label="$t('select_currency')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details prepend-inner-icon="mdi-currency-usd"></v-autocomplete>
+                <v-col cols="12" sm="4">
+                  <v-autocomplete v-model="invForm.currency" :items="['USD','EUR','GBP','MAD','XOF','GHS','NGN','ZAR','CNY','JPY']" :label="$t('select_currency')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details prepend-inner-icon="mdi-currency-usd"></v-autocomplete>
                 </v-col>
                 <!-- Total Gross Weight -->
-                <v-col cols="4">
-                  <v-text-field v-model.number="invForm.total_gross_weight" :label="$t('total_gross_weight')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details type="number" prepend-inner-icon="mdi-weight-kilogram"></v-text-field>
+                <v-col cols="12" sm="4">
+                  <v-text-field v-model.number="invForm.total_gross_weight" :label="$t('total_gross_weight')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details type="number" prepend-inner-icon="mdi-weight-kilogram"></v-text-field>
                 </v-col>
               </v-row>
 
-              <v-row dense>
-                <v-col cols="4">
-                  <v-text-field v-model="invForm.shipment_country" :label="$t('shipment_country')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details prepend-inner-icon="mdi-flag"></v-text-field>
+              <v-row dense class="mt-1">
+                <v-col cols="12" sm="6">
+                  <v-text-field v-model="invForm.shipment_country" :label="$t('shipment_country')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details prepend-inner-icon="mdi-flag"></v-text-field>
                 </v-col>
-                <v-col cols="4">
-                  <v-text-field v-model.number="invForm.tax_percentage" :label="$t('tax_percentage')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details type="number" min="0" max="100" suffix="%" prepend-inner-icon="mdi-percent"></v-text-field>
+                <v-col cols="12" sm="6">
+                  <v-text-field v-model.number="invForm.tax_percentage" :label="$t('tax_percentage')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details type="number" min="0" max="100" suffix="%" prepend-inner-icon="mdi-percent"></v-text-field>
                 </v-col>
               </v-row>
 
               <!-- Intermediary Info -->
               <div class="text-caption font-weight-bold mt-3 mb-1" style="color:#4643a0"><v-icon size="14" class="mr-1">mdi-domain</v-icon>{{ $t('intermediary_information') }}</div>
               <v-row dense>
-                <v-col cols="4"><v-text-field v-model="invForm.intermediary_company" :label="$t('intermediary_company')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
-                <v-col cols="4"><v-text-field v-model="invForm.intermediary_address" :label="$t('intermediary_address')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
-                <v-col cols="4"><v-text-field v-model="invForm.intermediary_country" :label="$t('intermediary_country')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="invForm.intermediary_company" :label="$t('intermediary_company')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details></v-text-field></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="invForm.intermediary_address" :label="$t('intermediary_address')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details></v-text-field></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="invForm.intermediary_country" :label="$t('intermediary_country')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details></v-text-field></v-col>
               </v-row>
 
               <!-- Destination Info -->
               <div class="text-caption font-weight-bold mt-3 mb-1" style="color:#4643a0"><v-icon size="14" class="mr-1">mdi-map-marker</v-icon>{{ $t('destination_information') }}</div>
               <v-row dense>
-                <v-col cols="4"><v-text-field v-model="invForm.destination_company" :label="$t('destination_company')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
-                <v-col cols="4"><v-text-field v-model="invForm.destination_address" :label="$t('destination_address')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
-                <v-col cols="4"><v-text-field v-model="invForm.destination_country" :label="$t('destination_country')" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" hide-details></v-text-field></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="invForm.destination_company" :label="$t('destination_company')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details></v-text-field></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="invForm.destination_address" :label="$t('destination_address')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details></v-text-field></v-col>
+                <v-col cols="12" sm="4"><v-text-field v-model="invForm.destination_country" :label="$t('destination_country')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details></v-text-field></v-col>
               </v-row>
 
               <!-- Export Detail Lines -->
@@ -166,12 +290,12 @@
                   </tbody>
                 </table>
               </div>
-              <v-btn variant="tonal" color="#4643a0" size="small" rounded class="mt-1" prepend-icon="mdi-plus" @click="addExportDetail">{{ $t('add_detail_line') }}</v-btn>
+              <v-btn variant="tonal" color="#4643a0" size="small" rounded class="mt-2" prepend-icon="mdi-plus" @click="addExportDetail">{{ $t('add_detail_line') }}</v-btn>
 
               <!-- Summary -->
               <v-row dense class="mt-2" v-if="invForm.export_details.length">
-                <v-col cols="7"></v-col>
-                <v-col cols="5">
+                <v-col cols="12" md="7"></v-col>
+                <v-col cols="12" md="5">
                   <div class="d-flex justify-space-between text-body-2"><span>{{ $t('sub_total') }}:</span><b>{{ main.formatDisplayNumber(exportSubTotal()) }} {{ invForm.currency || '' }}</b></div>
                   <div class="d-flex justify-space-between text-body-2"><span>{{ $t('tax_percentage') }}:</span><b>{{ invForm.tax_percentage || 0 }}%</b></div>
                   <v-divider class="my-1"></v-divider>
@@ -181,15 +305,15 @@
             </div>
           </v-expand-transition>
 
-          <v-row dense class="mt-3"><v-col cols="6"><v-btn block color="#4643a0" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn></v-col><v-col cols="6"><v-btn block color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn></v-col></v-row>
-
-          <div class="d-flex ga-4 mt-2 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(selectedSells.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(selectedSells.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
-        </div></v-expand-transition>
-      </v-col>
-    </v-row>
-    <div class="d-flex ga-2 mb-3 justify-end">
-      <v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn>
-      <v-btn icon variant="tonal" color="#4643a0" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn>
+          <div class="d-flex align-center justify-space-between mt-3 flex-wrap ga-2">
+            <div class="d-flex ga-4 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(selectedSells.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(selectedSells.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
+            <div class="d-flex ga-2">
+              <v-btn color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn>
+              <v-btn color="#4643a0" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn>
+            </div>
+          </div>
+        </div>
+      </v-expand-transition>
     </div>
     <!-- Table -->
     <div class="ls-table-wrap">
@@ -271,10 +395,11 @@ import script from './script.js';
 import AddShipping from '../AddShipping/index.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
-  components:{...script.components,AddShipping,AuditLogDialog,RecordIssueDialog},
+  components:{...script.components,AddShipping,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle},
   data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,sellTabs:[{value:0,label:'list_shipping',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('shippings.create')?[{value:1,label:'add_shipping',icon:'mdi-sticker-plus-outline'}]:[])]}},
   computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
   methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
@@ -286,11 +411,18 @@ export default {
 </script>
 <style scoped>
 .ls-card{border-radius:20px!important;font-family:'Inter',sans-serif}
-.ls-tab-slider{border-radius:12px}
+.ls-tab-toolbar{background:rgba(var(--v-theme-surface),.95);border:1px solid rgba(70,67,160,.2)!important;box-shadow:0 2px 8px rgba(55,46,125,.04)}
+.ls-segmented-toggle{background:rgba(var(--v-theme-on-surface),.02)}
 .ls-hero{background:linear-gradient(135deg,#372e7d 0%,#4643a0 40%,#6c66bb 100%);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;min-height:100px}
 .ls-hero-inner{position:relative;z-index:1;padding:22px 26px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.ls-hero-icon{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center}
-.ls-hero-title{font-size:19px;font-weight:800}.ls-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ls-hero-title{font-size:19px;font-weight:800}
+.ls-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ls-hero-kpi{display:flex;flex-direction:column;align-items:flex-start;padding:6px 14px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);border-radius:12px;border:1px solid rgba(255,255,255,.2);min-width:90px}
+.ls-kpi-val{font-size:14px;font-weight:800;line-height:1.2;color:#ffffff}
+.ls-kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;color:#ede7f6}
+.ls-toolbar{background:rgba(var(--v-theme-surface),.95);border:1px solid rgba(70,67,160,.15);box-shadow:0 2px 12px rgba(55,46,125,.04)}
+.ls-search-field{max-width:320px}
+.ls-filter-btn{font-weight:600;letter-spacing:.3px}
 .adv-panel{border:1.5px solid rgba(70,67,160,.15);background:rgba(70,67,160,.03)}
 .inv-panel{border:1.5px solid rgba(0,150,136,.15);background:rgba(0,150,136,.03)}
 .ls-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}

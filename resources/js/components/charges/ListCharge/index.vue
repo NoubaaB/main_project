@@ -1,34 +1,73 @@
 <template>
 <v-card class="lc-card" elevation="0">
   <!-- Hero -->
-  <div class="lc-hero"><div class="lc-hero-inner">
-    <div class="d-flex align-center ga-4"><div class="lc-hero-icon"><v-icon size="28" color="white">mdi-truck-cargo-container</v-icon></div><div><div class="lc-hero-title">{{ $t('charges') }}</div><div class="text-white text-caption" style="opacity:.7">{{ $t('datatable_charges') }}</div></div></div>
-    <div class="lc-hero-actions"><v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchCharges" :loading="loading">{{ $t('refresh') }}</v-btn></div>
-  </div></div>
-  <!-- Tab Slider -->
-  <v-slide-group v-model="activeTab" mandatory show-arrows class="lc-tab-slider mx-4 mt-3">
-    <v-slide-group-item v-for="tab in chargeTabs" :key="tab.value" v-slot="{ isSelected, toggle }">
-      <v-btn :color="isSelected ? '#1565C0' : undefined" :variant="isSelected ? 'flat' : 'text'" rounded class="mx-1" @click="toggle" :prepend-icon="tab.icon">{{ $t(tab.label) }}</v-btn>
-    </v-slide-group-item>
-  </v-slide-group>
-  <v-divider class="mx-4 mt-2" color="#1565C0"></v-divider>
+  <div class="lc-hero">
+    <div class="lc-hero-inner">
+      <div class="d-flex align-center ga-4">
+        <div class="lc-hero-icon"><v-icon size="28" color="white">mdi-truck-cargo-container</v-icon></div>
+        <div>
+          <div class="lc-hero-title">{{ $t('charges') }}</div>
+          <div class="text-white text-caption" style="opacity:.8">{{ $t('datatable_charges') }}</div>
+        </div>
+      </div>
+
+      <!-- Live KPI Badges -->
+      <div class="d-flex align-center ga-2 flex-wrap">
+        <div class="lc-hero-kpi">
+          <v-icon size="14" color="white" class="mr-1">mdi-counter</v-icon>
+          <span class="lc-kpi-val">{{ colFilteredItems.length }}</span>
+          <span class="lc-kpi-lbl">{{ $t('records') }}</span>
+        </div>
+        <div class="lc-hero-kpi">
+          <v-icon size="14" color="white" class="mr-1">mdi-weight-kilogram</v-icon>
+          <span class="lc-kpi-val">{{ main.formatDisplayNumber(totalWeight) }}</span>
+          <span class="lc-kpi-lbl">Kg</span>
+        </div>
+        <div class="lc-hero-kpi">
+          <v-icon size="14" color="white" class="mr-1">mdi-cash</v-icon>
+          <span class="lc-kpi-val">{{ main.formatDisplayNumber(totalPrice) }}</span>
+          <span class="lc-kpi-lbl">{{ main.currency }}</span>
+        </div>
+        <div class="lc-hero-kpi" v-if="totalInvoiced > 0">
+          <v-icon size="14" color="#81C784" class="mr-1">mdi-check-decagram</v-icon>
+          <span class="lc-kpi-val">{{ totalInvoiced }}</span>
+          <span class="lc-kpi-lbl">{{ $t('invoiced') }}</span>
+        </div>
+      </div>
+
+      <div class="lc-hero-actions">
+        <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchCharges" :loading="loading">{{ $t('refresh') }}</v-btn>
+        <v-btn v-if="selected.length && auth.hasPermission('charges.delete')" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Slider (Matching Activity Breakdown Entity Toggle) -->
+  <div class="d-flex align-center justify-space-between mx-4 mt-3">
+    <SegmentedPillToggle
+      v-model="activeTab"
+      :items="chargeTabs.map(t => ({ value: t.value, label: $t(t.label), icon: t.icon }))"
+      color="#1976D2"
+    />
+  </div>
+
   <!-- TAB: List Charge -->
   <v-card-text v-if="activeTab === 0" class="pa-4">
     <!-- Analytics Row: Calendar | Chart | Statistics -->
     <v-row dense class="mb-3">
       <!-- Calendar (left) -->
-      <v-col cols="3">
+      <v-col cols="12" md="3">
         <div class="lc-panel-card">
-          <div class="lc-panel-header"><v-icon size="16" color="info" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
+          <div class="lc-panel-header"><v-icon size="16" color="#42A5F5" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
           <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="blue" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
         </div>
       </v-col>
       <!-- Chart (center) -->
-      <v-col cols="6">
+      <v-col cols="12" md="6">
         <div class="lc-panel-card" style="height:100%">
           <div class="lc-panel-header d-flex align-center justify-space-between">
-            <div class="d-flex align-center"><v-icon size="16" color="info" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div>
-            <v-btn-toggle v-model="chartMode" mandatory density="compact" color="info" variant="outlined" rounded="lg" divided>
+            <div class="d-flex align-center"><v-icon size="16" color="#42A5F5" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div>
+            <v-btn-toggle v-model="chartMode" mandatory density="compact" color="#42A5F5" variant="outlined" rounded="lg" divided>
               <v-btn value="daily" size="x-small">{{ $t('daily') }}</v-btn>
               <v-btn value="monthly" size="x-small">{{ $t('monthly') }}</v-btn>
               <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
@@ -39,18 +78,18 @@
         </div>
       </v-col>
       <!-- Statistics (right) -->
-      <v-col cols="3">
+      <v-col cols="12" md="3">
         <div class="lc-panel-card lc-stats-panel" style="height:100%;overflow-y:auto">
-          <div class="lc-panel-header"><v-icon size="16" color="info" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
+          <div class="lc-panel-header"><v-icon size="16" color="#42A5F5" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
           <!-- Per-category stats -->
           <div v-for="(stat,si) in categoryStats" :key="si" class="lc-stat-item mb-2">
             <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="info" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
-              <v-chip size="x-small" color="blue" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+              <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
+              <v-chip size="x-small" color="#42A5F5" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
             </div>
-            <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="blue" bg-color="blue-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
+            <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#42A5F5" bg-color="blue-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
             <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="blue">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b class="text-blue">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="#42A5F5">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color: #42A5F5">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
               <div class="d-flex align-center ga-1"><v-icon size="12" color="teal">mdi-scale-balance</v-icon><span class="text-medium-emphasis">{{ $t('total_weight_invoice') }}:</span><b class="text-teal">{{ main.formatDisplayNumber(stat.weightInvoice) }} Kg</b></div>
               <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
             </div>
@@ -64,84 +103,169 @@
           <!-- Totals -->
           <v-divider class="my-2"></v-divider>
           <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="info">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b class="text-info text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b style="color: #42A5F5" class="text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
             <div class="d-flex align-center ga-1"><v-icon size="14" color="teal">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight_invoice') }}:</span><b class="text-teal text-caption">{{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</b></div>
             <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
           </div>
         </div>
       </v-col>
     </v-row>
-    <!-- Action Buttons + Panels Row -->
-    <v-row dense class="mb-3" align="start">
-      <!-- Left Column: Advanced Filters -->
-      <v-col cols="6">
-        <div class="d-flex justify-center mb-2">
-          <v-btn block :variant="showAdvanced?'flat':'outlined'" :color="showAdvanced?'info':'grey'" rounded size="small" :prepend-icon="showAdvanced?'mdi-chevron-up':'mdi-chevron-down'" @click="showAdvanced=!showAdvanced">{{ $t('advanced_filters') }}</v-btn>
-        </div>
-        <v-expand-transition><div v-if="showAdvanced" class="adv-panel pa-3 rounded-lg">
+
+    <!-- Unified Command & Filter Toolbar -->
+    <div class="lc-toolbar mb-3 pa-2 rounded-xl">
+      <v-row dense align="center">
+        <!-- Quick Search Field -->
+        <v-col cols="12" md="4" sm="6">
+          <v-text-field
+            v-model="searchQuery"
+            density="compact"
+            variant="outlined"
+            rounded
+            hide-details
+            clearable
+            color="#42A5F5"
+            class="text-charge"
+            prepend-inner-icon="mdi-magnify"
+            :placeholder="$t('search_records_placeholder') || 'Search tracking #, supplier, origin...'"
+          ></v-text-field>
+        </v-col>
+
+        <!-- Filter Toggle & Invoice Workflow -->
+        <v-col cols="12" md="5" sm="6" class="d-flex align-center ga-2 flex-wrap">
+          <v-btn
+            :variant="showAdvanced ? 'flat' : 'tonal'"
+            :color="showAdvanced ? '#42A5F5' : undefined"
+            rounded
+            size="small"
+            class="lc-filter-btn"
+            @click="showAdvanced = !showAdvanced"
+          >
+            <v-icon size="16" class="mr-1">{{ showAdvanced ? 'mdi-chevron-up' : 'mdi-filter-variant' }}</v-icon>
+            {{ $t('advanced_filters') }}
+            <v-badge
+              v-if="activeFilterCount"
+              :content="activeFilterCount"
+              color="#FF7043"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
+          <v-btn
+            :variant="showInvoice ? 'flat' : 'tonal'"
+            :color="showInvoice ? '#00897B' : undefined"
+            rounded
+            size="small"
+            class="lc-filter-btn"
+            :disabled="!canSetupInvoice"
+            @click="showInvoice = !showInvoice"
+          >
+            <v-icon size="16" class="mr-1">mdi-receipt-text-outline</v-icon>
+            {{ $t('supplier_invoices') }}
+            <v-badge
+              v-if="uninvoicedSelectedCharges.length"
+              :content="uninvoicedSelectedCharges.length"
+              color="#00897B"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
+          <v-btn
+            v-if="activeFilterCount > 0"
+            variant="text"
+            color="warning"
+            rounded
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="clearAllFilters"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
+        </v-col>
+
+        <!-- Right: Actions (Records Counter & Excel) -->
+        <v-col cols="12" md="3" sm="12" class="d-flex justify-end align-center ga-2">
+          <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-medium">
+            {{ colFilteredItems.length }} / {{ charges.length }} {{ $t('records') }}
+          </v-chip>
+          <v-btn
+            icon
+            variant="tonal"
+            color="#4CAF50"
+            size="small"
+            :title="$t('export_excel')"
+            @click="exportExcel"
+          >
+            <v-icon size="18">mdi-file-excel-outline</v-icon>
+          </v-btn>
+        </v-col>
+      </v-row>
+
+      <!-- Advanced Filters Expandable Panel -->
+      <v-expand-transition>
+        <div v-if="showAdvanced" class="adv-panel pa-3 mt-2 rounded-xl">
           <v-row dense>
-            <v-col cols="6"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='GuanoType'" cols="6"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='PackageType'" cols="6"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col cols="6"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="info" class="text-info" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-charge" hide-details clearable></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-charge" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-charge" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-charge" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='GuanoType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-charge" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='PackageType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-charge" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-charge" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
           </v-row>
-        </div></v-expand-transition>
-      </v-col>
-      <!-- Right Column: Invoice -->
-      <v-col cols="6">
-        <div class="d-flex justify-center mb-2">
-          <v-btn block :variant="showInvoice?'flat':'outlined'" :color="showInvoice?'teal':'grey'" rounded size="small" :prepend-icon="showInvoice?'mdi-chevron-up':'mdi-chevron-down'" @click="showInvoice=!showInvoice" :disabled="!canSetupInvoice">{{ $t('supplier_invoices') }}</v-btn>
-          <v-alert v-if="uninvoicedSelectedCharges.length && !canSetupInvoice" type="warning" density="compact" variant="tonal" class="mt-1 text-caption" closable>{{ $t('selected_charges_different_suppliers') }}</v-alert>
         </div>
-        <v-expand-transition><div v-if="showInvoice&&uninvoicedSelectedCharges.length" class="inv-panel pa-3 rounded-lg">
+      </v-expand-transition>
+
+      <!-- Invoice Setup Expandable Panel -->
+      <v-expand-transition>
+        <div v-if="showInvoice&&uninvoicedSelectedCharges.length" class="inv-panel pa-3 mt-2 rounded-xl">
           <v-row dense>
-            <v-col cols="6">
+            <v-col cols="12" sm="6" md="3">
               <DatePicker v-model="invForm.date" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="teal" :disabled-dates="invDisabledDates" :min-date="invMinDate" :max-date="invMaxDate">
                 <template #default="{ togglePopover, inputValue }">
                   <v-text-field :model-value="inputValue" :label="$t('invoice_date')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details readonly prepend-inner-icon="mdi-calendar" @click="togglePopover"></v-text-field>
                 </template>
               </DatePicker>
             </v-col>
-            <v-col cols="6"><v-text-field :model-value="invoiceSuppliers.join(', ')" :label="$t('supplier')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details readonly></v-text-field></v-col>
-            <v-col cols="6"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details @update:model-value="onTypeInvoiceChange"></v-autocomplete></v-col>
-            <v-col cols="6"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
+            <v-col cols="12" sm="6" md="3"><v-text-field :model-value="invoiceSuppliers.join(', ')" :label="$t('supplier')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details readonly></v-text-field></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details @update:model-value="onTypeInvoiceChange"></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
           </v-row>
-          <v-row dense class="mt-3"><v-col cols="6"><v-btn block color="teal" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn></v-col><v-col cols="6"><v-btn block color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn></v-col></v-row>
-
-          <div class="d-flex ga-4 mt-2 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedCharges.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedCharges.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
-        </div></v-expand-transition>
-      </v-col>
-    </v-row>
-    <div class="d-flex ga-2 mb-3 justify-end">
-      <v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn>
-      <v-btn icon variant="tonal" color="success" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn>
+          <div class="d-flex align-center justify-space-between mt-3 flex-wrap ga-2">
+            <div class="d-flex ga-4 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedCharges.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedCharges.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
+            <div class="d-flex ga-2">
+              <v-btn color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn>
+              <v-btn color="teal" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn>
+            </div>
+          </div>
+        </div>
+      </v-expand-transition>
     </div>
+
     <!-- Data Table -->
     <div class="lc-table-wrap" ref="tableWrap">
       <table class="lc-table">
         <thead class="lc-thead"><tr>
-          <th class="lc-th lc-th-pin" style="min-width:50px;left:0"><v-checkbox-btn v-model="selectAll" color="info" density="compact" hide-details></v-checkbox-btn></th>
+          <th class="lc-th lc-th-pin" style="min-width:50px;left:0"><v-checkbox-btn v-model="selectAll" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></th>
           <th v-for="h in headers" :key="h.key" class="lc-th" :class="{'lc-th-pin':isPinned(h.key),'lc-th-dragover':dragOverCol===h.key}" :style="colPinStyle(h.key,3)" :draggable="!h.fixed" @dragstart="onDragStart(h.key)" @dragover="onDragOver(h.key,$event)" @dragend="onDragEnd" @drop="onDragEnd">
             <div class="lc-th-inner">
               <v-icon v-if="!h.fixed" size="12" class="drag-handle" color="grey-lighten-1">mdi-drag-vertical</v-icon>
               <span class="lc-th-title" @click="h.sortable!==false&&toggleSort(h.key)">{{ h.title }}</span>
               <template v-if="h.key!=='actions'&&h.key!=='expand'">
-                <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="info">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
+                <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="#42A5F5">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
                 <span v-if="sortIdx(h.key)" class="sort-badge">{{ sortIdx(h.key) }}</span>
-                <v-menu v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom"><template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="14"><v-icon size="12" :color="colFilters[h.key]&&colFilters[h.key].length?'info':'grey'">mdi-filter</v-icon></v-btn></template><v-card min-width="220" class="rounded-lg pa-2"><v-autocomplete v-model="colFilters[h.key]" :items="filterOpts(h.key)" density="compact" variant="outlined" color="info" hide-details multiple chips closable-chips :placeholder="$t('filter')" class="text-info"><template #chip="{item,props:p}"><v-chip v-bind="p" size="x-small" color="info" variant="tonal" closable>{{item.title}}</v-chip></template></v-autocomplete></v-card></v-menu>
+                <v-menu v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom"><template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="14"><v-icon size="12" :color="colFilters[h.key]&&colFilters[h.key].length?'#42A5F5':'grey'">mdi-filter</v-icon></v-btn></template><v-card min-width="220" class="rounded-lg pa-2"><v-autocomplete v-model="colFilters[h.key]" :items="filterOpts(h.key)" density="compact" variant="outlined" color="#42A5F5" hide-details multiple chips closable-chips :placeholder="$t('filter')" class="text-charge"><template #chip="{item,props:p}"><v-chip v-bind="p" size="x-small" color="#42A5F5" variant="tonal" closable>{{item.title}}</v-chip></template></v-autocomplete></v-card></v-menu>
                 <v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'blue':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn>
               </template>
             </div>
           </th>
         </tr></thead>
         <tbody>
-          <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="info"></v-progress-circular></td></tr></template>
+          <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="#42A5F5"></v-progress-circular></td></tr></template>
           <template v-else v-for="item in colFilteredItems" :key="item.id">
             <tr class="lc-row" :class="{'lc-row-expanded':expanded[item.id],'lc-row-invoiced':item._is_invoiced}">
-              <td class="lc-td lc-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="info" density="compact" hide-details></v-checkbox-btn></td>
+              <td class="lc-td lc-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></td>
               <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
                 <!-- expand -->
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
@@ -240,10 +364,11 @@ import AddCharge from '../AddCharge/index.vue';
 import QualityControlDialog from '../QualityControl/QualityControlDialog.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
-  components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog,RecordIssueDialog},
+  components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle},
   data(){return{...script.data.call(this),activeTab:0,qcDialogOpen:false,qcDialogCharge:null,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,chargeTabs:[{value:0,label:'list_charge',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('charges.create')?[{value:1,label:'add_charge',icon:'mdi-sticker-plus-outline'}]:[])]}},
   computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
   methods:{...script.methods,openQcDialog(item){this.qcDialogCharge=item;this.qcDialogOpen=true},onQcSaved(){this.fetchCharges()},onQcDeleted(){this.fetchCharges()},openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
@@ -255,12 +380,19 @@ export default {
 </script>
 <style scoped>
 .lc-card{border-radius:20px!important;font-family:'Inter',sans-serif}
-.lc-tab-slider{border-radius:12px}
+.lc-tab-toolbar{background:rgba(var(--v-theme-surface),.95);border:1px solid rgba(66,165,245,.2)!important;box-shadow:0 2px 8px rgba(13,71,161,.04)}
+.lc-segmented-toggle{background:rgba(var(--v-theme-on-surface),.02)}
 .lc-hero{background:linear-gradient(135deg,#0D47A1 0%,#1565C0 40%,#42A5F5 100%);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;min-height:100px}
 .lc-hero-inner{position:relative;z-index:1;padding:22px 26px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .lc-hero-icon{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.15)}
 .lc-hero-title{font-size:19px;font-weight:800;letter-spacing:.3px}
 .lc-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.lc-hero-kpi{display:flex;flex-direction:column;align-items:flex-start;padding:6px 14px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);border-radius:12px;border:1px solid rgba(255,255,255,.2);min-width:90px}
+.lc-kpi-val{font-size:14px;font-weight:800;line-height:1.2;color:#ffffff}
+.lc-kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;color:#e3f2fd}
+.lc-toolbar{background:rgba(var(--v-theme-surface),.95);border:1px solid rgba(66,165,245,.15);box-shadow:0 2px 12px rgba(13,71,161,.04)}
+.lc-search-field{max-width:320px}
+.lc-filter-btn{font-weight:600;letter-spacing:.3px}
 .adv-panel{border:1.5px solid rgba(25,118,210,.15);background:rgba(25,118,210,.03)}
 .inv-panel{border:1.5px solid rgba(0,150,136,.15);background:rgba(0,150,136,.03)}
 .lc-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}

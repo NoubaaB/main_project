@@ -1,19 +1,49 @@
 <template>
 <v-card class="lp-card" elevation="0">
-  <div class="lp-hero"><div class="lp-hero-inner">
-    <div class="d-flex align-center ga-4"><div class="lp-hero-icon"><v-icon size="28" color="white">mdi-factory</v-icon></div><div><div class="lp-hero-title">{{ $t('productions') }}</div><div class="text-white text-caption" style="opacity:.7">{{ $t('production_list_desc') }}</div></div></div>
-    <div class="lp-hero-actions">
-      <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchProductions(); fetchAnalytics()" :loading="loading">{{ $t('refresh') }}</v-btn>
-      <v-btn v-if="selected.length && auth.hasPermission('production.delete')" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
+  <div class="lp-hero">
+    <div class="lp-hero-inner">
+      <div class="d-flex align-center ga-4">
+        <div class="lp-hero-icon"><v-icon size="28" color="white">mdi-factory</v-icon></div>
+        <div>
+          <div class="lp-hero-title">{{ $t('productions') }}</div>
+          <div class="text-white text-caption" style="opacity:.8">{{ $t('production_list_desc') }}</div>
+        </div>
+      </div>
+
+      <!-- Quick KPI Badges in Hero -->
+      <div class="d-flex align-center ga-3 flex-wrap">
+        <div class="lp-hero-kpi">
+          <span class="lp-kpi-val">{{ colFilteredItems.length }}</span>
+          <span class="lp-kpi-lbl">{{ $t('records') }}</span>
+        </div>
+        <div class="lp-hero-kpi">
+          <span class="lp-kpi-val">{{ main.formatDisplayNumber(totalWeight) }} <small>Kg</small></span>
+          <span class="lp-kpi-lbl">{{ $t('total_weight') }}</span>
+        </div>
+        <div class="lp-hero-kpi">
+          <span class="lp-kpi-val">{{ main.formatDisplayNumber(totalPrice) }} <small>{{ main.currency }}</small></span>
+          <span class="lp-kpi-lbl">{{ $t('total_price') }}</span>
+        </div>
+        <div class="lp-hero-kpi">
+          <span class="lp-kpi-val">{{ totalInvoiced }} / {{ colFilteredItems.length }}</span>
+          <span class="lp-kpi-lbl">{{ $t('invoiced') }}</span>
+        </div>
+      </div>
+
+      <div class="lp-hero-actions">
+        <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchProductions(); fetchAnalytics()" :loading="loading">{{ $t('refresh') }}</v-btn>
+        <v-btn v-if="selected.length && auth.hasPermission('production.delete')" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
+      </div>
     </div>
-  </div></div>
-  <!-- Tab Slider -->
-  <v-slide-group v-model="activeTab" mandatory show-arrows class="lp-tab-slider mx-4 mt-3">
-    <v-slide-group-item v-for="tab in productionTabs" :key="tab.value" v-slot="{ isSelected, toggle }">
-      <v-btn :color="isSelected ? '#00897B' : undefined" :variant="isSelected ? 'flat' : 'text'" rounded class="mx-1" @click="toggle" :prepend-icon="tab.icon">{{ $t(tab.label) }}</v-btn>
-    </v-slide-group-item>
-  </v-slide-group>
-  <v-divider class="mx-4 mt-2" color="#00897B"></v-divider>
+  </div>
+  <!-- Tab Slider (Matching Activity Breakdown Entity Toggle) -->
+  <div class="d-flex align-center justify-space-between mx-4 mt-3">
+    <SegmentedPillToggle
+      v-model="activeTab"
+      :items="productionTabs.map(t => ({ value: t.value, label: $t(t.label), icon: t.icon }))"
+      color="#00897B"
+    />
+  </div>
   <!-- TAB: List Production -->
   <v-card-text v-if="activeTab === 0" class="pa-4">
     <!-- Analytics Row: Calendar | Chart | Statistics -->
@@ -103,54 +133,146 @@
         </div>
       </v-col>
     </v-row>
-    <!-- Action Buttons + Panels Row -->
-    <v-row dense class="mb-3" align="start">
-      <v-col cols="6">
-        <div class="d-flex justify-center mb-2"><v-btn block :variant="showAdvanced?'flat':'outlined'" :color="showAdvanced?'#00897B':'grey'" rounded size="small" :prepend-icon="showAdvanced?'mdi-chevron-up':'mdi-chevron-down'" @click="showAdvanced=!showAdvanced">{{ $t('advanced_filters') }}</v-btn></div>
-        <v-expand-transition><div v-if="showAdvanced" class="adv-panel pa-3 rounded-lg">
+    <!-- Unified Command & Filter Toolbar -->
+    <div class="lp-toolbar pa-2 px-3 mb-3 rounded-xl">
+      <v-row dense align="center">
+        <!-- Left: Quick Search -->
+        <v-col cols="12" md="4" sm="6">
+          <v-text-field
+            v-model="searchQuery"
+            prepend-inner-icon="mdi-magnify"
+            :placeholder="$t('search_records_placeholder')"
+            density="compact"
+            variant="outlined"
+            rounded
+            hide-details
+            clearable
+            color="#00897B"
+            class="lp-search-field"
+          ></v-text-field>
+        </v-col>
+
+        <!-- Center: Quick Actions & Filter Triggers -->
+        <v-col cols="12" md="5" sm="6" class="d-flex align-center ga-2 flex-wrap">
+          <v-btn
+            :variant="showAdvanced ? 'flat' : 'tonal'"
+            :color="showAdvanced ? '#00897B' : undefined"
+            rounded
+            size="small"
+            class="lp-filter-btn"
+            @click="showAdvanced = !showAdvanced"
+            :prepend-icon="showAdvanced ? 'mdi-filter-check' : 'mdi-filter-variant'"
+          >
+            {{ $t('advanced_filters') }}
+            <v-badge
+              v-if="activeFilterCount > 0"
+              :content="activeFilterCount"
+              color="#00897B"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
+          <v-btn
+            :variant="showInvoice ? 'flat' : 'tonal'"
+            :color="showInvoice ? '#00897B' : (uninvoicedSelectedProductions.length ? '#00897B' : undefined)"
+            rounded
+            size="small"
+            class="lp-filter-btn"
+            :disabled="!canSetupInvoice"
+            @click="showInvoice = !showInvoice"
+            prepend-icon="mdi-receipt-text-outline"
+          >
+            {{ $t('invoices') }}
+            <v-badge
+              v-if="uninvoicedSelectedProductions.length"
+              :content="uninvoicedSelectedProductions.length"
+              color="#00897B"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
+          <v-btn
+            v-if="activeFilterCount > 0"
+            variant="text"
+            color="warning"
+            rounded
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="clearAllFilters"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
+        </v-col>
+
+        <!-- Right: Actions (Records Counter & Excel) -->
+        <v-col cols="12" md="3" sm="12" class="d-flex justify-end align-center ga-2">
+          <v-chip size="small" variant="tonal" color="#00897B" class="font-weight-medium">
+            {{ colFilteredItems.length }} / {{ productions.length }} {{ $t('records') }}
+          </v-chip>
+          <v-btn
+            icon
+            variant="tonal"
+            color="#4CAF50"
+            size="small"
+            :title="$t('export_excel')"
+            @click="exportExcel"
+          >
+            <v-icon size="18">mdi-file-excel-outline</v-icon>
+          </v-btn>
+        </v-col>
+      </v-row>
+
+      <v-alert v-if="uninvoicedSelectedProductions.length && !canSetupInvoice" type="warning" density="compact" variant="tonal" class="mt-2 text-caption" closable>
+        {{ $t('selected_records_different_owners') }}
+      </v-alert>
+
+      <!-- Advanced Filters Expandable Panel -->
+      <v-expand-transition>
+        <div v-if="showAdvanced" class="adv-panel pa-3 mt-2 rounded-xl">
           <v-row dense>
-            <v-col cols="6"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" hide-details clearable></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="6"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='GuanoType'" cols="6"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='PackageType'" cols="6"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col cols="6"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details clearable></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='GuanoType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col v-if="advFilter.articleType==='PackageType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
           </v-row>
-        </div></v-expand-transition>
-      </v-col>
-      <v-col cols="6">
-        <div class="d-flex flex-column align-center mb-2"><v-btn block :variant="showInvoice?'flat':'outlined'" :color="showInvoice?'teal':'grey'" rounded size="small" :prepend-icon="showInvoice?'mdi-chevron-up':'mdi-chevron-down'" @click="showInvoice=!showInvoice" :disabled="!canSetupInvoice">{{ $t('supplier_invoices') }} / {{ $t('client_invoices') }}</v-btn>
-          <v-alert v-if="uninvoicedSelectedProductions.length && !canSetupInvoice" type="warning" density="compact" variant="tonal" class="mt-1 text-caption" closable>{{ $t('selected_records_different_owners') }}</v-alert>
         </div>
-        <v-expand-transition><div v-if="showInvoice&&uninvoicedSelectedProductions.length" class="inv-panel pa-3 rounded-lg">
-          <div class="d-flex justify-center mb-2">
-            <v-btn-toggle v-model="invForm.invoiceKind" mandatory density="compact" rounded color="teal" variant="outlined">
+      </v-expand-transition>
+
+      <!-- Invoice Setup Expandable Panel -->
+      <v-expand-transition>
+        <div v-if="showInvoice&&uninvoicedSelectedProductions.length" class="inv-panel pa-3 mt-2 rounded-xl">
+          <div class="d-flex justify-center mb-3">
+            <v-btn-toggle v-model="invForm.invoiceKind" mandatory density="compact" rounded color="#00897B" variant="outlined">
               <v-btn value="supplier" size="small"><v-icon size="14" class="mr-1">mdi-truck-delivery</v-icon>{{ $t('supplier_invoices') }}</v-btn>
               <v-btn value="client" size="small"><v-icon size="14" class="mr-1">mdi-account-group</v-icon>{{ $t('client_invoices') }}</v-btn>
             </v-btn-toggle>
           </div>
           <v-row dense>
-            <v-col cols="6">
+            <v-col cols="12" sm="6" md="3">
               <DatePicker v-model="invForm.date" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="teal" :disabled-dates="invDisabledDates" :min-date="invMinDate" :max-date="invMaxDate">
                 <template #default="{ togglePopover, inputValue }">
-                  <v-text-field :model-value="inputValue" :label="$t('invoice_date')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details readonly prepend-inner-icon="mdi-calendar" @click="togglePopover"></v-text-field>
+                  <v-text-field :model-value="inputValue" :label="$t('invoice_date')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details readonly prepend-inner-icon="mdi-calendar" @click="togglePopover"></v-text-field>
                 </template>
               </DatePicker>
             </v-col>
-            <v-col cols="6"><v-text-field :model-value="invoiceSuppliers.join(', ')" :label="invForm.invoiceKind === 'supplier' ? $t('supplier') : $t('client')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details readonly></v-text-field></v-col>
-            <v-col cols="6"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details @update:model-value="onTypeInvoiceChange"></v-autocomplete></v-col>
-            <v-col cols="6"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="teal" class="text-teal" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
+            <v-col cols="12" sm="6" md="3"><v-text-field :model-value="invoiceSuppliers.join(', ')" :label="invForm.invoiceKind === 'supplier' ? $t('supplier') : $t('client')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details readonly></v-text-field></v-col>
+            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="invForm.type_invoice" :items="[{title:$t('local'),value:'local'},{title:$t('export_type'),value:'export'}]" :label="$t('invoice_type')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details @update:model-value="onTypeInvoiceChange"></v-autocomplete></v-col>
+            <v-col cols="12" sm="6" md="3"><v-combobox v-model="invForm.trackingNumbers" :label="$t('invoice_tracking_number')" variant="outlined" density="compact" rounded color="#00897B" class="text-prod" hide-details multiple chips closable-chips :loading="invChecking" prepend-inner-icon="mdi-barcode" @update:model-value="onTrackingUpdate"></v-combobox></v-col>
           </v-row>
-          <v-row dense class="mt-3"><v-col cols="6"><v-btn block color="teal" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn></v-col><v-col cols="6"><v-btn block color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn></v-col></v-row>
-
-          <div class="d-flex ga-4 mt-2 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedProductions.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedProductions.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
-        </div></v-expand-transition>
-      </v-col>
-    </v-row>
-    <div class="d-flex ga-2 mb-3 justify-end">
-      <v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn>
-      <v-btn icon variant="tonal" color="success" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn>
+          <div class="d-flex align-center justify-space-between mt-3 flex-wrap ga-2">
+            <div class="d-flex ga-4 text-body-2 flex-wrap"><span><b>{{ $t('invoice_weight') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedProductions.reduce((s,c)=>s+Number(c.total_weight||0),0)) }} Kg</span><span><b>{{ $t('total_price') }}:</b> {{ main.formatDisplayNumber(uninvoicedSelectedProductions.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</span></div>
+            <div class="d-flex ga-2">
+              <v-btn color="error" variant="outlined" rounded size="small" @click="cancelInvoice" prepend-icon="mdi-close-circle-outline">{{ $t('cancel') }}</v-btn>
+              <v-btn color="#00897B" variant="flat" rounded size="small" :disabled="!invForm.trackingNumbers.length" @click="submitInvoice" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn>
+            </div>
+          </div>
+        </div>
+      </v-expand-transition>
     </div>
     <!-- Table -->
     <div class="lp-table-wrap">
@@ -237,10 +359,11 @@ import script from './script.js';
 import AddProduction from '../AddProduction/index.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
-  components:{...script.components,AddProduction,AuditLogDialog,RecordIssueDialog},
+  components:{...script.components,AddProduction,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle},
   data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,productionTabs:[{value:0,label:'list_production',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('production.create')?[{value:1,label:'add_production',icon:'mdi-sticker-plus-outline'}]:[])]}},
   computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
   methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
@@ -252,11 +375,18 @@ export default {
 </script>
 <style scoped>
 .lp-card{border-radius:20px!important;font-family:'Inter',sans-serif}
-.lp-tab-slider{border-radius:12px}
+.lp-tab-toolbar{background:rgba(var(--v-theme-surface),.95);border:1px solid rgba(0,137,123,.2)!important;box-shadow:0 2px 8px rgba(0,105,92,.04)}
+.lp-segmented-toggle{background:rgba(var(--v-theme-on-surface),.02)}
 .lp-hero{background:linear-gradient(135deg,rgb(0, 105, 92) 0%,rgb(0, 137, 123) 40%,rgb(38, 166, 154) 100%);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;min-height:100px}
 .lp-hero-inner{position:relative;z-index:1;padding:22px 26px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.lp-hero-icon{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center}
-.lp-hero-title{font-size:19px;font-weight:800}.lp-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.lp-hero-title{font-size:19px;font-weight:800}
+.lp-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.lp-hero-kpi{display:flex;flex-direction:column;align-items:flex-start;padding:6px 14px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);border-radius:12px;border:1px solid rgba(255,255,255,.2);min-width:90px}
+.lp-kpi-val{font-size:14px;font-weight:800;line-height:1.2;color:#ffffff}
+.lp-kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;color:#e0f2f1}
+.lp-toolbar{background:rgba(var(--v-theme-surface),.95);border:1px solid rgba(0,137,123,.15);box-shadow:0 2px 12px rgba(0,105,92,.04)}
+.lp-search-field{max-width:320px}
+.lp-filter-btn{font-weight:600;letter-spacing:.3px}
 .adv-panel{border:1.5px solid rgba(0,137,123,.15);background:rgba(0,137,123,.03)}
 .inv-panel{border:1.5px solid rgba(0,150,136,.15);background:rgba(0,150,136,.03)}
 .lp-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}

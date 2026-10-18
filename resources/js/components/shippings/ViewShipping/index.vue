@@ -1,7 +1,7 @@
 <template>
   <v-card class="view-shipping-card" elevation="0">
     <div class="vs-hero"><div class="vs-hero-inner">
-      <div class="d-flex align-center ga-4"><div class="vs-hero-icon"><v-icon size="28" color="white">mdi-eye</v-icon></div><div><div class="vs-hero-title">{{ $t('view_shipping') }} #{{ sell?.id }}</div><div class="text-white text-caption" style="opacity:.7">{{ sell ? main.formateDate(shipping.date) : '' }}</div></div></div>
+      <div class="d-flex align-center ga-4"><div class="vs-hero-icon"><v-icon size="28" color="white">mdi-eye</v-icon></div><div><div class="vs-hero-title">{{ $t('view_shipping') }} #{{ shipping?.id }}</div><div class="text-white text-caption" style="opacity:.7">{{ shipping ? main.formateDate(shipping.date) : '' }}</div></div></div>
       <div class="d-flex ga-2">
         <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'list_shipping' })">{{ $t('back') }}</v-btn>
         <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-flag-outline" @click="issueDialog = true" v-if="shipping">{{ $t('record_issues') }}</v-btn>
@@ -10,7 +10,7 @@
     </div></div>
 
     <!-- Audit Log Dialog -->
-    <AuditLogDialog v-model="auditDialog" auditable-type="Shipping" :auditable-id="Number($route.params.id)" module-color="#FB8C00" />
+    <AuditLogDialog v-model="auditDialog" auditable-type="Shipping" :auditable-id="Number($route.params.id)" module-color="#4643a0" />
 
     <!-- Record Issue Dialog -->
     <RecordIssueDialog v-model="issueDialog" record-type="Shipping" :record-id="Number($route.params.id)" module-color="#4643a0" />
@@ -18,7 +18,7 @@
     <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="#4643a0"></v-progress-circular></v-card-text>
     <v-card-text v-else-if="shipping" class="pa-5">
       <v-row>
-        <v-col cols="12" sm="6" md="3"><div class="info-card"><v-icon size="20" color="success" class="mb-1">mdi-tag-outline</v-icon><div class="info-label">{{ $t('shipping_category') }}</div><div class="info-value">{{ shipping.shipping_category?.[`name_${lang}`] || shipping.shipping_category?.name || '#' + shipping.shipping_category_id }}</div></div></v-col>
+        <v-col cols="12" sm="6" md="3"><div class="info-card"><v-icon size="20" color="#4643a0" class="mb-1">mdi-tag-outline</v-icon><div class="info-label">{{ $t('shipping_category') }}</div><div class="info-value">{{ shipping.shipping_category?.[`name_${lang}`] || shipping.shipping_category?.name || '#' + shipping.shipping_category_id }}</div></div></v-col>
         <v-col cols="12" sm="6" md="3"><div class="info-card"><v-icon size="20" color="#4643a0" class="mb-1">mdi-calendar</v-icon><div class="info-label">{{ $t('date') }}</div><div class="info-value">{{ main.formateDate(shipping.date) }}</div></div></v-col>
         <v-col cols="12" sm="6" md="3"><div class="info-card"><v-icon size="20" color="#4643a0" class="mb-1">mdi-weight-kilogram</v-icon><div class="info-label">{{ $t('total_weight') }}</div><div class="info-value">{{ main.formatDisplayNumber(shipping.total_weight) }} Kg</div></div></v-col>
         <v-col cols="12" sm="6" md="3"><div class="info-card"><v-icon size="20" color="success" class="mb-1">mdi-cash</v-icon><div class="info-label">{{ $t('total_price') }}</div><div class="info-value">{{ main.formatDisplayNumber(shipping.total_price) }} {{ main.currency }}</div></div></v-col>
@@ -42,7 +42,7 @@
         </v-data-table>
       </div>
     </v-card-text>
-    <v-card-text v-else class="pa-10 text-center"><v-icon size="60" color="grey-lighten-2" class="mb-3">mdi-file-search-outline</v-icon><p class="text-body-1 text-medium-emphasis">{{ $t('sell_not_found_hint') }}</p></v-card-text>
+    <v-card-text v-else class="pa-10 text-center"><v-icon size="60" color="grey-lighten-2" class="mb-3">mdi-file-search-outline</v-icon><p class="text-body-1 text-medium-emphasis">{{ $t('shipping_not_found_hint') || $t('charge_not_found_hint') }}</p></v-card-text>
   </v-card>
 </template>
 

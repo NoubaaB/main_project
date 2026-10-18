@@ -1,5 +1,5 @@
 <template>
-  <div :class="['ai-assistant-root', isDark ? 'ai-theme-dark' : 'ai-theme-light']">
+  <div v-if="$route.name !== 'ai_prompt'" :class="['ai-assistant-root', isDark ? 'ai-theme-dark' : 'ai-theme-light']">
     <!-- Floating action button (draggable, snap to corners) -->
     <div
       ref="fabContainer"
@@ -54,6 +54,57 @@
             </div>
           </div>
           <div class="ai-header-actions">
+            <!-- Thinking level pill in header -->
+            <v-menu
+              overlay-class="ai-thinking-level-menu"
+              content-class="ai-thinking-level-menu"
+              :z-index="999999"
+              location="bottom end"
+              :close-on-content-click="true"
+              :offset="8"
+            >
+              <template v-slot:activator="{ props }">
+                <button
+                  v-bind="props"
+                  class="ai-header-thinking-badge"
+                  :title="$t('thinking_level')"
+                >
+                  <v-icon size="13" class="me-1">mdi-brain</v-icon>
+                  <span class="ai-thinking-badge-text">{{ $t(ai_prompt.thinking_level) || ai_prompt.thinking_level }}</span>
+                  <v-icon size="11" class="ms-1 opacity-70">mdi-chevron-down</v-icon>
+                </button>
+              </template>
+              <v-list density="compact" nav class="rounded-xl ai-thinking-menu-list">
+                <v-list-item rounded="lg" @click="ai_prompt.thinking_level = 'low'" :active="ai_prompt.thinking_level === 'low'">
+                  <template v-slot:prepend>
+                    <v-icon size="14" :color="ai_prompt.thinking_level === 'low' ? '#00BFA5' : 'transparent'" class="mr-2">mdi-check</v-icon>
+                  </template>
+                  <template v-slot:append>
+                    <v-icon size="15" color="#00BFA5">mdi-gauge-empty</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption font-weight-medium">{{ $t('thinking_low') }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item rounded="lg" @click="ai_prompt.thinking_level = 'medium'" :active="ai_prompt.thinking_level === 'medium'">
+                  <template v-slot:prepend>
+                    <v-icon size="14" :color="ai_prompt.thinking_level === 'medium' ? '#2979FF' : 'transparent'" class="mr-2">mdi-check</v-icon>
+                  </template>
+                  <template v-slot:append>
+                    <v-icon size="15" color="#2979FF">mdi-gauge</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption font-weight-medium">{{ $t('thinking_medium') }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item rounded="lg" @click="ai_prompt.thinking_level = 'high'" :active="ai_prompt.thinking_level === 'high'">
+                  <template v-slot:prepend>
+                    <v-icon size="14" :color="ai_prompt.thinking_level === 'high' ? '#7C4DFF' : 'transparent'" class="mr-2">mdi-check</v-icon>
+                  </template>
+                  <template v-slot:append>
+                    <v-icon size="15" color="#7C4DFF">mdi-gauge-full</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption font-weight-medium">{{ $t('thinking_high') }}</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+
             <v-btn
               icon
               size="x-small"
@@ -62,9 +113,19 @@
               :title="isExpanded ? ($t('shrink_chat') || 'Shrink') : ($t('expand_chat') || 'Expand')"
               class="ai-header-btn"
             >
-              <v-icon size="18" color="rgba(255,255,255,0.85)">
+              <v-icon size="18" color="rgba(255,255,255,0.9)">
                 {{ isExpanded ? 'mdi-arrow-collapse' : 'mdi-arrow-expand-all' }}
               </v-icon>
+            </v-btn>
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              @click="exportConversation"
+              :title="$t('export_chat_history')"
+              class="ai-header-btn"
+            >
+              <v-icon size="18" color="rgba(255,255,255,0.9)">mdi-tray-arrow-down</v-icon>
             </v-btn>
             <v-btn
               icon
@@ -74,7 +135,7 @@
               :title="$t('clear_messages')"
               class="ai-header-btn"
             >
-              <v-icon size="18" color="rgba(255,255,255,0.85)">mdi-broom</v-icon>
+              <v-icon size="18" color="rgba(255,255,255,0.9)">mdi-broom</v-icon>
             </v-btn>
             <v-btn
               icon
@@ -84,7 +145,7 @@
               :title="$t('minimize_chat')"
               class="ai-header-btn"
             >
-              <v-icon size="18" color="rgba(255,255,255,0.85)">mdi-chevron-down</v-icon>
+              <v-icon size="18" color="rgba(255,255,255,0.9)">mdi-chevron-down</v-icon>
             </v-btn>
           </div>
         </header>
@@ -249,6 +310,29 @@
                 </div>
               </div>
             </div>
+
+            <!-- Suggested Prompts (when conversation is fresh) -->
+            <div v-if="messages.length <= 1" class="ai-widget-suggestions">
+              <div class="ai-widget-suggestions-header">
+                <v-icon size="14" color="#42A5F5" class="me-1">mdi-lightbulb-on-outline</v-icon>
+                <span>{{ $t('suggested_prompts') }}</span>
+              </div>
+              <div class="ai-widget-suggestions-grid">
+                <button
+                  v-for="s in widgetSuggestions"
+                  :key="s.query"
+                  type="button"
+                  class="ai-widget-suggestion-btn"
+                  @click="sendSuggestion(s.query)"
+                >
+                  <div class="ai-suggestion-icon-wrap" :style="{ background: s.bg, color: s.color }">
+                    <v-icon size="16">{{ s.icon }}</v-icon>
+                  </div>
+                  <span class="ai-suggestion-text">{{ s.label }}</span>
+                  <v-icon size="14" class="ai-suggestion-arrow">mdi-arrow-top-right</v-icon>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Floating scroll-to-bottom button -->
@@ -291,7 +375,7 @@
               class="ai-chat-input"
               auto-grow
               rows="1"
-              max-rows="5"
+              max-rows="4"
               variant="plain"
               hide-details
               density="compact"
@@ -305,61 +389,72 @@
               style="display:none"
               @change="onExcelSelected"
             />
-        <v-menu  class="ai-thinking-level-menu" location="top" :close-on-content-click="true" :offset="10">
-          <template v-slot:activator="{ props }">
-            <div
-              class="ai-excel-btn"
-              v-bind="props"
-              :style="{ cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }"
-              :title="$t('thinking_level')"
+            <v-menu
+              overlay-class="ai-thinking-level-menu"
+              content-class="ai-thinking-level-menu"
+              :z-index="999999"
+              location="top"
+              :close-on-content-click="true"
+              :offset="10"
             >
-              <v-icon size="16">mdi-brain</v-icon>
-            </div>
-          </template>
-          <v-list lines="one" density="compact" nav class="rounded-xl">
-            <v-list-item rounded="xl" @click="ai_prompt.thinking_level = 'low'" :active="ai_prompt.thinking_level === 'low'">
-              <template v-slot:prepend>
-                <v-icon  :color="ai_prompt.thinking_level === 'low' ? 'primary' : 'transparent'">mdi-check</v-icon>
+              <template v-slot:activator="{ props }">
+                <button
+                  type="button"
+                  class="ai-dock-btn"
+                  v-bind="props"
+                  :disabled="loading"
+                  :title="$t('thinking_level') + ': ' + $t(ai_prompt.thinking_level)"
+                >
+                  <v-icon size="16" color="#42A5F5">mdi-brain</v-icon>
+                </button>
               </template>
-              <template v-slot:append>
-                <v-icon>mdi-gauge-empty</v-icon>
-              </template>
-              <v-list-item-title >{{ $t('low') }}</v-list-item-title>
-            </v-list-item>
-            <v-list-item rounded="xl" @click="ai_prompt.thinking_level = 'medium'" :active="ai_prompt.thinking_level === 'medium'">
-              <template v-slot:prepend>
-                <v-icon :color="ai_prompt.thinking_level === 'medium' ? 'primary' : 'transparent'">mdi-check</v-icon>
-              </template>
-              <template v-slot:append>
-                <v-icon>mdi-gauge</v-icon>
-              </template>
-              <v-list-item-title >{{ $t('medium') }}</v-list-item-title>
-            </v-list-item>
-            <v-list-item rounded="xl" @click="ai_prompt.thinking_level = 'high'" :active="ai_prompt.thinking_level === 'high'">
-              <template v-slot:prepend>
-                <v-icon :color="ai_prompt.thinking_level === 'high' ? 'primary' : 'transparent'">mdi-check</v-icon>
-              </template>
-              <template v-slot:append>
-                <v-icon>mdi-gauge-full</v-icon>
-              </template>
-              <v-list-item-title >{{ $t('high') }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-        <button
-          class="ai-excel-btn"
-          @click="$refs.excelInput.click()"
-          :disabled="loading"
-          :title="$t('import_excel')"
-          :class="{ 'ai-excel-btn-active': excelFile }"
-        >
-          <v-icon size="16">mdi-file-excel-outline</v-icon>
-        </button>
+              <v-list lines="one" density="compact" nav class="rounded-xl ai-thinking-menu-list">
+                <v-list-item rounded="lg" @click="ai_prompt.thinking_level = 'low'" :active="ai_prompt.thinking_level === 'low'">
+                  <template v-slot:prepend>
+                    <v-icon size="14" :color="ai_prompt.thinking_level === 'low' ? '#00BFA5' : 'transparent'" class="mr-2">mdi-check</v-icon>
+                  </template>
+                  <template v-slot:append>
+                    <v-icon size="15" color="#00BFA5">mdi-gauge-empty</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption font-weight-medium">{{ $t('thinking_low') }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item rounded="lg" @click="ai_prompt.thinking_level = 'medium'" :active="ai_prompt.thinking_level === 'medium'">
+                  <template v-slot:prepend>
+                    <v-icon size="14" :color="ai_prompt.thinking_level === 'medium' ? '#2979FF' : 'transparent'" class="mr-2">mdi-check</v-icon>
+                  </template>
+                  <template v-slot:append>
+                    <v-icon size="15" color="#2979FF">mdi-gauge</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption font-weight-medium">{{ $t('thinking_medium') }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item rounded="lg" @click="ai_prompt.thinking_level = 'high'" :active="ai_prompt.thinking_level === 'high'">
+                  <template v-slot:prepend>
+                    <v-icon size="14" :color="ai_prompt.thinking_level === 'high' ? '#7C4DFF' : 'transparent'" class="mr-2">mdi-check</v-icon>
+                  </template>
+                  <template v-slot:append>
+                    <v-icon size="15" color="#7C4DFF">mdi-gauge-full</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption font-weight-medium">{{ $t('thinking_high') }}</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
             <button
+              type="button"
+              class="ai-dock-btn"
+              @click="$refs.excelInput.click()"
+              :disabled="loading"
+              :title="$t('import_excel')"
+              :class="{ 'ai-dock-btn-excel-active': excelFile }"
+            >
+              <v-icon size="16" :color="excelFile ? '#4CAF50' : 'currentColor'">mdi-file-excel-outline</v-icon>
+            </button>
+            <button
+              type="button"
               class="ai-send-btn"
               @click="send"
               :disabled="loading || (!input.trim() && !excelFile)"
               :class="{ 'ai-send-active': (input.trim() || excelFile) && !loading }"
+              :title="$t('send') || 'Send'"
             >
               <v-icon v-if="loading" size="18" class="ai-spin">mdi-loading</v-icon>
               <v-icon v-else size="18">mdi-send-variant</v-icon>
@@ -444,8 +539,46 @@ export default {
       if (this.customHeight) style.height = `${this.customHeight}px`;
       return style;
     },
+    widgetSuggestions() {
+      return [
+        { label: this.$t('quick_prompt_charges_title'), query: this.$t('quick_prompt_charges_query'), icon: 'mdi-cash-multiple', color: '#42A5F5', bg: 'rgba(66, 165, 245, 0.12)' },
+        { label: this.$t('quick_prompt_workforce_title'), query: this.$t('quick_prompt_workforce_query'), icon: 'mdi-account-group', color: '#26A69A', bg: 'rgba(38, 166, 154, 0.12)' },
+        { label: this.$t('quick_prompt_stock_title'), query: this.$t('quick_prompt_stock_query'), icon: 'mdi-warehouse', color: '#AB47BC', bg: 'rgba(171, 71, 188, 0.12)' },
+        { label: this.$t('quick_prompt_shipping_title'), query: this.$t('quick_prompt_shipping_query'), icon: 'mdi-truck-fast-outline', color: '#FFA726', bg: 'rgba(255, 167, 38, 0.12)' },
+      ];
+    },
   },
   methods: {
+    sendSuggestion(query) {
+      if (this.loading) return;
+      this.input = query;
+      this.send();
+    },
+    exportConversation() {
+      const msgs = this.messages.filter(m => !m.typing);
+      if (!msgs.length) return;
+      let text = `# AI Assistant Conversation - ${new Date().toLocaleString()}\n\n`;
+      msgs.forEach(m => {
+        const role = m.role === 'agent' ? 'AI Assistant' : 'User';
+        const time = this.formatTime(m.ts);
+        const cleanText = m.text ? m.text.replace(/<[^>]*>?/gm, '').trim() : '';
+        text += `### ${role} (${time})\n\n${cleanText}\n\n---\n\n`;
+      });
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai_assistant_${Date.now()}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.main.add_snackbar({
+        show: true,
+        message: this.$t('export_chat_downloaded') || 'Conversation exported',
+        color: '#42A5F5',
+      });
+    },
     toggleExpand() {
       this.isExpanded = !this.isExpanded;
       if (this.isExpanded) {
@@ -1148,92 +1281,92 @@ export default {
 
 /* ---------- Theme Tokens - Dark ---------- */
 .ai-theme-dark {
-  --ai-panel-bg: #121212;
-  --ai-panel-border: rgba(255, 255, 255, 0.08);
-  --ai-panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
-  --ai-header-bg: linear-gradient(135deg, #1976D2 0%, #2196F3 50%, #42A5F5 100%);
+  --ai-panel-bg: #14171f;
+  --ai-panel-border: rgba(255, 255, 255, 0.1);
+  --ai-panel-shadow: 0 28px 70px -12px rgba(0, 0, 0, 0.7), 0 12px 28px -6px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --ai-header-bg: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%);
   --ai-header-border: transparent;
   --ai-title-color: #ffffff;
-  --ai-status-color: rgba(255, 255, 255, 0.75);
-  --ai-body-bg: #121212;
-  --ai-body-scroll-thumb: rgba(255, 255, 255, 0.1);
-  --ai-body-scroll-thumb-hover: rgba(255, 255, 255, 0.2);
-  --ai-bubble-agent-bg: #1E1E1E;
-  --ai-bubble-agent-border: rgba(255, 255, 255, 0.06);
-  --ai-bubble-agent-color: rgba(255, 255, 255, 0.87);
-  --ai-bubble-user-bg: linear-gradient(135deg, #1976D2 0%, #2196F3 100%);
+  --ai-status-color: rgba(255, 255, 255, 0.9);
+  --ai-body-bg: #0f1218;
+  --ai-body-scroll-thumb: rgba(255, 255, 255, 0.12);
+  --ai-body-scroll-thumb-hover: rgba(255, 255, 255, 0.24);
+  --ai-bubble-agent-bg: #1c212c;
+  --ai-bubble-agent-border: rgba(255, 255, 255, 0.08);
+  --ai-bubble-agent-color: rgba(255, 255, 255, 0.9);
+  --ai-bubble-user-bg: linear-gradient(135deg, #1565C0 0%, #1E88E5 100%);
   --ai-bubble-user-color: #ffffff;
-  --ai-bubble-user-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
-  --ai-time-color: rgba(255, 255, 255, 0.38);
-  --ai-input-bg: #1E1E1E;
-  --ai-input-border: rgba(255, 255, 255, 0.08);
-  --ai-input-focus-border: #2196F3;
-  --ai-input-focus-shadow: 0 0 0 2px rgba(33, 150, 243, 0.15);
-  --ai-input-color: rgba(255, 255, 255, 0.87);
-  --ai-input-placeholder: rgba(255, 255, 255, 0.38);
-  --ai-input-area-bg: #121212;
-  --ai-input-area-border: rgba(255, 255, 255, 0.06);
-  --ai-send-idle-bg: rgba(255, 255, 255, 0.06);
-  --ai-send-idle-color: rgba(255, 255, 255, 0.38);
-  --ai-chart-border: rgba(33, 150, 243, 0.2);
-  --ai-chart-header-bg: rgba(33, 150, 243, 0.08);
-  --ai-chart-header-border: rgba(33, 150, 243, 0.12);
+  --ai-bubble-user-shadow: 0 4px 16px rgba(21, 101, 192, 0.35);
+  --ai-time-color: rgba(255, 255, 255, 0.48);
+  --ai-input-bg: #1c212c;
+  --ai-input-border: rgba(255, 255, 255, 0.12);
+  --ai-input-focus-border: #42A5F5;
+  --ai-input-focus-shadow: 0 0 0 3px rgba(66, 165, 245, 0.22);
+  --ai-input-color: rgba(255, 255, 255, 0.92);
+  --ai-input-placeholder: rgba(255, 255, 255, 0.45);
+  --ai-input-area-bg: #14171f;
+  --ai-input-area-border: rgba(255, 255, 255, 0.08);
+  --ai-send-idle-bg: rgba(255, 255, 255, 0.08);
+  --ai-send-idle-color: rgba(255, 255, 255, 0.45);
+  --ai-chart-border: rgba(66, 165, 245, 0.25);
+  --ai-chart-header-bg: rgba(66, 165, 245, 0.08);
+  --ai-chart-header-border: rgba(66, 165, 245, 0.15);
   --ai-chart-label-color: #42A5F5;
   --ai-strong-color: #64B5F6;
   --ai-code-bg: rgba(255, 255, 255, 0.06);
   --ai-link-color: #42A5F5;
   --ai-link-hover-color: #64B5F6;
-  --ai-avatar-bg: linear-gradient(135deg, #1976D2, #2196F3);
-  --ai-typing-bg: #1E1E1E;
-  --ai-typing-border: rgba(255, 255, 255, 0.06);
+  --ai-avatar-bg: linear-gradient(135deg, #1565C0, #42A5F5);
+  --ai-typing-bg: #1c212c;
+  --ai-typing-border: rgba(255, 255, 255, 0.08);
 }
 
 /* ---------- Theme Tokens - Light ---------- */
 .ai-theme-light {
   --ai-panel-bg: #ffffff;
   --ai-panel-border: rgba(0, 0, 0, 0.08);
-  --ai-panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
-  --ai-header-bg: linear-gradient(135deg, #1976D2 0%, #2196F3 50%, #42A5F5 100%);
+  --ai-panel-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.18), 0 10px 24px -6px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --ai-header-bg: linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%);
   --ai-header-border: transparent;
   --ai-title-color: #ffffff;
-  --ai-status-color: rgba(255, 255, 255, 0.8);
-  --ai-body-bg: #FAFAFA;
-  --ai-body-scroll-thumb: rgba(0, 0, 0, 0.08);
-  --ai-body-scroll-thumb-hover: rgba(0, 0, 0, 0.15);
+  --ai-status-color: rgba(255, 255, 255, 0.9);
+  --ai-body-bg: #f4f6fa;
+  --ai-body-scroll-thumb: rgba(0, 0, 0, 0.1);
+  --ai-body-scroll-thumb-hover: rgba(0, 0, 0, 0.18);
   --ai-bubble-agent-bg: #ffffff;
-  --ai-bubble-agent-border: rgba(0, 0, 0, 0.06);
-  --ai-bubble-agent-color: #212121;
-  --ai-bubble-user-bg: linear-gradient(135deg, #1976D2 0%, #2196F3 100%);
+  --ai-bubble-agent-border: rgba(0, 0, 0, 0.08);
+  --ai-bubble-agent-color: #1a202c;
+  --ai-bubble-user-bg: linear-gradient(135deg, #1565C0 0%, #1E88E5 100%);
   --ai-bubble-user-color: #ffffff;
-  --ai-bubble-user-shadow: 0 4px 16px rgba(33, 150, 243, 0.2);
-  --ai-time-color: rgba(0, 0, 0, 0.38);
+  --ai-bubble-user-shadow: 0 4px 16px rgba(21, 101, 192, 0.25);
+  --ai-time-color: rgba(0, 0, 0, 0.45);
   --ai-input-bg: #ffffff;
-  --ai-input-border: rgba(0, 0, 0, 0.1);
-  --ai-input-focus-border: #2196F3;
-  --ai-input-focus-shadow: 0 0 0 2px rgba(33, 150, 243, 0.12);
-  --ai-input-color: #212121;
-  --ai-input-placeholder: rgba(0, 0, 0, 0.38);
-  --ai-input-area-bg: #FAFAFA;
+  --ai-input-border: rgba(0, 0, 0, 0.12);
+  --ai-input-focus-border: #42A5F5;
+  --ai-input-focus-shadow: 0 0 0 3px rgba(66, 165, 245, 0.2);
+  --ai-input-color: #1a202c;
+  --ai-input-placeholder: rgba(0, 0, 0, 0.42);
+  --ai-input-area-bg: #f8fafc;
   --ai-input-area-border: rgba(0, 0, 0, 0.06);
   --ai-send-idle-bg: rgba(0, 0, 0, 0.04);
-  --ai-send-idle-color: rgba(0, 0, 0, 0.3);
-  --ai-chart-border: rgba(33, 150, 243, 0.15);
-  --ai-chart-header-bg: rgba(33, 150, 243, 0.05);
-  --ai-chart-header-border: rgba(33, 150, 243, 0.1);
-  --ai-chart-label-color: #1976D2;
+  --ai-send-idle-color: rgba(0, 0, 0, 0.38);
+  --ai-chart-border: rgba(66, 165, 245, 0.2);
+  --ai-chart-header-bg: rgba(66, 165, 245, 0.06);
+  --ai-chart-header-border: rgba(66, 165, 245, 0.12);
+  --ai-chart-label-color: #1565C0;
   --ai-strong-color: #1565C0;
   --ai-code-bg: rgba(0, 0, 0, 0.04);
-  --ai-link-color: #1976D2;
-  --ai-link-hover-color: #1565C0;
-  --ai-avatar-bg: linear-gradient(135deg, #1976D2, #2196F3);
+  --ai-link-color: #1565C0;
+  --ai-link-hover-color: #1E88E5;
+  --ai-avatar-bg: linear-gradient(135deg, #1565C0, #42A5F5);
   --ai-typing-bg: #ffffff;
-  --ai-typing-border: rgba(0, 0, 0, 0.06);
+  --ai-typing-border: rgba(0, 0, 0, 0.08);
 }
 
 /* ---------- FAB Button ---------- */
 .ai-fab-container {
   position: fixed;
-  z-index: 2000;
+  z-index: 1045;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1342,25 +1475,27 @@ export default {
 /* ---------- Chat Panel ---------- */
 .ai-chat-panel {
   position: fixed;
-  bottom: 96px;
+  bottom: 92px;
   right: 24px;
-  width: 400px;
-  height: 560px;
-  z-index: 2100;
+  width: min(460px, calc(100vw - 32px));
+  height: min(620px, calc(100vh - 120px));
+  z-index: 1050;
   display: flex;
   flex-direction: column;
-  border-radius: 20px;
+  border-radius: 22px;
   overflow: hidden;
   background: var(--ai-panel-bg);
   box-shadow: var(--ai-panel-shadow);
   border: 1px solid var(--ai-panel-border);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .ai-chat-panel.ai-expanded {
-  width: min(800px, 95vw);
-  height: min(800px, 85vh);
-  bottom: max(24px, 5vh); /* Give it a bit more room when expanded */
+  width: min(880px, 94vw);
+  height: min(820px, 88vh);
+  bottom: max(20px, 4vh);
 }
 
 .ai-chat-panel.ai-resizing {
@@ -1400,9 +1535,12 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 13px 18px;
   background: var(--ai-header-bg);
   border-bottom: 1px solid var(--ai-header-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 16px rgba(21, 101, 192, 0.25);
+  position: relative;
+  z-index: 2;
 }
 
 .ai-header-left {
@@ -1412,21 +1550,23 @@ export default {
 }
 
 .ai-avatar-ring {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  padding: 0px;
-  background: rgba(255, 255, 255, 0.25);
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .ai-avatar {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(8px);
 }
 
 .ai-header-info {
@@ -1436,7 +1576,7 @@ export default {
 }
 
 .ai-header-title {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 15px;
   color: var(--ai-title-color);
   letter-spacing: 0.2px;
@@ -1456,7 +1596,7 @@ export default {
   height: 7px;
   border-radius: 50%;
   background: #4CAF50;
-  box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.7);
   animation: ai-status-blink 2s ease-in-out infinite;
 }
 
@@ -1467,15 +1607,158 @@ export default {
 
 .ai-header-actions {
   display: flex;
-  gap: 2px;
+  align-items: center;
+  gap: 3px;
+}
+
+.ai-header-thinking-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.12) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  margin-right: 4px;
+}
+
+.ai-header-thinking-badge:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.2) 100%);
+  border-color: rgba(255, 255, 255, 0.55);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.ai-header-thinking-badge:active {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.ai-thinking-badge-text {
+  max-width: 65px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-header-btn {
   border-radius: 10px !important;
+  transition: all 0.2s ease !important;
 }
 
 .ai-header-btn:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+.ai-header-btn:active {
+  transform: translateY(1px) scale(0.95);
+}
+
+/* ---------- Suggested Prompts in Widget ---------- */
+.ai-widget-suggestions {
+  margin: 8px 0 6px 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(66, 165, 245, 0.04);
+  border: 1px solid rgba(66, 165, 245, 0.16);
+  box-shadow: inset 0 1px 2px rgba(66, 165, 245, 0.05);
+  animation: ai-msg-appear 0.3s ease;
+}
+
+.ai-widget-suggestions-header {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1976D2;
+  margin-bottom: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.ai-theme-dark .ai-widget-suggestions-header {
+  color: #64B5F6;
+}
+
+.ai-widget-suggestions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ai-widget-suggestion-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--ai-panel-bg);
+  border: 1px solid var(--ai-panel-border);
+  color: var(--ai-bubble-agent-color);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-theme-dark .ai-widget-suggestion-btn {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.ai-widget-suggestion-btn:hover {
+  border-color: #42A5F5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(66, 165, 245, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.ai-theme-dark .ai-widget-suggestion-btn:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 12px rgba(66, 165, 245, 0.2);
+}
+
+.ai-widget-suggestion-btn:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+.ai-suggestion-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.ai-suggestion-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.1px;
+}
+
+.ai-suggestion-arrow {
+  color: var(--ai-time-color);
+  opacity: 0.4;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.ai-widget-suggestion-btn:hover .ai-suggestion-arrow {
+  color: #42A5F5;
+  opacity: 1;
+  transform: translate(2px, -2px);
 }
 
 /* ---------- Chat Body ---------- */
@@ -1922,14 +2205,52 @@ export default {
   gap: 8px;
   background: var(--ai-input-bg);
   border: 1.5px solid var(--ai-input-border);
-  border-radius: 14px;
-  padding: 3px 4px 3px 14px;
+  border-radius: 20px;
+  padding: 4px 6px 4px 14px;
   transition: all 0.25s ease;
 }
 
+.ai-input-wrapper:hover {
+  border-color: rgba(66, 165, 245, 0.45);
+}
+
 .ai-input-wrapper:focus-within {
-  border-color: var(--ai-input-focus-border);
-  box-shadow: var(--ai-input-focus-shadow);
+  border-color: #42A5F5;
+  box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.2);
+}
+
+.ai-dock-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ai-send-idle-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.ai-dock-btn:hover {
+  background: rgba(66, 165, 245, 0.12);
+  color: #42A5F5;
+  transform: scale(1.05);
+}
+
+.ai-dock-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.ai-dock-btn-excel-active {
+  background: rgba(76, 175, 80, 0.15) !important;
+  color: #4CAF50 !important;
+  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.3);
 }
 
 .ai-chat-input {
@@ -1977,9 +2298,9 @@ export default {
 }
 
 .ai-send-btn {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   border-radius: 50%;
   border: none;
   background: var(--ai-send-idle-bg);
@@ -1998,14 +2319,14 @@ export default {
 }
 
 .ai-send-btn.ai-send-active {
-  background: linear-gradient(135deg, #1976D2, #2196F3);
+  background: linear-gradient(135deg, #1565C0, #42A5F5);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(33, 150, 243, 0.35);
+  box-shadow: 0 4px 14px rgba(66, 165, 245, 0.4);
 }
 
 .ai-send-btn.ai-send-active:hover {
-  transform: scale(1.1) rotate(-15deg);
-  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.45);
+  transform: scale(1.08) rotate(-10deg);
+  box-shadow: 0 6px 20px rgba(66, 165, 245, 0.55);
 }
 
 /* ---------- Input Hint ---------- */
@@ -2439,8 +2760,60 @@ export default {
 .ai-theme-dark .ai-pending-action-btns {
   border-top-color: rgba(255, 255, 255, 0.08);
 }
-.ai-thinking-level-menu{
-  z-index: 999999 !important;
 
+.v-overlay.ai-thinking-level-menu {
+  z-index: 999999 !important;
+}
+
+.ai-thinking-level-menu .v-overlay__content {
+  z-index: 999999 !important;
+}
+
+.ai-thinking-menu-list {
+  min-width: 175px !important;
+  padding: 6px !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22), 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.ai-theme-dark .ai-thinking-menu-list {
+  background: rgba(22, 26, 34, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 6px 18px rgba(0, 0, 0, 0.4) !important;
+}
+
+.ai-thinking-menu-list .v-list-item {
+  transition: all 0.18s ease !important;
+  margin-bottom: 2px !important;
+  border-radius: 10px !important;
+}
+
+.ai-thinking-menu-list .v-list-item:hover {
+  background: rgba(66, 165, 245, 0.12) !important;
+}
+
+.ai-thinking-menu-list .v-list-item--active {
+  background: rgba(66, 165, 245, 0.18) !important;
+  font-weight: 700 !important;
+}
+</style>
+
+<style>
+/* Unscoped global overlay rules for AI thinking menus to guarantee stacking in front of all panels */
+.v-overlay.ai-thinking-level-menu,
+.v-overlay.aiq-thinking-menu,
+.v-overlay:has(.ai-thinking-menu-list),
+.v-overlay:has(.aiq-menu-list) {
+  z-index: 999999 !important;
+}
+
+.ai-thinking-level-menu .v-overlay__content,
+.aiq-thinking-menu .v-overlay__content,
+.v-overlay:has(.ai-thinking-menu-list) .v-overlay__content,
+.v-overlay:has(.aiq-menu-list) .v-overlay__content {
+  z-index: 999999 !important;
 }
 </style>

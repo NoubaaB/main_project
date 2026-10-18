@@ -1,60 +1,93 @@
 <template>
   <div v-if="chargeStore.charge && selectedCategory" class="charge-additional-fields">
-    <div class="d-flex flex-wrap">
+    <v-row dense>
       <!-- Reception Tracking Numbers -->
-      <div v-if="selectedCategory.enable_reception_tracking_number" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_reception_tracking_number" cols="12" sm="6">
         <v-autocomplete
           ref="trackingNumberInput"
           v-model="chargeStore.charge.reception_tracking_number"
           :items="chargeStore.charge.reception_tracking_number"
           :label="$t('reception_tracking_number')"
-          placeholder="ex :   --- --- --- --- ---"
-          multiple chips density="compact" variant="outlined" rounded clearable
+          placeholder="ex : 24-00123"
+          multiple
+          chips
+          density="compact"
+          variant="outlined"
+          rounded
+          clearable
+          prepend-inner-icon="mdi-barcode"
           @keydown.enter.prevent="addNewTrackingNumber"
-          color="#42A5F5" class="text-charge"
-          :disabled="is_checking_tracking" :loading="is_checking_tracking"
+          color="#42A5F5"
+          class="text-charge"
+          :disabled="is_checking_tracking"
+          :loading="is_checking_tracking"
           hide-details
         >
           <template #chip="{ item, index }">
-            <v-chip :key="index" color="#42A5F5" closable variant="tonal"
-              @click:close="chargeStore.charge.reception_tracking_number = chargeStore.charge.reception_tracking_number.filter(num => num !== item.value)">
+            <v-chip
+              :key="index"
+              color="#42A5F5"
+              closable
+              variant="tonal"
+              @click:close="chargeStore.charge.reception_tracking_number = chargeStore.charge.reception_tracking_number.filter(num => num !== item.value)"
+            >
               {{ item.title }}
             </v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Tracking ONP Numbers -->
-      <div v-if="selectedCategory.enable_tracking_onp_numbers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_tracking_onp_numbers" cols="12" sm="6">
         <v-autocomplete
           ref="onpTrackingInput"
           v-model="chargeStore.charge.tracking_onp_numbers"
           :items="chargeStore.charge.tracking_onp_numbers"
           :label="$t('tracking_onp_numbers')"
-          multiple chips density="compact" variant="outlined" rounded hide-details
-          placeholder="ex :   --- --- --- --- ---" clearable
+          multiple
+          chips
+          density="compact"
+          variant="outlined"
+          rounded
+          hide-details
+          placeholder="ex : 24-ONP-01"
+          clearable
+          prepend-inner-icon="mdi-tag-text-outline"
           @keydown.enter.prevent="addNewOnpTrackingNumber"
-          color="#42A5F5" class="text-charge"
-          :disabled="is_checking_onp_tracking" :loading="is_checking_onp_tracking"
+          color="#42A5F5"
+          class="text-charge"
+          :disabled="is_checking_onp_tracking"
+          :loading="is_checking_onp_tracking"
         >
           <template #chip="{ item, index }">
-            <v-chip :key="index" color="#42A5F5" closable variant="tonal"
-              @click:close="chargeStore.charge.tracking_onp_numbers = chargeStore.charge.tracking_onp_numbers.filter(num => num !== item.value)">
+            <v-chip
+              :key="index"
+              color="#42A5F5"
+              closable
+              variant="tonal"
+              @click:close="chargeStore.charge.tracking_onp_numbers = chargeStore.charge.tracking_onp_numbers.filter(num => num !== item.value)"
+            >
               {{ item.title }}
             </v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Suppliers -->
-      <div v-if="selectedCategory.enable_suppliers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_suppliers" cols="12" sm="6">
         <v-autocomplete
           ref="supplierInput"
           v-model="chargeStore.charge.supplier_id"
           :items="supplierOptions"
           :label="$t('supplier')"
-          density="compact" variant="outlined" rounded clearable
-          color="#42A5F5" class="text-charge" hide-details
+          density="compact"
+          variant="outlined"
+          rounded
+          clearable
+          prepend-inner-icon="mdi-account"
+          color="#42A5F5"
+          class="text-charge"
+          hide-details
           @update:search="val => supplierSearch = val"
           @keydown.enter.prevent="createSupplierIfNew"
         >
@@ -67,53 +100,80 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Fishery -->
-      <div v-if="selectedCategory.enable_fishery_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_fishery_id" cols="12" sm="6">
         <v-autocomplete
           v-model="chargeStore.charge.fishery_id"
           :items="fisheryOptions"
           :label="$t('fishery')"
-          chips density="compact" variant="outlined" rounded clearable
-          color="#42A5F5" class="text-charge" hide-details
+          chips
+          density="compact"
+          variant="outlined"
+          rounded
+          clearable
+          prepend-inner-icon="mdi-ferry"
+          color="#42A5F5"
+          class="text-charge"
+          hide-details
         >
           <template #chip="{ item }">
-            <v-chip  color="#42A5F5" variant="tonal">{{ item.title }}</v-chip>
+            <v-chip color="#42A5F5" variant="tonal">{{ item.title }}</v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Origin -->
-      <div v-if="selectedCategory.enable_origin_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_origin_id" cols="12" sm="6">
         <v-autocomplete
           v-model="chargeStore.charge.origin_id"
           :items="originOptions"
           :label="$t('origin')"
-          chips density="compact" variant="outlined" rounded clearable
-          color="#42A5F5" class="text-charge" hide-details
+          chips
+          density="compact"
+          variant="outlined"
+          rounded
+          clearable
+          prepend-inner-icon="mdi-map-marker"
+          color="#42A5F5"
+          class="text-charge"
+          hide-details
         >
           <template #chip="{ item }">
-            <v-chip  color="#42A5F5" variant="tonal">{{ item.title }}</v-chip>
+            <v-chip color="#42A5F5" variant="tonal">{{ item.title }}</v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Truck -->
-      <div v-if="selectedCategory.enable_truck_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_truck_id" cols="12" sm="6">
         <v-autocomplete
           ref="truckInput"
           v-model="chargeStore.charge.truck_ids"
           :items="truckOptions"
           :label="$t('truck')"
-          multiple chips density="compact" variant="outlined" rounded clearable
-          color="#42A5F5" class="text-charge" hide-details
+          multiple
+          chips
+          density="compact"
+          variant="outlined"
+          rounded
+          clearable
+          prepend-inner-icon="mdi-truck"
+          color="#42A5F5"
+          class="text-charge"
+          hide-details
           @update:search="val => truckSearch = val"
           @keydown.enter.prevent="createTruckIfNew"
         >
           <template #chip="{ item, index }">
-            <v-chip :key="index" color="#42A5F5" closable variant="tonal"
-              @click:close="chargeStore.charge.truck_ids = chargeStore.charge.truck_ids.filter(id => id !== item.value)">
+            <v-chip
+              :key="index"
+              color="#42A5F5"
+              closable
+              variant="tonal"
+              @click:close="chargeStore.charge.truck_ids = chargeStore.charge.truck_ids.filter(id => id !== item.value)"
+            >
               {{ item.title }}
             </v-chip>
           </template>
@@ -126,17 +186,24 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Ship -->
-      <div v-if="selectedCategory.enable_ship_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_ship_id" cols="12" sm="6">
         <v-autocomplete
           ref="shipInput"
           v-model="chargeStore.charge.ship_id"
           :items="shipOptions"
           :label="$t('ship')"
-          chips density="compact" variant="outlined" rounded clearable
-          color="#42A5F5" class="text-charge" hide-details
+          chips
+          density="compact"
+          variant="outlined"
+          rounded
+          clearable
+          prepend-inner-icon="mdi-sail-boat"
+          color="#42A5F5"
+          class="text-charge"
+          hide-details
           @update:search="val => shipSearch = val"
           @keydown.enter.prevent="createShipIfNew"
         >
@@ -152,8 +219,8 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
-    </div>
+      </v-col>
+    </v-row>
   </div>
 </template>
 

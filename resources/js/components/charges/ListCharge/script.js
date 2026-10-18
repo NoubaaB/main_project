@@ -29,6 +29,7 @@ export default {
       colWidths: {},
       chartMode: 'daily',
       closedYears: [],
+      searchQuery: '',
     };
   },
   computed: {
@@ -43,6 +44,26 @@ export default {
     today() { return new Date().toISOString().slice(0, 10) },
     dateRangeVC: { get() { return { start: this.dateRange[0], end: this.dateRange[1] || this.dateRange[0] } }, set(v) { if (v && v.start && v.end) this.dateRange = [v.start, v.end] } },
     catName() { return (id) => { const l = this.main.lang?.code || 'en'; const c = this.cats.find(x => x.id === id); return c ? (c[`name_${l}`] || c.name || `#${id}`) : `#${id}` } },
+    activeFilterCount() {
+      let count = 0;
+      if (this.searchQuery && this.searchQuery.trim()) count++;
+      if (this.colFilters) {
+        Object.values(this.colFilters).forEach(v => {
+          if (Array.isArray(v) && v.length) count += v.length;
+        });
+      }
+      if (this.showAdvanced && this.advFilter) {
+        const af = this.advFilter;
+        if (af.articleType) count++;
+        if (af.warehouses?.length) count += af.warehouses.length;
+        if (af.fishFamilies?.length) count += af.fishFamilies.length;
+        if (af.fishFreshFrozen?.length) count += af.fishFreshFrozen.length;
+        if (af.fishProcessTypes?.length) count += af.fishProcessTypes.length;
+        if (af.guanoTypes?.length) count += af.guanoTypes.length;
+        if (af.packageTypes?.length) count += af.packageTypes.length;
+      }
+      return count;
+    },
     allHeaders() {
       return [
         { title: '', key: 'expand', sortable: false, width: 40, fixed: true },
@@ -72,6 +93,20 @@ export default {
     },
     colFilteredItems() {
       let items = this.charges;
+      if (this.searchQuery && this.searchQuery.trim()) {
+        const q = this.searchQuery.trim().toLowerCase();
+        items = items.filter(ch => {
+          const cat = (this.catName(ch.charge_category_id) || '').toLowerCase();
+          const date = (ch.date || '').toLowerCase();
+          const tr = (ch.reception_tracking_number || []).join(' ').toLowerCase();
+          const onp = (ch.tracking_onp_numbers || []).join(' ').toLowerCase();
+          const sup = (ch._suppliers || '').toLowerCase();
+          const ship = (ch._ship || '').toLowerCase();
+          const origin = (ch._origin || '').toLowerCase();
+          const fishery = (ch._fishery || '').toLowerCase();
+          return cat.includes(q) || date.includes(q) || tr.includes(q) || onp.includes(q) || sup.includes(q) || ship.includes(q) || origin.includes(q) || fishery.includes(q);
+        });
+      }
       if (this.showAdvanced) {
         const af = this.advFilter;
         if (af.warehouses.length || af.articleType || af.fishFamilies.length || af.fishProcessTypes.length || af.guanoTypes.length || af.packageTypes.length) {
@@ -342,6 +377,11 @@ export default {
     },
     catHasProduction(charge) { const cat = this.cats.find(c => c.id === charge.charge_category_id); return cat && cat.is_production },
     catHasQualityControl(charge) { const cat = this.cats.find(c => c.id === charge.charge_category_id); return cat && cat.enable_quality_control },
+    clearAllFilters() {
+      this.searchQuery = '';
+      this.colFilters = {};
+      this.advFilter = { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] };
+    },
     confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true },
     confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true },
     async execDelete() {

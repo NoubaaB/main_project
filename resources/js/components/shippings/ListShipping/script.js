@@ -15,6 +15,7 @@ export default {
     const n = new Date(), sm = new Date(n.getFullYear(), n.getMonth(), 1);
     return {
       shippings: [], loading: false, selected: [],
+      searchQuery: '',
       dateRange: [sm, n], dateMenu: false,
       colFilters: {}, colSorts: [], pinState: {},
       expanded: {},
@@ -64,8 +65,45 @@ export default {
       const ordered = this.columnOrder.filter(k => map[k] && !map[k].fixed).map(k => map[k]);
       return [fixed[0], ...ordered.filter(h => this.pinState[h.key] === 'left'), ...ordered.filter(h => !this.pinState[h.key]), ...ordered.filter(h => this.pinState[h.key] === 'right'), fixed[fixed.length - 1]];
     },
+    activeFilterCount() {
+      let count = 0;
+      Object.values(this.colFilters).forEach(vals => { if (vals && vals.length) count++; });
+      const af = this.advFilter;
+      if (af.warehouses?.length) count++;
+      if (af.articleType) count++;
+      if (af.fishFamilies?.length) count++;
+      if (af.fishFreshFrozen?.length) count++;
+      if (af.fishProcessTypes?.length) count++;
+      if (af.guanoTypes?.length) count++;
+      if (af.packageTypes?.length) count++;
+      if (this.searchQuery && this.searchQuery.trim()) count++;
+      return count;
+    },
     colFilteredItems() {
       let items = this.shippings;
+      if (this.searchQuery && this.searchQuery.trim()) {
+        const q = this.searchQuery.trim().toLowerCase();
+        items = items.filter(s => {
+          if (s.date && s.date.toLowerCase().includes(q)) return true;
+          if (s.shipping_category_id && this.catName(s.shipping_category_id).toLowerCase().includes(q)) return true;
+          if (s._clients && s._clients.toLowerCase().includes(q)) return true;
+          if (s._tracking && s._tracking.toLowerCase().includes(q)) return true;
+          if (s._origin && s._origin.toLowerCase().includes(q)) return true;
+          if (s.direction && s.direction.toLowerCase().includes(q)) return true;
+          if (s._trucks && s._trucks.toLowerCase().includes(q)) return true;
+          if (s._invoice_state && s._invoice_state.toLowerCase().includes(q)) return true;
+          const dcs = s.detail_shippings || [];
+          return dcs.some(dc => {
+            if (dc.article_description && dc.article_description.toLowerCase().includes(q)) return true;
+            if (dc.stockable_type) {
+              const name = this.main.getStockableName ? this.main.getStockableName(dc.stockable_id, dc.stockable_type) : '';
+              if (name && name.toLowerCase().includes(q)) return true;
+            }
+            if (dc.warehouse?.name && dc.warehouse.name.toLowerCase().includes(q)) return true;
+            return false;
+          });
+        });
+      }
       if (this.showAdvanced) {
         const af = this.advFilter;
         if (af.warehouses.length || af.articleType || af.fishFamilies.length || af.fishProcessTypes.length || af.guanoTypes.length || af.packageTypes.length) {
@@ -86,6 +124,7 @@ export default {
     },
     totalWeight() { return this.colFilteredItems.reduce((s, c) => s + Number(c.total_weight || 0), 0) },
     totalPrice() { return this.colFilteredItems.reduce((s, c) => s + Number(c.total_price || 0), 0) },
+    totalInvoiced() { return this.colFilteredItems.filter(c => c._is_invoiced).length },
     categoryStats() {
       const lang = this.main.lang?.code || 'en'; const map = {};
       this.colFilteredItems.forEach(c => { const catId = c.shipping_category_id; if (!map[catId]) { const cat = this.cats.find(x => x.id === catId); map[catId] = { name: cat ? (cat[`name_${lang}`] || cat.name || `#${catId}`) : `#${catId}`, weight: 0, price: 0, count: 0 } } map[catId].weight += Number(c.total_weight || 0); map[catId].price += Number(c.total_price || 0); map[catId].count++ });
@@ -98,7 +137,7 @@ export default {
       return [{ name: this.$t('total_weight') + ' (Kg)', type: 'area', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].w * 100) / 100 })) }, { name: this.$t('total_price') + ' (' + this.main.currency + ')', type: 'line', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].p * 100) / 100 })) }];
     },
     chartOptions() {
-      return { chart: { type: 'line', height: 260, toolbar: { show: false }, fontFamily: 'Inter, sans-serif', background: 'transparent', animations: { enabled: true, easing: 'easeinout', speed: 600 } }, stroke: { width: [2, 3], curve: 'smooth' }, fill: { type: ['gradient', 'solid'], gradient: { shadeIntensity: 1, opacityFrom: .4, opacityTo: .05, stops: [0, 90, 100] } }, colors: ['#66BB6A', '#FF7043'], xaxis: { type: 'category', labels: { style: { fontSize: '10px', fontWeight: 600 }, rotate: -45, rotateAlways: this.chartMode === 'daily' }, tooltip: { enabled: false } }, yaxis: [{ title: { text: this.$t('total_weight') + ' (Kg)', style: { fontSize: '11px', fontWeight: 700, color: '#66BB6A' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }, { opposite: true, title: { text: this.$t('total_price') + ' (' + this.main.currency + ')', style: { fontSize: '11px', fontWeight: 700, color: '#FF7043' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }], tooltip: { shared: true, intersect: false, y: { formatter: v => this.main.formatDisplayNumber(v) } }, grid: { borderColor: 'rgba(0,0,0,.06)', strokeDashArray: 4 }, legend: { position: 'top', fontSize: '11px', fontWeight: 600 }, dataLabels: { enabled: false }, theme: { mode: this.main.is_dark ? 'dark' : 'light' } };
+      return { chart: { type: 'line', height: 260, toolbar: { show: false }, fontFamily: 'Inter, sans-serif', background: 'transparent', animations: { enabled: true, easing: 'easeinout', speed: 600 } }, stroke: { width: [2, 3], curve: 'smooth' }, fill: { type: ['gradient', 'solid'], gradient: { shadeIntensity: 1, opacityFrom: .4, opacityTo: .05, stops: [0, 90, 100] } }, colors: ['#4643a0', '#FF7043'], xaxis: { type: 'category', labels: { style: { fontSize: '10px', fontWeight: 600 }, rotate: -45, rotateAlways: this.chartMode === 'daily' }, tooltip: { enabled: false } }, yaxis: [{ title: { text: this.$t('total_weight') + ' (Kg)', style: { fontSize: '11px', fontWeight: 700, color: '#4643a0' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }, { opposite: true, title: { text: this.$t('total_price') + ' (' + this.main.currency + ')', style: { fontSize: '11px', fontWeight: 700, color: '#FF7043' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }], tooltip: { shared: true, intersect: false, y: { formatter: v => this.main.formatDisplayNumber(v) } }, grid: { borderColor: 'rgba(0,0,0,.06)', strokeDashArray: 4 }, legend: { position: 'top', fontSize: '11px', fontWeight: 600 }, dataLabels: { enabled: false }, theme: { mode: this.main.is_dark ? 'dark' : 'light' } };
     },
     selectedShippings() { return this.shippings.filter(c => this.selected.includes(c.id)) },
     selectedSells() { return this.selectedShippings },
@@ -291,6 +330,11 @@ export default {
         this.main.add_snackbar({ show: true, message: this.$t('invoice_created_successfully'), color: 'success' });
         this.invForm = this.resetInvForm(); this.showInvoice = false; this.fetchShippings();
       } catch (e) { console.error(e) }
+    },
+    clearAllFilters() {
+      this.colFilters = {};
+      this.advFilter = { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] };
+      this.searchQuery = '';
     },
     cancelInvoice() { this.selected = []; this.invForm = this.resetInvForm(); this.showInvoice = false; },
     exportExcel() { const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions' && h.key !== 'expand').forEach(h => { row[h.title] = this.cellText(h.key, c) }); return row }); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Shippings'); XLSX.writeFile(wb, `shippings_${this.today}.xlsx`) },

@@ -1,13 +1,14 @@
 <template>
   <div v-if="prodStore.production && selectedCategory" class="production-additional-fields">
-    <div class="d-flex flex-wrap">
+    <v-row dense>
       <!-- Supplier -->
-      <div v-if="selectedCategory.enable_suppliers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_suppliers" cols="12" sm="6">
         <v-autocomplete
           ref="supplierInput"
           v-model="prodStore.production.supplier_id"
           :items="supplierOptions"
           :label="$t('supplier')"
+          prepend-inner-icon="mdi-account"
           density="compact" variant="outlined" rounded clearable
           color="#00897B" class="text-prod" hide-details
           @update:search="val => supplierSearch = val"
@@ -22,39 +23,42 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Client -->
-      <div v-if="selectedCategory.enable_clients" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_clients" cols="12" sm="6">
         <v-autocomplete
           v-model="prodStore.production.client_id"
           :items="clientOptions"
           :label="$t('client')"
+          prepend-inner-icon="mdi-account-tie"
           density="compact" variant="outlined" rounded clearable
           color="#00897B" class="text-prod" hide-details
         ></v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Fishery -->
-      <div v-if="selectedCategory.enable_fishery_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_fishery_id" cols="12" sm="6">
         <v-autocomplete
           v-model="prodStore.production.fishery_id"
           :items="fisheryOptions"
           :label="$t('fishery')"
+          prepend-inner-icon="mdi-fish"
           chips density="compact" variant="outlined" rounded clearable
           color="#00897B" class="text-prod" hide-details
         >
           <template #chip="{ item }"><v-chip color="#00897B" variant="tonal">{{ item.title }}</v-chip></template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Ship -->
-      <div v-if="selectedCategory.enable_ship_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_ship_id" cols="12" sm="6">
         <v-autocomplete
           ref="shipInput"
           v-model="prodStore.production.ship_id"
           :items="shipOptions"
           :label="$t('ship')"
+          prepend-inner-icon="mdi-ferry"
           chips density="compact" variant="outlined" rounded clearable
           color="#00897B" class="text-prod" hide-details
           @update:search="val => shipSearch = val"
@@ -70,28 +74,30 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Origin -->
-      <div v-if="selectedCategory.enable_origin_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_origin_id" cols="12" sm="6">
         <v-autocomplete
           v-model="prodStore.production.origin_id"
           :items="originOptions"
           :label="$t('origin')"
+          prepend-inner-icon="mdi-map-marker"
           chips density="compact" variant="outlined" rounded clearable
           color="#00897B" class="text-prod" hide-details
         >
           <template #chip="{ item }"><v-chip color="#00897B" variant="tonal">{{ item.title }}</v-chip></template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Truck -->
-      <div v-if="selectedCategory.enable_truck_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_truck_id" cols="12" sm="6">
         <v-autocomplete
           ref="truckInput"
           v-model="prodStore.production.truck_ids"
           :items="truckOptions"
           :label="$t('truck')"
+          prepend-inner-icon="mdi-truck"
           multiple chips density="compact" variant="outlined" rounded clearable
           color="#00897B" class="text-prod" hide-details
           @update:search="val => truckSearch = val"
@@ -112,15 +118,16 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Reception Tracking Numbers -->
-      <div v-if="selectedCategory.enable_reception_tracking_number" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_reception_tracking_number" cols="12" sm="6">
         <v-autocomplete
           ref="receptionTrackingInput"
           v-model="prodStore.production.reception_tracking_number"
           :items="prodStore.production.reception_tracking_number"
           :label="$t('reception_tracking_number')"
+          prepend-inner-icon="mdi-barcode"
           multiple chips density="compact" variant="outlined" rounded clearable
           @keydown.enter.prevent="addReceptionTn"
           color="#00897B" class="text-prod" hide-details placeholder="ex :   --- --- --- --- ---"
@@ -133,15 +140,16 @@
             </v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Tracking ONP Numbers -->
-      <div v-if="selectedCategory.enable_tracking_onp_numbers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_tracking_onp_numbers" cols="12" sm="6">
         <v-autocomplete
           ref="onpTrackingInput"
           v-model="prodStore.production.tracking_onp_numbers"
           :items="prodStore.production.tracking_onp_numbers"
           :label="$t('tracking_onp_numbers')"
+          prepend-inner-icon="mdi-tag"
           multiple chips density="compact" variant="outlined" rounded clearable
           @keydown.enter.prevent="addOnpTn"
           color="#00897B" class="text-prod" hide-details placeholder="ex :   --- --- --- --- ---"
@@ -154,15 +162,16 @@
             </v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Production Tracking Numbers -->
-      <div v-if="selectedCategory.enable_production_tracking_number" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_production_tracking_number" cols="12" sm="6">
         <v-autocomplete
           ref="trackingInput"
           v-model="prodStore.production.production_tracking_number"
           :items="prodStore.production.production_tracking_number"
           :label="$t('production_tracking_numbers')"
+          prepend-inner-icon="mdi-pound"
           multiple chips density="compact" variant="outlined" rounded clearable
           @keydown.enter.prevent="addTn"
           color="#00897B" class="text-prod" hide-details placeholder="ex :   --- --- --- --- ---"
@@ -175,8 +184,8 @@
             </v-chip>
           </template>
         </v-autocomplete>
-      </div>
-    </div>
+      </v-col>
+    </v-row>
   </div>
 </template>
 

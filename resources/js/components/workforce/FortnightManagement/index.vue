@@ -26,23 +26,15 @@
             </div>
 
             <!-- View Switcher -->
-            <v-btn-toggle
+            <SegmentedPillToggle
               v-model="viewMode"
-              mandatory
-              density="compact"
-              rounded="pill"
-              class="fnm-hero-toggle"
-            >
-              <v-btn value="all" size="small" prepend-icon="mdi-view-dashboard-outline">
-                {{ $t('all_views') }}
-              </v-btn>
-              <v-btn value="calendar" size="small" prepend-icon="mdi-calendar-month-outline">
-                {{ $t('calendar_and_entry') }}
-              </v-btn>
-              <v-btn value="breakdown" size="small" prepend-icon="mdi-chart-box-outline">
-                {{ $t('activity_breakdown') }}
-              </v-btn>
-            </v-btn-toggle>
+              :items="[
+                { value: 'all', label: $t('all_views'), icon: 'mdi-view-dashboard-outline' },
+                { value: 'calendar', label: $t('calendar_and_entry'), icon: 'mdi-calendar-month-outline' },
+                { value: 'breakdown', label: $t('activity_breakdown'), icon: 'mdi-chart-box-outline' }
+              ]"
+              color="#1976D2"
+            />
           </div>
         </div>
       </div>
@@ -529,26 +521,28 @@
               <!-- Period Toggle + Declaration Chips + Search Toolbar -->
               <div class="d-flex flex-wrap align-center ga-3 mb-4 fnm-breakdown-toolbar pa-2 rounded-xl border">
                 <!-- Entity toggle (Workforces / Sections / Corporals) -->
-                <v-btn-toggle v-model="breakdownTab" mandatory variant="outlined" density="compact" color="#42A5F5" rounded class="fnm-segmented-toggle">
-                  <v-btn value="workforces" size="small" prepend-icon="mdi-account-multiple">
-                    {{ $t('workforces_activities') }}
-                  </v-btn>
-                  <v-btn value="sections" size="small" prepend-icon="mdi-sitemap-outline">
-                    {{ $t('sections_activities') }}
-                  </v-btn>
-                  <v-btn value="corporals" size="small" prepend-icon="mdi-account-tie">
-                    {{ $t('corporals_activities') }}
-                  </v-btn>
-                </v-btn-toggle>
+                <SegmentedPillToggle
+                  v-model="breakdownTab"
+                  :items="[
+                    { value: 'workforces', label: $t('workforces_activities'), icon: 'mdi-account-multiple' },
+                    { value: 'sections', label: $t('sections_activities'), icon: 'mdi-sitemap-outline' },
+                    { value: 'corporals', label: $t('corporals_activities'), icon: 'mdi-account-tie' }
+                  ]"
+                  color="#1976D2"
+                />
 
                 <v-divider vertical class="mx-1 d-none d-sm-block" style="height:28px;"></v-divider>
 
                 <!-- Period toggle (Q1 / Q2 / Month) -->
-                <v-btn-toggle v-model="breakdownPeriod" mandatory variant="outlined" density="compact" color="#42A5F5" rounded class="fnm-segmented-toggle">
-                  <v-btn value="q1" size="small" prepend-icon="mdi-numeric-1-circle-outline">Q1</v-btn>
-                  <v-btn value="q2" size="small" prepend-icon="mdi-numeric-2-circle-outline">Q2</v-btn>
-                  <v-btn value="month" size="small" prepend-icon="mdi-calendar-month">{{ $t('month') }}</v-btn>
-                </v-btn-toggle>
+                <SegmentedPillToggle
+                  v-model="breakdownPeriod"
+                  :items="[
+                    { value: 'q1', label: 'Q1', icon: 'mdi-numeric-1-circle-outline' },
+                    { value: 'q2', label: 'Q2', icon: 'mdi-numeric-2-circle-outline' },
+                    { value: 'month', label: $t('month'), icon: 'mdi-calendar-month' }
+                  ]"
+                  color="#1976D2"
+                />
 
                 <v-divider vertical class="mx-1 d-none d-sm-block" style="height:28px;"></v-divider>
 
@@ -2097,9 +2091,11 @@ import { useNotification } from '@/stores/Notification';
 import mitt from '@/plugins/mitt.js';
 import print from 'vue3-print-nb';
 import axios from 'axios';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 
 export default {
   name: 'FortnightManagement',
+  components: { SegmentedPillToggle },
   directives: { print },
   data() {
     const now = new Date();

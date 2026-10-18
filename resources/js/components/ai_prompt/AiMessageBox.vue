@@ -176,9 +176,9 @@ export default {
   border-radius: 24px;
   border-top-left-radius: 6px;
   padding: 20px 24px;
-  margin: 12px 0;
-  max-width: 85%;
-  min-width: 250px;
+  margin: 8px 0;
+  max-width: 100%;
+  min-width: 260px;
   width: fit-content;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   box-shadow: 

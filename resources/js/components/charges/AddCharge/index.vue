@@ -1,59 +1,113 @@
 <template>
   <v-form ref="form" @submit.prevent="submitCharge">
     <v-row>
-      <!-- LEFT PANEL: Necessary Information -->
+      <!-- LEFT PANEL: Necessary & Additional Info + Live Summary -->
       <v-col cols="12" md="5">
-        <v-card class="add-charge-card ma-auto" elevation="0">
+        <v-card class="add-charge-card elevation-0" rounded="xl">
           <!-- Hero Header -->
           <div class="ac-hero">
             <div class="ac-hero-inner">
-              <div class="d-flex align-center ga-4">
-                <div class="ac-hero-icon">
-                  <v-icon size="28" color="white">mdi-sticker-plus-outline</v-icon>
+              <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+                <div class="d-flex align-center ga-3">
+                  <div class="ac-hero-icon">
+                    <v-icon size="26" color="white">mdi-sticker-plus-outline</v-icon>
+                  </div>
+                  <div>
+                    <div class="ac-hero-title">{{ $t("charge_create_interface") }}</div>
+                    <div class="text-white text-caption" style="opacity:.8">{{ $t('new_charge_desc') }}</div>
+                  </div>
                 </div>
-                <div>
-                  <div class="ac-hero-title">{{ $t("charge_create_interface") }}</div>
-                  <div class="text-white text-caption" style="opacity:.7">{{ $t('new_charge_desc') }}</div>
-                </div>
+
+                <v-chip size="small" color="white" variant="outlined" class="font-weight-bold" style="border-color: rgba(255,255,255,.35)">
+                  <v-icon size="14" class="mr-1">mdi-pound</v-icon>
+                  {{ chargeStore.charge?.details?.length || 0 }} {{ $t('articles_count') || 'Articles' }}
+                </v-chip>
               </div>
             </div>
           </div>
-          <v-card-text v-if="chargeStore.charge">
-            <!-- (1) Necessary Information -->
-            <v-row>
-              <v-col class="d-flex align-center">
-                <div class="flex-grow-1"><v-divider class="border-opacity-25" color="#42A5F5"></v-divider></div>
-                <div class="px-2 d-block text-center">
-                  <v-row class="pa-0"><v-col class="pa-0"><v-icon class="text-charge">mdi-numeric-1-circle-outline</v-icon></v-col></v-row>
-                  <v-row class="pa-0"><v-col class="pa-0"><span>{{ $t("necessary_information") }}</span></v-col></v-row>
-                </div>
-                <div class="flex-grow-1"><v-divider class="border-opacity-25" color="#42A5F5"></v-divider></div>
-              </v-col>
-            </v-row>
 
-            <!-- Charge Category -->
-            <v-row class="text-center">
-              <v-col>
+          <v-card-text v-if="chargeStore.charge" class="pa-4">
+            <!-- STEP 1: Necessary Information -->
+            <div class="step-card pa-3 rounded-lg mb-3">
+              <div class="d-flex align-center justify-space-between mb-3">
+                <div class="d-flex align-center ga-2">
+                  <div class="step-number" style="background: rgba(66, 165, 245, 0.12); color: #1565C0;">1</div>
+                  <span class="text-subtitle-2 font-weight-bold text-charge">{{ $t("necessary_information") }}</span>
+                </div>
+                <span class="text-caption text-medium-emphasis">* {{ $t('required') || 'Required' }}</span>
+              </div>
+
+              <!-- Category & Description -->
+              <div class="d-flex align-center ga-2 mb-3">
                 <v-autocomplete
                   v-model="chargeStore.charge.charge_category_id"
                   :items="chargeCategoryOptions"
                   :label="$t('charge_category')"
-                  chips density="compact" variant="outlined" rounded color="#42A5F5" class="text-charge"
-                  hide-details @update:modelValue="onCategoryChange"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  color="#42A5F5"
+                  class="text-charge flex-grow-1"
+                  hide-details
+                  prepend-inner-icon="mdi-shape-outline"
+                  @update:modelValue="onCategoryChange"
                 >
                   <template #chip="{ item }">
-                    <v-chip  color="#42A5F5" variant="tonal">{{ item.title }}</v-chip>
+                    <v-chip color="#42A5F5" variant="tonal" class="font-weight-medium">{{ item.title }}</v-chip>
                   </template>
                 </v-autocomplete>
-              </v-col>
-              <v-col cols="2" class="py-2 pl-0">
-                <v-btn variant="tonal" color="#42A5F5" icon="mdi-notebook-plus-outline" :disabled="!chargeStore.charge?.charge_category_id" @click="descriptionDialog = true"></v-btn>
-              </v-col>
-            </v-row>
 
-            <!-- Calendar -->
-            <v-row class="text-center">
-              <v-col>
+                <v-btn
+                  variant="tonal"
+                  color="#42A5F5"
+                  rounded="lg"
+                  icon="mdi-notebook-edit-outline"
+                  :disabled="!chargeStore.charge?.charge_category_id"
+                  :title="$t('description')"
+                  @click="descriptionDialog = true"
+                >
+                  <v-badge v-if="descriptionLength > 0" dot color="primary">
+                    <v-icon>mdi-notebook-edit-outline</v-icon>
+                  </v-badge>
+                  <v-icon v-else>mdi-notebook-edit-outline</v-icon>
+                </v-btn>
+              </div>
+
+              <!-- Full-width Inline VCalendar DatePicker (matching design specification) -->
+              <div class="date-picker-card rounded-xl overflow-hidden border pa-2 mb-1 bg-surface">
+                <div class="d-flex align-center justify-space-between px-2 pt-1 pb-2">
+                  <div class="d-flex align-center ga-1">
+                    <v-icon size="16" color="#42A5F5">mdi-calendar-month</v-icon>
+                    <span class="text-caption font-weight-bold text-charge">{{ $t('date') }}</span>
+                    <v-chip v-if="displayFormattedDate" size="x-small" color="#42A5F5" variant="flat" class="ml-1 font-weight-bold text-white">
+                      {{ displayFormattedDate }}
+                    </v-chip>
+                  </div>
+                  <div class="d-flex align-center ga-1">
+                    <v-btn
+                      size="x-small"
+                      variant="tonal"
+                      color="#42A5F5"
+                      class="font-weight-medium"
+                      rounded
+                      @click="setToday"
+                    >
+                      {{ $t('today') || 'Today' }}
+                    </v-btn>
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      color="grey"
+                      class="font-weight-medium"
+                      rounded
+                      @click="setYesterday"
+                    >
+                      {{ $t('yesterday') || 'Yest.' }}
+                    </v-btn>
+                  </div>
+                </div>
+
                 <DatePicker
                   :is-dark="main.is_dark"
                   expanded
@@ -62,104 +116,180 @@
                   :locale="main.lang?.short || 'en'"
                   mode="date"
                   color="blue"
+                  borderless
+                  class="w-100"
                 />
-              </v-col>
-            </v-row>
-
-            <!-- (2) Additional Information -->
-            <v-row>
-              <v-col class="d-flex align-center">
-                <div class="flex-grow-1"><v-divider class="border-opacity-25" color="#42A5F5"></v-divider></div>
-                <div class="px-2 d-block text-center">
-                  <v-row class="pa-0"><v-col class="pa-0"><v-icon class="text-charge">mdi-numeric-2-circle-outline</v-icon></v-col></v-row>
-                  <v-row class="pa-0"><v-col class="pa-0"><span>{{ $t("additional_information") }}</span></v-col></v-row>
-                </div>
-                <div class="flex-grow-1"><v-divider class="border-opacity-25" color="#42A5F5"></v-divider></div>
-              </v-col>
-            </v-row>
-
-            <!-- EXPAND toggle -->
-            <v-row>
-              <v-col>
-                <v-btn block rounded variant="tonal" color="#42A5F5" :disabled="!chargeStore.charge?.charge_category_id" @click="chargeStore.showAdditionalInfo = !chargeStore.showAdditionalInfo" :prepend-icon="chargeStore.showAdditionalInfo ? 'mdi-chevron-up' : 'mdi-chevron-down'">
-                  {{ $t('expand') }}
-                </v-btn>
-              </v-col>
-            </v-row>
-
-            <!-- Expandable Additional Fields -->
-            <v-expand-transition>
-              <div v-show="chargeStore.showAdditionalInfo && selectedCategory">
-                <Charge ref="chargeForm" />
               </div>
-            </v-expand-transition>
+            </div>
 
-            <!-- (3) Summary -->
-            <v-row v-if="chargeStore.charge && chargeStore.charge.details.length > 0">
-              <v-col class="d-flex align-center">
-                <div class="flex-grow-1"><v-divider class="border-opacity-25" color="#42A5F5"></v-divider></div>
-                <div class="px-2 d-block text-center">
-                  <v-row class="pa-0"><v-col class="pa-0"><v-icon class="text-charge">mdi-numeric-3-circle-outline</v-icon></v-col></v-row>
-                  <v-row class="pa-0"><v-col class="pa-0"><span>{{ $t("summary") }}</span></v-col></v-row>
+            <!-- STEP 2: Additional Information (Accordion) -->
+            <div class="step-card pa-3 rounded-lg mb-3">
+              <div
+                class="d-flex align-center justify-space-between cursor-pointer"
+                @click="chargeStore.charge?.charge_category_id ? (chargeStore.showAdditionalInfo = !chargeStore.showAdditionalInfo) : null"
+              >
+                <div class="d-flex align-center ga-2">
+                  <div class="step-number" style="background: rgba(66, 165, 245, 0.12); color: #1565C0;">2</div>
+                  <span class="text-subtitle-2 font-weight-bold text-charge">{{ $t("additional_information") }}</span>
                 </div>
-                <div class="flex-grow-1"><v-divider class="border-opacity-25" color="#42A5F5"></v-divider></div>
-              </v-col>
-            </v-row>
-            <div v-if="chargeStore.charge && chargeStore.charge.details.length > 0" class="charge-summary-bar">
-              <div v-for="(cat, idx) in categorySummary" :key="cat.id" class="summary-category">
-                <v-chip size="small" :color="categoryColors[idx % categoryColors.length]" variant="tonal" class="mb-1 font-weight-bold">{{ cat.name }}</v-chip>
-                <div class="d-flex align-center ga-3">
-                  <div class="summary-item">
-                    <v-icon size="16" :color="categoryColors[idx % categoryColors.length]" class="mr-1">mdi-weight-kilogram</v-icon>
-                    <span class="summary-label">{{ $t('weight') }}:</span>
-                    <span class="summary-value" :style="{ color: `rgb(var(--v-theme-${categoryColors[idx % categoryColors.length]}))` }">{{ main.formatDisplayNumber(cat.totalWeight) }} Kg</span>
-                  </div>
-                  <div class="summary-item">
-                    <v-icon size="16" :color="categoryColors[idx % categoryColors.length]" class="mr-1">mdi-cash</v-icon>
-                    <span class="summary-label">{{ $t('total_price') }}:</span>
-                    <span class="summary-value" :style="{ color: `rgb(var(--v-theme-${categoryColors[idx % categoryColors.length]}))` }">{{ main.formatDisplayNumber(cat.totalPrice) }} {{ main.currency }}</span>
-                  </div>
+
+                <div class="d-flex align-center ga-2">
+                  <v-chip
+                    v-if="additionalFieldsCount > 0"
+                    size="x-small"
+                    color="#42A5F5"
+                    variant="flat"
+                    class="font-weight-bold text-white"
+                  >
+                    {{ additionalFieldsCount }} {{ $t('configured') || 'set' }}
+                  </v-chip>
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    color="#42A5F5"
+                    :disabled="!chargeStore.charge?.charge_category_id"
+                  >
+                    <v-icon>{{ chargeStore.showAdditionalInfo ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                  </v-btn>
                 </div>
               </div>
-              <v-divider class="my-2"></v-divider>
-              <div class="summary-global">
-                <v-chip size="small" color="#42A5F5" variant="elevated" class="mb-1 font-weight-bold">{{ $t('global_total') }}</v-chip>
-                <div class="d-flex align-center ga-4">
-                  <div class="summary-item">
-                    <v-icon size="18" color="#42A5F5" class="mr-1">mdi-weight-kilogram</v-icon>
-                    <span class="summary-label">{{ $t('total_weight') }}:</span>
-                    <span class="summary-value text-info">{{ main.formatDisplayNumber(chargeStore.charge.total_weight) }} Kg</span>
+
+              <!-- Expandable Additional Fields -->
+              <v-expand-transition>
+                <div v-show="chargeStore.showAdditionalInfo && selectedCategory" class="pt-3 border-t mt-3">
+                  <Charge ref="chargeForm" />
+                </div>
+              </v-expand-transition>
+            </div>
+
+            <!-- STEP 3: Live Summary Cards -->
+            <div class="step-card pa-3 rounded-lg mb-3">
+              <div class="d-flex align-center justify-space-between mb-3">
+                <div class="d-flex align-center ga-2">
+                  <div class="step-number" style="background: rgba(66, 165, 245, 0.12); color: #1565C0;">3</div>
+                  <span class="text-subtitle-2 font-weight-bold text-charge">{{ $t("summary") }}</span>
+                </div>
+                <v-chip size="x-small" :color="canSubmit ? 'success' : 'warning'" variant="tonal" class="font-weight-bold">
+                  {{ canSubmit ? ($t('ready') || 'Ready') : ($t('incomplete') || 'Incomplete') }}
+                </v-chip>
+              </div>
+
+              <!-- Top KPI metric tiles -->
+              <div class="summary-kpi-row d-flex ga-2 mb-3 w-100">
+                <!-- Total Articles -->
+                <div class="summary-kpi-tile pa-2 rounded-lg text-center" style="flex: 1 1 0; min-width: 0; background: rgba(var(--v-theme-on-surface), .03); border: 1px solid rgba(var(--v-theme-on-surface), .06);">
+                  <div class="text-caption text-medium-emphasis mb-1 text-truncate">{{ $t('articles') || 'Articles' }}</div>
+                  <div class="text-h6 font-weight-bold" style="line-height: 1.2;">
+                    {{ chargeStore.charge?.details?.length || 0 }}
                   </div>
-                  <div class="summary-item">
-                    <v-icon size="18" color="success" class="mr-1">mdi-cash</v-icon>
-                    <span class="summary-label">{{ $t('total_price') }}:</span>
-                    <span class="summary-value text-success">{{ main.formatDisplayNumber(chargeStore.charge.total_price) }} {{ main.currency }}</span>
+                </div>
+
+                <!-- Total Weight -->
+                <div class="summary-kpi-tile pa-2 rounded-lg text-center" style="flex: 1 1 0; min-width: 0; background: rgba(66, 165, 245, .08); border: 1px solid rgba(66, 165, 245, .2);">
+                  <div class="text-caption text-medium-emphasis mb-1 text-truncate">{{ $t('total_weight') }}</div>
+                  <div class="text-h6 font-weight-bold text-charge" style="line-height: 1.2;">
+                    {{ main.formatDisplayNumber(chargeStore.charge?.total_weight || 0) }}
+                    <span class="text-caption font-weight-normal">Kg</span>
+                  </div>
+                </div>
+
+                <!-- Total Price -->
+                <div class="summary-kpi-tile pa-2 rounded-lg text-center" style="flex: 1 1 0; min-width: 0; background: rgba(76, 175, 80, .08); border: 1px solid rgba(76, 175, 80, .2);">
+                  <div class="text-caption text-medium-emphasis mb-1 text-truncate">{{ $t('total_price') }}</div>
+                  <div class="text-h6 font-weight-bold text-success" style="line-height: 1.2;">
+                    {{ main.formatDisplayNumber(chargeStore.charge?.total_price || 0) }}
+                    <span class="text-caption font-weight-normal">{{ main.currency }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Category Breakdown (if multiple) -->
+              <div v-if="categorySummary.length > 0" class="category-summary-list pt-2 border-t">
+                <div
+                  v-for="(cat, idx) in categorySummary"
+                  :key="cat.id"
+                  class="d-flex align-center justify-space-between py-1 text-caption"
+                >
+                  <div class="d-flex align-center ga-1">
+                    <span class="cat-dot" :style="{ background: getCategoryColor(idx) }"></span>
+                    <span class="font-weight-medium">{{ cat.name }}</span>
+                  </div>
+                  <div class="d-flex align-center ga-2">
+                    <span class="text-medium-emphasis">{{ main.formatDisplayNumber(cat.totalWeight) }} Kg</span>
+                    <span class="font-weight-bold text-success">{{ main.formatDisplayNumber(cat.totalPrice) }} {{ main.currency }}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Submit / Cancel -->
-            <v-row class="mt-3">
-              <v-col cols="6">
-                <v-btn block rounded variant="outlined" color="#42A5F5" :disabled="!canSubmit" :loading="submitting" @click="submitCharge">{{ $t('submit') }}</v-btn>
+            <!-- Validation helper message -->
+            <div class="validation-helper mb-3 text-caption px-1">
+              <div v-if="!chargeStore.charge?.charge_category_id" class="text-warning d-flex align-center ga-1">
+                <v-icon size="14">mdi-alert-circle-outline</v-icon>
+                <span>{{ $t('select_charge_category_to_start') }}</span>
+              </div>
+              <div v-else-if="!chargeStore.charge?.date" class="text-warning d-flex align-center ga-1">
+                <v-icon size="14">mdi-alert-circle-outline</v-icon>
+                <span>{{ $t('date_required') || 'Date is required' }}</span>
+              </div>
+              <div v-else-if="!chargeStore.charge?.details?.length" class="text-info d-flex align-center ga-1">
+                <v-icon size="14">mdi-information-outline</v-icon>
+                <span>{{ $t('add_at_least_one_article') || 'Add at least one article on the right panel' }}</span>
+              </div>
+              <div v-else class="text-success d-flex align-center ga-1">
+                <v-icon size="14">mdi-check-circle-outline</v-icon>
+                <span>{{ $t('submit_ready_hint') || 'Ready to submit record (Ctrl+Enter)' }}</span>
+              </div>
+            </div>
+
+            <!-- Submit / Cancel Action Buttons -->
+            <v-row dense>
+              <v-col cols="8">
+                <v-btn
+                  block
+                  rounded
+                  color="#42A5F5"
+                  class="font-weight-bold text-white shadow-sm"
+                  size="large"
+                  :disabled="!canSubmit"
+                  :loading="submitting"
+                  prepend-icon="mdi-check"
+                  @click="submitCharge"
+                >
+                  {{ $t('submit') }}
+                  <span class="ml-1 text-caption opacity-70">(Ctrl+Enter)</span>
+                </v-btn>
               </v-col>
-              <v-col cols="6">
-                <v-btn block rounded variant="tonal" color="red-lighten-1" :disabled="!chargeStore.charge" @click="resetCharge">{{ $t('cancel') }}</v-btn>
+              <v-col cols="4">
+                <v-btn
+                  block
+                  rounded
+                  variant="tonal"
+                  color="red-lighten-1"
+                  size="large"
+                  :disabled="!chargeStore.charge"
+                  @click="resetCharge"
+                >
+                  {{ $t('cancel') }}
+                </v-btn>
               </v-col>
             </v-row>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <v-divider vertical></v-divider>
-
-      <!-- RIGHT PANEL: Detail Charges -->
+      <!-- RIGHT PANEL: Detail Charges Entry & Table -->
       <v-col cols="12" md="7">
         <DetailCharges v-if="chargeStore.charge && chargeStore.charge.charge_category_id" />
-        <div v-else class="d-flex flex-column align-center justify-center" style="min-height: 300px; opacity: .5;">
-          <v-icon size="80" color="#42A5F5" class="mb-4">mdi-clipboard-text-outline</v-icon>
-          <div class="text-h6 text-info font-weight-medium">{{ $t('select_charge_category_to_start') }}</div>
+        <div v-else class="d-flex flex-column align-center justify-center rounded-xl pa-8" style="min-height: 440px; background: rgba(var(--v-theme-on-surface), .02); border: 2px dashed rgba(66,165,245,.2);">
+          <div class="empty-hero-icon mb-3" style="background: rgba(66, 165, 245, .1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <v-icon size="42" color="#42A5F5">mdi-clipboard-arrow-left-outline</v-icon>
+          </div>
+          <div class="text-h6 font-weight-bold text-charge mb-1">{{ $t('select_charge_category_to_start') }}</div>
+          <div class="text-caption text-medium-emphasis text-center" style="max-width: 320px;">
+            {{ $t('select_category_desc') || 'Choose a charge category on the left to configure articles, quantities, and pricing.' }}
+          </div>
         </div>
       </v-col>
     </v-row>
@@ -169,7 +299,7 @@
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon color="#42A5F5" class="mr-2">mdi-notebook-edit-outline</v-icon>
-          <span>{{ $t('description') }}</span>
+          <span class="font-weight-bold">{{ $t('description') }}</span>
           <v-spacer></v-spacer>
           <v-chip size="small" :color="descriptionLength > 1000 ? 'error' : 'info'" variant="tonal">
             {{ descriptionLength }} / 1000
@@ -188,17 +318,31 @@
             color="#42A5F5"
             class="text-charge"
             auto-grow
+            hide-details
+            placeholder="Add relevant notes, supplier invoice number, reference info..."
           ></v-textarea>
         </v-card-text>
         <v-card-actions class="pa-4 pt-0">
           <v-spacer></v-spacer>
-          <v-btn variant="tonal" color="#42A5F5" rounded @click="descriptionDialog = false" prepend-icon="mdi-check">{{ $t('done') }}</v-btn>
+          <v-btn variant="tonal" color="#42A5F5" rounded @click="descriptionDialog = false" prepend-icon="mdi-check">
+            {{ $t('done') }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Summary Snackbar -->
-    <v-snackbar v-model="summarySnackbar.show" :timeout="8000" location="top right" color="surface" rounded="lg" elevation="12" min-width="360" max-width="420" @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }">
+    <!-- Summary Snackbar with Countdown Progress Bar -->
+    <v-snackbar
+      v-model="summarySnackbar.show"
+      :timeout="8000"
+      location="top right"
+      color="surface"
+      rounded="lg"
+      elevation="12"
+      min-width="360"
+      max-width="420"
+      @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
+    >
       <v-progress-linear :model-value="snackbarProgress" color="#42A5F5" height="3" class="mb-2" rounded></v-progress-linear>
       <div class="d-flex align-center mb-2">
         <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
@@ -206,14 +350,38 @@
       </div>
       <v-divider class="mb-2"></v-divider>
       <div class="d-flex flex-column ga-1 text-body-2">
-        <div v-if="summarySnackbar.category"><v-icon size="14" color="#42A5F5" class="mr-1">mdi-tag</v-icon><span class="text-medium-emphasis">{{ $t('charge_category') }}:</span> <strong>{{ summarySnackbar.category }}</strong></div>
-        <div v-if="summarySnackbar.date"><v-icon size="14" color="#42A5F5" class="mr-1">mdi-calendar</v-icon><span class="text-medium-emphasis">{{ $t('date') }}:</span> <strong>{{ summarySnackbar.date }}</strong></div>
-        <div v-if="summarySnackbar.trackingNumbers"><v-icon size="14" color="#42A5F5" class="mr-1">mdi-barcode</v-icon><span class="text-medium-emphasis">{{ $t('reception_tracking_number') }}:</span> <strong>{{ summarySnackbar.trackingNumbers }}</strong></div>
-        <div v-if="summarySnackbar.supplier"><v-icon size="14" color="#42A5F5" class="mr-1">mdi-account</v-icon><span class="text-medium-emphasis">{{ $t('supplier') }}:</span> <strong>{{ summarySnackbar.supplier }}</strong></div>
+        <div v-if="summarySnackbar.category">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-tag</v-icon>
+          <span class="text-medium-emphasis">{{ $t('charge_category') }}:</span>
+          <strong>{{ summarySnackbar.category }}</strong>
+        </div>
+        <div v-if="summarySnackbar.date">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-calendar</v-icon>
+          <span class="text-medium-emphasis">{{ $t('date') }}:</span>
+          <strong>{{ summarySnackbar.date }}</strong>
+        </div>
+        <div v-if="summarySnackbar.trackingNumbers">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-barcode</v-icon>
+          <span class="text-medium-emphasis">{{ $t('reception_tracking_number') }}:</span>
+          <strong>{{ summarySnackbar.trackingNumbers }}</strong>
+        </div>
+        <div v-if="summarySnackbar.supplier">
+          <v-icon size="14" color="#42A5F5" class="mr-1">mdi-account</v-icon>
+          <span class="text-medium-emphasis">{{ $t('supplier') }}:</span>
+          <strong>{{ summarySnackbar.supplier }}</strong>
+        </div>
         <v-divider class="my-1"></v-divider>
         <div class="d-flex ga-4">
-          <div><v-icon size="14" color="#42A5F5" class="mr-1">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('total_weight') }}:</span> <strong class="text-charge">{{ summarySnackbar.totalWeight }} Kg</strong></div>
-          <div><v-icon size="14" color="success" class="mr-1">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span> <strong class="text-success">{{ summarySnackbar.totalPrice }} {{ main.currency }}</strong></div>
+          <div>
+            <v-icon size="14" color="#42A5F5" class="mr-1">mdi-weight-kilogram</v-icon>
+            <span class="text-medium-emphasis">{{ $t('total_weight') }}:</span>
+            <strong class="text-charge">{{ summarySnackbar.totalWeight }} Kg</strong>
+          </div>
+          <div>
+            <v-icon size="14" color="success" class="mr-1">mdi-cash</v-icon>
+            <span class="text-medium-emphasis">{{ $t('total_price') }}:</span>
+            <strong class="text-success">{{ summarySnackbar.totalPrice }} {{ main.currency }}</strong>
+          </div>
         </div>
       </div>
       <template #actions>
@@ -227,7 +395,6 @@
 import axios from 'axios';
 import { useCharge } from '@/stores/Charge';
 import { useMain } from '@/stores/Main';
-
 import { useChargeCategory } from '@/stores/ChargeCategory';
 import { useDetailChargeCategory } from '@/stores/DetailChargeCategory';
 import { useAuth } from '@/stores/Auth';
@@ -237,32 +404,87 @@ import DetailCharges from './DetailCharges.vue';
 export default {
   name: 'AddCharge',
   components: { Charge, DetailCharges },
-  data() { return { submitting: false, descriptionDialog: false, categoryColors: ['info', 'teal', 'purple', 'orange', 'pink', 'cyan', 'amber', 'indigo'], summarySnackbar: { show: false, type: '', category: '', date: '', trackingNumbers: '', supplier: '', totalWeight: '', totalPrice: '' }, snackbarProgress: 100, snackbarTimer: null }; },
+  data() {
+    return {
+      submitting: false,
+      descriptionDialog: false,
+      dateMenu: false,
+      categoryColors: ['#42A5F5', '#26A69A', '#7E57C2', '#FFA726', '#EC407A', '#29B6F6', '#AB47BC', '#5C6BC0'],
+      summarySnackbar: {
+        show: false,
+        type: '',
+        category: '',
+        date: '',
+        trackingNumbers: '',
+        supplier: '',
+        totalWeight: '',
+        totalPrice: '',
+      },
+      snackbarProgress: 100,
+      snackbarTimer: null,
+    };
+  },
   computed: {
     chargeStore() { return useCharge(); },
     main() { return useMain(); },
     auth() { return useAuth(); },
     chargeCategoryOptions() {
       const lang = this.main.lang?.code || 'en';
-      return useChargeCategory().list.map(c => ({ title: c[`name_${lang}`] || c.name || `#${c.id}`, value: c.id }));
+      return useChargeCategory().list.map(c => ({
+        title: c[`name_${lang}`] || c.name || `#${c.id}`,
+        value: c.id,
+      }));
     },
     selectedCategory() {
       return useChargeCategory().list.find(c => c.id === this.chargeStore.charge?.charge_category_id);
     },
     canSubmit() {
       const c = this.chargeStore.charge;
-      return c?.date && c?.charge_category_id && c?.details?.length > 0;
+      return !!(c?.date && c?.charge_category_id && c?.details?.length > 0);
     },
     descriptionLength() {
       return (this.chargeStore.charge?.description || '').length;
     },
+    additionalFieldsCount() {
+      const c = this.chargeStore.charge;
+      if (!c) return 0;
+      let count = 0;
+      if (c.reception_tracking_number?.length) count++;
+      if (c.tracking_onp_numbers?.length) count++;
+      if (c.supplier_id) count++;
+      if (c.fishery_id) count++;
+      if (c.origin_id) count++;
+      if (c.truck_ids?.length) count++;
+      if (c.ship_id) count++;
+      return count;
+    },
     dateModel: {
-      get() { if (!this.chargeStore.charge?.date) return null; return new Date(this.chargeStore.charge.date + 'T00:00:00'); },
+      get() {
+        if (!this.chargeStore.charge?.date) return null;
+        return new Date(this.chargeStore.charge.date + 'T00:00:00');
+      },
       set(val) {
         if (!this.chargeStore.charge) return;
-        if (val instanceof Date) { const y = val.getFullYear(); const m = String(val.getMonth() + 1).padStart(2, '0'); const d = String(val.getDate()).padStart(2, '0'); this.chargeStore.charge.date = `${y}-${m}-${d}`; }
-        else { this.chargeStore.charge.date = val; }
-      }
+        if (val instanceof Date) {
+          const y = val.getFullYear();
+          const m = String(val.getMonth() + 1).padStart(2, '0');
+          const d = String(val.getDate()).padStart(2, '0');
+          this.chargeStore.charge.date = `${y}-${m}-${d}`;
+        } else {
+          this.chargeStore.charge.date = val;
+        }
+      },
+    },
+    displayFormattedDate() {
+      if (!this.chargeStore.charge?.date) return '';
+      const d = new Date(this.chargeStore.charge.date + 'T00:00:00');
+      if (isNaN(d.getTime())) return this.chargeStore.charge.date;
+      return d.toLocaleDateString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
     },
     categorySummary() {
       const details = this.chargeStore.charge?.details || [];
@@ -274,7 +496,12 @@ export default {
         const catId = d.detail_charge_category_id;
         if (!map[catId]) {
           const cat = detailCats.find(c => c.id === catId);
-          map[catId] = { id: catId, name: cat ? (cat[`name_${lang}`] || cat.name_fr || cat.name_en || `#${catId}`) : `#${catId}`, totalWeight: 0, totalPrice: 0 };
+          map[catId] = {
+            id: catId,
+            name: cat ? (cat[`name_${lang}`] || cat.name_fr || cat.name_en || `#${catId}`) : `#${catId}`,
+            totalWeight: 0,
+            totalPrice: 0,
+          };
         }
         map[catId].totalWeight += parseFloat(d.weight) || 0;
         map[catId].totalPrice += parseFloat(d.total_price) || 0;
@@ -285,12 +512,50 @@ export default {
   mounted() {
     this.chargeStore._restoreDraft();
     if (!this.chargeStore.charge) this.chargeStore.add_charge(null);
+    if (!this.chargeStore.charge?.date) this.setToday();
+    window.addEventListener('keydown', this.handleGlobalKeyDown);
+  },
+  beforeUnmount() {
+    window.removeEventListener('keydown', this.handleGlobalKeyDown);
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
   },
   watch: {
     'chargeStore.charge': { handler() { this.chargeStore._persistDraft(); }, deep: true },
     'chargeStore.showAdditionalInfo'() { this.chargeStore._persistDraft(); },
   },
   methods: {
+    handleGlobalKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (this.canSubmit && !this.submitting) {
+          e.preventDefault();
+          this.submitCharge();
+        }
+      }
+    },
+    setToday() {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = String(today.getMonth() + 1).padStart(2, '0');
+      const d = String(today.getDate()).padStart(2, '0');
+      if (this.chargeStore.charge) {
+        this.chargeStore.charge.date = `${y}-${m}-${d}`;
+      }
+      this.dateMenu = false;
+    },
+    setYesterday() {
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      const y = yest.getFullYear();
+      const m = String(yest.getMonth() + 1).padStart(2, '0');
+      const d = String(yest.getDate()).padStart(2, '0');
+      if (this.chargeStore.charge) {
+        this.chargeStore.charge.date = `${y}-${m}-${d}`;
+      }
+      this.dateMenu = false;
+    },
+    getCategoryColor(idx) {
+      return this.categoryColors[idx % this.categoryColors.length];
+    },
     onCategoryChange() {
       if (!this.chargeStore.charge) return;
       this.chargeStore.charge.details = [];
@@ -305,8 +570,13 @@ export default {
       this.chargeStore.charge.total_weight = 0;
       this.chargeStore.showAdditionalInfo = false;
     },
-    resetCharge() { this.chargeStore.add_charge(null); this.chargeStore.clearDraft(); sessionStorage.removeItem('detail_charges_draft'); this.main.add_snackbar({ show: true, message: this.$t('reset_charge'), color: 'success' }); },
-
+    resetCharge() {
+      this.chargeStore.add_charge(null);
+      this.chargeStore.clearDraft();
+      sessionStorage.removeItem('detail_charges_draft');
+      this.setToday();
+      this.main.add_snackbar({ show: true, message: this.$t('reset_charge'), color: 'success' });
+    },
     async submitCharge() {
       this.submitting = true;
       try {
@@ -320,7 +590,13 @@ export default {
         this.chargeStore.add_charge(null);
         this.showSnackbarFromSnapshot(snapshot, 'submit');
         this.$router.push({ name: 'list_charge' });
-      } catch (err) { this.main.add_snackbar({ show: true, message: err.response?.data?.message || this.$t('record_added_failed'), color: 'error' }); }
+      } catch (err) {
+        this.main.add_snackbar({
+          show: true,
+          message: err.response?.data?.message || this.$t('record_added_failed'),
+          color: 'error',
+        });
+      }
       this.submitting = false;
     },
     buildSnapshot() {
@@ -355,16 +631,77 @@ export default {
 </script>
 
 <style scoped>
-.charge-summary-bar { display: flex; flex-direction: column; gap: 12px; padding: 18px 22px; background: linear-gradient(135deg, rgba(33,150,243,.04) 0%, rgba(76,175,80,.04) 100%); border-radius: 16px; border: 1.5px dashed rgba(33,150,243,.2); }
-.summary-category { padding: 8px 12px; border-radius: 10px; background: rgba(var(--v-theme-on-surface), .03); }
-.summary-global { padding: 10px 12px; border-radius: 12px; background: rgba(33,150,243,.06); }
-.summary-item { display: flex; align-items: center; gap: 4px; }
-.summary-label { font-size: 13px; font-weight: 600; color: rgba(var(--v-theme-on-surface), .6); }
-.summary-value { font-size: 15px; font-weight: 800; }
-.add-charge-card { border-radius: 20px !important; overflow: visible; font-family: 'Inter', sans-serif; }
-.ac-hero { background: linear-gradient(135deg, #0D47A1 0%, #1565C0 40%, #42A5F5 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 90px; }
-.ac-hero-inner { position: relative; z-index: 1; padding: 20px 24px; color: #fff; }
-.ac-hero-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
-.ac-hero-title { font-size: 18px; font-weight: 800; letter-spacing: .3px; }
-.text-charge { color: #42A5F5 !important; }
+.add-charge-card {
+  border: 1px solid rgba(var(--v-theme-on-surface), .08);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+.ac-hero {
+  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 40%, #42A5F5 100%);
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.ac-hero-inner {
+  padding: 16px 20px;
+  color: #fff;
+}
+.ac-hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.18);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.ac-hero-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.text-charge {
+  color: #42A5F5 !important;
+}
+
+/* Step cards */
+.step-card {
+  background: rgba(var(--v-theme-surface), 1);
+  border: 1px solid rgba(var(--v-theme-on-surface), .08);
+  transition: border-color .2s ease;
+}
+.step-card:hover {
+  border-color: rgba(66, 165, 245, .3);
+}
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* KPI metric row full-width */
+.summary-kpi-row {
+  width: 100% !important;
+  display: flex !important;
+}
+.summary-kpi-tile {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+
+/* Category breakdown */
+.cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
 </style>
+

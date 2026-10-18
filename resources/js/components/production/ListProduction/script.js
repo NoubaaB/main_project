@@ -15,6 +15,7 @@ export default {
     const n = new Date(), sm = new Date(n.getFullYear(), n.getMonth(), 1);
     return {
       productions: [], loading: false, selected: [],
+      searchQuery: '',
       dateRange: [sm, n], dateMenu: false,
       colFilters: {}, colSorts: [], pinState: {},
       expanded: {},
@@ -66,8 +67,46 @@ export default {
       const ordered = this.columnOrder.filter(k => map[k] && !map[k].fixed).map(k => map[k]);
       return [fixed[0], ...ordered.filter(h => this.pinState[h.key] === 'left'), ...ordered.filter(h => !this.pinState[h.key]), ...ordered.filter(h => this.pinState[h.key] === 'right'), fixed[fixed.length - 1]];
     },
+    activeFilterCount() {
+      let count = 0;
+      Object.values(this.colFilters).forEach(vals => { if (vals && vals.length) count++; });
+      const af = this.advFilter;
+      if (af.warehouses?.length) count++;
+      if (af.articleType) count++;
+      if (af.fishFamilies?.length) count++;
+      if (af.fishFreshFrozen?.length) count++;
+      if (af.fishProcessTypes?.length) count++;
+      if (af.guanoTypes?.length) count++;
+      if (af.packageTypes?.length) count++;
+      if (this.searchQuery && this.searchQuery.trim()) count++;
+      return count;
+    },
     colFilteredItems() {
       let items = this.productions;
+      if (this.searchQuery && this.searchQuery.trim()) {
+        const q = this.searchQuery.trim().toLowerCase();
+        items = items.filter(p => {
+          if (p.date && p.date.toLowerCase().includes(q)) return true;
+          if (p.production_category_id && this.catName(p.production_category_id).toLowerCase().includes(q)) return true;
+          if (p.production_type && p.production_type.toLowerCase().includes(q)) return true;
+          if (p._tracking && p._tracking.toLowerCase().includes(q)) return true;
+          if (p._charge && p._charge.toLowerCase().includes(q)) return true;
+          if (p._suppliers && p._suppliers.toLowerCase().includes(q)) return true;
+          if (p.supplier?.name && p.supplier.name.toLowerCase().includes(q)) return true;
+          if (p.client?.name && p.client.name.toLowerCase().includes(q)) return true;
+          if (p._invoice_state && p._invoice_state.toLowerCase().includes(q)) return true;
+          const dcs = p.detail_productions || [];
+          return dcs.some(dc => {
+            if (dc.article_description && dc.article_description.toLowerCase().includes(q)) return true;
+            if (dc.stockable_type) {
+              const name = this.main.getStockableName ? this.main.getStockableName(dc.stockable_id, dc.stockable_type) : '';
+              if (name && name.toLowerCase().includes(q)) return true;
+            }
+            if (dc.warehouse?.name && dc.warehouse.name.toLowerCase().includes(q)) return true;
+            return false;
+          });
+        });
+      }
       if (this.showAdvanced) { const af = this.advFilter; if (af.warehouses.length || af.articleType || af.fishFamilies.length || af.fishProcessTypes.length || af.guanoTypes.length || af.packageTypes.length) { items = items.filter(p => { const dcs = p.detail_productions || []; return dcs.some(dc => { if (af.warehouses.length && !af.warehouses.includes(dc.warehouse_id)) return false; if (af.articleType) { if (af.articleType === 'text' && dc.stockable_type) return false; if (af.articleType === 'FishType' && dc.stockable_type !== 'FishType') return false; if (af.articleType === 'GuanoType' && dc.stockable_type !== 'GuanoType') return false; if (af.articleType === 'PackageType' && dc.stockable_type !== 'PackageType') return false } if (af.articleType === 'FishType') { const ft = this.fishTypes.find(f => f.id === dc.stockable_id); if (ft) { if (af.fishFamilies.length && !af.fishFamilies.includes(ft.fish_family_id)) return false; if (af.fishFreshFrozen.length && !af.fishFreshFrozen.includes(ft.type)) return false; if (af.fishProcessTypes.length && !af.fishProcessTypes.includes(ft.fish_process_type_id)) return false } } if (af.articleType === 'GuanoType' && af.guanoTypes.length && !af.guanoTypes.includes(dc.stockable_id)) return false; if (af.articleType === 'PackageType' && af.packageTypes.length && !af.packageTypes.includes(dc.stockable_id)) return false; return true }) }) } }
       Object.entries(this.colFilters).forEach(([k, vals]) => { if (!vals || !vals.length) return; items = items.filter(it => vals.includes(this.cellText(k, it))) });
       return this.sortItems(items);
@@ -461,6 +500,11 @@ export default {
           this.cancelInvoice(); this.fetchProductions();
         } catch (e) { console.error(e); this.main.add_snackbar({ show: true, message: this.$t('error'), color: 'error' }) }
       }
+    },
+    clearAllFilters() {
+      this.colFilters = {};
+      this.advFilter = { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] };
+      this.searchQuery = '';
     },
     cancelInvoice() { this.selected = []; this.invForm = { date: null, type_invoice: 'local', trackingNumbers: [], trackingInput: '', invoiceKind: 'supplier' }; this.showInvoice = false; },
     exportExcel() { const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions' && h.key !== 'expand').forEach(h => { row[h.title] = this.cellText(h.key, c) }); return row }); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Productions'); XLSX.writeFile(wb, `productions_${this.today}.xlsx`) },

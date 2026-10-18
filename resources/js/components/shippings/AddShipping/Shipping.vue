@@ -1,14 +1,15 @@
 <template>
   <div v-if="shippingStore.shipping && selectedCategory" class="shipping-additional-fields">
-    <div class="d-flex flex-wrap">
+    <v-row dense>
       <!-- Shipping Tracking Numbers -->
-      <div v-if="selectedCategory.enable_shipping_tracking_number" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_shipping_tracking_number" cols="12" sm="6">
         <v-autocomplete
           ref="trackingNumberInput"
           v-model="shippingStore.shipping.shipping_tracking_number"
           :items="shippingStore.shipping.shipping_tracking_number"
           :label="$t('shipping_tracking_number')"
           placeholder="ex :   --- --- --- --- ---"
+          prepend-inner-icon="mdi-barcode"
           multiple chips density="compact" variant="outlined" rounded clearable
           @keydown.enter.prevent="addNewTrackingNumber"
           color="#4643a0" class="text-shipping"
@@ -22,15 +23,16 @@
             </v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Tracking ONP Numbers -->
-      <div v-if="selectedCategory.enable_tracking_onp_numbers" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_tracking_onp_numbers" cols="12" sm="6">
         <v-autocomplete
           ref="onpTrackingInput"
           v-model="shippingStore.shipping.tracking_onp_numbers"
           :items="shippingStore.shipping.tracking_onp_numbers"
           :label="$t('tracking_onp_numbers')"
+          prepend-inner-icon="mdi-tag"
           multiple chips density="compact" variant="outlined" rounded hide-details
           placeholder="ex :   --- --- --- --- ---" clearable
           @keydown.enter.prevent="addNewOnpTrackingNumber"
@@ -43,15 +45,16 @@
             </v-chip>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Client -->
-      <div v-if="selectedCategory.enable_clients" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_clients" cols="12" sm="6">
         <v-autocomplete
           ref="clientInput"
           v-model="shippingStore.shipping.client_id"
           :items="clientOptions"
           :label="$t('client')"
+          prepend-inner-icon="mdi-account"
           density="compact" variant="outlined" rounded clearable
           color="#4643a0" class="text-shipping" hide-details
           @update:search="val => clientSearch = val"
@@ -66,52 +69,56 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Origin -->
-      <div v-if="selectedCategory.enable_origin_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_origin_id" cols="12" sm="6">
         <v-autocomplete
           v-model="shippingStore.shipping.origin_id"
           :items="originOptions"
           :label="$t('origin')"
+          prepend-inner-icon="mdi-map-marker"
           chips density="compact" variant="outlined" rounded clearable
           color="#4643a0" class="text-shipping" hide-details
         >
           <template #chip="{ item }"><v-chip color="#4643a0" variant="tonal">{{ item.title }}</v-chip></template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Direction -->
-      <div v-if="selectedCategory.enable_direction" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_direction" cols="12" sm="6">
         <v-autocomplete
           v-model="shippingStore.shipping.direction"
           :items="[{ title: $t('local'), value: 'local' }, { title: $t('export'), value: 'export' }]"
           :label="$t('direction')"
+          prepend-inner-icon="mdi-swap-horizontal"
           chips density="compact" variant="outlined" rounded clearable
           color="#4643a0" class="text-shipping" hide-details
         ></v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Fishery -->
-      <div v-if="selectedCategory.enable_fishery_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_fishery_id" cols="12" sm="6">
         <v-autocomplete
           v-model="shippingStore.shipping.fishery_id"
           :items="fisheryOptions"
           :label="$t('fishery')"
+          prepend-inner-icon="mdi-fish"
           chips density="compact" variant="outlined" rounded clearable
           color="#4643a0" class="text-shipping" hide-details
         >
           <template #chip="{ item }"><v-chip color="#4643a0" variant="tonal">{{ item.title }}</v-chip></template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Ship -->
-      <div v-if="selectedCategory.enable_ship_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_ship_id" cols="12" sm="6">
         <v-autocomplete
           ref="shipInput"
           v-model="shippingStore.shipping.ship_id"
           :items="shipOptions"
           :label="$t('ship')"
+          prepend-inner-icon="mdi-ferry"
           chips density="compact" variant="outlined" rounded clearable
           color="#4643a0" class="text-shipping" hide-details
           @update:search="val => shipSearch = val"
@@ -127,15 +134,16 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
+      </v-col>
 
       <!-- Truck -->
-      <div v-if="selectedCategory.enable_truck_id" class="pa-3" style="flex: 0 0 50%; max-width: 50%;">
+      <v-col v-if="selectedCategory.enable_truck_id" cols="12" sm="6">
         <v-autocomplete
           ref="truckInput"
           v-model="shippingStore.shipping.truck_ids"
           :items="truckOptions"
           :label="$t('truck')"
+          prepend-inner-icon="mdi-truck"
           multiple chips density="compact" variant="outlined" rounded clearable
           color="#4643a0" class="text-shipping" hide-details
           @update:search="val => truckSearch = val"
@@ -156,8 +164,8 @@
             </v-list-item>
           </template>
         </v-autocomplete>
-      </div>
-    </div>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
