@@ -136,21 +136,7 @@
                                         <div class="col-header-inner" :class="{ 'justify-end': isNumericKey(h.key), 'justify-center': h.align === 'center' || h.key === 'date' }">
                                             <span class="header-sort-trigger" @click="toggleSort(h.key)">
                                                 <strong class="header-text">{{ h.title }}</strong>
-                                                <span class="sort-indicator" v-if="sortKey === h.key && is_show">
-                                                    <v-icon size="12">{{ sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending' }}</v-icon>
-                                                </span>
                                             </span>
-
-                                            <span v-if="is_show" class="drag-handle mx-0 px-0" :title="$t('drag_to_reorder')" @mousedown.stop>
-                                                <v-icon size="12">mdi-drag</v-icon>
-                                            </span>
-
-                                            <span
-                                                v-if="is_show"
-                                                class="resize-handle"
-                                                @mousedown.prevent="onResizeMouseDown($event, h.key)"
-                                                :title="$t('drag_to_resize')"
-                                            ></span>
                                         </div>
                                     </th>
                                 </tr>
