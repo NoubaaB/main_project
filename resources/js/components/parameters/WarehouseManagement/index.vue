@@ -15,13 +15,20 @@
       </div>
     </div>
 
-    <v-tabs v-model="activeTab" color="#a21ee5" class="mx-4 mt-2" slider-color="#a21ee5">
-      <v-tab value="warehouses"><v-icon start>mdi-warehouse</v-icon>{{ $t('warehouses') }}</v-tab>
-      <v-tab value="categories"><v-icon start>mdi-tag-multiple-outline</v-icon>{{ $t('categories') }}</v-tab>
-      <v-tab value="sejour"><v-icon start>mdi-calendar-clock</v-icon>{{ $t('sejour_rates') }}</v-tab>
-    </v-tabs>
-
-    <v-divider></v-divider>
+    <!-- Toolbar with SegmentedPillToggle (Activity Breakdown style) -->
+    <div class="wm-toolbar-card mx-4 mt-3 mb-2 pa-2 rounded-xl border d-flex flex-wrap align-center justify-space-between ga-3">
+      <div class="d-flex flex-wrap align-center ga-3">
+        <SegmentedPillToggle
+          v-model="activeTab"
+          :items="[
+            { value: 'warehouses', label: $t('warehouses'), icon: 'mdi-warehouse', badge: warehouses.length },
+            { value: 'categories', label: $t('categories'), icon: 'mdi-tag-multiple-outline', badge: categories.length },
+            { value: 'sejour', label: $t('sejour_rates'), icon: 'mdi-calendar-clock', badge: sejourRates.length }
+          ]"
+          color="#a21ee5"
+        />
+      </div>
+    </div>
 
     <v-card-text class="pa-4">
       <!-- ============= WAREHOUSES TAB ============= -->
@@ -32,10 +39,10 @@
             <v-btn v-if="hasActiveWarehouseFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="warehouseColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
             <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
           </div>
-          <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+          <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? 'info' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
             <template v-slot:[`item.has_sejour`]="{ item }"><v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">{{ item.has_sejour ? $t('yes') : $t('no') }}</v-chip></template>
             <template v-slot:[`item.allow_production_effect`]="{ item }"><v-chip :color="item.allow_production_effect ? '#a21ee5' : 'grey'" size="small" variant="tonal">{{ item.allow_production_effect ? $t('yes') : $t('no') }}</v-chip></template>
@@ -55,10 +62,10 @@
             <v-btn v-if="hasActiveCategoryFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="categoryColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
             <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
           </div>
-          <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+          <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? 'info' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
             <template v-slot:[`item.warehouse_count`]="{ item }"><v-chip color="#a21ee5" size="small" variant="tonal">{{ item.warehouse_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
@@ -79,17 +86,18 @@
                 item-title="name"
                 item-value="id"
                 :label="$t('select_warehouse')"
+                prepend-inner-icon="mdi-warehouse"
                 chips
                 density="compact"
                 variant="outlined"
                 rounded
                 color="#a21ee5"
-                class="text-info mb-4"
+                class="mb-4"
                 hide-details
                 @update:model-value="fetchSejourRates"
               >
                 <template #chip="{ item, index }">
-                  <v-chip :key="index" class="text-white" color="info accent-4" variant="tonal">{{ item.title }}</v-chip>
+                  <v-chip :key="index" color="#a21ee5" variant="tonal">{{ item.title }}</v-chip>
                 </template>
               </v-autocomplete>
 
@@ -141,21 +149,24 @@
                 <v-text-field
                   v-model.number="rateForm.weight_unit"
                   :label="$t('weight_unit') + ' (KG)'"
-                  variant="outlined" density="compact" rounded color="deep-purple" class="text-deep-purple mt-4"
-                  type="number" step="1" min="1" hide-details
+                  prepend-inner-icon="mdi-scale"
+                  variant="outlined" density="compact" rounded color="#a21ee5" class="mt-4"
+                  type="number" step="1" min="1" hide-details="auto"
                   suffix="KG"
                 ></v-text-field>
                 <v-text-field
                   v-model.number="rateForm.daily_rate_per_kg"
                   :label="$t('sejour_unit_price') + ' (DH/' + formatWeightUnit(rateForm.weight_unit) + ' KG)'"
-                  variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mt-3"
-                  type="number" step="0.0001" hide-details
+                  prepend-inner-icon="mdi-cash"
+                  variant="outlined" density="compact" rounded color="#a21ee5" class="mt-3"
+                  type="number" step="0.0001" hide-details="auto"
                 ></v-text-field>
                 <v-text-field
                   v-model.number="rateForm.service_unit_price"
                   :label="$t('service_unit_price') + ' (DH/' + formatWeightUnit(rateForm.weight_unit) + ' KG)'"
-                  variant="outlined" density="compact" rounded color="warning" class="text-warning mt-3"
-                  type="number" step="0.0001" hide-details
+                  prepend-inner-icon="mdi-cash-check"
+                  variant="outlined" density="compact" rounded color="#a21ee5" class="mt-3"
+                  type="number" step="0.0001" hide-details="auto"
                 ></v-text-field>
 
                 <div class="d-flex ga-3 mt-4">
@@ -190,6 +201,7 @@
                 :headers="rateHeaders"
                 :items="sejourRates"
                 :loading="loadingRates ? 'info' : false"
+                :multi-sort="true"
                 density="comfortable"
                 class="rounded-lg mb-6"
                 hover
@@ -204,13 +216,13 @@
                   <span v-else>{{ main.formateDate(item.end_date) }}</span>
                 </template>
                 <template v-slot:[`item.daily_rate_per_kg`]="{ item }">
-                  <span class="font-weight-bold text-info">{{ item.daily_rate_per_kg }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
+                  <span class="font-weight-bold" style="color:#a21ee5">{{ item.daily_rate_per_kg }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
                 </template>
                 <template v-slot:[`item.weight_unit`]="{ item }">
-                  <v-chip color="deep-purple" size="small" variant="tonal" class="font-weight-bold">{{ formatWeightUnit(item.weight_unit || 1000) }} KG</v-chip>
+                  <v-chip color="#a21ee5" size="small" variant="tonal" class="font-weight-bold">{{ formatWeightUnit(item.weight_unit || 1000) }} KG</v-chip>
                 </template>
                 <template v-slot:[`item.service_unit_price`]="{ item }">
-                  <span class="font-weight-bold text-warning">{{ item.service_unit_price || 0 }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
+                  <span class="font-weight-bold" style="color:#a21ee5">{{ item.service_unit_price || 0 }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
                 </template>
                 <template v-slot:[`item.actions`]="{ item }">
                   <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openRateDialog(item)" class="mr-1">
@@ -235,14 +247,14 @@
           {{ editingWarehouse ? $t('edit_warehouse') : $t('add_warehouse') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <v-text-field v-model="warehouseForm.name" :label="$t('name')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" :error-messages="warehouseNameError"></v-text-field>
-          <v-textarea v-model="warehouseForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" rows="2"></v-textarea>
-          <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" clearable></v-select>
-          <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" clearable></v-select>
+          <v-text-field v-model="warehouseForm.name" :label="$t('name')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="warehouseNameError"></v-text-field>
+          <v-textarea v-model="warehouseForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" rows="2"></v-textarea>
+          <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
+          <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
           <v-switch v-model="warehouseForm.has_sejour" :label="$t('has_sejour')" color="warning" density="compact" class="mb-1" hide-details></v-switch>
-          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mt-3" type="number"></v-text-field>
+          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" prepend-inner-icon="mdi-cash" variant="outlined" density="compact" rounded color="#a21ee5" class="mt-3" hide-details="auto" type="number"></v-text-field>
           <v-divider class="my-3"></v-divider>
-          <div class="text-caption font-weight-bold text-purple mb-2">{{ $t('enabled_fields') }}</div>
+          <div class="text-caption font-weight-bold mb-2" style="color:#a21ee5">{{ $t('enabled_fields') }}</div>
           <v-switch v-model="warehouseForm.allow_production_effect" :label="$t('allow_production_effect')" color="#a21ee5" density="compact" hide-details></v-switch>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
@@ -261,8 +273,8 @@
           {{ editingCategory ? $t('edit_category') : $t('add_category') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <v-text-field v-model="categoryForm.name" :label="$t('name')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info mb-3" :error-messages="categoryNameError"></v-text-field>
-          <v-textarea v-model="categoryForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" rows="2"></v-textarea>
+          <v-text-field v-model="categoryForm.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="categoryNameError"></v-text-field>
+          <v-textarea v-model="categoryForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#a21ee5" hide-details="auto" rows="2"></v-textarea>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
@@ -290,6 +302,17 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <!-- Summary Snackbar (Rule 5) -->
+    <v-snackbar v-model="snackbar.show" :timeout="5000" location="top right" color="surface" rounded="lg" elevation="12" min-width="320" max-width="400">
+      <v-progress-linear :model-value="snackbarProgress" color="#a21ee5" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-1">
+        <v-icon :color="snackbar.success ? 'success' : 'error'" class="mr-2">{{ snackbar.success ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
+        <span class="text-subtitle-2 font-weight-bold">{{ snackbar.message }}</span>
+      </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="snackbar.show = false"></v-btn>
+      </template>
+    </v-snackbar>
   </v-card>
 </template>
 
@@ -298,9 +321,11 @@ import axios from 'axios';
 import mitt from '@/plugins/mitt';
 import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 
 export default {
   name: 'WarehouseManagement',
+  components: { SegmentedPillToggle },
   data() {
     return {
       activeTab: 'warehouses',
@@ -328,6 +353,9 @@ export default {
       deleteTarget: null,
       deleteEntityType: null,
       saving: false,
+      snackbar: { show: false, message: '', success: true },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -456,17 +484,17 @@ export default {
       try {
         if (this.editingWarehouse) {
           await axios.put(`/api/warehouses/${this.editingWarehouse.id}`, this.warehouseForm);
-          this.main.add_snackbar({ show: true, message: this.$t('warehouse_updated'), color: 'success' });
+          this.showSnackbar(true, this.$t('warehouse_updated') || 'Warehouse updated successfully');
         } else {
           const res = await axios.post('/api/warehouses', this.warehouseForm);
           if (res.data.warehouse) this.auth.warehouse.list.push(res.data.warehouse);
-          this.main.add_snackbar({ show: true, message: this.$t('warehouse_created'), color: 'success' });
+          this.showSnackbar(true, this.$t('warehouse_created') || 'Warehouse created successfully');
         }
         this.warehouseDialog = false;
         this.fetchWarehouses();
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('error_occurred'), color: 'error' });
+        this.showSnackbar(false, this.$t('error_occurred') || 'An error occurred');
       }
       this.saving = false;
     },
@@ -498,17 +526,17 @@ export default {
       try {
         if (this.editingCategory) {
           await axios.put(`/api/warehouse-categories/${this.editingCategory.id}`, this.categoryForm);
-          this.main.add_snackbar({ show: true, message: this.$t('category_updated'), color: 'success' });
+          this.showSnackbar(true, this.$t('category_updated') || 'Category updated successfully');
         } else {
           await axios.post('/api/warehouse-categories', this.categoryForm);
-          this.main.add_snackbar({ show: true, message: this.$t('category_created'), color: 'success' });
+          this.showSnackbar(true, this.$t('category_created') || 'Category created successfully');
         }
         this.categoryDialog = false;
         this.fetchCategories();
         this.fetchWarehouses();
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('error_occurred'), color: 'error' });
+        this.showSnackbar(false, this.$t('error_occurred') || 'An error occurred');
       }
       this.saving = false;
     },
@@ -570,8 +598,10 @@ export default {
         };
         if (this.editingRate) {
           await axios.put(`/api/warehouses/sejour-rates/${this.editingRate.id}`, payload);
+          this.showSnackbar(true, this.$t('rate_updated') || 'Rate updated successfully');
         } else {
           await axios.post(`/api/warehouses/${this.selectedSejourWarehouse}/sejour-rates`, payload);
+          this.showSnackbar(true, this.$t('rate_created') || 'Rate created successfully');
         }
         this.cancelEditRate();
         this.fetchSejourRates();
@@ -580,6 +610,7 @@ export default {
           this.overlapError = true;
         }
         console.error(e);
+        this.showSnackbar(false, this.$t('error_occurred') || 'An error occurred');
       }
       this.saving = false;
     },
@@ -596,16 +627,33 @@ export default {
         if (this.deleteEntityType === 'warehouse') {
           await axios.delete(`/api/warehouses/${item.id}`);
           this.fetchWarehouses();
+          this.showSnackbar(true, this.$t('warehouse_deleted') || 'Warehouse deleted successfully');
         } else if (this.deleteEntityType === 'category') {
           await axios.delete(`/api/warehouse-categories/${item.id}`);
           this.fetchCategories();
+          this.showSnackbar(true, this.$t('category_deleted') || 'Category deleted successfully');
         } else if (this.deleteEntityType === 'rate') {
           await axios.delete(`/api/warehouses/sejour-rates/${item.id}`);
           this.fetchSejourRates();
+          this.showSnackbar(true, this.$t('rate_deleted') || 'Rate deleted successfully');
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+        this.showSnackbar(false, this.$t('error_occurred') || 'An error occurred');
+      }
       this.deleteTarget = null;
       this.deleteEntityType = null;
+    },
+    showSnackbar(success, message) {
+      clearInterval(this.snackbarTimer);
+      this.snackbar = { show: true, success, message };
+      this.snackbarProgress = 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= 2;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+        }
+      }, 100);
     },
   },
 };

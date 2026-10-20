@@ -1,8 +1,7 @@
-const CACHE_NAME = 'jupiter-shell-cache-v1';
-const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v1';
+const CACHE_NAME = 'jupiter-shell-cache-v14';
+const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v14';
 
 const PRECACHE_ASSETS = [
-  '/',
   '/js/manifest.json',
   '/css/main.css',
   '/css/vuetify.min.css',

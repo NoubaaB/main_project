@@ -15,39 +15,33 @@
       </div>
     </div>
 
-    <!-- Tab Navigation -->
-    <v-card-text class="pa-0">
-      <v-slide-group v-model="activeTab" mandatory show-arrows class="ot-tabs">
-        <v-slide-group-item v-slot="{ isSelected, toggle }">
-          <v-btn :color="isSelected ? '#00897B' : undefined" :variant="isSelected ? 'flat' : 'text'" rounded class="mx-1 my-2" prepend-icon="mdi-format-list-bulleted" @click="toggle">
-            {{ $t('list_order_transfer') }}
-          </v-btn>
-        </v-slide-group-item>
-        <v-slide-group-item v-if="auth.hasPermission('order_transfers.create')" v-slot="{ isSelected, toggle }">
-          <v-btn :color="isSelected ? '#00897B' : undefined" :variant="isSelected ? 'flat' : 'text'" rounded class="mx-1 my-2" prepend-icon="mdi-plus-circle-outline" @click="toggle">
-            {{ $t('add_order_transfer') }}
-          </v-btn>
-        </v-slide-group-item>
-      </v-slide-group>
+    <!-- Tab Slider (Matching Activity Breakdown Entity Toggle) -->
+    <div class="d-flex align-center justify-space-between mx-4 mt-3">
+      <SegmentedPillToggle
+        v-model="activeTab"
+        :items="orderTransferTabs"
+        color="#00897B"
+      />
+    </div>
 
-      <v-divider color="#00897B"></v-divider>
+    <v-divider class="mx-4 mt-3" color="#00897B"></v-divider>
 
-      <div class="pa-4">
-        <ListOrderTransfer v-if="activeTab === 0" ref="listRef" @edit="onEdit" />
-        <AddOrderTransfer v-if="activeTab === 1" :edit-data="editData" @saved="onSaved" @cancel-edit="editData = null" />
-      </div>
-    </v-card-text>
+    <div class="pa-4">
+      <ListOrderTransfer v-if="activeTab === 0" ref="listRef" @edit="onEdit" />
+      <AddOrderTransfer v-if="activeTab === 1" :edit-data="editData" @saved="onSaved" @cancel-edit="editData = null" />
+    </div>
   </v-card>
 </template>
 
 <script>
 import ListOrderTransfer from './ListOrderTransfer.vue';
 import AddOrderTransfer from './AddOrderTransfer.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import { useAuth } from '@/stores/Auth';
 
 export default {
   name: 'OrderTransferPage',
-  components: { ListOrderTransfer, AddOrderTransfer },
+  components: { ListOrderTransfer, AddOrderTransfer, SegmentedPillToggle },
   data() {
     return {
       activeTab: 0,
@@ -56,6 +50,14 @@ export default {
   },
   computed: {
     auth() { return useAuth(); },
+    orderTransferTabs() {
+      return [
+        { value: 0, label: this.$t('list_order_transfer'), icon: 'mdi-format-list-bulleted' },
+        ...(this.auth.hasPermission('order_transfers.create')
+          ? [{ value: 1, label: this.$t('add_order_transfer'), icon: 'mdi-plus-circle-outline' }]
+          : []),
+      ];
+    },
   },
   methods: {
     onEdit(transfer) {

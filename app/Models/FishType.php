@@ -20,6 +20,19 @@ class FishType extends Model
 
     protected $guarded = [];
 
+    protected $appends = ['name'];
+
+    public function getNameAttribute(): ?string
+    {
+        $locale = app()->getLocale();
+        return $this->attributes['name_' . $locale]
+            ?? $this->attributes['name_fr']
+            ?? $this->attributes['name_en']
+            ?? $this->attributes['name_es']
+            ?? $this->attributes['name_in_invoice']
+            ?? null;
+    }
+
     function nonWarehouse_stockable_operations() : HasMany
     {
         return $this->hasMany(NonWarehouseStockableOperation::class);    

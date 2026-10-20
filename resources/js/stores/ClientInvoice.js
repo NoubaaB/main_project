@@ -243,6 +243,7 @@ export const useClientInvoice = defineStore("clientInvoice", {
                     tracking_numbers: (client_invoice.tracking_numbers || []).toString(),
                     address: clientAddress ? [clientAddress] : [],
                     client_name: clientName,
+                    client: client_invoice.client,
                     invoice: client_invoice.type_invoice == "export" ? client_invoice : null
                 };
             });

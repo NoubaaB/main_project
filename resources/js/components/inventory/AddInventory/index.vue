@@ -12,25 +12,44 @@
             <div class="text-white text-caption" style="opacity:.7">{{ $t('inventory_desc') }}</div>
           </div>
         </div>
-        <div class="inv-hero-actions"><v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="refreshInventory" :loading="refreshing">{{ $t('refresh') }}</v-btn></div>
+        <div class="inv-hero-actions d-flex align-center ga-2">
+          <v-btn
+            v-if="auth.hasPermission('inventory.create')"
+            variant="tonal"
+            color="white"
+            rounded
+            size="small"
+            prepend-icon="mdi-restore-alert"
+            @click="activeTab = 3"
+          >
+            {{ $t('init_warehouse_stock') || 'Init Stock to 0' }}
+          </v-btn>
+          <v-btn
+            variant="tonal"
+            color="white"
+            rounded
+            size="small"
+            prepend-icon="mdi-refresh"
+            @click="refreshInventory"
+            :loading="refreshing"
+          >
+            {{ $t('refresh') }}
+          </v-btn>
+        </div>
       </div>
     </div>
 
-    <!-- Tab Slider -->
-    <v-slide-group v-model="activeTab" mandatory show-arrows class="inv-tab-slider mx-4 mt-3">
-      <v-slide-group-item v-for="tab in visibleTabs" :key="tab.value" v-slot="{ isSelected, toggle }">
-        <v-btn
-          :color="isSelected ? '#6D4C41' : undefined"
-          :variant="isSelected ? 'flat' : 'text'"
-          rounded
-          class="mx-1"
-          @click="navigateTab(tab.value)"
-          :prepend-icon="tab.icon"
-        >{{ $t(tab.label) }}</v-btn>
-      </v-slide-group-item>
-    </v-slide-group>
+    <!-- Tab Slider (Matching Activity Breakdown Entity Toggle) -->
+    <div class="d-flex align-center justify-space-between mx-4 mt-3">
+      <SegmentedPillToggle
+        v-model="activeTab"
+        :items="visibleTabs.map(t => ({ value: t.value, label: $t(t.label), icon: t.icon }))"
+        color="#6D4C41"
+        @change="navigateTab"
+      />
+    </div>
 
-    <v-divider class="mx-4 mt-2" color="#6D4C41"></v-divider>
+    <v-divider class="mx-4 mt-3" color="#6D4C41"></v-divider>
 
     <!-- TAB: List Inventory -->
     <ListInventory v-if="activeTab === 0" ref="listInventoryRef" @edit-inventory="onEditInventory" />
@@ -176,6 +195,9 @@
       </v-row>
     </v-card-text>
 
+    <!-- TAB: Initialize / Reset Stock to 0 Checkpoint -->
+    <InitWarehouseStock v-else-if="activeTab === 3" />
+
     <!-- Description Dialog -->
     <v-dialog v-model="descriptionDialog" max-width="600" persistent>
       <v-card class="rounded-xl">
@@ -228,11 +250,13 @@ import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
 import DetailInventories from './DetailInventories.vue';
 import ListInventory from './ListInventory.vue';
+import InitWarehouseStock from './InitWarehouseStock.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import mitt from '@/plugins/mitt';
 
 export default {
   name: 'AddInventory',
-  components: { DetailInventories, ListInventory },
+  components: { DetailInventories, ListInventory, SegmentedPillToggle, InitWarehouseStock },
   data() {
     return {
       activeTab: 0,
@@ -241,6 +265,7 @@ export default {
         { value: 0, label: 'list_inventory', icon: 'mdi-view-list-outline' },
         { value: 1, label: 'add_inventory', icon: 'mdi-sticker-plus-outline' },
         { value: 2, label: 'edit_inventory', icon: 'mdi-pencil-outline' },
+        { value: 3, label: 'init_warehouse_stock', icon: 'mdi-restore-alert' },
       ],
       submitting: false, descriptionDialog: false, refreshing: false,
       is_checking_tracking: false,
@@ -262,6 +287,7 @@ export default {
       return this.tabs.filter(t => {
         if (t.value === 1 && !this.auth.hasPermission('inventory.create')) return false;
         if (t.value === 2 && (!this.isEditMode || !this.auth.hasPermission('inventory.edit'))) return false;
+        if (t.value === 3 && !this.auth.hasPermission('inventory.create')) return false;
         return true;
       });
     },
@@ -390,6 +416,8 @@ export default {
         this.editingId = null;
         this.inventoryStore.add_inventory();
         this.$router.push({ name: 'add_inventory' }).catch(() => {});
+      } else if (tabValue === 3) {
+        this.activeTab = 3;
       }
       // tab 2 (edit) is only navigated via onEditInventory
     },

@@ -78,7 +78,7 @@ class WarehouseController extends Controller
         $balances = WarehouseBalance::with([
                 'stockable' => function ($morphTo) {
                     $morphTo->morphWith([
-                        \App\Models\FishType::class => ['fish_family'],
+                        \App\Models\FishType::class => ['fish_family', 'fish_process_type'],
                     ]);
                 },
                 'packageType',

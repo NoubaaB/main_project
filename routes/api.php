@@ -162,6 +162,10 @@ Route::middleware(["auth:sanctum"])->group(
         //  INVENTORY ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         Route::get("inventories/get_inventories", [InventoryController::class, "get_inventories"])->middleware('check.permission:inventory.view');
+        Route::get("inventory/preview-reset", [InventoryController::class, "previewReset"])->middleware('check.permission:inventory.view');
+        Route::get("inventory/stock-resets", [InventoryController::class, "getStockResets"])->middleware('check.permission:inventory.view');
+        Route::post("inventory/reset-stock", [InventoryController::class, "resetWarehouseStock"])->middleware('check.permission:inventory.create');
+        Route::post("inventory/stock-resets/{id}/undo", [InventoryController::class, "undoStockReset"])->middleware('check.permission:inventory.delete');
         Route::get("inventory/{inventory}", [InventoryController::class, "show"])->middleware('check.permission:inventory.view');
         Route::post("inventory", [InventoryController::class, "store"])->middleware('check.permission:inventory.create');
         Route::post("inventory/check-tracking-number", [InventoryController::class, "checkTrackingNumberUniqueness"])->middleware('check.permission:inventory.create');
@@ -395,6 +399,8 @@ Route::middleware(["auth:sanctum"])->group(
         Route::delete("custom-charts/{customChart}", [App\Http\Controllers\CustomChartController::class, "destroy"]);
         Route::get("custom-charts/{customChart}/data", [App\Http\Controllers\CustomChartController::class, "chartData"]);
         Route::post("custom-charts/reorder", [App\Http\Controllers\CustomChartController::class, "reorder"]);
+        Route::post("custom-charts/{customChart}/duplicate", [App\Http\Controllers\CustomChartController::class, "duplicate"]);
+        Route::post("custom-charts/{customChart}/toggle-active", [App\Http\Controllers\CustomChartController::class, "toggleActive"]);
 
         // ═══════════════════════════════════════════
         //  NOTIFICATION ROUTES
@@ -437,6 +443,11 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("cost-configurations/categories-and-sources", [App\Http\Controllers\CostConfigurationController::class, "categoriesAndSources"]);
         Route::post("cost-configurations/evaluate", [App\Http\Controllers\CostConfigurationController::class, "evaluate"]);
         Route::apiResource("cost-configurations", App\Http\Controllers\CostConfigurationController::class);
+
+        // ═══════════════════════════════════════════
+        //  HOME DASHBOARD OVERVIEW ROUTE
+        // ═══════════════════════════════════════════
+        Route::get("home/overview", [App\Http\Controllers\HomeController::class, "overview"]);
     }
 );
 #endregion

@@ -77,6 +77,24 @@ export const useCustomChart = defineStore('CustomChart', {
             });
         },
 
+        async duplicate(id) {
+            const { data } = await axios.post(`/api/custom-charts/${id}/duplicate`);
+            if (data.custom_chart) {
+                this.list.push(data.custom_chart);
+            }
+            return data.custom_chart;
+        },
+
+        async toggleActive(id) {
+            const { data } = await axios.post(`/api/custom-charts/${id}/toggle-active`);
+            if (data.custom_chart) {
+                const idx = this.list.findIndex(c => c.id === id);
+                if (idx !== -1) this.list[idx] = data.custom_chart;
+                this.invalidateCacheForChart(id);
+            }
+            return data.custom_chart;
+        },
+
         /** WebSocket handler — same pattern as FortnightSetting */
         handleWsUpdate({ action, id, data }) {
             if (action === 'created' && data) {

@@ -57,6 +57,7 @@
         :headers="headers"
         :items="filteredItems"
         :loading="loading ? '#3F51B5' : false"
+        :multi-sort="true"
         density="comfortable"
         class="rounded-lg param-table"
         hover
@@ -236,6 +237,7 @@
                 <v-text-field
                   v-model="form.name_fr"
                   :label="$t('name_fr')"
+                  prepend-inner-icon="mdi-translate"
                   variant="outlined"
                   density="compact"
                   rounded
@@ -247,6 +249,7 @@
                 <v-text-field
                   v-model="form.name_en"
                   :label="$t('name_en')"
+                  prepend-inner-icon="mdi-translate"
                   variant="outlined"
                   density="compact"
                   rounded
@@ -257,6 +260,7 @@
                 <v-text-field
                   v-model="form.name_es"
                   :label="$t('name_es')"
+                  prepend-inner-icon="mdi-translate"
                   variant="outlined"
                   density="compact"
                   rounded
@@ -268,6 +272,7 @@
                   v-model="form.unit"
                   :items="unitOptions"
                   :label="$t('measure_unit')"
+                  prepend-inner-icon="mdi-ruler"
                   variant="outlined"
                   density="compact"
                   rounded
@@ -325,6 +330,7 @@
                 <v-textarea
                   v-model="form.description"
                   :label="$t('description')"
+                  prepend-inner-icon="mdi-text"
                   variant="outlined"
                   density="compact"
                   rounded
@@ -384,6 +390,7 @@
                     item-title="title"
                     item-value="value"
                     :label="$t('data_source')"
+                    prepend-inner-icon="mdi-database"
                     variant="outlined"
                     density="compact"
                     rounded
@@ -402,6 +409,7 @@
                     item-title="title"
                     item-value="value"
                     :label="$t('category')"
+                    prepend-inner-icon="mdi-tag-outline"
                     variant="outlined"
                     density="compact"
                     rounded
@@ -496,6 +504,7 @@
               v-model="form.formula"
               :label="$t('formula_expression')"
               placeholder="ex: ((c2 + c3) / c1) * 100"
+              prepend-inner-icon="mdi-function-variant"
               variant="outlined"
               density="compact"
               rounded
@@ -529,6 +538,7 @@
                     v-model.number="testValues[v.var_name]"
                     :label="v.var_name + ' (' + (v.category_name || getDataSourceLabel(v.data_source)) + ')'"
                     type="number"
+                    prepend-inner-icon="mdi-numeric"
                     variant="outlined"
                     density="compact"
                     rounded
@@ -611,6 +621,7 @@
                 v-model.number="evalModalValues[v.var_name]"
                 :label="v.var_name + ' - ' + (v.category_name || getDataSourceLabel(v.data_source)) + ' (' + (v.value_type === 'price' ? $t('price') : $t('weight')) + ')'"
                 type="number"
+                prepend-inner-icon="mdi-numeric"
                 variant="outlined"
                 density="compact"
                 rounded

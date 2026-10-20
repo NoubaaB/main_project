@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <v-card class="wco-card" elevation="0">
     <!-- Hero Header -->
     <div class="wco-hero">
@@ -155,6 +155,33 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Summary Snackbar with Countdown Progress Bar (Rule 5 & AddCharge style) -->
+    <v-snackbar
+      v-model="summarySnackbar.show"
+      :timeout="6000"
+      location="top right"
+      color="surface"
+      rounded="lg"
+      elevation="12"
+      min-width="340"
+      max-width="400"
+      @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
+    >
+      <v-progress-linear :model-value="snackbarProgress" color="#a21ee5" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-1">
+        <v-icon :color="summarySnackbar.color || 'success'" class="mr-2">
+          {{ summarySnackbar.color === 'error' ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+        </v-icon>
+        <span class="text-subtitle-2 font-weight-bold">{{ summarySnackbar.title }}</span>
+      </div>
+      <div v-if="summarySnackbar.detail" class="text-caption text-medium-emphasis ms-7">
+        {{ summarySnackbar.detail }}
+      </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
+      </template>
+    </v-snackbar>
   </v-card>
 </template>
 
@@ -186,6 +213,9 @@ export default {
         { key: 'allow_detail_truck_id', label: 'allow_detail_truck_id', icon: 'mdi-truck', activeColor: '#607D8B' },
       ],
       booleanKeys: ['allow_weight', 'allow_price', 'allow_package_type', 'allow_warehouse', 'allow_detail_truck_id'],
+      summarySnackbar: { show: false, title: '', detail: '', color: 'success' },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -245,7 +275,10 @@ export default {
     this.fetchItems();
     mitt.on('model-changed', this._onModelChanged);
   },
-  beforeUnmount() { mitt.off('model-changed', this._onModelChanged); },
+  beforeUnmount() {
+    mitt.off('model-changed', this._onModelChanged);
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+  },
   methods: {
     emptyForm() {
       return { name_fr: '', name_en: '', name_es: '', description: '', allow_weight: false, allow_price: true, allow_package_type: true, allow_warehouse: true, allow_detail_truck_id: false, production_role: null, operation_type: 'both', warehouse_type: null };
@@ -265,7 +298,32 @@ export default {
     },
     clearAllColumnFilters() { this.columnFilters = {}; },
     _onModelChanged(data) {
-      if (data.model === 'WarehouseCategory') this.fetchItems();
+      if (data.model === 'WarehouseCategory') {
+        this.fetchItems();
+        if (data.action) {
+          const actionText = data.action === 'created' ? this.$t('created') : data.action === 'updated' ? this.$t('updated') : this.$t('deleted');
+          this.triggerSummarySnackbar(
+            `${this.$t('warehouse_category_operation')}: ${actionText}`,
+            data.data?.name_fr || data.data?.name_en || '',
+            'info'
+          );
+        }
+      }
+    },
+    triggerSummarySnackbar(title, detail = '', color = 'success') {
+      if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+      this.summarySnackbar = { show: true, title, detail, color };
+      this.snackbarProgress = 100;
+      const duration = 6000;
+      const interval = 50;
+      const step = (interval / duration) * 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= step;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, interval);
     },
     async fetchItems() {
       this.loading = true;
@@ -286,18 +344,19 @@ export default {
     async save() {
       this.saving = true;
       try {
+        const displayName = this.form.name_fr || this.form.name_en || '';
         if (this.editing) {
           await axios.put(`/api/warehouse-category-operations/${this.editing.id}`, this.form);
-          this.main.add_snackbar({ show: true, message: this.$t('wco_updated'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('wco_updated'), displayName, 'success');
         } else {
           await axios.post('/api/warehouse-category-operations', this.form);
-          this.main.add_snackbar({ show: true, message: this.$t('wco_created'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('wco_created'), displayName, 'success');
         }
         this.dialog = false;
         this.fetchItems();
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('wco_save_error'), color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error_occurred'), this.$t('wco_save_error'), 'error');
       }
       this.saving = false;
     },
@@ -305,14 +364,15 @@ export default {
     async executeDelete() {
       if (!this.deleteTarget) return;
       this.deleting = true;
+      const targetName = this.deleteTarget.name_fr || this.deleteTarget.name_en || '';
       try {
         await axios.delete(`/api/warehouse-category-operations/${this.deleteTarget.id}`);
-        this.main.add_snackbar({ show: true, message: this.$t('wco_deleted'), color: 'success' });
+        this.triggerSummarySnackbar(this.$t('wco_deleted'), targetName, 'success');
         this.confirmDeleteDialog = false;
         this.fetchItems();
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('wco_delete_error'), color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error_occurred'), this.$t('wco_delete_error'), 'error');
       }
       this.deleting = false;
       this.deleteTarget = null;

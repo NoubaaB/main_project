@@ -537,27 +537,54 @@
 
               <!-- Nicer and Visible Middle Invoice Body Section -->
               <div class="preview-middle-body px-5 py-4 bg-white border-y">
-                <!-- Meta strip: Company & Client info -->
-                <div class="preview-meta-grid pa-3 rounded-lg mb-3 bg-grey-lighten-5 border d-flex justify-space-between align-center flex-wrap ga-2">
-                  <div>
-                    <div class="d-flex align-center">
-                      <div class="d-flex align-center mr-2" :style="{ color: form.header_primary_color || moduleColor }">
-                        <span v-for="n in 3" :key="n" style="font-weight: 900; font-size: 13px; margin-right: -2px; line-height: 1;">›</span>
-                      </div>
-                      <v-icon size="15" :color="form.header_primary_color || moduleColor" class="mr-1">mdi-domain</v-icon>
-                      <span class="text-caption font-weight-bold text-grey-darken-3">CONGELATION VILLAMAR S.A.R.L</span>
+                <!-- Meta strip: Realtime Preview of redesigned title-wrap -->
+                <div class="preview-meta-grid" :style="{ borderLeftColor: (form.header_primary_color || moduleColor) + ' !important', '--preview-meta-border': form.header_primary_color || moduleColor }">
+                  <!-- Left: Entity Information -->
+                  <div class="meta-entity-section">
+                    <div class="meta-header-row">
+                      <span class="meta-role-pill" :style="{ backgroundColor: (form.header_primary_color || moduleColor) + '18', color: form.header_primary_color || moduleColor }">
+                        <v-icon size="11" class="mr-1">{{ invoiceType === 'client' ? 'mdi-account-tie-outline' : 'mdi-truck-delivery-outline' }}</v-icon>
+                        {{ invoiceType === 'client' ? $t('client') : $t('supplier') }}
+                      </span>
+                      <span class="meta-entity-name">
+                        {{ invoiceType === 'client' ? 'SARGUS S.A.R.L' : 'YASSINE PECHE S.A.R.L' }}
+                      </span>
                     </div>
-                    <div class="text-caption text-grey-darken-1 pl-4" style="font-size: 10px !important;">
-                      Zone Portuaire, Mehdia, Kenitra • Maroc
+
+                    <div class="meta-detail-row">
+                      <v-icon size="12" class="meta-detail-icon">mdi-map-marker-outline</v-icon>
+                      <span class="meta-detail-text">Zone Portuaire, Mehdia, Kenitra • Maroc</span>
+                    </div>
+
+                    <div class="meta-subdetail-row">
+                      <span class="meta-tag-item">
+                        <strong class="meta-tag-key">ICE:</strong> 001928374000082
+                      </span>
+                      <span class="meta-dot-divider">•</span>
+                      <span class="meta-counterparty-box">
+                        <span class="meta-counterparty-label">{{ invoiceType === 'client' ? $t('issuer') : $t('billed_to') }}:</span>
+                        <span class="meta-counterparty-value">CONGELATION VILLAMAR</span>
+                      </span>
                     </div>
                   </div>
-                  <div class="text-right">
-                    <div class="d-flex align-center justify-end px-3 py-1 rounded-s-xl text-white font-weight-bold" :style="{ backgroundColor: form.header_secondary_color || (invoiceType === 'client' ? '#4DD0E1' : '#4FC3F7') }">
-                      <span class="text-caption mr-1" style="font-size: 10.5px;">{{ $t('invoice_n°') }}:</span>
-                      <strong class="text-caption font-weight-bold" style="font-size: 11px;">INV-2026-0042</strong>
+
+                  <!-- Right: Invoice Reference, Date, and Seal -->
+                  <div class="meta-ref-section">
+                    <div class="meta-ref-pill" :style="{ backgroundColor: form.header_secondary_color || (invoiceType === 'client' ? '#4DD0E1' : '#4FC3F7') }">
+                      <div class="meta-ref-pill-left">
+                        <span class="meta-ref-label">{{ $t('invoice_n°') }}</span>
+                        <strong class="meta-ref-value">INV-2026-0042</strong>
+                      </div>
+                      <div class="meta-ref-pill-divider"></div>
+                      <div class="meta-ref-pill-right">
+                        <v-icon size="13" color="#ffffff" class="mr-1">mdi-calendar-month-outline</v-icon>
+                        <span class="meta-ref-date">2026-10-16</span>
+                      </div>
                     </div>
-                    <div class="text-caption text-grey-darken-1 mt-1" style="font-size: 10px !important;">
-                      {{ $t('date') }}: 2026-10-16 • {{ invoiceType === 'client' ? $t('client') : $t('supplier') }}: ATLANTIC TRADING
+
+                    <div class="meta-official-seal" :style="{ borderColor: (form.header_primary_color || moduleColor) + '35' }">
+                      <v-icon size="13" :color="form.header_primary_color || moduleColor" class="mr-1">mdi-shield-check-outline</v-icon>
+                      <span class="meta-seal-text" :style="{ color: form.header_primary_color || moduleColor }">{{ $t('official_document') }}</span>
                     </div>
                   </div>
                 </div>
@@ -576,16 +603,15 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(item, idx) in previewItems" :key="idx" class="preview-table-row" :style="{ backgroundColor: idx % 2 === 1 ? '#f8fafc' : '#ffffff' }">
-                        <td class="py-2 px-2 text-center text-grey-darken-1 font-weight-medium border-b">{{ idx + 1 }}</td>
-                        <td class="py-2 px-2 text-center text-grey-darken-2 border-b font-weight-medium">{{ item.date }}</td>
-                        <td class="py-2 px-3 text-left border-b">
-                          <span class="font-weight-bold text-grey-darken-3 d-block">{{ item.desc }}</span>
-                          <span class="text-grey-darken-1 d-block" style="font-size: 9.5px;">{{ item.sub }}</span>
+                      <tr v-for="(item, idx) in previewItems" :key="idx" class="preview-table-row" :style="{ backgroundColor: idx % 2 === 1 ? '#f8fafc' : '#ffffff', height: '25px' }">
+                        <td class="px-2 text-center text-grey-darken-1 font-weight-medium border-b" style="padding: 2.5px 8px; height: 25px;">{{ idx + 1 }}</td>
+                        <td class="px-2 text-center text-grey-darken-2 border-b font-weight-medium" style="padding: 2.5px 8px; height: 25px;">{{ item.date }}</td>
+                        <td class="px-3 text-left border-b" style="padding: 2.5px 8px; height: 25px;">
+                          <span class="font-weight-bold text-grey-darken-3 d-block" style="line-height: 1.2;">{{ item.desc }}</span>
                         </td>
-                        <td class="py-2 px-2 text-right text-grey-darken-3 font-weight-medium border-b">{{ item.weight }}</td>
-                        <td class="py-2 px-2 text-right text-grey-darken-2 border-b">{{ item.price }}</td>
-                        <td class="py-2 px-3 text-right font-weight-bold text-grey-darken-4 border-b">{{ item.total }} {{ currencyShort }}</td>
+                        <td class="px-2 text-right text-grey-darken-3 font-weight-medium border-b" style="padding: 2.5px 8px; height: 25px;">{{ item.weight }}</td>
+                        <td class="px-2 text-right text-grey-darken-2 border-b" style="padding: 2.5px 8px; height: 25px;">{{ item.price }}</td>
+                        <td class="px-3 text-right font-weight-bold text-grey-darken-4 border-b" style="padding: 2.5px 8px; height: 25px;">{{ item.total }} {{ currencyShort }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -593,12 +619,13 @@
 
                 <!-- Summary Card (Amount in words & totals) -->
                 <div class="preview-summary-card d-flex align-center justify-space-between flex-wrap ga-3">
-                  <div class="words-pill pa-2 px-3 rounded-lg border border-dashed flex-grow-1" :style="{ borderColor: (form.header_primary_color || moduleColor) + '70', background: 'rgba(0,0,0,0.015)' }">
-                    <span class="text-caption font-weight-bold d-block" :style="{ color: form.header_primary_color || moduleColor, fontSize: '10.5px !important' }">
-                      {{ $t('present invoice') }}:
+                  <div class="words-pill pa-2 px-3 rounded-lg border border-dashed flex-grow-1 text-center" :style="{ borderColor: (form.header_primary_color || moduleColor) + '70', background: '#f8fafc' }">
+                    <span class="text-caption font-weight-medium d-block" :style="{ color: form.header_primary_color || moduleColor, fontSize: '11px !important', lineHeight: '1.25' }">
+                      {{ $t('present invoice') }} :
                     </span>
-                    <span class="text-caption text-grey-darken-2 font-italic font-weight-medium d-block" style="font-size: 10px !important;">
-                      Deux Cent Quatre Mille Deux Cent Cinquante Dirhams (204,250.00 MAD)
+                    <div class="words-divider my-1" :style="{ borderTop: '1px dashed ' + (form.header_primary_color || moduleColor), opacity: '0.45' }"></div>
+                    <span class="text-caption font-weight-bold d-block" :style="{ color: form.header_primary_color || moduleColor, fontSize: '11.5px !important', lineHeight: '1.25' }">
+                      Deux Cent Quatre Mille Deux Cent Cinquante Dirhams
                     </span>
                   </div>
                   <div class="totals-pill-wrap d-flex flex-column ga-1" style="min-width: 175px;">
@@ -642,7 +669,9 @@
                   <template v-else-if="form.footer_style === 'minimal'">
                     <v-col cols="auto" style="width: 4px; background: rgba(0,0,0,0.08);"></v-col>
                   </template>
-                  <v-col cols="*" :style="{ backgroundColor: form.footer_primary_color || moduleColor }"></v-col>
+                  <v-col cols="*" class="text-center-h-v pr-3" :style="{ backgroundColor: form.footer_primary_color || moduleColor }">
+                    <img class="header-img footer-img" :style="{ width: form.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="'/storage/images/invoice_title.png'"/>
+                  </v-col>
                 </v-row>
                 <v-row no-gutters>
                   <v-col cols="12" class="footer-wrap-strick" :style="{ backgroundColor: form.footer_primary_color || moduleColor, height: form.footer_strick_height || '0.3cm' }">
@@ -1419,9 +1448,172 @@ export default {
   border-bottom: 1px solid #e2e8f0 !important;
 }
 .invoice-preview-sheet .preview-meta-grid {
-  background-color: #f8fafc !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
   border: 1px solid #e2e8f0 !important;
+  border-left: 4px solid var(--preview-meta-border, #01579b) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
   color: #1e293b !important;
+  padding: 10px 14px !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-entity-section {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-entity-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #475569;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-detail-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-detail-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-subdetail-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  color: #64748b;
+  line-height: 1.2;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-tag-key {
+  font-weight: 700;
+  color: #334155;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-dot-divider {
+  color: #cbd5e1;
+  font-weight: bold;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-counterparty-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 9px;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-counterparty-label {
+  color: #64748b;
+  font-weight: 500;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-counterparty-value {
+  color: #1e293b;
+  font-weight: 700;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-ref-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-ref-pill {
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  gap: 6px;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-ref-pill-left {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-ref-label {
+  font-size: 8.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 600;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-ref-value {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-ref-pill-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.35);
+}
+.invoice-preview-sheet .preview-meta-grid .meta-ref-pill-right {
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+}
+.invoice-preview-sheet .preview-meta-grid .meta-official-seal {
+  display: flex;
+  align-items: center;
+  padding: 3px 6px;
+  border: 1px dashed;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 .invoice-preview-sheet .preview-table-container {
   background-color: #ffffff !important;
@@ -1521,6 +1713,14 @@ export default {
 }
 .header-img {
   width: 6cm;
+}
+.preview-table-row {
+  transition: background-color 0.15s ease-in-out;
+  cursor: default;
+}
+.preview-table-row:hover,
+.preview-table-row:hover td {
+  background-color: rgba(0, 131, 143, 0.12) !important;
 }
 
 @media (max-width: 959px) {

@@ -22,7 +22,7 @@
         <v-btn color="#388E3C" prepend-icon="mdi-plus" rounded @click="openDialog(null)">{{ $t('add_guano_type') }}</v-btn>
       </div>
 
-      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#388E3C' : false" density="comfortable" class="rounded-lg param-table" hover>
+      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#388E3C' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
           <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#388E3C" class="param-filter-input" style="color:#388E3C" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#388E3C" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -47,13 +47,13 @@
         </v-card-title>
         <v-card-text class="pa-5">
           <v-row>
-            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="#388E3C" class="mb-3"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="#388E3C" class="mb-3"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="#388E3C"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_in_invoice" :label="$t('name_in_invoice')" variant="outlined" density="compact" rounded color="#388E3C"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.scientific_name" :label="$t('scientific_name')" variant="outlined" density="compact" rounded color="#388E3C"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#388E3C" class="mb-3"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#388E3C" class="mb-3"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#388E3C"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.name_in_invoice" :label="$t('name_in_invoice')" prepend-inner-icon="mdi-receipt-text-outline" variant="outlined" density="compact" rounded color="#388E3C"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.scientific_name" :label="$t('scientific_name')" prepend-inner-icon="mdi-leaf" variant="outlined" density="compact" rounded color="#388E3C"></v-text-field></v-col>
             <v-col cols="6"><v-text-field v-model="form.image" :label="$t('image_url')" variant="outlined" density="compact" rounded color="#388E3C" prepend-inner-icon="mdi-image-outline"></v-text-field></v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#388E3C" rows="2"></v-textarea></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#388E3C" rows="2"></v-textarea></v-col>
           </v-row>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
@@ -77,10 +77,31 @@
       </v-card>
     </v-dialog>
 
-    <!-- Summary Snackbar -->
-    <v-snackbar v-model="snackbar.show" :timeout="4000" location="top right" :color="snackbar.color" rounded="lg">
-      {{ snackbar.message }}
-      <template #actions><v-btn variant="text" size="small" icon="mdi-close" @click="snackbar.show = false"></v-btn></template>
+    <!-- Summary Snackbar with Countdown Progress Bar (Rule 5 & AddCharge style) -->
+    <v-snackbar
+      v-model="summarySnackbar.show"
+      :timeout="6000"
+      location="top right"
+      color="surface"
+      rounded="lg"
+      elevation="12"
+      min-width="340"
+      max-width="400"
+      @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
+    >
+      <v-progress-linear :model-value="snackbarProgress" color="#388E3C" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-1">
+        <v-icon :color="summarySnackbar.color || 'success'" class="mr-2">
+          {{ summarySnackbar.color === 'error' ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+        </v-icon>
+        <span class="text-subtitle-2 font-weight-bold">{{ summarySnackbar.title }}</span>
+      </div>
+      <div v-if="summarySnackbar.detail" class="text-caption text-medium-emphasis ms-7">
+        {{ summarySnackbar.detail }}
+      </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
+      </template>
     </v-snackbar>
   </v-card>
 </template>
@@ -99,7 +120,9 @@ export default {
       form: { name_fr: '', name_en: '', name_es: '', name_in_invoice: '', scientific_name: '', image: '', description: '' },
       columnFilters: {},
       deleteDialog: false, deleteTarget: null,
-      snackbar: { show: false, message: '', color: 'success' },
+      summarySnackbar: { show: false, title: '', detail: '', color: 'success' },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -126,9 +149,39 @@ export default {
     this.fetchItems();
     mitt.on('model-changed', this._onMC);
   },
-  beforeUnmount() { mitt.off('model-changed', this._onMC); },
+  beforeUnmount() {
+    mitt.off('model-changed', this._onMC);
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+  },
   methods: {
-    _onMC(d) { if (d.model === 'GuanoType') this.fetchItems(); },
+    _onMC(d) {
+      if (d.model === 'GuanoType') {
+        this.fetchItems();
+        if (d.action) {
+          const actionText = d.action === 'created' ? this.$t('created') : d.action === 'updated' ? this.$t('updated') : this.$t('deleted');
+          this.triggerSummarySnackbar(
+            `${this.$t('guano_type')}: ${actionText}`,
+            d.data?.name_fr || d.data?.name_en || '',
+            'info'
+          );
+        }
+      }
+    },
+    triggerSummarySnackbar(title, detail = '', color = 'success') {
+      if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+      this.summarySnackbar = { show: true, title, detail, color };
+      this.snackbarProgress = 100;
+      const duration = 6000;
+      const interval = 50;
+      const step = (interval / duration) * 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= step;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, interval);
+    },
     getColumnOptions(key) { const set = new Set(); this.items.forEach(i => set.add(String(i[key] ?? ''))); return [...set].sort(); },
     async fetchItems() {
       this.loading = true;
@@ -145,27 +198,35 @@ export default {
     async save() {
       this.saving = true;
       try {
+        const displayName = this.form.name_fr || this.form.name_en || '';
         if (this.editing) {
           await axios.put(`/api/guano-types/${this.editing.id}`, this.form);
-          this.snackbar = { show: true, message: this.$t('guano_type_updated'), color: 'success' };
+          this.triggerSummarySnackbar(this.$t('guano_type_updated'), displayName, 'success');
         } else {
           await axios.post('/api/guano-types', this.form);
-          this.snackbar = { show: true, message: this.$t('guano_type_created'), color: 'success' };
+          this.triggerSummarySnackbar(this.$t('guano_type_created'), displayName, 'success');
         }
         this.dialog = false;
         this.fetchItems();
-      } catch (e) { console.error(e); this.snackbar = { show: true, message: e.response?.data?.message || 'Error', color: 'error' }; }
+      } catch (e) {
+        console.error(e);
+        this.triggerSummarySnackbar(this.$t('error_occurred'), e.response?.data?.message || 'Error', 'error');
+      }
       this.saving = false;
     },
     confirmDelete(item) { this.deleteTarget = item; this.deleteDialog = true; },
     async executeDelete() {
       this.deleteDialog = false;
       if (!this.deleteTarget) return;
+      const targetName = this.deleteTarget.name_fr || this.deleteTarget.name_en || '';
       try {
         await axios.delete(`/api/guano-types/${this.deleteTarget.id}`);
-        this.snackbar = { show: true, message: this.$t('guano_type_deleted'), color: 'success' };
+        this.triggerSummarySnackbar(this.$t('guano_type_deleted'), targetName, 'success');
         this.fetchItems();
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+        this.triggerSummarySnackbar(this.$t('error_occurred'), 'Delete failed', 'error');
+      }
       this.deleteTarget = null;
     },
   },

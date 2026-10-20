@@ -276,8 +276,10 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                     total_price: supplier_invoice.total_price,
                     total_weight: supplier_invoice.total_weight,
                     tracking_numbers: (supplier_invoice.tracking_numbers || []).toString(),
-                    address: [...addressSet],
-                    supplier_ids: supplier_invoice.supplier?.name || '',
+                    address: supplier_invoice.supplier?.address || [...addressSet],
+                    supplier: supplier_invoice.supplier,
+                    supplier_name: supplier_invoice.supplier?.name || [...supplierSet].join(', '),
+                    supplier_ids: supplier_invoice.supplier?.name || [...supplierSet].join(', '),
                 };
             });
         },

@@ -270,7 +270,11 @@ class ClientInvoiceController extends Controller
     public function clientInvoicesByIds(Request $request)
     {
         $ids = $request->query('ids', []);
-        $ids = is_array($ids) ? $ids : [$ids];
+        if (is_string($ids)) {
+            $ids = trim($ids, '[] ');
+            $ids = explode(',', $ids);
+        }
+        $ids = array_filter(array_map('intval', (array) $ids));
         if (empty($ids)) {
             return response()->json(['client_invoices' => []], 200);
         }

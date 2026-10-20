@@ -1,154 +1,223 @@
 <template>
-  <v-container fluid class="pa-6">
+  <v-card class="fm-card" elevation="0">
     <!-- Hero Header -->
-    <div class="sc-hero mb-6">
-      <div class="sc-hero-content">
-        <div class="sc-hero-icon">
-          <v-icon size="32" color="white">mdi-cash-lock-open</v-icon>
+    <div class="fm-hero">
+      <div class="fm-hero-inner">
+        <div class="d-flex align-center ga-4">
+          <div class="fm-hero-icon">
+            <v-icon size="28" color="white">mdi-cash-lock-open</v-icon>
+          </div>
+          <div>
+            <div class="fm-hero-title">{{ $t('static_charge_management') }}</div>
+            <div class="text-white text-caption" style="opacity:.7">{{ $t('static_charge_management_desc') }}</div>
+          </div>
         </div>
-        <div>
-          <h1 class="sc-hero-title">{{ $t('static_charge_management') }}</h1>
-          <p class="sc-hero-subtitle">{{ $t('static_charge_management_desc') }}</p>
-        </div>
-        <v-spacer></v-spacer>
-        <v-btn
-          variant="flat"
-          style="background: rgba(255,255,255,.2); color: #fff;"
-          rounded
-          prepend-icon="mdi-plus"
-          @click="openAddDialog"
-        >
-          {{ $t('add_static_charge') }}
-        </v-btn>
       </div>
     </div>
 
-    <!-- Static Charges Table -->
-    <v-card variant="outlined" class="rounded-xl" color="#00BCD4">
-      <v-card-title class="d-flex align-center pa-4 pb-2">
-        <v-icon color="#00BCD4" class="mr-2">mdi-format-list-bulleted</v-icon>
-        <span class="text-subtitle-1 font-weight-bold">{{ $t('static_charges') }}</span>
-        <v-spacer></v-spacer>
-        <v-chip color="#00BCD4" variant="tonal" size="small">
-          {{ store.list.length }} {{ $t('entries') }}
-        </v-chip>
-      </v-card-title>
+    <!-- Toolbar with SegmentedPillToggle (Fish Management style) -->
+    <div class="fm-toolbar-card mx-4 mt-3 mb-2 pa-2 rounded-xl border d-flex flex-wrap align-center justify-space-between ga-3">
+      <div class="d-flex flex-wrap align-center ga-3">
+        <SegmentedPillToggle
+          v-model="activeTab"
+          :items="[
+            { value: 'charges', label: $t('static_charges'), icon: 'mdi-format-list-bulleted', badge: store.list.length },
+            { value: 'info', label: $t('how_it_works'), icon: 'mdi-information-outline' }
+          ]"
+          color="#00BCD4"
+        />
+      </div>
+    </div>
 
-      <v-card-text class="pa-4 pt-0">
-        <!-- Empty State -->
-        <div v-if="!store.list.length && !store.loading" class="text-center pa-8 text-grey">
-          <v-icon size="56" color="grey-lighten-2">mdi-cash-lock-open</v-icon>
-          <div class="mt-3 text-body-1">{{ $t('no_static_charges_found') }}</div>
-          <v-btn
-            class="mt-4"
-            variant="flat"
-            style="background-color: #00BCD4; color: #fff;"
-            rounded
-            prepend-icon="mdi-plus"
-            @click="openAddDialog"
+    <v-card-text class="pa-4">
+      <v-window v-model="activeTab">
+        <!-- ============= STATIC CHARGES TAB ============= -->
+        <v-window-item value="charges">
+          <div class="d-flex align-center ga-3 mb-3">
+            <v-spacer></v-spacer>
+            <v-btn
+              v-if="hasActiveColumnFilters"
+              variant="tonal"
+              color="warning"
+              rounded
+              size="small"
+              prepend-icon="mdi-filter-off"
+              @click="clearAllColumnFilters"
+            >
+              {{ $t('clear_filters') }}
+            </v-btn>
+            <v-btn color="#00BCD4" prepend-icon="mdi-plus" rounded @click="openAddDialog">
+              {{ $t('add_static_charge') }}
+            </v-btn>
+          </div>
+
+          <!-- Empty State -->
+          <div v-if="!store.list.length && !store.loading" class="text-center pa-8 text-grey">
+            <v-icon size="56" color="grey-lighten-2">mdi-cash-lock-open</v-icon>
+            <div class="mt-3 text-body-1">{{ $t('no_static_charges_found') }}</div>
+            <v-btn
+              class="mt-4"
+              variant="flat"
+              style="background-color: #00BCD4; color: #fff;"
+              rounded
+              prepend-icon="mdi-plus"
+              @click="openAddDialog"
+            >
+              {{ $t('add_static_charge') }}
+            </v-btn>
+          </div>
+
+          <!-- Data Table with Multi-Sort & Column Filters -->
+          <v-data-table
+            v-else
+            :headers="headers"
+            :items="filteredCharges"
+            :loading="store.loading ? '#00BCD4' : false"
+            :multi-sort="true"
+            density="comfortable"
+            class="rounded-lg param-table"
+            hover
           >
-            {{ $t('add_static_charge') }}
-          </v-btn>
-        </div>
+            <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
+              <tr>
+                <th v-for="col in columns" :key="col.key" class="param-th">
+                  <div
+                    class="param-th-label"
+                    @click="col.sortable !== false ? toggleSort(col) : null"
+                    :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }"
+                  >
+                    {{ col.title }}
+                    <v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon>
+                  </div>
+                </th>
+              </tr>
+              <tr class="param-filter-row">
+                <th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th">
+                  <v-autocomplete
+                    v-if="col.key !== 'actions'"
+                    v-model="columnFilters[col.key]"
+                    :items="getColumnOptions(col.key)"
+                    density="compact"
+                    variant="outlined"
+                    color="#00BCD4"
+                    class="param-filter-input"
+                    hide-details
+                    clearable
+                    multiple
+                    chips
+                    closable-chips
+                    :placeholder="$t('filter')"
+                  >
+                    <template #chip="{ item, props }">
+                      <v-chip v-bind="props" size="x-small" color="#00BCD4" variant="tonal" closable>
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                  </v-autocomplete>
+                </th>
+              </tr>
+            </template>
 
-        <!-- Table -->
-        <v-table v-else density="compact" class="rounded-lg sc-table">
-          <thead>
-            <tr>
-              <th>{{ $t('static_charge_name') }}</th>
-              <th class="text-center">{{ $t('static_charge_amount') }}</th>
-              <th class="text-center">{{ $t('date_range_type') }}</th>
-              <th>{{ $t('date_start') }}</th>
-              <th>{{ $t('date_end') }}</th>
-              <th class="text-center">{{ $t('status') }}</th>
-              <th class="text-center" style="width: 120px;">{{ $t('actions') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in sortedCharges" :key="s.id" :class="{'sc-active-row': s.is_active}">
-              <td class="font-weight-medium">{{ getLocalizedName(s) }}</td>
-              <td class="text-center font-weight-bold" style="color: #00838F;">
-                {{ formatNumber(s.amount) }} {{ main.currency }}
-              </td>
-              <td class="text-center">
+            <template v-slot:[`item.name`]="{ item }">
+              <span class="font-weight-medium">{{ getLocalizedName(item) }}</span>
+            </template>
+
+            <template v-slot:[`item.amount`]="{ item }">
+              <div class="text-center font-weight-bold" style="color: #00838F;">
+                {{ formatNumber(item.amount) }} {{ main.currency }}
+              </div>
+            </template>
+
+            <template v-slot:[`item.date_range_type`]="{ item }">
+              <div class="text-center">
                 <v-chip
                   size="small"
-                  :color="dateRangeChipColor(s.date_range_type)"
+                  :color="dateRangeChipColor(item.date_range_type)"
                   variant="tonal"
                   label
                 >
-                  <v-icon start size="14">{{ dateRangeIcon(s.date_range_type) }}</v-icon>
-                  {{ $t(s.date_range_type) }}
+                  <v-icon start size="14">{{ dateRangeIcon(item.date_range_type) }}</v-icon>
+                  {{ $t(item.date_range_type) }}
                 </v-chip>
-              </td>
-              <td>
-                <v-chip v-if="s.date_start" size="small" color="#00BCD4" variant="tonal" label>
-                  <v-icon start size="14">mdi-calendar-start</v-icon>
-                  {{ formatDate(s.date_start) }}
-                </v-chip>
-                <span v-else class="text-grey text-caption">—</span>
-              </td>
-              <td>
-                <v-chip v-if="s.date_end" size="small" color="warning" variant="tonal" label>
-                  <v-icon start size="14">mdi-calendar-end</v-icon>
-                  {{ formatDate(s.date_end) }}
-                </v-chip>
-                <v-chip v-else-if="s.date_range_type === 'ongoing'" size="small" color="success" variant="tonal" label>
-                  <v-icon start size="14">mdi-infinity</v-icon>
-                  {{ $t('ongoing') }}
-                </v-chip>
-                <v-chip v-else-if="s.date_range_type === 'all_time'" size="small" color="info" variant="tonal" label>
-                  <v-icon start size="14">mdi-infinity</v-icon>
-                  {{ $t('all_time') }}
-                </v-chip>
-                <span v-else class="text-grey text-caption">—</span>
-              </td>
-              <td class="text-center">
-                <v-icon :color="s.is_active ? 'success' : 'grey'">
-                  {{ s.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}
+              </div>
+            </template>
+
+            <template v-slot:[`item.date_start`]="{ item }">
+              <v-chip v-if="item.date_start" size="small" color="#00BCD4" variant="tonal" label>
+                <v-icon start size="14">mdi-calendar-start</v-icon>
+                {{ formatDate(item.date_start) }}
+              </v-chip>
+              <span v-else class="text-grey text-caption">—</span>
+            </template>
+
+            <template v-slot:[`item.date_end`]="{ item }">
+              <v-chip v-if="item.date_end" size="small" color="warning" variant="tonal" label>
+                <v-icon start size="14">mdi-calendar-end</v-icon>
+                {{ formatDate(item.date_end) }}
+              </v-chip>
+              <v-chip v-else-if="item.date_range_type === 'ongoing'" size="small" color="success" variant="tonal" label>
+                <v-icon start size="14">mdi-infinity</v-icon>
+                {{ $t('ongoing') }}
+              </v-chip>
+              <v-chip v-else-if="item.date_range_type === 'all_time'" size="small" color="info" variant="tonal" label>
+                <v-icon start size="14">mdi-infinity</v-icon>
+                {{ $t('all_time') }}
+              </v-chip>
+              <span v-else class="text-grey text-caption">—</span>
+            </template>
+
+            <template v-slot:[`item.is_active`]="{ item }">
+              <div class="text-center">
+                <v-icon :color="item.is_active ? 'success' : 'grey'">
+                  {{ item.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}
                 </v-icon>
-              </td>
-              <td class="text-center">
-                <v-btn icon variant="text" size="small" color="#00BCD4" @click="openEditDialog(s)">
-                  <v-icon size="18">mdi-pencil</v-icon>
+              </div>
+            </template>
+
+            <template v-slot:[`item.actions`]="{ item }">
+              <div class="d-flex align-center justify-center">
+                <v-btn icon size="x-small" variant="tonal" color="#00BCD4" @click="openEditDialog(item)" class="mr-1">
+                  <v-icon size="16">mdi-pencil</v-icon>
                   <v-tooltip activator="parent">{{ $t('edit') }}</v-tooltip>
                 </v-btn>
-                <v-btn icon variant="text" size="small" color="error" @click="confirmDelete(s)">
-                  <v-icon size="18">mdi-delete</v-icon>
+                <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)">
+                  <v-icon size="16">mdi-delete</v-icon>
                   <v-tooltip activator="parent">{{ $t('delete') }}</v-tooltip>
                 </v-btn>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
-      </v-card-text>
-    </v-card>
+              </div>
+            </template>
+          </v-data-table>
+        </v-window-item>
 
-    <!-- Info Card -->
-    <v-card variant="outlined" class="rounded-xl mt-4" color="#00BCD4">
-      <v-card-title class="d-flex align-center pa-4 pb-2">
-        <v-icon color="#00BCD4" class="mr-2">mdi-information-outline</v-icon>
-        <span class="text-subtitle-1 font-weight-bold">{{ $t('how_it_works') }}</span>
-      </v-card-title>
-      <v-card-text class="pa-4 pt-2">
-        <div class="sc-info-item mb-3">
-          <v-icon size="18" color="#00BCD4" class="mr-2">mdi-infinity</v-icon>
-          <span class="text-body-2">{{ $t('static_charge_info_all_time') }}</span>
-        </div>
-        <div class="sc-info-item mb-3">
-          <v-icon size="18" color="warning" class="mr-2">mdi-calendar-range</v-icon>
-          <span class="text-body-2">{{ $t('static_charge_info_date_range') }}</span>
-        </div>
-        <div class="sc-info-item mb-3">
-          <v-icon size="18" color="success" class="mr-2">mdi-calendar-arrow-right</v-icon>
-          <span class="text-body-2">{{ $t('static_charge_info_ongoing') }}</span>
-        </div>
-        <div class="sc-info-item">
-          <v-icon size="18" color="#00BCD4" class="mr-2">mdi-chart-areaspline</v-icon>
-          <span class="text-body-2">{{ $t('static_charge_info_charts') }}</span>
-        </div>
-      </v-card-text>
-    </v-card>
+        <!-- ============= HOW IT WORKS TAB ============= -->
+        <v-window-item value="info">
+          <v-card variant="outlined" class="rounded-xl border" color="#00BCD4">
+            <v-card-title class="d-flex align-center pa-4 pb-2">
+              <v-icon color="#00BCD4" class="mr-2">mdi-information-outline</v-icon>
+              <span class="text-subtitle-1 font-weight-bold" style="color: #00838F;">{{ $t('how_it_works') }}</span>
+            </v-card-title>
+            <v-card-text class="pa-4 pt-2">
+              <div class="sc-info-item mb-3">
+                <v-icon size="18" color="#00BCD4" class="mr-2">mdi-infinity</v-icon>
+                <span class="text-body-2">{{ $t('static_charge_info_all_time') }}</span>
+              </div>
+              <div class="sc-info-item mb-3">
+                <v-icon size="18" color="warning" class="mr-2">mdi-calendar-range</v-icon>
+                <span class="text-body-2">{{ $t('static_charge_info_date_range') }}</span>
+              </div>
+              <div class="sc-info-item mb-3">
+                <v-icon size="18" color="success" class="mr-2">mdi-calendar-arrow-right</v-icon>
+                <span class="text-body-2">{{ $t('static_charge_info_ongoing') }}</span>
+              </div>
+              <div class="sc-info-item">
+                <v-icon size="18" color="#00BCD4" class="mr-2">mdi-chart-areaspline</v-icon>
+                <span class="text-body-2">{{ $t('static_charge_info_charts') }}</span>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-window-item>
+      </v-window>
+    </v-card-text>
 
     <!-- Add/Edit Dialog -->
     <v-dialog v-model="dialog.show" max-width="620" persistent>
@@ -239,6 +308,7 @@
                 variant="outlined"
                 rounded
                 color="#00BCD4"
+                prepend-inner-icon="mdi-calendar-range"
               ></v-select>
             </v-col>
 
@@ -380,17 +450,21 @@
         <v-btn variant="text" size="small" icon="mdi-close" @click="snackbar.show = false"></v-btn>
       </template>
     </v-snackbar>
-  </v-container>
+  </v-card>
 </template>
 
 <script>
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import { useStaticCharge } from '@/stores/StaticCharge';
 import { useMain } from '@/stores/Main';
 
 export default {
   name: 'StaticChargeManagement',
+  components: { SegmentedPillToggle },
   data() {
     return {
+      activeTab: 'charges',
+      columnFilters: {},
       dialog: {
         show: false,
         editId: null,
@@ -420,8 +494,51 @@ export default {
     store() { return useStaticCharge(); },
     main() { return useMain(); },
     lang() { return this.main.lang?.code || 'en'; },
+    headers() {
+      return [
+        { title: this.$t('static_charge_name'), key: 'name', align: 'start' },
+        { title: this.$t('static_charge_amount'), key: 'amount', align: 'center' },
+        { title: this.$t('date_range_type'), key: 'date_range_type', align: 'center' },
+        { title: this.$t('date_start'), key: 'date_start', align: 'start' },
+        { title: this.$t('date_end'), key: 'date_end', align: 'start' },
+        { title: this.$t('status'), key: 'is_active', align: 'center' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+      ];
+    },
+    hasActiveColumnFilters() {
+      return Object.values(this.columnFilters).some(v => Array.isArray(v) ? v.length > 0 : !!v);
+    },
     sortedCharges() {
       return [...this.store.list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    },
+    filteredCharges() {
+      if (!this.hasActiveColumnFilters) return this.sortedCharges;
+      return this.sortedCharges.filter(item => {
+        for (const [key, filterValues] of Object.entries(this.columnFilters)) {
+          if (!filterValues || (Array.isArray(filterValues) && filterValues.length === 0)) continue;
+          let val = '';
+          if (key === 'name') val = this.getLocalizedName(item);
+          else if (key === 'amount') val = `${this.formatNumber(item.amount)} ${this.main.currency}`;
+          else if (key === 'date_range_type') val = this.$t(item.date_range_type);
+          else if (key === 'date_start') val = item.date_start ? this.formatDate(item.date_start) : '—';
+          else if (key === 'date_end') {
+            val = item.date_end
+              ? this.formatDate(item.date_end)
+              : (item.date_range_type === 'ongoing' ? this.$t('ongoing') : (item.date_range_type === 'all_time' ? this.$t('all_time') : '—'));
+          } else if (key === 'is_active') {
+            val = item.is_active ? this.$t('active') : this.$t('inactive');
+          } else {
+            val = String(item[key] || '');
+          }
+
+          if (Array.isArray(filterValues)) {
+            if (!filterValues.includes(val)) return false;
+          } else if (typeof filterValues === 'string') {
+            if (!val.toLowerCase().includes(filterValues.toLowerCase())) return false;
+          }
+        }
+        return true;
+      });
     },
     dateRangeTypeOptions() {
       return [
@@ -458,6 +575,30 @@ export default {
       const m = String(dt.getMonth() + 1).padStart(2, '0');
       const day = String(dt.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
+    },
+    getColumnOptions(key) {
+      const set = new Set();
+      this.sortedCharges.forEach(item => {
+        let v = '';
+        if (key === 'name') v = this.getLocalizedName(item);
+        else if (key === 'amount') v = `${this.formatNumber(item.amount)} ${this.main.currency}`;
+        else if (key === 'date_range_type') v = this.$t(item.date_range_type);
+        else if (key === 'date_start') v = item.date_start ? this.formatDate(item.date_start) : '—';
+        else if (key === 'date_end') {
+          v = item.date_end
+            ? this.formatDate(item.date_end)
+            : (item.date_range_type === 'ongoing' ? this.$t('ongoing') : (item.date_range_type === 'all_time' ? this.$t('all_time') : '—'));
+        } else if (key === 'is_active') {
+          v = item.is_active ? this.$t('active') : this.$t('inactive');
+        } else {
+          v = item[key];
+        }
+        if (v !== undefined && v !== null && v !== '') set.add(String(v));
+      });
+      return Array.from(set).sort();
+    },
+    clearAllColumnFilters() {
+      this.columnFilters = {};
     },
     dateRangeChipColor(type) {
       if (type === 'all_time') return 'info';
@@ -574,52 +715,19 @@ export default {
 </script>
 
 <style scoped>
-.sc-hero {
-  background: linear-gradient(135deg, #0097A7 0%, #00BCD4 40%, #4DD0E1 100%);
-  border-radius: 16px;
-  padding: 28px 32px;
-  color: #fff;
-}
-.sc-hero-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.sc-hero-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.18);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.sc-hero-title {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -.3px;
-  margin: 0;
-}
-.sc-hero-subtitle {
-  font-size: 13px;
-  opacity: .8;
-  margin: 2px 0 0;
-}
-.sc-table {
-  border: 1px solid rgba(0,188,212,.15);
-}
-.sc-table th {
-  background: rgba(0,188,212,.06) !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-.sc-active-row {
-  background: rgba(0,188,212,.04) !important;
-  border-left: 3px solid #00BCD4;
-}
+.fm-card { border-radius: 20px !important; overflow: visible; position: relative; font-family: 'Inter', sans-serif; }
+.fm-hero { background: linear-gradient(135deg, #0097A7 0%, #00BCD4 40%, #4DD0E1 100%); border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; height: 100px; }
+.fm-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
+.fm-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
+.fm-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }
+.fm-toolbar-card { background: rgba(var(--v-theme-surface), 0.7); backdrop-filter: blur(8px); }
+.param-table { border: 1px solid rgba(0,188,212,.15); }
+.param-th { padding: 10px 8px 4px !important; }
+.param-th-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; opacity: .7; text-align: center; white-space: nowrap; cursor: pointer; }
+.param-filter-row th { padding: 4px 6px 8px !important; }
+.param-filter-input :deep(.v-field) { border-radius: 8px !important; font-size: 11px !important; }
+.param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 28px !important; }
+.param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
 .sc-info-item {
   display: flex;
   align-items: flex-start;

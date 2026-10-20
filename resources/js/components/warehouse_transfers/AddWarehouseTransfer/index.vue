@@ -16,21 +16,16 @@
       </div>
     </div>
 
-    <!-- Tab Slider -->
-    <v-slide-group v-model="activeTab" mandatory show-arrows class="wt-tab-slider mx-4 mt-3">
-      <v-slide-group-item v-for="tab in tabs" :key="tab.value" v-slot="{ isSelected, toggle }">
-        <v-btn
-          :color="isSelected ? '#F9A825' : undefined"
-          :variant="isSelected ? 'flat' : 'text'"
-          rounded
-          class="mx-1"
-          @click="toggle"
-          :prepend-icon="tab.icon"
-        >{{ $t(tab.label) }}</v-btn>
-      </v-slide-group-item>
-    </v-slide-group>
+    <!-- Tab Slider (Matching Activity Breakdown Entity Toggle) -->
+    <div class="d-flex align-center justify-space-between mx-4 mt-3">
+      <SegmentedPillToggle
+        v-model="activeTab"
+        :items="tabs.map(t => ({ value: t.value, label: $t(t.label), icon: t.icon }))"
+        color="#F9A825"
+      />
+    </div>
 
-    <v-divider class="mx-4 mt-2" color="#F9A825"></v-divider>
+    <v-divider class="mx-4 mt-3" color="#F9A825"></v-divider>
 
     <!-- TAB: List Transfers -->
     <ListWarehouseTransfer v-if="activeTab === 0" ref="listTransferRef" @transfer-deleted="showDeleteSnackbar" />
@@ -242,11 +237,12 @@ import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
 import DetailTransfers from './DetailTransfers.vue';
 import ListWarehouseTransfer from './ListWarehouseTransfer.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import mitt from '@/plugins/mitt';
 
 export default {
   name: 'AddWarehouseTransfer',
-  components: { DetailTransfers, ListWarehouseTransfer },
+  components: { DetailTransfers, ListWarehouseTransfer, SegmentedPillToggle },
   data() {
     return {
       activeTab: 0,

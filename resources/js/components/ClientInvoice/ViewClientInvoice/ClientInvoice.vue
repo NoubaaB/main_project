@@ -3,6 +3,7 @@
     v-for="(item, index) in chunkItems"
     :key="index"
     :items="item"
+    :pageIndex="index"
     :client_invoice_detail="client_invoice_detail"
     :total="total"
     :allow_summary="allow_summary(index,item.length)"
@@ -12,6 +13,7 @@
     <display-client-invoice 
     v-if="checkChunkLatestItems"
     :items="[]"
+    :pageIndex="chunkItems.length"
     :client_invoice_detail="client_invoice_detail"
     :total="total"
     :allow_summary="allow_summary(0,0)"
@@ -39,13 +41,24 @@
         return this.client_invoice_data.detail_items || [];
       },
       client_invoice_detail: function () {
+        const client = this.client_invoice_data.client || {};
+        const rawAddress = client.address || this.client_invoice_data.address;
+        const formattedAddress = Array.isArray(rawAddress) ? rawAddress.filter(Boolean).join(', ') : (rawAddress || '');
+        const city = client.city || '';
+        const fullAddress = [formattedAddress, city].filter(Boolean).join(' • ');
+
         return {
           id: this.client_invoice_data.id,
           invoice: this.client_invoice_data.invoice,
           date: this.client_invoice_data.date,
-          tracking_numbers: this.client_invoice_data.tracking_numbers.toString(),
-          client_name: this.client_invoice_data.client_name || '',
-          address: this.client_invoice_data.address || [],
+          tracking_numbers: this.client_invoice_data.tracking_numbers ? this.client_invoice_data.tracking_numbers.toString() : '',
+          client_name: client.name || this.client_invoice_data.client_name || '',
+          address: fullAddress,
+          city: city,
+          country: client.country || '',
+          ice: client.ice || '',
+          phone: client.phone || '',
+          email: client.email || '',
           total_price: this.client_invoice_data.total_price,
           total_weight: this.client_invoice_data.total_weight,
           // Export fields

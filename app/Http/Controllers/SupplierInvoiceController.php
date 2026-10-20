@@ -170,9 +170,10 @@ class SupplierInvoiceController extends Controller
     {
         $ids = request()->query('ids', []);
         if (is_string($ids)) {
+            $ids = trim($ids, '[] ');
             $ids = explode(',', $ids);
         }
-        $ids = (array) $ids;
+        $ids = array_filter(array_map('intval', (array) $ids));
         if (empty($ids)) {
             return response()->json(['supplier_invoices' => []], 200);
         }

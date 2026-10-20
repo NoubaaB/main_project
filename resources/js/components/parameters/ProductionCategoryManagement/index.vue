@@ -30,6 +30,7 @@
         :headers="headers"
         :items="filteredItems"
         :loading="loading ? '#00897B' : false"
+        :multi-sort="true"
         density="comfortable"
         class="rounded-lg param-table"
         hover
@@ -157,19 +158,19 @@
           </div>
           <v-row>
             <v-col cols="6">
-              <v-text-field v-model="form.name" :label="$t('name')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
+              <v-text-field v-model="form.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
+              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
+              <v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
+              <v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B"></v-text-field>
             </v-col>
             <v-col cols="12">
-              <v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" rows="2"></v-textarea>
+              <v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#00897B" style="color: #00897B" rows="2"></v-textarea>
             </v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
@@ -218,6 +219,33 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Summary Snackbar with Countdown Progress Bar (Rule 5 & AddCharge style) -->
+    <v-snackbar
+      v-model="summarySnackbar.show"
+      :timeout="6000"
+      location="top right"
+      color="surface"
+      rounded="lg"
+      elevation="12"
+      min-width="340"
+      max-width="400"
+      @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
+    >
+      <v-progress-linear :model-value="snackbarProgress" color="#00897B" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-1">
+        <v-icon :color="summarySnackbar.color || 'success'" class="mr-2">
+          {{ summarySnackbar.color === 'error' ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+        </v-icon>
+        <span class="text-subtitle-2 font-weight-bold">{{ summarySnackbar.title }}</span>
+      </div>
+      <div v-if="summarySnackbar.detail" class="text-caption text-medium-emphasis ms-7">
+        {{ summarySnackbar.detail }}
+      </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
+      </template>
+    </v-snackbar>
   </v-card>
 </template>
 
@@ -257,6 +285,9 @@ export default {
         { key: 'enable_quality_control', label: 'enable_quality_control', icon: 'mdi-clipboard-check-outline', activeColor: '#00838F' },
       ],
       booleanKeys: ['enable_reception_tracking_number', 'enable_tracking_onp_numbers', 'enable_production_tracking_number', 'enable_fishery_id', 'enable_ship_id', 'enable_origin_id', 'enable_truck_id', 'enable_suppliers', 'enable_clients', 'enable_production_type', 'enable_invoices', 'enable_quality_control'],
+      summarySnackbar: { show: false, title: '', detail: '', color: 'success' },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -300,7 +331,10 @@ export default {
     this.fetchCategories();
     mitt.on('model-changed', this._onModelChanged);
   },
-  beforeUnmount() { mitt.off('model-changed', this._onModelChanged); },
+  beforeUnmount() {
+    mitt.off('model-changed', this._onModelChanged);
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+  },
   methods: {
     emptyForm() {
       return { name: '', name_fr: '', name_en: '', name_es: '', description: '', enable_reception_tracking_number: false, enable_tracking_onp_numbers: false, enable_production_tracking_number: false, enable_fishery_id: false, enable_ship_id: false, enable_origin_id: false, enable_truck_id: false, enable_suppliers: false, enable_clients: false, enable_production_type: false, enable_invoices: false, enable_quality_control: false };
@@ -316,7 +350,32 @@ export default {
     },
     clearAllColumnFilters() { this.columnFilters = {}; },
     _onModelChanged(data) {
-      if (data.model === 'ProductionCategory') this.fetchCategories();
+      if (data.model === 'ProductionCategory') {
+        this.fetchCategories();
+        if (data.action) {
+          const actionText = data.action === 'created' ? this.$t('created') : data.action === 'updated' ? this.$t('updated') : this.$t('deleted');
+          this.triggerSummarySnackbar(
+            `${this.$t('production_category')}: ${actionText}`,
+            data.data?.name || data.data?.name_fr || '',
+            'info'
+          );
+        }
+      }
+    },
+    triggerSummarySnackbar(title, detail = '', color = 'success') {
+      if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+      this.summarySnackbar = { show: true, title, detail, color };
+      this.snackbarProgress = 100;
+      const duration = 6000;
+      const interval = 50;
+      const step = (interval / duration) * 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= step;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, interval);
     },
     async fetchCategories() {
       this.loading = true;
@@ -346,18 +405,19 @@ export default {
     async save() {
       this.saving = true;
       try {
+        const displayName = this.form.name || this.form.name_fr || '';
         if (this.editing) {
           await axios.put(`/api/production-categories/${this.editing.id}`, this.form);
-          this.main.add_snackbar({ show: true, message: this.$t('production_category_updated'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('production_category_updated'), displayName, 'success');
         } else {
           await axios.post('/api/production-categories', this.form);
-          this.main.add_snackbar({ show: true, message: this.$t('production_category_created'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('production_category_created'), displayName, 'success');
         }
         this.dialog = false;
         this.fetchCategories();
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('production_category_save_error'), color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error_occurred'), this.$t('production_category_save_error'), 'error');
       }
       this.saving = false;
     },
@@ -365,14 +425,15 @@ export default {
     async executeDelete() {
       if (!this.deleteTarget) return;
       this.deleting = true;
+      const targetName = this.deleteTarget.name || this.deleteTarget.name_fr || '';
       try {
         await axios.delete(`/api/production-categories/${this.deleteTarget.id}`);
-        this.main.add_snackbar({ show: true, message: this.$t('production_category_deleted'), color: 'success' });
+        this.triggerSummarySnackbar(this.$t('production_category_deleted'), targetName, 'success');
         this.confirmDeleteDialog = false;
         this.fetchCategories();
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('production_category_delete_error'), color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error_occurred'), this.$t('production_category_delete_error'), 'error');
       }
       this.deleting = false;
       this.deleteTarget = null;

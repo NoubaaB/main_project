@@ -50,6 +50,7 @@
   import SystemBar from "@/components/schema/SystemBar.vue" ;
   import  { useAuth } from "@/stores/Auth";
   import {useMain} from "@/stores/Main";
+  import pinia from "@/stores";
 
   export default {
       components: {
@@ -65,8 +66,8 @@
         };
       },
       computed:{
-        auth: () => useAuth(),
-        main : () => useMain()
+        auth() { return useAuth(pinia) },
+        main() { return useMain(pinia) }
       },
       methods: {
         collapseSidebar() {

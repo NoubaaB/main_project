@@ -11,21 +11,136 @@
     </div>
   </div></div>
 
-  <!-- Tabs -->
-  <v-tabs v-model="activeTab" color="#AD1457" class="mx-4 mt-2" slider-color="#AD1457">
-    <v-tab :value="0" prepend-icon="mdi-account-multiple">{{ $t('users') }}</v-tab>
-    <v-tab :value="1" prepend-icon="mdi-shield-lock-outline">{{ $t('roles') }}</v-tab>
-  </v-tabs>
-  <v-divider class="mx-4" color="#AD1457"></v-divider>
+  <!-- ============================================================
+       Period Toggle + Declaration Chips + Search Toolbar
+       (Matching Fortnight Activity Breakdown Design)
+       ============================================================ -->
+  <div class="urm-toolbar-card mx-4 mt-3 mb-2 pa-2 rounded-xl border d-flex flex-wrap align-center justify-space-between ga-3">
+    <!-- Left Section: Entity Pill Toggle + Dividers + Status Chips -->
+    <div class="d-flex flex-wrap align-center ga-3">
+      <!-- Entity Toggle (SegmentedPillToggle matching Activity Breakdown) -->
+      <SegmentedPillToggle
+        v-model="activeTab"
+        :items="[
+          { value: 0, label: $t('users'), icon: 'mdi-account-multiple', badge: users.length },
+          { value: 1, label: $t('roles'), icon: 'mdi-shield-lock-outline', badge: roles.length }
+        ]"
+        color="#AD1457"
+      />
+
+      <v-divider vertical class="mx-1 d-none d-sm-block" style="height:28px;"></v-divider>
+
+      <!-- Status Chips (Matching Declared / Non-Declared Chips in Activity Breakdown) -->
+      <div v-if="activeTab === 0" class="d-flex align-center ga-2">
+        <v-chip
+          :variant="userStatusFilter === 'all' ? 'flat' : 'outlined'"
+          color="#AD1457"
+          size="small"
+          class="cursor-pointer font-weight-medium"
+          @click="userStatusFilter = 'all'"
+        >
+          {{ $t('all') }}
+        </v-chip>
+        <v-chip
+          :variant="userStatusFilter === 'active' ? 'flat' : 'outlined'"
+          color="#2E7D32"
+          size="small"
+          class="cursor-pointer font-weight-medium"
+          @click="userStatusFilter = userStatusFilter === 'active' ? 'all' : 'active'"
+        >
+          <v-icon start size="14">{{ userStatusFilter === 'active' ? 'mdi-check-circle' : 'mdi-checkbox-blank-circle-outline' }}</v-icon>
+          {{ $t('active') }}
+        </v-chip>
+        <v-chip
+          :variant="userStatusFilter === 'disabled' ? 'flat' : 'outlined'"
+          color="#E65100"
+          size="small"
+          class="cursor-pointer font-weight-medium"
+          @click="userStatusFilter = userStatusFilter === 'disabled' ? 'all' : 'disabled'"
+        >
+          <v-icon start size="14">{{ userStatusFilter === 'disabled' ? 'mdi-close-circle' : 'mdi-checkbox-blank-circle-outline' }}</v-icon>
+          {{ $t('disabled') }}
+        </v-chip>
+      </div>
+
+      <div v-else-if="activeTab === 1" class="d-flex align-center ga-2">
+        <v-chip
+          :variant="roleFilter === 'all' ? 'flat' : 'outlined'"
+          color="#AD1457"
+          size="small"
+          class="cursor-pointer font-weight-medium"
+          @click="roleFilter = 'all'"
+        >
+          {{ $t('all') }}
+        </v-chip>
+        <v-chip
+          :variant="roleFilter === 'super_admin' ? 'flat' : 'outlined'"
+          color="#AD1457"
+          size="small"
+          class="cursor-pointer font-weight-medium"
+          @click="roleFilter = roleFilter === 'super_admin' ? 'all' : 'super_admin'"
+        >
+          <v-icon start size="14">mdi-crown</v-icon>
+          {{ $t('super_admin') }}
+        </v-chip>
+      </div>
+    </div>
+
+    <!-- Right Section: Search Toolbar (addcharge style) + Action Button -->
+    <div class="d-flex align-center ga-2 flex-grow-1 flex-sm-grow-0 justify-end">
+      <div class="urm-search-wrap">
+        <v-icon size="16" class="urm-search-icon">mdi-magnify</v-icon>
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="urm-search-input"
+          :placeholder="activeTab === 0 ? $t('search_users') : $t('search_roles')"
+          spellcheck="false"
+        />
+        <v-btn
+          v-if="searchQuery"
+          icon
+          size="20"
+          variant="text"
+          class="urm-search-clear"
+          @click="searchQuery = ''"
+        >
+          <v-icon size="12">mdi-close</v-icon>
+        </v-btn>
+      </div>
+
+      <v-btn
+        v-if="activeTab === 0"
+        color="#AD1457"
+        variant="flat"
+        rounded
+        class="urm-add-btn"
+        prepend-icon="mdi-account-plus"
+        @click="openUserDialog(null)"
+      >
+        {{ $t('add_user') }}
+      </v-btn>
+      <v-btn
+        v-else
+        color="#AD1457"
+        variant="flat"
+        rounded
+        class="urm-add-btn"
+        prepend-icon="mdi-shield-plus"
+        @click="openRoleDialog(null)"
+      >
+        {{ $t('add_role') }}
+      </v-btn>
+    </div>
+  </div>
+
+  <v-divider class="mx-4 mt-1" color="#AD1457" style="opacity: 0.35;"></v-divider>
 
   <!-- ==================== TAB 0: USERS ==================== -->
   <v-card-text v-if="activeTab === 0" class="pa-4">
-    <div class="d-flex justify-end mb-3">
-      <v-btn color="#AD1457" variant="flat" rounded prepend-icon="mdi-account-plus" @click="openUserDialog(null)">{{ $t('add_user') }}</v-btn>
-    </div>
     <v-data-table
       :headers="userHeaders"
-      :items="users"
+      :items="filteredUsers"
       :loading="loadingUsers"
       density="comfortable"
       class="rounded-lg"
@@ -60,12 +175,9 @@
 
   <!-- ==================== TAB 1: ROLES ==================== -->
   <v-card-text v-else-if="activeTab === 1" class="pa-4">
-    <div class="d-flex justify-end mb-3">
-      <v-btn color="#AD1457" variant="flat" rounded prepend-icon="mdi-shield-plus" @click="openRoleDialog(null)">{{ $t('add_role') }}</v-btn>
-    </div>
     <v-data-table
       :headers="roleHeaders"
-      :items="roles"
+      :items="filteredRoles"
       :loading="loadingRoles"
       density="comfortable"
       class="rounded-lg"
@@ -231,12 +343,17 @@ import axios from 'axios';
 import { useAuth } from '@/stores/Auth';
 import { useMain } from '@/stores/Main';
 import mitt from '@/plugins/mitt';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 
 export default {
   name: 'UserRoleManagement',
+  components: { SegmentedPillToggle },
   data() {
     return {
       activeTab: 0,
+      searchQuery: '',
+      userStatusFilter: 'all', // 'all', 'active', 'disabled'
+      roleFilter: 'all', // 'all', 'super_admin'
       // Users
       users: [],
       loadingUsers: false,
@@ -263,6 +380,36 @@ export default {
   computed: {
     auth() { return useAuth(); },
     main() { return useMain(); },
+    filteredUsers() {
+      let list = this.users || [];
+      if (this.userStatusFilter === 'active') {
+        list = list.filter(u => u.is_active);
+      } else if (this.userStatusFilter === 'disabled') {
+        list = list.filter(u => !u.is_active);
+      }
+      if (this.searchQuery.trim()) {
+        const q = this.searchQuery.toLowerCase();
+        list = list.filter(u =>
+          (u.name && u.name.toLowerCase().includes(q)) ||
+          (u.email && u.email.toLowerCase().includes(q)) ||
+          (u.role?.name && u.role.name.toLowerCase().includes(q))
+        );
+      }
+      return list;
+    },
+    filteredRoles() {
+      let list = this.roles || [];
+      if (this.roleFilter === 'super_admin') {
+        list = list.filter(r => r.is_super_admin);
+      }
+      if (this.searchQuery.trim()) {
+        const q = this.searchQuery.toLowerCase();
+        list = list.filter(r =>
+          (r.name && r.name.toLowerCase().includes(q))
+        );
+      }
+      return list;
+    },
     userHeaders() {
       return [
         { title: this.$t('name'), key: 'name', align: 'center' },
@@ -512,4 +659,91 @@ export default {
 .perm-group-header { display: flex; align-items: center; padding: 8px 14px; background: rgba(173,20,87,.04); border-bottom: 1px solid rgba(173,20,87,.08); }
 .perm-group-body { display: flex; flex-wrap: wrap; padding: 8px 14px; gap: 4px; }
 .perm-checkbox { flex: 0 0 auto; min-width: 180px; }
+
+/* Period Toggle + Declaration Chips + Search Toolbar (Activity Breakdown Style) */
+.urm-toolbar-card {
+  background: rgba(var(--v-theme-surface), 0.7);
+  backdrop-filter: blur(8px);
+  border-color: rgba(173, 20, 87, 0.15) !important;
+}
+
+.urm-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(var(--v-theme-surface), 0.9);
+  border: 1.5px solid rgba(var(--v-theme-on-surface), 0.12);
+  border-radius: 9999px;
+  padding: 5px 14px;
+  min-width: 220px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.urm-search-wrap:focus-within {
+  border-color: #AD1457;
+  box-shadow: 0 0 0 3px rgba(173, 20, 87, 0.18);
+  background: rgb(var(--v-theme-surface));
+}
+
+.urm-search-icon {
+  color: #AD1457;
+  opacity: 0.7;
+}
+
+.urm-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: inherit;
+}
+.urm-search-input::placeholder {
+  opacity: 0.5;
+}
+
+.urm-search-clear {
+  opacity: 0.6;
+}
+
+.urm-add-btn {
+  font-weight: 600 !important;
+  text-transform: none !important;
+  box-shadow: 0 3px 10px rgba(173, 20, 87, 0.25) !important;
+}
+
+/* v-slide-group__content styling matching Activity Breakdown */
+:deep(.v-slide-group__content) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 6px !important;
+  border-radius: 9999px !important;
+  background: rgba(173, 20, 87, 0.08) !important;
+  border: 1px solid rgba(173, 20, 87, 0.28) !important;
+  width: fit-content !important;
+}
+
+:deep(.v-slide-group__content .v-tab) {
+  border-radius: 9999px !important;
+  font-weight: 600 !important;
+  font-size: 0.84rem !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 18px !important;
+  text-transform: none !important;
+  color: rgba(var(--v-theme-on-surface), 0.75) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+:deep(.v-slide-group__content .v-tab--selected) {
+  background: #AD1457 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(173, 20, 87, 0.35) !important;
+}
+
+:deep(.v-slide-group__content .v-tab__slider) {
+  display: none !important;
+}
 </style>

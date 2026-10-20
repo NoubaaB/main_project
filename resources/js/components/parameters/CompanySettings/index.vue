@@ -6,13 +6,13 @@
         <!-- Section: General -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-office-building</v-icon>{{ $t('general_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="4"><v-text-field v-model="form.company_name" :label="$t('company_name')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="4"><v-text-field v-model="form.director_name" :label="$t('director_name')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-select v-model="form.director_gender" :items="genderOptions" :label="$t('director_gender')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-select></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.company_origin" :label="$t('company_origin')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="4"><v-text-field v-model="form.company_name" :label="$t('company_name')" prepend-inner-icon="mdi-domain" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="4"><v-text-field v-model="form.director_name" :label="$t('director_name')" prepend-inner-icon="mdi-account-tie" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-select v-model="form.director_gender" :items="genderOptions" :label="$t('director_gender')" prepend-inner-icon="mdi-gender-male-female" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-select></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.company_origin" :label="$t('company_origin')" prepend-inner-icon="mdi-earth" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
         <v-row dense class="mt-1">
-          <v-col cols="12"><v-text-field v-model="form.company_address" :label="$t('company_address')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12"><v-text-field v-model="form.company_address" :label="$t('company_address')" prepend-inner-icon="mdi-map-marker" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -20,10 +20,10 @@
         <!-- Section: Contact -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-phone</v-icon>{{ $t('contact_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="3"><v-text-field v-model="form.phone_number" :label="$t('phone_number')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.fax_number" :label="$t('fax_number')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.email" :label="$t('email')" type="email" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.swift_code" :label="$t('swift_code')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.phone_number" :label="$t('phone_number')" prepend-inner-icon="mdi-phone" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.fax_number" :label="$t('fax_number')" prepend-inner-icon="mdi-fax" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.email" :label="$t('email')" type="email" prepend-inner-icon="mdi-email-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.swift_code" :label="$t('swift_code')" prepend-inner-icon="mdi-bank-transfer" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -31,8 +31,8 @@
         <!-- Section: Banking -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-bank</v-icon>{{ $t('banking_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="6"><v-text-field v-model="form.bank_name" :label="$t('bank_name')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="6"><v-text-field v-model="form.bank_account_number" :label="$t('bank_account_number')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="6"><v-text-field v-model="form.bank_name" :label="$t('bank_name')" prepend-inner-icon="mdi-bank" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="6"><v-text-field v-model="form.bank_account_number" :label="$t('bank_account_number')" prepend-inner-icon="mdi-credit-card-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -40,11 +40,11 @@
         <!-- Section: Legal -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-gavel</v-icon>{{ $t('legal_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="3"><v-text-field v-model="form.capital" :label="$t('capital')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.ice" :label="$t('ice')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.rc" :label="$t('rc')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.cnss" :label="$t('cnss')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.tva_number" :label="$t('tva_number')" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.capital" :label="$t('capital')" prepend-inner-icon="mdi-cash-multiple" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.ice" :label="$t('ice')" prepend-inner-icon="mdi-card-account-details-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.rc" :label="$t('rc')" prepend-inner-icon="mdi-file-certificate-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.cnss" :label="$t('cnss')" prepend-inner-icon="mdi-shield-check-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.tva_number" :label="$t('tva_number')" prepend-inner-icon="mdi-percent-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -120,8 +120,30 @@
       </v-form>
     </v-card-text>
 
-    <!-- Summary Snackbar -->
-    <v-snackbar v-model="snack.show" :timeout="4000" :color="snack.color" location="top right">{{ snack.msg }}<template #actions><v-btn variant="text" size="small" @click="snack.show=false">{{ $t('close') }}</v-btn></template></v-snackbar>
+    <!-- Summary Snackbar (Rule 5: Countdown style) -->
+    <v-snackbar
+      v-model="snack.show"
+      :color="snack.color"
+      location="top right"
+      :timeout="snack.timeout"
+      elevation="4"
+      class="summary-snackbar"
+    >
+      <div class="d-flex align-center ga-2">
+        <v-icon :icon="snack.icon" size="20" color="white" />
+        <span class="font-weight-medium text-white">{{ snack.msg }}</span>
+      </div>
+      <template #actions>
+        <v-btn icon="mdi-close" variant="text" size="small" color="white" @click="closeSnackbar" />
+      </template>
+      <v-progress-linear
+        :model-value="snack.progress"
+        color="white"
+        height="3"
+        absolute
+        location="bottom"
+      />
+    </v-snackbar>
   </v-card>
 </template>
 
@@ -136,7 +158,8 @@ export default {
       form: { company_name:'',director_name:'',director_gender:'male',company_origin:'',company_address:'',swift_code:'',phone_number:'',fax_number:'',email:'',bank_name:'',bank_account_number:'',capital:'',ice:'',rc:'',cnss:'',tva_number:'' },
       logoInvoiceUrl: '', logoInvoiceBodyUrl: '',
       saving: false,
-      snack: { show:false, msg:'', color:'success' },
+      snack: { show: false, msg: '', color: 'success', icon: 'mdi-check-circle', timeout: 4000, progress: 100 },
+      snackTimer: null,
       genderOptions: [{ title: this.$t('male'), value: 'male' }, { title: this.$t('female'), value: 'female' }],
       csStore: useCompanySettings(),
       dragOver: { logo_invoice: false, logo_invoice_body: false },
@@ -144,7 +167,29 @@ export default {
     };
   },
   mounted() { this.loadFromStore(); },
+  beforeUnmount() { if (this.snackTimer) clearInterval(this.snackTimer); },
   methods: {
+    showSnackbar(msg, color = 'success', icon = 'mdi-check-circle') {
+      if (this.snackTimer) clearInterval(this.snackTimer);
+      this.snack.msg = msg;
+      this.snack.color = color;
+      this.snack.icon = icon;
+      this.snack.progress = 100;
+      this.snack.show = true;
+      const stepMs = 50;
+      const decrement = 100 / (this.snack.timeout / stepMs);
+      this.snackTimer = setInterval(() => {
+        this.snack.progress = Math.max(0, this.snack.progress - decrement);
+        if (this.snack.progress <= 0) {
+          clearInterval(this.snackTimer);
+          this.snack.show = false;
+        }
+      }, stepMs);
+    },
+    closeSnackbar() {
+      if (this.snackTimer) clearInterval(this.snackTimer);
+      this.snack.show = false;
+    },
     /**
      * Load form from cached Pinia store (populated at auth/page-load).
      * Falls back to API if the store is empty.
@@ -179,9 +224,9 @@ export default {
         // Update local Pinia store cache
         this.csStore.setSettings(updatedSettings);
         this.populateForm(updatedSettings);
-        this.snack = { show:true, msg: this.$t('settings_saved'), color:'success' };
+        this.showSnackbar(this.$t('settings_saved'), 'success', 'mdi-check-circle');
       } catch(e) {
-        this.snack = { show:true, msg: this.$t('error_occurred'), color:'error' };
+        this.showSnackbar(this.$t('error_occurred'), 'error', 'mdi-alert-circle');
       }
       this.saving = false;
     },
@@ -215,9 +260,9 @@ export default {
         else if (type === 'logo_invoice_body') this.logoInvoiceBodyUrl = r.data.url;
         // Update the Pinia store with the new logo URL
         this.csStore.setSettings({ [`${type}_url`]: r.data.url, [`${type}_path`]: r.data.path });
-        this.snack = { show:true, msg: this.$t('logo_uploaded'), color:'success' };
+        this.showSnackbar(this.$t('logo_uploaded'), 'success', 'mdi-check-circle');
       } catch(e) {
-        this.snack = { show:true, msg: this.$t('error_occurred'), color:'error' };
+        this.showSnackbar(this.$t('error_occurred'), 'error', 'mdi-alert-circle');
       }
       this.uploading[type] = false;
     },

@@ -13,10 +13,13 @@ class CustomChartController extends Controller
 {
     use BroadcastsModelChanges;
 
-    public function index()
+    public function index(Request $request)
     {
-        $charts = CustomChart::with('series')->where('is_active', true)->orderBy('display_order')->get();
-        return response()->json(['custom_charts' => $charts]);
+        $query = CustomChart::with('series')->orderBy('display_order');
+        if ($request->has('only_active') && filter_var($request->input('only_active'), FILTER_VALIDATE_BOOLEAN)) {
+            $query->where('is_active', true);
+        }
+        return response()->json(['custom_charts' => $query->get()]);
     }
 
     public function store(Request $request)
@@ -142,6 +145,37 @@ class CustomChartController extends Controller
             CustomChart::where('id', $item['id'])->update(['display_order' => $item['display_order']]);
         }
         return response()->json(['message' => 'Reordered']);
+    }
+
+    public function duplicate(CustomChart $customChart)
+    {
+        return DB::transaction(function () use ($customChart) {
+            $customChart->load('series');
+            $newChart = $customChart->replicate(['id', 'created_at', 'updated_at']);
+            $newChart->title = $customChart->title . ' (Copy)';
+            $newChart->display_order = (CustomChart::max('display_order') ?? 0) + 1;
+            $newChart->created_by = Auth::id();
+            $newChart->save();
+
+            foreach ($customChart->series as $s) {
+                $newSeries = $s->replicate(['id', 'custom_chart_id', 'created_at', 'updated_at']);
+                $newSeries->custom_chart_id = $newChart->id;
+                $newSeries->save();
+            }
+
+            $newChart->load('series');
+            $this->broadcastChange('CustomChart', 'created', $newChart->id, $newChart->toArray());
+            return response()->json(['custom_chart' => $newChart], 201);
+        });
+    }
+
+    public function toggleActive(CustomChart $customChart)
+    {
+        $customChart->is_active = !$customChart->is_active;
+        $customChart->save();
+        $customChart->load('series');
+        $this->broadcastChange('CustomChart', 'updated', $customChart->id, $customChart->toArray());
+        return response()->json(['custom_chart' => $customChart]);
     }
 
     /**

@@ -19,7 +19,7 @@
         <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="columnFilters = {}">{{ $t('clear_filters') }}</v-btn>
         <v-btn color="#F9A825" prepend-icon="mdi-plus" rounded @click="openDialog(null)">{{ $t('add_transfer_category') }}</v-btn>
       </div>
-      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#F9A825' : false" density="comfortable" class="rounded-lg param-table" hover>
+      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#F9A825' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
           <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#F9A825" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#F9A825" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -49,18 +49,18 @@
         </v-card-title>
         <v-card-text class="pa-5">
           <v-row>
-            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="#F9A825"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="#F9A825"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="#F9A825"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#F9A825"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#F9A825"></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#F9A825"></v-text-field></v-col>
             <v-col cols="6">
-              <v-select v-model="form.article_type" :items="articleTypes" :label="$t('type_article')" variant="outlined" density="compact" rounded color="#F9A825"></v-select>
+              <v-select v-model="form.article_type" :items="articleTypes" :label="$t('type_article')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded color="#F9A825"></v-select>
             </v-col>
             <v-col cols="6" v-if="form.article_type === 'FishType'">
               <v-select v-model="form.fish_type_filter" :items="[{title:$t('all'),value:'all'},{title:$t('fresh'),value:'fresh'},{title:$t('frozen'),value:'frozen'}]" :label="$t('fish_type_filter')" variant="outlined" density="compact" rounded color="#F9A825">
                 <template #prepend-inner><v-icon size="18" color="#F9A825" class="mr-1">mdi-filter-variant</v-icon></template>
               </v-select>
             </v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#F9A825" rows="2"></v-textarea></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#F9A825" rows="2"></v-textarea></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
@@ -103,6 +103,33 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Summary Snackbar with Countdown Progress Bar (Rule 5 & AddCharge style) -->
+    <v-snackbar
+      v-model="summarySnackbar.show"
+      :timeout="6000"
+      location="top right"
+      color="surface"
+      rounded="lg"
+      elevation="12"
+      min-width="340"
+      max-width="400"
+      @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
+    >
+      <v-progress-linear :model-value="snackbarProgress" color="#F9A825" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-1">
+        <v-icon :color="summarySnackbar.color || 'success'" class="mr-2">
+          {{ summarySnackbar.color === 'error' ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+        </v-icon>
+        <span class="text-subtitle-2 font-weight-bold">{{ summarySnackbar.title }}</span>
+      </div>
+      <div v-if="summarySnackbar.detail" class="text-caption text-medium-emphasis ms-7">
+        {{ summarySnackbar.detail }}
+      </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
+      </template>
+    </v-snackbar>
   </v-card>
 </template>
 
@@ -127,6 +154,9 @@ export default {
         { key: 'allow_warehouse', label: 'allow_warehouse', icon: 'mdi-warehouse', activeColor: '#009688' },
         { key: 'allow_trucks', label: 'allow_trucks', icon: 'mdi-truck', activeColor: '#FF5722' },
       ],
+      summarySnackbar: { show: false, title: '', detail: '', color: 'success' },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -159,10 +189,36 @@ export default {
   },
   beforeUnmount() {
     mitt.off('model-changed', this._onModelChanged);
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
   },
   methods: {
     _onModelChanged(data) {
-      if (data.model === 'WarehouseTransferCategory') this.fetchItems();
+      if (data.model === 'WarehouseTransferCategory') {
+        this.fetchItems();
+        if (data.action) {
+          const actionText = data.action === 'created' ? this.$t('created') : data.action === 'updated' ? this.$t('updated') : this.$t('deleted');
+          this.triggerSummarySnackbar(
+            `${this.$t('warehouse_transfer_category')}: ${actionText}`,
+            data.data?.name_fr || data.data?.name_en || '',
+            'info'
+          );
+        }
+      }
+    },
+    triggerSummarySnackbar(title, detail = '', color = 'success') {
+      if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+      this.summarySnackbar = { show: true, title, detail, color };
+      this.snackbarProgress = 100;
+      const duration = 6000;
+      const interval = 50;
+      const step = (interval / duration) * 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= step;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, interval);
     },
     emptyForm() {
       return { name_fr: '', name_en: '', name_es: '', description: '', article_type: 'text', fish_type_filter: 'all', allow_weight: false, allow_package_type: false, allow_nbr_box: false, allow_warehouse: false, allow_trucks: false };
@@ -197,18 +253,19 @@ export default {
     async save() {
       this.saving = true;
       try {
+        const displayName = this.form.name_fr || this.form.name_en || '';
         if (this.editing) {
           await axios.put(`/api/warehouse-transfer-categories/${this.editing.id}`, this.form);
-          this.main.add_snackbar({ show: true, message: this.$t('transfer_category_updated'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('transfer_category_updated'), displayName, 'success');
         } else {
           await axios.post('/api/warehouse-transfer-categories', this.form);
-          this.main.add_snackbar({ show: true, message: this.$t('transfer_category_created'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('transfer_category_created'), displayName, 'success');
         }
         this.dialog = false;
         await this.fetchItems();
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('detail_category_save_error'), color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error_occurred'), this.$t('detail_category_save_error'), 'error');
       }
       this.saving = false;
     },
@@ -216,12 +273,16 @@ export default {
     async executeDelete() {
       if (!this.deleteTarget) return;
       this.deleting = true;
+      const targetName = this.deleteTarget.name_fr || this.deleteTarget.name_en || '';
       try {
         await axios.delete(`/api/warehouse-transfer-categories/${this.deleteTarget.id}`);
-        this.main.add_snackbar({ show: true, message: this.$t('transfer_category_deleted'), color: 'success' });
+        this.triggerSummarySnackbar(this.$t('transfer_category_deleted'), targetName, 'success');
         this.confirmDeleteDialog = false;
         await this.fetchItems();
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+        this.triggerSummarySnackbar(this.$t('error_occurred'), 'Delete failed', 'error');
+      }
       this.deleting = false;
       this.deleteTarget = null;
     },

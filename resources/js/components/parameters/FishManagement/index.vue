@@ -15,13 +15,20 @@
       </div>
     </div>
 
-    <v-tabs v-model="activeTab" color="info" class="mx-4 mt-2" slider-color="info">
-      <v-tab value="families"><v-icon start>mdi-family-tree</v-icon>{{ $t('fish_families') }}</v-tab>
-      <v-tab value="types"><v-icon start>mdi-fish</v-icon>{{ $t('fish_types') }}</v-tab>
-      <v-tab value="process_types"><v-icon start>mdi-cog-outline</v-icon>{{ $t('process_types') }}</v-tab>
-    </v-tabs>
-
-    <v-divider></v-divider>
+    <!-- Toolbar with SegmentedPillToggle (Activity Breakdown style) -->
+    <div class="fm-toolbar-card mx-4 mt-3 mb-2 pa-2 rounded-xl border d-flex flex-wrap align-center justify-space-between ga-3">
+      <div class="d-flex flex-wrap align-center ga-3">
+        <SegmentedPillToggle
+          v-model="activeTab"
+          :items="[
+            { value: 'families', label: $t('fish_families'), icon: 'mdi-family-tree', badge: families.length },
+            { value: 'types', label: $t('fish_types'), icon: 'mdi-fish', badge: filteredTypes.length },
+            { value: 'process_types', label: $t('process_types'), icon: 'mdi-cog-outline', badge: processTypes.length }
+          ]"
+          color="#1565C0"
+        />
+      </div>
+    </div>
 
     <v-card-text class="pa-4">
       <v-window v-model="activeTab">
@@ -30,16 +37,16 @@
           <div class="d-flex align-center ga-3 mb-3">
             <v-spacer></v-spacer>
             <v-btn v-if="hasActiveFamilyFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="familyColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openFamilyDialog(null)">{{ $t('add_fish_family') }}</v-btn>
+            <v-btn color="#1565C0" prepend-icon="mdi-plus" rounded @click="openFamilyDialog(null)">{{ $t('add_fish_family') }}</v-btn>
           </div>
-          <v-data-table :headers="familyHeaders" :items="filteredFamilies" :loading="loadingFamilies ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+          <v-data-table :headers="familyHeaders" :items="filteredFamilies" :loading="loadingFamilies ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="familyColumnFilters[col.key]" :items="getFamilyColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="familyColumnFilters[col.key]" :items="getFamilyColumnOptions(col.key)" density="compact" variant="outlined" color="#1565C0" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#1565C0" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
-            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="info" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
+            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="#1565C0" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openFamilyDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="#1565C0" @click="openFamilyDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteFamily(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
@@ -50,12 +57,12 @@
           <div class="d-flex align-center ga-3 mb-3">
             <v-spacer></v-spacer>
             <v-btn v-if="hasActiveTypeFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="typeColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openTypeDialog(null)">{{ $t('add_fish_type') }}</v-btn>
+            <v-btn color="#1565C0" prepend-icon="mdi-plus" rounded @click="openTypeDialog(null)">{{ $t('add_fish_type') }}</v-btn>
           </div>
-          <v-data-table :headers="typeHeaders" :items="filteredTypes" :loading="loadingTypes ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+          <v-data-table :headers="typeHeaders" :items="filteredTypes" :loading="loadingTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="typeColumnFilters[col.key]" :items="getTypeColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="typeColumnFilters[col.key]" :items="getTypeColumnOptions(col.key)" density="compact" variant="outlined" color="#1565C0" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#1565C0" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
             <template v-slot:[`item.type`]="{ item }">
               <v-chip v-if="item.type" size="small" variant="tonal" :color="item.type === 'fresh' ? 'teal' : 'blue'">{{ $t(item.type) }}</v-chip>
@@ -93,16 +100,16 @@
           <div class="d-flex align-center ga-3 mb-3">
             <v-spacer></v-spacer>
             <v-btn v-if="hasActiveProcessFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="processColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-            <v-btn color="info" prepend-icon="mdi-plus" rounded @click="openProcessDialog(null)">{{ $t('add_process_type') }}</v-btn>
+            <v-btn color="#1565C0" prepend-icon="mdi-plus" rounded @click="openProcessDialog(null)">{{ $t('add_process_type') }}</v-btn>
           </div>
-          <v-data-table :headers="processHeaders" :items="filteredProcessTypes" :loading="loadingProcessTypes ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+          <v-data-table :headers="processHeaders" :items="filteredProcessTypes" :loading="loadingProcessTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="processColumnFilters[col.key]" :items="getProcessColumnOptions(col.key)" density="compact" variant="outlined" color="info" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="info" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="processColumnFilters[col.key]" :items="getProcessColumnOptions(col.key)" density="compact" variant="outlined" color="#1565C0" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#1565C0" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
-            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="info" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
+            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="#1565C0" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="info" @click="openProcessDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
+              <v-btn icon size="x-small" variant="tonal" color="#1565C0" @click="openProcessDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteProcess(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
@@ -114,18 +121,18 @@
     <v-dialog v-model="familyDialog" max-width="500" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-family-tree</v-icon>
+          <v-icon color="#1565C0" class="mr-2">mdi-family-tree</v-icon>
           {{ editingFamily ? $t('edit_fish_family') : $t('add_fish_family') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <v-text-field v-model="familyForm.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3"></v-text-field>
-          <v-text-field v-model="familyForm.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3"></v-text-field>
-          <v-text-field v-model="familyForm.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+          <v-text-field v-model="familyForm.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#1565C0" class="mb-3" hide-details="auto"></v-text-field>
+          <v-text-field v-model="familyForm.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#1565C0" class="mb-3" hide-details="auto"></v-text-field>
+          <v-text-field v-model="familyForm.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto"></v-text-field>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
           <v-btn @click="familyDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="saveFamily" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#1565C0" variant="flat" rounded @click="saveFamily" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -134,74 +141,76 @@
     <v-dialog v-model="typeDialog" max-width="700" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-fish</v-icon>
+          <v-icon color="#1565C0" class="mr-2">mdi-fish</v-icon>
           {{ editingType ? $t('edit_fish_type') : $t('add_fish_type') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <v-row>
-            <v-col cols="6">
-              <v-text-field v-model="typeForm.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+          <v-row dense>
+            <v-col cols="12" sm="4">
+              <v-text-field v-model="typeForm.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="typeForm.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+            <v-col cols="12" sm="4">
+              <v-text-field v-model="typeForm.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="typeForm.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+            <v-col cols="12" sm="4">
+              <v-text-field v-model="typeForm.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="typeForm.name_in_invoice" :label="$t('name_in_invoice')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="typeForm.name_in_invoice" :label="$t('name_in_invoice')" prepend-inner-icon="mdi-receipt-text-outline" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="typeForm.scientific_name" :label="$t('scientific_name')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="typeForm.scientific_name" :label="$t('scientific_name')" prepend-inner-icon="mdi-dna" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
+            <v-col cols="12" sm="6">
               <v-autocomplete
                 v-model="typeForm.fish_family_id"
                 :items="families"
                 :item-title="familyTitle"
                 item-value="id"
                 :label="$t('select_family')"
+                prepend-inner-icon="mdi-family-tree"
                 variant="outlined"
                 density="compact"
                 rounded
                 clearable
                 chips
-                color="info"
-                class="text-info"
+                color="#1565C0"
+                hide-details="auto"
               >
                 <template #chip="{ item, index }">
-                  <v-chip :key="index" class="text-white" color="info accent-4" variant="tonal">{{ item.title }}</v-chip>
+                  <v-chip :key="index" color="#1565C0" variant="tonal">{{ item.title }}</v-chip>
                 </template>
               </v-autocomplete>
             </v-col>
-            <v-col cols="6">
+            <v-col cols="12" sm="6">
               <v-autocomplete
                 v-model="typeForm.type"
                 :items="fishTypeOptions"
                 item-title="label"
                 item-value="value"
                 :label="$t('fish_category_type')"
+                prepend-inner-icon="mdi-shape-outline"
                 variant="outlined"
                 density="compact"
                 rounded
                 clearable
                 chips
-                color="info"
-                class="text-info"
+                color="#1565C0"
+                hide-details="auto"
               >
                 <template #chip="{ item, index }">
                   <v-chip :key="index" :color="item.raw.value === 'fresh' ? 'teal' : 'blue'" variant="tonal">{{ item.title }}</v-chip>
                 </template>
               </v-autocomplete>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="typeForm.process" :label="$t('fish_process')" variant="outlined" density="compact" rounded color="info" class="text-info"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="typeForm.process" :label="$t('fish_process')" prepend-inner-icon="mdi-cogs" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="typeForm.image" :label="$t('image_url')" variant="outlined" density="compact" rounded color="info" class="text-info" prepend-inner-icon="mdi-image-outline"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="typeForm.image" :label="$t('image_url')" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto" prepend-inner-icon="mdi-image-outline"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-textarea v-model="typeForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="info" class="text-info" rows="2"></v-textarea>
+            <v-col cols="12">
+              <v-textarea v-model="typeForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto" rows="2"></v-textarea>
             </v-col>
           </v-row>
 
@@ -209,7 +218,7 @@
 
           <!-- Productivity Section -->
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
-            <v-icon color="info" class="mr-2" size="20">mdi-chart-line</v-icon>
+            <v-icon color="#1565C0" class="mr-2" size="20">mdi-chart-line</v-icon>
             {{ $t('productivity_type') }}
           </div>
 
@@ -222,13 +231,14 @@
                 item-value="id"
                 :label="$t('select_productivity_type')"
                 :placeholder="$t('type_and_enter_to_create')"
+                prepend-inner-icon="mdi-chart-line"
                 variant="outlined"
                 density="compact"
                 rounded
                 clearable
                 chips
-                color="info"
-                class="text-info"
+                color="#1565C0"
+                hide-details="auto"
                 :search="processTypeSearch"
                 @update:search="processTypeSearch = $event"
                 @keydown.enter.prevent="onProcessTypeEnter"
@@ -293,7 +303,7 @@
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
           <v-btn @click="typeDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="saveType" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#1565C0" variant="flat" rounded @click="saveType" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -302,17 +312,17 @@
     <v-dialog v-model="processDialog" max-width="500" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="info" class="mr-2">mdi-cog-outline</v-icon>
+          <v-icon color="#1565C0" class="mr-2">mdi-cog-outline</v-icon>
           {{ editingProcess ? $t('edit_process_type') : $t('add_process_type') }}
         </v-card-title>
         <v-card-text class="pa-5">
-          <v-text-field v-model="processForm.name" :label="$t('name')" variant="outlined" density="compact" rounded color="info" class="text-info mb-3"></v-text-field>
-          <v-textarea v-model="processForm.description" :label="$t('description')" variant="outlined" density="compact" rounded color="info" class="text-info" rows="2"></v-textarea>
+          <v-text-field v-model="processForm.name" :label="$t('name')" prepend-inner-icon="mdi-format-title" variant="outlined" density="compact" rounded color="#1565C0" class="mb-3" hide-details="auto"></v-text-field>
+          <v-textarea v-model="processForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#1565C0" hide-details="auto" rows="2"></v-textarea>
         </v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-spacer></v-spacer>
           <v-btn @click="processDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="info" variant="flat" rounded @click="saveProcess" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#1565C0" variant="flat" rounded @click="saveProcess" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -362,6 +372,7 @@
                   item-title="name"
                   item-value="id"
                   :label="$t('select_warehouse')"
+                  prepend-inner-icon="mdi-warehouse"
                   variant="outlined"
                   density="compact"
                   rounded
@@ -448,6 +459,7 @@
             :headers="wapHeaders"
             :items="wapsList"
             :loading="loadingWaps ? 'purple' : false"
+            :multi-sort="true"
             density="compact"
             class="rounded-lg param-table"
             hover
@@ -546,11 +558,15 @@
       </v-card>
     </v-dialog>
 
-    <!-- Summary Snackbar -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="bottom end" elevation="4" rounded="lg">
-      <div class="d-flex align-center"><v-icon class="mr-2">mdi-information</v-icon><span>{{ snackbar.text }}</span></div>
-      <template v-slot:actions>
-        <v-btn variant="text" size="small" @click="snackbar.show = false">{{ $t('close') }}</v-btn>
+    <!-- Summary Snackbar (Rule 5) -->
+    <v-snackbar v-model="snackbar.show" :timeout="5000" location="top right" color="surface" rounded="lg" elevation="12" min-width="320" max-width="400">
+      <v-progress-linear :model-value="snackbarProgress" color="#1565C0" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-1">
+        <v-icon :color="snackbar.color === 'error' ? 'error' : 'success'" class="mr-2">{{ snackbar.color === 'error' ? 'mdi-alert-circle' : 'mdi-check-circle' }}</v-icon>
+        <span class="text-subtitle-2 font-weight-bold">{{ snackbar.text }}</span>
+      </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="snackbar.show = false"></v-btn>
       </template>
     </v-snackbar>
   </v-card>
@@ -564,10 +580,11 @@ import { useMain } from '@/stores/Main';
 import { useFishProcessType } from '@/stores/FishProcessType';
 import { useFishFamily } from '@/stores/FishFamily';
 import { useFishType } from '@/stores/FishType';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 
 export default {
   name: 'FishManagement',
-  components: { apexchart: VueApexCharts },
+  components: { apexchart: VueApexCharts, SegmentedPillToggle },
   data() {
     return {
       activeTab: 'families',
@@ -614,6 +631,8 @@ export default {
       wapDateRangeVC: { start: new Date(), end: new Date() },
       savingWapRule: false,
       snackbar: { show: false, text: '', color: 'success' },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -1080,7 +1099,15 @@ export default {
       }
     },
     showSnackbar(text, color = 'success') {
+      clearInterval(this.snackbarTimer);
       this.snackbar = { show: true, text, color };
+      this.snackbarProgress = 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= 2;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+        }
+      }, 100);
     },
   },
 };

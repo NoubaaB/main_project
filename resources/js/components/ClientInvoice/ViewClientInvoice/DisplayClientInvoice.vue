@@ -38,182 +38,208 @@
             </v-row>
         </div>
         <!-- HEADER -->
-        <div class="title-wrap">
-            <v-row no-gutters>
-                <v-col>
-                    <v-row >
-                        <v-col class="text-center d-flex" :style="{ color: invoicePrimaryColor }">
-                            <div class="ml-5 chevron" :style="{ backgroundColor: invoicePrimaryColor }" v-for="n in 10" :key="n" ></div>
-                        </v-col>
-                    </v-row>
-                    <v-row>
-                        <v-col class="ml-5">
-                            <v-row no-gutters>
-                                <v-col class="text-black">
-                                    <h3>
-                                        {{ $t('company') }} : {{company_settings.settings.company_name}}
-                                    </h3>
-                                </v-col>
-                            </v-row>
-                            <v-row no-gutters>
-                                <v-col class="text-black">
-                                    <strong>
-                                        {{ $t("address") }} : {{company_settings.settings.company_address}}
-                                    </strong>
-                                </v-col>
-                            </v-row>
-                        </v-col>
-                    </v-row>
-                </v-col>
-                <v-col >
-                    <v-row class="text-center-h-v text-center rounded-s-xl text-white" :style="{ backgroundColor: invoiceSecondaryColor }">
-                        <v-col>
-                            <h4>
-                                {{$t('invoice_n°') }}:
-                                 {{ client_invoice_detail.tracking_numbers }}
-                            </h4>
-                        </v-col>
-                            <v-divider vertical class="mx-0 px-0 my-1" :style="{ borderColor: 'rgba(255,255,255,0.4) !important' }" thickness="2" opacity="1"></v-divider>
-                        <v-col cols="5">
-                            <h4>
-                                {{ $t("date") }} :
-                                 {{ main.formateDate(client_invoice_detail.date) }}
-                            </h4>
-                        </v-col>
-                    </v-row>
-                    <v-row>
-                        <v-col class="text-center d-flex" :style="{ color: invoicePrimaryColor }">
-                            <div cols="1" class="text-center ml-3" v-if="clientInvoice.allow_qr_code">
-                                <div class="corner-only" v-html="qr_code_generate">
+        <!-- UNIFIED MIDDLE BODY SECTION (Standard Client Invoice) -->
+        <template v-if="!clientInvoice.use_export_layout">
+            <div class="invoice-middle-body" :style="contentWrapCustomStyle">
+                <img class="invoice-body-watermark" :src="companyBackgroundWatermark" v-if="clientInvoice.allow_bg_image"/>
+
+                <!-- TITLE / META GRID -->
+                <div class="title-wrap">
+                    <div class="meta-grid-card">
+                        <!-- Left: Client / Customer Information -->
+                        <div class="meta-entity-section">
+                            <div class="meta-header-row">
+                                <span class="meta-role-pill" :style="{ backgroundColor: invoicePrimaryColor + '18', color: invoicePrimaryColor }">
+                                    <v-icon size="11" class="mr-1">mdi-account-tie-outline</v-icon>
+                                    {{ $t('client') }}
+                                </span>
+                                <span class="meta-entity-name" :title="clientDisplayName">
+                                    {{ clientDisplayName }}
+                                </span>
+                            </div>
+
+                            <div class="meta-detail-row" v-if="clientAddressFormatted">
+                                <v-icon size="12" class="meta-detail-icon">mdi-map-marker-outline</v-icon>
+                                <span class="meta-detail-text">{{ clientAddressFormatted }}</span>
+                            </div>
+
+                            <div class="meta-subdetail-row">
+                                <span v-if="client_invoice_detail.ice" class="meta-tag-item">
+                                    <strong class="meta-tag-key">ICE:</strong> {{ client_invoice_detail.ice }}
+                                </span>
+                                <span v-if="client_invoice_detail.ice && client_invoice_detail.phone" class="meta-dot-divider">•</span>
+                                <span v-if="client_invoice_detail.phone" class="meta-tag-item">
+                                    <v-icon size="11" class="meta-mini-icon">mdi-phone-outline</v-icon> {{ client_invoice_detail.phone }}
+                                </span>
+                                <span v-if="companyNameFormatted" class="meta-counterparty-box">
+                                    <span class="meta-counterparty-label">{{ $t('issuer') }}:</span>
+                                    <span class="meta-counterparty-value">{{ companyNameFormatted }}</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Right: Invoice Tracking, Date, and QR / Seal -->
+                        <div class="meta-ref-section">
+                            <div class="meta-ref-pill" :style="{ backgroundColor: invoiceSecondaryColor }">
+                                <div class="meta-ref-pill-left">
+                                    <span class="meta-ref-label">{{ $t('invoice_n°') }}</span>
+                                    <strong class="meta-ref-value">{{ client_invoice_detail.tracking_numbers }}</strong>
+                                </div>
+                                <div class="meta-ref-pill-divider"></div>
+                                <div class="meta-ref-pill-right">
+                                    <v-icon size="13" color="#ffffff" class="mr-1">mdi-calendar-month-outline</v-icon>
+                                    <span class="meta-ref-date">{{ main.formateDate(client_invoice_detail.date) }}</span>
                                 </div>
                             </div>
-                            <div v-else class="sparkle" :style="{ backgroundColor: invoiceSecondaryColor }" v-for="n in 13" :key="n" ></div>
-                        </v-col>
-                    </v-row>
-                </v-col>
-            </v-row>
-            <div class="title_doughnut_top"></div>
-        </div>
-        <!-- TITLE -->
-        <template v-if="!clientInvoice.use_export_layout">
-            <div class="content-wrap" :style="contentWrapCustomStyle">
-                <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="clientInvoice.allow_bg_image"/>
-                <!-- START: Invoice table -->
-                <div class="invoice-table-wrap mt-0 pt-2">
+
+                            <!-- Clean QR code frame or official security badge -->
+                            <div class="meta-qr-container" v-if="clientInvoice.allow_qr_code">
+                                <div class="meta-qr-frame" v-html="qr_code_generate"></div>
+                            </div>
+                            <div class="meta-official-seal" v-else :style="{ borderColor: invoicePrimaryColor + '35' }">
+                                <v-icon size="14" :color="invoicePrimaryColor" class="mr-1">mdi-shield-check-outline</v-icon>
+                                <span class="meta-seal-text" :style="{ color: invoicePrimaryColor }">{{ $t('official_document') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- TITLE / META GRID -->
+
+                <!-- INVOICE TABLE CONTAINER (Clean Live Preview Design) -->
+                <div class="invoice-table-container">
                     <div class="table-scroll">
                         <table class="invoice-table" role="table">
                             <thead>
                                 <tr role="row" class="text-white" :style="{ backgroundColor: invoicePrimaryColor }">
-                                <th
-                                    v-for="(h, idx) in displayedHeaders"
-                                    :key="h.key"
-                                    :draggable="true"
-                                    class="ma-0 py-1"
-                                    @dragstart="onHeaderDragStart($event, idx)"
-                                    @dragover="onHeaderDragOver($event, idx)"
-                                    @dragleave="onHeaderDragLeave($event, idx)"
-                                    @drop="onHeaderDrop($event, idx)"
-                                    :class="['col-header', { dragging: draggingIndex === idx, 'drag-over': dragOverIndex === idx }]"
-                                    :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
-                                >
-                                    <span class="d-inline ">
-                                        <span class="text-center" @click="toggleSort(h.key)">
-                                            <strong class="header-text">{{ h.title }}</strong>
-                                            <span  class="sort-indicator" v-if="sortKey === h.key && is_show">
-                                                <v-icon>{{ sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending' }}</v-icon>
+                                    <th
+                                        class="col-header text-center col-index"
+                                        style="width: 38px; min-width: 38px; max-width: 45px;"
+                                    >
+                                        <strong class="header-text">#</strong>
+                                    </th>
+                                    <th
+                                        v-for="(h, idx) in displayedHeaders"
+                                        :key="h.key"
+                                        :draggable="true"
+                                        class="col-header"
+                                        @dragstart="onHeaderDragStart($event, idx)"
+                                        @dragover="onHeaderDragOver($event, idx)"
+                                        @dragleave="onHeaderDragLeave($event, idx)"
+                                        @drop="onHeaderDrop($event, idx)"
+                                        :class="[
+                                            'col-header',
+                                            { dragging: draggingIndex === idx, 'drag-over': dragOverIndex === idx },
+                                            isNumericKey(h.key) ? 'text-right' : (h.align === 'center' || h.key === 'date' ? 'text-center' : 'text-left')
+                                        ]"
+                                        :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: isNumericKey(h.key) ? 'right' : (h.align || 'left') }"
+                                    >
+                                        <div class="col-header-inner" :class="{ 'justify-end': isNumericKey(h.key), 'justify-center': h.align === 'center' || h.key === 'date' }">
+                                            <span class="header-sort-trigger" @click="toggleSort(h.key)">
+                                                <strong class="header-text">{{ h.title }}</strong>
+                                                <span class="sort-indicator" v-if="sortKey === h.key && is_show">
+                                                    <v-icon size="12">{{ sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending' }}</v-icon>
+                                                </span>
                                             </span>
-                                        </span>
-    
-                                        <span v-if="is_show" class="drag-handle mx-0 px-0" :title="$t('drag_to_reorder')" @mousedown.stop>
-                                            <v-icon>mdi-drag</v-icon>
-                                        </span>
-    
-                                        <span
-                                            v-if="is_show"
-                                            class="resize-handle"
-                                            @mousedown.prevent="onResizeMouseDown($event, h.key)"
-                                            :title="$t('drag_to_resize')"
-                                        ></span>
-                                    </span>
-                                </th>
+
+                                            <span v-if="is_show" class="drag-handle mx-0 px-0" :title="$t('drag_to_reorder')" @mousedown.stop>
+                                                <v-icon size="12">mdi-drag</v-icon>
+                                            </span>
+
+                                            <span
+                                                v-if="is_show"
+                                                class="resize-handle"
+                                                @mousedown.prevent="onResizeMouseDown($event, h.key)"
+                                                :title="$t('drag_to_resize')"
+                                            ></span>
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
-    
+
                             <tbody>
-                                <tr class="ma-0 pa-0" v-for="(row, rIdx) in sortedItems" :key="rIdx" role="row">
-                                <td
-                                    v-for="h in displayedHeaders"
-                                    :key="h.key"
-                                    class="ma-0 pa-0"
-                                    :class="{ numeric: isNumericKey(h.key) }"
-                                    :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: h.align || 'left' }"
+                                <tr
+                                    class="invoice-data-row ma-0 pa-0"
+                                    v-for="(row, rIdx) in sortedItems"
+                                    :key="rIdx"
+                                    role="row"
+                                    :style="{ backgroundColor: rIdx % 2 === 1 ? 'rgba(248, 250, 252, 0.82)' : 'rgba(255, 255, 255, 0.82)' }"
                                 >
-                                    <strong class="cell-content">{{ formatCell(row, h.key) }}</strong>
-                                </td>
+                                    <td
+                                        class="text-center col-index text-grey-darken-1 font-weight-medium"
+                                        style="width: 38px; min-width: 38px; max-width: 45px;"
+                                    >
+                                        {{ getLineNumber(rIdx) }}
+                                    </td>
+                                    <td
+                                        v-for="h in displayedHeaders"
+                                        :key="h.key"
+                                        :class="[
+                                            isNumericKey(h.key) ? 'text-right' : (h.align === 'center' || h.key === 'date' ? 'text-center' : 'text-left'),
+                                            {
+                                                'font-weight-bold text-grey-darken-4': h.key === 'total_price',
+                                                'font-weight-bold text-grey-darken-3': !isNumericKey(h.key) && h.key !== 'date',
+                                                'font-weight-medium text-grey-darken-2': (isNumericKey(h.key) && h.key !== 'total_price') || h.key === 'date'
+                                            }
+                                        ]"
+                                        :style="{ width: (columnWidths[h.key] || defaultWidth) + 'px', textAlign: isNumericKey(h.key) ? 'right' : (h.align || 'left') }"
+                                    >
+                                        <template v-if="h.key === 'total_price'">
+                                            <span class="cell-content font-weight-bold text-grey-darken-4">
+                                                {{ formatCell(row, h.key) }} {{ main_currency.currency || 'MAD' }}
+                                            </span>
+                                        </template>
+                                        <template v-else>
+                                            <span class="cell-content">
+                                                {{ formatCell(row, h.key) }}
+                                            </span>
+                                        </template>
+                                    </td>
                                 </tr>
-    
-                                <!-- filler rows to mimic printed invoice spacing -->
-                                <tr class="ma-0 pa-0" v-for="n in emptyRows" :key="'empty-'+n">
-                                    <td class="ma-0 pa-0" v-for="h in displayedHeaders" :key="h.key + '-e'">&nbsp;</td>
+
+                                <!-- Subtle zebra filler rows to maintain clean A4 pagination without cyan notebook lines -->
+                                <tr
+                                    class="invoice-empty-row ma-0 pa-0"
+                                    v-for="n in emptyRows"
+                                    :key="'empty-'+n"
+                                    :style="{ backgroundColor: (sortedItems.length + n - 1) % 2 === 1 ? 'rgba(248, 250, 252, 0.82)' : 'rgba(255, 255, 255, 0.82)' }"
+                                >
+                                    <td class="text-center col-index text-transparent" style="width: 38px; min-width: 38px; max-width: 45px;">&nbsp;</td>
+                                    <td v-for="h in displayedHeaders" :key="h.key + '-e'">&nbsp;</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
                 <!-- END: Invoice table -->
-                <v-row
-                class="flex-nowrap"
-                no-gutters
-                v-if="allow_summary"
-                >
-                    <v-col cols="7" class="border-dashed border-sm rounded-lg ml-3 border-opacity-75 text-center" :style="{ borderColor: invoicePrimaryColor + '80 !important' }">
-                        <v-row >
-                            <v-col class="numeric-font" :style="{ color: invoicePrimaryColor, opacity: 0.85 }">
-                                {{ $t("present invoice") }} :
-                            </v-col>
-                        </v-row>
-                        <v-divider opacity="0.5" variant="dashed" thickness="1" :style="{ borderColor: invoicePrimaryColor + '40 !important' }"></v-divider>
-                        <v-row>
-                            <v-col class="numeric-font font-weight-bold" :style="{ color: invoicePrimaryColor }">
-                                {{convertSumPriceToWord}}
-                            </v-col>
-                        </v-row>
-                    </v-col>
-                    <v-col class="text-black text-center-h-v">
-                        <v-row class="ma-1">
-                            <v-col>
-                                <v-row class="text-center">
-                                    <v-col class="rounded-ts-lg py-0 pr-0 pl-2 text-center text-white font-weight-bold" :style="{ backgroundColor: invoicePrimaryColor }">
-                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_price") }} :</div>
-                                    </v-col>
-                                    <v-col class="rounded-te-lg py-0 pl-0 pr-2 text-left pl-5 bg-grey-lighten-5">
-                                        <strong>{{total.price}} {{ this.main_currency.currency }}</strong>
-                                    </v-col>
-                                </v-row>
-                                <v-row>
-                                    <v-col class="px-0 py-1">
-                                        <v-divider color="info" opacity="0.5" class="mx-2" variant="dotted" thickness="2" :style="{ borderColor: invoiceSecondaryColor + '80 !important' }"></v-divider>
-                                    </v-col>
-                                </v-row>
-                                <v-row class="text-center">
-                                    <v-col class="rounded-bs-lg py-0 pr-0 pl-2 text-center text-white font-weight-bold" :style="{ backgroundColor: invoiceSecondaryColor }">
-                                        <div class="font-weight-bold text-subtitle-2 capitalize-text text-right pr-5">{{ $t("total_weight") }} :</div>
-                                    </v-col>
-                                    <v-col class="rounded-be-lg py-0 pl-0 pr-2 text-left pl-5 bg-grey-lighten-5">
-                                        <strong>{{total.weight}} Kg</strong>
-                                    </v-col>
-                                </v-row>
-                            </v-col>
-                        </v-row>
-                    </v-col>
-                </v-row>
-                <v-chip  v-if="pagination.allow" variant="tonal" class="mx-3" size="x-small" color="grey">
-                    <span class="text-grey-darken-1">
-                        {{pagination.page}}/{{pagination.total_pages}}
-                    </span>
-                </v-chip>
-                <div class="wrap-summary">
-                    <div class="summary_doughnut_top"></div>
+
+                <!-- SUMMARY CARD (Matching Live Preview) -->
+                <div class="invoice-summary-card" v-if="allow_summary">
+                    <div class="words-pill" :style="{ borderColor: invoicePrimaryColor + '70' }">
+                        <span class="words-label" :style="{ color: invoicePrimaryColor }">
+                            {{ $t('present invoice') }} :
+                        </span>
+                        <div class="words-divider" :style="{ borderColor: invoicePrimaryColor }"></div>
+                        <span class="words-value" :style="{ color: invoicePrimaryColor }">
+                            {{ convertSumPriceToWord }}
+                        </span>
+                    </div>
+                    <div class="totals-pill-wrap">
+                        <div class="totals-pill-weight" :style="{ backgroundColor: invoiceSecondaryColor }">
+                            <span class="pill-label">{{ $t('total_weight') }}:</span>
+                            <strong class="pill-value">{{ total.weight }} Kg</strong>
+                        </div>
+                        <div class="totals-pill-price" :style="{ backgroundColor: invoicePrimaryColor }">
+                            <span class="pill-label">{{ $t('total_price') }}:</span>
+                            <strong class="pill-value">{{ total.price }} {{ main_currency.currency || 'Dh(s)' }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clean pagination chip -->
+                <div v-if="pagination && pagination.allow" class="pagination-wrap">
+                    <v-chip variant="tonal" size="x-small" color="grey">
+                        <span class="text-grey-darken-1">{{ pagination.page }} / {{ pagination.total_pages }}</span>
+                    </v-chip>
                 </div>
             </div>
         </template>
@@ -273,13 +299,16 @@
                         </v-row>
                     </v-col>
                 </v-row>
-                <img class="invoice-body" :src="'/storage/images/invoice_body.png'" v-if="clientInvoice.allow_bg_image"/>
+                <img class="invoice-body" :src="companyBackgroundWatermark" v-if="clientInvoice.allow_bg_image"/>
                 <!-- START: Invoice table -->
                 <div class="invoice-table-wrap mt-0 pt-2">
                     <div class="table-scroll">
                         <table class="invoice-table" role="table">
                             <thead>
                                 <tr role="row" class="text-white" :style="{ backgroundColor: invoicePrimaryColor }">
+                                <th class="ma-0 py-1 col-header text-center col-index" style="width: 38px; min-width: 38px; max-width: 45px;">
+                                    <strong class="header-text">#</strong>
+                                </th>
                                 <th v-for="(h, idx) in getHeaderExportKeys"
                                     :key="idx"
                                     class="ma-0 py-1 col-header">
@@ -293,7 +322,10 @@
                             </thead>
     
                             <tbody>
-                                <tr class="ma-0 pa-0" v-for="(row, rIdx) in getItemsExport" :key="rIdx" role="row">
+                                <tr class="ma-0 pa-0 invoice-data-row" v-for="(row, rIdx) in getItemsExport" :key="rIdx" role="row">
+                                    <td class="ma-0 pa-0 text-center font-weight-medium col-index" style="width: 38px; min-width: 38px; max-width: 45px;">
+                                        <strong class="cell-content">{{ getLineNumber(rIdx) }}</strong>
+                                    </td>
                                     <td
                                         v-for="h in getHeaderExportKeys"
                                         :key="h"
@@ -304,8 +336,8 @@
                                         <strong class="cell-content">{{ formatCell(row, h) }}</strong>
                                     </td>
                                 </tr>
-                                <!-- filler rows to mimic printed invoice spacing -->
-                                <tr class="ma-0 pa-0" v-for="n in emptyRows-16" :key="'empty-'+n">
+                                <tr class="ma-0 pa-0 invoice-empty-row" v-for="n in emptyRows-16" :key="'empty-'+n">
+                                    <td class="ma-0 pa-0 text-center col-index" style="width: 38px; min-width: 38px; max-width: 45px;">&nbsp;</td>
                                     <td class="ma-0 pa-0" v-for="h in getHeaderExportKeys" :key="h.key + '-e'">&nbsp;</td>
                                 </tr>
                             </tbody>
@@ -394,7 +426,7 @@
                     </v-col>
                 </v-row>
                 <v-row>
-                    <v-col class="border-dashed border-sm rounded-lg mx-8 border-opacity-75 text-center" :style="{ borderColor: invoicePrimaryColor + '80 !important' }">
+                    <v-col class="border-dashed border-sm rounded-lg mx-8 border-opacity-75 text-center" :style="{ borderColor: invoicePrimaryColor + '80 !important', backgroundColor: '#f8fafc' }">
                         <v-row >
                             <v-col class="numeric-font" :style="{ color: invoicePrimaryColor, opacity: 0.85 }">
                                 {{ $t("present invoice") }} :
@@ -408,13 +440,10 @@
                         </v-row>
                     </v-col>
                 </v-row>
-                <v-chip  v-if="pagination.allow" variant="tonal" class="mx-3" size="x-small" color="grey">
-                    <span class="text-grey-darken-1">
-                        {{pagination.page}}/{{pagination.total_pages}}
-                    </span>
-                </v-chip>
-                <div class="wrap-summary">
-                    <div class="summary_doughnut_top"></div>
+                <div v-if="pagination && pagination.allow" class="pagination-wrap">
+                    <v-chip variant="tonal" size="x-small" color="grey">
+                        <span class="text-grey-darken-1">{{ pagination.page }} / {{ pagination.total_pages }}</span>
+                    </v-chip>
                 </div>
             </div>
         </template>
@@ -447,7 +476,9 @@
                 <template v-else-if="layout.footer_style === 'minimal'">
                     <v-col cols="auto" style="width: 4px; background: rgba(0,0,0,0.08);"></v-col>
                 </template>
-                <v-col cols="*" :style="{ backgroundColor: layout.footer_primary_color || '#006064' }"></v-col>
+                <v-col cols="*" class="text-center-h-v pr-3" :style="{ backgroundColor: layout.footer_primary_color || '#006064' }">
+                    <img class="header-img footer-img" :style="{ width: layout.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="'/storage/images/invoice_title.png'"/>
+                </v-col>
             </v-row>
             <v-row no-gutters>
                 <v-col cols="12" class="footer-wrap-strick" :style="{ backgroundColor: layout.footer_primary_color || '#006064', height: layout.footer_strick_height || '0.3cm' }">
@@ -506,6 +537,9 @@
         },
         mounted() {
             this.invoiceLayout.initSync();
+            if (!this.company_settings?.settings?.company_name) {
+                this.company_settings?.fetchSettings?.();
+            }
             // initialize widths/order on mount
             if (typeof this.initColumns === 'function') this.initColumns();
             // defensive global mouseup (stops drag/resizing if mouse released outside)
@@ -527,6 +561,23 @@
             company_settings: () => useCompanySettings(),
             clientInvoice: () => useClientInvoice(),
             invoiceLayout: () => useInvoiceLayout(),
+            clientDisplayName: function () {
+                return this.client_invoice_detail?.client_name || this.$t('client');
+            },
+            clientAddressFormatted: function () {
+                return this.client_invoice_detail?.address || '';
+            },
+            companyNameFormatted: function () {
+                return this.company_settings?.settings?.company_name || '';
+            },
+            companyBackgroundWatermark: function () {
+                const cs = this.company_settings?.settings || {};
+                if (cs.logo_invoice_body_url) return cs.logo_invoice_body_url;
+                if (cs.logo_invoice_url) return cs.logo_invoice_url;
+                if (cs.logo_invoice_body_path) return `/storage/${cs.logo_invoice_body_path}`;
+                if (cs.logo_invoice_path) return `/storage/${cs.logo_invoice_path}`;
+                return '/storage/images/invoice_body.png';
+            },
             layout: function () {
                 return this.invoiceLayout.getLayout('client');
             },
@@ -554,7 +605,7 @@
                 const fD = l.footer_divided_height || '3cm';
                 const fS = l.footer_strick_height || '0.3cm';
                 return {
-                    height: `calc(var(--invoice-height) - (${hD}) - (${fD}) - (${hS}) - (${fS}) - var(--title-wrap-height) - var(--title-wrap-margin-top-height))`,
+                    height: `calc(var(--invoice-height) - (${hD}) - (${fD}) - (${hS}) - (${fS}))`,
                     position: 'relative',
                 };
             },
@@ -604,10 +655,10 @@
                 return ['FOB','C&F','CIF'];
             },
             qr_code_generate: function () {
-                const qrSVG = new QRCodeSVG('0001', {
+                const qrSVG = new QRCodeSVG(this.client_invoice_detail?.tracking_numbers || '0001', {
                     level: 'H',
                     padding: 0,
-                    fgColor: '#00838F',
+                    fgColor: this.invoicePrimaryColor || '#00838F',
                     image: {
                         source: '/storage/images/invoice_body.png',
                         width: '20%',
@@ -616,7 +667,6 @@
                         y: 'center',
                     },
                 });
-                const dataUrlWithSVGQRCode = qrSVG.toDataUrl();
                 return qrSVG.toString();
             },
             convertSumPriceToWord: function () {
@@ -629,17 +679,16 @@
                 // build words with written-number (keeps user's lang)
                 const unitWords = writtenNumber(unit, { lang: this.main.lang.code });
 
+                let formattedWords = '';
                 // if no centimes, return only the unit part
                 if (subunit === 0) {
-                    return `${this.main.capitalize(unitWords)} ${this.main_currency.unit}(s)`.trim();
+                    formattedWords = `${this.main.capitalize(unitWords)} ${this.main_currency.unit}(s)`.trim();
+                } else {
+                    const subunitWords = writtenNumber(subunit, { lang: this.main.lang.code });
+                    formattedWords = `${this.main.capitalize(unitWords)} ${this.main_currency.unit}(s) ${this.$t('and')} ${this.main.capitalize(subunitWords)} ${this.main_currency.subunit}(s)`.trim();
                 }
 
-                // otherwise include centimes
-                const subunitWords = writtenNumber(subunit, { lang: this.main.lang.code });
-                return `${this.main.capitalize(unitWords)} ${this.main_currency.unit}(s) ${this.$t('and')} 
-                ${this.main.capitalize(subunitWords)} ${this.main_currency.subunit}(s)`
-                .trim();
-
+                return formattedWords;
             },
             main_currency : function(){
                 const code = this.client_invoice_detail?.invoice?.currency || this.client_invoice_detail?.currency;
@@ -823,6 +872,14 @@
                 if (this._mouseUpHandler) { window.removeEventListener('mouseup', this._mouseUpHandler); this._mouseUpHandler = null; }
             },
 
+            getLineNumber(rIdx) {
+                const page = (this.pageIndex !== undefined && this.pageIndex !== null)
+                    ? this.pageIndex
+                    : (this.pagination && this.pagination.page ? this.pagination.page - 1 : 0);
+                const rowsPerPage = this.clientInvoice?.final_page_rows_nbr || 35;
+                return (page * rowsPerPage) + rIdx + 1;
+            },
+
             // utility
             resetColumnOrder() {
                 this.columnOrder = (this.clientInvoice.getHeaders || []).filter(h => h.visible !== false).map(h => h.key);
@@ -833,38 +890,32 @@
 </script>
 
 <style scoped >
-    .content-wrap{
-        height: calc(
-            var(--invoice-height) 
-            - var(--header-wrap-divided-height) 
-            - var(--header-wrap-divided-height) 
-            - var(--header-wrap-strick-height) 
-            - var(--header-wrap-strick-height) 
-            - var(--title-wrap-height) 
-            - var(--title-wrap-margin-top-height)
-        ); 
+    .invoice-middle-body {
+        padding: 12px 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background-color: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        box-sizing: border-box;
         position: relative;
-    }
-    .invoice-details .v-row:nth-child(odd) {
-        background-color:rgba(135,207,235,0.12);
+        overflow: hidden;
     }
 
-    .invoice-details .v-row:nth-child(even) {
-        background-color: rgba(255, 255, 255, 0);
-    }
-
-    .invoice-wrap{
+    .invoice-wrap {
         height: var(--invoice-height);
         width: var(--invoice-width);
         overflow: hidden;
         background-color: white;
-        size:a4;
+        size: a4;
     }
 
-    .title-wrap{
-        height: var(--title-wrap-height);
-        margin-top: var(--title-wrap-margin-top-height);
+    .title-wrap {
+        width: 100%;
+        margin-bottom: 10px;
         position: relative;
+        box-sizing: border-box;
+        flex-shrink: 0;
     }
 
     .header-wrap-strick{
@@ -933,79 +984,247 @@
         font-size: x-large;
     }
 
-    .title_doughnut_top{
-        border-radius: 100px;
-        border: 22px solid rgba(135, 207, 235, 0.1529411765);
-        height: 3.5cm !important;
-        width: 3.5cm;
+    .invoice-middle-body {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .invoice-body-watermark,
+    .invoice-body {
+        opacity: 0.2;
         position: absolute;
-        right: 19cm;
-        top: 1cm;
-        z-index: 0;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 60%;
+        max-height: 60%;
+        object-fit: contain;
+        pointer-events: none;
+        z-index: 10;
     }
 
-    .summary_doughnut_top{
-        border-radius: 100px;
-        border: 22px solid rgba(135, 207, 235, 0.1529411765);
-        height: 3.5cm !important;
-        width: 3.5cm;
-        position: absolute;
-        left: 19cm;
-        bottom: 2cm;
-        z-index: 0;
+    .meta-grid-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 8px 14px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #e2e8f0;
+        border-left: 5px solid var(--invoice-primary-color, #006064);
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+        box-sizing: border-box;
+        width: 100%;
     }
 
-    .wrap-table{
-        width: var(--invoice-height);
+    .meta-entity-section {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
     }
 
-    .invoice-body{
-        opacity: 0.1;
-        top: 13%;
-        position: absolute;
-        right: 15%;
-        pointer-events: none;    
+    .meta-header-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
     }
 
-    .chevron {
-        --s: 4px;
-        height: 25px;
-        aspect-ratio: 3 / 5;
-        clip-path: polygon(0 0, var(--s) 0, 100% 50%, var(--s) 100%, 0 100%, calc(100% - var(--s)) 50%);
+    .meta-role-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        line-height: 1.2;
     }
 
-    .ant_slash {
-        --p: 18px; /* control the shape (can be percentage) */
-        height: 20px;
-        width: 15px;
-        aspect-ratio: 3/2;
-        clip-path: polygon(var(--p) 0,100% 0,calc(100% - var(--p)) 100%,0 100%);
+    .meta-entity-name {
+        font-size: 13.5px;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
     }
 
-
-    .sparkle {
-        width: 30px; /* adjust to control the size */
-        aspect-ratio: 1;
-        clip-path: polygon(100% 50%,calc(85.36% - 14.03px) calc(85.36% - 14.03px),50% 100%,calc(14.64% - -14.03px) calc(85.36% - 14.03px),0% 50%,calc(14.64% - -14.03px) calc(14.64% - -14.03px),50% 0%,calc(85.36% - 14.03px) calc(14.64% - -14.03px));
+    .meta-detail-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #475569;
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
     }
-    
-    .numeric-font{
-        font-family: 'Roboto Condensed' !important;
+
+    .meta-detail-icon {
+        color: #64748b;
+        flex-shrink: 0;
     }
 
-    .corner-only {
-        --s: 15px; /* size of the corners */
-        border: 2px solid #1d83d1; 
-        position: absolute;
-        bottom: 3px;
-        right: 20px;
-        padding: 5px;
-        width: 70px !important;
-        height: 70px !important;
-        mask: 
-            conic-gradient(#000 0 0) content-box,
-            conic-gradient(at var(--s) var(--s),#0000 75%,#000 0) 
-            0 0/calc(100% - var(--s)) calc(100% - var(--s));
+    .meta-detail-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .meta-subdetail-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10px;
+        color: #64748b;
+        flex-wrap: nowrap;
+        overflow: hidden;
+        line-height: 1.2;
+    }
+
+    .meta-tag-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    .meta-tag-key {
+        font-weight: 700;
+        color: #334155;
+    }
+
+    .meta-dot-divider {
+        color: #cbd5e1;
+        font-weight: bold;
+    }
+
+    .meta-mini-icon {
+        color: #94a3b8;
+    }
+
+    .meta-counterparty-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 1px 6px;
+        background: rgba(241, 245, 249, 0.9);
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        font-size: 9.5px;
+        margin-left: 4px;
+        flex-shrink: 0;
+    }
+
+    .meta-counterparty-label {
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .meta-counterparty-value {
+        color: #1e293b;
+        font-weight: 700;
+    }
+
+    .meta-ref-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .meta-ref-pill {
+        display: flex;
+        align-items: center;
+        border-radius: 6px;
+        padding: 4px 10px;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        gap: 8px;
+    }
+
+    .meta-ref-pill-left {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+    }
+
+    .meta-ref-label {
+        font-size: 9px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.88);
+        font-weight: 600;
+    }
+
+    .meta-ref-value {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        color: #ffffff;
+    }
+
+    .meta-ref-pill-divider {
+        width: 1px;
+        height: 22px;
+        background: rgba(255, 255, 255, 0.35);
+    }
+
+    .meta-ref-pill-right {
+        display: flex;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #ffffff;
+        white-space: nowrap;
+    }
+
+    .meta-qr-container {
+        flex-shrink: 0;
+    }
+
+    .meta-qr-frame {
+        width: 48px;
+        height: 48px;
+        padding: 3px;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+
+        :deep(svg) {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+    }
+
+    .meta-official-seal {
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        border: 1px dashed;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.85);
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
     }
 
     .capitalize-text {
@@ -1013,83 +1232,219 @@
         font-family: sans-serif !important;
     }
 
-/* Table container */
-.invoice-table-wrap { padding: 0.5rem 1rem 0rem 1rem; z-index: 1; position: relative; }
-
-/* scroll */
-.table-scroll { overflow: hidden; max-width: calc(var(--invoice-width) - 2rem); border-top-left-radius: 0.5cm;border-top-right-radius: 0.5cm; background: transparent; }
-
-/* table base */
-table.invoice-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
-
-/* header look (dark-blue) */
-thead{
-    overflow:hidden!important
+/* Table Container matching Live Preview */
+.invoice-table-container {
+    flex: 1 1 auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.88);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
 }
-tbody{
-    overflow:hidden!important
+
+.table-scroll {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    background: transparent;
 }
-table{
-    overflow:hidden!important
+
+table.invoice-table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    font-family: inherit;
+    font-size: 11px;
 }
+
 table.invoice-table thead th {
-  position: relative; user-select: none; vertical-align: middle;
-  color:#fff; font-weight:900; border-bottom:3px solid #fff;
-  white-space: nowrap; overflow:hidden; box-shadow: inset 0 -2px 0 rgba(255,255,255,0.08);
+    position: relative;
+    user-select: none;
+    vertical-align: middle;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.03rem;
+    padding: 5px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
 }
-table.invoice-table thead th:first-child { border-top-left-radius: 8px; }
-table.invoice-table thead th:last-child  { border-top-right-radius: 8px; }
-
-.col-header.dragging { opacity: 0.6; }
-.col-header.drag-over { outline: 2px dashed rgba(0,0,0,0.15); }
-
-.sort-indicator { font-size:0.9em; opacity:0.95; margin-left:1px; }
-
-.drag-handle { cursor:grab; padding:4px 9px; border-radius:px; font-size:0.95em; user-select:none; }
-
-/* resize handle */
-.resize-handle { position:absolute; right:0; top:0; bottom:0; width:10px; cursor:col-resize; z-index:1; }
-
-/* striping & body rows */
-table.invoice-table tbody tr { background: transparent; }
-table.invoice-table tbody tr:nth-child(odd) td { background: rgba(135,207,235,0.12); }
-table.invoice-table tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0); }
-
-table.invoice-table tbody tr:not(:last-child) td  {
-    border-bottom: 1px solid rgba(87, 202, 241, 0.915); vertical-align: middle;
-    
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+table.invoice-table thead th:last-child {
+    border-right: none;
 }
 
-/* numeric alignment */
-td.numeric, th.numeric { text-align: right; padding-right: 16px; }
+.col-header-inner {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+}
 
-/* cell content */
-.cell-content { overflow:hidden; color: black; text-overflow:ellipsis; white-space:nowrap; }
+.header-sort-trigger {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
 
-/* filler empty rows appearance */
-table.invoice-table tbody tr td:empty { height: 26px; }
+.sort-indicator {
+    opacity: 0.95;
+    margin-left: 2px;
+}
 
-/* responsive tweaks */
-@media (max-width: 900px) {
-  .invoice-table { font-size: 11px; }
-  table.invoice-table thead th, table.invoice-table tbody td { padding: 8px 10px; }
+.drag-handle {
+    cursor: grab;
+    padding: 2px 4px;
+    opacity: 0.8;
+    user-select: none;
 }
-.rounded-s-xl{
-    border-top-left-radius: 24px !important;
-    border-bottom-left-radius: 24px !important;
+
+.resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    z-index: 2;
 }
-.rounded-ts-lg {
-    border-top-left-radius: 8px !important;
+
+/* Clean Body Rows */
+table.invoice-table tbody tr.invoice-data-row,
+table.invoice-table tbody tr.invoice-empty-row {
+    box-sizing: border-box;
+    transition: background-color 0.15s ease-in-out;
 }
-.rounded-te-lg {
-    border-top-right-radius: 8px !important;
+
+table.invoice-table tbody tr.invoice-data-row:hover td {
+    background-color: #f1f5f9 !important;
 }
-.rounded-bs-lg {
-    border-bottom-left-radius: 8px !important;
+
+table.invoice-table tbody td {
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+    height: 21px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #334155;
+    box-sizing: border-box;
+    line-height: 1.25;
 }
-.rounded-bs-lg[data-v-043dbba6] {
-    border-bottom-left-radius: 8px !important;
+
+.col-index {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 45px !important;
+}
+
+.cell-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.25;
+    padding-right: 8px;
+}
+
+/* Empty filler rows */
+table.invoice-table tbody tr.invoice-empty-row td {
+    border-bottom: 1px solid #e2e8f0;
+    height: 21px;
+    box-sizing: border-box;
+    line-height: 1.25;
+}
+
+/* Summary Card matching Live Preview */
+.invoice-summary-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    z-index: 1;
+    position: relative;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.words-pill {
+    flex: 1 1 auto;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px dashed;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 42px;
+    box-sizing: border-box;
+}
+
+.words-label {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.25;
+    text-align: center;
+    width: 100%;
+}
+
+.words-divider {
+    width: 100%;
+    border-top: 1px dashed;
+    margin: 3px 0 4px 0;
+    opacity: 0.45;
+}
+
+.words-value {
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    width: 100%;
+}
+
+.totals-pill-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 185px;
+    flex-shrink: 0;
+}
+
+.totals-pill-weight,
+.totals-pill-price {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.pill-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    opacity: 0.95;
+    text-transform: capitalize;
+}
+
+.pill-value {
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.pagination-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+    flex-shrink: 0;
 }
 /* ═══ Export Invoice Custom Styles ═══ */
 .exp-header { height: 100px; position: relative; overflow: hidden; }

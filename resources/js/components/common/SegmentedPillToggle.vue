@@ -6,6 +6,7 @@
       `segmented-pill--${size}`,
       { 'has-indicator': isIndicatorReady }
     ]"
+    :style="containerStyle"
     role="tablist"
   >
     <!-- Sliding active indicator pill with spring animation -->
@@ -74,6 +75,18 @@ export default {
       resizeObserver: null
     };
   },
+  computed: {
+    containerStyle() {
+      const c = this.color || '#1976D2';
+      return {
+        '--pill-accent': c,
+        '--pill-container-bg': this.hexToRgba(c, 0.08),
+        '--pill-container-border': this.hexToRgba(c, 0.28),
+        '--pill-hover-bg': this.hexToRgba(c, 0.12),
+        '--pill-hover-color': c,
+      };
+    }
+  },
   watch: {
     modelValue() {
       this.$nextTick(() => {
@@ -113,6 +126,18 @@ export default {
     window.removeEventListener('resize', this.onWindowResize);
   },
   methods: {
+    hexToRgba(hex, alpha = 1) {
+      if (!hex || typeof hex !== 'string') return `rgba(25, 118, 210, ${alpha})`;
+      if (hex.startsWith('rgb')) return hex;
+      let clean = hex.replace('#', '');
+      if (clean.length === 3) clean = clean.split('').map(x => x + x).join('');
+      if (clean.length !== 6) return `rgba(25, 118, 210, ${alpha})`;
+      const num = parseInt(clean, 16);
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    },
     setButtonRef(el, value) {
       if (el) {
         this.buttonRefs.set(value, el);
@@ -156,7 +181,7 @@ export default {
         width: `${width}px`,
         height: `${height}px`,
         backgroundColor: this.color,
-        boxShadow: `0 3px 10px ${this.color}59`
+        boxShadow: `0 3px 10px ${this.hexToRgba(this.color, 0.35)}`
       };
 
       this.isIndicatorReady = true;
@@ -170,11 +195,11 @@ export default {
   display: inline-flex;
   align-items: center;
   position: relative;
-  background: #EBF3FD;
-  border: 1px solid rgba(66, 165, 245, 0.32);
+  background: var(--pill-container-bg, #EBF3FD);
+  border: 1px solid var(--pill-container-border, rgba(66, 165, 245, 0.32));
   border-radius: 9999px;
   padding: 3px;
-  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   user-select: none;
   font-family: 'Inter', sans-serif;
   max-width: 100%;
@@ -219,14 +244,14 @@ export default {
 
 /* Fallback styling before indicator positions */
 .segmented-pill-container:not(.has-indicator) .segmented-pill-btn.is-active {
-  background: #1976D2;
+  background: var(--pill-accent, #1976D2);
   color: #FFFFFF !important;
-  box-shadow: 0 3px 8px rgba(25, 118, 210, 0.35);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 
 .segmented-pill-btn:hover:not(.is-active) {
-  color: #1976D2;
-  background: rgba(66, 165, 245, 0.1);
+  color: var(--pill-hover-color, #1976D2);
+  background: var(--pill-hover-bg, rgba(66, 165, 245, 0.1));
 }
 
 .segmented-pill-btn:active {
@@ -245,7 +270,7 @@ export default {
 }
 
 .segmented-pill-btn:hover:not(.is-active) .segmented-pill-icon {
-  color: #1976D2;
+  color: var(--pill-hover-color, #1976D2);
 }
 
 .segmented-pill-btn.is-active .segmented-pill-icon {
@@ -277,7 +302,7 @@ export default {
 :deep(.v-theme--dark) .segmented-pill-container,
 .v-theme--dark .segmented-pill-container {
   background: rgba(30, 41, 59, 0.85) !important;
-  border: 1px solid rgba(66, 165, 245, 0.25) !important;
+  border: 1px solid var(--pill-container-border, rgba(66, 165, 245, 0.25)) !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
 }
 
@@ -293,12 +318,12 @@ export default {
 
 :deep(.v-theme--dark) .segmented-pill-btn:hover:not(.is-active),
 .v-theme--dark .segmented-pill-btn:hover:not(.is-active) {
-  color: #60A5FA !important;
-  background: rgba(96, 165, 250, 0.12) !important;
+  color: var(--pill-accent, #60A5FA) !important;
+  background: var(--pill-hover-bg, rgba(96, 165, 250, 0.12)) !important;
 }
 
 :deep(.v-theme--dark) .segmented-pill-btn:hover:not(.is-active) .segmented-pill-icon,
 .v-theme--dark .segmented-pill-btn:hover:not(.is-active) .segmented-pill-icon {
-  color: #60A5FA !important;
+  color: var(--pill-accent, #60A5FA) !important;
 }
 </style>

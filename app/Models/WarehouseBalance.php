@@ -28,7 +28,10 @@ class WarehouseBalance extends Model
             }
         });
 
-        static::created($recalc);
+        static::created(function (WarehouseBalance $balance) use ($recalc) {
+            $recalc($balance);
+            \App\Models\WarehouseStockReset::applyResetToBalance($balance);
+        });
         static::updated($recalc);
         static::deleted(function (WarehouseBalance $balance) {
             // After delete, warehouse relation may still be loaded
@@ -58,7 +61,7 @@ class WarehouseBalance extends Model
         'is_finished' => 'boolean',
     ];
 
-    protected $appends = ['wap', 'effective_total_price'];
+    protected $appends = ['wap', 'effective_total_price', 'clean_stockable_type', 'clean_source_type', 'article_name'];
 
     public function warehouse()
     {
@@ -85,6 +88,30 @@ class WarehouseBalance extends Model
      */
     public function recalculateRemaining(): void
     {
+        $nonResetOutWeight = (float) $this->operations()
+            ->where('source_type', '!=', 'WarehouseStockReset')
+            ->sum('weight');
+
+        $resetOp = $this->operations()
+            ->where('source_type', 'WarehouseStockReset')
+            ->first();
+
+        if ($resetOp) {
+            $remainingBeforeReset = max(0, (float) $this->total_weight - $nonResetOutWeight);
+            $nonResetOutPkgs = (float) $this->operations()
+                ->where('source_type', '!=', 'WarehouseStockReset')
+                ->sum('package_count');
+            $remainingPkgsBeforeReset = max(0, (float) $this->package_count - $nonResetOutPkgs);
+
+            if (abs((float) $resetOp->weight - $remainingBeforeReset) > 0.001 || abs((float) $resetOp->package_count - $remainingPkgsBeforeReset) > 0.001) {
+                $resetOp->weight = $remainingBeforeReset;
+                $resetOp->package_count = $remainingPkgsBeforeReset;
+                $unitP = (float) ($this->unit_price ?? 0);
+                $resetOp->total_price = round($unitP * $remainingBeforeReset, 2);
+                $resetOp->saveQuietly();
+            }
+        }
+
         $totalOutWeight = (float) $this->operations()->sum('weight');
         $this->remaining_weight = max(0, (float) $this->total_weight - $totalOutWeight);
 
@@ -125,5 +152,32 @@ class WarehouseBalance extends Model
             return round($wap * (float) $this->remaining_weight, 2);
         }
         return 0.0;
+    }
+
+    public function getCleanStockableTypeAttribute(): string
+    {
+        $st = $this->stockable_type ?? '';
+        if (str_contains($st, 'FishType')) return 'FishType';
+        if (str_contains($st, 'GuanoType')) return 'GuanoType';
+        if (str_contains($st, 'PackageType')) return 'PackageType';
+        return class_basename($st) ?: 'Other';
+    }
+
+    public function getCleanSourceTypeAttribute(): string
+    {
+        $st = $this->source_type ?? '';
+        if (str_contains($st, 'Production')) return 'Production';
+        if (str_contains($st, 'Charge')) return 'Charge';
+        if (str_contains($st, 'Transfer')) return 'WarehouseTransfer';
+        if (str_contains($st, 'Inventory')) return 'Inventory';
+        if (str_contains($st, 'Shipping')) return 'Shipping';
+        return class_basename($st) ?: 'Manual';
+    }
+
+    public function getArticleNameAttribute(): string
+    {
+        $s = $this->stockable;
+        if (!$s) return '#' . ($this->stockable_id ?? '?');
+        return $s->name ?? $s->name_fr ?? $s->name_en ?? $s->name_es ?? ('#' . $this->stockable_id);
     }
 }
