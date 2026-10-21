@@ -8,25 +8,391 @@
     elevation="0"
   >
     <div class="systembar-inner">
-      <!-- Left: Toggle & Route Breadcrumb Context -->
+      <!-- Left: Toggle, Navigation History Stepper & Route Breadcrumb Context -->
       <div class="systembar-left">
         <v-btn
           v-if="auth.is_auth"
           icon
           variant="tonal"
           color="primary"
-          size="38"
+          size="36"
           class="systembar-nav-toggle-btn"
           @click.prevent="main.sidebar_mini = !main.sidebar_mini"
         >
-          <v-icon size="20">{{ main.sidebar_mini ? 'mdi-menu' : 'mdi-menu-open' }}</v-icon>
+          <v-icon size="19">{{ main.sidebar_mini ? 'mdi-menu' : 'mdi-menu-open' }}</v-icon>
           <v-tooltip activator="parent" location="bottom">
             {{ main.sidebar_mini ? t('expand_sidebar') : t('collapse_sidebar') }}
           </v-tooltip>
         </v-btn>
 
-        <!-- Dynamic Context Breadcrumb -->
-        <div v-if="currentContext" class="systembar-context-pill d-none d-sm-flex" :style="contextStyle">
+        <!-- Navigation History Stepper (Back, Forward, History Menu) -->
+        <div v-if="auth.is_auth" class="systembar-stepper-cluster" :class="main.is_dark ? 'stepper-dark' : 'stepper-light'">
+          <!-- Go Back Button -->
+          <v-btn
+            icon
+            variant="text"
+            size="30"
+            class="stepper-action-btn"
+            :disabled="!navHistory.canGoBack"
+            @click="navHistory.goBack($router)"
+            id="sys-nav-back"
+          >
+            <v-icon size="18">mdi-arrow-left</v-icon>
+            <v-tooltip activator="parent" location="bottom">
+              <div class="font-weight-bold">{{ $t('navigate_back') }} (Alt + ←)</div>
+              <div v-if="navHistory.previousPage" class="text-caption text-truncate" style="max-width: 220px; opacity: .85">
+                {{ navHistory.previousPage.title }}
+              </div>
+            </v-tooltip>
+          </v-btn>
+
+          <!-- Go Forward Button -->
+          <v-btn
+            icon
+            variant="text"
+            size="30"
+            class="stepper-action-btn"
+            :disabled="!navHistory.canGoForward"
+            @click="navHistory.goForward($router)"
+            id="sys-nav-forward"
+          >
+            <v-icon size="18">mdi-arrow-right</v-icon>
+            <v-tooltip activator="parent" location="bottom">
+              <div class="font-weight-bold">{{ $t('navigate_forward') }} (Alt + →)</div>
+              <div v-if="navHistory.nextPage" class="text-caption text-truncate" style="max-width: 220px; opacity: .85">
+                {{ navHistory.nextPage.title }}
+              </div>
+            </v-tooltip>
+          </v-btn>
+
+          <div class="stepper-sep"></div>
+
+          <!-- History & Recents Dropdown Menu -->
+          <v-menu
+            v-model="navHistory.historyMenuOpen"
+            transition="scale-transition"
+            :close-on-content-click="false"
+            :theme="main.is_dark ? 'dark' : 'light'"
+            offset="8"
+            location="bottom start"
+          >
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                icon
+                variant="text"
+                size="30"
+                class="stepper-action-btn history-pill-btn"
+                :class="{ 'history-pill-active': navHistory.historyMenuOpen }"
+                id="sys-nav-history"
+              >
+                <v-icon size="16">mdi-history</v-icon>
+                <v-tooltip activator="parent" location="bottom">
+                  {{ $t('navigation_history') }} (Ctrl + H)
+                </v-tooltip>
+              </v-btn>
+            </template>
+
+            <v-card
+              class="nav-history-panel"
+              :class="main.is_dark ? 'panel-dark' : 'panel-light'"
+              width="430"
+              max-width="95vw"
+              rounded="xl"
+              elevation="18"
+            >
+              <!-- Panel Header -->
+              <div class="nav-history-header">
+                <div class="d-flex align-center ga-2">
+                  <div class="nav-history-icon-box">
+                    <v-icon size="18" color="primary">mdi-compass-outline</v-icon>
+                  </div>
+                  <div>
+                    <div class="text-subtitle-2 font-weight-bold leading-tight">{{ $t('navigation_history') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ $t('quick_jump') }} • {{ navHistory.recentPages.length }} {{ $t('recent_pages').toLowerCase() }}</div>
+                  </div>
+                </div>
+
+                <div class="d-flex align-center ga-1 ml-auto">
+                  <v-btn
+                    v-if="navHistory.recentPages.length > 1 || navHistory.stack.length > 1"
+                    icon
+                    size="x-small"
+                    variant="text"
+                    color="error"
+                    @click="navHistory.clearHistory()"
+                    :title="$t('clear_history')"
+                  >
+                    <v-icon size="16">mdi-trash-can-outline</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    size="x-small"
+                    variant="text"
+                    @click="navHistory.historyMenuOpen = false"
+                  >
+                    <v-icon size="16">mdi-close</v-icon>
+                  </v-btn>
+                </div>
+              </div>
+
+              <!-- Filter Search Input (AddCharge style) -->
+              <div class="px-3 pt-2 pb-1">
+                <v-text-field
+                  v-model="historySearchQuery"
+                  density="compact"
+                  variant="outlined"
+                  color="primary"
+                  rounded="lg"
+                  hide-details
+                  clearable
+                  prepend-inner-icon="mdi-magnify"
+                  :placeholder="$t('search_history')"
+                  class="history-search-input"
+                ></v-text-field>
+              </div>
+
+              <!-- Segmented View Tabs -->
+              <div class="px-3 py-1">
+                <v-btn-toggle
+                  v-model="historyTab"
+                  mandatory
+                  density="compact"
+                  variant="outlined"
+                  color="primary"
+                  rounded="lg"
+                  divided
+                  class="w-100 history-tab-toggle"
+                >
+                  <v-btn value="recents" size="small" class="flex-grow-1 text-none font-weight-medium">
+                    <v-icon size="15" start>mdi-clock-outline</v-icon>
+                    {{ $t('recents_tab') }}
+                  </v-btn>
+                  <v-btn value="trail" size="small" class="flex-grow-1 text-none font-weight-medium">
+                    <v-icon size="15" start>mdi-swap-horizontal</v-icon>
+                    {{ $t('trail_tab') }}
+                  </v-btn>
+                  <v-btn value="pinned" size="small" class="flex-grow-1 text-none font-weight-medium">
+                    <v-icon size="15" start>mdi-pin</v-icon>
+                    {{ $t('pinned_tab') }}
+                    <v-badge v-if="navHistory.pinnedPages.length" :content="navHistory.pinnedPages.length" color="primary" inline></v-badge>
+                  </v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <v-divider class="my-1"></v-divider>
+
+              <!-- Panel Body (Scrollable) -->
+              <div class="nav-history-body">
+                <!-- TAB 1: RECENTS -->
+                <div v-if="historyTab === 'recents'">
+                  <div v-if="filteredRecentPages.length" class="history-items-list pa-2">
+                    <div
+                      v-for="item in filteredRecentPages"
+                      :key="'recent-' + item.fullPath"
+                      class="nav-history-item"
+                      :class="{ 'item-current': isCurrentPage(item) }"
+                      @click="navHistory.navigateTo(item, $router)"
+                    >
+                      <div class="item-icon-box" :style="{ backgroundColor: hexToRgba(item.color, 0.14), color: item.color }">
+                        <v-icon size="18">{{ item.icon }}</v-icon>
+                      </div>
+                      <div class="item-text-box">
+                        <div class="item-title-row">
+                          <span class="item-title">{{ item.title }}</span>
+                          <v-chip v-if="isCurrentPage(item)" size="x-small" color="primary" variant="flat" class="ml-1 font-weight-bold">
+                            {{ $t('you_are_here') }}
+                          </v-chip>
+                        </div>
+                        <div class="item-sub-row">
+                          <span class="item-section" :style="{ color: item.color }">{{ item.section }}</span>
+                          <span class="item-dot">•</span>
+                          <span class="item-time">{{ navHistory.getRelativeTime(item.visitedAt) }}</span>
+                        </div>
+                      </div>
+                      <v-btn
+                        icon
+                        size="x-small"
+                        variant="text"
+                        :color="navHistory.isPinned(item.fullPath) ? 'primary' : 'grey'"
+                        class="item-pin-btn"
+                        @click.stop="navHistory.togglePin(item)"
+                        :title="navHistory.isPinned(item.fullPath) ? $t('unpin_page') : $t('pin_page')"
+                      >
+                        <v-icon size="15">{{ navHistory.isPinned(item.fullPath) ? 'mdi-pin' : 'mdi-pin-outline' }}</v-icon>
+                      </v-btn>
+                    </div>
+                  </div>
+                  <div v-else class="empty-history pa-6 text-center text-medium-emphasis">
+                    <v-icon size="36" color="grey" class="mb-2">mdi-history</v-icon>
+                    <div class="text-caption font-weight-medium">{{ $t('no_recent_pages') }}</div>
+                  </div>
+                </div>
+
+                <!-- TAB 2: TRAIL (History Stack: Forward, Current, Back) -->
+                <div v-else-if="historyTab === 'trail'" class="pa-2">
+                  <!-- Forward Stack (Next pages) -->
+                  <div v-if="navHistory.forwardStack.length" class="mb-2">
+                    <div class="trail-header text-caption font-weight-bold text-success d-flex align-center ga-1 px-2 mb-1">
+                      <v-icon size="14">mdi-arrow-right</v-icon>
+                      <span>{{ $t('forward_history') }}</span>
+                    </div>
+                    <div
+                      v-for="(fItem, fIdx) in navHistory.forwardStack"
+                      :key="'fwd-' + fItem.id"
+                      class="nav-history-item trail-item-forward"
+                      @click="navHistory.jumpTo(navHistory.currentIndex + 1 + fIdx, $router)"
+                    >
+                      <v-icon size="16" color="success" class="mr-2">mdi-arrow-right-thin</v-icon>
+                      <div class="item-text-box">
+                        <span class="item-title">{{ fItem.title }}</span>
+                        <span class="item-section text-caption" :style="{ color: fItem.color }">{{ fItem.section }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Current Page (Here) -->
+                  <div v-if="navHistory.currentPage" class="trail-current-box pa-2.5 rounded-lg mb-2" :style="{ borderColor: navHistory.currentPage.color, background: hexToRgba(navHistory.currentPage.color, 0.08) }">
+                    <div class="d-flex align-center ga-2">
+                      <v-icon size="20" :style="{ color: navHistory.currentPage.color }">{{ navHistory.currentPage.icon }}</v-icon>
+                      <div class="flex-grow-1 min-w-0">
+                        <div class="text-caption font-weight-bold text-uppercase" :style="{ color: navHistory.currentPage.color }">
+                          ● {{ $t('you_are_here') }}
+                        </div>
+                        <div class="font-weight-bold text-body-2 text-truncate">{{ navHistory.currentPage.title }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Back Stack (Previous pages) -->
+                  <div v-if="navHistory.backStack.length">
+                    <div class="trail-header text-caption font-weight-bold text-medium-emphasis d-flex align-center ga-1 px-2 mb-1">
+                      <v-icon size="14">mdi-arrow-left</v-icon>
+                      <span>{{ $t('back_history') }}</span>
+                    </div>
+                    <div
+                      v-for="(bItem, bIdx) in navHistory.backStack"
+                      :key="'back-' + bItem.id"
+                      class="nav-history-item trail-item-back"
+                      @click="navHistory.jumpTo(navHistory.currentIndex - 1 - bIdx, $router)"
+                    >
+                      <v-icon size="16" color="grey" class="mr-2">mdi-arrow-left-thin</v-icon>
+                      <div class="item-text-box">
+                        <span class="item-title">{{ bItem.title }}</span>
+                        <span class="item-section text-caption" :style="{ color: bItem.color }">{{ bItem.section }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="!navHistory.forwardStack.length && !navHistory.backStack.length" class="empty-history pa-6 text-center text-medium-emphasis">
+                    <v-icon size="36" color="grey" class="mb-2">mdi-swap-horizontal</v-icon>
+                    <div class="text-caption font-weight-medium">{{ $t('no_history') }}</div>
+                  </div>
+                </div>
+
+                <!-- TAB 3: PINNED WORKSPACES -->
+                <div v-else-if="historyTab === 'pinned'">
+                  <div v-if="navHistory.pinnedPages.length" class="history-items-list pa-2">
+                    <div
+                      v-for="pin in navHistory.pinnedPages"
+                      :key="'pin-' + pin.fullPath"
+                      class="nav-history-item"
+                      @click="navHistory.navigateTo(pin, $router)"
+                    >
+                      <div class="item-icon-box" :style="{ backgroundColor: hexToRgba(pin.color, 0.14), color: pin.color }">
+                        <v-icon size="18">{{ pin.icon }}</v-icon>
+                      </div>
+                      <div class="item-text-box">
+                        <span class="item-title">{{ pin.title }}</span>
+                        <span class="item-section text-caption" :style="{ color: pin.color }">{{ pin.section }}</span>
+                      </div>
+                      <v-btn
+                        icon
+                        size="x-small"
+                        variant="text"
+                        color="primary"
+                        class="item-pin-btn"
+                        @click.stop="navHistory.togglePin(pin)"
+                        :title="$t('unpin_page')"
+                      >
+                        <v-icon size="16">mdi-pin-off</v-icon>
+                      </v-btn>
+                    </div>
+                  </div>
+                  <div v-else class="empty-history pa-6 text-center text-medium-emphasis">
+                    <v-icon size="36" color="grey" class="mb-2">mdi-pin-outline</v-icon>
+                    <div class="text-caption font-weight-medium">{{ $t('no_recent_pages') }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Tip -->
+              <div class="nav-history-footer">
+                <span class="text-caption text-medium-emphasis">
+                  <kbd>Alt</kbd> + <kbd>←</kbd> {{ $t('navigate_back') }} &nbsp;•&nbsp; <kbd>Alt</kbd> + <kbd>→</kbd> {{ $t('navigate_forward') }}
+                </span>
+              </div>
+            </v-card>
+          </v-menu>
+        </div>
+
+        <!-- Dynamic Interactive Context Breadcrumb (with Sibling Switcher) -->
+        <v-menu
+          v-if="currentContext && currentContext.siblings && currentContext.siblings.length"
+          transition="scale-transition"
+          :theme="main.is_dark ? 'dark' : 'light'"
+          offset="6"
+        >
+          <template v-slot:activator="{ props }">
+            <button
+              v-bind="props"
+              type="button"
+              class="systembar-context-pill systembar-context-interactive d-none d-sm-flex"
+              :style="contextStyle"
+            >
+              <v-icon size="17" class="mr-1.5" :style="{ color: currentContext.color }">{{ currentContext.icon }}</v-icon>
+              <span class="context-section">{{ currentContext.section }}</span>
+              <v-icon size="14" class="context-separator mx-1 text-medium-emphasis">mdi-chevron-right</v-icon>
+              <span class="context-page">{{ currentContext.title }}</span>
+              <v-icon size="13" class="ml-1.5 context-dropdown-arrow" :style="{ color: currentContext.color }">mdi-chevron-down</v-icon>
+              <v-tooltip activator="parent" location="bottom">
+                {{ $t('jump_to_sibling') }}
+              </v-tooltip>
+            </button>
+          </template>
+
+          <v-card
+            class="dock-panel"
+            :class="main.is_dark ? 'panel-dark' : 'panel-light'"
+            min-width="220"
+            rounded="xl"
+            elevation="16"
+          >
+            <div class="dock-panel-header">
+              <v-icon size="16" class="mr-2" :style="{ color: currentContext.color }">{{ currentContext.icon }}</v-icon>
+              <span class="text-subtitle-2 font-weight-bold">{{ currentContext.section }}</span>
+            </div>
+            <v-divider></v-divider>
+            <v-list density="compact" class="pa-2">
+              <v-list-item
+                v-for="sib in currentContext.siblings"
+                :key="'sib-' + sib.name"
+                rounded="lg"
+                :prepend-icon="sib.icon"
+                :title="sib.title"
+                @click="$router.push({ name: sib.name })"
+                class="sibling-item"
+              >
+                <template v-slot:append>
+                  <v-icon size="14" color="grey">mdi-arrow-right</v-icon>
+                </template>
+              </v-list-item>
+            </v-list>
+          </v-card>
+        </v-menu>
+
+        <!-- Fallback non-interactive breadcrumb if no siblings -->
+        <div v-else-if="currentContext" class="systembar-context-pill d-none d-sm-flex" :style="contextStyle">
           <v-icon size="17" class="mr-1.5" :style="{ color: currentContext.color }">{{ currentContext.icon }}</v-icon>
           <span class="context-section">{{ currentContext.section }}</span>
           <v-icon size="14" class="context-separator mx-1 text-medium-emphasis">mdi-chevron-right</v-icon>
@@ -408,6 +774,8 @@ import { useOnlineUsers } from '@/stores/OnlineUsers';
 import { useNotificationCenter } from '@/stores/NotificationCenter';
 import { useCompanySettings } from '@/stores/CompanySettings';
 import { usePwa } from '@/stores/pwa';
+import { useNavigationHistory } from '@/stores/NavigationHistory';
+import { getRouteMetadata } from '@/utils/routeMetadata';
 import annyang from 'annyang';
 import CommandPalette from '@/components/schema/CommandPalette.vue';
 
@@ -420,6 +788,8 @@ export default {
     return {
       notifMenuOpen: false,
       commandPaletteOpen: false,
+      historyTab: 'recents',
+      historySearchQuery: '',
     };
   },
   computed: {
@@ -429,6 +799,7 @@ export default {
     _online() { return useOnlineUsers(); },
     notifCenter() { return useNotificationCenter(); },
     pwa() { return usePwa(); },
+    navHistory() { return useNavigationHistory(); },
     lang() { return this.main.lang?.code || 'en'; },
 
     currentLangFlag() {
@@ -441,53 +812,17 @@ export default {
       return new URL('/images/jupiter-logo.png', window.location.origin).href;
     },
     currentContext() {
-      const routeName = this.$route.name;
-      if (!routeName) return null;
-
-      const t = this.t;
-      const contextMap = {
-        index: { section: t('core_analytics'), title: t('home') || 'Home', icon: 'mdi-home-variant-outline', color: '#1E88E5' },
-        main_dashboard: { section: t('core_analytics'), title: t('main_dashboard'), icon: 'mdi-chart-box-outline', color: '#1565C0' },
-        jupiter_dashboard: { section: t('core_analytics'), title: t('jupiter_dashboard'), icon: 'mdi-orbit-variant', color: '#1E88E5' },
-        user_statistics: { section: t('core_analytics'), title: t('user_statistics'), icon: 'mdi-chart-timeline-variant-shimmer', color: '#3949AB' },
-        ai_prompt: { section: t('core_analytics'), title: t('ai_prompt'), icon: 'mdi-robot', color: '#42A5F5' },
-
-        warehouses: { section: this.$t('warehouses'), title: this.$t('dashboard'), icon: 'mdi-warehouse', color: '#a21ee5' },
-        storage_invoices: { section: this.$t('warehouses'), title: this.$t('storage_invoices'), icon: 'mdi-receipt-text-outline', color: '#a21ee5' },
-        list_inventory: { section: this.$t('inventory'), title: this.$t('list_inventory'), icon: 'mdi-clipboard-text-clock-outline', color: '#6D4C41' },
-        add_inventory: { section: this.$t('inventory'), title: this.$t('add_inventory'), icon: 'mdi-sticker-plus-outline', color: '#6D4C41' },
-        edit_inventory: { section: this.$t('inventory'), title: this.$t('edit_inventory'), icon: 'mdi-pencil-outline', color: '#6D4C41' },
-
-        list_charge: { section: this.$t('charges'), title: this.$t('list_charge'), icon: 'mdi-truck-cargo-container', color: '#42A5F5' },
-        add_charge: { section: this.$t('charges'), title: this.$t('add_charge'), icon: 'mdi-plus-circle-outline', color: '#42A5F5' },
-
-        production_list: { section: this.$t('production'), title: this.$t('production_list'), icon: 'mdi-factory', color: '#00897B' },
-        add_production: { section: this.$t('production'), title: this.$t('add_production'), icon: 'mdi-plus-circle-outline', color: '#00897B' },
-        charge_production_management: { section: this.$t('production'), title: this.$t('charge_production_management'), icon: 'mdi-link-variant', color: '#00897B' },
-
-        list_shipping: { section: this.$t('shippings'), title: this.$t('list_shipping'), icon: 'mdi-package-variant-closed', color: '#4643a0' },
-        add_shipping: { section: this.$t('shippings'), title: this.$t('add_shipping'), icon: 'mdi-plus-circle-outline', color: '#4643a0' },
-
-        list_warehouse_transfer: { section: this.$t('warehouse_transfers'), title: this.$t('list_warehouse_transfer'), icon: 'mdi-swap-horizontal', color: '#F9A825' },
-        edit_warehouse_transfer: { section: this.$t('warehouse_transfers'), title: this.$t('edit') || 'Edit', icon: 'mdi-pencil-outline', color: '#F9A825' },
-
-        workforce_management: { section: this.$t('workforce'), title: this.$t('workforce_management'), icon: 'mdi-account-multiple', color: '#1565C0' },
-        corporal_management: { section: this.$t('workforce'), title: this.$t('corporal_management'), icon: 'mdi-account-tie', color: '#1565C0' },
-        section_management: { section: this.$t('workforce'), title: this.$t('section_management'), icon: 'mdi-sitemap-outline', color: '#1565C0' },
-        fortnight_management: { section: this.$t('workforce'), title: this.$t('fortnight_management'), icon: 'mdi-calendar-month', color: '#1565C0' },
-        workforce_statistics: { section: this.$t('workforce'), title: this.$t('workforce_statistics'), icon: 'mdi-chart-bar', color: '#1565C0' },
-
-        list_supplier_invoice: { section: this.$t('supplier_invoices'), title: this.$t('list_supplier_invoice'), icon: 'mdi-file-document-multiple', color: '#E65100' },
-        supplier_settlement: { section: this.$t('supplier_invoices'), title: this.$t('supplier_settlement'), icon: 'mdi-cash-register', color: '#E65100' },
-        list_client_invoice: { section: this.$t('client_invoics'), title: this.$t('list_client_invoice'), icon: 'mdi-file-document-multiple', color: '#00838F' },
-        client_settlement: { section: this.$t('client_invoics'), title: this.$t('client_settlement'), icon: 'mdi-cash-register', color: '#00838F' },
-        order_transfers_page: { section: this.$t('order_transfers'), title: this.$t('order_transfers'), icon: 'mdi-bank-transfer', color: '#00897B' },
-
-        profile_settings: { section: t('system_administration'), title: t('my_profile'), icon: 'mdi-account-cog-outline', color: '#1976D2' },
-        admin_users: { section: t('system_administration'), title: this.$t('user_management'), icon: 'mdi-shield-account', color: '#5C6BC0' },
-      };
-
-      return contextMap[routeName] || null;
+      return getRouteMetadata(this.$route);
+    },
+    filteredRecentPages() {
+      const list = this.navHistory.recentPages || [];
+      if (!this.historySearchQuery) return list;
+      const q = this.historySearchQuery.toLowerCase().trim();
+      return list.filter(p =>
+        (p.title || '').toLowerCase().includes(q) ||
+        (p.section || '').toLowerCase().includes(q) ||
+        (p.fullPath || '').toLowerCase().includes(q)
+      );
     },
     contextStyle() {
       if (!this.currentContext) return {};
@@ -583,9 +918,15 @@ export default {
       localStorage.removeItem('token');
       this.$router.push({ name: 'login' });
       this.auth.logout().catch(() => {});
+    },
+    isCurrentPage(item) {
+      if (!item) return false;
+      const curPath = this.$route.fullPath || this.$route.path;
+      return item.fullPath === curPath || item.name === this.$route.name;
     }
   },
   mounted() {
+    this.navHistory.init(this.$router);
     if (this.auth.is_auth) {
       this._online.connect();
       this.notifCenter.init();
@@ -666,9 +1007,240 @@ export default {
   opacity: 0.9;
 }
 
-.context-page {
-  font-weight: 500;
-  opacity: 0.75;
+/* ---------- Navigation History Stepper Cluster ---------- */
+.systembar-stepper-cluster {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12px;
+  padding: 2px 4px;
+  gap: 2px;
+  transition: all 0.2s ease;
+}
+
+.stepper-light {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.stepper-dark {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stepper-action-btn {
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+  color: rgba(var(--v-theme-on-surface), 0.75) !important;
+}
+
+.stepper-action-btn:hover:not(:disabled) {
+  background: rgba(var(--v-theme-primary), 0.12) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  transform: translateY(-0.5px);
+}
+
+.stepper-action-btn:disabled {
+  opacity: 0.28 !important;
+  pointer-events: none;
+}
+
+.stepper-sep {
+  width: 1px;
+  height: 16px;
+  background: rgba(var(--v-border-color), 0.16);
+  margin: 0 1px;
+}
+
+.history-pill-btn {
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
+.history-pill-active {
+  background: rgba(var(--v-theme-primary), 0.16) !important;
+}
+
+/* ---------- Navigation History Dropdown Panel ---------- */
+.nav-history-panel {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-history-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px 10px;
+}
+
+.nav-history-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-history-body {
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.history-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nav-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.nav-history-item:hover {
+  background: rgba(var(--v-theme-primary), 0.08);
+  transform: translateX(2px);
+}
+
+.item-current {
+  background: rgba(var(--v-theme-primary), 0.1) !important;
+  border-left: 3px solid rgb(var(--v-theme-primary));
+}
+
+.item-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.item-text-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.item-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  opacity: 0.8;
+  margin-top: 1px;
+}
+
+.item-section {
+  font-weight: 600;
+}
+
+.item-dot {
+  opacity: 0.5;
+}
+
+.item-time {
+  opacity: 0.7;
+}
+
+.item-pin-btn {
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+
+.nav-history-item:hover .item-pin-btn {
+  opacity: 1;
+}
+
+.trail-header {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.68rem;
+}
+
+.trail-item-forward {
+  border-left: 2px solid rgba(76, 175, 80, 0.4);
+}
+
+.trail-item-back {
+  border-left: 2px solid rgba(158, 158, 158, 0.3);
+}
+
+.trail-current-box {
+  border: 1.5px solid;
+}
+
+.nav-history-footer {
+  padding: 8px 14px;
+  border-top: 1px solid rgba(var(--v-border-color), 0.1);
+  background: rgba(var(--v-theme-on-surface), 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-history-footer kbd {
+  font-family: inherit;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+}
+
+/* Interactive Breadcrumb */
+.systembar-context-interactive {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.systembar-context-interactive:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.context-dropdown-arrow {
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.systembar-context-interactive:hover .context-dropdown-arrow {
+  opacity: 1;
+  transform: translateY(1px);
+}
+
+.sibling-item {
+  transition: background-color 0.15s ease;
+}
+
+.sibling-item:hover {
+  background: rgba(var(--v-theme-primary), 0.08);
 }
 
 /* ---------- Center: Quick Search Trigger ---------- */

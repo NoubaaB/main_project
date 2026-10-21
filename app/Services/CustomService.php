@@ -39,20 +39,43 @@ class CustomService
     }
 
     /**
+     * Safely executes an Ollama query with optional thinking level support.
+     * Safely ignores if think() is not defined or if an error occurs.
+     */
+    private function executeOllama(string $systemPrompt, string $userPrompt): mixed
+    {
+        try {
+            $client = Ollama::agent($systemPrompt)
+                ->prompt($userPrompt)
+                ->model($this->model);
+
+            // Safely apply think if supported, ignoring if method is undefined or unsupported
+            if (is_object($client) && method_exists($client, 'think')) {
+                try {
+                    $client->think($this->thinkingLevel);
+                } catch (\Throwable $e) {
+                    // Silently ignore think() errors
+                }
+            }
+
+            return $client->ask();
+        } catch (\Throwable $e) {
+            report($e);
+            return null;
+        }
+    }
+
+    /**
      * Generate a response using the AI model.
      * Used for general-purpose prompts (SQL generation, data analysis, etc.)
      */
     public function generate(string $prompt_question): string|null
     {
-        $response = Ollama::agent($this->getSystemPrompt())
-            ->prompt($prompt_question)
-            ->model($this->model)
-            ->think($this->thinkingLevel)
-            ->ask();
+        $response = $this->executeOllama($this->getSystemPrompt(), $prompt_question);
 
         try {
             return $this->cleanResponse($response['response'] ?? null);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             report($e);
             return null;
         }
@@ -64,17 +87,13 @@ class CustomService
      */
     public function generateSQL(string $prompt): string|null
     {
-        $response = Ollama::agent($this->getSQLSystemPrompt())
-            ->prompt($prompt)
-            ->model($this->model)
-            ->think($this->thinkingLevel)
-            ->ask();
+        $response = $this->executeOllama($this->getSQLSystemPrompt(), $prompt);
 
         try {
             $sql = $response['response'] ?? null;
 
             return $this->cleanSQL($sql);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             report($e);
             return null;
         }
@@ -86,15 +105,11 @@ class CustomService
      */
     public function generateAnswer(string $prompt): string|null
     {
-        $response = Ollama::agent($this->getAnswerSystemPrompt())
-            ->prompt($prompt)
-            ->model($this->model)
-            ->think($this->thinkingLevel)
-            ->ask();
+        $response = $this->executeOllama($this->getAnswerSystemPrompt(), $prompt);
 
         try {
             return $this->cleanResponse($response['response'] ?? null);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             report($e);
             return null;
         }
@@ -106,15 +121,11 @@ class CustomService
      */
     public function classifyIntent(string $prompt): string|null
     {
-        $response = Ollama::agent($this->getIntentSystemPrompt())
-            ->prompt($prompt)
-            ->model($this->model)
-            ->think($this->thinkingLevel)
-            ->ask();
+        $response = $this->executeOllama($this->getIntentSystemPrompt(), $prompt);
 
         try {
             return $this->cleanJSON($response['response'] ?? null);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             report($e);
             return null;
         }

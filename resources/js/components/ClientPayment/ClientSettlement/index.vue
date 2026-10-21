@@ -189,7 +189,7 @@
           color="#00838F"
           size="small"
           rounded="lg"
-          @click="prepareSettlementPrint"
+          @click="openPrintCustomizer"
           :loading="printLoading"
           class="flex-shrink-0"
         >
@@ -488,34 +488,316 @@
     </div>
 
     <!-- TAB: Analytics -->
-    <div v-if="activeTab==='analytics'">
-      <!-- Synergized client filter -->
-      <v-autocomplete
-        v-model="selectedClientIds"
-        :items="clientItems"
-        :label="$t('clients')"
-        variant="outlined"
-        density="compact"
-        rounded="lg"
-        color="#00838F"
-        hide-details
-        multiple
-        chips
-        closable-chips
-        small-chips
-        class="mb-4 cs-filter-input"
-        :placeholder="$t('all')"
-      >
-        <template #chip="{ item }">
-          <v-chip color="cyan-darken-3" variant="tonal" size="small">{{ item.title }}</v-chip>
-        </template>
-      </v-autocomplete>
-      <div class="cs-panel-card">
-        <div class="cs-section-title mb-3">
-          <v-icon size="18" color="#00838F" class="mr-2">mdi-chart-bar</v-icon>
-          {{ $t('invoices_vs_payments') }}
+    <div v-if="activeTab==='analytics'" class="cs-analytics-container">
+      <!-- Top Control Toolbar -->
+      <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-4 cs-analytics-toolbar">
+        <div class="d-flex flex-wrap align-center ga-2 flex-grow-1" style="max-width: 480px;">
+          <!-- Synergized client filter -->
+          <v-autocomplete
+            v-model="selectedClientIds"
+            :items="clientItems"
+            :label="$t('clients')"
+            variant="outlined"
+            density="compact"
+            rounded="lg"
+            color="#00838F"
+            hide-details
+            multiple
+            chips
+            closable-chips
+            small-chips
+            class="flex-grow-1 cs-filter-input"
+            :placeholder="$t('all')"
+          >
+            <template #chip="{ item }">
+              <v-chip color="cyan-darken-3" variant="tonal" size="small">{{ item.title }}</v-chip>
+            </template>
+          </v-autocomplete>
         </div>
-        <apexchart type="line" :height="340" :options="chartOptions" :series="chartSeries"></apexchart>
+
+        <div class="d-flex flex-wrap align-center ga-2">
+          <!-- Horizon Period Filter -->
+          <SegmentedPillToggle
+            v-model="analyticsPeriod"
+            :items="[
+              { value: 'year', label: $t('full_year') },
+              { value: 'q1', label: 'Q1' },
+              { value: 'q2', label: 'Q2' },
+              { value: 'q3', label: 'Q3' },
+              { value: 'q4', label: 'Q4' },
+              { value: 'active', label: $t('preset_active_months') }
+            ]"
+            color="#00838F"
+          />
+
+          <!-- Chart Visualization Mode -->
+          <SegmentedPillToggle
+            v-model="analyticsChartType"
+            :items="[
+              { value: 'flow', label: $t('chart_flow_mode'), icon: 'mdi-chart-line' },
+              { value: 'cumulative', label: $t('chart_cumulative_mode'), icon: 'mdi-chart-areaspline' },
+              { value: 'rate', label: $t('chart_rate_mode'), icon: 'mdi-chart-box' }
+            ]"
+            color="#00838F"
+          />
+        </div>
+      </div>
+
+      <!-- 4 Executive KPI Insight Cards -->
+      <v-row dense class="mb-4">
+        <!-- 1. Total Invoiced -->
+        <v-col cols="12" sm="6" lg="3">
+          <v-card class="cs-kpi-card pa-4" rounded="xl" elevation="0">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">{{ $t('client_invoices') }}</span>
+              <v-avatar size="36" color="cyan-lighten-5">
+                <v-icon size="20" color="#00838F">mdi-file-document-multiple-outline</v-icon>
+              </v-avatar>
+            </div>
+            <div class="cs-analytics-kpi-val text-cyan-darken-3">
+              {{ main.formatDisplayNumber(analyticsKPIs.invoiced) }} <span class="text-caption font-weight-bold text-medium-emphasis">{{ main.currency }}</span>
+            </div>
+            <div class="d-flex align-center justify-space-between mt-2 pt-2 border-t text-caption text-medium-emphasis">
+              <span>{{ analyticsKPIs.invoiceCount }} {{ $t('client_invoices') }}</span>
+              <span class="font-weight-medium">{{ $t('average_invoice') }}: {{ main.formatDisplayNumber(analyticsKPIs.avgInvoice) }}</span>
+            </div>
+          </v-card>
+        </v-col>
+
+        <!-- 2. Total Settled / Paid -->
+        <v-col cols="12" sm="6" lg="3">
+          <v-card class="cs-kpi-card pa-4" rounded="xl" elevation="0">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">{{ $t('payments') }}</span>
+              <v-avatar size="36" color="teal-lighten-5">
+                <v-icon size="20" color="#00897B">mdi-cash-check</v-icon>
+              </v-avatar>
+            </div>
+            <div class="cs-analytics-kpi-val text-teal-darken-2">
+              {{ main.formatDisplayNumber(analyticsKPIs.payments) }} <span class="text-caption font-weight-bold text-medium-emphasis">{{ main.currency }}</span>
+            </div>
+            <div class="d-flex align-center justify-space-between mt-2 pt-2 border-t text-caption text-medium-emphasis">
+              <span>{{ analyticsKPIs.paymentCount }} {{ $t('payments') }}</span>
+              <span class="font-weight-medium">{{ $t('average_payment') }}: {{ main.formatDisplayNumber(analyticsKPIs.avgPayment) }}</span>
+            </div>
+          </v-card>
+        </v-col>
+
+        <!-- 3. Settlement Rate -->
+        <v-col cols="12" sm="6" lg="3">
+          <v-card class="cs-kpi-card pa-4" rounded="xl" elevation="0">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">{{ $t('settlement_rate') }}</span>
+              <v-chip size="x-small" :color="analyticsKPIs.settlementRate >= 90 ? 'success' : (analyticsKPIs.settlementRate >= 50 ? 'warning' : 'error')" variant="flat" class="font-weight-bold">
+                {{ analyticsKPIs.settlementRate >= 90 ? $t('healthy_status') : (analyticsKPIs.settlementRate >= 50 ? $t('pending_settlements') : $t('action_required')) }}
+              </v-chip>
+            </div>
+            <div class="cs-analytics-kpi-val" :class="analyticsKPIs.settlementRate >= 90 ? 'text-success' : (analyticsKPIs.settlementRate >= 50 ? 'text-warning' : 'text-error')">
+              {{ analyticsKPIs.settlementRate }}%
+            </div>
+            <div class="mt-2">
+              <v-progress-linear :model-value="analyticsKPIs.settlementRate" :color="analyticsKPIs.settlementRate >= 90 ? 'success' : (analyticsKPIs.settlementRate >= 50 ? '#00838F' : 'error')" height="6" rounded></v-progress-linear>
+            </div>
+          </v-card>
+        </v-col>
+
+        <!-- 4. Net Outstanding Balance -->
+        <v-col cols="12" sm="6" lg="3">
+          <v-card class="cs-kpi-card pa-4" rounded="xl" elevation="0">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">{{ $t('outstanding_balance') }}</span>
+              <v-avatar size="36" :color="totalBalance > 0 ? 'red-lighten-5' : 'green-lighten-5'">
+                <v-icon size="20" :color="totalBalance > 0 ? '#C62828' : '#2E7D32'">mdi-scale-balance</v-icon>
+              </v-avatar>
+            </div>
+            <div class="cs-analytics-kpi-val" :class="totalBalance > 0 ? 'text-error' : 'text-success'">
+              {{ main.formatDisplayNumber(totalBalance) }} <span class="text-caption font-weight-bold text-medium-emphasis">{{ main.currency }}</span>
+            </div>
+            <div class="d-flex align-center justify-space-between mt-2 pt-2 border-t text-caption text-medium-emphasis">
+              <span>{{ $t('carry_forward') }}: {{ main.formatDisplayNumber(totalCarryForward) }}</span>
+              <span class="font-weight-medium">{{ $t('net_annual_movement') }}: {{ main.formatDisplayNumber(analyticsKPIs.netBalance) }}</span>
+            </div>
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <!-- Primary Visualization Card -->
+      <div class="cs-panel-card mb-4">
+        <div class="d-flex align-center justify-space-between mb-3 flex-wrap ga-2">
+          <div class="cs-section-title">
+            <v-icon size="20" color="#00838F" class="mr-2">
+              {{ analyticsChartType === 'cumulative' ? 'mdi-chart-areaspline' : (analyticsChartType === 'rate' ? 'mdi-chart-box' : 'mdi-chart-bar') }}
+            </v-icon>
+            {{ analyticsChartType === 'cumulative' ? $t('chart_cumulative_mode') : (analyticsChartType === 'rate' ? $t('chart_rate_mode') : $t('invoices_vs_payments')) }}
+          </div>
+          <span class="text-caption text-medium-emphasis font-weight-medium">
+            {{ currentYear }} • {{ analyticsPeriod === 'year' ? $t('full_year') : analyticsPeriod.toUpperCase() }}
+          </span>
+        </div>
+        <apexchart
+          :key="analyticsChartType + analyticsPeriod + main.is_dark"
+          :type="analyticsChartType === 'cumulative' ? 'area' : (analyticsChartType === 'rate' ? 'bar' : 'line')"
+          :height="330"
+          :options="primaryChartOptions"
+          :series="primaryChartSeries"
+        ></apexchart>
+      </div>
+
+      <!-- Secondary Visualizations Grid -->
+      <v-row dense class="mb-4">
+        <!-- Left: Top 5 Clients Leaderboard -->
+        <v-col cols="12" md="6">
+          <div class="cs-panel-card h-100">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="cs-section-title">
+                <v-icon size="20" color="#00838F" class="mr-2">mdi-trophy-outline</v-icon>
+                {{ $t('top_clients') }}
+              </div>
+              <span class="text-caption text-medium-emphasis">{{ $t('share_of_total') }}</span>
+            </div>
+
+            <div v-if="topClientsList.length" class="d-flex flex-column ga-3">
+              <div
+                v-for="cli in topClientsList"
+                :key="cli.id"
+                class="pa-3 rounded-lg border bg-surface"
+              >
+                <div class="d-flex align-center justify-space-between mb-1">
+                  <div class="d-flex align-center ga-2">
+                    <v-avatar size="24" :color="cli.rank === 1 ? 'amber-darken-2' : (cli.rank === 2 ? 'blue-grey-darken-1' : (cli.rank === 3 ? 'brown-darken-1' : 'grey-lighten-2'))" class="text-white text-caption font-weight-bold">
+                      {{ cli.rank }}
+                    </v-avatar>
+                    <span class="text-body-2 font-weight-bold">{{ cli.name }}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-body-2 font-weight-bold text-cyan-darken-3">{{ main.formatDisplayNumber(cli.totalInvoiced) }} {{ main.currency }}</span>
+                    <span class="text-caption text-medium-emphasis ml-1 font-weight-medium">({{ cli.share }}%)</span>
+                  </div>
+                </div>
+                <v-progress-linear :model-value="cli.share" color="#00838F" height="5" rounded class="my-1"></v-progress-linear>
+                <div class="d-flex align-center justify-space-between text-caption text-medium-emphasis mt-1">
+                  <span>{{ $t('payments') }}: {{ main.formatDisplayNumber(cli.totalPayments) }} {{ main.currency }} ({{ cli.rate }}%)</span>
+                  <span :class="cli.balance > 0 ? 'text-error font-weight-bold' : 'text-success font-weight-bold'">
+                    {{ $t('outstanding_balance') }}: {{ main.formatDisplayNumber(cli.balance) }} {{ main.currency }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center py-8 text-medium-emphasis text-caption">
+              {{ $t('no_data_period') }}
+            </div>
+          </div>
+        </v-col>
+
+        <!-- Right: Payment Methods Breakdown -->
+        <v-col cols="12" md="6">
+          <div class="cs-panel-card h-100">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="cs-section-title">
+                <v-icon size="20" color="#00897B" class="mr-2">mdi-chart-donut</v-icon>
+                {{ $t('payment_methods_distribution') }}
+              </div>
+              <span class="text-caption text-medium-emphasis">{{ main.formatDisplayNumber(paymentMethodsDistribution.totalAmount) }} {{ main.currency }}</span>
+            </div>
+
+            <div v-if="paymentMethodsDistribution.hasData">
+              <apexchart
+                :key="'donut-' + analyticsPeriod + main.is_dark"
+                type="donut"
+                :height="240"
+                :options="donutChartOptions"
+                :series="paymentMethodsDistribution.series"
+              ></apexchart>
+              <div class="mt-3 d-flex flex-column ga-2">
+                <div
+                  v-for="method in paymentMethodsDistribution.details"
+                  :key="method.type"
+                  class="d-flex align-center justify-space-between text-caption px-2 py-1 rounded border bg-surface"
+                >
+                  <div class="d-flex align-center ga-2">
+                    <span class="font-weight-medium">{{ method.title }}</span>
+                    <v-chip size="x-small" variant="tonal" color="blue-grey">{{ method.count }}</v-chip>
+                  </div>
+                  <div class="d-flex align-center ga-2">
+                    <span class="font-weight-bold">{{ main.formatDisplayNumber(method.amount) }} {{ main.currency }}</span>
+                    <span class="text-medium-emphasis">({{ method.percent }}%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center py-8 text-medium-emphasis text-caption">
+              {{ $t('no_data_period') }}
+            </div>
+          </div>
+        </v-col>
+      </v-row>
+
+      <!-- Monthly Performance Ledger Table -->
+      <div class="cs-panel-card">
+        <div class="d-flex align-center justify-space-between mb-3">
+          <div class="cs-section-title">
+            <v-icon size="20" color="#00838F" class="mr-2">mdi-table-large</v-icon>
+            {{ $t('monthly_performance') }}
+          </div>
+          <span class="text-caption text-medium-emphasis font-weight-medium">{{ currentYear }}</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="cs-ledger-table">
+            <thead>
+              <tr>
+                <th class="text-left">{{ $t('month') }}</th>
+                <th class="text-right">{{ $t('client_invoices') }}</th>
+                <th class="text-right">{{ $t('payments') }}</th>
+                <th class="text-right">{{ $t('net_movement') }}</th>
+                <th class="text-right">{{ $t('outstanding_balance') }}</th>
+                <th class="text-center">{{ $t('settlement_rate') }}</th>
+                <th class="text-center" style="width: 80px">{{ $t('actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in monthlyLedgerData" :key="'ledger-' + row.monthNum">
+                <td class="font-weight-bold text-left">
+                  <div class="d-flex align-center ga-2">
+                    <v-badge dot :color="row.invoicesTotal > 0 || row.paymentsTotal > 0 ? '#00838F' : 'grey'"></v-badge>
+                    <span>{{ row.monthLabel }}</span>
+                  </div>
+                </td>
+                <td class="text-right text-cyan-darken-3 font-weight-bold">
+                  {{ main.formatDisplayNumber(row.invoicesTotal) }}
+                  <span class="text-caption text-medium-emphasis font-weight-regular" v-if="row.invoicesCount">({{ row.invoicesCount }})</span>
+                </td>
+                <td class="text-right text-teal-darken-2 font-weight-bold">
+                  {{ main.formatDisplayNumber(row.paymentsTotal) }}
+                  <span class="text-caption text-medium-emphasis font-weight-regular" v-if="row.paymentsCount">({{ row.paymentsCount }})</span>
+                </td>
+                <td class="text-right font-weight-bold" :class="row.net > 0 ? 'text-error' : (row.net < 0 ? 'text-success' : '')">
+                  {{ main.formatDisplayNumber(row.net) }}
+                </td>
+                <td class="text-right font-weight-bold" :class="row.cumulative > 0 ? 'text-error' : 'text-success'">
+                  {{ main.formatDisplayNumber(row.cumulative) }} {{ main.currency }}
+                </td>
+                <td class="text-center">
+                  <v-chip size="x-small" :color="row.settlementRate >= 90 ? 'success' : (row.settlementRate >= 50 ? 'warning' : (row.invoicesTotal > 0 ? 'error' : 'grey'))" variant="tonal" class="font-weight-bold">
+                    {{ row.settlementRate }}%
+                  </v-chip>
+                </td>
+                <td class="text-center">
+                  <v-btn
+                    icon
+                    size="x-small"
+                    variant="tonal"
+                    color="#00838F"
+                    @click="jumpToMonthInGrid(row.monthNum)"
+                    :title="$t('jump_to_month')"
+                  >
+                    <v-icon size="14">mdi-arrow-right-circle-outline</v-icon>
+                  </v-btn>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </v-card-text>
@@ -692,171 +974,490 @@
     <span class="text-white text-body-2 font-weight-bold mr-2">{{ $t('client_settlement_bulletin') }} — {{ currentYear }}</span>
     <v-btn v-print="printCfg" color="white" variant="flat" size="small" rounded="lg" prepend-icon="mdi-printer" style="color:#00838F">{{ $t('print') }}</v-btn>
     <v-btn icon size="x-small" variant="text" color="white" @click="printReady = false"><v-icon size="18">mdi-close</v-icon></v-btn>
-  </div>
-</v-card>
+  </div>  </v-card>
 
-<!-- Hidden Print Area -->
-<div style="display:none"><div id="cs-print-area">
-  <div style="padding:20px 28px;max-width:1060px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a1a">
-    <!-- Header with Logo & Company -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div><img :src="logoUrl" alt="Logo" style="height:48px" /></div>
-      <div style="text-align:center;flex:1">
-        <h1 style="font-size:20px;font-weight:800;color:#00838F;margin:0;letter-spacing:.5px">{{ $t('client_settlement_bulletin') }}</h1>
-        <p style="font-size:11px;color:#78909C;margin:2px 0 0">{{ companySettings.companyName }} — {{ companySettings.companyAddress }}</p>
-      </div>
-      <div style="text-align:right;font-size:10px;color:#546E7A">
-        <div><b>{{ $t('year') }}:</b> {{ currentYear }}</div>
-        <div><b>{{ $t('date') }}:</b> {{ new Date().toLocaleDateString() }}</div>
-        <div v-if="printClientLabel"><b>{{ $t('clients') }}:</b> {{ printClientLabel }}</div>
-      </div>
-    </div>
-    <div style="height:3px;background:linear-gradient(90deg,#006064,#26C6DA,#006064);border-radius:2px;margin:8px 0 14px"></div>
+  <!-- Print Customizer Dialog -->
+  <v-dialog v-model="printOptionsDialog" max-width="920" scrollable>
+    <v-card class="rounded-xl shadow-lg cs-dialog-card">
+      <v-card-title class="pa-4 d-flex align-center cs-modal-title" style="background: linear-gradient(135deg, #006064 0%, #00838F 100%); color: white;">
+        <div class="cs-modal-icon-wrap mr-3" style="background: rgba(255,255,255,.2)">
+          <v-icon color="white" size="22">mdi-printer-cog</v-icon>
+        </div>
+        <div class="flex-grow-1">
+          <div class="font-weight-bold text-subtitle-1 text-white">{{ $t('print_customizer') }}</div>
+          <div class="text-caption text-white" style="opacity:.85">{{ $t('choose_data_to_print') }}</div>
+        </div>
+        <v-chip color="white" variant="outlined" size="small" class="font-weight-bold mr-2">
+          {{ currentYear }}
+        </v-chip>
+        <v-btn icon variant="text" size="small" color="white" @click="printOptionsDialog = false">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </v-card-title>
 
-    <!-- Summary Stats Row -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
-      <tr>
-        <td class="cs-ps" style="background:#E0F7FA;border:1px solid #B2EBF2"><div class="cs-ps-label">{{ $t('carry_forward') }}</div><div class="cs-ps-val" style="color:#006064">{{ main.formatDisplayNumber(totalCarryForward) }} {{ main.currency }}</div></td>
-        <td class="cs-ps" style="background:#E0F2F1;border:1px solid #B2DFDB"><div class="cs-ps-label">{{ $t('client_invoices') }}</div><div class="cs-ps-val" style="color:#00838F">{{ main.formatDisplayNumber(totalInvoices) }} {{ main.currency }}</div></td>
-        <td class="cs-ps" style="background:#E8F5E9;border:1px solid #C8E6C9"><div class="cs-ps-label">{{ $t('payments') }}</div><div class="cs-ps-val" style="color:#00695C">{{ main.formatDisplayNumber(totalPayments) }} {{ main.currency }}</div></td>
-        <td class="cs-ps" :style="totalBalance>0?'background:#FFEBEE;border:1px solid #FFCDD2':'background:#E8F5E9;border:1px solid #C8E6C9'"><div class="cs-ps-label">{{ $t('outstanding_balance') }}</div><div class="cs-ps-val" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}</div></td>
-      </tr>
-    </table>
+      <v-card-text class="pa-4 pa-md-5">
+        <!-- Quick Presets -->
+        <div class="mb-4">
+          <div class="text-caption font-weight-bold text-medium-emphasis mb-2 text-uppercase">{{ $t('presets') || 'Presets' }}</div>
+          <div class="d-flex flex-wrap ga-2">
+            <v-btn
+              size="small"
+              rounded="lg"
+              :variant="printOptions.preset === 'active' ? 'flat' : 'tonal'"
+              color="#00838F"
+              prepend-icon="mdi-calendar-check"
+              class="font-weight-bold"
+              @click="applyPrintPreset('active')"
+            >
+              {{ $t('preset_active_months') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              rounded="lg"
+              :variant="printOptions.preset === 'full' ? 'flat' : 'tonal'"
+              color="#00838F"
+              prepend-icon="mdi-file-document-multiple"
+              class="font-weight-bold"
+              @click="applyPrintPreset('full')"
+            >
+              {{ $t('preset_full_report') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              rounded="lg"
+              :variant="printOptions.preset === 'summary' ? 'flat' : 'tonal'"
+              color="#00838F"
+              prepend-icon="mdi-table"
+              class="font-weight-bold"
+              @click="applyPrintPreset('summary')"
+            >
+              {{ $t('preset_summary_only') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              rounded="lg"
+              :variant="printOptions.preset === 'current' ? 'flat' : 'tonal'"
+              color="#00838F"
+              prepend-icon="mdi-calendar-today"
+              class="font-weight-bold"
+              @click="applyPrintPreset('current')"
+            >
+              {{ $t('preset_current_month') }}
+            </v-btn>
+          </div>
+        </div>
 
-    <!-- Month-by-Month Breakdown -->
-    <template v-for="m in printMonths" :key="m.num">
-      <!-- Month Header -->
-      <div style="background:linear-gradient(90deg,#006064,#00838F);color:#fff;padding:6px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:4px 4px 0 0;margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-        <span>{{ m.label }} {{ currentYear }}</span>
-        <span style="font-size:10px;opacity:.85">
-          {{ $t('client_invoices') }}: {{ main.formatDisplayNumber(monthTotals[m.num].invoices) }} {{ main.currency }}
-          &nbsp;|&nbsp;
-          {{ $t('payments') }}: {{ main.formatDisplayNumber(monthTotals[m.num].payments) }} {{ main.currency }}
-          &nbsp;|&nbsp;
-          {{ $t('outstanding_balance') }}: {{ main.formatDisplayNumber(monthTotals[m.num].balance) }} {{ main.currency }}
-        </span>
-      </div>
-      <!-- Side-by-Side Tables -->
-      <table style="width:100%;border-collapse:collapse;border:1px solid #E0E0E0;border-top:none">
-        <tr>
-          <!-- LEFT: Invoices -->
-          <td style="width:50%;vertical-align:top;padding:0;border-right:2px solid #00838F">
-            <table style="width:100%;border-collapse:collapse;font-size:11px">
-              <thead><tr>
-                <th class="cs-ph" colspan="4" style="background:#E0F7FA;color:#006064;border-bottom:1px solid #B2EBF2;font-size:10px;padding:5px 6px">{{ $t('client_invoices') }} ({{ invoicesByMonth[m.num].length }})</th>
-              </tr><tr>
-                <th class="cs-ph2">{{ $t('date') }}</th>
-                <th class="cs-ph2">{{ $t('clients') }}</th>
-                <th class="cs-ph2">{{ $t('weight') }}</th>
-                <th class="cs-ph2">{{ $t('price') }}</th>
-              </tr></thead>
-              <tbody>
-                <tr v-for="inv in invoicesByMonth[m.num]" :key="'pi'+inv.id">
-                  <td class="cs-pv">{{ fmtDate(inv.date) }}</td>
-                  <td class="cs-pv">{{ inv._clientNames }}</td>
-                  <td class="cs-pv" style="text-align:right">{{ main.formatDisplayNumber(inv.total_weight) }}</td>
-                  <td class="cs-pv" style="text-align:right;font-weight:600;color:#00838F">{{ main.formatDisplayNumber(inv.total_price) }}</td>
-                </tr>
-                <tr v-if="!invoicesByMonth[m.num].length"><td class="cs-pv" colspan="4" style="text-align:center;opacity:.4;padding:6px">—</td></tr>
-                <tr style="background:#E0F7FA"><td colspan="3" class="cs-pv" style="text-align:right;font-weight:700;font-size:10px">{{ $t('total') }}</td><td class="cs-pv" style="text-align:right;font-weight:700;color:#00838F">{{ main.formatDisplayNumber(monthTotals[m.num].invoices) }}</td></tr>
-              </tbody>
-            </table>
-          </td>
-          <!-- RIGHT: Payments -->
-          <td style="width:50%;vertical-align:top;padding:0">
-            <table style="width:100%;border-collapse:collapse;font-size:11px">
-              <thead><tr>
-                <th class="cs-ph" colspan="4" style="background:#E0F2F1;color:#00695C;border-bottom:1px solid #B2DFDB;font-size:10px;padding:5px 6px">{{ $t('payments') }} ({{ paymentsByMonth[m.num].length }})</th>
-              </tr><tr>
-                <th class="cs-ph2">{{ $t('date') }}</th>
-                <th class="cs-ph2">{{ $t('clients') }}</th>
-                <th class="cs-ph2">{{ $t('payment_type') }}</th>
-                <th class="cs-ph2">{{ $t('payment_amount') }}</th>
-              </tr></thead>
-              <tbody>
-                <tr v-for="p in paymentsByMonth[m.num]" :key="'pp'+p.id">
-                  <td class="cs-pv">{{ fmtDate(p.date) }}</td>
-                  <td class="cs-pv">{{ p._clientName }}</td>
-                  <td class="cs-pv">{{ paymentTypeLabel(p.payment_type) }}</td>
-                  <td class="cs-pv" style="text-align:right;font-weight:600;color:#00695C">{{ main.formatDisplayNumber(p.amount) }}</td>
-                </tr>
-                <tr v-if="!paymentsByMonth[m.num].length"><td class="cs-pv" colspan="4" style="text-align:center;opacity:.4;padding:6px">—</td></tr>
-                <tr style="background:#E0F2F1"><td colspan="3" class="cs-pv" style="text-align:right;font-weight:700;font-size:10px">{{ $t('total') }}</td><td class="cs-pv" style="text-align:right;font-weight:700;color:#00695C">{{ main.formatDisplayNumber(monthTotals[m.num].payments) }}</td></tr>
-              </tbody>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </template>
+        <v-row dense>
+          <!-- Left Column: Scope & Filters -->
+          <v-col cols="12" md="6">
+            <div class="pa-4 rounded-xl border bg-surface h-100">
+              <div class="d-flex align-center ga-2 mb-3">
+                <v-icon size="18" color="#00838F">mdi-filter-variant</v-icon>
+                <span class="text-subtitle-2 font-weight-bold text-uppercase">{{ $t('document_scope') }}</span>
+              </div>
 
-    <!-- Year Summary Table -->
-    <div style="margin-top:16px">
-      <div style="background:#00838F;color:#fff;padding:6px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:4px 4px 0 0">{{ $t('year_summary') }} — {{ currentYear }}</div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid #E0E0E0;font-size:11px">
-        <thead>
-          <tr>
-            <th class="cs-ph3" style="text-align:left">{{ $t('clients') }}</th>
-            <th class="cs-ph3" style="text-align:right">{{ $t('carry_forward') }}</th>
-            <th class="cs-ph3" style="text-align:right">{{ $t('client_invoices') }}</th>
-            <th class="cs-ph3" style="text-align:right">{{ $t('payments') }}</th>
-            <th class="cs-ph3" style="text-align:right">{{ $t('outstanding_balance') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="s in filteredYearSummary" :key="'ps'+s.client_id">
-            <td class="cs-pv" style="font-weight:600">{{ s.client_name }}</td>
-            <td class="cs-pv" style="text-align:right">{{ main.formatDisplayNumber(s.carry_forward) }}</td>
-            <td class="cs-pv" style="text-align:right;color:#00838F">{{ main.formatDisplayNumber(s.total_invoices) }}</td>
-            <td class="cs-pv" style="text-align:right;color:#00695C">{{ main.formatDisplayNumber(s.total_payments) }}</td>
-            <td class="cs-pv" style="text-align:right;font-weight:700" :style="s.balance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(s.balance) }} {{ main.currency }}</td>
-          </tr>
-          <tr style="background:#E0F7FA;font-weight:700">
-            <td class="cs-pv" style="font-weight:800">{{ $t('total') }}</td>
-            <td class="cs-pv" style="text-align:right">{{ main.formatDisplayNumber(totalCarryForward) }}</td>
-            <td class="cs-pv" style="text-align:right;color:#00838F">{{ main.formatDisplayNumber(totalInvoices) }}</td>
-            <td class="cs-pv" style="text-align:right;color:#00695C">{{ main.formatDisplayNumber(totalPayments) }}</td>
-            <td class="cs-pv" style="text-align:right;font-weight:800" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              <!-- Partner Filter -->
+              <div class="mb-3">
+                <v-autocomplete
+                  v-model="selectedClientIds"
+                  :items="clientItems"
+                  :label="$t('clients')"
+                  variant="outlined"
+                  density="compact"
+                  rounded="lg"
+                  color="#00838F"
+                  hide-details
+                  multiple
+                  chips
+                  closable-chips
+                  small-chips
+                  :placeholder="$t('all')"
+                >
+                  <template #chip="{ item }">
+                    <v-chip color="cyan-darken-3" variant="tonal" size="small">{{ item.title }}</v-chip>
+                  </template>
+                </v-autocomplete>
+              </div>
 
-    <!-- Statistics Footer -->
-    <div style="margin-top:14px;display:flex;gap:16px;page-break-inside:avoid">
-      <div style="flex:1;border:1px solid #B2EBF2;border-radius:6px;padding:10px;background:#E0F7FA">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#006064;margin-bottom:6px;letter-spacing:.5px">{{ $t('settlement_stats_invoices') }}</div>
-        <div style="font-size:11px;display:flex;flex-direction:column;gap:3px">
-          <div><span style="color:#78909C">{{ $t('total_invoices_count') }}:</span> <b>{{ printStats.invoiceCount }}</b></div>
-          <div><span style="color:#78909C">{{ $t('total_weight') }}:</span> <b>{{ main.formatDisplayNumber(printStats.totalWeight) }} KG</b></div>
-          <div><span style="color:#78909C">{{ $t('total') }}:</span> <b style="color:#00838F">{{ main.formatDisplayNumber(totalInvoices) }} {{ main.currency }}</b></div>
+              <!-- Month Selection Mode -->
+              <div class="mb-3">
+                <label class="text-caption font-weight-bold text-medium-emphasis mb-1 d-block">{{ $t('months_to_include') }}</label>
+                <v-btn-toggle
+                  v-model="printOptions.monthMode"
+                  mandatory
+                  density="compact"
+                  rounded="lg"
+                  color="#00838F"
+                  variant="outlined"
+                  divided
+                  class="w-100"
+                >
+                  <v-btn value="active" size="small" class="flex-grow-1 font-weight-bold">{{ $t('active_months_only') }}</v-btn>
+                  <v-btn value="all" size="small" class="flex-grow-1 font-weight-bold">{{ $t('all_months') }}</v-btn>
+                  <v-btn value="custom" size="small" class="flex-grow-1 font-weight-bold">{{ $t('custom_months') }}</v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <!-- Interactive Month Chips (if custom) -->
+              <div v-if="printOptions.monthMode === 'custom'" class="mb-3 pa-2 rounded-lg border bg-surface-light">
+                <div class="d-flex flex-wrap ga-1">
+                  <v-chip
+                    v-for="m in months"
+                    :key="'pm-' + m.num"
+                    size="small"
+                    :color="isPrintMonthSelected(m.num) ? '#00838F' : 'grey'"
+                    :variant="isPrintMonthSelected(m.num) ? 'flat' : 'outlined'"
+                    class="font-weight-bold cursor-pointer"
+                    @click="togglePrintMonth(m.num)"
+                  >
+                    {{ m.short }}
+                  </v-chip>
+                </div>
+              </div>
+
+              <!-- Custom Note / Observations -->
+              <div class="mt-3">
+                <v-textarea
+                  v-model="printOptions.notes"
+                  :label="$t('print_notes')"
+                  :placeholder="$t('print_notes_placeholder')"
+                  variant="outlined"
+                  density="compact"
+                  rounded="lg"
+                  color="#00838F"
+                  rows="2"
+                  auto-grow
+                  hide-details
+                ></v-textarea>
+              </div>
+            </div>
+          </v-col>
+
+          <!-- Right Column: Sections to Include -->
+          <v-col cols="12" md="6">
+            <div class="pa-4 rounded-xl border bg-surface h-100">
+              <div class="d-flex align-center ga-2 mb-3">
+                <v-icon size="18" color="#00838F">mdi-checkbox-multiple-marked-outline</v-icon>
+                <span class="text-subtitle-2 font-weight-bold text-uppercase">{{ $t('sections_to_include') }}</span>
+              </div>
+
+              <div class="d-flex flex-column ga-2">
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('include_header') }}</div>
+                    <div class="text-caption text-medium-emphasis">Logo, company identity & document number</div>
+                  </div>
+                  <v-switch v-model="printOptions.includeHeader" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('include_kpis') }}</div>
+                    <div class="text-caption text-medium-emphasis">Carry forward, invoiced, payments & balance</div>
+                  </div>
+                  <v-switch v-model="printOptions.includeKpis" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('include_invoices') }}</div>
+                    <div class="text-caption text-medium-emphasis">Itemized invoice list per month</div>
+                  </div>
+                  <v-switch v-model="printOptions.includeInvoices" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('include_payments') }}</div>
+                    <div class="text-caption text-medium-emphasis">Itemized payment receipts per month</div>
+                  </div>
+                  <v-switch v-model="printOptions.includePayments" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('include_year_summary') }}</div>
+                    <div class="text-caption text-medium-emphasis">Matrix summary table by client</div>
+                  </div>
+                  <v-switch v-model="printOptions.includeYearSummary" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('include_analytics') }}</div>
+                    <div class="text-caption text-medium-emphasis">Invoice count, weights & payment methods</div>
+                  </div>
+                  <v-switch v-model="printOptions.includeAnalytics" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('include_signatures') }}</div>
+                    <div class="text-caption text-medium-emphasis">Official management and partner stamps</div>
+                  </div>
+                  <v-switch v-model="printOptions.includeSignatures" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+
+                <div class="d-flex align-center justify-space-between pa-2 rounded-lg border">
+                  <div>
+                    <div class="text-body-2 font-weight-bold">{{ $t('compact_print_mode') }}</div>
+                    <div class="text-caption text-medium-emphasis">Dense rows for paper-saving</div>
+                  </div>
+                  <v-switch v-model="printOptions.compactMode" color="#00838F" density="compact" hide-details></v-switch>
+                </div>
+              </div>
+            </div>
+          </v-col>
+        </v-row>
+
+        <!-- Status Bar -->
+        <div class="mt-4 pa-3 rounded-lg border d-flex align-center justify-space-between flex-wrap ga-2" style="background: rgba(0,131,143,.06); border-color: rgba(0,131,143,.2) !important;">
+          <div class="d-flex align-center ga-2">
+            <v-icon color="#00838F" size="18">mdi-information-outline</v-icon>
+            <span class="text-caption font-weight-bold" style="color: #00838F">
+              {{ $t('ready_to_print') }}: {{ printableMonths.length }} {{ $t('months') || 'months' }} • {{ printableInvoicesCount }} {{ $t('client_invoices') }} • {{ printablePaymentsCount }} {{ $t('payments') }}
+            </span>
+          </div>
+          <div class="text-caption font-weight-bold">
+            {{ $t('outstanding_balance') }}: {{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}
+          </div>
+        </div>
+      </v-card-text>
+
+      <v-divider/>
+      <v-card-actions class="pa-4 d-flex align-center justify-space-between">
+        <v-btn variant="text" rounded="lg" @click="printOptionsDialog = false">{{ $t('cancel') }}</v-btn>
+        <v-btn
+          v-print="printCfg"
+          color="#00838F"
+          variant="flat"
+          rounded="lg"
+          size="default"
+          prepend-icon="mdi-printer"
+          class="font-weight-bold px-6"
+        >
+          {{ $t('print_now') }}
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Hidden Print Area -->
+  <div style="display:none"><div id="cs-print-area">
+    <div class="cs-print-document" :class="{ 'cs-print-compact': printOptions.compactMode }">
+      <!-- Header with Logo & Company (if includeHeader) -->
+      <div v-if="printOptions.includeHeader" class="cs-print-header">
+        <div class="cs-print-header-top">
+          <div class="cs-print-logo-box"><img :src="logoUrl" alt="Logo" style="height:52px;object-fit:contain" /></div>
+          <div class="cs-print-company-info">
+            <h2 style="font-size:17px;font-weight:800;color:#1e293b;margin:0 0 2px">{{ companySettings.companyName }}</h2>
+            <p style="font-size:10px;color:#64748b;margin:0">{{ companySettings.companyAddress }}</p>
+          </div>
+          <div class="cs-print-doc-badge">
+            <div style="font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#00838F">{{ $t('official_document') }}</div>
+            <div style="font-size:14px;font-weight:900;color:#00838F">{{ $t('client_settlement_bulletin') }}</div>
+            <div style="font-size:10px;font-weight:700;color:#334155">{{ currentYear }}</div>
+          </div>
+        </div>
+        <div class="cs-print-meta-bar">
+          <div><b>{{ $t('year') }}:</b> {{ currentYear }}</div>
+          <div><b>{{ $t('date') }}:</b> {{ new Date().toLocaleDateString() }}</div>
+          <div v-if="printClientLabel"><b>{{ $t('clients') }}:</b> {{ printClientLabel }}</div>
+          <div style="margin-left:auto"><b>REF:</b> STL-CLI-{{ currentYear }}-{{ String(new Date().getMonth()+1).padStart(2,'0') }}</div>
         </div>
       </div>
-      <div style="flex:1;border:1px solid #B2DFDB;border-radius:6px;padding:10px;background:#E0F2F1">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#00695C;margin-bottom:6px;letter-spacing:.5px">{{ $t('settlement_stats_payments') }}</div>
-        <div style="font-size:11px;display:flex;flex-direction:column;gap:3px">
-          <div><span style="color:#78909C">{{ $t('total_payments_count') }}:</span> <b>{{ printStats.paymentCount }}</b></div>
-          <div><span style="color:#78909C">{{ $t('settlement_payment_methods') }}:</span> <b>{{ printStats.paymentMethodsSummary }}</b></div>
-          <div><span style="color:#78909C">{{ $t('total') }}:</span> <b style="color:#00695C">{{ main.formatDisplayNumber(totalPayments) }} {{ main.currency }}</b></div>
-        </div>
-      </div>
-      <div style="flex:1;border-radius:6px;padding:10px" :style="totalBalance>0?'border:1px solid #FFCDD2;background:#FFEBEE':'border:1px solid #C8E6C9;background:#E8F5E9'">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ $t('settlement_stats_balance') }}</div>
-        <div style="font-size:11px;display:flex;flex-direction:column;gap:3px">
-          <div><span style="color:#78909C">{{ $t('carry_forward') }}:</span> <b>{{ main.formatDisplayNumber(totalCarryForward) }} {{ main.currency }}</b></div>
-          <div><span style="color:#78909C">{{ $t('net_movement') }}:</span> <b>{{ main.formatDisplayNumber(totalInvoices - totalPayments) }} {{ main.currency }}</b></div>
-          <div><span style="color:#78909C">{{ $t('outstanding_balance') }}:</span> <b :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}</b></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Signatures -->
-    <div style="display:flex;justify-content:space-between;margin-top:40px;gap:60px">
-      <div style="flex:1;text-align:center"><div style="border-bottom:1px solid #333;height:36px;margin-bottom:6px"></div><div style="font-size:10px;font-weight:600;color:#546E7A;text-transform:uppercase">{{ $t('la_direction') }}</div></div>
-      <div style="flex:1;text-align:center"><div style="border-bottom:1px solid #333;height:36px;margin-bottom:6px"></div><div style="font-size:10px;font-weight:600;color:#546E7A;text-transform:uppercase">{{ $t('company_signature') }}</div></div>
+      <!-- Custom Notes Callout (if entered) -->
+      <div v-if="printOptions.notes" class="cs-print-note-callout">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#00838F;margin-bottom:2px">{{ $t('print_notes') }}</div>
+        <div style="font-size:11px;color:#334155;white-space:pre-wrap">{{ printOptions.notes }}</div>
+      </div>
+
+      <!-- Summary Stats Strip (if includeKpis) -->
+      <div v-if="printOptions.includeKpis" class="cs-print-kpis-grid">
+        <div class="cs-print-kpi-box" style="border-top:3px solid #006064">
+          <div class="cs-print-kpi-lbl">{{ $t('carry_forward') }}</div>
+          <div class="cs-print-kpi-num" style="color:#006064">{{ main.formatDisplayNumber(totalCarryForward) }} <span style="font-size:9px">{{ main.currency }}</span></div>
+        </div>
+        <div class="cs-print-kpi-box" style="border-top:3px solid #00838F">
+          <div class="cs-print-kpi-lbl">{{ $t('client_invoices') }}</div>
+          <div class="cs-print-kpi-num" style="color:#00838F">{{ main.formatDisplayNumber(totalInvoices) }} <span style="font-size:9px">{{ main.currency }}</span></div>
+        </div>
+        <div class="cs-print-kpi-box" style="border-top:3px solid #00695C">
+          <div class="cs-print-kpi-lbl">{{ $t('payments') }}</div>
+          <div class="cs-print-kpi-num" style="color:#00695C">{{ main.formatDisplayNumber(totalPayments) }} <span style="font-size:9px">{{ main.currency }}</span></div>
+        </div>
+        <div class="cs-print-kpi-box" :style="totalBalance>0?'border-top:3px solid #C62828':'border-top:3px solid #2E7D32'">
+          <div class="cs-print-kpi-lbl">{{ $t('outstanding_balance') }}</div>
+          <div class="cs-print-kpi-num" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} <span style="font-size:9px">{{ main.currency }}</span></div>
+        </div>
+      </div>
+
+      <!-- Month-by-Month Breakdown (if invoices or payments included) -->
+      <div v-if="printOptions.includeInvoices || printOptions.includePayments" class="cs-print-months-wrap">
+        <div v-for="m in printableMonths" :key="'print-m-'+m.num" class="cs-print-month-block">
+          <!-- Month Header -->
+          <div class="cs-print-month-hdr">
+            <span style="font-weight:800;letter-spacing:.5px">{{ m.label }} {{ currentYear }}</span>
+            <div style="font-size:10px;font-weight:600;display:flex;gap:12px">
+              <span v-if="printOptions.includeInvoices">{{ $t('client_invoices') }}: <b>{{ main.formatDisplayNumber(monthTotals[m.num].invoices) }} {{ main.currency }}</b></span>
+              <span v-if="printOptions.includePayments">{{ $t('payments') }}: <b>{{ main.formatDisplayNumber(monthTotals[m.num].payments) }} {{ main.currency }}</b></span>
+              <span>{{ $t('outstanding_balance') }}: <b>{{ main.formatDisplayNumber(monthTotals[m.num].balance) }} {{ main.currency }}</b></span>
+            </div>
+          </div>
+
+          <!-- Tables -->
+          <table class="cs-print-side-table">
+            <tr>
+              <!-- Invoices Side -->
+              <td v-if="printOptions.includeInvoices" :style="{ width: printOptions.includePayments ? '50%' : '100%' }" style="vertical-align:top;padding:0;border-right:1px solid #CBD5E1">
+                <table class="cs-print-subtable">
+                  <thead>
+                    <tr style="background:#E0F7FA">
+                      <th colspan="4" style="color:#006064;font-weight:800;font-size:10px;text-align:left;padding:4px 8px">{{ $t('client_invoices') }} ({{ invoicesByMonth[m.num].length }})</th>
+                    </tr>
+                    <tr style="background:#F8FAFC">
+                      <th>{{ $t('date') }}</th>
+                      <th>{{ $t('clients') }}</th>
+                      <th style="text-align:right">{{ $t('weight') }}</th>
+                      <th style="text-align:right">{{ $t('price') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="inv in invoicesByMonth[m.num]" :key="'p-inv-'+inv.id">
+                      <td>{{ fmtDate(inv.date) }}</td>
+                      <td style="font-weight:600">{{ inv._clientNames }}</td>
+                      <td style="text-align:right">{{ main.formatDisplayNumber(inv.total_weight) }}</td>
+                      <td style="text-align:right;font-weight:700;color:#00838F">{{ main.formatDisplayNumber(inv.total_price) }}</td>
+                    </tr>
+                    <tr v-if="!invoicesByMonth[m.num].length">
+                      <td colspan="4" style="text-align:center;color:#94a3b8;padding:6px">—</td>
+                    </tr>
+                    <tr class="cs-print-tot-row" style="background:#E0F7FA">
+                      <td colspan="3" style="text-align:right;font-weight:800">{{ $t('total') }}</td>
+                      <td style="text-align:right;font-weight:800;color:#00838F">{{ main.formatDisplayNumber(monthTotals[m.num].invoices) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+
+              <!-- Payments Side -->
+              <td v-if="printOptions.includePayments" :style="{ width: printOptions.includeInvoices ? '50%' : '100%' }" style="vertical-align:top;padding:0">
+                <table class="cs-print-subtable">
+                  <thead>
+                    <tr style="background:#E0F2F1">
+                      <th colspan="4" style="color:#00695C;font-weight:800;font-size:10px;text-align:left;padding:4px 8px">{{ $t('payments') }} ({{ paymentsByMonth[m.num].length }})</th>
+                    </tr>
+                    <tr style="background:#F8FAFC">
+                      <th>{{ $t('date') }}</th>
+                      <th>{{ $t('clients') }}</th>
+                      <th>{{ $t('payment_type') }}</th>
+                      <th style="text-align:right">{{ $t('payment_amount') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="p in paymentsByMonth[m.num]" :key="'p-pay-'+p.id">
+                      <td>{{ fmtDate(p.date) }}</td>
+                      <td style="font-weight:600">{{ p._clientName }}</td>
+                      <td>{{ paymentTypeLabel(p.payment_type) }}</td>
+                      <td style="text-align:right;font-weight:700;color:#00695C">{{ main.formatDisplayNumber(p.amount) }}</td>
+                    </tr>
+                    <tr v-if="!paymentsByMonth[m.num].length">
+                      <td colspan="4" style="text-align:center;color:#94a3b8;padding:6px">—</td>
+                    </tr>
+                    <tr class="cs-print-tot-row" style="background:#E0F2F1">
+                      <td colspan="3" style="text-align:right;font-weight:800">{{ $t('total') }}</td>
+                      <td style="text-align:right;font-weight:800;color:#00695C">{{ main.formatDisplayNumber(monthTotals[m.num].payments) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Year Summary Matrix Table (if includeYearSummary) -->
+      <div v-if="printOptions.includeYearSummary" class="cs-print-section-block">
+        <div class="cs-print-block-hdr" style="background:#00838F">
+          {{ $t('year_summary') }} — {{ currentYear }}
+        </div>
+        <table class="cs-print-matrix-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">{{ $t('clients') }}</th>
+              <th style="text-align:right">{{ $t('carry_forward') }}</th>
+              <th style="text-align:right">{{ $t('client_invoices') }}</th>
+              <th style="text-align:right">{{ $t('payments') }}</th>
+              <th style="text-align:right">{{ $t('outstanding_balance') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in filteredYearSummary" :key="'p-ys-'+c.client_id">
+              <td style="font-weight:700">{{ c.client_name }}</td>
+              <td style="text-align:right">{{ main.formatDisplayNumber(c.carry_forward) }}</td>
+              <td style="text-align:right;color:#00838F;font-weight:600">{{ main.formatDisplayNumber(c.total_invoices) }}</td>
+              <td style="text-align:right;color:#00695C;font-weight:600">{{ main.formatDisplayNumber(c.total_payments) }}</td>
+              <td style="text-align:right;font-weight:800" :style="c.balance>0?'color:#C62828':'color:#2E7D32'">
+                {{ main.formatDisplayNumber(c.balance) }} {{ main.currency }}
+              </td>
+            </tr>
+            <tr class="cs-print-matrix-tot" style="background:#E0F7FA">
+              <td style="font-weight:900">{{ $t('total') }}</td>
+              <td style="text-align:right;font-weight:800">{{ main.formatDisplayNumber(totalCarryForward) }}</td>
+              <td style="text-align:right;color:#00838F;font-weight:900">{{ main.formatDisplayNumber(totalInvoices) }}</td>
+              <td style="text-align:right;color:#00695C;font-weight:900">{{ main.formatDisplayNumber(totalPayments) }}</td>
+              <td style="text-align:right;font-weight:900" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">
+                {{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Financial Analytics & Statistics Strip (if includeAnalytics) -->
+      <div v-if="printOptions.includeAnalytics" class="cs-print-stats-strip">
+        <div class="cs-print-stat-card" style="border-left:3px solid #00838F;background:#E0F7FA">
+          <div class="cs-print-stat-title" style="color:#00838F">{{ $t('settlement_stats_invoices') }}</div>
+          <div class="cs-print-stat-item"><span>{{ $t('total_invoices_count') }}:</span> <b>{{ printStats.invoiceCount }}</b></div>
+          <div class="cs-print-stat-item"><span>{{ $t('total_weight') }}:</span> <b>{{ main.formatDisplayNumber(printStats.totalWeight) }} KG</b></div>
+          <div class="cs-print-stat-item"><span>{{ $t('total') }}:</span> <b style="color:#00838F">{{ main.formatDisplayNumber(totalInvoices) }} {{ main.currency }}</b></div>
+        </div>
+
+        <div class="cs-print-stat-card" style="border-left:3px solid #00695C;background:#E8F5E9">
+          <div class="cs-print-stat-title" style="color:#00695C">{{ $t('settlement_stats_payments') }}</div>
+          <div class="cs-print-stat-item"><span>{{ $t('total_payments_count') }}:</span> <b>{{ printStats.paymentCount }}</b></div>
+          <div class="cs-print-stat-item"><span>{{ $t('settlement_payment_methods') }}:</span> <b>{{ printStats.paymentMethodsSummary }}</b></div>
+          <div class="cs-print-stat-item"><span>{{ $t('total') }}:</span> <b style="color:#00695C">{{ main.formatDisplayNumber(totalPayments) }} {{ main.currency }}</b></div>
+        </div>
+
+        <div class="cs-print-stat-card" :style="totalBalance>0?'border-left:3px solid #C62828;background:#FFEBEE':'border-left:3px solid #2E7D32;background:#E8F5E9'">
+          <div class="cs-print-stat-title" :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ $t('settlement_stats_balance') }}</div>
+          <div class="cs-print-stat-item"><span>{{ $t('carry_forward') }}:</span> <b>{{ main.formatDisplayNumber(totalCarryForward) }} {{ main.currency }}</b></div>
+          <div class="cs-print-stat-item"><span>{{ $t('net_movement') }}:</span> <b>{{ main.formatDisplayNumber(totalInvoices - totalPayments) }} {{ main.currency }}</b></div>
+          <div class="cs-print-stat-item"><span>{{ $t('outstanding_balance') }}:</span> <b :style="totalBalance>0?'color:#C62828':'color:#2E7D32'">{{ main.formatDisplayNumber(totalBalance) }} {{ main.currency }}</b></div>
+        </div>
+      </div>
+
+      <!-- Signatures & Authorization (if includeSignatures) -->
+      <div v-if="printOptions.includeSignatures" class="cs-print-signatures-block">
+        <div class="cs-print-sign-box">
+          <div class="cs-print-sign-line"></div>
+          <div class="cs-print-sign-label">{{ $t('la_direction') }}</div>
+        </div>
+        <div class="cs-print-sign-box">
+          <div class="cs-print-sign-line"></div>
+          <div class="cs-print-sign-label">{{ $t('company_signature') }}</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="cs-print-footer">
+        <div>Jupiter Financial Suite • {{ $t('printed_on') }}: {{ new Date().toLocaleString() }}</div>
+        <div>{{ companySettings.companyName }}</div>
+      </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:9px;color:#9E9E9E">{{ $t('printed_on') }}: {{ new Date().toLocaleString() }}</div>
-  </div>
-</div></div>
+  </div></div>
 
 <AuditLogDialog v-model="auditLogDialogOpen" auditable-type="ClientPayment" :auditable-id="auditLogRecordId" module-color="#00838F" />
 </template>
@@ -1191,16 +1792,299 @@ export default {
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
 }
+
+/* Analytics Styles */
+.cs-analytics-container {
+  animation: fadeIn 0.3s ease;
+}
+.cs-analytics-toolbar {
+  padding: 4px 0;
+}
+.cs-kpi-card {
+  border: 1.5px solid rgba(var(--v-border-color), .12);
+  background: rgb(var(--v-theme-surface));
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.cs-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.06);
+}
+.cs-analytics-kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.cs-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.cs-ledger-table th {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), .6);
+  border-bottom: 2px solid rgba(var(--v-border-color), .15);
+  background: rgba(var(--v-theme-surface-variant), .3);
+}
+.cs-ledger-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(var(--v-border-color), .08);
+  font-variant-numeric: tabular-nums;
+}
+.cs-ledger-table tr:hover td {
+  background: rgba(var(--v-theme-on-surface), .02);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>
 
 <style>
 /* Print area styles (unscoped) */
-.cs-ps{padding:8px 14px;text-align:center;border-radius:4px}
-.cs-ps-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#78909C;margin-bottom:2px}
-.cs-ps-val{font-size:15px;font-weight:800}
-.cs-ph{font-weight:700;text-transform:uppercase;letter-spacing:.3px;text-align:center}
-.cs-ph2{background:#F5F5F5;color:#546E7A;font-size:9px;font-weight:700;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid #E0E0E0;text-align:center;letter-spacing:.3px}
-.cs-ph3{background:#E0F7FA;color:#00838F;font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;border:1px solid #B2EBF2;text-align:center;letter-spacing:.3px}
-#cs-print-area .cs-pv{padding:4px 6px;border-bottom:1px solid #EEEEEE;font-size:11px;color:#212121}
-@media print { #cs-print-area { display: block !important; } }
+#cs-print-area {
+  background: #ffffff;
+  color: #1e293b;
+}
+.cs-print-document {
+  padding: 24px 30px;
+  max-width: 1060px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 11px;
+  color: #1e293b;
+  background: #ffffff;
+}
+.cs-print-compact {
+  padding: 14px 20px;
+  font-size: 10px;
+}
+.cs-print-header {
+  margin-bottom: 14px;
+}
+.cs-print-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.cs-print-company-info {
+  flex-grow: 1;
+}
+.cs-print-doc-badge {
+  text-align: right;
+  border-left: 3px solid #00838F;
+  padding-left: 12px;
+}
+.cs-print-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 10px;
+  color: #475569;
+}
+.cs-print-note-callout {
+  border-left: 4px solid #00838F;
+  background: #E0F7FA;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.cs-print-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.cs-print-kpi-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.cs-print-kpi-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: .5px;
+}
+.cs-print-kpi-num {
+  font-size: 15px;
+  font-weight: 900;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.cs-print-months-wrap {
+  margin-bottom: 16px;
+}
+.cs-print-month-block {
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.cs-print-month-hdr {
+  background: linear-gradient(90deg, #006064, #00838F);
+  color: #ffffff;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.cs-print-side-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.cs-print-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+.cs-print-subtable th {
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  border-bottom: 1px solid #E2E8F0;
+  text-align: left;
+}
+.cs-print-subtable td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #F1F5F9;
+  font-variant-numeric: tabular-nums;
+}
+.cs-print-tot-row td {
+  font-size: 10px;
+  padding: 5px 8px;
+  border-top: 1px solid #CBD5E1;
+}
+.cs-print-section-block {
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 16px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.cs-print-block-hdr {
+  color: #ffffff;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.cs-print-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+.cs-print-matrix-table th {
+  background: #F8FAFC;
+  padding: 6px 10px;
+  font-weight: 700;
+  font-size: 9px;
+  border-bottom: 1px solid #E2E8F0;
+  color: #475569;
+}
+.cs-print-matrix-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid #F1F5F9;
+  font-variant-numeric: tabular-nums;
+}
+.cs-print-matrix-tot td {
+  padding: 6px 10px;
+  border-top: 2px solid #CBD5E1;
+}
+.cs-print-stats-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.cs-print-stat-card {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+}
+.cs-print-stat-title {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+}
+.cs-print-stat-item {
+  font-size: 10px;
+  color: #475569;
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: space-between;
+}
+.cs-print-signatures-block {
+  display: flex;
+  justify-content: space-between;
+  gap: 60px;
+  margin-top: 36px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.cs-print-sign-box {
+  flex: 1;
+  text-align: center;
+}
+.cs-print-sign-line {
+  border-bottom: 1.5px solid #334155;
+  height: 36px;
+  margin-bottom: 6px;
+}
+.cs-print-sign-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+}
+.cs-print-footer {
+  margin-top: 20px;
+  padding-top: 8px;
+  border-top: 1px dashed #CBD5E1;
+  font-size: 9px;
+  color: #94a3b8;
+  display: flex;
+  justify-content: space-between;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  #cs-print-area {
+    display: block !important;
+  }
+  @page {
+    margin: 10mm 12mm;
+    size: auto;
+  }
+}
 </style>

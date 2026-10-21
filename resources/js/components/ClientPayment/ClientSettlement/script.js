@@ -42,8 +42,26 @@ export default {
       selectedClientIds: [],
       // Expanded months
       expandedMonths: {},
-      bankNameSearch: '',
-      // Print
+      // Print Customizer State
+      printOptionsDialog: false,
+      printOptions: {
+        preset: 'active',
+        monthMode: 'active',
+        selectedMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        includeHeader: true,
+        includeKpis: true,
+        includeInvoices: true,
+        includePayments: true,
+        includeYearSummary: true,
+        includeAnalytics: true,
+        includeSignatures: true,
+        compactMode: false,
+        notes: '',
+      },
+      // Rich Analytics State
+      analyticsPeriod: 'year', // 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'active'
+      analyticsChartType: 'flow', // 'flow' | 'cumulative' | 'rate'
+      // Legacy print state
       printReady: false,
       printLoading: false,
       // Rule 5: Summary Snackbar with Countdown Progress Bar
@@ -236,55 +254,296 @@ export default {
       }
       return totals;
     },
-    chartSeries() {
-      const invByMonth = Array(12).fill(null);
-      const payByMonth = Array(12).fill(null);
-      const balByMonth = Array(12).fill(null);
-      let running = this.totalCarryForward;
-      const now = new Date();
-      const curYear = now.getFullYear();
-      const curMonth = now.getMonth() + 1;
-      // For the current year show up to current month; for past years show all 12; for future years show none
-      const maxMonth = this.currentYear < curYear ? 12 : (this.currentYear === curYear ? curMonth : 0);
-      for (let m = 1; m <= 12; m++) {
-        if (m <= maxMonth) {
-          invByMonth[m - 1] = this.analyticsMonthTotals[m].invoices;
-          payByMonth[m - 1] = this.analyticsMonthTotals[m].payments;
-          running += this.analyticsMonthTotals[m].balance;
-          balByMonth[m - 1] = running;
-        } else {
-          running += this.analyticsMonthTotals[m].balance;
-        }
+    activeMonthsList() {
+      return this.months
+        .filter(m => (this.invoicesByMonth[m.num]?.length > 0 || this.paymentsByMonth[m.num]?.length > 0))
+        .map(m => m.num);
+    },
+    printableMonths() {
+      if (this.printOptions.monthMode === 'all') return this.months;
+      if (this.printOptions.monthMode === 'active') {
+        const active = this.months.filter(m => (this.invoicesByMonth[m.num]?.length > 0 || this.paymentsByMonth[m.num]?.length > 0));
+        return active.length ? active : this.months.slice(0, 1);
       }
-      const r = v => v === null ? null : Math.round(v * 100) / 100;
+      return this.months.filter(m => this.printOptions.selectedMonths.includes(m.num));
+    },
+    printableInvoicesCount() {
+      return this.printableMonths.reduce((s, m) => s + (this.invoicesByMonth[m.num]?.length || 0), 0);
+    },
+    printablePaymentsCount() {
+      return this.printableMonths.reduce((s, m) => s + (this.paymentsByMonth[m.num]?.length || 0), 0);
+    },
+    // Analytics period months array
+    analyticsPeriodMonths() {
+      if (this.analyticsPeriod === 'q1') return [1, 2, 3];
+      if (this.analyticsPeriod === 'q2') return [4, 5, 6];
+      if (this.analyticsPeriod === 'q3') return [7, 8, 9];
+      if (this.analyticsPeriod === 'q4') return [10, 11, 12];
+      if (this.analyticsPeriod === 'active') {
+        const active = this.activeMonthsList;
+        return active.length ? active : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      }
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    },
+    analyticsKPIs() {
+      const months = this.analyticsPeriodMonths;
+      let invoiced = 0;
+      let payments = 0;
+      let invoiceCount = 0;
+      let paymentCount = 0;
+      let totalWeight = 0;
+      let peakMonthVal = -1;
+      let peakMonthLabel = '-';
+
+      months.forEach(m => {
+        const invTotal = this.analyticsMonthTotals[m]?.invoices || 0;
+        const payTotal = this.analyticsMonthTotals[m]?.payments || 0;
+        invoiced += invTotal;
+        payments += payTotal;
+        const invs = this.invoicesByMonth[m] || [];
+        invoiceCount += invs.length;
+        invs.forEach(i => { totalWeight += Number(i.total_weight || 0); });
+        paymentCount += (this.paymentsByMonth[m] || []).length;
+        if (invTotal > peakMonthVal && invTotal > 0) {
+          peakMonthVal = invTotal;
+          peakMonthLabel = this.months[m - 1]?.label || '-';
+        }
+      });
+
+      const netBalance = invoiced - payments;
+      const settlementRate = invoiced > 0 ? Math.min(100, Math.round((payments / invoiced) * 1000) / 10) : (payments > 0 ? 100 : 0);
+      const avgInvoice = invoiceCount > 0 ? Math.round((invoiced / invoiceCount) * 100) / 100 : 0;
+      const avgPayment = paymentCount > 0 ? Math.round((payments / paymentCount) * 100) / 100 : 0;
+
+      return {
+        invoiced,
+        payments,
+        invoiceCount,
+        paymentCount,
+        avgInvoice,
+        avgPayment,
+        totalWeight,
+        netBalance,
+        settlementRate,
+        peakMonthLabel,
+        peakMonthVal: peakMonthVal > -1 ? peakMonthVal : 0,
+      };
+    },
+    topClientsList() {
+      const summary = [...(this.filteredYearSummary || [])];
+      summary.sort((a, b) => Number(b.total_invoices || 0) - Number(a.total_invoices || 0));
+      const totalInv = this.totalInvoices || 1;
+      return summary.slice(0, 5).map((c, idx) => {
+        const inv = Number(c.total_invoices || 0);
+        const pay = Number(c.total_payments || 0);
+        const share = Math.round((inv / totalInv) * 1000) / 10;
+        const rate = inv > 0 ? Math.min(100, Math.round((pay / inv) * 100)) : (pay > 0 ? 100 : 0);
+        return {
+          rank: idx + 1,
+          id: c.client_id,
+          name: c.client_name || this.clientName(c.client_id),
+          totalInvoiced: inv,
+          totalPayments: pay,
+          balance: Number(c.balance || 0),
+          share,
+          rate,
+        };
+      });
+    },
+    paymentMethodsDistribution() {
+      const counts = {};
+      const amounts = {};
+      this.paymentTypes.forEach(t => {
+        counts[t.value] = 0;
+        amounts[t.value] = 0;
+      });
+
+      const months = this.analyticsPeriodMonths;
+      months.forEach(m => {
+        (this.paymentsByMonth[m] || []).forEach(p => {
+          const type = p.payment_type || 'cash';
+          counts[type] = (counts[type] || 0) + 1;
+          amounts[type] = (amounts[type] || 0) + Number(p.amount || 0);
+        });
+      });
+
+      const totalAmount = Object.values(amounts).reduce((a, b) => a + b, 0);
+      const details = this.paymentTypes.map(t => {
+        const amt = amounts[t.value] || 0;
+        const cnt = counts[t.value] || 0;
+        const pct = totalAmount > 0 ? Math.round((amt / totalAmount) * 1000) / 10 : 0;
+        return {
+          type: t.value,
+          title: t.title,
+          count: cnt,
+          amount: amt,
+          percent: pct,
+        };
+      }).filter(d => d.count > 0 || totalAmount === 0);
+
+      const hasData = totalAmount > 0;
+      const series = details.map(d => Math.round(d.amount * 100) / 100);
+      const labels = details.map(d => d.title);
+
+      return { details, hasData, series, labels, totalAmount };
+    },
+    donutChartOptions() {
+      return {
+        chart: { type: 'donut', height: 260, fontFamily: 'Inter, sans-serif', background: 'transparent' },
+        labels: this.paymentMethodsDistribution.labels,
+        colors: ['#00838F', '#26A69A', '#0288D1', '#7B1FA2', '#455A64'],
+        legend: { position: 'bottom', fontSize: '11px', fontWeight: 600 },
+        dataLabels: { enabled: true, formatter: val => `${val.toFixed(1)}%` },
+        tooltip: {
+          theme: this.main.is_dark ? 'dark' : 'light',
+          y: { formatter: v => `${this.main.formatDisplayNumber(v)} ${this.main.currency}` }
+        },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '68%',
+              labels: {
+                show: true,
+                total: {
+                  show: true,
+                  label: this.$t('payments'),
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  formatter: () => `${this.main.formatDisplayNumber(this.paymentMethodsDistribution.totalAmount)} ${this.main.currency}`
+                }
+              }
+            }
+          }
+        },
+        theme: { mode: this.main.is_dark ? 'dark' : 'light' },
+      };
+    },
+    primaryChartSeries() {
+      const months = this.analyticsPeriodMonths;
+      const r = v => v === null ? 0 : Math.round(v * 100) / 100;
+
+      if (this.analyticsChartType === 'rate') {
+        const rates = months.map(m => {
+          const inv = this.analyticsMonthTotals[m].invoices || 0;
+          const pay = this.analyticsMonthTotals[m].payments || 0;
+          if (inv === 0 && pay === 0) return 0;
+          if (inv === 0 && pay > 0) return 100;
+          return Math.min(100, Math.round((pay / inv) * 1000) / 10);
+        });
+        return [{ name: this.$t('settlement_rate'), type: 'bar', data: rates }];
+      }
+
+      if (this.analyticsChartType === 'cumulative') {
+        let running = this.totalCarryForward;
+        const data = months.map(m => {
+          running += (this.analyticsMonthTotals[m].invoices - this.analyticsMonthTotals[m].payments);
+          return r(running);
+        });
+        return [{ name: this.$t('chart_cumulative_mode'), type: 'area', data }];
+      }
+
+      // Default: 'flow' (Comparison)
+      let running = this.totalCarryForward;
+      const invData = months.map(m => r(this.analyticsMonthTotals[m].invoices));
+      const payData = months.map(m => r(this.analyticsMonthTotals[m].payments));
+      const balData = months.map(m => {
+        running += (this.analyticsMonthTotals[m].invoices - this.analyticsMonthTotals[m].payments);
+        return r(running);
+      });
+
       return [
-        { name: this.$t('client_invoices'), type: 'bar', data: invByMonth.map(r) },
-        { name: this.$t('payments'), type: 'bar', data: payByMonth.map(r) },
-        { name: this.$t('outstanding_balance'), type: 'line', data: balByMonth.map(r) },
+        { name: this.$t('client_invoices'), type: 'bar', data: invData },
+        { name: this.$t('payments'), type: 'bar', data: payData },
+        { name: this.$t('outstanding_balance'), type: 'line', data: balData },
       ];
     },
-    chartOptions() {
+    primaryChartOptions() {
+      const categories = this.analyticsPeriodMonths.map(m => this.months[m - 1].short);
+      const isDark = this.main.is_dark;
+
+      if (this.analyticsChartType === 'rate') {
+        return {
+          chart: { type: 'bar', height: 330, toolbar: { show: false }, fontFamily: 'Inter, sans-serif', background: 'transparent' },
+          plotOptions: { bar: { borderRadius: 6, columnWidth: '40%', dataLabels: { position: 'top' } } },
+          colors: ['#00838F'],
+          xaxis: { categories, labels: { style: { fontSize: '11px', fontWeight: 600 } } },
+          yaxis: { max: 100, labels: { formatter: v => `${v}%` } },
+          dataLabels: { enabled: true, formatter: v => `${v}%`, offsetY: -18, style: { fontSize: '10px', colors: [isDark ? '#E0E0E0' : '#37474F'] } },
+          grid: { borderColor: isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)', strokeDashArray: 4 },
+          tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: v => `${v}%` } },
+          theme: { mode: isDark ? 'dark' : 'light' },
+        };
+      }
+
+      if (this.analyticsChartType === 'cumulative') {
+        return {
+          chart: { type: 'area', height: 330, toolbar: { show: false }, fontFamily: 'Inter, sans-serif', background: 'transparent' },
+          stroke: { curve: 'smooth', width: 3 },
+          colors: ['#00838F'],
+          fill: {
+            type: 'gradient',
+            gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 95, 100] }
+          },
+          markers: { size: 4, colors: ['#00838F'], strokeWidth: 2, strokeColors: '#fff' },
+          xaxis: { categories, labels: { style: { fontSize: '11px', fontWeight: 600 } } },
+          yaxis: { labels: { formatter: v => this.main.formatDisplayNumber(v) } },
+          grid: { borderColor: isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)', strokeDashArray: 4 },
+          tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: v => `${this.main.formatDisplayNumber(v)} ${this.main.currency}` } },
+          theme: { mode: isDark ? 'dark' : 'light' },
+        };
+      }
+
+      // Default: 'flow'
       return {
-        chart: { type: 'line', height: 320, toolbar: { show: false }, fontFamily: 'Inter, sans-serif', background: 'transparent' },
+        chart: { type: 'line', height: 330, toolbar: { show: false }, fontFamily: 'Inter, sans-serif', background: 'transparent' },
         stroke: { width: [0, 0, 3], curve: 'smooth' },
         plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
         colors: ['#00838F', '#26A69A', '#E53935'],
         fill: { opacity: [1, 1, 1] },
         markers: { size: [0, 0, 4], colors: ['#E53935'], strokeWidth: 0 },
-        xaxis: { categories: this.months.map(m => m.short), labels: { style: { fontSize: '11px', fontWeight: 600 } } },
+        xaxis: { categories, labels: { style: { fontSize: '11px', fontWeight: 600 } } },
         yaxis: { labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } },
-        tooltip: { shared: true, intersect: false, custom: ({ series, dataPointIndex, w }) => {
-          if (series.every(s => s[dataPointIndex] == null)) return '<span></span>';
-          const cat = w.globals.categoryLabels[dataPointIndex] || '';
-          let h = '<div class="apexcharts-tooltip-title" style="font-family:Inter,sans-serif;font-size:12px">' + cat + '</div>';
-          series.forEach((s, i) => { if (s[dataPointIndex] == null) return; const c = w.globals.colors[i]; const n = w.globals.seriesNames[i]; const v = this.main.formatDisplayNumber(s[dataPointIndex]) + ' ' + this.main.currency; h += '<div style="display:flex;align-items:center;gap:6px;padding:3px 8px"><span style="width:10px;height:10px;border-radius:50%;background:' + c + ';display:inline-block"></span><span style="font-size:12px">' + n + ': <b>' + v + '</b></span></div>'; });
-          return h;
-        }},
-        grid: { borderColor: 'rgba(0,0,0,.06)', strokeDashArray: 4 },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          theme: isDark ? 'dark' : 'light',
+          y: { formatter: v => v !== null ? `${this.main.formatDisplayNumber(v)} ${this.main.currency}` : '-' }
+        },
+        grid: { borderColor: isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)', strokeDashArray: 4 },
         legend: { position: 'top', fontSize: '11px', fontWeight: 600 },
         dataLabels: { enabled: false },
-        theme: { mode: this.main.is_dark ? 'dark' : 'light' },
+        theme: { mode: isDark ? 'dark' : 'light' },
       };
+    },
+    monthlyLedgerData() {
+      let running = this.totalCarryForward;
+      return this.analyticsPeriodMonths.map(m => {
+        const invTotal = this.analyticsMonthTotals[m]?.invoices || 0;
+        const payTotal = this.analyticsMonthTotals[m]?.payments || 0;
+        const net = invTotal - payTotal;
+        running += net;
+        const invs = this.invoicesByMonth[m] || [];
+        const pays = this.paymentsByMonth[m] || [];
+        const rate = invTotal > 0 ? Math.min(100, Math.round((payTotal / invTotal) * 100)) : (payTotal > 0 ? 100 : 0);
+        return {
+          monthNum: m,
+          monthLabel: this.months[m - 1]?.label || `Month ${m}`,
+          invoicesCount: invs.length,
+          invoicesTotal: invTotal,
+          paymentsCount: pays.length,
+          paymentsTotal: payTotal,
+          net,
+          cumulative: running,
+          settlementRate: rate,
+        };
+      });
+    },
+    // Backwards compatibility for existing chart
+    chartSeries() {
+      return this.primaryChartSeries;
+    },
+    chartOptions() {
+      return this.primaryChartOptions;
     },
     // Print: label showing which clients are filtered
     printClientLabel() {
@@ -731,14 +990,95 @@ export default {
       const fileCliNames = cliNames || 'all';
       XLSX.writeFile(wb, `client_settlement_${fileCliNames.replace(/\s+/g, '_')}_${monthLabel}-${this.currentYear}.xlsx`);
     },
-    prepareSettlementPrint() {
-      this.printLoading = true;
+    openPrintCustomizer() {
+      const active = this.activeMonthsList;
+      if (active.length) {
+        this.printOptions.monthMode = 'active';
+        this.printOptions.selectedMonths = [...active];
+        this.printOptions.preset = 'active';
+      } else {
+        this.printOptions.monthMode = 'all';
+        this.printOptions.selectedMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+        this.printOptions.preset = 'full';
+      }
+      this.printOptionsDialog = true;
+    },
+    applyPrintPreset(preset) {
+      this.printOptions.preset = preset;
+      if (preset === 'full') {
+        this.printOptions.monthMode = 'all';
+        this.printOptions.selectedMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+        this.printOptions.includeHeader = true;
+        this.printOptions.includeKpis = true;
+        this.printOptions.includeInvoices = true;
+        this.printOptions.includePayments = true;
+        this.printOptions.includeYearSummary = true;
+        this.printOptions.includeAnalytics = true;
+        this.printOptions.includeSignatures = true;
+      } else if (preset === 'active') {
+        this.printOptions.monthMode = 'active';
+        const active = this.activeMonthsList;
+        this.printOptions.selectedMonths = active.length ? [...active] : [1];
+        this.printOptions.includeHeader = true;
+        this.printOptions.includeKpis = true;
+        this.printOptions.includeInvoices = true;
+        this.printOptions.includePayments = true;
+        this.printOptions.includeYearSummary = true;
+        this.printOptions.includeAnalytics = true;
+        this.printOptions.includeSignatures = true;
+      } else if (preset === 'summary') {
+        this.printOptions.monthMode = 'all';
+        this.printOptions.includeHeader = true;
+        this.printOptions.includeKpis = true;
+        this.printOptions.includeInvoices = false;
+        this.printOptions.includePayments = false;
+        this.printOptions.includeYearSummary = true;
+        this.printOptions.includeAnalytics = true;
+        this.printOptions.includeSignatures = true;
+      } else if (preset === 'current') {
+        const now = new Date();
+        const curM = this.currentYear === now.getFullYear() ? (now.getMonth() + 1) : 1;
+        this.printOptions.monthMode = 'custom';
+        this.printOptions.selectedMonths = [curM];
+        this.printOptions.includeHeader = true;
+        this.printOptions.includeKpis = true;
+        this.printOptions.includeInvoices = true;
+        this.printOptions.includePayments = true;
+        this.printOptions.includeYearSummary = false;
+        this.printOptions.includeAnalytics = false;
+        this.printOptions.includeSignatures = true;
+      }
+    },
+    togglePrintMonth(mNum) {
+      this.printOptions.monthMode = 'custom';
+      this.printOptions.preset = 'custom';
+      const idx = this.printOptions.selectedMonths.indexOf(mNum);
+      if (idx > -1) {
+        if (this.printOptions.selectedMonths.length > 1) {
+          this.printOptions.selectedMonths.splice(idx, 1);
+        }
+      } else {
+        this.printOptions.selectedMonths.push(mNum);
+        this.printOptions.selectedMonths.sort((a, b) => a - b);
+      }
+    },
+    isPrintMonthSelected(mNum) {
+      if (this.printOptions.monthMode === 'all') return true;
+      if (this.printOptions.monthMode === 'active') {
+        return (this.invoicesByMonth[mNum]?.length > 0 || this.paymentsByMonth[mNum]?.length > 0);
+      }
+      return this.printOptions.selectedMonths.includes(mNum);
+    },
+    jumpToMonthInGrid(mNum) {
+      this.activeTab = 'balance';
+      this.expandedMonths = { ...this.expandedMonths, [mNum]: true };
       this.$nextTick(() => {
-        setTimeout(() => {
-          this.printReady = true;
-          this.printLoading = false;
-        }, 300);
+        const el = document.getElementById(`month-row-${mNum}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
+    },
+    prepareSettlementPrint() {
+      this.openPrintCustomizer();
     },
   },
 };
