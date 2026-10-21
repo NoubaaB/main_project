@@ -4,6 +4,7 @@
     :rail="main.sidebar_mini"
     :rail-width="72"
     :width="285"
+    :theme="main.is_dark ? 'dark' : 'light'"
     :class="['nav-drawer-premium', main.is_dark ? 'nav-dark' : 'nav-light']"
     @click="onDrawerClick"
   >
@@ -160,41 +161,64 @@
               </v-list-item>
             </div>
 
-            <!-- Group item (shows parent icon, readable subitems popover) -->
+            <!-- Group item (interactive theme-synced flyout menu panel) -->
             <div
               v-else
               class="rail-icon-wrapper my-0.5"
               :class="{ 'has-active': isAnyChildActive(item) }"
               :style="getItemStyle(item)"
             >
-              <v-list-item
-                class="rail-icon-btn"
-                :class="{ 'is-active': isAnyChildActive(item) }"
-                :style="getItemStyle(item)"
-                rounded="lg"
-                @click.stop="expandAndOpenGroup(item.title)"
+              <v-menu
+                location="end"
+                :theme="main.is_dark ? 'dark' : 'light'"
+                open-on-hover
+                :open-delay="60"
+                :close-delay="160"
+                offset="12"
+                transition="slide-x-transition"
               >
-                <v-icon :size="20" :color="item.color">{{ item.icon }}</v-icon>
-                <v-tooltip
-                  activator="parent"
-                  location="end"
-                  offset="14"
-                  :content-class="main.is_dark ? 'nav-rail-tooltip-dark' : 'nav-rail-tooltip-light'"
+                <template v-slot:activator="{ props: menuProps }">
+                  <v-list-item
+                    v-bind="menuProps"
+                    class="rail-icon-btn"
+                    :class="{ 'is-active': isAnyChildActive(item) }"
+                    :style="getItemStyle(item)"
+                    rounded="lg"
+                    @click.stop="expandAndOpenGroup(item.title)"
+                  >
+                    <v-icon :size="20" :color="item.color">{{ item.icon }}</v-icon>
+                  </v-list-item>
+                </template>
+
+                <!-- Rail Flyout Menu Panel (Theme-Synced) -->
+                <div
+                  class="rail-flyout-panel"
+                  :class="main.is_dark ? 'flyout-dark' : 'flyout-light'"
+                  :style="getItemStyle(item)"
                 >
-                  <div class="rail-tooltip-card">
-                    <div class="rail-tooltip-header">
-                      <v-icon size="16" :color="item.color" class="rail-tooltip-icon">{{ item.icon }}</v-icon>
-                      <span class="rail-tooltip-title">{{ item.title }}</span>
+                  <div class="rail-flyout-header" @click.stop="expandAndOpenGroup(item.title)">
+                    <div class="rail-flyout-icon-pill" :style="{ backgroundColor: hexToRgba(item.color, 0.15) }">
+                      <v-icon size="17" :color="item.color">{{ item.icon }}</v-icon>
                     </div>
-                    <div class="rail-tooltip-children">
-                      <div v-for="c in item.children" :key="c[2]" class="rail-tooltip-child">
-                        <span class="child-bullet-dot" :style="{ backgroundColor: item.color }"></span>
-                        <span class="child-label">{{ c[1] }}</span>
-                      </div>
-                    </div>
+                    <span class="rail-flyout-title">{{ item.title }}</span>
+                    <v-icon size="14" class="ml-auto text-medium-emphasis">mdi-chevron-right</v-icon>
                   </div>
-                </v-tooltip>
-              </v-list-item>
+                  <v-divider class="my-1"></v-divider>
+                  <div class="rail-flyout-children">
+                    <router-link
+                      v-for="([childIcon, childText, childUrl]) in item.children"
+                      :key="childUrl"
+                      :to="{ name: childUrl }"
+                      class="rail-flyout-item"
+                      :class="{ 'is-active': isRouteActive(childUrl) }"
+                    >
+                      <span class="rail-flyout-dot" :style="{ backgroundColor: item.color }"></span>
+                      <span class="rail-flyout-item-text">{{ childText }}</span>
+                      <v-icon v-if="isRouteActive(childUrl)" size="14" :color="item.color" class="ml-auto">mdi-check</v-icon>
+                    </router-link>
+                  </div>
+                </div>
+              </v-menu>
             </div>
           </template>
         </div>
@@ -207,6 +231,7 @@
       v-model:opened="openedGroups"
       nav
       density="compact"
+      :theme="main.is_dark ? 'dark' : 'light'"
       class="nav-list-expanded"
     >
       <template v-for="(section, sIdx) in filteredSections" :key="'exp-sec-' + sIdx">
@@ -937,6 +962,141 @@ export default {
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+/* ============================================================
+   Rail Flyout Menu Panel - Teleported & Theme-Synced
+   ============================================================ */
+.rail-flyout-panel {
+  min-width: 215px;
+  max-width: 270px;
+  border-radius: 14px;
+  padding: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  user-select: none;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.flyout-light {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.16), 0 4px 12px -2px rgba(0, 0, 0, 0.08) !important;
+}
+
+.flyout-dark {
+  background: rgba(26, 31, 44, 0.98) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.65), 0 6px 16px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.rail-flyout-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.18s ease;
+}
+.flyout-light .rail-flyout-header:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.flyout-dark .rail-flyout-header:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.rail-flyout-icon-pill {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rail-flyout-title {
+  font-weight: 700;
+  font-size: 0.86rem;
+  letter-spacing: 0.2px;
+}
+.flyout-light .rail-flyout-title {
+  color: #0F172A !important;
+}
+.flyout-dark .rail-flyout-title {
+  color: #FFFFFF !important;
+}
+
+.rail-flyout-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.rail-flyout-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all 0.18s ease;
+}
+
+.flyout-light .rail-flyout-item {
+  color: #334155 !important;
+}
+.flyout-light .rail-flyout-item:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0F172A !important;
+  transform: translateX(2px);
+}
+.flyout-light .rail-flyout-item.is-active {
+  background: var(--item-active-bg, rgba(33, 150, 243, 0.12)) !important;
+  color: var(--item-accent, #1976D2) !important;
+  font-weight: 600;
+}
+
+.flyout-dark .rail-flyout-item {
+  color: #CBD5E1 !important;
+}
+.flyout-dark .rail-flyout-item:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #FFFFFF !important;
+  transform: translateX(2px);
+}
+.flyout-dark .rail-flyout-item.is-active {
+  background: var(--item-active-bg, rgba(33, 150, 243, 0.14)) !important;
+  color: var(--item-accent, #90CAF9) !important;
+  font-weight: 600;
+}
+
+.rail-flyout-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: all 0.18s ease;
+}
+.rail-flyout-item:hover .rail-flyout-dot,
+.rail-flyout-item.is-active .rail-flyout-dot {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.rail-flyout-item-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
 
 <style scoped>
@@ -964,13 +1124,111 @@ export default {
 }
 
 .nav-light {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-right: 1px solid rgba(0, 0, 0, 0.07) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0F172A !important;
+}
+
+.nav-light .nav-section-header {
+  color: #64748B !important;
+}
+
+.nav-light .nav-item-title {
+  color: #1E293B !important;
+}
+
+.nav-light .nav-child-title {
+  color: #334155 !important;
+}
+
+.nav-light .nav-list-item:hover {
+  background: var(--item-hover-bg, rgba(0, 0, 0, 0.05)) !important;
+}
+
+.nav-light .nav-child-item:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+.nav-light .brand-title {
+  color: #0F172A !important;
+}
+
+.nav-light .brand-status-text {
+  color: #64748B !important;
+}
+
+.nav-light :deep(.v-list-group__items) {
+  background: rgba(0, 0, 0, 0.025) !important;
+  border-left: 2px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 0 10px 10px 0 !important;
+  margin-left: 20px !important;
+  margin-right: 6px !important;
+  margin-top: 2px !important;
+  margin-bottom: 4px !important;
+  padding: 4px 6px !important;
+}
+
+.nav-light .nav-user-fullname {
+  color: #0F172A !important;
+}
+
+.nav-light .nav-user-card-spacious {
+  background: rgba(0, 0, 0, 0.035) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 .nav-dark {
   background: rgba(22, 26, 36, 0.96) !important;
   border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #F8FAFC !important;
+}
+
+.nav-dark .nav-section-header {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.nav-dark .nav-item-title {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.nav-dark .nav-child-title {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.nav-dark .nav-list-item:hover {
+  background: var(--item-hover-bg, rgba(255, 255, 255, 0.06)) !important;
+}
+
+.nav-dark .nav-child-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.nav-dark .brand-title {
+  color: #FFFFFF !important;
+}
+
+.nav-dark .brand-status-text {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.nav-dark :deep(.v-list-group__items) {
+  background: rgba(255, 255, 255, 0.025) !important;
+  border-left: 2px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 0 10px 10px 0 !important;
+  margin-left: 20px !important;
+  margin-right: 6px !important;
+  margin-top: 2px !important;
+  margin-bottom: 4px !important;
+  padding: 4px 6px !important;
+}
+
+.nav-dark .nav-user-fullname {
+  color: #F8FAFC !important;
+}
+
+.nav-dark .nav-user-card-spacious {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Scrollbar styling: hide in rail mode so icons remain 100% symmetrically centered */

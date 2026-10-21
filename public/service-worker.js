@@ -1,5 +1,5 @@
-const CACHE_NAME = 'jupiter-shell-cache-v15';
-const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v15';
+const CACHE_NAME = 'jupiter-shell-cache-v16';
+const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v16';
 
 const PRECACHE_ASSETS = [
   '/js/manifest.json',
@@ -54,10 +54,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Rule 3 Bypass: WebSockets, Echo/Pusher, and API requests must always go to network (real-time sync)
+  // Rule 3 Bypass: WebSockets, Echo/Pusher, dynamic manifest, and API requests must always go to network (real-time sync)
   if (
     url.pathname.includes('/api/') ||
     url.pathname.includes('/broadcasting/') ||
+    url.pathname.includes('/manifest.json') ||
     request.url.includes('pusher') ||
     request.url.includes('sockjs') ||
     request.method !== 'GET'

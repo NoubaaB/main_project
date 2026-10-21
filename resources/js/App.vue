@@ -50,6 +50,42 @@ export default {
             this.$vuetify.theme.global.name = theme;
           }
           localStorage.setItem("theme", theme);
+
+          // Synchronize PWA Theme Color & Mobile Status Bar
+          const themeColor = value ? "#121212" : "#FFFFFF";
+          const metaTheme = document.getElementById("meta-theme-color") || document.querySelector('meta[name="theme-color"]');
+          if (metaTheme) {
+            metaTheme.setAttribute("content", themeColor);
+          } else {
+            const m = document.createElement("meta");
+            m.id = "meta-theme-color";
+            m.name = "theme-color";
+            m.content = themeColor;
+            document.head.appendChild(m);
+          }
+
+          const metaBg = document.getElementById("meta-background-color") || document.querySelector('meta[name="background_color"]');
+          if (metaBg) {
+            metaBg.setAttribute("content", themeColor);
+          }
+
+          const metaStatus = document.getElementById("meta-status-bar-style") || document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+          if (metaStatus) {
+            metaStatus.setAttribute("content", value ? "black-translucent" : "default");
+          }
+
+          const manifestLink = document.getElementById("pwa-manifest-link") || document.querySelector('link[rel="manifest"]');
+          if (manifestLink) {
+            manifestLink.setAttribute("href", `/manifest.json?theme=${theme}`);
+          }
+
+          // Sync root document theme attributes & body background
+          document.documentElement.classList.remove("theme-dark", "theme-light");
+          document.documentElement.classList.add(`theme-${theme}`);
+          document.documentElement.setAttribute("data-theme", theme);
+          if (document.body) {
+            document.body.style.backgroundColor = themeColor;
+          }
         },
       },
     },

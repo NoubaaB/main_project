@@ -46,6 +46,15 @@ export default {
       // Print
       printReady: false,
       printLoading: false,
+      // Rule 5: Summary Snackbar with Countdown Progress Bar
+      summarySnackbar: {
+        show: false,
+        title: '',
+        detail: '',
+        color: 'success',
+      },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -334,22 +343,78 @@ export default {
     this.bankNameStore.fetchAll();
     mitt.on('model-changed', this.onMC);
   },
-  activated() { this.loadYear(); },
-  beforeUnmount() { mitt.off('model-changed', this.onMC) },
+  beforeUnmount() {
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+    mitt.off('model-changed', this.onMC);
+  },
   methods: {
+    triggerSummarySnackbar(title, detail = '', color = 'success') {
+      if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+      this.summarySnackbar = { show: true, title, detail, color };
+      this.snackbarProgress = 100;
+      const duration = 5000;
+      const interval = 50;
+      const step = (interval / duration) * 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= step;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, interval);
+    },
+    toggleAllMonths() {
+      const activeMonths = this.months.filter(m => !this.isFutureMonth(m.num));
+      const allExpanded = activeMonths.length > 0 && activeMonths.every(m => !!this.expandedMonths[m.num]);
+      const nextState = {};
+      activeMonths.forEach(m => {
+        nextState[m.num] = !allExpanded;
+      });
+      this.expandedMonths = nextState;
+    },
+    isAllMonthsExpanded() {
+      const activeMonths = this.months.filter(m => !this.isFutureMonth(m.num));
+      return activeMonths.length > 0 && activeMonths.every(m => !!this.expandedMonths[m.num]);
+    },
+    setPayDateToday() {
+      const now = new Date();
+      if (now.getFullYear() === this.currentYear) {
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        this.payForm.date = `${y}-${m}-${day}`;
+      } else {
+        this.payForm.date = `${this.currentYear}-12-31`;
+      }
+    },
+    setPayDateYesterday() {
+      const now = new Date();
+      if (now.getFullYear() === this.currentYear) {
+        now.setDate(now.getDate() - 1);
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        this.payForm.date = `${y}-${m}-${day}`;
+      } else {
+        this.payForm.date = `${this.currentYear}-12-30`;
+      }
+    },
     onMC(d) {
       if (d.model === 'SupplierPayment') {
         // Another user changed a payment - refresh payments + summary only
         this.store.fetchPayments(this.currentYear);
         this.store.fetchYearSummary(this.currentYear);
+        this.triggerSummarySnackbar(this.$t('realtime_sync'), this.$t('payments'), 'info');
       } else if (d.model === 'SupplierInvoice') {
         // Invoice changed - refresh invoices + summary
         this.fetchYearInvoices();
         this.store.fetchYearSummary(this.currentYear);
+        this.triggerSummarySnackbar(this.$t('realtime_sync'), this.$t('supplier_invoices'), 'info');
       } else if (d.model === 'FiscalYearClosing') {
         // Year open/close status changed
         this.store.fetchYearSummary(this.currentYear);
         this.store.fetchClosings();
+        this.triggerSummarySnackbar(this.$t('realtime_sync'), this.$t('fiscal_year_closing'), 'info');
       } else if (d.model === 'BankName') {
         this.bankNameStore.fetchAll();
       }
@@ -451,12 +516,14 @@ export default {
       if (!this.payForm.supplier_id || !this.payForm.amount || !this.payForm.date) return;
       this.saving = true;
       try {
+        const sName = this.supplierName(this.payForm.supplier_id);
+        const amtStr = `${this.main.formatDisplayNumber(this.payForm.amount)} ${this.main.currency}`;
         if (this.editId) {
           await this.store.updatePayment(this.editId, this.payForm);
-          this.main.add_snackbar({ show: true, message: this.$t('payment_updated'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('payment_updated'), `${sName} • ${amtStr}`, 'success');
         } else {
           await this.store.createPayment(this.payForm);
-          this.main.add_snackbar({ show: true, message: this.$t('payment_created'), color: 'success' });
+          this.triggerSummarySnackbar(this.$t('payment_created'), `${sName} • ${amtStr}`, 'success');
         }
         this.showPayForm = false;
         this.resetPayForm();
@@ -465,7 +532,7 @@ export default {
       } catch (e) {
         console.error(e);
         const msg = e.response?.data?.message || this.$t('error');
-        this.main.add_snackbar({ show: true, message: msg, color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error'), msg, 'error');
       }
       this.saving = false;
     },
@@ -476,14 +543,14 @@ export default {
       try {
         const ids = this.deleteBulk ? this.selected : [this.deleteId];
         await this.store.deletePayments(ids);
-        this.main.add_snackbar({ show: true, message: this.$t('payment_deleted'), color: 'success' });
+        this.triggerSummarySnackbar(this.$t('payment_deleted'), '', 'success');
         this.selected = [];
         this.deleteDialog = false;
         // Only refresh summary cards - payments array already updated in store
         this.store.fetchYearSummary(this.currentYear);
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('error'), color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error'), '', 'error');
       }
       this.deleting = false;
     },
@@ -491,7 +558,7 @@ export default {
       this.closingYear = true;
       try {
         await this.store.closeYear(this.currentYear);
-        this.main.add_snackbar({ show: true, message: this.$t('year_closed_success', { year: this.currentYear }), color: 'success' });
+        this.triggerSummarySnackbar(this.$t('year_closed_success', { year: this.currentYear }), '', 'success');
         this.closeYearDialog = false;
         // Reload current year (closing status + data) and preload next year (carry-forward propagation)
         await this.loadYear();
@@ -500,7 +567,7 @@ export default {
       } catch (e) {
         console.error(e);
         const msg = e.response?.data?.message || this.$t('error');
-        this.main.add_snackbar({ show: true, message: msg, color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error'), msg, 'error');
       }
       this.closingYear = false;
     },
@@ -509,7 +576,7 @@ export default {
       this.reopening = true;
       try {
         await this.store.reopenYear(this.store.currentClosing.id);
-        this.main.add_snackbar({ show: true, message: this.$t('reopen_year') + ' ✓', color: 'success' });
+        this.triggerSummarySnackbar(this.$t('reopen_year') + ' ✓', '', 'success');
         this.reopenDialog = false;
         // Reload current year (closing status + data) and preload next year (carry-forward propagation)
         await this.loadYear();
@@ -517,7 +584,7 @@ export default {
         this.store.fetchBalance(this.currentYear + 1);
       } catch (e) {
         console.error(e);
-        this.main.add_snackbar({ show: true, message: this.$t('error'), color: 'error' });
+        this.triggerSummarySnackbar(this.$t('error'), '', 'error');
       }
       this.reopening = false;
     },

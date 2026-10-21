@@ -2,6 +2,7 @@
   <v-dialog
     v-model="isOpen"
     max-width="640"
+    :theme="main.is_dark ? 'dark' : 'light'"
     transition="dialog-top-transition"
     class="command-palette-dialog"
     @after-leave="onClose"

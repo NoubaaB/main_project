@@ -89,6 +89,7 @@
           <v-menu
             transition="scale-transition"
             :close-on-content-click="false"
+            :theme="main.is_dark ? 'dark' : 'light'"
             v-if="auth.is_auth"
             offset="8"
           >
@@ -158,6 +159,7 @@
           <v-menu
             transition="scale-transition"
             :close-on-content-click="false"
+            :theme="main.is_dark ? 'dark' : 'light'"
             v-if="auth.is_auth"
             v-model="notifMenuOpen"
             offset="8"
@@ -257,6 +259,7 @@
           <v-menu
             transition="scale-transition"
             :close-on-content-click="true"
+            :theme="main.is_dark ? 'dark' : 'light'"
             offset="8"
           >
             <template v-slot:activator="{ props }">
@@ -326,6 +329,7 @@
           <v-menu
             v-if="auth.is_auth"
             transition="scale-transition"
+            :theme="main.is_dark ? 'dark' : 'light'"
             offset="8"
           >
             <template v-slot:activator="{ props }">
@@ -867,16 +871,137 @@ export default {
 /* Panels */
 .dock-panel {
   overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 .panel-light {
-  background: rgba(255, 255, 255, 0.98) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.09) !important;
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.16), 0 0 1px 1px rgba(0, 0, 0, 0.04) !important;
+  color: #0F172A !important;
+}
+
+.panel-light .dock-panel-header {
+  background: #F8FAFC !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  color: #0F172A !important;
+}
+
+.panel-light .user-menu-header {
+  background: #F8FAFC !important;
+  color: #0F172A !important;
+}
+.panel-light .user-menu-header .text-subtitle-2 {
+  color: #0F172A !important;
+}
+.panel-light .user-menu-header .text-caption {
+  color: #64748B !important;
+}
+
+.panel-light :deep(.v-list) {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+}
+.panel-light :deep(.v-list-item) {
+  color: #1E293B !important;
+}
+.panel-light :deep(.v-list-item:hover) {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+.panel-light :deep(.v-list-item-title) {
+  color: #1E293B !important;
+  font-weight: 500;
+}
+
+.panel-light .lang-option {
+  color: #1E293B !important;
+}
+.panel-light .lang-option:hover {
+  background: rgba(33, 150, 243, 0.08) !important;
+}
+.panel-light .lang-option-name {
+  color: #0F172A !important;
+}
+.panel-light .lang-option-code {
+  color: #64748B !important;
+}
+
+.panel-light .notif-item {
+  color: #0F172A !important;
+}
+.panel-light .notif-item:hover {
+  background: rgba(0, 0, 0, 0.035) !important;
+}
+.panel-light .notif-item-title {
+  color: #0F172A !important;
+}
+.panel-light .notif-item-meta {
+  color: #64748B !important;
 }
 
 .panel-dark {
-  background: rgba(30, 36, 48, 0.98) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #181C26 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+  color: #F8FAFC !important;
+}
+
+.panel-dark .dock-panel-header {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #F8FAFC !important;
+}
+
+.panel-dark .user-menu-header {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #F8FAFC !important;
+}
+.panel-dark .user-menu-header .text-subtitle-2 {
+  color: #F8FAFC !important;
+}
+.panel-dark .user-menu-header .text-caption {
+  color: #94A3B8 !important;
+}
+
+.panel-dark :deep(.v-list) {
+  background: #181C26 !important;
+  color: #F8FAFC !important;
+}
+.panel-dark :deep(.v-list-item) {
+  color: #E2E8F0 !important;
+}
+.panel-dark :deep(.v-list-item:hover) {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.panel-dark :deep(.v-list-item-title) {
+  color: #E2E8F0 !important;
+  font-weight: 500;
+}
+
+.panel-dark .lang-option {
+  color: #E2E8F0 !important;
+}
+.panel-dark .lang-option:hover {
+  background: rgba(33, 150, 243, 0.15) !important;
+}
+.panel-dark .lang-option-name {
+  color: #F8FAFC !important;
+}
+.panel-dark .lang-option-code {
+  color: #94A3B8 !important;
+}
+
+.panel-dark .notif-item {
+  color: #F8FAFC !important;
+}
+.panel-dark .notif-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.panel-dark .notif-item-title {
+  color: #F8FAFC !important;
+}
+.panel-dark .notif-item-meta {
+  color: #94A3B8 !important;
 }
 
 .dock-panel-header {

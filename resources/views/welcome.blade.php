@@ -5,13 +5,33 @@
     <meta charset="UTF-8">
     <!-- <link rel="icon" type="image/gif" href="/storage/atom.gif"> -->
     <link rel="icon" type="image/png" href="/storage/icons/icon-144x144.png" sizes="144x144" async defer>
-    <link rel="manifest" href="{{asset('/js/manifest.json')}}">
+    <link id="pwa-manifest-link" rel="manifest" href="{{asset('/js/manifest.json')}}">
     <link rel="apple-touch-icon" href="/storage/icons/icon-192x192.png" sizes="192x192">
-    <meta name="theme-color" content="#FFFFFF" />
-    <meta name="background_color" content="#121212" />
+    <meta name="theme-color" id="meta-theme-color" content="#121212" />
+    <meta name="background_color" id="meta-background-color" content="#121212" />
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" id="meta-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Jupiter">
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('theme');
+                var isDark = savedTheme ? (savedTheme === 'dark') : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                var themeColor = isDark ? '#121212' : '#FFFFFF';
+                var metaTheme = document.getElementById('meta-theme-color');
+                if (metaTheme) metaTheme.setAttribute('content', themeColor);
+                var metaBg = document.getElementById('meta-background-color');
+                if (metaBg) metaBg.setAttribute('content', themeColor);
+                var metaStatus = document.getElementById('meta-status-bar-style');
+                if (metaStatus) metaStatus.setAttribute('content', isDark ? 'black-translucent' : 'default');
+                var manifestLink = document.getElementById('pwa-manifest-link');
+                if (manifestLink) manifestLink.setAttribute('href', '/manifest.json?theme=' + (isDark ? 'dark' : 'light'));
+                document.documentElement.classList.add(isDark ? 'theme-dark' : 'theme-light');
+                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            } catch(e) {}
+        })();
+    </script>
 
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
