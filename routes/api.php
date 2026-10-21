@@ -33,8 +33,9 @@ Route::get("public/company-logos", [App\Http\Controllers\CompanySettingControlle
 #region authentication routes
 Route::middleware(["auth:sanctum"])->group(
     function () {
-        // Broadcasting auth
-        Broadcast::routes();
+        // Broadcasting auth (Sanctum-authenticated, validated, robust)
+        Route::match(['get', 'post'], 'broadcasting/auth', [App\Http\Controllers\BroadcastAuthController::class, 'authenticate']);
+        Route::match(['get', 'post'], 'broadcasting/user-auth', [App\Http\Controllers\BroadcastAuthController::class, 'authenticateUser']);
         #region auth routes
         Route::get("me", [AuthController::class, "me"]); //get auth user with
         Route::post("truck", [TruckController::class, "store"]);

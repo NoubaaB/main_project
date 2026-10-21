@@ -15,8 +15,12 @@
         class="nav-rail-logo cursor-pointer"
         @click.stop="expandSidebar"
       >
-        <v-avatar size="42" class="brand-avatar-squircle">
-          <img v-if="miniLogoUrl" :src="miniLogoUrl" alt="Jupiter" class="brand-logo-img" />
+        <v-avatar
+          size="42"
+          class="brand-avatar-squircle"
+          :class="main.is_dark ? 'brand-avatar-dark' : 'brand-avatar-light'"
+        >
+          <img v-if="themeLogoUrl" :src="themeLogoUrl" alt="Jupiter" class="brand-logo-img" />
           <v-icon v-else size="22" :color="main.is_dark ? '#90CAF9' : '#1976D2'">mdi-orbit-variant</v-icon>
         </v-avatar>
         <v-tooltip
@@ -37,8 +41,12 @@
           class="brand-clickable-area cursor-pointer"
           @click="$router.push({ name: 'index' })"
         >
-          <v-avatar size="42" class="brand-avatar-squircle">
-            <img v-if="miniLogoUrl" :src="miniLogoUrl" alt="Jupiter" class="brand-logo-img" />
+          <v-avatar
+            size="42"
+            class="brand-avatar-squircle"
+            :class="main.is_dark ? 'brand-avatar-dark' : 'brand-avatar-light'"
+          >
+            <img v-if="themeLogoUrl" :src="themeLogoUrl" alt="Jupiter" class="brand-logo-img" />
             <v-icon v-else size="22" :color="main.is_dark ? '#90CAF9' : '#1976D2'">mdi-orbit-variant</v-icon>
           </v-avatar>
           <div class="brand-text-block">
@@ -393,6 +401,7 @@ export default {
     return {
       openedGroups: [],
       filterQuery: '',
+      adaptiveLogoUrl: null,
     };
   },
   computed: {
@@ -405,6 +414,10 @@ export default {
       const cs = useCompanySettings();
       if (cs.settings?.logo_invoice_body_url) return cs.settings.logo_invoice_body_url;
       return new URL('/images/jupiter-logo.png', window.location.origin).href;
+    },
+
+    themeLogoUrl() {
+      return this.adaptiveLogoUrl || this.miniLogoUrl;
     },
 
     rawSections() {
@@ -658,6 +671,12 @@ export default {
         }
         this.openedGroups = groupsToOpen;
       }
+    },
+    miniLogoUrl: {
+      immediate: true,
+      handler(newVal) {
+        this.processLogoForTheme(newVal);
+      }
     }
   },
   methods: {
@@ -733,6 +752,83 @@ export default {
       localStorage.removeItem('token');
       this.$router.push({ name: 'login' });
       this.auth.logout().catch(() => {});
+    },
+    processLogoForTheme(url) {
+      const src = url || this.miniLogoUrl;
+      if (!src) {
+        this.adaptiveLogoUrl = null;
+        return;
+      }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          if (!w || !h) {
+            this.adaptiveLogoUrl = src;
+            return;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const d = imgData.data;
+
+          // Sample border pixels to detect solid white background
+          const corners = [
+            0,
+            (w - 1) * 4,
+            (h - 1) * w * 4,
+            ((h - 1) * w + (w - 1)) * 4,
+            (Math.min(5, h - 1) * w + Math.min(5, w - 1)) * 4,
+            (Math.min(5, h - 1) * w + Math.max(0, w - 6)) * 4,
+            (Math.max(0, h - 6) * w + Math.min(5, w - 1)) * 4,
+            (Math.max(0, h - 6) * w + Math.max(0, w - 6)) * 4,
+          ];
+
+          let whiteCount = 0;
+          for (const idx of corners) {
+            const r = d[idx];
+            const g = d[idx + 1];
+            const b = d[idx + 2];
+            const a = d[idx + 3];
+            if (a > 200 && r > 235 && g > 235 && b > 235) {
+              whiteCount++;
+            }
+          }
+
+          // If logo has opaque white border background, convert white pixels to transparent
+          // so it matches the theme background (dark or light mode) of brand-avatar-squircle
+          if (whiteCount >= 4) {
+            for (let i = 0; i < d.length; i += 4) {
+              const r = d[i];
+              const g = d[i + 1];
+              const b = d[i + 2];
+              const minC = Math.min(r, g, b);
+              if (minC >= 248) {
+                d[i + 3] = 0;
+              } else if (minC >= 220) {
+                const factor = (minC - 220) / (248 - 220);
+                d[i + 3] = Math.min(d[i + 3], Math.round((1 - factor) * 255));
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            this.adaptiveLogoUrl = canvas.toDataURL('image/png');
+          } else {
+            this.adaptiveLogoUrl = src;
+          }
+        } catch (e) {
+          this.adaptiveLogoUrl = src;
+        }
+      };
+      img.onerror = () => {
+        this.adaptiveLogoUrl = src;
+      };
+      img.src = src;
     }
   },
   mounted() {
@@ -934,13 +1030,25 @@ export default {
 
 .brand-avatar-squircle {
   border-radius: 12px !important;
-  background: transparent !important;
   box-shadow: none !important;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
+}
+
+.brand-avatar-dark,
+.nav-dark .brand-avatar-squircle {
+  background-color: rgba(22, 26, 36, 0.96) !important;
+  background: rgba(22, 26, 36, 0.96) !important;
+}
+
+.brand-avatar-light,
+.nav-light .brand-avatar-squircle {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
 }
 
 .brand-logo-img {

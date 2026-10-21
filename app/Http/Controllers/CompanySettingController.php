@@ -87,6 +87,11 @@ class CompanySettingController extends Controller
 
         // Store new logo
         $path = $request->file('logo')->store('images/company', 'public');
+
+        // Automatically convert solid white/near-white background to transparent
+        // so the logo matches the applied theme mode (dark or light) seamlessly
+        $this->ensureTransparentBackground($path);
+
         CompanySetting::setValue($key, $path);
 
         // Broadcast updated settings to other users
@@ -125,5 +130,101 @@ class CompanySettingController extends Controller
         }
 
         return response()->json($logos);
+    }
+
+    /**
+     * Checks if an uploaded logo has a solid white/near-white background and makes it transparent.
+     * This ensures the logo matches the application theme mode (dark or light) seamlessly.
+     */
+    protected function ensureTransparentBackground(string $relativePath): void
+    {
+        try {
+            $fullPath = Storage::disk('public')->path($relativePath);
+            if (!file_exists($fullPath)) {
+                return;
+            }
+
+            $info = @getimagesize($fullPath);
+            if (!$info) {
+                return;
+            }
+
+            $mime = $info['mime'] ?? '';
+            $src = null;
+
+            if ($mime === 'image/png') {
+                $src = @imagecreatefrompng($fullPath);
+            } elseif ($mime === 'image/jpeg') {
+                $src = @imagecreatefromjpeg($fullPath);
+            } elseif ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
+                $src = @imagecreatefromwebp($fullPath);
+            }
+
+            if (!$src) {
+                return;
+            }
+
+            $w = imagesx($src);
+            $h = imagesy($src);
+
+            if ($w <= 0 || $h <= 0) {
+                @imagedestroy($src);
+                return;
+            }
+
+            // Check corner and perimeter samples
+            $samples = [
+                [0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1],
+                [(int)($w / 2), 0], [(int)($w / 2), $h - 1],
+                [0, (int)($h / 2)], [$w - 1, (int)($h / 2)],
+                [min(4, $w - 1), min(4, $h - 1)],
+                [max(0, $w - 5), min(4, $h - 1)],
+                [min(4, $w - 1), max(0, $h - 5)],
+                [max(0, $w - 5), max(0, $h - 5)],
+            ];
+
+            $whiteCount = 0;
+            foreach ($samples as $pt) {
+                $rgba = imagecolorat($src, $pt[0], $pt[1]);
+                $c = imagecolorsforindex($src, $rgba);
+                // In GD, alpha 0 = fully opaque. Check for high RGB and opaque.
+                if (($c['alpha'] ?? 0) === 0 && $c['red'] >= 235 && $c['green'] >= 235 && $c['blue'] >= 235) {
+                    $whiteCount++;
+                }
+            }
+
+            // If majority of sampled border points are white, transparentize
+            if ($whiteCount >= 6) {
+                $out = imagecreatetruecolor($w, $h);
+                imagealphablending($out, false);
+                imagesavealpha($out, true);
+
+                for ($x = 0; $x < $w; $x++) {
+                    for ($y = 0; $y < $h; $y++) {
+                        $rgba = imagecolorat($src, $x, $y);
+                        $c = imagecolorsforindex($src, $rgba);
+                        $minC = min($c['red'], $c['green'], $c['blue']);
+
+                        if ($minC >= 250) {
+                            $col = imagecolorallocatealpha($out, 0, 0, 0, 127);
+                        } elseif ($minC >= 220) {
+                            $factor = ($minC - 220) / (250 - 220);
+                            $alpha = (int)($factor * 127);
+                            $col = imagecolorallocatealpha($out, $c['red'], $c['green'], $c['blue'], $alpha);
+                        } else {
+                            $col = imagecolorallocatealpha($out, $c['red'], $c['green'], $c['blue'], $c['alpha'] ?? 0);
+                        }
+                        imagesetpixel($out, $x, $y, $col);
+                    }
+                }
+
+                imagepng($out, $fullPath);
+                @imagedestroy($out);
+            }
+
+            @imagedestroy($src);
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to transparentize logo background: ' . $e->getMessage());
+        }
     }
 }
