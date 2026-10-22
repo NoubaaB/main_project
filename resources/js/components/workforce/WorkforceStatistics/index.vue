@@ -788,6 +788,301 @@
       </v-card-text>
     </v-card>
 
+    <!-- =========== WORKFORCE MOVEMENT & ASSIGNMENT TRACKER (Goal Request 2) =========== -->
+    <v-card class="wfs-card mb-6" elevation="0">
+      <v-card-title class="d-flex align-center justify-space-between pa-4 pb-2 flex-wrap ga-2">
+        <div class="d-flex align-center ga-3">
+          <v-avatar color="#1565C0" size="40" class="text-white">
+            <v-icon size="22">mdi-routes</v-icon>
+          </v-avatar>
+          <div>
+            <div class="text-subtitle-1 font-weight-bold" style="color: #1565C0;">
+              {{ $t('workforce_movement_tracker_title') }}
+            </div>
+            <div class="text-caption text-medium-emphasis">
+              {{ $t('workforce_movement_tracker_desc') }} ({{ formattedDateRangeText }})
+            </div>
+          </div>
+        </div>
+
+        <!-- Granularity Selector: Daily / Monthly / Yearly -->
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <span class="text-caption text-medium-emphasis font-weight-bold">{{ $t('granularity') }}:</span>
+          <v-btn-toggle
+            v-model="trackerGranularity"
+            mandatory
+            density="compact"
+            color="#1565C0"
+            class="wfs-chart-toggle"
+            @update:model-value="loadMovementTracker"
+          >
+            <v-btn value="daily" size="small" prepend-icon="mdi-calendar-today">
+              {{ $t('daily') }}
+            </v-btn>
+            <v-btn value="monthly" size="small" prepend-icon="mdi-calendar-month">
+              {{ $t('monthly') }}
+            </v-btn>
+            <v-btn value="yearly" size="small" prepend-icon="mdi-calendar">
+              {{ $t('yearly') }}
+            </v-btn>
+          </v-btn-toggle>
+        </div>
+      </v-card-title>
+
+      <v-card-text class="pa-4 pt-2">
+        <!-- Controls: Multi-select Workforces (One or Many) & Search within tracker -->
+        <v-row dense class="mb-3 align-center">
+          <v-col cols="12" md="8">
+            <v-autocomplete
+              v-model="trackerWorkforceIds"
+              :items="workforceStore.list"
+              item-value="id"
+              :item-title="workforceItemTitle"
+              :label="$t('select_workforces_to_track')"
+              density="compact"
+              variant="outlined"
+              rounded
+              color="#42A5F5"
+              class="text-charge wfs-input-field"
+              multiple
+              chips
+              closable-chips
+              clearable
+              hide-details
+              prepend-inner-icon="mdi-account-search"
+              @update:model-value="loadMovementTracker"
+            >
+              <template #chip="{ item, props }">
+                <v-chip
+                  v-bind="props"
+                  color="#1565C0"
+                  variant="tonal"
+                  size="small"
+                  class="font-weight-medium"
+                >
+                  <v-icon start size="14">mdi-account-hard-hat</v-icon>
+                  {{ item.title }}
+                </v-chip>
+              </template>
+            </v-autocomplete>
+          </v-col>
+
+          <v-col cols="12" md="4">
+            <v-text-field
+              v-model="trackerSearch"
+              density="compact"
+              variant="outlined"
+              rounded
+              color="#42A5F5"
+              class="text-charge wfs-search-field"
+              :placeholder="$t('search_corporal_section_team') + '...'"
+              prepend-inner-icon="mdi-magnify"
+              clearable
+              hide-details
+            ></v-text-field>
+          </v-col>
+        </v-row>
+
+        <!-- KPI Chips / Summary Bar -->
+        <div class="pa-3 rounded-xl mb-4 d-flex flex-wrap align-center justify-space-between ga-3" style="background: rgba(21, 101, 192, 0.05); border: 1px solid rgba(21, 101, 192, 0.15);">
+          <div class="d-flex flex-wrap align-center ga-3">
+            <!-- Corporals Worked Under Metric -->
+            <div class="d-flex align-center ga-2">
+              <v-avatar size="28" color="#7B1FA2" variant="tonal">
+                <v-icon size="16">mdi-account-tie</v-icon>
+              </v-avatar>
+              <div>
+                <span class="text-caption text-medium-emphasis">{{ $t('corporals_worked_with') }}: </span>
+                <span class="text-subtitle-2 font-weight-bold" style="color: #7B1FA2;">
+                  {{ movementStore.statisticsData.summary.distinct_corporals_count || 0 }}
+                </span>
+              </div>
+            </div>
+
+            <v-divider vertical style="height: 24px;"></v-divider>
+
+            <!-- Sections Worked In Metric -->
+            <div class="d-flex align-center ga-2">
+              <v-avatar size="28" color="#E65100" variant="tonal">
+                <v-icon size="16">mdi-sitemap-outline</v-icon>
+              </v-avatar>
+              <div>
+                <span class="text-caption text-medium-emphasis">{{ $t('sections_worked_in') }}: </span>
+                <span class="text-subtitle-2 font-weight-bold" style="color: #E65100;">
+                  {{ movementStore.statisticsData.summary.distinct_sections_count || 0 }}
+                </span>
+              </div>
+            </div>
+
+            <v-divider vertical style="height: 24px;"></v-divider>
+
+            <!-- Teams Metric -->
+            <div class="d-flex align-center ga-2">
+              <v-avatar size="28" color="#1565C0" variant="tonal">
+                <v-icon size="16">mdi-account-group</v-icon>
+              </v-avatar>
+              <div>
+                <span class="text-caption text-medium-emphasis">{{ $t('teams') }}: </span>
+                <span class="text-subtitle-2 font-weight-bold" style="color: #1565C0;">
+                  {{ movementStore.statisticsData.summary.distinct_teams_count || 0 }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex align-center ga-2">
+            <v-chip size="small" color="#1565C0" variant="flat" class="font-weight-bold">
+              {{ movementStore.statisticsData.summary.total_activities || 0 }} {{ $t('activities') }}
+            </v-chip>
+            <v-chip size="small" color="success" variant="flat" class="font-weight-bold">
+              {{ fmt(movementStore.statisticsData.summary.total_amount || 0) }} {{ currency }}
+            </v-chip>
+          </div>
+        </div>
+
+        <!-- Per-Workforce Movement Cards Breakdown -->
+        <div v-if="movementStore.statisticsData.workforce_summaries?.length > 0" class="mb-4">
+          <div class="text-caption font-weight-bold text-uppercase mb-2" style="color: #1565C0; letter-spacing: 0.5px;">
+            {{ $t('workforce_movement_breakdown') }}
+          </div>
+          <v-row dense>
+            <v-col
+              v-for="wf in movementStore.statisticsData.workforce_summaries"
+              :key="'wf-sum-' + wf.id"
+              cols="12"
+              md="6"
+              lg="4"
+            >
+              <div class="pa-3 rounded-xl border h-100" style="background: rgb(var(--v-theme-surface));">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="d-flex align-center ga-2">
+                    <v-avatar size="32" color="#1565C0" variant="tonal" class="font-weight-bold">
+                      {{ (wf.full_name || 'W').charAt(0) }}
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-body-2">{{ wf.full_name }}</div>
+                      <div class="text-caption text-medium-emphasis">#{{ wf.matricule || '-' }}</div>
+                    </div>
+                  </div>
+                  <v-chip size="x-small" color="#1565C0" variant="tonal" class="font-weight-bold">
+                    {{ wf.work_days_count }} {{ $t('days') }}
+                  </v-chip>
+                </div>
+
+                <!-- Counts: Corporals & Sections -->
+                <div class="d-flex align-center justify-space-between text-caption mt-2 pt-2 border-t">
+                  <span class="text-medium-emphasis">{{ $t('corporals_count') }}:</span>
+                  <v-chip size="x-small" color="#7B1FA2" variant="tonal" class="font-weight-bold">
+                    {{ wf.corporals_count }} {{ $t('corporals') }}
+                  </v-chip>
+                </div>
+                <div class="d-flex flex-wrap ga-1 mt-1">
+                  <v-chip v-for="cName in wf.corporals_list" :key="'c-' + cName" size="x-small" color="#7B1FA2" variant="outlined">
+                    {{ cName }}
+                  </v-chip>
+                </div>
+
+                <div class="d-flex align-center justify-space-between text-caption mt-2 pt-1 border-t">
+                  <span class="text-medium-emphasis">{{ $t('sections_count') }}:</span>
+                  <v-chip size="x-small" color="#E65100" variant="tonal" class="font-weight-bold">
+                    {{ wf.sections_count }} {{ $t('sections') }}
+                  </v-chip>
+                </div>
+                <div class="d-flex flex-wrap ga-1 mt-1">
+                  <v-chip v-for="sName in wf.sections_list" :key="'s-' + sName" size="x-small" color="#E65100" variant="outlined">
+                    {{ sName }}
+                  </v-chip>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- Detailed Movement Timeline Data Table -->
+        <div class="text-caption font-weight-bold text-uppercase mb-2 mt-4" style="color: #1565C0; letter-spacing: 0.5px;">
+          {{ $t('movement_activity_log') }} ({{ trackerGranularity.toUpperCase() }})
+        </div>
+
+        <v-skeleton-loader v-if="trackerLoading" type="table" class="rounded-xl"></v-skeleton-loader>
+        <div v-else-if="filteredTrackerTimeline.length > 0" class="wfs-table-wrap">
+          <table class="wfs-table">
+            <thead>
+              <tr>
+                <th>{{ trackerGranularity === 'daily' ? $t('date') : trackerGranularity === 'monthly' ? $t('month') : $t('year') }}</th>
+                <th>{{ $t('workforce') }}</th>
+                <th>{{ $t('corporal_in_charge') }}</th>
+                <th>{{ $t('section') }}</th>
+                <th>{{ $t('teams') }}</th>
+                <th class="text-center">{{ trackerGranularity === 'daily' ? $t('activities') : $t('days_worked') }}</th>
+                <th class="text-right">{{ $t('total_amount') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, idx) in filteredTrackerTimeline"
+                :key="'t-row-' + idx"
+                class="wfs-table-row"
+              >
+                <!-- Period / Date -->
+                <td>
+                  <v-chip size="x-small" color="#1565C0" variant="tonal" class="font-weight-bold">
+                    <v-icon start size="12">mdi-calendar</v-icon>
+                    {{ row.period_label }}
+                  </v-chip>
+                </td>
+
+                <!-- Workforce -->
+                <td>
+                  <div class="font-weight-bold text-body-2">{{ row.workforce_name }}</div>
+                  <div v-if="row.matricule" class="text-caption text-medium-emphasis">#{{ row.matricule }}</div>
+                </td>
+
+                <!-- Corporal -->
+                <td>
+                  <v-chip v-if="row.corporal_name && row.corporal_name !== '-'" size="small" color="#7B1FA2" variant="tonal" prepend-icon="mdi-account-tie">
+                    {{ row.corporal_name }}
+                  </v-chip>
+                  <span v-else class="text-medium-emphasis">-</span>
+                </td>
+
+                <!-- Section -->
+                <td>
+                  <v-chip v-if="row.section_name && row.section_name !== '-'" size="small" color="#E65100" variant="tonal" prepend-icon="mdi-sitemap-outline">
+                    {{ row.section_name }}
+                  </v-chip>
+                  <span v-else class="text-medium-emphasis">-</span>
+                </td>
+
+                <!-- Teams -->
+                <td>
+                  <span class="text-body-2">{{ row.team_label || '-' }}</span>
+                </td>
+
+                <!-- Count -->
+                <td class="text-center">
+                  <v-chip size="x-small" color="#00897B" variant="flat" class="font-weight-bold">
+                    {{ trackerGranularity === 'daily' ? row.activities_count : row.days_count }}
+                  </v-chip>
+                </td>
+
+                <!-- Amount -->
+                <td class="text-right">
+                  <span class="font-weight-bold text-body-2" style="color: #1565C0;">
+                    {{ fmt(row.total_amount) }} {{ currency }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="text-center pa-8 text-grey">
+          <v-icon size="44" color="grey-lighten-1">mdi-routes</v-icon>
+          <div class="mt-2 text-body-2 font-weight-medium">{{ $t('no_movements_for_period') }}</div>
+          <div class="mt-1 text-caption text-medium-emphasis">{{ $t('select_different_months_or_workers') }}</div>
+        </div>
+      </v-card-text>
+    </v-card>
+
     <!-- =========== SUMMARY SNACKBAR (Rule 5 & WebSocket real-time) =========== -->
     <!-- Summary Snackbar -->
     <v-snackbar
@@ -837,6 +1132,7 @@ import { useWorkforce } from '@/stores/Workforce';
 import { useCorporal } from '@/stores/Corporal';
 import { useSection } from '@/stores/Section';
 import { useFortnightActivity } from '@/stores/FortnightActivity';
+import { useWorkforceMovement } from '@/stores/WorkforceMovement';
 
 export default {
   name: 'WorkforceStatistics',
@@ -849,6 +1145,10 @@ export default {
       filterWorkforceIds: [],
       filterSectionIds: [],
       filterCorporalIds: [],
+      trackerWorkforceIds: [],
+      trackerGranularity: 'daily',
+      trackerSearch: '',
+      trackerLoading: false,
       loading: false,
       chartType: 'area', // 'area' or 'bar'
       chartPeriod: 'daily', // 'daily', 'monthly', 'yearly'
@@ -888,9 +1188,22 @@ export default {
   computed: {
     main() { return useMain(); },
     workforceStore() { return useWorkforce(); },
+    movementStore() { return useWorkforceMovement(); },
     corporalStore() { return useCorporal(); },
     sectionStore() { return useSection(); },
     activityStore() { return useFortnightActivity(); },
+    filteredTrackerTimeline() {
+      const list = this.movementStore.statisticsData.timeline || [];
+      if (!this.trackerSearch) return list;
+      const q = this.trackerSearch.toLowerCase().trim();
+      return list.filter(row =>
+        (row.workforce_name && row.workforce_name.toLowerCase().includes(q)) ||
+        (row.matricule && String(row.matricule).toLowerCase().includes(q)) ||
+        (row.corporal_name && row.corporal_name.toLowerCase().includes(q)) ||
+        (row.section_name && row.section_name.toLowerCase().includes(q)) ||
+        (row.team_label && row.team_label.toLowerCase().includes(q))
+      );
+    },
     yearOptions() {
       const y = new Date().getFullYear();
       return [y - 2, y - 1, y];
@@ -1322,6 +1635,41 @@ export default {
 
       this.stats = merged;
       this.loading = false;
+      this.loadMovementTracker();
+    },
+
+    /**
+     * Load workforce movement tracking data for the selected period and workforces.
+     */
+    async loadMovementTracker() {
+      if (!this.selectedMonths.length) return;
+      this.trackerLoading = true;
+      try {
+        const sorted = [...this.selectedMonths].sort((a, b) => a - b);
+        const startMonth = String(sorted[0] + 1).padStart(2, '0');
+        const endMonthIdx = sorted[sorted.length - 1];
+        const endMonth = String(endMonthIdx + 1).padStart(2, '0');
+        const lastDay = String(new Date(this.selectedYear, endMonthIdx + 1, 0).getDate()).padStart(2, '0');
+        const startDate = `${this.selectedYear}-${startMonth}-01`;
+        const endDate = `${this.selectedYear}-${endMonth}-${lastDay}`;
+
+        const params = {
+          start_date: startDate,
+          end_date: endDate,
+          granularity: this.trackerGranularity,
+        };
+
+        const wfIds = this.trackerWorkforceIds.length ? this.trackerWorkforceIds : this.filterWorkforceIds;
+        if (wfIds.length) {
+          params.workforce_ids = wfIds.join(',');
+        }
+
+        await this.movementStore.fetchStatisticsMovements(params);
+      } catch (e) {
+        console.error('Failed to load movement tracker statistics:', e);
+      } finally {
+        this.trackerLoading = false;
+      }
     },
 
     /**
@@ -1330,14 +1678,15 @@ export default {
      */
     handleModelChanged(data) {
       const model = data?.model || '';
-      const relevantModels = ['FortnightActivity', 'Corporal', 'Section', 'Workforce'];
+      const relevantModels = ['FortnightActivity', 'Corporal', 'Section', 'Workforce', 'WorkforceMovement'];
       if (!relevantModels.includes(model)) return;
 
-      if (model === 'FortnightActivity') {
+      if (model === 'FortnightActivity' || model === 'WorkforceMovement') {
         this.loadStats();
+        this.loadMovementTracker();
         this.triggerSummarySnackbar({
           title: this.$t('realtime_sync') || 'Real-time Update',
-          message: data?.user_name ? `${data.user_name} updated workforce activities` : 'Activity data refreshed in real-time',
+          message: data?.user_name ? `${data.user_name} updated workforce records` : 'Activity data refreshed in real-time',
           details: data?.date ? `${data.date} • ${this.fmt(data?.price || 0)} ${this.currency}` : '',
           icon: 'mdi-sync',
           iconColor: '#42A5F5',
@@ -1347,6 +1696,7 @@ export default {
         if (model === 'Section') this.sectionStore.fetch();
         if (model === 'Corporal') this.corporalStore.fetch();
         this.loadStats();
+        this.loadMovementTracker();
       }
     },
 

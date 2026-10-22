@@ -28,9 +28,18 @@ class SectionController extends Controller
             'name' => 'required|string|max:255',
             'daily_price' => 'required|numeric|min:0',
             'is_price_modifiable' => 'boolean',
+            'corporal_ids' => 'nullable|array',
+            'corporal_ids.*' => 'exists:corporals,id',
         ]);
 
+        $corporalIds = $data['corporal_ids'] ?? null;
+        unset($data['corporal_ids']);
+
         $section = Section::create($data);
+
+        if ($corporalIds !== null) {
+            $section->corporals()->sync($corporalIds);
+        }
 
         $section->load('corporals');
         $this->broadcastChange('Section', 'created', $section->id, $section->toArray());
@@ -49,9 +58,18 @@ class SectionController extends Controller
             'name' => 'required|string|max:255',
             'daily_price' => 'required|numeric|min:0',
             'is_price_modifiable' => 'boolean',
+            'corporal_ids' => 'nullable|array',
+            'corporal_ids.*' => 'exists:corporals,id',
         ]);
 
+        $corporalIds = $data['corporal_ids'] ?? null;
+        unset($data['corporal_ids']);
+
         $section->update($data);
+
+        if ($corporalIds !== null) {
+            $section->corporals()->sync($corporalIds);
+        }
 
         $section = $section->fresh()->load('corporals');
         $this->broadcastChange('Section', 'updated', $section->id, $section->toArray());

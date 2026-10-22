@@ -292,6 +292,17 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("sections/{section}/corporals", [App\Http\Controllers\SectionController::class, "attachCorporals"]);
         Route::delete("sections/{section}/corporals/{corporal}", [App\Http\Controllers\SectionController::class, "detachCorporal"]);
         Route::apiResource("workforces", App\Http\Controllers\WorkforceController::class);
+        Route::apiResource("teams", App\Http\Controllers\TeamController::class);
+
+        // Workforce Absence & Movement Tracking Routes
+        Route::get("workforce-movements/absences", [App\Http\Controllers\WorkforceMovementController::class, "getAbsences"]);
+        Route::get("workforce-absence-settings", [App\Http\Controllers\WorkforceMovementController::class, "getSetting"]);
+        Route::post("workforce-absence-settings", [App\Http\Controllers\WorkforceMovementController::class, "saveSetting"]);
+        Route::post("workforce-movements/{workforce}/motif", [App\Http\Controllers\WorkforceMovementController::class, "recordMotif"]);
+        Route::post("workforce-movements/{workforce}/leave-company", [App\Http\Controllers\WorkforceMovementController::class, "leaveCompany"]);
+        Route::post("workforce-movements/{workforce}/return-to-work", [App\Http\Controllers\WorkforceMovementController::class, "returnToWork"]);
+        Route::get("workforce-movements/{workforce}/history", [App\Http\Controllers\WorkforceMovementController::class, "getHistory"]);
+        Route::get("workforce-statistics/movements", [App\Http\Controllers\WorkforceMovementController::class, "getStatisticsMovements"]);
         Route::get("fortnight-activities/activities-by-date", [App\Http\Controllers\FortnightActivityController::class, "activitiesByDate"]);
         Route::get("fortnight-activities/daily-totals", [App\Http\Controllers\FortnightActivityController::class, "dailyTotals"]);
         Route::get("fortnight-activities/summary", [App\Http\Controllers\FortnightActivityController::class, "summary"]);
@@ -381,6 +392,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("company-settings", [App\Http\Controllers\CompanySettingController::class, "index"]);
         Route::put("company-settings", [App\Http\Controllers\CompanySettingController::class, "update"]);
         Route::post("company-settings/upload-logo", [App\Http\Controllers\CompanySettingController::class, "uploadLogo"]);
+        Route::delete("company-settings/logo/{type}", [App\Http\Controllers\CompanySettingController::class, "deleteLogo"]);
 
         // ═══════════════════════════════════════════
         //  INVOICE LAYOUT SETTINGS ROUTES
@@ -410,6 +422,15 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("notifications/unread-count", [App\Http\Controllers\NotificationController::class, "unreadCount"]);
         Route::put("notifications/read-all", [App\Http\Controllers\NotificationController::class, "markAllAsRead"]);
         Route::put("notifications/{id}/read", [App\Http\Controllers\NotificationController::class, "markAsRead"]);
+
+        // ═══════════════════════════════════════════
+        //  WEB PUSH NOTIFICATION ROUTES
+        // ═══════════════════════════════════════════
+        Route::get("webpush/vapid-public-key", [App\Http\Controllers\WebPushController::class, "vapidPublicKey"]);
+        Route::get("webpush/status", [App\Http\Controllers\WebPushController::class, "status"]);
+        Route::post("webpush/subscribe", [App\Http\Controllers\WebPushController::class, "subscribe"]);
+        Route::post("webpush/unsubscribe", [App\Http\Controllers\WebPushController::class, "unsubscribe"]);
+        Route::post("webpush/test", [App\Http\Controllers\WebPushController::class, "testNotification"]);
 
         // ═══════════════════════════════════════════
         //  AUDIT LOG ROUTES

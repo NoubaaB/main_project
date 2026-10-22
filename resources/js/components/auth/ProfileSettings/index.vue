@@ -158,6 +158,102 @@
             </div>
           </div>
 
+          <!-- Web Push Notifications Card -->
+          <div class="profile-panel mb-4 pa-4">
+            <div class="panel-section-title mb-2">
+              <v-icon size="18" color="#1976D2" class="mr-2">mdi-bell-badge-outline</v-icon>
+              <span>{{ $t('web_push_notifications') }}</span>
+            </div>
+
+            <div class="text-caption text-medium-emphasis mb-3">
+              {{ $t('enable_push_notifications_desc') }}
+            </div>
+
+            <div v-if="!webPush.isSupported" class="text-caption text-error d-flex align-center ga-2 pa-2 rounded-lg bg-red-lighten-5">
+              <v-icon size="16" color="error">mdi-alert-circle-outline</v-icon>
+              <span>{{ $t('push_notifications_not_supported') }}</span>
+            </div>
+
+            <div v-else>
+              <!-- Status Box -->
+              <div class="d-flex align-center justify-space-between session-info-box pa-2.5 rounded-lg mb-3">
+                <div class="d-flex align-center ga-2">
+                  <v-icon
+                    size="18"
+                    :color="webPush.isEnabled ? '#4CAF50' : webPush.isBlocked ? '#EF5350' : '#FF9800'"
+                  >
+                    {{ webPush.isEnabled ? 'mdi-bell-check' : webPush.isBlocked ? 'mdi-bell-cancel' : 'mdi-bell-sleep-outline' }}
+                  </v-icon>
+                  <div>
+                    <div class="text-caption font-weight-bold">
+                      {{ webPush.isEnabled ? $t('webpush_status_active') : webPush.isBlocked ? $t('webpush_status_blocked') : $t('disabled') }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis" style="font-size: 10.5px !important;">
+                      {{ webPush.deviceCount }} {{ $t('devices_registered') }}
+                    </div>
+                  </div>
+                </div>
+
+                <v-chip
+                  :color="webPush.isEnabled ? 'success' : webPush.isBlocked ? 'error' : 'warning'"
+                  size="x-small"
+                  variant="tonal"
+                  class="font-weight-bold"
+                >
+                  {{ webPush.isEnabled ? $t('active') : webPush.isBlocked ? $t('blocked') : $t('disabled') }}
+                </v-chip>
+              </div>
+
+              <!-- Action Controls -->
+              <div class="d-flex ga-2">
+                <v-btn
+                  v-if="!webPush.isEnabled"
+                  color="#1976D2"
+                  variant="flat"
+                  size="small"
+                  rounded
+                  class="flex-grow-1 font-weight-bold text-none"
+                  prepend-icon="mdi-bell-ring-outline"
+                  :loading="webPush.loading"
+                  @click="webPush.subscribe()"
+                  id="profile-webpush-enable-btn"
+                >
+                  {{ $t('enable') }}
+                </v-btn>
+
+                <v-btn
+                  v-if="webPush.isEnabled"
+                  color="red-lighten-1"
+                  variant="tonal"
+                  size="small"
+                  rounded
+                  class="flex-grow-1 font-weight-bold text-none"
+                  prepend-icon="mdi-bell-off-outline"
+                  :loading="webPush.loading"
+                  @click="webPush.unsubscribe()"
+                  id="profile-webpush-disable-btn"
+                >
+                  {{ $t('disable') }}
+                </v-btn>
+
+                <v-btn
+                  v-if="webPush.isEnabled"
+                  color="#1976D2"
+                  variant="tonal"
+                  size="small"
+                  rounded
+                  class="font-weight-bold text-none"
+                  prepend-icon="mdi-send-outline"
+                  :loading="webPush.loading"
+                  @click="webPush.sendTestNotification()"
+                  id="profile-webpush-test-btn"
+                >
+                  {{ $t('test_push') }}
+                </v-btn>
+              </div>
+            </div>
+          </div>
+
           <!-- Permissions & Role Overview Card -->
           <div class="profile-panel pa-4">
             <div class="panel-section-title mb-3">
@@ -402,6 +498,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { useAuth } from '@/stores/Auth';
 import { useMain } from '@/stores/Main';
+import { useWebPush } from '@/stores/WebPush';
 
 export default {
   name: 'ProfileSettings',
@@ -437,6 +534,9 @@ export default {
   computed: {
     auth() {
       return useAuth();
+    },
+    webPush() {
+      return useWebPush();
     },
     main() {
       return useMain();
@@ -499,6 +599,7 @@ export default {
   },
   mounted() {
     this.loadUser();
+    this.webPush.init();
   },
   methods: {
     loadUser() {

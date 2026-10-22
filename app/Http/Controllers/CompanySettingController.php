@@ -25,6 +25,9 @@ class CompanySettingController extends Controller
         if (!empty($settings['logo_invoice_body_path'])) {
             $settings['logo_invoice_body_url'] = asset('storage/' . $settings['logo_invoice_body_path']);
         }
+        if (!empty($settings['invoice_header_image_path'])) {
+            $settings['invoice_header_image_url'] = asset('storage/' . $settings['invoice_header_image_path']);
+        }
 
         return response()->json(['settings' => $settings]);
     }
@@ -56,6 +59,9 @@ class CompanySettingController extends Controller
         if (!empty($allSettings['logo_invoice_body_path'])) {
             $allSettings['logo_invoice_body_url'] = asset('storage/' . $allSettings['logo_invoice_body_path']);
         }
+        if (!empty($allSettings['invoice_header_image_path'])) {
+            $allSettings['invoice_header_image_url'] = asset('storage/' . $allSettings['invoice_header_image_path']);
+        }
 
         // Broadcast to other users
         $this->broadcastChange('CompanySetting', 'updated', 0, $allSettings);
@@ -72,8 +78,8 @@ class CompanySettingController extends Controller
     public function uploadLogo(Request $request)
     {
         $request->validate([
-            'logo_type' => 'required|in:logo_invoice,logo_invoice_body',
-            'logo'      => 'required|image|mimes:png,jpg,jpeg,svg,webp|max:2048',
+            'logo_type' => 'required|in:logo_invoice,logo_invoice_body,invoice_header_image',
+            'logo'      => 'required|image|mimes:png,jpg,jpeg,svg,webp|max:4096',
         ]);
 
         $type = $request->logo_type;
@@ -102,12 +108,49 @@ class CompanySettingController extends Controller
         if (!empty($allSettings['logo_invoice_body_path'])) {
             $allSettings['logo_invoice_body_url'] = asset('storage/' . $allSettings['logo_invoice_body_path']);
         }
+        if (!empty($allSettings['invoice_header_image_path'])) {
+            $allSettings['invoice_header_image_url'] = asset('storage/' . $allSettings['invoice_header_image_path']);
+        }
         $this->broadcastChange('CompanySetting', 'updated', 0, $allSettings);
 
         return response()->json([
             'message' => 'Logo uploaded successfully',
             'path'    => $path,
             'url'     => asset('storage/' . $path),
+        ]);
+    }
+
+    /**
+     * Delete an uploaded logo or invoice header image.
+     */
+    public function deleteLogo($type)
+    {
+        if (!in_array($type, ['logo_invoice', 'logo_invoice_body', 'invoice_header_image'])) {
+            return response()->json(['message' => 'Invalid logo type'], 422);
+        }
+
+        $key = $type . '_path';
+        $oldPath = CompanySetting::getValue($key);
+        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
+        CompanySetting::setValue($key, null);
+
+        $allSettings = CompanySetting::getAllSettings();
+        if (!empty($allSettings['logo_invoice_path'])) {
+            $allSettings['logo_invoice_url'] = asset('storage/' . $allSettings['logo_invoice_path']);
+        }
+        if (!empty($allSettings['logo_invoice_body_path'])) {
+            $allSettings['logo_invoice_body_url'] = asset('storage/' . $allSettings['logo_invoice_body_path']);
+        }
+        if (!empty($allSettings['invoice_header_image_path'])) {
+            $allSettings['invoice_header_image_url'] = asset('storage/' . $allSettings['invoice_header_image_path']);
+        }
+        $this->broadcastChange('CompanySetting', 'updated', 0, $allSettings);
+
+        return response()->json([
+            'message'  => 'Logo deleted successfully',
+            'settings' => $allSettings,
         ]);
     }
 
@@ -127,6 +170,11 @@ class CompanySettingController extends Controller
         $bodyPath = CompanySetting::getValue('logo_invoice_body_path');
         if ($bodyPath) {
             $logos['logo_invoice_body_url'] = asset('storage/' . $bodyPath);
+        }
+
+        $headerPath = CompanySetting::getValue('invoice_header_image_path');
+        if ($headerPath) {
+            $logos['invoice_header_image_url'] = asset('storage/' . $headerPath);
         }
 
         return response()->json($logos);

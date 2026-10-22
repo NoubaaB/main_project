@@ -102,6 +102,18 @@ trait BroadcastsModelChanges
             if (!empty($notifications)) {
                 // Bulk insert for performance
                 Notification::insert($notifications);
+
+                // Dispatch Web Push Notification to eligible subscribed users
+                try {
+                    $eligibleUserIds = array_column($notifications, 'user_id');
+                    if (!empty($eligibleUserIds)) {
+                        $webPush = app(\App\Services\WebPushService::class);
+                        $payload = $webPush->buildModelPayload($model, $action, $recordId, $actorName, $snapshot);
+                        $webPush->sendToUsers($eligibleUserIds, $payload);
+                    }
+                } catch (\Throwable $pe) {
+                    \Log::warning('[BroadcastsModelChanges] Failed to dispatch web push: ' . $pe->getMessage());
+                }
             }
         } catch (\Throwable $e) {
             \Log::warning('[BroadcastsModelChanges] Failed to create notifications: ' . $e->getMessage());

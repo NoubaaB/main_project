@@ -52,5 +52,6 @@ export const useCompanySettings = defineStore("companySettings", {
         tvaNumber: (state) => state.settings.tva_number || "",
         logoInvoiceUrl: (state) => state.settings.logo_invoice_url || "",
         logoInvoiceBodyUrl: (state) => state.settings.logo_invoice_body_url || "",
+        invoiceHeaderImageUrl: (state) => state.settings.invoice_header_image_url || "",
     },
 });

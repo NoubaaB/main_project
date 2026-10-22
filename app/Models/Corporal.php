@@ -30,4 +30,9 @@ class Corporal extends Model
     {
         return $this->hasMany(FortnightActivity::class);
     }
+
+    public function teams()
+    {
+        return $this->hasMany(Team::class);
+    }
 }

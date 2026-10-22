@@ -119,6 +119,7 @@ class FortnightActivityController extends Controller
             'section_id' => 'nullable|exists:sections,id',
             'corporal_id' => 'nullable|exists:corporals,id',
             'price' => 'sometimes|numeric|min:0',
+            'is_fixed_price' => 'sometimes|boolean',
         ]);
 
         // If both are being updated, validate mutual exclusivity
@@ -236,21 +237,31 @@ class FortnightActivityController extends Controller
         $secondHalf = (clone $baseQuery)->whereDay('date', '>', 15)->get();
 
         $firstHalfTotal = $firstHalf->sum('price');
+        $firstHalfFixed = $firstHalf->where('is_fixed_price', true)->sum('price');
+        $firstHalfNonFixed = $firstHalf->where('is_fixed_price', false)->sum('price');
         $firstHalfDays = $firstHalf->pluck('date')->unique()->count();
 
         $secondHalfTotal = $secondHalf->sum('price');
+        $secondHalfFixed = $secondHalf->where('is_fixed_price', true)->sum('price');
+        $secondHalfNonFixed = $secondHalf->where('is_fixed_price', false)->sum('price');
         $secondHalfDays = $secondHalf->pluck('date')->unique()->count();
 
         return response()->json([
             'first_fortnight' => [
                 'total' => round($firstHalfTotal, 2),
+                'fixed_total' => round($firstHalfFixed, 2),
+                'non_fixed_total' => round($firstHalfNonFixed, 2),
                 'working_days' => $firstHalfDays,
             ],
             'second_fortnight' => [
                 'total' => round($secondHalfTotal, 2),
+                'fixed_total' => round($secondHalfFixed, 2),
+                'non_fixed_total' => round($secondHalfNonFixed, 2),
                 'working_days' => $secondHalfDays,
             ],
             'month_total' => round($firstHalfTotal + $secondHalfTotal, 2),
+            'month_fixed_total' => round($firstHalfFixed + $secondHalfFixed, 2),
+            'month_non_fixed_total' => round($firstHalfNonFixed + $secondHalfNonFixed, 2),
         ], 200);
     }
 
@@ -415,6 +426,7 @@ class FortnightActivityController extends Controller
             $day = (int) date('d', strtotime($act->date));
             $half = $day <= 15 ? 'q1' : 'q2';
             $price = (float) $act->price;
+            $isFixed = (bool) $act->is_fixed_price;
 
             if ($act->section_id) {
                 $key = $act->section_id;
@@ -424,12 +436,21 @@ class FortnightActivityController extends Controller
                         'name' => $act->section ? $act->section->name : 'Unknown',
                         'q1_count' => 0,
                         'q1_total' => 0,
+                        'q1_fixed_total' => 0,
+                        'q1_non_fixed_total' => 0,
                         'q2_count' => 0,
                         'q2_total' => 0,
+                        'q2_fixed_total' => 0,
+                        'q2_non_fixed_total' => 0,
                     ];
                 }
                 $sections[$key][$half . '_count']++;
                 $sections[$key][$half . '_total'] += $price;
+                if ($isFixed) {
+                    $sections[$key][$half . '_fixed_total'] += $price;
+                } else {
+                    $sections[$key][$half . '_non_fixed_total'] += $price;
+                }
             }
 
             if ($act->corporal_id) {
@@ -440,12 +461,21 @@ class FortnightActivityController extends Controller
                         'name' => $act->corporal ? $act->corporal->full_name : 'Unknown',
                         'q1_count' => 0,
                         'q1_total' => 0,
+                        'q1_fixed_total' => 0,
+                        'q1_non_fixed_total' => 0,
                         'q2_count' => 0,
                         'q2_total' => 0,
+                        'q2_fixed_total' => 0,
+                        'q2_non_fixed_total' => 0,
                     ];
                 }
                 $corporals[$key][$half . '_count']++;
                 $corporals[$key][$half . '_total'] += $price;
+                if ($isFixed) {
+                    $corporals[$key][$half . '_fixed_total'] += $price;
+                } else {
+                    $corporals[$key][$half . '_non_fixed_total'] += $price;
+                }
             }
 
             // Workforce grouping
@@ -466,8 +496,12 @@ class FortnightActivityController extends Controller
                         'daily_price' => $act->workforce ? $act->workforce->daily_price : null,
                         'q1_count' => 0,
                         'q1_total' => 0,
+                        'q1_fixed_total' => 0,
+                        'q1_non_fixed_total' => 0,
                         'q2_count' => 0,
                         'q2_total' => 0,
+                        'q2_fixed_total' => 0,
+                        'q2_non_fixed_total' => 0,
                         'q1_dates' => [],
                         'q2_dates' => [],
                         'activities' => [],
@@ -475,6 +509,11 @@ class FortnightActivityController extends Controller
                 }
                 $workforces[$wKey][$half . '_count']++;
                 $workforces[$wKey][$half . '_total'] += $price;
+                if ($isFixed) {
+                    $workforces[$wKey][$half . '_fixed_total'] += $price;
+                } else {
+                    $workforces[$wKey][$half . '_non_fixed_total'] += $price;
+                }
                 
                 // Add payment status
                 if (!isset($workforces[$wKey]['is_paid_q1'])) {
@@ -508,6 +547,7 @@ class FortnightActivityController extends Controller
                 $day = (int) date('d', strtotime($act->date));
                 $half = $day <= 15 ? 'q1' : 'q2';
                 $price = (float) $act->price;
+                $isFixed = (bool) $act->is_fixed_price;
                 if (!isset($sWorkforces[$wid])) {
                     $sWorkforces[$wid] = [
                         'id' => $wid,
@@ -522,18 +562,33 @@ class FortnightActivityController extends Controller
                         'fixed_daily_pay' => $act->workforce ? (bool) $act->workforce->fixed_daily_pay : false,
                         'q1_count' => 0,
                         'q1_total' => 0,
+                        'q1_fixed_total' => 0,
+                        'q1_non_fixed_total' => 0,
                         'q2_count' => 0,
                         'q2_total' => 0,
+                        'q2_fixed_total' => 0,
+                        'q2_non_fixed_total' => 0,
                     ];
                 }
                 $sWorkforces[$wid][$half . '_count']++;
                 $sWorkforces[$wid][$half . '_total'] += $price;
+                if ($isFixed) {
+                    $sWorkforces[$wid][$half . '_fixed_total'] += $price;
+                } else {
+                    $sWorkforces[$wid][$half . '_non_fixed_total'] += $price;
+                }
             }
             foreach ($sWorkforces as &$sw) {
                 $sw['month_total'] = round($sw['q1_total'] + $sw['q2_total'], 2);
+                $sw['month_fixed_total'] = round($sw['q1_fixed_total'] + $sw['q2_fixed_total'], 2);
+                $sw['month_non_fixed_total'] = round($sw['q1_non_fixed_total'] + $sw['q2_non_fixed_total'], 2);
                 $sw['month_count'] = $sw['q1_count'] + $sw['q2_count'];
                 $sw['q1_total'] = round($sw['q1_total'], 2);
+                $sw['q1_fixed_total'] = round($sw['q1_fixed_total'], 2);
+                $sw['q1_non_fixed_total'] = round($sw['q1_non_fixed_total'], 2);
                 $sw['q2_total'] = round($sw['q2_total'], 2);
+                $sw['q2_fixed_total'] = round($sw['q2_fixed_total'], 2);
+                $sw['q2_non_fixed_total'] = round($sw['q2_non_fixed_total'], 2);
             }
             $s['workforces'] = array_values($sWorkforces);
         }
@@ -547,6 +602,7 @@ class FortnightActivityController extends Controller
                 $day = (int) date('d', strtotime($act->date));
                 $half = $day <= 15 ? 'q1' : 'q2';
                 $price = (float) $act->price;
+                $isFixed = (bool) $act->is_fixed_price;
                 if (!isset($cWorkforces[$wid])) {
                     $cWorkforces[$wid] = [
                         'id' => $wid,
@@ -561,18 +617,33 @@ class FortnightActivityController extends Controller
                         'fixed_daily_pay' => $act->workforce ? (bool) $act->workforce->fixed_daily_pay : false,
                         'q1_count' => 0,
                         'q1_total' => 0,
+                        'q1_fixed_total' => 0,
+                        'q1_non_fixed_total' => 0,
                         'q2_count' => 0,
                         'q2_total' => 0,
+                        'q2_fixed_total' => 0,
+                        'q2_non_fixed_total' => 0,
                     ];
                 }
                 $cWorkforces[$wid][$half . '_count']++;
                 $cWorkforces[$wid][$half . '_total'] += $price;
+                if ($isFixed) {
+                    $cWorkforces[$wid][$half . '_fixed_total'] += $price;
+                } else {
+                    $cWorkforces[$wid][$half . '_non_fixed_total'] += $price;
+                }
             }
             foreach ($cWorkforces as &$cw) {
                 $cw['month_total'] = round($cw['q1_total'] + $cw['q2_total'], 2);
+                $cw['month_fixed_total'] = round($cw['q1_fixed_total'] + $cw['q2_fixed_total'], 2);
+                $cw['month_non_fixed_total'] = round($cw['q1_non_fixed_total'] + $cw['q2_non_fixed_total'], 2);
                 $cw['month_count'] = $cw['q1_count'] + $cw['q2_count'];
                 $cw['q1_total'] = round($cw['q1_total'], 2);
+                $cw['q1_fixed_total'] = round($cw['q1_fixed_total'], 2);
+                $cw['q1_non_fixed_total'] = round($cw['q1_non_fixed_total'], 2);
                 $cw['q2_total'] = round($cw['q2_total'], 2);
+                $cw['q2_fixed_total'] = round($cw['q2_fixed_total'], 2);
+                $cw['q2_non_fixed_total'] = round($cw['q2_non_fixed_total'], 2);
             }
             $c['workforces'] = array_values($cWorkforces);
         }
@@ -580,21 +651,39 @@ class FortnightActivityController extends Controller
         // Add month totals
         foreach ($sections as &$s) {
             $s['month_total'] = round($s['q1_total'] + $s['q2_total'], 2);
+            $s['month_fixed_total'] = round($s['q1_fixed_total'] + $s['q2_fixed_total'], 2);
+            $s['month_non_fixed_total'] = round($s['q1_non_fixed_total'] + $s['q2_non_fixed_total'], 2);
             $s['month_count'] = $s['q1_count'] + $s['q2_count'];
             $s['q1_total'] = round($s['q1_total'], 2);
+            $s['q1_fixed_total'] = round($s['q1_fixed_total'], 2);
+            $s['q1_non_fixed_total'] = round($s['q1_non_fixed_total'], 2);
             $s['q2_total'] = round($s['q2_total'], 2);
+            $s['q2_fixed_total'] = round($s['q2_fixed_total'], 2);
+            $s['q2_non_fixed_total'] = round($s['q2_non_fixed_total'], 2);
         }
         foreach ($corporals as &$c) {
             $c['month_total'] = round($c['q1_total'] + $c['q2_total'], 2);
+            $c['month_fixed_total'] = round($c['q1_fixed_total'] + $c['q2_fixed_total'], 2);
+            $c['month_non_fixed_total'] = round($c['q1_non_fixed_total'] + $c['q2_non_fixed_total'], 2);
             $c['month_count'] = $c['q1_count'] + $c['q2_count'];
             $c['q1_total'] = round($c['q1_total'], 2);
+            $c['q1_fixed_total'] = round($c['q1_fixed_total'], 2);
+            $c['q1_non_fixed_total'] = round($c['q1_non_fixed_total'], 2);
             $c['q2_total'] = round($c['q2_total'], 2);
+            $c['q2_fixed_total'] = round($c['q2_fixed_total'], 2);
+            $c['q2_non_fixed_total'] = round($c['q2_non_fixed_total'], 2);
         }
         foreach ($workforces as &$w) {
             $w['month_total'] = round($w['q1_total'] + $w['q2_total'], 2);
+            $w['month_fixed_total'] = round($w['q1_fixed_total'] + $w['q2_fixed_total'], 2);
+            $w['month_non_fixed_total'] = round($w['q1_non_fixed_total'] + $w['q2_non_fixed_total'], 2);
             $w['month_count'] = $w['q1_count'] + $w['q2_count'];
             $w['q1_total'] = round($w['q1_total'], 2);
+            $w['q1_fixed_total'] = round($w['q1_fixed_total'], 2);
+            $w['q1_non_fixed_total'] = round($w['q1_non_fixed_total'], 2);
             $w['q2_total'] = round($w['q2_total'], 2);
+            $w['q2_fixed_total'] = round($w['q2_fixed_total'], 2);
+            $w['q2_non_fixed_total'] = round($w['q2_non_fixed_total'], 2);
             // Work days = distinct dates with activities
             $w['q1_work_days'] = count(array_unique($w['q1_dates']));
             $w['q2_work_days'] = count(array_unique($w['q2_dates']));
@@ -648,6 +737,8 @@ class FortnightActivityController extends Controller
                     ? ($act->section ? $act->section->name : '')
                     : ($act->corporal ? $act->corporal->full_name : ''),
                 'price' => (float) $act->price,
+                'is_fixed_price' => (bool) $act->is_fixed_price,
+                'price_type' => $act->is_fixed_price ? 'Fixed' : 'Regular',
                 'fortnight' => (int) date('d', strtotime($act->date)) <= 15 ? 'Q1' : 'Q2',
             ];
         });

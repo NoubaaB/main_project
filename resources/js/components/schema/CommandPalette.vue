@@ -158,8 +158,10 @@ export default {
         // Human Resources
         { routeName: 'workforce_management', title: t('workforce_management'), category: t('human_resources'), icon: 'mdi-account-multiple', color: '#1565C0', perm: 'workforce.view', keywords: ['workers', 'personal', 'ouvriers', 'salaries'] },
         { routeName: 'corporal_management', title: t('corporal_management'), category: t('human_resources'), icon: 'mdi-account-tie', color: '#1565C0', perm: 'workforce.view', keywords: ['corporals', 'capataces', 'chefs'] },
+        { routeName: 'team_management', title: t('team_management'), category: t('human_resources'), icon: 'mdi-account-group', color: '#1565C0', perm: 'workforce.view', keywords: ['teams', 'equipes', 'grupos', 'brigades'] },
         { routeName: 'section_management', title: t('section_management'), category: t('human_resources'), icon: 'mdi-sitemap-outline', color: '#1565C0', perm: 'workforce.view', keywords: ['sections', 'secciones', 'departments'] },
         { routeName: 'fortnight_management', title: t('fortnight_management'), category: t('human_resources'), icon: 'mdi-calendar-month', color: '#1565C0', perm: 'workforce.view', keywords: ['fortnight', 'quincena', 'quinzaine', 'payroll', 'nomina'] },
+        { routeName: 'workforce_absence_movement', title: t('workforce_absence_movement_title'), category: t('human_resources'), icon: 'mdi-account-clock-outline', color: '#1565C0', perm: 'workforce.view', keywords: ['absence', 'absent', 'movement', 'depart', 'retour', 'motif', 'leave'] },
         { routeName: 'workforce_statistics', title: t('workforce_statistics'), category: t('human_resources'), icon: 'mdi-chart-bar', color: '#1565C0', perm: 'workforce.view', keywords: ['workforce stats', 'rendimiento'] },
 
         // Finance & Billing

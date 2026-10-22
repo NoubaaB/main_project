@@ -22,6 +22,7 @@
           v-model="activeTab"
           :items="[
             { value: 'settings', label: $t('salary_thresholds'), icon: 'mdi-format-list-bulleted', badge: settingStore.list.length },
+            { value: 'absence', label: $t('absence_settings'), icon: 'mdi-account-clock-outline' },
             { value: 'info', label: $t('how_it_works'), icon: 'mdi-information-outline' }
           ]"
           color="#1565C0"
@@ -163,6 +164,110 @@
               </div>
             </template>
           </v-data-table>
+        </v-window-item>
+
+        <!-- ============= ABSENCE PARAMETERS TAB ============= -->
+        <v-window-item value="absence">
+          <v-card variant="outlined" class="rounded-xl border pa-6 mb-4" color="#42A5F5">
+            <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-6">
+              <div class="d-flex align-center ga-3">
+                <v-avatar color="#1565C0" size="48" class="text-white elevation-2">
+                  <v-icon size="26">mdi-account-clock-outline</v-icon>
+                </v-avatar>
+                <div>
+                  <h3 class="text-h6 font-weight-bold" style="color: #1565C0;">{{ $t('absence_settings') }}</h3>
+                  <p class="text-body-2 text-medium-emphasis mb-0">{{ $t('workforce_absence_threshold_desc') }}</p>
+                </div>
+              </div>
+              <v-btn
+                variant="tonal"
+                color="#1565C0"
+                rounded
+                prepend-icon="mdi-account-alert-outline"
+                @click="$router.push('/workforce_absence_movement')"
+              >
+                {{ $t('open_absence_interface') }}
+              </v-btn>
+            </div>
+
+            <!-- Current threshold display banner -->
+            <div class="pa-4 rounded-xl mb-6 d-flex align-center justify-space-between flex-wrap ga-3" style="background: rgba(21, 101, 192, 0.06); border: 1px dashed rgba(21, 101, 192, 0.3);">
+              <div class="d-flex align-center ga-3">
+                <v-icon color="#1565C0" size="32">mdi-calendar-alert</v-icon>
+                <div>
+                  <div class="text-caption font-weight-bold text-uppercase" style="color: #1565C0; letter-spacing: 0.5px;">{{ $t('current_absence_threshold') }}</div>
+                  <div class="text-h5 font-weight-black" style="color: #0D47A1;">
+                    {{ absenceThreshold }} {{ $t('days') }}
+                  </div>
+                </div>
+              </div>
+              <div class="text-caption text-medium-emphasis" style="max-width: 480px;">
+                <v-icon size="14" color="info" class="mr-1">mdi-information</v-icon>
+                {{ $t('absence_rule_explanation', { days: absenceThreshold }) }}
+              </div>
+            </div>
+
+            <!-- Configuration Form Styled as AddCharge -->
+            <v-row dense class="align-center mb-4">
+              <v-col cols="12" md="6">
+                <label class="text-caption font-weight-bold mb-1 d-block" style="color: #1565C0;">
+                  {{ $t('absence_threshold_days') }} *
+                </label>
+                <v-text-field
+                  v-model.number="absenceThreshold"
+                  type="number"
+                  min="1"
+                  max="365"
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  color="#42A5F5"
+                  :suffix="$t('days')"
+                  prepend-inner-icon="mdi-timer-sand"
+                  :hint="$t('absence_threshold_hint')"
+                  persistent-hint
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <label class="text-caption font-weight-bold mb-1 d-block text-medium-emphasis">
+                  {{ $t('quick_presets') }}
+                </label>
+                <div class="d-flex flex-wrap ga-2 pt-1">
+                  <v-chip
+                    v-for="d in [3, 5, 7, 10, 14, 21, 30]"
+                    :key="'preset-' + d"
+                    :variant="absenceThreshold === d ? 'flat' : 'tonal'"
+                    :color="absenceThreshold === d ? '#1565C0' : '#42A5F5'"
+                    class="font-weight-bold cursor-pointer"
+                    size="small"
+                    @click="absenceThreshold = d"
+                  >
+                    {{ d }} {{ $t('days') }}
+                  </v-chip>
+                </div>
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-4" style="border-color: rgba(66, 165, 245, 0.2);"></v-divider>
+
+            <div class="d-flex align-center justify-space-between flex-wrap ga-3">
+              <div class="text-caption text-medium-emphasis d-flex align-center ga-1">
+                <v-icon size="14" color="success">mdi-check-circle-outline</v-icon>
+                <span>{{ $t('realtime_sync_active') }}</span>
+              </div>
+              <v-btn
+                variant="flat"
+                style="background-color: #1565C0; color: #fff;"
+                rounded
+                :loading="savingAbsenceSetting"
+                prepend-icon="mdi-content-save"
+                @click="saveAbsenceSetting"
+              >
+                {{ $t('save_absence_parameters') }}
+              </v-btn>
+            </div>
+          </v-card>
         </v-window-item>
 
         <!-- ============= HOW IT WORKS TAB ============= -->
@@ -390,6 +495,7 @@
 <script>
 import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import { useFortnightSetting } from '@/stores/FortnightSetting';
+import { useWorkforceMovement } from '@/stores/WorkforceMovement';
 import { useMain } from '@/stores/Main';
 
 export default {
@@ -399,6 +505,8 @@ export default {
     return {
       activeTab: 'settings',
       columnFilters: {},
+      absenceThreshold: 7,
+      savingAbsenceSetting: false,
       dialog: {
         show: false,
         editId: null,
@@ -421,6 +529,7 @@ export default {
   },
   computed: {
     settingStore() { return useFortnightSetting(); },
+    movementStore() { return useWorkforceMovement(); },
     main() { return useMain(); },
     headers() {
       return [
@@ -593,6 +702,17 @@ export default {
         }
       }, stepMs);
     },
+    async saveAbsenceSetting() {
+      this.savingAbsenceSetting = true;
+      try {
+        await this.movementStore.saveSetting(this.absenceThreshold);
+        this.showSummarySnackbar(this.$t('settings_updated'), 'success', 'mdi-check-circle');
+      } catch (e) {
+        this.showSummarySnackbar(this.$t('error'), 'error', 'mdi-alert-circle');
+      } finally {
+        this.savingAbsenceSetting = false;
+      }
+    },
     closeSnackbar() {
       if (this.snackbarTimer) clearInterval(this.snackbarTimer);
       this.snackbar.show = false;
@@ -600,6 +720,14 @@ export default {
   },
   async mounted() {
     await this.settingStore.fetch();
+    try {
+      await this.movementStore.fetchSetting();
+      if (this.movementStore.thresholdDays) {
+        this.absenceThreshold = this.movementStore.thresholdDays;
+      }
+    } catch (e) {
+      console.warn('Failed to load absence threshold:', e);
+    }
   },
   beforeUnmount() {
     if (this.snackbarTimer) clearInterval(this.snackbarTimer);

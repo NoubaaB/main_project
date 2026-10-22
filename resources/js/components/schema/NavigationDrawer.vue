@@ -7,6 +7,8 @@
     :theme="main.is_dark ? 'dark' : 'light'"
     :class="['nav-drawer-premium', main.is_dark ? 'nav-dark' : 'nav-light']"
     @click="onDrawerClick"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
     <!-- Brand / Workspace Header (Relief to the eyes) -->
     <div class="nav-brand-section" :class="{ 'brand-rail': main.sidebar_mini }">
@@ -161,64 +163,137 @@
               </v-list-item>
             </div>
 
-            <!-- Group item (interactive theme-synced flyout menu panel) -->
+            <!-- Group item with expandable subnav in rail mode -->
             <div
               v-else
-              class="rail-icon-wrapper my-0.5"
-              :class="{ 'has-active': isAnyChildActive(item) }"
+              class="rail-group-block"
+              :class="{ 'is-opened': isGroupOpened(item.title) }"
               :style="getItemStyle(item)"
             >
-              <v-menu
-                location="end"
-                :theme="main.is_dark ? 'dark' : 'light'"
-                open-on-hover
-                :open-delay="60"
-                :close-delay="160"
-                offset="12"
-                transition="slide-x-transition"
+              <div
+                class="rail-icon-wrapper my-0.5"
+                :class="{ 'has-active': isAnyChildActive(item) }"
               >
-                <template v-slot:activator="{ props: menuProps }">
-                  <v-list-item
-                    v-bind="menuProps"
-                    class="rail-icon-btn"
-                    :class="{ 'is-active': isAnyChildActive(item) }"
-                    :style="getItemStyle(item)"
-                    rounded="lg"
-                    @click.stop="expandAndOpenGroup(item.title)"
-                  >
-                    <v-icon :size="20" :color="item.color">{{ item.icon }}</v-icon>
-                  </v-list-item>
-                </template>
-
-                <!-- Rail Flyout Menu Panel (Theme-Synced) -->
-                <div
-                  class="rail-flyout-panel"
-                  :class="main.is_dark ? 'flyout-dark' : 'flyout-light'"
-                  :style="getItemStyle(item)"
+                <!-- If group is NOT opened, show with flyout menu on hover so quick access without expanding is still available -->
+                <v-menu
+                  v-if="!isGroupOpened(item.title)"
+                  location="end"
+                  :theme="main.is_dark ? 'dark' : 'light'"
+                  open-on-hover
+                  :open-delay="60"
+                  :close-delay="160"
+                  offset="12"
+                  transition="slide-x-transition"
                 >
-                  <div class="rail-flyout-header" @click.stop="expandAndOpenGroup(item.title)">
-                    <div class="rail-flyout-icon-pill" :style="{ backgroundColor: hexToRgba(item.color, 0.15) }">
-                      <v-icon size="17" :color="item.color">{{ item.icon }}</v-icon>
-                    </div>
-                    <span class="rail-flyout-title">{{ item.title }}</span>
-                    <v-icon size="14" class="ml-auto text-medium-emphasis">mdi-chevron-right</v-icon>
-                  </div>
-                  <v-divider class="my-1"></v-divider>
-                  <div class="rail-flyout-children">
-                    <router-link
-                      v-for="([childIcon, childText, childUrl]) in item.children"
-                      :key="childUrl"
-                      :to="{ name: childUrl }"
-                      class="rail-flyout-item"
-                      :class="{ 'is-active': isRouteActive(childUrl) }"
+                  <template v-slot:activator="{ props: menuProps }">
+                    <v-list-item
+                      v-bind="menuProps"
+                      class="rail-icon-btn"
+                      :class="{ 'is-active': isAnyChildActive(item) }"
+                      :style="getItemStyle(item)"
+                      rounded="lg"
+                      @click.stop="toggleGroup(item.title)"
                     >
-                      <span class="rail-flyout-dot" :style="{ backgroundColor: item.color }"></span>
-                      <span class="rail-flyout-item-text">{{ childText }}</span>
-                      <v-icon v-if="isRouteActive(childUrl)" size="14" :color="item.color" class="ml-auto">mdi-check</v-icon>
-                    </router-link>
+                      <v-icon :size="20" :color="item.color">{{ item.icon }}</v-icon>
+                    </v-list-item>
+                  </template>
+
+                  <!-- Rail Flyout Menu Panel (Theme-Synced) -->
+                  <div
+                    class="rail-flyout-panel"
+                    :class="main.is_dark ? 'flyout-dark' : 'flyout-light'"
+                    :style="getItemStyle(item)"
+                  >
+                    <div class="rail-flyout-header" @click.stop="toggleGroup(item.title)">
+                      <div class="rail-flyout-icon-pill" :style="{ backgroundColor: hexToRgba(item.color, 0.15) }">
+                        <v-icon size="17" :color="item.color">{{ item.icon }}</v-icon>
+                      </div>
+                      <span class="rail-flyout-title">{{ item.title }}</span>
+                      <v-icon size="14" class="ml-auto text-medium-emphasis">mdi-chevron-down</v-icon>
+                    </div>
+                    <v-divider class="my-1"></v-divider>
+                    <div class="rail-flyout-children">
+                      <router-link
+                        v-for="([childIcon, childText, childUrl]) in item.children"
+                        :key="childUrl"
+                        :to="{ name: childUrl }"
+                        class="rail-flyout-item"
+                        :class="{ 'is-active': isRouteActive(childUrl) }"
+                      >
+                        <span class="rail-flyout-dot" :style="{ backgroundColor: item.color }"></span>
+                        <span class="rail-flyout-item-text">{{ childText }}</span>
+                        <v-icon v-if="isRouteActive(childUrl)" size="14" :color="item.color" class="ml-auto">mdi-check</v-icon>
+                      </router-link>
+                    </div>
                   </div>
+                </v-menu>
+
+                <!-- If group IS opened, parent button toggles group close, and tooltip describes group -->
+                <v-list-item
+                  v-else
+                  class="rail-icon-btn is-group-expanded"
+                  :class="{ 'is-active': isAnyChildActive(item) }"
+                  :style="getItemStyle(item)"
+                  rounded="lg"
+                  @click.stop="toggleGroup(item.title)"
+                >
+                  <v-icon :size="20" :color="item.color">{{ item.icon }}</v-icon>
+                  <span class="rail-opened-indicator-dot" :style="{ backgroundColor: item.color }"></span>
+                  <v-tooltip
+                    activator="parent"
+                    location="end"
+                    offset="14"
+                    :content-class="main.is_dark ? 'nav-rail-tooltip-dark' : 'nav-rail-tooltip-light'"
+                  >
+                    <div class="rail-tooltip-card">
+                      <div class="rail-tooltip-header">
+                        <v-icon size="16" :color="item.color" class="rail-tooltip-icon">{{ item.icon }}</v-icon>
+                        <span class="rail-tooltip-title">{{ item.title }}</span>
+                      </div>
+                      <div class="child-label mt-0.5 opacity-70">{{ $t('click_to_collapse') || 'Click to collapse' }}</div>
+                    </div>
+                  </v-tooltip>
+                </v-list-item>
+              </div>
+
+              <!-- Rail Subnav Children (Visible when group was opened!) -->
+              <transition-group
+                v-if="isGroupOpened(item.title)"
+                name="rail-subnav"
+                tag="div"
+                class="rail-subnav-items"
+              >
+                <div
+                  v-for="([childIcon, childText, childUrl], cIdx) in item.children"
+                  :key="'rail-sub-' + childUrl"
+                  class="rail-subnav-wrapper my-0.5"
+                  :class="{ 'has-active': isRouteActive(childUrl) }"
+                >
+                  <v-list-item
+                    class="rail-subnav-item"
+                    :class="{ 'is-active': isRouteActive(childUrl) }"
+                    :to="{ name: childUrl }"
+                    :exact="true"
+                    rounded="lg"
+                    @click.stop
+                  >
+                    <v-icon :size="16" :color="item.color">{{ childIcon || 'mdi-circle-small' }}</v-icon>
+                    <v-tooltip
+                      activator="parent"
+                      location="end"
+                      offset="14"
+                      :content-class="main.is_dark ? 'nav-rail-tooltip-dark' : 'nav-rail-tooltip-light'"
+                    >
+                      <div class="rail-tooltip-card">
+                        <div class="rail-tooltip-header">
+                          <v-icon size="15" :color="item.color" class="rail-tooltip-icon">{{ childIcon || 'mdi-circle-small' }}</v-icon>
+                          <span class="rail-tooltip-title">{{ childText }}</span>
+                        </div>
+                      </div>
+                    </v-tooltip>
+                  </v-list-item>
                 </div>
-              </v-menu>
+              </transition-group>
             </div>
           </template>
         </div>
@@ -345,23 +420,122 @@
     <template v-slot:append>
       <v-divider class="mx-3.5"></v-divider>
       <div class="nav-footer" :class="{ 'footer-rail': main.sidebar_mini }">
-        <!-- Rail mode: Perfectly centered User avatar with readable tooltip -->
-        <div v-if="main.sidebar_mini" class="rail-user-avatar cursor-pointer" @click="expandSidebar">
-          <v-avatar size="38" class="nav-user-avatar">
-            <v-icon size="19" color="white">mdi-account</v-icon>
-          </v-avatar>
-          <div class="user-online-dot"></div>
-          <v-tooltip
-            activator="parent"
+        <!-- Rail mode: Perfectly centered User avatar with displayed actions & rich popover card -->
+        <div v-if="main.sidebar_mini" class="rail-footer-content">
+          <!-- Centered User Avatar with Rich Popover Card -->
+          <v-menu
             location="end"
+            :theme="main.is_dark ? 'dark' : 'light'"
+            open-on-hover
+            :open-delay="80"
+            :close-delay="180"
             offset="14"
-            :content-class="main.is_dark ? 'nav-rail-tooltip-dark' : 'nav-rail-tooltip-light'"
+            transition="slide-x-transition"
           >
-            <div class="rail-tooltip-card">
-              <div class="rail-tooltip-title">{{ auth.user?.name }}</div>
-              <div class="child-label mt-0.5">{{ auth.user?.role?.name || 'Administrator' }}</div>
+            <template v-slot:activator="{ props: userMenuProps }">
+              <div
+                v-bind="userMenuProps"
+                class="rail-user-avatar cursor-pointer"
+                id="rail-user-avatar-btn"
+                @click.stop="expandSidebar"
+              >
+                <div class="user-avatar-wrapper">
+                  <v-avatar size="38" class="nav-user-avatar-spacious">
+                    <v-icon size="19" color="white">mdi-account</v-icon>
+                  </v-avatar>
+                  <span class="user-status-online-dot"></span>
+                </div>
+
+                <v-tooltip
+                  activator="parent"
+                  location="end"
+                  offset="14"
+                  :content-class="main.is_dark ? 'nav-rail-tooltip-dark' : 'nav-rail-tooltip-light'"
+                >
+                  <div class="rail-tooltip-card">
+                    <div class="rail-tooltip-title">{{ auth.user?.name }}</div>
+                    <div class="child-label mt-0.5">{{ auth.user?.role?.name || 'Administrator' }}</div>
+                  </div>
+                </v-tooltip>
+              </div>
+            </template>
+
+            <!-- Rail User Flyout Menu Panel -->
+            <div
+              class="rail-flyout-panel rail-user-menu-panel"
+              :class="main.is_dark ? 'flyout-dark' : 'flyout-light'"
+            >
+              <div class="rail-user-menu-header">
+                <v-avatar size="42" class="nav-user-avatar-spacious mr-3">
+                  <v-icon size="21" color="white">mdi-account</v-icon>
+                </v-avatar>
+                <div class="rail-user-menu-info">
+                  <div class="rail-user-fullname">{{ auth.user?.name }}</div>
+                  <div class="rail-user-email">{{ auth.user?.email }}</div>
+                  <div class="nav-user-role-badge mt-1">
+                    <span class="role-badge-dot"></span>
+                    <span class="role-badge-text">{{ auth.user?.role?.name || 'Administrator' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <v-divider class="my-2"></v-divider>
+
+              <div class="rail-user-menu-actions">
+                <v-btn
+                  block
+                  variant="tonal"
+                  color="primary"
+                  size="small"
+                  prepend-icon="mdi-account-cog-outline"
+                  class="mb-1.5 justify-start text-none font-weight-medium rail-menu-action-btn"
+                  @click.stop="$router.push({ name: 'profile_settings' })"
+                >
+                  {{ t('my_profile') }}
+                </v-btn>
+                <v-btn
+                  block
+                  variant="tonal"
+                  color="error"
+                  size="small"
+                  prepend-icon="mdi-power"
+                  class="justify-start text-none font-weight-medium rail-menu-action-btn"
+                  @click.stop="logout()"
+                >
+                  {{ $t('logout') || 'Logout' }}
+                </v-btn>
+              </div>
             </div>
-          </v-tooltip>
+          </v-menu>
+
+          <!-- Direct Actions Displayed in Rail Footer -->
+          <div class="rail-footer-actions">
+            <v-btn
+              icon
+              size="28"
+              variant="tonal"
+              color="primary"
+              class="rail-mini-action-btn"
+              @click.stop="$router.push({ name: 'profile_settings' })"
+              id="rail-edit-profile-btn"
+            >
+              <v-icon size="15">mdi-account-cog-outline</v-icon>
+              <v-tooltip activator="parent" location="end" offset="12">{{ t('my_profile') }}</v-tooltip>
+            </v-btn>
+
+            <v-btn
+              icon
+              size="28"
+              variant="tonal"
+              color="error"
+              class="rail-mini-action-btn"
+              @click.stop="logout()"
+              id="rail-logout-btn"
+            >
+              <v-icon size="15">mdi-power</v-icon>
+              <v-tooltip activator="parent" location="end" offset="12">{{ $t('logout') || 'Logout' }}</v-tooltip>
+            </v-btn>
+          </div>
         </div>
 
         <!-- Expanded mode: Spacious, Relief-for-the-eyes Modern User Card -->
@@ -427,6 +601,10 @@ export default {
       openedGroups: [],
       filterQuery: '',
       adaptiveLogoUrl: null,
+      savedScrollTop: 0,
+      isTransitioning: false,
+      enterTimeout: null,
+      leaveTimeout: null,
     };
   },
   computed: {
@@ -469,10 +647,9 @@ export default {
               icon: 'mdi-warehouse',
               title: this.$t('warehouses'),
               color: '#a21ee5',
-              perm: 'warehouses.view',
               children: [
-                ['mdi-view-dashboard-outline', this.$t('dashboard'), 'warehouses'],
-                ['mdi-receipt-text-outline', this.$t('storage_invoices'), 'storage_invoices'],
+                ['mdi-view-dashboard-outline', this.$t('dashboard'), 'warehouses', 'warehouses.view'],
+                ['mdi-receipt-text-outline', this.$t('storage_invoices'), 'storage_invoices', 'warehouses.storage_invoices'],
               ]
             },
             {
@@ -501,10 +678,9 @@ export default {
               icon: 'mdi-factory',
               title: this.$t('production'),
               color: '#00897B',
-              perm: 'production.view',
               children: [
-                ['mdi-format-list-bulleted', this.$t('production_list'), 'production_list'],
-                ['mdi-link-variant', this.$t('charge_production_management'), 'charge_production_management'],
+                ['mdi-format-list-bulleted', this.$t('production_list'), 'production_list', 'production.view'],
+                ['mdi-link-variant', this.$t('charge_production_management'), 'charge_production_management', 'production.charge_management'],
               ]
             },
             {
@@ -538,13 +714,14 @@ export default {
               icon: 'mdi-account-hard-hat',
               title: this.$t('workforce'),
               color: '#1565C0',
-              perm: 'workforce.view',
               children: [
-                ['mdi-account-multiple', this.$t('workforce_management'), 'workforce_management'],
-                ['mdi-account-tie', this.$t('corporal_management'), 'corporal_management'],
-                ['mdi-sitemap-outline', this.$t('section_management'), 'section_management'],
-                ['mdi-calendar-month', this.$t('fortnight_management'), 'fortnight_management'],
-                ['mdi-chart-bar', this.$t('workforce_statistics'), 'workforce_statistics'],
+                ['mdi-account-multiple', this.$t('workforce_management'), 'workforce_management', 'workforce.view'],
+                ['mdi-account-tie', this.$t('corporal_management'), 'corporal_management', 'workforce.corporals'],
+                ['mdi-account-group', this.$t('team_management'), 'team_management', 'workforce.teams'],
+                ['mdi-sitemap-outline', this.$t('section_management'), 'section_management', 'workforce.sections'],
+                ['mdi-calendar-month', this.$t('fortnight_management'), 'fortnight_management', 'workforce.fortnight'],
+                ['mdi-account-clock-outline', this.$t('workforce_absence_movement_title'), 'workforce_absence_movement', 'workforce.absence'],
+                ['mdi-chart-bar', this.$t('workforce_statistics'), 'workforce_statistics', 'workforce.statistics'],
               ]
             }
           ]
@@ -558,10 +735,9 @@ export default {
               icon: 'mdi-file-document-check',
               title: this.$t('supplier_invoices'),
               color: '#E65100',
-              perm: 'supplier_invoices.view',
               children: [
-                ['mdi-file-document-multiple', this.$t('list_supplier_invoice'), 'list_supplier_invoice'],
-                ['mdi-cash-register', this.$t('supplier_settlement'), 'supplier_settlement'],
+                ['mdi-file-document-multiple', this.$t('list_supplier_invoice'), 'list_supplier_invoice', 'supplier_invoices.view'],
+                ['mdi-cash-register', this.$t('supplier_settlement'), 'supplier_settlement', 'supplier_invoices.settlement'],
               ]
             },
             {
@@ -569,10 +745,9 @@ export default {
               icon: 'mdi-account-cash',
               title: this.$t('client_invoics'),
               color: '#00838F',
-              perm: 'client_invoices.view',
               children: [
-                ['mdi-file-document-multiple', this.$t('list_client_invoice'), 'list_client_invoice'],
-                ['mdi-cash-register', this.$t('client_settlement'), 'client_settlement'],
+                ['mdi-file-document-multiple', this.$t('list_client_invoice'), 'list_client_invoice', 'client_invoices.view'],
+                ['mdi-cash-register', this.$t('client_settlement'), 'client_settlement', 'client_invoices.settlement'],
               ]
             },
             {
@@ -609,7 +784,7 @@ export default {
                 ['mdi-calendar-clock', this.$t('fortnight_settings'), 'fortnight_settings', 'settings.fortnight'],
                 ['mdi-chart-areaspline', this.$t('chart_management'), 'chart_management', 'settings.charts'],
                 ['mdi-cash-lock-open', this.$t('static_charge_management'), 'static_charge_management', 'settings.static_charges'],
-                ['mdi-calculator-variant-outline', this.$t('cost_configuration_management'), 'cost_configuration_management', 'settings.charges'],
+                ['mdi-calculator-variant-outline', this.$t('cost_configuration_management'), 'cost_configuration_management', 'settings.cost_configuration'],
               ]
             },
             {
@@ -684,6 +859,38 @@ export default {
     }
   },
   watch: {
+    'main.sidebar_mini'(newVal, oldVal) {
+      if (newVal === oldVal) return;
+      this.isTransitioning = true;
+      const targetScroll = this.savedScrollTop;
+
+      const restore = () => {
+        const el = this.getContentEl();
+        if (el && targetScroll !== undefined) {
+          const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+          el.scrollTop = Math.min(targetScroll, maxScroll);
+        }
+      };
+
+      restore();
+      this.$nextTick(restore);
+      requestAnimationFrame(restore);
+      setTimeout(restore, 50);
+      setTimeout(restore, 150);
+      setTimeout(restore, 320);
+      setTimeout(() => {
+        restore();
+        this.isTransitioning = false;
+      }, 360);
+    },
+    '$route.name': {
+      immediate: true,
+      handler() {
+        this.$nextTick(() => {
+          this.findAndOpenActiveGroup();
+        });
+      }
+    },
     filterQuery(newVal) {
       if (newVal && newVal.trim().length > 0) {
         const groupsToOpen = [];
@@ -753,9 +960,11 @@ export default {
       return item.children.some(c => c[2] === this.$route.name);
     },
     expandSidebar() {
+      this.saveScrollPos();
       this.main.sidebar_mini = false;
     },
     minimizeSidebar() {
+      this.saveScrollPos();
       this.main.sidebar_mini = true;
     },
     onDrawerClick() {
@@ -770,6 +979,122 @@ export default {
           this.openedGroups.push(groupTitle);
         }
       });
+    },
+    isGroupOpened(groupTitle) {
+      return Array.isArray(this.openedGroups) && this.openedGroups.includes(groupTitle);
+    },
+    toggleGroup(groupTitle) {
+      if (!Array.isArray(this.openedGroups)) {
+        this.openedGroups = [];
+      }
+      this.saveScrollPos();
+      const idx = this.openedGroups.indexOf(groupTitle);
+      if (idx > -1) {
+        this.openedGroups.splice(idx, 1);
+      } else {
+        this.openedGroups.push(groupTitle);
+      }
+    },
+    findAndOpenActiveGroup() {
+      if (!this.visibleSections) return;
+      for (const section of this.visibleSections) {
+        for (const item of section.items) {
+          if (item.children && this.isAnyChildActive(item)) {
+            if (!this.openedGroups.includes(item.title)) {
+              this.openedGroups.push(item.title);
+            }
+          }
+        }
+      }
+    },
+    getDrawerEl() {
+      if (this.$el && this.$el.nodeType === 1) return this.$el;
+      return document.querySelector('.v-navigation-drawer');
+    },
+    getContentEl() {
+      const drawer = this.getDrawerEl();
+      if (drawer && drawer.querySelector) {
+        return drawer.querySelector('.v-navigation-drawer__content');
+      }
+      return document.querySelector('.v-navigation-drawer .v-navigation-drawer__content');
+    },
+    saveScrollPos() {
+      const el = this.getContentEl();
+      if (el) {
+        this.savedScrollTop = el.scrollTop;
+      }
+    },
+    bindScrollListener() {
+      const el = this.getContentEl();
+      if (el) {
+        el.addEventListener('scroll', this.onScroll, { passive: true });
+      }
+    },
+    unbindScrollListener() {
+      const el = this.getContentEl();
+      if (el) {
+        el.removeEventListener('scroll', this.onScroll);
+      }
+    },
+    onScroll(e) {
+      if (this.isTransitioning) return;
+      this.savedScrollTop = e.target.scrollTop;
+    },
+    handleDocumentClick(event) {
+      if (this.main.sidebar_mini) return;
+
+      const drawerEl = this.getDrawerEl();
+      if (!drawerEl) return;
+
+      // Click inside drawer: do not collapse
+      if (drawerEl.contains(event.target)) return;
+
+      // Click on system bar nav toggle button: ignore so button handler runs
+      const toggleBtn = document.querySelector('.systembar-nav-toggle-btn');
+      if (toggleBtn && (toggleBtn === event.target || toggleBtn.contains(event.target))) {
+        return;
+      }
+
+      // Click inside any teleported overlay/menu/tooltip (e.g. flyout menu, tooltip, dialog)
+      if (event.target.closest('.v-overlay-container') || event.target.closest('.rail-flyout-panel') || event.target.closest('.v-tooltip')) {
+        return;
+      }
+
+      // Outside click: collapse drawer to rail
+      this.saveScrollPos();
+      this.minimizeSidebar();
+    },
+    handleMouseEnter() {
+      if (this.leaveTimeout) {
+        clearTimeout(this.leaveTimeout);
+        this.leaveTimeout = null;
+      }
+      if (this.main.sidebar_mini) {
+        this.enterTimeout = setTimeout(() => {
+          this.expandSidebar();
+        }, 60);
+      }
+    },
+    handleMouseLeave(event) {
+      if (this.enterTimeout) {
+        clearTimeout(this.enterTimeout);
+        this.enterTimeout = null;
+      }
+      if (!this.main.sidebar_mini) {
+        if (event?.relatedTarget) {
+          const related = event.relatedTarget;
+          const drawer = this.getDrawerEl();
+          if (drawer && drawer.contains(related)) return;
+          if (related.closest?.('.v-overlay-container') || related.closest?.('.rail-flyout-panel') || related.closest?.('.rail-user-menu-panel')) {
+            return;
+          }
+        }
+        this.leaveTimeout = setTimeout(() => {
+          const drawer = this.getDrawerEl();
+          if (drawer && drawer.matches(':hover')) return;
+          this.minimizeSidebar();
+        }, 150);
+      }
     },
     async logout() {
       this.auth.user = null;
@@ -858,6 +1183,27 @@ export default {
   },
   mounted() {
     this.main.sidebar_mini = true;
+    this.$nextTick(() => {
+      this.bindScrollListener();
+      this.findAndOpenActiveGroup();
+      const drawerEl = this.getDrawerEl();
+      if (drawerEl) {
+        drawerEl.addEventListener('mouseenter', this.handleMouseEnter);
+        drawerEl.addEventListener('mouseleave', this.handleMouseLeave);
+      }
+    });
+    document.addEventListener('click', this.handleDocumentClick, true);
+  },
+  beforeUnmount() {
+    if (this.enterTimeout) clearTimeout(this.enterTimeout);
+    if (this.leaveTimeout) clearTimeout(this.leaveTimeout);
+    this.unbindScrollListener();
+    document.removeEventListener('click', this.handleDocumentClick, true);
+    const drawerEl = this.getDrawerEl();
+    if (drawerEl) {
+      drawerEl.removeEventListener('mouseenter', this.handleMouseEnter);
+      drawerEl.removeEventListener('mouseleave', this.handleMouseLeave);
+    }
   }
 };
 </script>
@@ -1096,6 +1442,44 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ============================================================
+   Rail User Popover Menu Panel - Teleported & Theme-Synced
+   ============================================================ */
+.rail-user-menu-panel {
+  min-width: 250px;
+  max-width: 300px;
+  padding: 14px 14px 12px;
+}
+.rail-user-menu-header {
+  display: flex;
+  align-items: center;
+}
+.rail-user-menu-info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rail-user-fullname {
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.flyout-light .rail-user-fullname {
+  color: #0F172A !important;
+}
+.flyout-dark .rail-user-fullname {
+  color: #FFFFFF !important;
+}
+.rail-user-email {
+  font-size: 0.74rem;
+  opacity: 0.7;
+}
+.rail-menu-action-btn {
+  border-radius: 9px !important;
 }
 </style>
 
@@ -1777,12 +2161,44 @@ export default {
   margin: 0 auto;
 }
 
+.rail-footer-content {
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rail-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.rail-mini-action-btn {
+  border-radius: 8px !important;
+  opacity: 0.85;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.rail-mini-action-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
 .rail-user-avatar {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.rail-user-avatar:hover {
+  transform: scale(1.08);
 }
 
 .user-online-dot {
@@ -1794,6 +2210,129 @@ export default {
   border-radius: 50%;
   background: #10B981;
   border: 2px solid rgb(var(--v-theme-surface));
+}
+
+/* ============================================================
+   Rail Subnav Items (Rendered when group is open in rail mode)
+   ============================================================ */
+.rail-group-block {
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1px 0;
+  position: relative;
+}
+
+.rail-group-parent-btn.is-group-expanded {
+  background: var(--item-hover-bg, rgba(var(--v-theme-on-surface), 0.08)) !important;
+}
+
+.rail-opened-indicator-dot {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 5px currentColor;
+}
+
+.rail-subnav-items {
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 0 5px;
+  position: relative;
+}
+
+/* Elegant vertical connector tree line */
+.rail-subnav-items::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: var(--item-accent, #1976D2);
+  opacity: 0.22;
+  border-radius: 2px;
+}
+
+.rail-subnav-wrapper {
+  width: 72px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.rail-subnav-item {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  background: rgba(var(--v-theme-surface), 0.75) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.rail-subnav-item :deep(.v-list-item__content) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.rail-subnav-item:hover {
+  background: var(--item-hover-bg, rgba(var(--v-theme-on-surface), 0.1)) !important;
+  border-color: var(--item-accent, #1976D2) !important;
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.rail-subnav-item.is-active,
+.rail-subnav-item.v-list-item--active {
+  background: var(--item-active-bg, rgba(33, 150, 243, 0.16)) !important;
+  border-color: var(--item-accent, #1976D2) !important;
+  box-shadow: 0 0 10px var(--item-active-bg, rgba(33, 150, 243, 0.25));
+}
+
+.rail-subnav-wrapper.has-active::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--item-accent, #1976D2);
+  box-shadow: 0 0 6px var(--item-accent, #1976D2);
+}
+
+/* Subnav transition */
+.rail-subnav-enter-active,
+.rail-subnav-leave-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.rail-subnav-enter-from,
+.rail-subnav-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.9);
 }
 
 .nav-user-card-spacious {

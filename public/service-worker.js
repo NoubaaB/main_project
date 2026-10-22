@@ -1,5 +1,5 @@
-const CACHE_NAME = 'jupiter-shell-cache-v16';
-const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v16';
+const CACHE_NAME = 'jupiter-shell-cache-v17';
+const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v17';
 
 const PRECACHE_ASSETS = [
   '/js/manifest.json',
@@ -122,3 +122,74 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// ─── Web Push Event Listener ───────────────────────────────────────
+self.addEventListener('push', (event) => {
+  console.log('[Service Worker] Web Push event received:', event);
+
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = {
+        title: 'Jupiter ERP Notification',
+        body: event.data.text()
+      };
+    }
+  }
+
+  const title = data.title || 'Jupiter ERP Notification';
+  const options = {
+    body: data.body || 'New activity in Jupiter ERP',
+    icon: data.icon || '/images/jupiter-logo.png',
+    badge: data.badge || '/favicon.ico',
+    tag: data.tag || ('jupiter-' + Date.now()),
+    renotify: data.renotify !== false,
+    data: data.data || { url: '/' },
+    vibrate: [100, 50, 100],
+    actions: [
+      { action: 'open', title: 'Open' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// ─── Notification Click Event Listener ─────────────────────────────
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') {
+    return;
+  }
+
+  const targetUrl = (event.notification.data && event.notification.data.url)
+    ? event.notification.data.url
+    : '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // If a client window is already open, focus it and notify via message
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if ('focus' in client) {
+          client.postMessage({
+            type: 'NAVIGATE_TO',
+            url: targetUrl,
+            notificationData: event.notification.data
+          });
+          return client.focus();
+        }
+      }
+      // If no open client exists, open a new window
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

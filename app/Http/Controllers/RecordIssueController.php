@@ -258,6 +258,29 @@ class RecordIssueController extends Controller
 
             if (!empty($notifications)) {
                 Notification::insert($notifications);
+
+                try {
+                    $eligibleUserIds = array_column($notifications, 'user_id');
+                    if (!empty($eligibleUserIds)) {
+                        $webPush = app(\App\Services\WebPushService::class);
+                        $payload = [
+                            'title' => "Jupiter ERP • Issue Reported ({$issue->record_type})",
+                            'body'  => "{$reporter->name} reported an issue: {$issue->title}",
+                            'icon'  => '/images/jupiter-logo.png',
+                            'badge' => '/favicon.ico',
+                            'tag'   => "jupiter-issue-{$issue->id}",
+                            'data'  => [
+                                'model'     => $issue->record_type,
+                                'action'    => 'issue_reported',
+                                'record_id' => $issue->record_id,
+                                'url'       => '/' . strtolower($issue->record_type) . 's/' . $issue->record_id,
+                            ],
+                        ];
+                        $webPush->sendToUsers($eligibleUserIds, $payload);
+                    }
+                } catch (\Throwable $pe) {
+                    \Log::warning('[RecordIssueController] WebPush dispatch failed: ' . $pe->getMessage());
+                }
             }
         } catch (\Throwable $e) {
             \Log::warning('[RecordIssueController] Failed to notify record owners: ' . $e->getMessage());
@@ -288,6 +311,26 @@ class RecordIssueController extends Controller
                 'actor_id'       => $resolver->id,
                 'permission_key' => $permissionKey,
             ]);
+
+            try {
+                $webPush = app(\App\Services\WebPushService::class);
+                $payload = [
+                    'title' => "Jupiter ERP • Issue Resolved ({$issue->record_type})",
+                    'body'  => "{$resolver->name} marked your issue as resolved.",
+                    'icon'  => '/images/jupiter-logo.png',
+                    'badge' => '/favicon.ico',
+                    'tag'   => "jupiter-issue-resolved-{$issue->id}",
+                    'data'  => [
+                        'model'     => $issue->record_type,
+                        'action'    => 'issue_resolved',
+                        'record_id' => $issue->record_id,
+                        'url'       => '/' . strtolower($issue->record_type) . 's/' . $issue->record_id,
+                    ],
+                ];
+                $webPush->sendToUser($issue->reported_by, $payload);
+            } catch (\Throwable $pe) {
+                \Log::warning('[RecordIssueController] WebPush dispatch failed: ' . $pe->getMessage());
+            }
         } catch (\Throwable $e) {
             \Log::warning('[RecordIssueController] Failed to notify issue resolution: ' . $e->getMessage());
         }

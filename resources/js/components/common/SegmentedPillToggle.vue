@@ -4,7 +4,10 @@
     class="segmented-pill-container"
     :class="[
       `segmented-pill--${size}`,
-      { 'has-indicator': isIndicatorReady }
+      {
+        'has-indicator': isIndicatorReady,
+        'segmented-pill--block': block
+      }
     ]"
     :style="containerStyle"
     role="tablist"
@@ -64,6 +67,10 @@ export default {
       type: String,
       default: 'medium', // 'small' | 'medium'
       validator: v => ['small', 'medium'].includes(v)
+    },
+    block: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:modelValue', 'change'],
@@ -195,6 +202,7 @@ export default {
   display: inline-flex;
   align-items: center;
   position: relative;
+  box-sizing: border-box;
   background: var(--pill-container-bg, #EBF3FD);
   border: 1px solid var(--pill-container-border, rgba(66, 165, 245, 0.32));
   border-radius: 9999px;
@@ -203,6 +211,25 @@ export default {
   user-select: none;
   font-family: 'Inter', sans-serif;
   max-width: 100%;
+}
+
+.segmented-pill-container *,
+.segmented-pill-container *::before,
+.segmented-pill-container *::after {
+  box-sizing: border-box;
+}
+
+/* Block / Full Width Mode */
+.segmented-pill-container.segmented-pill--block {
+  display: flex !important;
+  width: 100% !important;
+}
+
+.segmented-pill--block .segmented-pill-btn {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+  text-align: center;
 }
 
 /* Sliding active pill */
@@ -276,6 +303,12 @@ export default {
 .segmented-pill-btn.is-active .segmented-pill-icon {
   color: #FFFFFF !important;
   transform: scale(1.08);
+}
+
+.segmented-pill-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .segmented-pill-badge {

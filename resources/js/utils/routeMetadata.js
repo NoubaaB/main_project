@@ -108,7 +108,9 @@ export const MODULE_DEFINITIONS = [
       { name: 'workforce_management', titleKey: 'workforce_management', fallbackTitle: 'Workforce', icon: 'mdi-account-multiple' },
       { name: 'fortnight_management', titleKey: 'fortnight_management', fallbackTitle: 'Fortnight Management', icon: 'mdi-calendar-month' },
       { name: 'corporal_management', titleKey: 'corporal_management', fallbackTitle: 'Corporals', icon: 'mdi-account-tie' },
+      { name: 'team_management', titleKey: 'team_management', fallbackTitle: 'Teams', icon: 'mdi-account-group' },
       { name: 'section_management', titleKey: 'section_management', fallbackTitle: 'Sections', icon: 'mdi-sitemap-outline' },
+      { name: 'workforce_absence_movement', titleKey: 'workforce_absence_movement_title', fallbackTitle: 'Absence & Movements', icon: 'mdi-account-clock-outline' },
       { name: 'workforce_statistics', titleKey: 'workforce_statistics', fallbackTitle: 'Statistics', icon: 'mdi-chart-bar' },
     ]
   },

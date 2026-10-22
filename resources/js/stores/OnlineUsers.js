@@ -26,12 +26,15 @@ import { useFormula } from '@/stores/Formula';
 import { useCorporal } from '@/stores/Corporal';
 import { useSection } from '@/stores/Section';
 import { useWorkforce } from '@/stores/Workforce';
+import { useTeam } from '@/stores/Team';
 import { useDetailInventoryCategory } from '@/stores/DetailInventoryCategory';
 import { useCompanySettings } from '@/stores/CompanySettings';
 import { useFortnightSetting } from '@/stores/FortnightSetting';
 import { useCustomChart } from '@/stores/CustomChart';
 import { useStaticCharge } from '@/stores/StaticCharge';
 import { useNotificationCenter } from '@/stores/NotificationCenter';
+import { useWorkforceMovement } from '@/stores/WorkforceMovement';
+import { useWebPush } from '@/stores/WebPush';
 
 export const useOnlineUsers = defineStore('OnlineUsers', {
     state: () => ({
@@ -136,6 +139,14 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
                 } catch (e) {
                     console.warn('[WebSocket] Failed to push notification:', e);
                 }
+
+                // Trigger Web Push Notification / Desktop Notification
+                try {
+                    const webPush = useWebPush();
+                    webPush.notifyModelChange(data);
+                } catch (e) {
+                    console.warn('[WebPush] Failed to trigger desktop notification:', e);
+                }
             }
 
             // Always update local store list for ALL users (keeps data in sync)
@@ -159,15 +170,20 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
                     'Corporal': () => useCorporal(),
                     'Section': () => useSection(),
                     'Workforce': () => useWorkforce(),
+                    'Team': () => useTeam(),
+                    'WorkforceMovement': () => useWorkforceMovement(),
                 };
                 if (fetchableStores[model]) {
-                    try { fetchableStores[model]().fetch(); } catch (e) { /* ignore */ }
+                    try {
+                        if (fetchableStores[model]().fetch) fetchableStores[model]().fetch();
+                        if (fetchableStores[model]().fetchAbsences) fetchableStores[model]().fetchAbsences();
+                    } catch (e) { /* ignore */ }
                 }
                 return;
             }
 
             // Stores that need full re-fetch (have relationships loaded via fetch())
-            const fetchOnChange = ['Corporal', 'Section', 'Workforce'];
+            const fetchOnChange = ['Corporal', 'Section', 'Workforce', 'Team', 'WorkforceMovement'];
 
             // Map model names to their store instances
             const storeMap = {
@@ -194,6 +210,8 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
                 'Corporal': () => useCorporal(),
                 'Section': () => useSection(),
                 'Workforce': () => useWorkforce(),
+                'Team': () => useTeam(),
+                'WorkforceMovement': () => useWorkforceMovement(),
             };
 
             // CompanySetting is a key-value store, handle separately
@@ -252,8 +270,17 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
             try { store = factory(); } catch (e) { return; }
 
             // For stores with relationships, do a full re-fetch
-            if (fetchOnChange.includes(model) && typeof store.fetch === 'function') {
-                try { store.fetch(); } catch (e) { /* ignore */ }
+            if (fetchOnChange.includes(model)) {
+                if (typeof store.fetch === 'function') {
+                    try { store.fetch(); } catch (e) { /* ignore */ }
+                }
+                if (typeof store.fetchAbsences === 'function') {
+                    try { store.fetchAbsences(); } catch (e) { /* ignore */ }
+                }
+                // If workforce changed, also refresh workforce movement absences
+                if (model === 'Workforce') {
+                    try { useWorkforceMovement().fetchAbsences(); } catch (e) { /* ignore */ }
+                }
                 return;
             }
 

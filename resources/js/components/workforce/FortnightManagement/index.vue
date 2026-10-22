@@ -56,7 +56,7 @@
                 </div>
               </div>
               <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-medium">
-                {{ selectedWorkforceIds.length }} {{ $t('total_selected') }}
+                {{ effectiveWorkforceIds.length }} {{ $t('total_selected') }}
               </v-chip>
             </div>
 
@@ -74,85 +74,224 @@
               <v-btn size="x-small" variant="text" color="#42A5F5" rounded @click="goToday">{{ $t('today') }}</v-btn>
             </div>
 
-            <!-- Workforce selector -->
-            <v-autocomplete
-              ref="workforceAutocomplete"
-              v-model="selectedWorkforceIds"
-              :items="workforceStore.list"
-              item-value="id"
-              :item-title="workforceItemTitle"
-              :label="$t('select_workforces')"
-              density="compact"
-              variant="outlined"
-              rounded
+            <!-- Entry Flow Toggle: By Teams or By Workforces -->
+            <SegmentedPillToggle
+              v-model="activityEntryMode"
+              :items="[
+                { value: 'teams', label: $t('by_teams'), icon: 'mdi-account-group' },
+                { value: 'workforces', label: $t('by_workforces'), icon: 'mdi-account-hard-hat' },
+              ]"
               color="#42A5F5"
-              class="text-workforce mb-3"
-              clearable
-              multiple
-              chips
-              closable-chips
-              prepend-inner-icon="mdi-account-hard-hat"
-              @update:model-value="onWorkforceChange"
+              block
+              class="mb-3 w-100"
+            />
+
+            <!-- ================= MODE 1: BY TEAMS ================= -->
+            <div v-if="activityEntryMode === 'teams'">
+              <!-- Teams Multi-Autocomplete -->
+              <v-autocomplete
+                v-model="selectedTeamIds"
+                :items="teamStore.list"
+                item-value="id"
+                item-title="name"
+                :label="$t('select_teams')"
+                density="compact"
+                variant="outlined"
+                rounded
+                color="#42A5F5"
+                class="text-workforce mb-2"
+                clearable
+                multiple
+                chips
+                closable-chips
+                prepend-inner-icon="mdi-account-group"
+                @keyup.enter="submitActivity"
+              >
+                <template #chip="{ item, props }">
+                  <v-chip v-bind="props" size="small" color="#42A5F5" variant="tonal" closable>
+                    <v-icon start size="14">mdi-account-group</v-icon>
+                    {{ item.raw.name }} ({{ item.raw.workforces_count || (item.raw.workforces ? item.raw.workforces.length : 0) }} {{ $t('workforces_short') }})
+                  </v-chip>
+                </template>
+                <template #item="{ item, props }">
+                  <v-list-item v-bind="props" class="rounded-lg my-1">
+                    <template #prepend>
+                      <v-avatar size="28" color="#1565C0" class="text-white text-caption font-weight-bold mr-2">
+                        <v-icon size="16" color="white">mdi-account-group</v-icon>
+                      </v-avatar>
+                      <v-checkbox-btn
+                        :model-value="selectedTeamIds.includes(item.value)"
+                        color="#42A5F5"
+                        density="compact"
+                        class="mr-1"
+                      ></v-checkbox-btn>
+                    </template>
+                    <v-list-item-title class="font-weight-medium">{{ item.raw.name }}</v-list-item-title>
+                    <v-list-item-subtitle class="text-caption text-medium-emphasis">
+                      <span v-if="item.raw.corporal">
+                        <v-icon size="12" class="mr-1">mdi-account-tie</v-icon>
+                        {{ $t('chef') }}: {{ item.raw.corporal.full_name }}
+                      </span>
+                      <span class="ml-2 font-weight-bold text-primary">
+                        • {{ item.raw.workforces_count || (item.raw.workforces ? item.raw.workforces.length : 0) }} {{ $t('workforces') }}
+                      </span>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </template>
+              </v-autocomplete>
+
+              <!-- Selected Teams Summary Card -->
+              <div v-if="selectedTeamIds.length > 0" class="fnm-teams-summary-card mb-3 pa-2 rounded-xl border">
+                <div class="d-flex align-center justify-space-between mb-1">
+                  <span class="text-caption font-weight-bold text-medium-emphasis">
+                    <v-icon size="14" color="#42A5F5" class="mr-1">mdi-account-check</v-icon>
+                    {{ $t('selected_teams_summary') }}
+                  </span>
+                  <v-chip size="x-small" color="#42A5F5" variant="flat" class="text-white font-weight-bold">
+                    {{ effectiveWorkforceIds.length }} {{ $t('workforces_selected') }}
+                  </v-chip>
+                </div>
+                <div class="d-flex flex-wrap ga-1">
+                  <v-chip
+                    v-for="team in selectedTeamsList"
+                    :key="team.id"
+                    size="x-small"
+                    variant="tonal"
+                    color="#1565C0"
+                    class="font-weight-medium"
+                  >
+                    <strong>{{ team.name }}</strong>
+                    <span v-if="team.corporal" class="ml-1 opacity-75">({{ team.corporal.full_name }})</span>
+                    <span class="ml-1 font-weight-bold">: {{ team.workforces?.length || 0 }}</span>
+                  </v-chip>
+                </div>
+              </div>
+            </div>
+
+            <!-- ================= MODE 2: BY INDIVIDUAL WORKFORCES ================= -->
+            <div v-else>
+              <!-- Workforce selector -->
+              <v-autocomplete
+                ref="workforceAutocomplete"
+                v-model="selectedWorkforceIds"
+                :items="availableWorkforces"
+                item-value="id"
+                :item-title="workforceItemTitle"
+                :label="$t('select_workforces')"
+                density="compact"
+                variant="outlined"
+                rounded
+                color="#42A5F5"
+                class="text-workforce mb-3"
+                clearable
+                multiple
+                chips
+                closable-chips
+                prepend-inner-icon="mdi-account-hard-hat"
+                @update:model-value="onWorkforceChange"
+                @keyup.enter="submitActivity"
+              >
+                <template #chip="{ item, props }">
+                  <v-chip v-bind="props" size="small" color="#42A5F5" variant="tonal" closable>{{ item.title }}</v-chip>
+                </template>
+                <template #item="{ item, props }">
+                  <v-list-item v-bind="props" class="rounded-lg my-1">
+                    <template #prepend>
+                      <div class="fnm-avatar-circle mr-2">
+                        {{ getWorkforceInitials(item.raw) }}
+                      </div>
+                      <v-checkbox-btn
+                        :model-value="selectedWorkforceIds.includes(item.value)"
+                        color="#42A5F5"
+                        density="compact"
+                        class="mr-1"
+                      ></v-checkbox-btn>
+                    </template>
+                    <v-list-item-title class="font-weight-medium">{{ item.raw.full_name }}</v-list-item-title>
+                    <v-list-item-subtitle class="text-caption text-medium-emphasis">
+                      {{ item.raw.matricule }}
+                      <v-chip v-if="item.raw.fixed_daily_pay" size="x-small" color="amber-darken-2" variant="flat" class="ml-2 text-white">
+                        {{ $t('fixed_pay') }}: {{ item.raw.daily_price }}
+                      </v-chip>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </template>
+              </v-autocomplete>
+
+              <!-- Section affiliee -->
+              <v-autocomplete
+                v-model="activityForm.section_id"
+                :items="sectionStore.list"
+                item-value="id"
+                item-title="name"
+                :label="$t('section_affiliated')"
+                density="compact"
+                variant="outlined"
+                rounded
+                color="#42A5F5"
+                class="text-workforce mb-3"
+                clearable
+                prepend-inner-icon="mdi-sitemap-outline"
+                @update:model-value="onSectionChange"
+                :disabled="!!activityForm.corporal_id"
+                @keyup.enter="submitActivity"
+              ></v-autocomplete>
+
+              <!-- OR Corporal -->
+              <v-autocomplete
+                v-model="activityForm.corporal_id"
+                :items="corporalStore.list"
+                item-value="id"
+                item-title="full_name"
+                :label="$t('corporal')"
+                density="compact"
+                variant="outlined"
+                rounded
+                color="#42A5F5"
+                class="text-workforce mb-3"
+                clearable
+                prepend-inner-icon="mdi-account-tie"
+                @update:model-value="onCorporalChange"
+                :disabled="!!activityForm.section_id"
+                @keyup.enter="submitActivity"
+              ></v-autocomplete>
+            </div>
+
+            <!-- ================= COMMON CONTROLS ================= -->
+            <!-- Fixed Daily Price Switch -->
+            <div
+              class="fnm-switch-card mb-3"
+              :class="{ 'fnm-switch-active': applyFixedDailyPay }"
+              @click="applyFixedDailyPay = !applyFixedDailyPay"
+              tabindex="0"
+              @keyup.enter="submitActivity"
             >
-              <template #chip="{ item, props }">
-                <v-chip v-bind="props" size="small" color="#42A5F5" variant="tonal" closable>{{ item.title }}</v-chip>
-              </template>
-              <template #item="{ item, props }">
-                <v-list-item v-bind="props" class="rounded-lg my-1">
-                  <template #prepend>
-                    <div class="fnm-avatar-circle mr-2">
-                      {{ getWorkforceInitials(item.raw) }}
-                    </div>
-                    <v-checkbox-btn
-                      :model-value="selectedWorkforceIds.includes(item.value)"
-                      color="#42A5F5"
-                      density="compact"
-                      class="mr-1"
-                    ></v-checkbox-btn>
-                  </template>
-                  <v-list-item-title class="font-weight-medium">{{ item.raw.full_name }}</v-list-item-title>
-                  <v-list-item-subtitle class="text-caption text-medium-emphasis">{{ item.raw.matricule }}</v-list-item-subtitle>
-                </v-list-item>
-              </template>
-            </v-autocomplete>
+              <div class="d-flex align-center ga-2">
+                <v-avatar size="32" :color="applyFixedDailyPay ? 'amber-lighten-4' : 'grey-lighten-3'">
+                  <v-icon :color="applyFixedDailyPay ? 'amber-darken-3' : 'grey-darken-1'" size="18">
+                    {{ applyFixedDailyPay ? 'mdi-cash-lock' : 'mdi-cash' }}
+                  </v-icon>
+                </v-avatar>
+                <div>
+                  <div class="text-caption font-weight-bold" :class="{ 'text-amber-darken-3': applyFixedDailyPay }">
+                    {{ $t('apply_fixed_daily_price') }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis" style="font-size: 11px !important;">
+                    {{ applyFixedDailyPay ? $t('fixed_daily_price_active_desc') : $t('custom_price_desc') }}
+                  </div>
+                </div>
+              </div>
+              <v-switch
+                v-model="applyFixedDailyPay"
+                color="amber-darken-2"
+                density="compact"
+                hide-details
+                inset
+                @click.stop
+              ></v-switch>
+            </div>
 
-            <!-- Section affiliee -->
-            <v-autocomplete
-              v-model="activityForm.section_id"
-              :items="sectionStore.list"
-              item-value="id"
-              item-title="name"
-              :label="$t('section_affiliated')"
-              density="compact"
-              variant="outlined"
-              rounded
-              color="#42A5F5"
-              class="text-workforce mb-3"
-              clearable
-              prepend-inner-icon="mdi-sitemap-outline"
-              @update:model-value="onSectionChange"
-              :disabled="!!activityForm.corporal_id"
-            ></v-autocomplete>
-
-            <!-- OR Corporal -->
-            <v-autocomplete
-              v-model="activityForm.corporal_id"
-              :items="corporalStore.list"
-              item-value="id"
-              item-title="full_name"
-              :label="$t('corporal')"
-              density="compact"
-              variant="outlined"
-              rounded
-              color="#42A5F5"
-              class="text-workforce mb-3"
-              clearable
-              prepend-inner-icon="mdi-account-tie"
-              @update:model-value="onCorporalChange"
-              :disabled="!!activityForm.section_id"
-            ></v-autocomplete>
-            
-            <!-- Price -->
+            <!-- Price Input -->
             <v-text-field
               v-model.number="activityForm.price"
               :label="$t('price_dh', { currency: main.currency || 'DH' })"
@@ -166,32 +305,12 @@
               step="0.01"
               :prefix="'Dh'"
               prepend-inner-icon="mdi-cash"
-              :readonly="priceReadonly"
+              :disabled="applyFixedDailyPay"
+              :readonly="priceReadonly && !applyFixedDailyPay"
+              @keyup.enter="submitActivity"
+              :hint="applyFixedDailyPay ? $t('price_from_fixed_daily_hint') : ''"
+              :persistent-hint="applyFixedDailyPay"
             ></v-text-field>
-
-            <!-- Fixed Daily Price (shown when any selected workforce has fixed_daily_pay) -->
-            <div v-if="hasFixedDailyPaySelected" class="fnm-fixed-price-wrap mb-3">
-              <div class="fnm-fixed-price-badge">
-                <v-icon size="16" color="amber-darken-2" class="mr-1">mdi-cash-lock</v-icon>
-                <span class="text-caption font-weight-bold">{{ $t('fixed_daily_pay') }}</span>
-                <v-chip size="x-small" color="amber-darken-2" variant="flat" class="ml-1">{{ fixedDailyPayCount }}</v-chip>
-              </div>
-              <v-text-field
-                v-model.number="fixedDailyPrice"
-                :label="$t('fixed_daily_price')"
-                density="compact"
-                variant="outlined"
-                rounded
-                color="amber-darken-2"
-                class="text-amber-darken-2"
-                type="number"
-                min="0"
-                step="0.01"
-                :prefix="'Dh'"
-                :hint="$t('fixed_daily_price_hint', { count: fixedDailyPayCount })"
-                persistent-hint
-              ></v-text-field>
-            </div>
 
             <!-- Submit button -->
             <v-btn
@@ -281,10 +400,36 @@
           <v-card elevation="0" class="rounded-2xl border fnm-cal-card bg-surface">
             <!-- Calendar Header -->
             <div class="fnm-cal-header">
-              <div class="d-flex align-center ga-2">
-                <v-btn icon size="small" variant="tonal" rounded @click="prevMonth"><v-icon size="18">mdi-chevron-left</v-icon></v-btn>
-                <v-btn variant="tonal" color="#42A5F5" size="small" rounded class="font-weight-medium" @click="goToday">{{ $t('today') }}</v-btn>
-                <v-btn icon size="small" variant="tonal" rounded @click="nextMonth"><v-icon size="18">mdi-chevron-right</v-icon></v-btn>
+              <!-- Calendar Navigation: Prev / Today / Next -->
+              <div class="fnm-cal-nav-group">
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  class="fnm-nav-arrow-btn"
+                  @click="prevMonth"
+                  :title="$t('previous') || 'Previous'"
+                >
+                  <v-icon size="18" color="#1565C0">mdi-chevron-left</v-icon>
+                </v-btn>
+                <v-btn
+                  variant="flat"
+                  size="small"
+                  class="fnm-nav-today-btn font-weight-bold"
+                  @click="goToday"
+                >
+                  {{ $t('today') }}
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  class="fnm-nav-arrow-btn"
+                  @click="nextMonth"
+                  :title="$t('next') || 'Next'"
+                >
+                  <v-icon size="18" color="#1565C0">mdi-chevron-right</v-icon>
+                </v-btn>
               </div>
               <div class="fnm-cal-title d-flex align-center ga-2">
                 <span>{{ monthNames[currentMonth] }} {{ currentYear }}</span>
@@ -428,8 +573,8 @@
                 <div class="fnm-ms-info">
                   <v-icon size="18" color="white" class="mr-2">mdi-calendar-check</v-icon>
                   <span class="fnm-ms-count">{{ selectedDates.length }} {{ $t('days_selected') }}</span>
-                  <v-chip v-if="selectedWorkforceIds.length" size="x-small" color="white" variant="outlined" class="ml-2">
-                    {{ selectedWorkforceIds.length }} {{ $t('workforces') }}
+                  <v-chip v-if="effectiveWorkforceIds.length" size="x-small" color="white" variant="outlined" class="ml-2">
+                    {{ effectiveWorkforceIds.length }} {{ $t('workforces') }}
                   </v-chip>
                   <v-chip v-else size="x-small" color="white" variant="outlined" class="ml-2">
                     {{ $t('all_workforces') }}
@@ -763,6 +908,10 @@
                         <!-- Computed declared/non-declared -->
                         <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(getDeclared(w)) }}</template>
                         <template v-else-if="col.type === 'computed_non_declared'">{{ formatNumber(getNonDeclared(w)) }}</template>
+                        <!-- Computed fixed / non-fixed / total prices -->
+                        <template v-else-if="col.type === 'computed_fixed_price'">{{ formatNumber(getFixedPrice(w)) }}</template>
+                        <template v-else-if="col.type === 'computed_non_fixed_price'">{{ formatNumber(getNonFixedPrice(w)) }}</template>
+                        <template v-else-if="col.type === 'computed_total_price'">{{ formatNumber(getTotalPrice(w)) }}</template>
                         <!-- Checkbox Q1/Q2 -->
                         <template v-else-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'">
                           <v-checkbox
@@ -792,7 +941,7 @@
                     <tr class="fnm-breakdown-total-row">
                       <td class="font-weight-bold" :colspan="totalColspan">{{ $t('total') }}</td>
                       <template v-for="col in visibleWorkforceColumns" :key="'tot-'+col.key">
-                        <td v-if="col.period || col.type === 'computed_declared' || col.type === 'computed_non_declared'"
+                        <td v-if="col.period || col.type === 'computed_declared' || col.type === 'computed_non_declared' || col.type === 'computed_fixed_price' || col.type === 'computed_non_fixed_price' || col.type === 'computed_total_price'"
                           class="text-center font-weight-bold"
                           :style="col.cellColor ? 'color:'+col.cellColor : (col.bold ? 'color:#42A5F5;' : '')"
                         >
@@ -802,6 +951,9 @@
                           <template v-else-if="col.key === 'q2_work_days'">{{ workforceTotals.q2_work_days }}</template>
                           <template v-else-if="col.key === 'q2_non_work_days'">{{ workforceTotals.q2_non_work_days }}</template>
                           <template v-else-if="col.key === 'q2_total'">{{ formatNumber(workforceTotals.q2_total) }}</template>
+                          <template v-else-if="col.key === 'fixed_price'">{{ formatNumber(workforceTotals.fixed_price) }}</template>
+                          <template v-else-if="col.key === 'non_fixed_price'">{{ formatNumber(workforceTotals.non_fixed_price) }}</template>
+                          <template v-else-if="col.key === 'total_price'">{{ formatNumber(workforceTotals.total_price) }}</template>
                           <template v-else-if="col.key === 'month_total'">{{ formatNumber(workforceTotals.month_total) }}</template>
                           <template v-else-if="col.type === 'checkbox_q1' || col.type === 'checkbox_q2'">-</template>
                           <template v-else-if="col.type === 'computed_declared'">{{ formatNumber(workforceTotals.declared) }}</template>
@@ -850,6 +1002,20 @@
                         <v-chip v-else size="x-small" color="grey" variant="tonal">{{ $t('regular') }}</v-chip>
                       </td>
                     </tr>
+                    <tr class="fnm-breakdown-total-row">
+                      <td class="font-weight-bold" colspan="2">{{ $t('total') }}</td>
+                      <td class="text-center font-weight-bold" style="color:#42A5F5;">
+                        {{ formatNumber(drilldownTotalAmount) }} {{ main.currency || 'DH' }}
+                      </td>
+                      <td class="text-center">
+                        <span class="text-caption font-weight-bold text-amber-darken-3 mr-2">
+                          {{ $t('fixed_price') }}: {{ formatNumber(drilldownFixedAmount) }}
+                        </span>
+                        <span class="text-caption font-weight-bold text-blue-darken-2">
+                          {{ $t('non_fixed_price') }}: {{ formatNumber(drilldownNonFixedAmount) }}
+                        </span>
+                      </td>
+                    </tr>
                   </tbody>
                 </v-table>
               </template>
@@ -865,6 +1031,8 @@
                       <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#D97706;">{{ $t('fixed_price') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#0288D1;">{{ $t('non_fixed_price') }}</th>
                       <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
@@ -883,6 +1051,8 @@
                       <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(s.q1_total) }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ s.q2_count }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(s.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#D97706;">{{ formatNumber(s.month_fixed_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#0288D1;">{{ formatNumber(s.month_non_fixed_total) }}</td>
                       <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-orange">{{ formatNumber(s.month_total) }}</td>
                     </tr>
                     <tr class="fnm-breakdown-total-row">
@@ -891,6 +1061,8 @@
                       <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(sectionTotals.q1_total) }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ sectionTotals.q2_count }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(sectionTotals.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#D97706;">{{ formatNumber(sectionTotals.month_fixed_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#0288D1;">{{ formatNumber(sectionTotals.month_non_fixed_total) }}</td>
                       <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-orange">{{ formatNumber(sectionTotals.month_total) }}</td>
                     </tr>
                   </tbody>
@@ -913,6 +1085,8 @@
                       <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#D97706;">{{ $t('fixed_price') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#0288D1;">{{ $t('non_fixed_price') }}</th>
                       <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
@@ -942,6 +1116,8 @@
                       <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q1_total) }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ wf.q2_count }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#D97706;">{{ formatNumber(wf.month_fixed_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#0288D1;">{{ formatNumber(wf.month_non_fixed_total) }}</td>
                       <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#42A5F5;">{{ formatNumber(wf.month_total) }}</td>
                     </tr>
                   </tbody>
@@ -959,6 +1135,8 @@
                       <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#D97706;">{{ $t('fixed_price') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#0288D1;">{{ $t('non_fixed_price') }}</th>
                       <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
@@ -977,6 +1155,8 @@
                       <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(c.q1_total) }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ c.q2_count }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(c.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#D97706;">{{ formatNumber(c.month_fixed_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#0288D1;">{{ formatNumber(c.month_non_fixed_total) }}</td>
                       <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-purple">{{ formatNumber(c.month_total) }}</td>
                     </tr>
                     <tr class="fnm-breakdown-total-row">
@@ -985,6 +1165,8 @@
                       <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(corporalTotals.q1_total) }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ corporalTotals.q2_count }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ formatNumber(corporalTotals.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#D97706;">{{ formatNumber(corporalTotals.month_fixed_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#0288D1;">{{ formatNumber(corporalTotals.month_non_fixed_total) }}</td>
                       <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold text-purple">{{ formatNumber(corporalTotals.month_total) }}</td>
                     </tr>
                   </tbody>
@@ -1007,6 +1189,8 @@
                       <th v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ $t('q1_total') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_count') }}</th>
                       <th v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ $t('q2_total') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#D97706;">{{ $t('fixed_price') }}</th>
+                      <th v-if="breakdownPeriod === 'month'" class="text-center" style="color:#0288D1;">{{ $t('non_fixed_price') }}</th>
                       <th v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold">{{ $t('month_total') }}</th>
                     </tr>
                   </thead>
@@ -1036,6 +1220,8 @@
                       <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q1_total) }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ wf.q2_count }}</td>
                       <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="text-center">{{ formatNumber(wf.q2_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#D97706;">{{ formatNumber(wf.month_fixed_total) }}</td>
+                      <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-medium" style="color:#0288D1;">{{ formatNumber(wf.month_non_fixed_total) }}</td>
                       <td v-if="breakdownPeriod === 'month'" class="text-center font-weight-bold" style="color:#42A5F5;">{{ formatNumber(wf.month_total) }}</td>
                     </tr>
                   </tbody>
@@ -1093,6 +1279,10 @@
                         {{ formatNumber(grandTotals.month_total) }} <span class="text-caption font-weight-bold" style="opacity:0.8">{{ main.currency || 'DH' }}</span>
                       </div>
                       <div class="d-flex flex-wrap align-center ga-3 mt-2 text-caption text-white" style="opacity: 0.95;">
+                        <span>{{ $t('fixed_price') }}: <strong>{{ formatNumber(workforceTotals.fixed_price) }}</strong></span>
+                        <span>&bull;</span>
+                        <span>{{ $t('non_fixed_price') }}: <strong>{{ formatNumber(workforceTotals.non_fixed_price) }}</strong></span>
+                        <span>&bull;</span>
                         <span>{{ $t('declared') }}: <strong>{{ formatNumber(workforceTotals.declared) }}</strong></span>
                         <span>&bull;</span>
                         <span>{{ $t('non_declared') }}: <strong>{{ formatNumber(workforceTotals.non_declared) }}</strong></span>
@@ -1749,6 +1939,15 @@
                           <template v-else-if="col.type === 'computed_non_declared'">
                             <span class="font-weight-bold text-warning">{{ formatNumber(getNonDeclared(w)) }}</span>
                           </template>
+                          <template v-else-if="col.type === 'computed_fixed_price'">
+                            <span class="font-weight-bold" style="color: #D97706;">{{ formatNumber(getFixedPrice(w)) }}</span>
+                          </template>
+                          <template v-else-if="col.type === 'computed_non_fixed_price'">
+                            <span class="font-weight-bold" style="color: #0288D1;">{{ formatNumber(getNonFixedPrice(w)) }}</span>
+                          </template>
+                          <template v-else-if="col.type === 'computed_total_price'">
+                            <span class="font-weight-bold" style="color: #42A5F5;">{{ formatNumber(getTotalPrice(w)) }}</span>
+                          </template>
                           <template v-else-if="col.type === 'currency'">
                             <span :class="{ 'font-weight-bold text-primary': col.bold }">{{ formatNumber(w[col.key]) }}</span>
                           </template>
@@ -1790,6 +1989,15 @@
                           <template v-else-if="col.key === 'q2_total'">
                             <b>{{ formatNumber(workforceTotals.q2_total) }}</b>
                           </template>
+                          <template v-else-if="col.key === 'fixed_price'">
+                            <b style="color: #D97706;">{{ formatNumber(workforceTotals.fixed_price) }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'non_fixed_price'">
+                            <b style="color: #0288D1;">{{ formatNumber(workforceTotals.non_fixed_price) }}</b>
+                          </template>
+                          <template v-else-if="col.key === 'total_price'">
+                            <b style="color: #42A5F5;">{{ formatNumber(workforceTotals.total_price) }}</b>
+                          </template>
                           <template v-else-if="col.key === 'month_total'">
                             <b class="text-primary">{{ formatNumber(workforceTotals.month_total) }}</b>
                           </template>
@@ -1815,6 +2023,7 @@
                       <tr class="fnm-pdoc-head-tr">
                         <th class="fnm-pdoc-th text-left">{{ $t('date') }}</th>
                         <th class="fnm-pdoc-th text-left">{{ $t('section') }} / {{ $t('corporal') }}</th>
+                        <th class="fnm-pdoc-th text-center">{{ $t('type') }}</th>
                         <th class="fnm-pdoc-th text-right">{{ $t('price') }} ({{ main.currency || 'DH' }})</th>
                       </tr>
                     </thead>
@@ -1827,11 +2036,35 @@
                       >
                         <td class="fnm-pdoc-td text-left">{{ main.formateDate(act.date) }}</td>
                         <td class="fnm-pdoc-td text-left">{{ act.section_name || act.corporal_name || '-' }}</td>
-                        <td class="fnm-pdoc-td text-right font-weight-bold">{{ formatNumber(act.price) }}</td>
+                        <td class="fnm-pdoc-td text-center">
+                          <span
+                            v-if="act.is_fixed_price"
+                            class="fnm-badge-fixed"
+                          >
+                            {{ $t('fixed_daily_pay') }}
+                          </span>
+                          <span
+                            v-else
+                            class="fnm-badge-regular"
+                          >
+                            {{ $t('regular') }}
+                          </span>
+                        </td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" :style="act.is_fixed_price ? 'color: #D97706;' : 'color: #0288D1;'">
+                          {{ formatNumber(act.price) }}
+                        </td>
                       </tr>
                       <tr class="fnm-pdoc-total-tr">
                         <td colspan="2" class="fnm-pdoc-total-td text-left"><b>{{ $t('total') }}</b></td>
-                        <td class="fnm-pdoc-total-td text-right"><b class="text-primary">{{ formatNumber(drilldownItem.activities.reduce((s, a) => s + parseFloat(a.price || 0), 0)) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-center">
+                          <span style="font-size: 10px; font-weight: 700; color: #D97706; margin-right: 6px;">
+                            {{ $t('fixed_price') }}: {{ formatNumber(drilldownFixedAmount) }}
+                          </span>
+                          <span style="font-size: 10px; font-weight: 700; color: #0288D1;">
+                            {{ $t('non_fixed_price') }}: {{ formatNumber(drilldownNonFixedAmount) }}
+                          </span>
+                        </td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #42A5F5;">{{ formatNumber(drilldownTotalAmount) }}</b></td>
                       </tr>
                     </tbody>
                   </table>
@@ -1847,7 +2080,9 @@
                         <th class="fnm-pdoc-th text-right">Q1 {{ $t('total') }}</th>
                         <th class="fnm-pdoc-th text-center">Q2 {{ $t('count') }}</th>
                         <th class="fnm-pdoc-th text-right">Q2 {{ $t('total') }}</th>
-                        <th class="fnm-pdoc-th text-right font-weight-bold">{{ $t('month_total') }}</th>
+                        <th class="fnm-pdoc-th text-right" style="color: #D97706;">{{ $t('fixed_price') }}</th>
+                        <th class="fnm-pdoc-th text-right" style="color: #0288D1;">{{ $t('non_fixed_price') }}</th>
+                        <th class="fnm-pdoc-th text-right font-weight-bold" style="color: #42A5F5;">{{ $t('month_total') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1862,7 +2097,9 @@
                         <td class="fnm-pdoc-td text-right">{{ formatNumber(s.q1_total) }}</td>
                         <td class="fnm-pdoc-td text-center">{{ s.q2_count }}</td>
                         <td class="fnm-pdoc-td text-right">{{ formatNumber(s.q2_total) }}</td>
-                        <td class="fnm-pdoc-td text-right font-weight-bold text-warning">{{ formatNumber(s.month_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #D97706;">{{ formatNumber(s.month_fixed_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #0288D1;">{{ formatNumber(s.month_non_fixed_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #42A5F5;">{{ formatNumber(s.month_total) }}</td>
                       </tr>
                       <tr class="fnm-pdoc-total-tr fnm-total-amber">
                         <td class="fnm-pdoc-total-td text-left"><b>{{ $t('total') }}</b></td>
@@ -1870,7 +2107,9 @@
                         <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(sectionTotals.q1_total) }}</b></td>
                         <td class="fnm-pdoc-total-td text-center"><b>{{ sectionTotals.q2_count }}</b></td>
                         <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(sectionTotals.q2_total) }}</b></td>
-                        <td class="fnm-pdoc-total-td text-right"><b class="text-warning">{{ formatNumber(sectionTotals.month_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #D97706;">{{ formatNumber(sectionTotals.month_fixed_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #0288D1;">{{ formatNumber(sectionTotals.month_non_fixed_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #42A5F5;">{{ formatNumber(sectionTotals.month_total) }}</b></td>
                       </tr>
                     </tbody>
                   </table>
@@ -1890,7 +2129,9 @@
                         <th class="fnm-pdoc-th text-right">Q1 {{ $t('total') }}</th>
                         <th class="fnm-pdoc-th text-center">Q2 {{ $t('count') }}</th>
                         <th class="fnm-pdoc-th text-right">Q2 {{ $t('total') }}</th>
-                        <th class="fnm-pdoc-th text-right font-weight-bold">{{ $t('month_total') }}</th>
+                        <th class="fnm-pdoc-th text-right" style="color: #D97706;">{{ $t('fixed_price') }}</th>
+                        <th class="fnm-pdoc-th text-right" style="color: #0288D1;">{{ $t('non_fixed_price') }}</th>
+                        <th class="fnm-pdoc-th text-right font-weight-bold" style="color: #42A5F5;">{{ $t('month_total') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1913,7 +2154,19 @@
                         <td class="fnm-pdoc-td text-right">{{ formatNumber(wf.q1_total) }}</td>
                         <td class="fnm-pdoc-td text-center">{{ wf.q2_count }}</td>
                         <td class="fnm-pdoc-td text-right">{{ formatNumber(wf.q2_total) }}</td>
-                        <td class="fnm-pdoc-td text-right font-weight-bold text-primary">{{ formatNumber(wf.month_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #D97706;">{{ formatNumber(wf.month_fixed_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #0288D1;">{{ formatNumber(wf.month_non_fixed_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #42A5F5;">{{ formatNumber(wf.month_total) }}</td>
+                      </tr>
+                      <tr class="fnm-pdoc-total-tr" :class="breakdownTab === 'sections' ? 'fnm-total-amber' : 'fnm-total-purple'">
+                        <td colspan="5" class="fnm-pdoc-total-td text-left"><b>{{ $t('total') }}</b></td>
+                        <td class="fnm-pdoc-total-td text-center"><b>{{ drilldownItem.workforces.reduce((s, w) => s + (parseInt(w.q1_count) || 0), 0) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(drilldownItem.workforces.reduce((s, w) => s + (parseFloat(w.q1_total) || 0), 0)) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-center"><b>{{ drilldownItem.workforces.reduce((s, w) => s + (parseInt(w.q2_count) || 0), 0) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(drilldownItem.workforces.reduce((s, w) => s + (parseFloat(w.q2_total) || 0), 0)) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #D97706;">{{ formatNumber(drilldownItem.workforces.reduce((s, w) => s + (parseFloat(w.month_fixed_total) || 0), 0)) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #0288D1;">{{ formatNumber(drilldownItem.workforces.reduce((s, w) => s + (parseFloat(w.month_non_fixed_total) || 0), 0)) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #42A5F5;">{{ formatNumber(drilldownItem.workforces.reduce((s, w) => s + (parseFloat(w.month_total) || 0), 0)) }}</b></td>
                       </tr>
                     </tbody>
                   </table>
@@ -1929,7 +2182,9 @@
                         <th class="fnm-pdoc-th text-right">Q1 {{ $t('total') }}</th>
                         <th class="fnm-pdoc-th text-center">Q2 {{ $t('count') }}</th>
                         <th class="fnm-pdoc-th text-right">Q2 {{ $t('total') }}</th>
-                        <th class="fnm-pdoc-th text-right font-weight-bold">{{ $t('month_total') }}</th>
+                        <th class="fnm-pdoc-th text-right" style="color: #D97706;">{{ $t('fixed_price') }}</th>
+                        <th class="fnm-pdoc-th text-right" style="color: #0288D1;">{{ $t('non_fixed_price') }}</th>
+                        <th class="fnm-pdoc-th text-right font-weight-bold" style="color: #42A5F5;">{{ $t('month_total') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1944,6 +2199,8 @@
                         <td class="fnm-pdoc-td text-right">{{ formatNumber(c.q1_total) }}</td>
                         <td class="fnm-pdoc-td text-center">{{ c.q2_count }}</td>
                         <td class="fnm-pdoc-td text-right">{{ formatNumber(c.q2_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #D97706;">{{ formatNumber(c.month_fixed_total) }}</td>
+                        <td class="fnm-pdoc-td text-right font-weight-bold" style="color: #0288D1;">{{ formatNumber(c.month_non_fixed_total) }}</td>
                         <td class="fnm-pdoc-td text-right font-weight-bold text-purple">{{ formatNumber(c.month_total) }}</td>
                       </tr>
                       <tr class="fnm-pdoc-total-tr fnm-total-purple">
@@ -1952,6 +2209,8 @@
                         <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(corporalTotals.q1_total) }}</b></td>
                         <td class="fnm-pdoc-total-td text-center"><b>{{ corporalTotals.q2_count }}</b></td>
                         <td class="fnm-pdoc-total-td text-right"><b>{{ formatNumber(corporalTotals.q2_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #D97706;">{{ formatNumber(corporalTotals.month_fixed_total) }}</b></td>
+                        <td class="fnm-pdoc-total-td text-right"><b style="color: #0288D1;">{{ formatNumber(corporalTotals.month_non_fixed_total) }}</b></td>
                         <td class="fnm-pdoc-total-td text-right"><b class="text-purple">{{ formatNumber(corporalTotals.month_total) }}</b></td>
                       </tr>
                     </tbody>
@@ -1976,6 +2235,11 @@
                     <div class="fnm-pdoc-gt-label">{{ $t('total_month') }}</div>
                     <div class="fnm-pdoc-gt-value text-purple">
                       {{ formatNumber(grandTotals.month_total) }} <span class="fnm-pdoc-gt-cur">{{ main.currency || 'DH' }}</span>
+                    </div>
+                    <div class="fnm-pdoc-gt-sub" style="font-size: 9px; font-weight: 700; margin-top: 3px; display: flex; gap: 6px; align-items: center; justify-content: center;">
+                      <span style="color: #D97706;">{{ $t('fixed_price') }}: {{ formatNumber(workforceTotals.fixed_price) }}</span>
+                      <span>&bull;</span>
+                      <span style="color: #0288D1;">{{ $t('non_fixed_price') }}: {{ formatNumber(workforceTotals.non_fixed_price) }}</span>
                     </div>
                   </div>
                 </div>
@@ -2088,6 +2352,7 @@ import { useSection } from '@/stores/Section';
 import { useFortnightActivity } from '@/stores/FortnightActivity';
 import { useFortnightSetting } from '@/stores/FortnightSetting';
 import { useNotification } from '@/stores/Notification';
+import { useTeam } from '@/stores/Team';
 import mitt from '@/plugins/mitt.js';
 import print from 'vue3-print-nb';
 import axios from 'axios';
@@ -2118,10 +2383,12 @@ export default {
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth(),
       currentHalf: now.getDate() <= 15 ? 1 : 2,
+      activityEntryMode: 'teams', // 'teams' | 'workforces'
+      selectedTeamIds: [],
+      applyFixedDailyPay: false,
       selectedWorkforceIds: [],
       selectedDate: this.formatDateStr(now),
       activityForm: { section_id: null, corporal_id: null, price: 0 },
-      fixedDailyPrice: 0,
       submitting: false,
       deleting: false,
       deletingCell: null,
@@ -2199,7 +2466,10 @@ export default {
         { key: 'q2_work_days', label: 'work_days_q2', type: 'number', visible: true, period: 'q2' },
         { key: 'q2_non_work_days', label: 'non_work_days_q2', type: 'number', visible: true, period: 'q2' },
         { key: 'q2_total', label: 'q2_total', type: 'currency', visible: true, period: 'q2' },
-        { key: 'month_total', label: 'month_total', type: 'currency', visible: true, period: 'month', bold: true },
+        { key: 'fixed_price', label: 'fixed_price', type: 'computed_fixed_price', visible: true, headerColor: '#D97706', cellColor: '#D97706' },
+        { key: 'non_fixed_price', label: 'non_fixed_price', type: 'computed_non_fixed_price', visible: true, headerColor: '#0288D1', cellColor: '#0288D1' },
+        { key: 'total_price', label: 'total_price', type: 'computed_total_price', visible: true, headerColor: '#42A5F5', cellColor: '#42A5F5', bold: true },
+        { key: 'month_total', label: 'month_total', type: 'currency', visible: false, period: 'month', bold: true },
         { key: 'is_paid_q1', label: 'q1_paid', type: 'checkbox_q1', visible: true, period: 'q1' },
         { key: 'is_paid_q2', label: 'q2_paid', type: 'checkbox_q2', visible: true, period: 'q2' },
         { key: 'declared', label: 'declared', type: 'computed_declared', visible: true, headerColor: '#2E7D32', cellColor: '#2E7D32' },
@@ -2211,11 +2481,28 @@ export default {
     main() { return useMain(); },
     workforceStore() { return useWorkforce(); },
     corporalStore() { return useCorporal(); },
+    teamStore() { return useTeam(); },
     sectionStore() { return useSection(); },
     activityStore() { return useFortnightActivity(); },
     fortnightSettingStore() { return useFortnightSetting(); },
     notification() { return useNotification(); },
     summary() { return this.activityStore.summary; },
+    selectedTeamsList() {
+      if (!this.selectedTeamIds || !this.selectedTeamIds.length) return [];
+      return (this.teamStore.list || []).filter(t => this.selectedTeamIds.includes(t.id));
+    },
+    effectiveWorkforceIds() {
+      if (this.activityEntryMode === 'teams') {
+        const set = new Set();
+        for (const t of this.selectedTeamsList) {
+          for (const w of (t.workforces || [])) {
+            set.add(w.id);
+          }
+        }
+        return [...set];
+      }
+      return this.selectedWorkforceIds || [];
+    },
     /** Columns visible in the workforce breakdown table, respecting period filter */
     activePrintColumns() {
       const baseList = (this.printColumns && this.printColumns.length)
@@ -2265,16 +2552,27 @@ export default {
     },
     /** Number of non-period (info) columns for total row colspan */
     totalColspan() {
-      return this.visibleWorkforceColumns.filter(c => !c.period && c.type !== 'computed_declared' && c.type !== 'computed_non_declared').length;
+      return this.visibleWorkforceColumns.filter(c => 
+        !c.period && 
+        c.type !== 'computed_declared' && 
+        c.type !== 'computed_non_declared' &&
+        c.type !== 'computed_fixed_price' &&
+        c.type !== 'computed_non_fixed_price' &&
+        c.type !== 'computed_total_price'
+      ).length;
+    },
+    /** Workforces available for activity entry (excludes left_company workers) */
+    availableWorkforces() {
+      return (this.workforceStore.list || []).filter(w => w.status !== 'left_company');
     },
     /** First selected workforce - used for calendar display */
     primaryWorkforce() {
-      if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return null;
-      return this.workforceStore.list.find(w => w.id === this.selectedWorkforceIds[0]);
+      if (!this.effectiveWorkforceIds || !this.effectiveWorkforceIds.length) return null;
+      return this.workforceStore.list.find(w => w.id === this.effectiveWorkforceIds[0]);
     },
     /** For backward compat with calendar - use first selected */
     selectedWorkforceId() {
-      return this.selectedWorkforceIds && this.selectedWorkforceIds.length ? this.selectedWorkforceIds[0] : null;
+      return this.effectiveWorkforceIds && this.effectiveWorkforceIds.length ? this.effectiveWorkforceIds[0] : null;
     },
     formattedDate() {
       return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${this.selectedDate ? this.selectedDate.split('-')[2] : '01'}`;
@@ -2283,16 +2581,25 @@ export default {
       return this.currentHalf === 1 ? 'Q1' : 'Q2';
     },
     canSubmitActivity() {
-      return this.selectedWorkforceIds && this.selectedWorkforceIds.length > 0 && this.selectedDate &&
-        (this.activityForm.section_id || this.activityForm.corporal_id) &&
-        this.activityForm.price >= 0;
+      if (!this.selectedDate) return false;
+      if (this.activityEntryMode === 'teams') {
+        if (!this.selectedTeamIds || !this.selectedTeamIds.length) return false;
+        if (this.effectiveWorkforceIds.length === 0) return false;
+        if (!this.applyFixedDailyPay && (this.activityForm.price === null || this.activityForm.price === undefined || this.activityForm.price < 0)) return false;
+        return true;
+      } else {
+        if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return false;
+        if (!this.activityForm.section_id && !this.activityForm.corporal_id) return false;
+        if (!this.applyFixedDailyPay && (this.activityForm.price === null || this.activityForm.price === undefined || this.activityForm.price < 0)) return false;
+        return true;
+      }
     },
     canDeleteActivities() {
-      return this.selectedWorkforceIds && this.selectedWorkforceIds.length >= 1 && this.selectedDate;
+      return this.effectiveWorkforceIds && this.effectiveWorkforceIds.length >= 1 && this.selectedDate;
     },
-    /** Whether no workforce is selected â€” enables the aggregated calendar view */
+    /** Whether no workforce is selected — enables the aggregated calendar view */
     noWorkforceSelected() {
-      return !this.selectedWorkforceIds || this.selectedWorkforceIds.length === 0;
+      return !this.effectiveWorkforceIds || this.effectiveWorkforceIds.length === 0;
     },
     /** Unique workforce count in day detail activities */
     dayDetailWorkforceCount() {
@@ -2309,12 +2616,13 @@ export default {
     },
     /** Whether multiple workforces are selected - used to show workforce name on calendar chips */
     multipleSelected() {
-      return this.selectedWorkforceIds && this.selectedWorkforceIds.length > 1;
+      return this.effectiveWorkforceIds && this.effectiveWorkforceIds.length > 1;
     },
     /** IDs of selected workforces that have fixed_daily_pay enabled */
     fixedDailyPayWorkforceIds() {
-      if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return [];
-      return this.selectedWorkforceIds.filter(id => {
+      const ids = this.effectiveWorkforceIds;
+      if (!ids || !ids.length) return [];
+      return ids.filter(id => {
         const wf = this.workforceStore.list.find(w => w.id === id);
         return wf && wf.fixed_daily_pay;
       });
@@ -2329,8 +2637,8 @@ export default {
     },
     /** IDs of selected workforces that do NOT have fixed_daily_pay */
     regularWorkforceIds() {
-      if (!this.selectedWorkforceIds || !this.selectedWorkforceIds.length) return [];
-      return this.selectedWorkforceIds.filter(id => !this.fixedDailyPayWorkforceIds.includes(id));
+      if (!this.effectiveWorkforceIds || !this.effectiveWorkforceIds.length) return [];
+      return this.effectiveWorkforceIds.filter(id => !this.fixedDailyPayWorkforceIds.includes(id));
     },
     breakdownData() { return this.activityStore.breakdown; },
     /**
@@ -2436,33 +2744,55 @@ export default {
     sectionTotals() {
       const secs = this.breakdownData.sections || [];
       return {
-        q1_count: secs.reduce((s, r) => s + r.q1_count, 0),
-        q1_total: secs.reduce((s, r) => s + r.q1_total, 0),
-        q2_count: secs.reduce((s, r) => s + r.q2_count, 0),
-        q2_total: secs.reduce((s, r) => s + r.q2_total, 0),
-        month_count: secs.reduce((s, r) => s + r.month_count, 0),
-        month_total: secs.reduce((s, r) => s + r.month_total, 0),
+        q1_count: secs.reduce((s, r) => s + (r.q1_count || 0), 0),
+        q1_total: secs.reduce((s, r) => s + (r.q1_total || 0), 0),
+        q1_fixed_total: secs.reduce((s, r) => s + (r.q1_fixed_total || 0), 0),
+        q1_non_fixed_total: secs.reduce((s, r) => s + (r.q1_non_fixed_total || 0), 0),
+        q2_count: secs.reduce((s, r) => s + (r.q2_count || 0), 0),
+        q2_total: secs.reduce((s, r) => s + (r.q2_total || 0), 0),
+        q2_fixed_total: secs.reduce((s, r) => s + (r.q2_fixed_total || 0), 0),
+        q2_non_fixed_total: secs.reduce((s, r) => s + (r.q2_non_fixed_total || 0), 0),
+        month_count: secs.reduce((s, r) => s + (r.month_count || 0), 0),
+        month_total: secs.reduce((s, r) => s + (r.month_total || 0), 0),
+        month_fixed_total: secs.reduce((s, r) => s + (r.month_fixed_total || 0), 0),
+        month_non_fixed_total: secs.reduce((s, r) => s + (r.month_non_fixed_total || 0), 0),
       };
     },
     corporalTotals() {
       const corps = this.breakdownData.corporals || [];
       return {
-        q1_count: corps.reduce((s, r) => s + r.q1_count, 0),
-        q1_total: corps.reduce((s, r) => s + r.q1_total, 0),
-        q2_count: corps.reduce((s, r) => s + r.q2_count, 0),
-        q2_total: corps.reduce((s, r) => s + r.q2_total, 0),
-        month_count: corps.reduce((s, r) => s + r.month_count, 0),
-        month_total: corps.reduce((s, r) => s + r.month_total, 0),
+        q1_count: corps.reduce((s, r) => s + (r.q1_count || 0), 0),
+        q1_total: corps.reduce((s, r) => s + (r.q1_total || 0), 0),
+        q1_fixed_total: corps.reduce((s, r) => s + (r.q1_fixed_total || 0), 0),
+        q1_non_fixed_total: corps.reduce((s, r) => s + (r.q1_non_fixed_total || 0), 0),
+        q2_count: corps.reduce((s, r) => s + (r.q2_count || 0), 0),
+        q2_total: corps.reduce((s, r) => s + (r.q2_total || 0), 0),
+        q2_fixed_total: corps.reduce((s, r) => s + (r.q2_fixed_total || 0), 0),
+        q2_non_fixed_total: corps.reduce((s, r) => s + (r.q2_non_fixed_total || 0), 0),
+        month_count: corps.reduce((s, r) => s + (r.month_count || 0), 0),
+        month_total: corps.reduce((s, r) => s + (r.month_total || 0), 0),
+        month_fixed_total: corps.reduce((s, r) => s + (r.month_fixed_total || 0), 0),
+        month_non_fixed_total: corps.reduce((s, r) => s + (r.month_non_fixed_total || 0), 0),
       };
     },
     workforceTotals() {
       const wfs = this.sortedFilteredWorkforces;
       return {
-        q1_count: wfs.reduce((s, r) => s + r.q1_count, 0),
-        q1_total: wfs.reduce((s, r) => s + r.q1_total, 0),
-        q2_count: wfs.reduce((s, r) => s + r.q2_count, 0),
-        q2_total: wfs.reduce((s, r) => s + r.q2_total, 0),
-        month_total: wfs.reduce((s, r) => s + r.month_total, 0),
+        q1_count: wfs.reduce((s, r) => s + (r.q1_count || 0), 0),
+        q1_total: wfs.reduce((s, r) => s + (r.q1_total || 0), 0),
+        q1_fixed_total: wfs.reduce((s, r) => s + (r.q1_fixed_total || 0), 0),
+        q1_non_fixed_total: wfs.reduce((s, r) => s + (r.q1_non_fixed_total || 0), 0),
+        q2_count: wfs.reduce((s, r) => s + (r.q2_count || 0), 0),
+        q2_total: wfs.reduce((s, r) => s + (r.q2_total || 0), 0),
+        q2_fixed_total: wfs.reduce((s, r) => s + (r.q2_fixed_total || 0), 0),
+        q2_non_fixed_total: wfs.reduce((s, r) => s + (r.q2_non_fixed_total || 0), 0),
+        month_count: wfs.reduce((s, r) => s + (r.month_count || 0), 0),
+        month_total: wfs.reduce((s, r) => s + (r.month_total || 0), 0),
+        month_fixed_total: wfs.reduce((s, r) => s + (r.month_fixed_total || 0), 0),
+        month_non_fixed_total: wfs.reduce((s, r) => s + (r.month_non_fixed_total || 0), 0),
+        fixed_price: wfs.reduce((s, r) => s + this.getFixedPrice(r), 0),
+        non_fixed_price: wfs.reduce((s, r) => s + this.getNonFixedPrice(r), 0),
+        total_price: wfs.reduce((s, r) => s + this.getTotalPrice(r), 0),
         q1_work_days: wfs.reduce((s, r) => s + (r.q1_work_days || 0), 0),
         q1_non_work_days: wfs.reduce((s, r) => s + (r.q1_non_work_days || 0), 0),
         q2_work_days: wfs.reduce((s, r) => s + (r.q2_work_days || 0), 0),
@@ -2470,6 +2800,18 @@ export default {
         declared: wfs.reduce((s, r) => s + this.getDeclared(r), 0),
         non_declared: wfs.reduce((s, r) => s + this.getNonDeclared(r), 0),
       };
+    },
+    drilldownTotalAmount() {
+      if (!this.drilldownItem || !this.drilldownItem.activities) return 0;
+      return this.drilldownItem.activities.reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
+    },
+    drilldownFixedAmount() {
+      if (!this.drilldownItem || !this.drilldownItem.activities) return 0;
+      return this.drilldownItem.activities.filter(a => a.is_fixed_price).reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
+    },
+    drilldownNonFixedAmount() {
+      if (!this.drilldownItem || !this.drilldownItem.activities) return 0;
+      return this.drilldownItem.activities.filter(a => !a.is_fixed_price).reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
     },
     breakdownTabIcon() {
       const icons = { workforces: 'mdi-account-multiple', sections: 'mdi-sitemap-outline', corporals: 'mdi-account-tie' };
@@ -2612,18 +2954,23 @@ export default {
       this.loadBreakdown();
     },
     selectedWorkforceIds() {
+      if (this.activityEntryMode === 'workforces') {
+        this.loadActivities();
+        this.loadSummary();
+        this.loadBreakdown();
+      }
+    },
+    selectedTeamIds() {
+      if (this.activityEntryMode === 'teams') {
+        this.loadActivities();
+        this.loadSummary();
+        this.loadBreakdown();
+      }
+    },
+    activityEntryMode() {
       this.loadActivities();
       this.loadSummary();
       this.loadBreakdown();
-      // Auto-fill fixedDailyPrice from the first fixed workforce's daily_price
-      if (this.fixedDailyPayWorkforceIds.length > 0) {
-        const firstFixed = this.workforceStore.list.find(w => w.id === this.fixedDailyPayWorkforceIds[0]);
-        if (firstFixed && firstFixed.daily_price) {
-          this.fixedDailyPrice = parseFloat(firstFixed.daily_price) || 0;
-        }
-      } else {
-        this.fixedDailyPrice = 0;
-      }
     },
     currentMonth() {
       this.loadActivities();
@@ -2647,6 +2994,7 @@ export default {
       this.workforceStore.fetch(),
       this.corporalStore.fetch(),
       this.sectionStore.fetch(),
+      this.teamStore.fetch(),
     ]);
     // Load initial summary and breakdown for all workforces
     this.loadActivities();
@@ -2734,12 +3082,45 @@ export default {
       return total - this.getDeclared(w);
     },
     /**
+     * Calculate fixed price total for workforce in the active breakdown period
+     */
+    getFixedPrice(w) {
+      if (!w) return 0;
+      const p = this.breakdownPeriod;
+      if (p === 'q1') return parseFloat(w.q1_fixed_total) || 0;
+      if (p === 'q2') return parseFloat(w.q2_fixed_total) || 0;
+      if (w.month_fixed_total !== undefined) return parseFloat(w.month_fixed_total) || 0;
+      return (parseFloat(w.q1_fixed_total) || 0) + (parseFloat(w.q2_fixed_total) || 0);
+    },
+    /**
+     * Calculate non-fixed (worked) price total for workforce in the active breakdown period
+     */
+    getNonFixedPrice(w) {
+      if (!w) return 0;
+      const p = this.breakdownPeriod;
+      if (p === 'q1') return parseFloat(w.q1_non_fixed_total) || 0;
+      if (p === 'q2') return parseFloat(w.q2_non_fixed_total) || 0;
+      if (w.month_non_fixed_total !== undefined) return parseFloat(w.month_non_fixed_total) || 0;
+      return (parseFloat(w.q1_non_fixed_total) || 0) + (parseFloat(w.q2_non_fixed_total) || 0);
+    },
+    /**
+     * Calculate total price (fixed + non-fixed) for workforce in the active breakdown period
+     */
+    getTotalPrice(w) {
+      if (!w) return 0;
+      const p = this.breakdownPeriod;
+      if (p === 'q1') return parseFloat(w.q1_total) || 0;
+      if (p === 'q2') return parseFloat(w.q2_total) || 0;
+      if (w.month_total !== undefined) return parseFloat(w.month_total) || 0;
+      return (parseFloat(w.q1_total) || 0) + (parseFloat(w.q2_total) || 0);
+    },
+    /**
      * Handle real-time model change events from AI Assistant or WebSocket.
      * Re-fetches calendar activities, summary, and breakdown when relevant models change.
      */
     handleModelChanged(data) {
       const model = data?.model || '';
-      const relevantModels = ['FortnightActivity', 'Corporal', 'Section', 'Workforce'];
+      const relevantModels = ['FortnightActivity', 'Corporal', 'Section', 'Workforce', 'Team'];
       if (!relevantModels.includes(model)) return;
 
       if (model === 'FortnightActivity') {
@@ -2756,10 +3137,11 @@ export default {
           iconColor: '#42A5F5',
         });
       } else {
-        // Corporal, Section, or Workforce changed - re-fetch the reference store + breakdown
+        // Corporal, Section, Workforce, or Team changed - re-fetch the reference store + breakdown
         if (model === 'Workforce') this.workforceStore.fetch();
         if (model === 'Section') this.sectionStore.fetch();
         if (model === 'Corporal') this.corporalStore.fetch();
+        if (model === 'Team') this.teamStore.fetch();
         this.loadBreakdown();
       }
     },
@@ -2872,7 +3254,10 @@ export default {
         { key: 'q2_work_days', label: 'work_days_q2', type: 'number', visible: true, period: 'q2' },
         { key: 'q2_non_work_days', label: 'non_work_days_q2', type: 'number', visible: true, period: 'q2' },
         { key: 'q2_total', label: 'q2_total', type: 'currency', visible: true, period: 'q2' },
-        { key: 'month_total', label: 'month_total', type: 'currency', visible: true, period: 'month', bold: true },
+        { key: 'fixed_price', label: 'fixed_price', type: 'computed_fixed_price', visible: true, headerColor: '#D97706', cellColor: '#D97706' },
+        { key: 'non_fixed_price', label: 'non_fixed_price', type: 'computed_non_fixed_price', visible: true, headerColor: '#0288D1', cellColor: '#0288D1' },
+        { key: 'total_price', label: 'total_price', type: 'computed_total_price', visible: true, headerColor: '#42A5F5', cellColor: '#42A5F5', bold: true },
+        { key: 'month_total', label: 'month_total', type: 'currency', visible: false, period: 'month', bold: true },
         { key: 'is_paid_q1', label: 'q1_paid', type: 'checkbox_q1', visible: true, period: 'q1' },
         { key: 'is_paid_q2', label: 'q2_paid', type: 'checkbox_q2', visible: true, period: 'q2' },
         { key: 'declared', label: 'declared', type: 'computed_declared', visible: true, headerColor: '#2E7D32', cellColor: '#2E7D32' },
@@ -2898,6 +3283,13 @@ export default {
         if (!Array.isArray(saved) || !saved.length) return;
 
         const savedMap = new Map(saved.map((item, idx) => [item.key, { visible: item.visible, order: idx }]));
+        if (!savedMap.has('fixed_price') || !savedMap.has('non_fixed_price') || !savedMap.has('total_price')) {
+          const refOrder = savedMap.has('month_total') ? savedMap.get('month_total').order : 15;
+          if (!savedMap.has('fixed_price')) savedMap.set('fixed_price', { visible: true, order: refOrder + 0.1 });
+          if (!savedMap.has('non_fixed_price')) savedMap.set('non_fixed_price', { visible: true, order: refOrder + 0.2 });
+          if (!savedMap.has('total_price')) savedMap.set('total_price', { visible: true, order: refOrder + 0.3 });
+          if (savedMap.has('month_total')) savedMap.get('month_total').visible = false;
+        }
         const defaultCols = this.getDefaultColumns();
         const orderedCols = [];
         const unmappedCols = [];
@@ -2994,6 +3386,14 @@ export default {
 
       if (!this.printSettings.selectedColKeys || !this.printSettings.selectedColKeys.length) {
         this.printSettings.selectedColKeys = this.printColumns.map(c => c.key);
+      } else {
+        const existingKeys = new Set(this.printSettings.selectedColKeys);
+        const savedOrderKeys = new Set(savedOrder || []);
+        baseCols.forEach(col => {
+          if (!savedOrderKeys.has(col.key) && !existingKeys.has(col.key)) {
+            this.printSettings.selectedColKeys.push(col.key);
+          }
+        });
       }
     },
     openPrintDialog() {
@@ -3062,7 +3462,7 @@ export default {
     getPrintColAlignClass(col) {
       if (!col) return 'text-center';
       if (col.key === 'name' || col.type === 'chip') return 'text-left';
-      if (col.type === 'currency' || col.type === 'number' || col.type === 'computed_declared' || col.type === 'computed_non_declared') {
+      if (col.type === 'currency' || col.type === 'number' || col.type === 'computed_declared' || col.type === 'computed_non_declared' || col.type === 'computed_fixed_price' || col.type === 'computed_non_fixed_price' || col.type === 'computed_total_price') {
         return 'text-right';
       }
       return 'text-center';
@@ -3319,6 +3719,26 @@ export default {
           font-weight: 600 !important;
           font-size: 8.5px !important;
         }
+        .fnm-badge-fixed {
+          display: inline-block !important;
+          padding: 1px 6px !important;
+          border-radius: 4px !important;
+          background-color: #FEF3C7 !important;
+          color: #D97706 !important;
+          font-weight: 700 !important;
+          font-size: 8.5px !important;
+          border: 1px solid #FDE68A !important;
+        }
+        .fnm-badge-regular {
+          display: inline-block !important;
+          padding: 1px 6px !important;
+          border-radius: 4px !important;
+          background-color: #F3F4F6 !important;
+          color: #4B5563 !important;
+          font-weight: 600 !important;
+          font-size: 8.5px !important;
+          border: 1px solid #E5E7EB !important;
+        }
         .fnm-pdoc-grand-totals {
           display: flex !important;
           justify-content: space-between !important;
@@ -3353,6 +3773,15 @@ export default {
         .fnm-pdoc-gt-cur {
           font-size: 9px !important;
           font-weight: 600 !important;
+        }
+        .fnm-pdoc-gt-sub {
+          font-size: 8.5px !important;
+          font-weight: 700 !important;
+          margin-top: 3px !important;
+          display: flex !important;
+          gap: 6px !important;
+          align-items: center !important;
+          justify-content: center !important;
         }
         .fnm-pdoc-notes-block {
           border: 1px dashed #90CAF9 !important;
@@ -3528,12 +3957,18 @@ export default {
       if (col.type === 'boolean') return w[col.key];
       if (col.type === 'computed_declared') return this.formatNumber(this.getDeclared(w));
       if (col.type === 'computed_non_declared') return this.formatNumber(this.getNonDeclared(w));
+      if (col.type === 'computed_fixed_price') return this.formatNumber(this.getFixedPrice(w));
+      if (col.type === 'computed_non_fixed_price') return this.formatNumber(this.getNonFixedPrice(w));
+      if (col.type === 'computed_total_price') return this.formatNumber(this.getTotalPrice(w));
       return w[col.key] || '-';
     },
     /** Get raw (unformatted) cell value for sorting and filtering */
     getRawCellValue(w, col) {
       if (col.type === 'computed_declared') return this.getDeclared(w);
       if (col.type === 'computed_non_declared') return this.getNonDeclared(w);
+      if (col.type === 'computed_fixed_price') return this.getFixedPrice(w);
+      if (col.type === 'computed_non_fixed_price') return this.getNonFixedPrice(w);
+      if (col.type === 'computed_total_price') return this.getTotalPrice(w);
       if (col.type === 'currency' || col.type === 'number') return parseFloat(w[col.key]) || 0;
       if (col.type === 'boolean') return !!w[col.key];
       return w[col.key] || '';
@@ -3648,6 +4083,9 @@ export default {
       if (col.type === 'boolean') return w[col.key] ? this.$t('yes') : this.$t('no');
       if (col.type === 'computed_declared') return this.getDeclared(w);
       if (col.type === 'computed_non_declared') return this.getNonDeclared(w);
+      if (col.type === 'computed_fixed_price') return this.getFixedPrice(w);
+      if (col.type === 'computed_non_fixed_price') return this.getNonFixedPrice(w);
+      if (col.type === 'computed_total_price') return this.getTotalPrice(w);
       if (col.type === 'currency') return w[col.key] || 0;
       if (col.type === 'number') return w[col.key] || 0;
       return w[col.key] || '';
@@ -3716,7 +4154,7 @@ export default {
       if (!this.selectedDates.length) return;
       this.bulkDeleting = true;
       try {
-        const wfIds = this.noWorkforceSelected ? null : [...this.selectedWorkforceIds];
+        const wfIds = this.noWorkforceSelected ? null : [...this.effectiveWorkforceIds];
         const dates = [...this.selectedDates].sort();
         const deletedCount = await this.activityStore.bulkDeleteByDates(
           wfIds,
@@ -3887,7 +4325,7 @@ export default {
 
       // Fetch activities for ALL selected workforces for the full month
       this.activityStore.dailyTotals = [];
-      await this.activityStore.fetchActivities(this.selectedWorkforceIds, this.currentYear, this.currentMonth + 1);
+      await this.activityStore.fetchActivities(this.effectiveWorkforceIds, this.currentYear, this.currentMonth + 1);
     },
     /** Load summary - filters only by workforce(s) and month/year */
     async loadSummary() {
@@ -3897,8 +4335,8 @@ export default {
       };
 
       // Apply workforce filter if any selected
-      if (this.selectedWorkforceIds && this.selectedWorkforceIds.length > 0) {
-        params.workforce_ids = this.selectedWorkforceIds;
+      if (this.effectiveWorkforceIds && this.effectiveWorkforceIds.length > 0) {
+        params.workforce_ids = this.effectiveWorkforceIds;
       }
 
       await this.activityStore.fetchSummary(params);
@@ -3909,8 +4347,8 @@ export default {
         year: this.currentYear,
         month: this.currentMonth + 1,
       };
-      if (this.selectedWorkforceIds && this.selectedWorkforceIds.length > 0) {
-        params.workforce_ids = this.selectedWorkforceIds;
+      if (this.effectiveWorkforceIds && this.effectiveWorkforceIds.length > 0) {
+        params.workforce_ids = this.effectiveWorkforceIds;
       }
       await this.activityStore.fetchBreakdown(params);
     },
@@ -3950,6 +4388,9 @@ export default {
             if (c.key === 'q2_work_days') return this.workforceTotals.q2_work_days;
             if (c.key === 'q2_non_work_days') return this.workforceTotals.q2_non_work_days;
             if (c.key === 'q2_total') return this.workforceTotals.q2_total;
+            if (c.key === 'fixed_price') return this.workforceTotals.fixed_price;
+            if (c.key === 'non_fixed_price') return this.workforceTotals.non_fixed_price;
+            if (c.key === 'total_price') return this.workforceTotals.total_price;
             if (c.key === 'month_total') return this.workforceTotals.month_total;
             if (c.type === 'computed_declared') return this.workforceTotals.declared;
             if (c.type === 'computed_non_declared') return this.workforceTotals.non_declared;
@@ -4067,58 +4508,140 @@ export default {
     async submitActivity() {
       if (!this.canSubmitActivity) return;
       this.submitting = true;
-      const ids = [...this.selectedWorkforceIds];
-      const assignmentLabel = this.activityForm.section_id
-        ? (this.sectionStore.list.find(s => s.id === this.activityForm.section_id)?.name || '')
-        : (this.corporalStore.list.find(c => c.id === this.activityForm.corporal_id)?.full_name || '');
-      const assignmentType = this.activityForm.section_id ? this.$t('section_affiliated') : this.$t('corporal');
-      const priceVal = this.activityForm.price;
-
-      // Split workforces into regular and fixed daily pay
-      const fixedIds = this.fixedDailyPayWorkforceIds;
-      const regularIds = this.regularWorkforceIds;
-      const fixedPrice = this.fixedDailyPrice;
 
       try {
-        // 1) Create regular activities for ALL selected workforces
-        for (const wId of ids) {
-          await this.activityStore.create({
-            workforce_id: wId,
-            date: this.selectedDate,
-            section_id: this.activityForm.section_id || null,
-            corporal_id: this.activityForm.corporal_id || null,
-            price: priceVal,
-            is_fixed_price: false,
-          }, true);
-        }
+        let createdCount = 0;
+        let totalAmount = 0;
+        const fields = [];
 
-        // 2) Additionally create fixed price activities for workforces with fixed daily pay
-        if (fixedIds.length > 0) {
-          for (const wId of fixedIds) {
+        if (this.activityEntryMode === 'teams') {
+          // --- Teams Entry Flow ---
+          const selectedTeams = this.selectedTeamsList;
+          const allWfIds = [];
+
+          for (const team of selectedTeams) {
+            const teamWorkforces = team.workforces || [];
+            const corporalId = team.corporal_id || (team.corporal ? team.corporal.id : null);
+
+            for (const wf of teamWorkforces) {
+              allWfIds.push(wf.id);
+              let priceVal = 0;
+              let isFixed = false;
+
+              if (this.applyFixedDailyPay) {
+                // If switch is ON: check if workforce has fixed_daily_pay active
+                if (wf.fixed_daily_pay) {
+                  priceVal = parseFloat(wf.daily_price) || 0;
+                  isFixed = true;
+                } else {
+                  priceVal = 0;
+                  isFixed = false;
+                }
+              } else {
+                // If switch is OFF: use entered custom price
+                priceVal = parseFloat(this.activityForm.price) || 0;
+                isFixed = false;
+              }
+
+              await this.activityStore.create({
+                workforce_id: wf.id,
+                date: this.selectedDate,
+                section_id: null,
+                corporal_id: corporalId,
+                price: priceVal,
+                is_fixed_price: isFixed,
+              }, true);
+
+              createdCount++;
+              totalAmount += priceVal;
+            }
+          }
+
+          fields.push({ label: this.$t('teams'), value: selectedTeams.map(t => t.name).join(', '), icon: 'mdi-account-group' });
+          fields.push({ label: this.$t('workforces_count'), value: allWfIds.length, icon: 'mdi-account-hard-hat' });
+          fields.push({ label: this.$t('date'), value: this.selectedDate, icon: 'mdi-calendar' });
+          if (this.applyFixedDailyPay) {
+            fields.push({ label: this.$t('fixed_daily_pay'), value: this.$t('applied_per_worker'), icon: 'mdi-cash-lock' });
+          } else {
+            fields.push({ label: this.$t('price'), value: `${this.formatNumber(this.activityForm.price)} ${this.main.currency || 'DH'}`, icon: 'mdi-cash' });
+          }
+
+          this.triggerSummarySnackbar({
+            title: this.$t('workforce_activity_added') || 'Activities added successfully',
+            workforce: `${allWfIds.length} ${this.$t('workforces')} (${selectedTeams.length} ${this.$t('teams')})`,
+            date: this.selectedDate,
+            amount: `${this.formatNumber(totalAmount)} ${this.main.currency || 'DH'}`,
+            icon: 'mdi-check-circle',
+            iconColor: 'success',
+          });
+
+        } else {
+          // --- Individual Workforces Entry Flow ---
+          const ids = [...this.selectedWorkforceIds];
+          const assignmentLabel = this.activityForm.section_id
+            ? (this.sectionStore.list.find(s => s.id === this.activityForm.section_id)?.name || '')
+            : (this.corporalStore.list.find(c => c.id === this.activityForm.corporal_id)?.full_name || '');
+          const assignmentType = this.activityForm.section_id ? this.$t('section_affiliated') : this.$t('corporal');
+
+          for (const wId of ids) {
+            const wf = this.workforceStore.list.find(w => w.id === wId);
+            let priceVal = 0;
+            let isFixed = false;
+
+            if (this.applyFixedDailyPay) {
+              if (wf && wf.fixed_daily_pay) {
+                priceVal = parseFloat(wf.daily_price) || 0;
+                isFixed = true;
+              } else {
+                priceVal = 0;
+                isFixed = false;
+              }
+            } else {
+              priceVal = parseFloat(this.activityForm.price) || 0;
+              isFixed = false;
+            }
+
             await this.activityStore.create({
               workforce_id: wId,
               date: this.selectedDate,
               section_id: this.activityForm.section_id || null,
               corporal_id: this.activityForm.corporal_id || null,
-              price: fixedPrice,
-              is_fixed_price: true,
+              price: priceVal,
+              is_fixed_price: isFixed,
             }, true);
-          }
-        }
 
-        // Rich notification
-        const fields = [];
-        if (ids.length === 1) {
-          const w = this.workforceStore.list.find(w => w.id === ids[0]);
-          fields.push({ label: this.$t('workforce'), value: w ? w.full_name : '', icon: 'mdi-account' });
-        } else {
-          fields.push({ label: this.$t('workforces_count'), value: ids.length, icon: 'mdi-account-group' });
-        }
-        fields.push({ label: this.$t('date'), value: this.selectedDate, icon: 'mdi-calendar' });
-        fields.push({ label: assignmentType, value: assignmentLabel, icon: this.activityForm.section_id ? 'mdi-sitemap-outline' : 'mdi-account-tie' });
-        fields.push({ label: this.$t('price'), value: `${this.formatNumber(priceVal)} ${this.main.currency || 'DH'}`, icon: 'mdi-cash' });
-        if (fixedIds.length > 0) {
-          fields.push({ label: this.$t('fixed_daily_pay'), value: `${this.formatNumber(fixedPrice)} ${this.main.currency || 'DH'} (${fixedIds.length})`, icon: 'mdi-cash-lock' });
+            createdCount++;
+            totalAmount += priceVal;
+          }
+
+          if (ids.length === 1) {
+            const w = this.workforceStore.list.find(w => w.id === ids[0]);
+            fields.push({ label: this.$t('workforce'), value: w ? w.full_name : '', icon: 'mdi-account' });
+          } else {
+            fields.push({ label: this.$t('workforces_count'), value: ids.length, icon: 'mdi-account-group' });
+          }
+          fields.push({ label: this.$t('date'), value: this.selectedDate, icon: 'mdi-calendar' });
+          fields.push({ label: assignmentType, value: assignmentLabel, icon: this.activityForm.section_id ? 'mdi-sitemap-outline' : 'mdi-account-tie' });
+          if (this.applyFixedDailyPay) {
+            fields.push({ label: this.$t('fixed_daily_pay'), value: this.$t('applied_per_worker'), icon: 'mdi-cash-lock' });
+          } else {
+            fields.push({ label: this.$t('price'), value: `${this.formatNumber(this.activityForm.price)} ${this.main.currency || 'DH'}`, icon: 'mdi-cash' });
+          }
+
+          const wfDisplay = ids.length === 1
+            ? (this.workforceStore.list.find(w => w.id === ids[0])?.full_name || '')
+            : `${ids.length} ${this.$t('workforces')}`;
+
+          this.triggerSummarySnackbar({
+            title: this.$t('workforce_activity_added') || 'Activity added successfully',
+            workforce: wfDisplay,
+            section: this.activityForm.section_id ? assignmentLabel : '',
+            corporal: this.activityForm.corporal_id ? assignmentLabel : '',
+            date: this.selectedDate,
+            amount: `${this.formatNumber(totalAmount)} ${this.main.currency || 'DH'}`,
+            icon: 'mdi-check-circle',
+            iconColor: 'success',
+          });
         }
 
         this.notification.notifyCreation({
@@ -4128,36 +4651,17 @@ export default {
           fields,
         });
 
-        const wfDisplay = ids.length === 1
-          ? (this.workforceStore.list.find(w => w.id === ids[0])?.full_name || '')
-          : `${ids.length} ${this.$t('workforces')}`;
-        this.triggerSummarySnackbar({
-          title: this.$t('workforce_activity_added') || 'Activity added successfully',
-          workforce: wfDisplay,
-          section: this.activityForm.section_id ? assignmentLabel : '',
-          corporal: this.activityForm.corporal_id ? assignmentLabel : '',
-          date: this.selectedDate,
-          amount: `${this.formatNumber(priceVal)} ${this.main.currency || 'DH'}`,
-          icon: 'mdi-check-circle',
-          iconColor: 'success',
-        });
-
-        // Reload activities and summary
+        // Reload activities, summary and breakdown
         await this.loadActivities();
         await this.loadSummary();
         await this.loadBreakdown();
 
-        // Preserve form values - focus back to workforce selector
-        this.$nextTick(() => {
-          if (this.$refs.workforceAutocomplete) {
-            this.$refs.workforceAutocomplete.focus();
-          }
-        });
       } catch (e) {
-        console.error(e);
-        this.notification.push({ title: this.$t('error'), message: this.$t('workforce_save_error'), icon: 'mdi-alert-circle', color: 'error' });
+        console.error('Error submitting activity:', e);
+        this.main.add_snackbar({ show: true, message: this.$t('activity_save_error') || 'Error adding activity', color: 'error' });
+      } finally {
+        this.submitting = false;
       }
-      this.submitting = false;
     },
     editActivity(act) {
       this.editForm = {
@@ -4254,7 +4758,7 @@ export default {
     async bulkDeleteActivities() {
       if (!this.canDeleteActivities) return;
       this.deleting = true;
-      const ids = [...this.selectedWorkforceIds];
+      const ids = [...this.effectiveWorkforceIds];
       try {
         const deletedCount = await this.activityStore.bulkDeleteByDate(ids, this.selectedDate);
 
@@ -4300,7 +4804,7 @@ export default {
       if (!cell || !cell.dateStr) return;
       this.deletingCell = cell.dateStr;
       try {
-        const wfIds = this.noWorkforceSelected ? [] : [...this.selectedWorkforceIds];
+        const wfIds = this.noWorkforceSelected ? [] : [...this.effectiveWorkforceIds];
         const deletedCount = await this.activityStore.bulkDeleteByDate(
           wfIds.length > 0 ? wfIds : null,
           cell.dateStr
@@ -4363,11 +4867,49 @@ export default {
 .fnm-panel-card { border-color: rgba(var(--v-border-color), .12) !important; }
 .fnm-panel-icon-wrap { width: 36px; height: 36px; border-radius: 10px; background: rgba(66,165,245,.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .fnm-date-capsule { background: rgba(var(--v-theme-surface-variant), .03); border-color: rgba(var(--v-border-color), .1) !important; }
+.fnm-panel-card :deep(.segmented-pill-container) {
+  width: 100% !important;
+  display: flex !important;
+}
+.fnm-panel-card :deep(.segmented-pill-btn) {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+}
 .fnm-avatar-circle { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #1565C0, #42A5F5); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; letter-spacing: .3px; flex-shrink: 0; }
 .fnm-btn-primary { box-shadow: 0 4px 14px rgba(66, 165, 245, 0.35) !important; transition: all .2s ease; }
 .fnm-btn-primary:hover { box-shadow: 0 6px 18px rgba(66, 165, 245, 0.45) !important; transform: translateY(-1px); }
 .fnm-btn-delete { transition: all .2s ease; }
 .fnm-btn-delete:hover { background: rgba(244,67,54,.04); }
+
+/* Teams & Fixed Pay Switch Styling */
+.fnm-switch-card {
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: rgba(var(--v-theme-surface-variant), 0.03);
+  transition: all 0.2s ease;
+}
+.fnm-switch-card.fnm-switch-active {
+  border-color: rgba(66, 165, 245, 0.45);
+  background: linear-gradient(135deg, rgba(21, 101, 192, 0.04) 0%, rgba(66, 165, 245, 0.08) 100%);
+  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.12);
+}
+.fnm-teams-summary-card {
+  border: 1px dashed rgba(66, 165, 245, 0.4);
+  background: linear-gradient(135deg, rgba(30, 136, 229, 0.04) 0%, rgba(66, 165, 245, 0.08) 100%);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.fnm-teams-counter {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1976D2;
+}
+.fnm-teams-subtext {
+  font-size: 11px;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
 
 /* Summary KPI Cards */
 .fnm-kpi-card { background: linear-gradient(135deg, rgba(21,101,192,.02) 0%, rgba(66,165,245,.06) 100%); border-color: rgba(66,165,245,.2) !important; transition: all .15s ease; }
@@ -4381,6 +4923,62 @@ export default {
 .fnm-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid rgba(var(--v-border-color), .1); }
 .fnm-cal-title { font-size: 16px; font-weight: 700; }
 .fnm-segmented-toggle { border-color: rgba(66,165,245,.25) !important; }
+
+/* Calendar Navigation Capsule */
+.fnm-cal-nav-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(66, 165, 245, 0.08);
+  border: 1px solid rgba(66, 165, 245, 0.22);
+  border-radius: 9999px;
+  padding: 3px 5px;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(21, 101, 192, 0.06);
+  transition: all 0.2s ease;
+}
+.fnm-cal-nav-group:hover {
+  background: rgba(66, 165, 245, 0.12);
+  border-color: rgba(66, 165, 245, 0.38);
+  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.15);
+}
+.fnm-nav-arrow-btn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.fnm-nav-arrow-btn:hover {
+  background: #42A5F5 !important;
+  transform: scale(1.08);
+  box-shadow: 0 2px 6px rgba(66, 165, 245, 0.35);
+}
+.fnm-nav-arrow-btn:hover :deep(.v-icon) {
+  color: #ffffff !important;
+}
+.fnm-nav-arrow-btn:active {
+  transform: scale(0.92);
+}
+.fnm-nav-today-btn {
+  height: 26px !important;
+  border-radius: 9999px !important;
+  padding: 0 12px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+  background: #ffffff !important;
+  color: #1565C0 !important;
+  box-shadow: 0 1px 4px rgba(21, 101, 192, 0.12) !important;
+  border: 1px solid rgba(66, 165, 245, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+.fnm-nav-today-btn:hover {
+  background: #1976D2 !important;
+  color: #ffffff !important;
+  border-color: #1976D2 !important;
+  box-shadow: 0 2px 8px rgba(21, 101, 192, 0.25) !important;
+}
 
 /* Calendar Grid */
 .fnm-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
@@ -4612,18 +5210,19 @@ export default {
 
 /* Breakdown Table */
 .fnm-breakdown-table { border: 1px solid rgba(var(--v-border-color), .12); }
-.fnm-breakdown-table th { font-size: 11px !important; text-transform: uppercase; letter-spacing: .5px; background: rgba(var(--v-theme-surface-variant), .04); }
+.fnm-breakdown-table th { font-size: 11px !important; text-transform: uppercase; letter-spacing: .5px; background: rgba(var(--v-theme-surface-variant), .04); white-space: nowrap; }
 .fnm-breakdown-table td { font-size: 13px; }
 .fnm-breakdown-total-row { background: rgba(33,150,243,.04); border-top: 2px solid rgba(33,150,243,.2); }
 
 /* Sortable table headers */
-.fnm-th-sortable { cursor: default; padding: 6px 4px !important; }
+.fnm-th-sortable { cursor: default; padding: 6px 8px !important; white-space: nowrap; }
 .fnm-th-inner {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   width: 100%;
   justify-content: inherit;
+  white-space: nowrap;
 }
 .fnm-th-label {
   cursor: pointer;
@@ -4634,6 +5233,7 @@ export default {
   border-radius: 4px;
   padding: 2px 4px;
   transition: background .15s ease;
+  white-space: nowrap;
 }
 .fnm-th-label:hover { background: rgba(33,150,243,.1); }
 .fnm-sort-indicator {
@@ -5324,6 +5924,18 @@ export default {
   color: #546E7A !important;
 }
 
+#fnm-print-area .fnm-badge-fixed {
+  background: #FEF3C7 !important;
+  color: #D97706 !important;
+  border: 1px solid #FDE68A !important;
+}
+
+#fnm-print-area .fnm-badge-regular {
+  background: #F3F4F6 !important;
+  color: #4B5563 !important;
+  border: 1px solid #E5E7EB !important;
+}
+
 #fnm-print-area .fnm-pdoc-gt-card {
   background: #f8fafc !important;
   border: 1.5px solid #1E88E5 !important;
@@ -5619,6 +6231,26 @@ export default {
   font-weight: 600;
   font-size: 9.5px;
 }
+.fnm-badge-fixed {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #FEF3C7;
+  color: #D97706;
+  font-weight: 700;
+  font-size: 9.5px;
+  border: 1px solid #FDE68A;
+}
+.fnm-badge-regular {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #F3F4F6;
+  color: #4B5563;
+  font-weight: 600;
+  font-size: 9.5px;
+  border: 1px solid #E5E7EB;
+}
 
 /* Grand Totals KPI Cards */
 .fnm-pdoc-grand-totals {
@@ -5653,6 +6285,15 @@ export default {
 .fnm-pdoc-gt-cur {
   font-size: 10px;
   font-weight: 600;
+}
+.fnm-pdoc-gt-sub {
+  font-size: 9px;
+  font-weight: 700;
+  margin-top: 4px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Notes Block */

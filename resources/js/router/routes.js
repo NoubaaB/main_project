@@ -164,7 +164,10 @@ const routes = [
                             {
                                 path: 'charge-management',
                                 name: 'charge_production_management',
-                                component: () => import('@/components/production/ChargeProductionManagement/index.vue')
+                                component: () => import('@/components/production/ChargeProductionManagement/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('production.charge_management') ? next() : next({ name: 'production_list' });
+                                }
                             },
                         ]
                     },
@@ -274,7 +277,10 @@ const routes = [
                             {
                                 path: "supplier_settlement",
                                 name: "supplier_settlement",
-                                component: () => import("@/components/SupplierPayment/SupplierSettlement/index.vue")
+                                component: () => import("@/components/SupplierPayment/SupplierSettlement/index.vue"),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('supplier_invoices.settlement') ? next() : next({ name: 'list_supplier_invoice' });
+                                }
                             },
                         ]
                     },
@@ -299,7 +305,10 @@ const routes = [
                             {
                                 path: "client_settlement",
                                 name: "client_settlement",
-                                component: () => import("@/components/ClientPayment/ClientSettlement/index.vue")
+                                component: () => import("@/components/ClientPayment/ClientSettlement/index.vue"),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('client_invoices.settlement') ? next() : next({ name: 'list_client_invoice' });
+                                }
                             },
                         ]
                     },
@@ -325,7 +334,10 @@ const routes = [
                         path: "/storage-invoices",
                         name: "storage_invoices",
                         keeplive: true,
-                        component: () => import("@/components/StorageInvoice/index.vue")
+                        component: () => import("@/components/StorageInvoice/index.vue"),
+                        beforeEnter: (to, from, next) => {
+                            useAuth().hasPermission('warehouses.storage_invoices') ? next() : next({ name: 'warehouses' });
+                        }
                     },
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
                     //  PARAMETERS
@@ -422,7 +434,10 @@ const routes = [
                                 path: "cost-configuration-management",
                                 name: "cost_configuration_management",
                                 keeplive: true,
-                                component: () => import("@/components/parameters/CostConfigurationManagement/index.vue")
+                                component: () => import("@/components/parameters/CostConfigurationManagement/index.vue"),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('settings.cost_configuration') ? next() : next({ name: 'index' });
+                                }
                             },
                         ]
                     },
@@ -437,33 +452,70 @@ const routes = [
                                 path: 'management',
                                 name: 'workforce_management',
                                 keeplive: true,
-                                component: () => import('@/components/workforce/WorkforceManagement/index.vue')
+                                component: () => import('@/components/workforce/WorkforceManagement/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('workforce.view') ? next() : next({ name: 'index' });
+                                }
                             },
                             {
                                 path: 'corporals',
                                 name: 'corporal_management',
                                 keeplive: true,
-                                component: () => import('@/components/workforce/CorporalManagement/index.vue')
+                                component: () => import('@/components/workforce/CorporalManagement/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('workforce.corporals') ? next() : next({ name: 'index' });
+                                }
+                            },
+                            {
+                                path: 'teams',
+                                name: 'team_management',
+                                keeplive: true,
+                                component: () => import('@/components/workforce/TeamManagement/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('workforce.teams') ? next() : next({ name: 'index' });
+                                }
                             },
                             {
                                 path: 'sections',
                                 name: 'section_management',
                                 keeplive: true,
-                                component: () => import('@/components/workforce/SectionManagement/index.vue')
+                                component: () => import('@/components/workforce/SectionManagement/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('workforce.sections') ? next() : next({ name: 'index' });
+                                }
                             },
                             {
                                 path: 'fortnight',
                                 name: 'fortnight_management',
                                 keeplive: true,
-                                component: () => import('@/components/workforce/FortnightManagement/index.vue')
+                                component: () => import('@/components/workforce/FortnightManagement/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('workforce.fortnight') ? next() : next({ name: 'index' });
+                                }
                             },
                             {
                                 path: 'statistics',
                                 name: 'workforce_statistics',
                                 keeplive: true,
-                                component: () => import('@/components/workforce/WorkforceStatistics/index.vue')
+                                component: () => import('@/components/workforce/WorkforceStatistics/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('workforce.statistics') ? next() : next({ name: 'index' });
+                                }
+                            },
+                            {
+                                path: 'absence-movement',
+                                name: 'workforce_absence_movement',
+                                keeplive: true,
+                                component: () => import('@/components/workforce/WorkforceAbsenceManagement/index.vue'),
+                                beforeEnter: (to, from, next) => {
+                                    useAuth().hasPermission('workforce.absence') ? next() : next({ name: 'index' });
+                                }
                             },
                         ]
+                    },
+                    {
+                        path: '/workforce_absence_movement',
+                        redirect: '/workforce/absence-movement',
                     },
                 ]
             },

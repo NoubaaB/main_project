@@ -33,15 +33,15 @@
             variant="text"
             size="30"
             class="stepper-action-btn"
-            :disabled="!navHistory.canGoBack"
-            @click="navHistory.goBack($router)"
+            :disabled="!navHistory?.canGoBack"
+            @click="navHistory?.goBack?.($router)"
             id="sys-nav-back"
           >
             <v-icon size="18">mdi-arrow-left</v-icon>
             <v-tooltip activator="parent" location="bottom">
               <div class="font-weight-bold">{{ $t('navigate_back') }} (Alt + ←)</div>
-              <div v-if="navHistory.previousPage" class="text-caption text-truncate" style="max-width: 220px; opacity: .85">
-                {{ navHistory.previousPage.title }}
+              <div v-if="navHistory?.previousPage" class="text-caption text-truncate" style="max-width: 220px; opacity: .85">
+                {{ navHistory?.previousPage?.title }}
               </div>
             </v-tooltip>
           </v-btn>
@@ -52,15 +52,15 @@
             variant="text"
             size="30"
             class="stepper-action-btn"
-            :disabled="!navHistory.canGoForward"
-            @click="navHistory.goForward($router)"
+            :disabled="!navHistory?.canGoForward"
+            @click="navHistory?.goForward?.($router)"
             id="sys-nav-forward"
           >
             <v-icon size="18">mdi-arrow-right</v-icon>
             <v-tooltip activator="parent" location="bottom">
               <div class="font-weight-bold">{{ $t('navigate_forward') }} (Alt + →)</div>
-              <div v-if="navHistory.nextPage" class="text-caption text-truncate" style="max-width: 220px; opacity: .85">
-                {{ navHistory.nextPage.title }}
+              <div v-if="navHistory?.nextPage" class="text-caption text-truncate" style="max-width: 220px; opacity: .85">
+                {{ navHistory?.nextPage?.title }}
               </div>
             </v-tooltip>
           </v-btn>
@@ -581,6 +581,91 @@
               </div>
               <v-divider></v-divider>
 
+              <!-- Web Push Notification Status / Control Banner -->
+              <div v-if="webPush.isSupported" class="webpush-bar px-3 py-2" :class="main.is_dark ? 'webpush-bar--dark' : 'webpush-bar--light'">
+                <div class="d-flex align-center justify-space-between">
+                  <div class="d-flex align-center ga-2">
+                    <v-icon
+                      size="18"
+                      :color="webPush.isEnabled ? '#4CAF50' : webPush.isBlocked ? '#EF5350' : '#42A5F5'"
+                    >
+                      {{ webPush.isEnabled ? 'mdi-bell-check' : webPush.isBlocked ? 'mdi-bell-cancel' : 'mdi-bell-ring-outline' }}
+                    </v-icon>
+                    <div>
+                      <div class="text-caption font-weight-bold d-flex align-center ga-1">
+                        <span>{{ $t('web_push_notifications') }}</span>
+                        <v-chip
+                          size="x-small"
+                          density="compact"
+                          :color="webPush.isEnabled ? 'success' : webPush.isBlocked ? 'error' : 'info'"
+                          variant="tonal"
+                          class="ml-1 font-weight-bold"
+                        >
+                          {{ webPush.isEnabled ? $t('active') : webPush.isBlocked ? $t('blocked') : $t('disabled') }}
+                        </v-chip>
+                      </div>
+                      <div class="text-caption text-medium-emphasis" style="font-size: 10px !important; line-height: 1.2;">
+                        <span v-if="webPush.isEnabled">
+                          {{ webPush.deviceCount }} {{ $t('devices_registered') }}
+                        </span>
+                        <span v-else-if="webPush.isBlocked">
+                          {{ $t('webpush_status_blocked') }}
+                        </span>
+                        <span v-else>
+                          {{ $t('webpush_enable_prompt') }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-center ga-1">
+                    <!-- Test Button (when enabled) -->
+                    <v-btn
+                      v-if="webPush.isEnabled"
+                      size="x-small"
+                      variant="tonal"
+                      color="primary"
+                      class="text-none font-weight-medium"
+                      :loading="webPush.loading"
+                      @click="webPush.sendTestNotification()"
+                      id="webpush-test-btn"
+                    >
+                      <v-icon size="13" class="mr-1">mdi-bell-ring</v-icon>
+                      {{ $t('test_push') }}
+                    </v-btn>
+
+                    <!-- Enable Button (when default) -->
+                    <v-btn
+                      v-if="webPush.needsPermission"
+                      size="x-small"
+                      variant="flat"
+                      color="#42A5F5"
+                      class="text-none font-weight-bold"
+                      :loading="webPush.loading"
+                      @click="webPush.subscribe()"
+                      id="webpush-enable-btn"
+                    >
+                      <v-icon size="13" class="mr-1">mdi-plus</v-icon>
+                      {{ $t('enable') }}
+                    </v-btn>
+
+                    <!-- Toggle Switch if granted -->
+                    <v-btn
+                      v-if="webPush.permission === 'granted'"
+                      size="x-small"
+                      icon
+                      variant="text"
+                      :color="webPush.isSubscribed ? 'error' : 'success'"
+                      :title="webPush.isSubscribed ? $t('disable') : $t('enable')"
+                      @click="webPush.isSubscribed ? webPush.unsubscribe() : webPush.subscribe()"
+                    >
+                      <v-icon size="16">{{ webPush.isSubscribed ? 'mdi-bell-off-outline' : 'mdi-bell-plus-outline' }}</v-icon>
+                    </v-btn>
+                  </div>
+                </div>
+              </div>
+              <v-divider></v-divider>
+
               <div class="notif-list" v-if="notifCenter.notifications.length > 0">
                 <div
                   v-for="notif in notifCenter.notifications.slice(0, 30)"
@@ -775,6 +860,7 @@ import { useNotificationCenter } from '@/stores/NotificationCenter';
 import { useCompanySettings } from '@/stores/CompanySettings';
 import { usePwa } from '@/stores/pwa';
 import { useNavigationHistory } from '@/stores/NavigationHistory';
+import { useWebPush } from '@/stores/WebPush';
 import { getRouteMetadata } from '@/utils/routeMetadata';
 import annyang from 'annyang';
 import CommandPalette from '@/components/schema/CommandPalette.vue';
@@ -798,8 +884,44 @@ export default {
     auth() { return useAuth(); },
     _online() { return useOnlineUsers(); },
     notifCenter() { return useNotificationCenter(); },
+    webPush() { return useWebPush(); },
     pwa() { return usePwa(); },
-    navHistory() { return useNavigationHistory(); },
+    navHistory() {
+      try {
+        const h = useNavigationHistory();
+        return h || {
+          canGoBack: false,
+          canGoForward: false,
+          historyMenuOpen: false,
+          recentPages: [],
+          stack: [],
+          pinnedPages: [],
+          currentPage: null,
+          previousPage: null,
+          nextPage: null,
+          goBack() {},
+          goForward() {},
+          init() {},
+          clearHistory() {}
+        };
+      } catch (e) {
+        return {
+          canGoBack: false,
+          canGoForward: false,
+          historyMenuOpen: false,
+          recentPages: [],
+          stack: [],
+          pinnedPages: [],
+          currentPage: null,
+          previousPage: null,
+          nextPage: null,
+          goBack() {},
+          goForward() {},
+          init() {},
+          clearHistory() {}
+        };
+      }
+    },
     lang() { return this.main.lang?.code || 'en'; },
 
     currentLangFlag() {
@@ -930,6 +1052,7 @@ export default {
     if (this.auth.is_auth) {
       this._online.connect();
       this.notifCenter.init();
+      this.webPush.init();
     }
   },
   beforeUnmount() {
@@ -1650,6 +1773,17 @@ export default {
 }
 
 /* Notifications */
+.webpush-bar {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), .06);
+  transition: all 0.2s ease;
+}
+.webpush-bar--light {
+  background: rgba(66, 165, 245, 0.05);
+}
+.webpush-bar--dark {
+  background: rgba(66, 165, 245, 0.08);
+}
+
 .notif-bell-ring {
   animation: bellRing 2.5s ease-in-out infinite;
 }

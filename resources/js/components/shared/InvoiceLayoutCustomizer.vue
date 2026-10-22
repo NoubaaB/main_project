@@ -509,7 +509,7 @@
                 </v-row>
                 <v-row no-gutters class="header-wrap-divided" :style="{ background: previewHeaderDividedBg, height: form.header_divided_height || '3cm' }">
                   <v-col cols="4" class="text-center-h-v pl-3" :style="{ backgroundColor: form.header_primary_color || moduleColor }">
-                    <img class="header-img" :style="{ width: form.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="'/storage/images/invoice_title.png'"/>
+                    <img class="header-img" :style="{ width: form.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="invoiceHeaderImage"/>
                   </v-col>
                   <template v-if="form.header_style === 'curved' || !form.header_style">
                     <v-col cols="2" class="header-cursev-dark" :style="{ backgroundColor: form.header_primary_color || moduleColor }"></v-col>
@@ -670,7 +670,7 @@
                     <v-col cols="auto" style="width: 4px; background: rgba(0,0,0,0.08);"></v-col>
                   </template>
                   <v-col cols="*" class="text-center-h-v pr-3" :style="{ backgroundColor: form.footer_primary_color || moduleColor }">
-                    <img class="header-img footer-img" :style="{ width: form.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="'/storage/images/invoice_title.png'"/>
+                    <img class="header-img footer-img" :style="{ width: form.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="invoiceHeaderImage"/>
                   </v-col>
                 </v-row>
                 <v-row no-gutters>
@@ -786,6 +786,7 @@
 <script>
 import { useInvoiceLayout } from '@/stores/InvoiceLayout';
 import { useMain } from '@/stores/Main';
+import { useCompanySettings } from '@/stores/CompanySettings';
 import mitt from '@/plugins/mitt';
 
 export default {
@@ -904,6 +905,15 @@ export default {
     },
     isClient() {
       return this.invoiceType === 'client';
+    },
+    csStore() {
+      return useCompanySettings();
+    },
+    invoiceHeaderImage() {
+      const cs = this.csStore?.settings || {};
+      if (cs.invoice_header_image_url) return cs.invoice_header_image_url;
+      if (cs.invoice_header_image_path) return `/storage/${cs.invoice_header_image_path}`;
+      return '/storage/images/invoice_title.png';
     },
     moduleColor() {
       // Claude.md: Client invoice uses #00838F; Supplier invoice uses #E65100

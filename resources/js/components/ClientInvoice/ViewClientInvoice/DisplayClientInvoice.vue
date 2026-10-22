@@ -4,7 +4,7 @@
     :class="{'border-dashed border-md border-cyan-darken-3':is_show, 'export-invoice-wrap': isExport}"
     :style="invoiceWrapCustomStyle"
     >
-        <img class="export-watermark" :src="'/storage/images/invoice_title.png'" v-if="isExport" />
+        <img class="export-watermark" :src="invoiceHeaderImage" v-if="isExport" />
         <div class="header-wrap">
             <v-row no-gutters>
                 <v-col cols="12" class="header-wrap-strick" :style="{ backgroundColor: layout.header_primary_color || '#006064', height: layout.header_strick_height || '0.3cm' }">
@@ -12,7 +12,7 @@
             </v-row>
             <v-row no-gutters class="header-wrap-divided" :style="{ background: headerDividedBg, height: layout.header_divided_height || '3cm' }">
                 <v-col cols="4" class="text-center-h-v pl-3" :style="{ backgroundColor: layout.header_primary_color || '#006064' }">
-                    <img class="header-img" :style="{ width: layout.header_logo_width || '6cm' }" :src="'/storage/images/invoice_title.png'"/>
+                    <img class="header-img" :style="{ width: layout.header_logo_width || '6cm' }" :src="invoiceHeaderImage"/>
                 </v-col>
                 <template v-if="layout.header_style === 'curved' || !layout.header_style">
                     <v-col cols="2" class="header-cursev-dark" :style="{ backgroundColor: layout.header_primary_color || '#006064' }"></v-col>
@@ -463,7 +463,7 @@
                     <v-col cols="auto" style="width: 4px; background: rgba(0,0,0,0.08);"></v-col>
                 </template>
                 <v-col cols="*" class="text-center-h-v pr-3" :style="{ backgroundColor: layout.footer_primary_color || '#006064' }">
-                    <img class="header-img footer-img" :style="{ width: layout.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="'/storage/images/invoice_title.png'"/>
+                    <img class="header-img footer-img" :style="{ width: layout.header_logo_width || '6cm', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }" :src="invoiceHeaderImage"/>
                 </v-col>
             </v-row>
             <v-row no-gutters>
@@ -523,7 +523,7 @@
         },
         mounted() {
             this.invoiceLayout.initSync();
-            if (!this.company_settings?.settings?.company_name) {
+            if (!this.company_settings?.settings?.company_name && !this.company_settings?.settings?.invoice_header_image_url) {
                 this.company_settings?.fetchSettings?.();
             }
             // initialize widths/order on mount
@@ -563,6 +563,12 @@
                 if (cs.logo_invoice_body_path) return `/storage/${cs.logo_invoice_body_path}`;
                 if (cs.logo_invoice_path) return `/storage/${cs.logo_invoice_path}`;
                 return '/storage/images/invoice_body.png';
+            },
+            invoiceHeaderImage: function () {
+                const cs = this.company_settings?.settings || {};
+                if (cs.invoice_header_image_url) return cs.invoice_header_image_url;
+                if (cs.invoice_header_image_path) return `/storage/${cs.invoice_header_image_path}`;
+                return '/storage/images/invoice_title.png';
             },
             layout: function () {
                 return this.invoiceLayout.getLayout('client');

@@ -50,10 +50,10 @@
         <v-divider class="my-4"></v-divider>
 
         <!-- Section: Logos -->
-        <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-image</v-icon>{{ $t('company_logos') }}</div>
-        <v-row dense>
+        <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-image</v-icon>{{ $t('company_logos') }}</div>
+        <v-row dense class="justify-center">
           <!-- Logo Invoice -->
-          <v-col cols="12" md="4">
+          <v-col cols="12" md="4" class="d-flex flex-column align-center text-center">
             <div class="logo-label">{{ $t('logo_invoice') }}</div>
             <div
               class="logo-dropzone"
@@ -78,15 +78,41 @@
               </template>
               <!-- Placeholder -->
               <template v-else>
-                <v-icon size="48" class="logo-placeholder-icon">mdi-image-off-outline</v-icon>
+                <v-icon size="44" class="logo-placeholder-icon">mdi-image-off-outline</v-icon>
                 <div class="logo-placeholder-text">{{ $t('drag_drop_or_click') }}</div>
               </template>
               <input type="file" ref="fileInput_logo_invoice" accept="image/*" style="display:none" @change="onFileSelected($event, 'logo_invoice')" />
             </div>
+            <div class="d-flex align-center justify-center ga-2 mt-2 w-100" style="max-width: 240px;">
+              <v-btn
+                size="small"
+                variant="outlined"
+                rounded
+                color="#546E7A"
+                prepend-icon="mdi-upload"
+                class="text-none flex-grow-1"
+                @click="triggerFileInput('logo_invoice')"
+              >
+                {{ $t('upload') }}
+              </v-btn>
+              <v-btn
+                v-if="logoInvoiceUrl"
+                size="small"
+                variant="tonal"
+                rounded
+                color="error"
+                icon="mdi-delete-outline"
+                @click.stop="removeLogo('logo_invoice')"
+                :title="$t('remove')"
+              ></v-btn>
+            </div>
+            <div class="logo-helper-hint mt-2 text-center" style="max-width: 240px;">
+              {{ $t('logo_invoice_hint') }}
+            </div>
           </v-col>
 
           <!-- Logo Invoice Body -->
-          <v-col cols="12" md="4">
+          <v-col cols="12" md="4" class="d-flex flex-column align-center text-center">
             <div class="logo-label">{{ $t('logo_invoice_body') }}</div>
             <div
               class="logo-dropzone"
@@ -108,10 +134,94 @@
                 </div>
               </template>
               <template v-else>
-                <v-icon size="48" class="logo-placeholder-icon">mdi-image-off-outline</v-icon>
+                <v-icon size="44" class="logo-placeholder-icon">mdi-image-off-outline</v-icon>
                 <div class="logo-placeholder-text">{{ $t('drag_drop_or_click') }}</div>
               </template>
               <input type="file" ref="fileInput_logo_invoice_body" accept="image/*" style="display:none" @change="onFileSelected($event, 'logo_invoice_body')" />
+            </div>
+            <div class="d-flex align-center justify-center ga-2 mt-2 w-100" style="max-width: 240px;">
+              <v-btn
+                size="small"
+                variant="outlined"
+                rounded
+                color="#546E7A"
+                prepend-icon="mdi-upload"
+                class="text-none flex-grow-1"
+                @click="triggerFileInput('logo_invoice_body')"
+              >
+                {{ $t('upload') }}
+              </v-btn>
+              <v-btn
+                v-if="logoInvoiceBodyUrl"
+                size="small"
+                variant="tonal"
+                rounded
+                color="error"
+                icon="mdi-delete-outline"
+                @click.stop="removeLogo('logo_invoice_body')"
+                :title="$t('remove')"
+              ></v-btn>
+            </div>
+            <div class="logo-helper-hint mt-2 text-center" style="max-width: 240px;">
+              {{ $t('logo_invoice_body_hint') }}
+            </div>
+          </v-col>
+
+          <!-- Invoice Header & Footer Image -->
+          <v-col cols="12" md="4" class="d-flex flex-column align-center text-center">
+            <div class="logo-label">{{ $t('invoice_header_image') }}</div>
+            <div
+              class="logo-dropzone"
+              :class="{ 'logo-dropzone-dragover': dragOver.invoice_header_image, 'logo-dropzone-has-image': invoiceHeaderImageUrl }"
+              @click="triggerFileInput('invoice_header_image')"
+              @dragover.prevent="dragOver.invoice_header_image = true"
+              @dragleave.prevent="dragOver.invoice_header_image = false"
+              @drop.prevent="onDrop($event, 'invoice_header_image')"
+            >
+              <div v-if="uploading.invoice_header_image" class="logo-dropzone-loading">
+                <v-progress-circular indeterminate color="#546E7A" size="32" width="3"></v-progress-circular>
+              </div>
+              <template v-else-if="invoiceHeaderImageUrl">
+                <div class="invoice-header-img-preview-wrap">
+                  <img :src="invoiceHeaderImageUrl" class="logo-preview-img logo-preview-header-img" alt="Invoice Header Image" />
+                </div>
+                <div class="logo-overlay">
+                  <v-btn icon size="x-small" variant="flat" color="error" @click.stop="removeLogo('invoice_header_image')">
+                    <v-icon size="16">mdi-close</v-icon>
+                  </v-btn>
+                </div>
+              </template>
+              <template v-else>
+                <v-icon size="44" class="logo-placeholder-icon">mdi-image-plus-outline</v-icon>
+                <div class="logo-placeholder-text">{{ $t('drag_drop_or_click_header_image') }}</div>
+              </template>
+              <input type="file" ref="fileInput_invoice_header_image" accept="image/*" style="display:none" @change="onFileSelected($event, 'invoice_header_image')" />
+            </div>
+            <div class="d-flex align-center justify-center ga-2 mt-2 w-100" style="max-width: 240px;">
+              <v-btn
+                size="small"
+                variant="outlined"
+                rounded
+                color="#546E7A"
+                prepend-icon="mdi-upload"
+                class="text-none flex-grow-1"
+                @click="triggerFileInput('invoice_header_image')"
+              >
+                {{ $t('choose_header_image') }}
+              </v-btn>
+              <v-btn
+                v-if="invoiceHeaderImageUrl"
+                size="small"
+                variant="tonal"
+                rounded
+                color="error"
+                icon="mdi-delete-outline"
+                @click.stop="removeLogo('invoice_header_image')"
+                :title="$t('remove')"
+              ></v-btn>
+            </div>
+            <div class="logo-helper-hint mt-2 text-center" style="max-width: 240px;">
+              {{ $t('invoice_header_image_hint') }}
             </div>
           </v-col>
         </v-row>
@@ -156,14 +266,14 @@ export default {
   data() {
     return {
       form: { company_name:'',director_name:'',director_gender:'male',company_origin:'',company_address:'',swift_code:'',phone_number:'',fax_number:'',email:'',bank_name:'',bank_account_number:'',capital:'',ice:'',rc:'',cnss:'',tva_number:'' },
-      logoInvoiceUrl: '', logoInvoiceBodyUrl: '',
+      logoInvoiceUrl: '', logoInvoiceBodyUrl: '', invoiceHeaderImageUrl: '',
       saving: false,
       snack: { show: false, msg: '', color: 'success', icon: 'mdi-check-circle', timeout: 4000, progress: 100 },
       snackTimer: null,
       genderOptions: [{ title: this.$t('male'), value: 'male' }, { title: this.$t('female'), value: 'female' }],
       csStore: useCompanySettings(),
-      dragOver: { logo_invoice: false, logo_invoice_body: false },
-      uploading: { logo_invoice: false, logo_invoice_body: false },
+      dragOver: { logo_invoice: false, logo_invoice_body: false, invoice_header_image: false },
+      uploading: { logo_invoice: false, logo_invoice_body: false, invoice_header_image: false },
     };
   },
   mounted() { this.loadFromStore(); },
@@ -206,6 +316,7 @@ export default {
       Object.keys(this.form).forEach(k => { if (s[k] !== undefined) this.form[k] = s[k] || ''; });
       this.logoInvoiceUrl = s.logo_invoice_url || '';
       this.logoInvoiceBodyUrl = s.logo_invoice_body_url || '';
+      this.invoiceHeaderImageUrl = s.invoice_header_image_url || '';
     },
     async fetchSettings() {
       try {
@@ -258,17 +369,30 @@ export default {
         const r = await axios.post('/api/company-settings/upload-logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         if (type === 'logo_invoice') this.logoInvoiceUrl = r.data.url;
         else if (type === 'logo_invoice_body') this.logoInvoiceBodyUrl = r.data.url;
+        else if (type === 'invoice_header_image') this.invoiceHeaderImageUrl = r.data.url;
         // Update the Pinia store with the new logo URL
         this.csStore.setSettings({ [`${type}_url`]: r.data.url, [`${type}_path`]: r.data.path });
-        this.showSnackbar(this.$t('logo_uploaded'), 'success', 'mdi-check-circle');
+        this.showSnackbar(
+          type === 'invoice_header_image' ? this.$t('invoice_header_image_uploaded') : this.$t('logo_uploaded'),
+          'success',
+          'mdi-check-circle'
+        );
       } catch(e) {
         this.showSnackbar(this.$t('error_occurred'), 'error', 'mdi-alert-circle');
       }
       this.uploading[type] = false;
     },
-    removeLogo(type) {
-      if (type === 'logo_invoice') this.logoInvoiceUrl = '';
-      else if (type === 'logo_invoice_body') this.logoInvoiceBodyUrl = '';
+    async removeLogo(type) {
+      try {
+        await axios.delete(`/api/company-settings/logo/${type}`);
+        if (type === 'logo_invoice') this.logoInvoiceUrl = '';
+        else if (type === 'logo_invoice_body') this.logoInvoiceBodyUrl = '';
+        else if (type === 'invoice_header_image') this.invoiceHeaderImageUrl = '';
+        this.csStore.setSettings({ [`${type}_url`]: '', [`${type}_path`]: '' });
+        this.showSnackbar(this.$t('logo_removed'), 'success', 'mdi-check-circle');
+      } catch(e) {
+        this.showSnackbar(this.$t('error_occurred'), 'error', 'mdi-alert-circle');
+      }
     },
   },
 };
@@ -288,14 +412,19 @@ export default {
   text-transform: uppercase;
   letter-spacing: .4px;
   color: #546E7A;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  text-align: center;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logo-dropzone {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  max-width: 180px;
+  max-width: 240px;
+  height: 160px;
   border: 2px dashed rgba(84, 110, 122, 0.5);
   border-radius: 16px;
   display: flex;
@@ -306,6 +435,8 @@ export default {
   transition: all 0.25s ease;
   background: rgba(84, 110, 122, 0.03);
   overflow: hidden;
+  box-sizing: border-box;
+  margin: 0 auto;
 }
 
 .logo-dropzone:hover {
@@ -356,9 +487,41 @@ export default {
 .logo-preview-img {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  padding: 12px;
+  padding: 10px;
   transition: opacity 0.2s ease;
+}
+
+/* Header image preview container styled with deep invoice theme contrast */
+.invoice-header-img-preview-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #01579B 0%, #006064 100%);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.logo-preview-header-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0;
+}
+
+.logo-helper-hint {
+  font-size: 11px;
+  color: rgba(84, 110, 122, 0.75);
+  line-height: 1.35;
+  text-align: center;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Hover overlay with remove button */
