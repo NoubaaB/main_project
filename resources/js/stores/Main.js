@@ -209,26 +209,38 @@ export const useMain = defineStore("main", {
             }
         },
         // Returns name_in_invoice if set, otherwise falls back to localized name
-        getStockableInvoiceName: function (stockable_id, stockable_type) {
-            let type = null
-            switch (stockable_type) {
+        getStockableInvoiceName: function (stockable_id, stockable_type, detail = null) {
+            if (detail && detail.article_description) {
+                return detail.article_description;
+            }
+            if (detail && detail.stockable) {
+                const sName = detail.stockable.name_in_invoice || detail.stockable[`name_${this.lang?.code || 'fr'}`] || detail.stockable.name_fr || detail.stockable.name;
+                if (sName) return sName;
+            }
+            let type = null;
+            const cleanType = String(stockable_type || '').replace(/^(App\\Models\\|App\/Models\/)/, '');
+            switch (cleanType) {
                 case "PackageType":
-                    type = this.getPackageTypes.find(e => e.id == stockable_id);
+                    type = (this.getPackageTypes || []).find(e => e.id == stockable_id);
                     break;
                 case "FishType":
-                    type = this.getFishTypes.find(e => e.id == stockable_id);
+                    type = (this.getFishTypes || []).find(e => e.id == stockable_id);
                     break;
                 case "GuanoType":
-                    type = this.getGuanoTypes.find(e => e.id == stockable_id);
+                    type = (this.getGuanoTypes || []).find(e => e.id == stockable_id);
                     break;
                 default:
-                    return isNaN(stockable_id) ? stockable_id : i18n.global.t("add_description");
+                    type = (this.getFishTypes || []).find(e => e.id == stockable_id)
+                        || (this.getGuanoTypes || []).find(e => e.id == stockable_id)
+                        || (this.getPackageTypes || []).find(e => e.id == stockable_id);
+                    break;
             }
             if (!!type) {
-                return type.name_in_invoice || type[`name_${this.lang.code}`];
-            } else {
-                return "N/A"
+                return type.name_in_invoice || type[`name_${this.lang?.code || 'fr'}`] || type.name_fr || type.name;
             }
+            if (detail && detail.article_type) return detail.article_type;
+            if (isNaN(stockable_id) && stockable_id) return stockable_id;
+            return detail?.article_description || i18n.global.t("add_description");
         },
         getTruckNames: function (truck_ids) {
             if (typeof truck_ids == "object") {

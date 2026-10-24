@@ -166,9 +166,9 @@ class SupplierInvoiceController extends Controller
     /**
      * Fetch specific supplier invoices by their IDs (for view/print page).
      */
-    public function supplierInvoicesByIds()
+    public function supplierInvoicesByIds(Request $request = null)
     {
-        $ids = request()->query('ids', []);
+        $ids = $request ? $request->query('ids', []) : request()->query('ids', []);
         if (is_string($ids)) {
             $ids = trim($ids, '[] ');
             $ids = explode(',', $ids);
@@ -186,10 +186,10 @@ class SupplierInvoiceController extends Controller
                 'charges.fishery',
                 'charges.ship',
                 'charges.origin',
-                'charges.detailCharges',
+                'charges.detailCharges.stockable',
                 'productions.productionCategory',
                 'productions.supplier',
-                'productions.detailProductions',
+                'productions.detailProductions.stockable',
                 'supplier',
             ])
             ->get();

@@ -160,10 +160,11 @@ export const useClientInvoice = defineStore("clientInvoice", {
                     const trackingNumbers = Array.isArray(shipping.shipping_tracking_number)
                         ? shipping.shipping_tracking_number.join(', ')
                         : (shipping.shipping_tracking_number || '');
+                    const truckNames = (shipping.trucks || []).map(t => t.registration_plate || t.name).join(', ');
                     return details.map(detail => ({
                         date: shipping.date,
-                        article_type: main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type),
-                        license_plate: '',
+                        article_type: detail.article_description || main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type, detail),
+                        license_plate: truckNames,
                         shipping_tracking_number: trackingNumbers,
                         total_weight: detail.weight,
                         unit_price: detail.unit_price,
@@ -178,7 +179,7 @@ export const useClientInvoice = defineStore("clientInvoice", {
                         : (production.production_tracking_number || '');
                     return details.map(detail => ({
                         date: production.date,
-                        article_type: main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type),
+                        article_type: detail.article_description || main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type, detail),
                         license_plate: '',
                         shipping_tracking_number: trackingNumbers,
                         total_weight: detail.weight,

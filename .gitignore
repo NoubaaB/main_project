@@ -18,4 +18,5 @@ yarn-error.log
 /.vscode
 /.zed
 database_villamar.sql
+villamar.sql
 filtered_dump.sql

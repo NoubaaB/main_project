@@ -183,7 +183,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                     const truckNames = (charge.trucks || []).map(t => t.registration_plate || t.name).join(', ');
                     return details.map(detail => ({
                         date: charge.date,
-                        article_type: main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type),
+                        article_type: detail.article_description || main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type, detail),
                         license_plate: truckNames,
                         reception_tracking_number: charge.reception_tracking_number,
                         total_weight: detail.weight,
@@ -199,7 +199,7 @@ export const useSupplierInvoice = defineStore("supplierInvoice", {
                         : (production.reception_tracking_number || '');
                     return details.map(detail => ({
                         date: production.date,
-                        article_type: main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type),
+                        article_type: detail.article_description || main.getStockableInvoiceName(detail.stockable_id, detail.stockable_type, detail),
                         license_plate: '',
                         reception_tracking_number: trackingNumbers,
                         total_weight: detail.weight,

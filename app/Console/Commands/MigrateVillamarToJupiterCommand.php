@@ -11,7 +11,17 @@ use App\Models\User;
 class MigrateVillamarToJupiterCommand extends Command
 {
     protected $signature = 'villamar:migrate {--skip-truncate : Do not truncate tables before migrating}';
-    protected $description = 'Clear Jupiter database and migrate all data from villamar.sql with complete relationships, client/supplier invoices, and settlements';
+    protected $description = 'Clear Jupiter database and migrate all data from villamar.sql with complete relationships, client/supplier invoices, designations, and settlements';
+
+    protected array $fishTypesMap = [];
+    protected array $packageTypesMap = [];
+    protected array $guanoTypesMap = [
+        1 => 'Guano Entier',
+        2 => 'Guano HGT',
+        3 => 'Guano HG',
+        4 => 'Guano Filet',
+    ];
+    protected array $trucksMap = [];
 
     public function handle()
     {
@@ -43,6 +53,7 @@ class MigrateVillamarToJupiterCommand extends Command
 
         $this->stepSeedBaseSystem();
         $this->stepMigratePartnersAndMasterData();
+        $this->loadLookupMaps();
         $this->stepMigrateWarehouses();
         $this->stepMigrateWorkforce();
         $this->stepMigrateChargesAndReceptions();
@@ -60,6 +71,78 @@ class MigrateVillamarToJupiterCommand extends Command
         $this->info("======================================================================");
 
         return Command::SUCCESS;
+    }
+
+    protected function loadLookupMaps()
+    {
+        $this->fishTypesMap = DB::table('fish_types')->pluck('name_in_invoice', 'id')->toArray();
+        $this->packageTypesMap = DB::table('package_types')->pluck('name_in_invoice', 'id')->toArray();
+        $this->trucksMap = DB::table('trucks')->pluck('id', 'registration_plate')->toArray();
+        $this->info("Loaded lookup maps: " . count($this->fishTypesMap) . " fish types, " . count($this->packageTypesMap) . " package types, " . count($this->trucksMap) . " trucks.");
+    }
+
+    protected function resolveTruckIds($matriculeRaw): array
+    {
+        $ids = [];
+        if (empty($matriculeRaw)) return $ids;
+
+        $plates = [];
+        if (is_string($matriculeRaw)) {
+            $trimmed = trim($matriculeRaw);
+            if (str_starts_with($trimmed, '[')) {
+                $decoded = json_decode($trimmed, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $p) {
+                        if (!empty($p) && is_string($p)) {
+                            $subPlates = explode(',', $p);
+                            foreach ($subPlates as $sp) $plates[] = $sp;
+                        }
+                    }
+                }
+            } else {
+                $plates = explode(',', $trimmed);
+            }
+        } elseif (is_array($matriculeRaw)) {
+            $plates = $matriculeRaw;
+        }
+
+        foreach ($plates as $pl) {
+            $pl = trim((string)$pl);
+            if (empty($pl) || $pl === '********' || $pl === '—————' || $pl === '-----' || $pl === 'null') continue;
+
+            if (!isset($this->trucksMap[$pl])) {
+                $newId = DB::table('trucks')->insertGetId([
+                    'registration_plate' => $pl,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $this->trucksMap[$pl] = $newId;
+            }
+            $ids[] = $this->trucksMap[$pl];
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    protected function parseTrackingBons($singleBon, $jsonBons): array
+    {
+        $list = [];
+        if (!empty($singleBon) && is_string($singleBon) && $singleBon !== '********' && $singleBon !== 'null') {
+            $list[] = trim($singleBon);
+        }
+
+        if (!empty($jsonBons)) {
+            $arr = is_array($jsonBons) ? $jsonBons : json_decode($jsonBons, true);
+            if (is_array($arr)) {
+                foreach ($arr as $b) {
+                    if (!empty($b) && is_string($b) && $b !== '********' && $b !== 'null') {
+                        $list[] = trim($b);
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($list)));
     }
 
     protected function stepClearJupiterData()
@@ -160,7 +243,7 @@ class MigrateVillamarToJupiterCommand extends Command
         foreach ($guanoTypes as $gt) {
             $gt['created_at'] = now();
             $gt['updated_at'] = now();
-            DB::table('guano_types')->insert($gt);
+            DB::table('guano_types')->insertOrIgnore($gt);
         }
 
         // 4. Warehouse Categories
@@ -322,13 +405,20 @@ class MigrateVillamarToJupiterCommand extends Command
     {
         $this->warn("\n[3/9] Migrating Partners, Fish Types, Origins, Ships, Containers...");
 
-        // 1. Providers -> Insert into BOTH Suppliers and Clients so all relationships resolve cleanly
+        // 1. Providers -> Insert into BOTH Suppliers and Clients
         $providers = DB::select("SELECT * FROM villamar.providers");
         $supplierCount = 0;
         $clientCount = 0;
+        $seenProviderNames = [];
 
         foreach ($providers as $p) {
-            $name = $p->name_provider ?: ('Partner ' . $p->id);
+            $baseName = trim($p->name_provider ?: ('Partner ' . $p->id));
+            $name = $baseName;
+            if (isset($seenProviderNames[$name])) {
+                $name = $baseName . ' (' . $p->id . ')';
+            }
+            $seenProviderNames[$name] = true;
+
             DB::table('suppliers')->insertOrIgnore([
                 'id' => $p->id,
                 'name' => $name,
@@ -486,9 +576,9 @@ class MigrateVillamarToJupiterCommand extends Command
 
         $chambres = DB::select("SELECT * FROM villamar.chambres");
         foreach ($chambres as $ch) {
-            $name = trim($ch->name_chambre ?? '');
+            $name = trim($ch->name_chambre ?? ('Chambre ' . $ch->id));
             $desc = trim($ch->description ?? '');
-            $fullName = (!empty($desc) && strpos($desc, $name) === false) ? "{$name} - {$desc}" : ($desc ?: $name);
+            $fullName = $desc ? "{$name} - {$desc}" : $name;
 
             DB::table('warehouses')->insertOrIgnore([
                 'id' => $ch->id,
@@ -506,9 +596,9 @@ class MigrateVillamarToJupiterCommand extends Command
 
     protected function stepMigrateWorkforce()
     {
-        $this->warn("\n[5/9] Migrating Workforce, Corporals, Sections, and Fortnights...");
+        $this->warn("\n[5/9] Migrating Workforce, Corporals, Sections, Teams, and Fortnights...");
 
-        // Corporals
+        // 1. Corporals, Teams, and Section-Corporal assignments
         $corporals = DB::select("SELECT * FROM villamar.corporals");
         foreach ($corporals as $c) {
             $fullName = trim(($c->name ?? '') . ' ' . ($c->prenom ?? '')) ?: ('Corporal ' . $c->id);
@@ -522,9 +612,30 @@ class MigrateVillamarToJupiterCommand extends Command
                 'created_at' => $c->created_at ?? now(),
                 'updated_at' => $c->updated_at ?? now(),
             ]);
-        }
 
-        // Sections
+            // Create corresponding Team for this corporal
+            DB::table('teams')->insertOrIgnore([
+                'id' => $c->id,
+                'name' => 'Équipe ' . $fullName,
+                'corporal_id' => $c->id,
+                'description' => 'Équipe dirigée par ' . $fullName,
+                'created_at' => $c->created_at ?? now(),
+                'updated_at' => $c->updated_at ?? now(),
+            ]);
+
+            // Section <-> Corporal relationship
+            if (!empty($c->section_id) && $c->section_id > 0) {
+                DB::table('section_corporals')->insertOrIgnore([
+                    'section_id' => $c->section_id,
+                    'corporal_id' => $c->id,
+                    'created_at' => $c->created_at ?? now(),
+                    'updated_at' => $c->updated_at ?? now(),
+                ]);
+            }
+        }
+        $this->info("Migrated " . count($corporals) . " corporals, teams, and section assignments.");
+
+        // 2. Sections
         $sections = DB::select("SELECT * FROM villamar.sections");
         foreach ($sections as $s) {
             DB::table('sections')->insertOrIgnore([
@@ -536,79 +647,112 @@ class MigrateVillamarToJupiterCommand extends Command
                 'updated_at' => $s->updated_at ?? now(),
             ]);
         }
+        $this->info("Migrated " . count($sections) . " sections.");
 
-        // Ouvriers -> Workforces
+        // 3. Ouvriers -> Workforces & Team-Workforce membership
         $ouvriers = DB::select("SELECT * FROM villamar.ouvriers");
+        $seenMatricules = [];
+        $teamWorkforceBatch = [];
+
         foreach ($ouvriers as $o) {
             $fullName = trim(($o->name ?? '') . ' ' . ($o->prenom ?? ''));
+            $matricule = trim((string)($o->matricule ?: $o->id));
+            if (isset($seenMatricules[$matricule])) {
+                $matricule = $matricule . '-' . $o->id;
+            }
+            $seenMatricules[$matricule] = true;
+
             DB::table('workforces')->insertOrIgnore([
                 'id' => $o->id,
                 'full_name' => $fullName ?: 'Ouvrier ' . $o->id,
-                'matricule' => (string)($o->matricule ?? $o->id),
+                'matricule' => $matricule,
                 'nationality' => $o->nationality ?? 'Moroccan',
                 'sex' => ($o->sexe === 'femme' ? 'female' : 'male'),
                 'cni' => $o->cni ?? $o->cnie ?? null,
-                'status' => 'active',
+                'fixed_daily_pay' => 0,
+                'daily_price' => 0,
                 'created_at' => $o->created_at ?? now(),
                 'updated_at' => $o->updated_at ?? now(),
             ]);
-        }
-        $this->info("Migrated " . count($ouvriers) . " workforces.");
 
-        // Pointages -> FortnightActivities (Chunked)
-        $pointagesCount = DB::select("SELECT count(*) as cnt FROM villamar.pointages")[0]->cnt ?? 0;
+            if (!empty($o->corporal_id) && $o->corporal_id > 0) {
+                $teamWorkforceBatch[] = [
+                    'team_id' => $o->corporal_id,
+                    'workforce_id' => $o->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+        if (!empty($teamWorkforceBatch)) {
+            DB::table('team_workforce')->insertOrIgnore($teamWorkforceBatch);
+        }
+        $this->info("Migrated " . count($ouvriers) . " workforces and " . count($teamWorkforceBatch) . " team assignments.");
+
+        // 4. Pointages -> FortnightActivities (Extract days JSON with exact prices)
+        $pointagesCount = DB::select("SELECT count(*) as cnt FROM villamar.pointages WHERE days IS NOT NULL AND JSON_LENGTH(days) > 0")[0]->cnt ?? 0;
         $this->info("Migrating {$pointagesCount} pointage entries into fortnight_activities...");
 
         $offset = 0;
-        $limit = 2000;
+        $limit = 1000;
+        $activityBatch = [];
+        $totalActivities = 0;
+        $totalPriceInserted = 0;
+
         while ($offset < $pointagesCount) {
-            $rows = DB::select("SELECT * FROM villamar.pointages LIMIT {$limit} OFFSET {$offset}");
+            $rows = DB::select("SELECT id, ouvrier_id, section_id, date, days, created_at, updated_at FROM villamar.pointages WHERE days IS NOT NULL AND JSON_LENGTH(days) > 0 LIMIT {$limit} OFFSET {$offset}");
             if (empty($rows)) break;
 
-            $batch = [];
             foreach ($rows as $p) {
-                $dateStr = $p->date ?? '2021-01';
-                $prefix = (strlen($dateStr) === 7) ? $dateStr : substr($dateStr, 0, 7);
+                $days = json_decode($p->days, true);
+                if (!is_array($days)) continue;
 
-                $p1 = (float)($p->total_1 ?? 0);
-                $p2 = (float)($p->total_2 ?? 0);
-                $tot = (float)($p->total ?? 0);
-                if ($p1 == 0 && $p2 == 0 && $tot > 0) {
-                    $p1 = round($tot / 2, 2);
-                    $p2 = round($tot / 2, 2);
+                foreach ($days as $d) {
+                    $workDate = $d['start'] ?? null;
+                    if (!$workDate || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $workDate)) {
+                        continue;
+                    }
+
+                    $dayNum = (int)date('j', strtotime($workDate));
+                    $fortnight = ($dayNum <= 15) ? 'Q1' : 'Q2';
+                    $secId = !empty($d['section_id']) ? (int)$d['section_id'] : (!empty($p->section_id) ? (int)$p->section_id : null);
+                    $price = isset($d['montant']) ? (float)$d['montant'] : 0.00;
+
+                    $activityBatch[] = [
+                        'workforce_id' => $p->ouvrier_id,
+                        'date' => $workDate,
+                        'fortnight_period' => $fortnight,
+                        'section_id' => $secId,
+                        'corporal_id' => null,
+                        'price' => $price,
+                        'is_fixed_price' => 0,
+                        'created_at' => $p->created_at ?? now(),
+                        'updated_at' => $p->updated_at ?? now(),
+                    ];
+
+                    $totalActivities++;
+                    $totalPriceInserted += $price;
+
+                    if (count($activityBatch) >= 2500) {
+                        DB::table('fortnight_activities')->insert($activityBatch);
+                        $activityBatch = [];
+                    }
                 }
-
-                // Q1
-                $batch[] = [
-                    'workforce_id' => $p->ouvrier_id,
-                    'date' => $prefix . '-01',
-                    'fortnight_period' => 'Q1',
-                    'section_id' => $p->section_id,
-                    'price' => $p1,
-                    'created_at' => $p->created_at ?? now(),
-                    'updated_at' => $p->updated_at ?? now(),
-                ];
-
-                // Q2
-                $batch[] = [
-                    'workforce_id' => $p->ouvrier_id,
-                    'date' => $prefix . '-16',
-                    'fortnight_period' => 'Q2',
-                    'section_id' => $p->section_id,
-                    'price' => $p2,
-                    'created_at' => $p->created_at ?? now(),
-                    'updated_at' => $p->updated_at ?? now(),
-                ];
             }
-            DB::table('fortnight_activities')->insertOrIgnore($batch);
             $offset += $limit;
         }
-        $this->info("Finished fortnight activities migration.");
+
+        if (!empty($activityBatch)) {
+            DB::table('fortnight_activities')->insert($activityBatch);
+        }
+
+        $formattedPrice = number_format($totalPriceInserted, 2);
+        $this->info("Finished fortnight activities: migrated {$totalActivities} daily activities totaling {$formattedPrice} MAD.");
     }
 
     protected function stepMigrateChargesAndReceptions()
     {
-        $this->warn("\n[6/9] Migrating Purchases & Receptions (frais, achat_frais, congeles, guanos, emballages, rsws, glaces, etc.) into charges and detail_charges...");
+        $this->warn("\n[6/9] Migrating Purchases & Receptions (frais, achat_frais, congeles, congelations, guanos, emballages, rsws, glaces, etc.) into charges and detail_charges...");
 
         $this->migrateFraisCharges();
         $this->migrateSimpleReceptionTable('villamar.achat_frais', 2, 2, 'FishType');
@@ -630,10 +774,11 @@ class MigrateVillamarToJupiterCommand extends Command
         $fraisRows = DB::select("SELECT * FROM villamar.frais");
         $chargesBatch = [];
         $detailChargesBatch = [];
+        $chargeTruckBatch = [];
 
         foreach ($fraisRows as $f) {
-            $numBon = $f->num_bon_reception ?: ($f->num_bon_receptions ? (json_decode($f->num_bon_receptions, true)[0] ?? null) : null);
-            $onp = $f->num_bon_onp ?: ($f->num_bon_onps ? (json_decode($f->num_bon_onps, true)[0] ?? null) : null);
+            $trackingNumbers = $this->parseTrackingBons($f->num_bon_reception ?? null, $f->num_bon_receptions ?? null);
+            $onpNumbers = $this->parseTrackingBons($f->num_bon_onp ?? null, $f->num_bon_onps ?? null);
 
             $chargesBatch[] = [
                 'id' => $f->id,
@@ -644,40 +789,56 @@ class MigrateVillamarToJupiterCommand extends Command
                 'supplier_id' => ($f->provider_id && $f->provider_id > 0 ? $f->provider_id : null),
                 'origin_id' => ($f->origin_id && $f->origin_id > 0 ? $f->origin_id : null),
                 'fishery_id' => ($f->place_id && $f->place_id > 0 ? $f->place_id : null),
-                'reception_tracking_number' => json_encode($numBon ? [(string)$numBon] : []),
-                'tracking_onp_numbers' => json_encode($onp ? [(string)$onp] : []),
+                'reception_tracking_number' => json_encode($trackingNumbers),
+                'tracking_onp_numbers' => json_encode($onpNumbers),
                 'allow_invoice' => $f->is_facture ? 1 : 0,
                 'invoice_id' => ($f->is_facture && $f->bill_id ? $f->bill_id : null),
                 'created_at' => $f->created_at ?? now(),
                 'updated_at' => $f->updated_at ?? now(),
             ];
 
+            // Link trucks
+            $truckIds = $this->resolveTruckIds($f->matricules ?? $f->matricule ?? null);
+            foreach ($truckIds as $tId) {
+                $chargeTruckBatch[] = ['charge_id' => $f->id, 'truck_id' => $tId];
+            }
+
             // Parse types_reception JSON
             $receptionTypes = json_decode($f->types_reception ?? '[]', true) ?: [];
             if (!empty($receptionTypes)) {
                 foreach ($receptionTypes as $item) {
+                    $tId = $item['type_id'] ?? null;
+                    $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Frais';
+                    $w = (float)($item['weight'] ?? 0);
+                    $p = (float)($item['price'] ?? 0);
+                    $tot = (float)($item['total_weight_price'] ?? ($w * $p));
+
                     $detailChargesBatch[] = [
                         'charge_id' => $f->id,
                         'detail_charge_category_id' => 1,
+                        'article_description' => $desc,
                         'stockable_type' => 'App\\Models\\FishType',
-                        'stockable_id' => $item['type_id'] ?? null,
-                        'weight' => (float)($item['weight'] ?? 0),
-                        'unit_price' => (float)($item['price'] ?? 0),
-                        'total_price' => (float)($item['total_weight_price'] ?? ((float)($item['weight'] ?? 0) * (float)($item['price'] ?? 0))),
+                        'stockable_id' => $tId,
+                        'weight' => $w,
+                        'unit_price' => $p,
+                        'total_price' => $tot,
                         'supplier_id' => ($f->provider_id && $f->provider_id > 0 ? $f->provider_id : null),
                         'created_at' => $f->created_at ?? now(),
                         'updated_at' => $f->updated_at ?? now(),
                     ];
                 }
             } else if ($f->total_weight_reception > 0) {
+                $w = (float)($f->total_weight_reception ?? 0);
+                $p = (float)($f->total_price_reception ?? 0);
                 $detailChargesBatch[] = [
                     'charge_id' => $f->id,
                     'detail_charge_category_id' => 1,
+                    'article_description' => 'Poisson Frais',
                     'stockable_type' => 'App\\Models\\FishType',
                     'stockable_id' => null,
-                    'weight' => (float)($f->total_weight_reception ?? 0),
-                    'unit_price' => $f->total_weight_reception > 0 ? round($f->total_price_reception / $f->total_weight_reception, 2) : 0,
-                    'total_price' => (float)($f->total_price_reception ?? 0),
+                    'weight' => $w,
+                    'unit_price' => $w > 0 ? round($p / $w, 2) : 0,
+                    'total_price' => $p,
                     'supplier_id' => ($f->provider_id && $f->provider_id > 0 ? $f->provider_id : null),
                     'created_at' => $f->created_at ?? now(),
                     'updated_at' => $f->updated_at ?? now(),
@@ -692,10 +853,15 @@ class MigrateVillamarToJupiterCommand extends Command
                 DB::table('detail_charges')->insertOrIgnore($detailChargesBatch);
                 $detailChargesBatch = [];
             }
+            if (count($chargeTruckBatch) >= 2000) {
+                DB::table('charge_truck')->insertOrIgnore($chargeTruckBatch);
+                $chargeTruckBatch = [];
+            }
         }
 
         if (!empty($chargesBatch)) DB::table('charges')->insertOrIgnore($chargesBatch);
         if (!empty($detailChargesBatch)) DB::table('detail_charges')->insertOrIgnore($detailChargesBatch);
+        if (!empty($chargeTruckBatch)) DB::table('charge_truck')->insertOrIgnore($chargeTruckBatch);
 
         $this->info("Completed frais charges migration (" . count($fraisRows) . " charges).");
     }
@@ -709,62 +875,165 @@ class MigrateVillamarToJupiterCommand extends Command
         $rows = DB::select("SELECT * FROM {$sourceTable}");
         $chargesBatch = [];
         $detailChargesBatch = [];
+        $chargeTruckBatch = [];
 
         foreach ($rows as $r) {
             $chargeId = ++$maxChargeId;
-            $weight = $r->total_weight_reception ?? $r->total_weight_reception_guano ?? $r->total_weight ?? 0;
-            $price = $r->total_price_reception ?? $r->total_price_reception_guano ?? $r->total_price ?? 0;
-            $numBon = $r->num_bon_reception ?? null;
-            $onp = $r->num_bon_onp ?? null;
 
-            $chargesBatch[] = [
-                'id' => $chargeId,
-                'charge_category_id' => $chargeCatId,
-                'date' => $r->date_reception ?? $r->date ?? '2021-01-01',
-                'total_weight' => $weight,
-                'total_price' => $price,
-                'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
-                'origin_id' => (isset($r->origin_id) && $r->origin_id > 0 ? $r->origin_id : null),
-                'fishery_id' => (isset($r->place_id) && $r->place_id > 0 ? $r->place_id : null),
-                'reception_tracking_number' => json_encode($numBon ? [(string)$numBon] : []),
-                'tracking_onp_numbers' => json_encode($onp ? [(string)$onp] : []),
-                'allow_invoice' => (isset($r->is_facture) && $r->is_facture) ? 1 : 0,
-                'invoice_id' => (isset($r->is_facture) && $r->is_facture && !empty($r->bill_id)) ? $r->bill_id : null,
-                'created_at' => $r->created_at ?? now(),
-                'updated_at' => $r->updated_at ?? now(),
-            ];
+            // Determine tracking numbers
+            $trackingNumbers = $this->parseTrackingBons($r->num_bon_reception ?? null, $r->num_bon_receptions ?? null);
+            $onpNumbers = $this->parseTrackingBons($r->num_bon_onp ?? null, $r->num_bon_onps ?? null);
 
-            // Parse JSON reception items if present
-            $items = isset($r->types_reception) ? json_decode($r->types_reception, true) : null;
-            if (!empty($items) && is_array($items)) {
-                foreach ($items as $it) {
-                    $detailChargesBatch[] = [
-                        'charge_id' => $chargeId,
-                        'detail_charge_category_id' => $detailCatId,
-                        'stockable_type' => "App\\Models\\{$stockableType}",
-                        'stockable_id' => $it['type_id'] ?? null,
-                        'weight' => (float)($it['weight'] ?? 0),
-                        'unit_price' => (float)($it['price'] ?? 0),
-                        'total_price' => (float)($it['total_weight_price'] ?? ((float)($it['weight'] ?? 0) * (float)($it['price'] ?? 0))),
-                        'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
-                        'created_at' => $r->created_at ?? now(),
-                        'updated_at' => $r->updated_at ?? now(),
-                    ];
+            // Link trucks
+            $truckIds = $this->resolveTruckIds($r->matricules ?? $r->matricule ?? null);
+            foreach ($truckIds as $tId) {
+                $chargeTruckBatch[] = ['charge_id' => $chargeId, 'truck_id' => $tId];
+            }
+
+            // Parse items based on table specifics
+            $rowDetails = [];
+
+            if ($shortName === 'emballages') {
+                $items = isset($r->types_reception) ? json_decode($r->types_reception, true) : null;
+                if (!empty($items) && is_array($items)) {
+                    foreach ($items as $it) {
+                        $containerId = $it['container_id'] ?? $it['type_id'] ?? 1;
+                        $desc = $this->packageTypesMap[$containerId] ?? 'Emballage';
+                        $w = (float)($it['qte'] ?? $it['weight'] ?? 0);
+                        $u = (float)($it['price'] ?? 0);
+                        $tot = (float)($it['qte_price'] ?? $it['total_weight_price'] ?? ($w * $u));
+
+                        $rowDetails[] = [
+                            'charge_id' => $chargeId,
+                            'detail_charge_category_id' => $detailCatId,
+                            'article_description' => $desc,
+                            'stockable_type' => 'App\\Models\\PackageType',
+                            'stockable_id' => $containerId,
+                            'weight' => $w,
+                            'unit_price' => $u,
+                            'total_price' => $tot,
+                            'package_type_id' => $containerId,
+                            'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
+                            'created_at' => $r->created_at ?? now(),
+                            'updated_at' => $r->updated_at ?? now(),
+                        ];
+                    }
                 }
-            } else if ($weight > 0) {
-                $detailChargesBatch[] = [
+            } elseif ($shortName === 'guanos') {
+                $guanoType = $r->type_guano ?? 'Entier';
+                $guanoId = ($guanoType === 'HGT' ? 2 : 1);
+                $desc = $this->guanoTypesMap[$guanoId] ?? 'Guano';
+                $w = (float)($r->total_weight_reception_guano ?? 0);
+                $u = (float)($r->pu ?? 0);
+                $tot = (float)($r->total_price_reception_guano ?? ($w * $u));
+
+                $rowDetails[] = [
                     'charge_id' => $chargeId,
                     'detail_charge_category_id' => $detailCatId,
+                    'article_description' => $desc,
+                    'stockable_type' => 'App\\Models\\GuanoType',
+                    'stockable_id' => $guanoId,
+                    'weight' => $w,
+                    'unit_price' => $u,
+                    'total_price' => $tot,
+                    'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
+                    'created_at' => $r->created_at ?? now(),
+                    'updated_at' => $r->updated_at ?? now(),
+                ];
+            } else {
+                // Table might have types_reception or types_production
+                $items = isset($r->types_reception) ? json_decode($r->types_reception, true) : null;
+                if (empty($items) && isset($r->types_production)) {
+                    $items = json_decode($r->types_production, true);
+                }
+
+                if (!empty($items) && is_array($items)) {
+                    foreach ($items as $it) {
+                        $tId = $it['type_id'] ?? null;
+                        $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : ($shortName === 'achat_frais' ? 'Poisson Frais' : 'Poisson Congelé');
+                        $w = (float)($it['weight'] ?? $it['total_weight_container'] ?? 0);
+                        $u = (float)($it['price'] ?? $it['pu'] ?? 0);
+                        $tot = (float)($it['total_weight_price'] ?? $it['price'] ?? ($w * $u));
+
+                        $rowDetails[] = [
+                            'charge_id' => $chargeId,
+                            'detail_charge_category_id' => $detailCatId,
+                            'article_description' => $desc,
+                            'stockable_type' => "App\\Models\\{$stockableType}",
+                            'stockable_id' => $tId,
+                            'weight' => $w,
+                            'unit_price' => $u,
+                            'total_price' => $tot,
+                            'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
+                            'created_at' => $r->created_at ?? now(),
+                            'updated_at' => $r->updated_at ?? now(),
+                        ];
+                    }
+                }
+            }
+
+            // If no detailed items parsed, create fallback from header weight/price
+            $headerWeight = (float)($r->total_weight_reception ?? $r->total_weight_reception_guano ?? $r->total_weight_production ?? $r->total_weight ?? 0);
+            $headerPrice = (float)($r->total_price_reception ?? $r->total_price_reception_guano ?? $r->total_price_production ?? $r->total_price ?? 0);
+
+            if (empty($rowDetails) && ($headerWeight > 0 || $headerPrice > 0)) {
+                $desc = match($shortName) {
+                    'glaces' => 'Glace',
+                    'rsws' => 'RSW',
+                    'transports' => 'Transport',
+                    'maintenances' => 'Maintenance',
+                    'others' => ($r->description ?? 'Autres Charges'),
+                    'achat_frais' => 'Poisson Frais',
+                    'congelations', 'congeles' => 'Poisson Congelé',
+                    'emballages' => 'Emballage',
+                    'guanos' => 'Guano',
+                    default => ucfirst($shortName),
+                };
+
+                $u = $headerWeight > 0 ? round($headerPrice / $headerWeight, 2) : 0;
+                $rowDetails[] = [
+                    'charge_id' => $chargeId,
+                    'detail_charge_category_id' => $detailCatId,
+                    'article_description' => $desc,
                     'stockable_type' => "App\\Models\\{$stockableType}",
                     'stockable_id' => null,
-                    'weight' => (float)$weight,
-                    'unit_price' => $weight > 0 ? round($price / $weight, 2) : 0,
-                    'total_price' => (float)$price,
+                    'weight' => $headerWeight,
+                    'unit_price' => $u,
+                    'total_price' => $headerPrice,
                     'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
                     'created_at' => $r->created_at ?? now(),
                     'updated_at' => $r->updated_at ?? now(),
                 ];
             }
+
+            // Sum up computed details
+            $computedWeight = 0;
+            $computedPrice = 0;
+            foreach ($rowDetails as $rd) {
+                $computedWeight += $rd['weight'];
+                $computedPrice += $rd['total_price'];
+                $detailChargesBatch[] = $rd;
+            }
+
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : $headerWeight;
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : $headerPrice;
+
+            $chargesBatch[] = [
+                'id' => $chargeId,
+                'charge_category_id' => $chargeCatId,
+                'date' => $r->date_reception ?? $r->date_production ?? $r->date ?? '2021-01-01',
+                'total_weight' => $finalWeight,
+                'total_price' => $finalPrice,
+                'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
+                'origin_id' => (isset($r->origin_id) && $r->origin_id > 0 ? $r->origin_id : null),
+                'fishery_id' => (isset($r->place_id) && $r->place_id > 0 ? $r->place_id : null),
+                'reception_tracking_number' => json_encode($trackingNumbers),
+                'tracking_onp_numbers' => json_encode($onpNumbers),
+                'allow_invoice' => (isset($r->is_facture) && $r->is_facture) ? 1 : 0,
+                'invoice_id' => (isset($r->is_facture) && $r->is_facture && !empty($r->bill_id)) ? $r->bill_id : null,
+                'created_at' => $r->created_at ?? now(),
+                'updated_at' => $r->updated_at ?? now(),
+            ];
 
             if (count($chargesBatch) >= 1000) {
                 DB::table('charges')->insertOrIgnore($chargesBatch);
@@ -774,10 +1043,15 @@ class MigrateVillamarToJupiterCommand extends Command
                 DB::table('detail_charges')->insertOrIgnore($detailChargesBatch);
                 $detailChargesBatch = [];
             }
+            if (count($chargeTruckBatch) >= 2000) {
+                DB::table('charge_truck')->insertOrIgnore($chargeTruckBatch);
+                $chargeTruckBatch = [];
+            }
         }
 
         if (!empty($chargesBatch)) DB::table('charges')->insertOrIgnore($chargesBatch);
         if (!empty($detailChargesBatch)) DB::table('detail_charges')->insertOrIgnore($detailChargesBatch);
+        if (!empty($chargeTruckBatch)) DB::table('charge_truck')->insertOrIgnore($chargeTruckBatch);
     }
 
     protected function stepMigrateProductions()
@@ -791,8 +1065,8 @@ class MigrateVillamarToJupiterCommand extends Command
         $detailProdBatch = [];
 
         foreach ($fraisRows as $f) {
-            $numBon = $f->num_bon_production ?: ($f->num_bon_productions ? (json_decode($f->num_bon_productions, true)[0] ?? null) : null);
-            $recBon = $f->num_bon_reception ?: ($f->num_bon_receptions ? (json_decode($f->num_bon_receptions, true)[0] ?? null) : null);
+            $trackingRec = $this->parseTrackingBons($f->num_bon_reception ?? null, $f->num_bon_receptions ?? null);
+            $trackingProd = $this->parseTrackingBons($f->num_bon_production ?? null, $f->num_bon_productions ?? null);
 
             $prodBatch[] = [
                 'id' => $f->id,
@@ -806,8 +1080,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 'supplier_id' => ($f->provider_id && $f->provider_id > 0 ? $f->provider_id : null),
                 'origin_id' => ($f->origin_id && $f->origin_id > 0 ? $f->origin_id : null),
                 'fishery_id' => ($f->place_id && $f->place_id > 0 ? $f->place_id : null),
-                'reception_tracking_number' => json_encode($recBon ? [(string)$recBon] : []),
-                'production_tracking_number' => json_encode($numBon ? [(string)$numBon] : []),
+                'reception_tracking_number' => json_encode($trackingRec),
+                'production_tracking_number' => json_encode($trackingProd),
                 'production_type' => 'standard',
                 'allow_invoice' => $f->is_facture ? 1 : 0,
                 'supplier_invoice_id' => ($f->is_facture && $f->bill_id ? $f->bill_id : null),
@@ -817,11 +1091,15 @@ class MigrateVillamarToJupiterCommand extends Command
 
             $typesProd = json_decode($f->types_production ?? '[]', true) ?: [];
             foreach ($typesProd as $tp) {
+                $tId = $tp['type_id'] ?? null;
+                $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Congelé';
+
                 $detailProdBatch[] = [
                     'production_id' => $f->id,
                     'detail_production_category_id' => 1,
+                    'article_description' => $desc,
                     'stockable_type' => 'App\\Models\\FishType',
-                    'stockable_id' => $tp['type_id'] ?? null,
+                    'stockable_id' => $tId,
                     'weight' => (float)($tp['total_weight_container'] ?? 0),
                     'unit_price' => 0,
                     'total_price' => 0,
@@ -855,8 +1133,8 @@ class MigrateVillamarToJupiterCommand extends Command
 
         foreach ($congelClientRows as $cc) {
             $prodId = ++$maxProdId;
-            $recBon = $cc->num_bon_reception ?: ($cc->num_bon_receptions ? (json_decode($cc->num_bon_receptions, true)[0] ?? null) : null);
-            $prodBon = $cc->num_bon_production ?: ($cc->num_bon_productions ? (json_decode($cc->num_bon_productions, true)[0] ?? null) : null);
+            $trackingRec = $this->parseTrackingBons($cc->num_bon_reception ?? null, $cc->num_bon_receptions ?? null);
+            $trackingProd = $this->parseTrackingBons($cc->num_bon_production ?? null, $cc->num_bon_productions ?? null);
 
             $ccBatch[] = [
                 'id' => $prodId,
@@ -868,8 +1146,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 'client_id' => ($cc->provider_id && $cc->provider_id > 0 ? $cc->provider_id : null),
                 'origin_id' => ($cc->origin_id && $cc->origin_id > 0 ? $cc->origin_id : null),
                 'fishery_id' => ($cc->place_id && $cc->place_id > 0 ? $cc->place_id : null),
-                'reception_tracking_number' => json_encode($recBon ? [(string)$recBon] : []),
-                'production_tracking_number' => json_encode($prodBon ? [(string)$prodBon] : []),
+                'reception_tracking_number' => json_encode($trackingRec),
+                'production_tracking_number' => json_encode($trackingProd),
                 'production_type' => 'sous_traitance',
                 'allow_invoice' => $cc->is_facture ? 1 : 0,
                 'client_invoice_id' => ($cc->is_facture && $cc->bill_id ? $cc->bill_id : null),
@@ -879,14 +1157,21 @@ class MigrateVillamarToJupiterCommand extends Command
 
             $typesProd = json_decode($cc->types_production ?? '[]', true) ?: [];
             foreach ($typesProd as $tp) {
+                $tId = $tp['type_id'] ?? null;
+                $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Sous-Traitance';
+                $w = (float)($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
+                $u = (float)($tp['pu'] ?? 0);
+                $p = (float)($tp['price'] ?? ($w * $u));
+
                 $detailCcBatch[] = [
                     'production_id' => $prodId,
                     'detail_production_category_id' => 4, // Poisson Sous-Traitance Produit
+                    'article_description' => $desc,
                     'stockable_type' => 'App\\Models\\FishType',
-                    'stockable_id' => $tp['type_id'] ?? null,
-                    'weight' => (float)($tp['total_weight_container'] ?? 0),
-                    'unit_price' => 0,
-                    'total_price' => 0,
+                    'stockable_id' => $tId,
+                    'weight' => $w,
+                    'unit_price' => $u,
+                    'total_price' => $p,
                     'package_type_id' => $tp['container_id'] ?? 1,
                     'nbr_box' => (float)($tp['nbr'] ?? 0),
                     'warehouse_id' => ($tp['chambre_id'] && $tp['chambre_id'] > 0 ? $tp['chambre_id'] : 13),
@@ -916,9 +1201,80 @@ class MigrateVillamarToJupiterCommand extends Command
 
         foreach ($guanoUsinesRows as $gu) {
             $prodId = ++$maxProdId;
-            $totW = (float)($gu->total_weight_sortie_guano_hgt ?? 0) + (float)($gu->total_weight_sortie_guano_entier ?? 0) + (float)($gu->total_weight_sortie_guano_filet ?? 0) + (float)($gu->total_weight_sortie_guano_hg ?? 0);
-            $totP = (float)($gu->total_price_sortie_guano_hgt ?? 0) + (float)($gu->total_price_sortie_guano_entier ?? 0) + (float)($gu->total_price_sortie_guano_filet ?? 0) + (float)($gu->total_price_sortie_guano_hg ?? 0);
-            $bon = $gu->num_bon_sortie ?? null;
+            $bonList = $this->parseTrackingBons($gu->num_bon_sortie ?? null, null);
+
+            $guanoSubItems = [];
+            $typesSortie = json_decode($gu->types_sortie ?? '[]', true) ?: [];
+
+            if (!empty($typesSortie)) {
+                foreach ($typesSortie as $ts) {
+                    $rawType = $ts['type_id'] ?? 'Entier';
+                    $gid = match(strtoupper(trim((string)$rawType))) {
+                        'HGT', '2' => 2,
+                        'HG', '3' => 3,
+                        'FILET', '4' => 4,
+                        default => 1,
+                    };
+                    $desc = $this->guanoTypesMap[$gid];
+                    $w = (float)($ts['weight'] ?? 0);
+                    $u = (float)($ts['pu'] ?? 0);
+                    $p = (float)($ts['price'] ?? ($w * $u));
+
+                    $guanoSubItems[] = [
+                        'gid' => $gid,
+                        'desc' => $desc,
+                        'weight' => $w,
+                        'unit_price' => $u,
+                        'total_price' => $p,
+                    ];
+                }
+            } else {
+                // Check columns
+                $columnsToCheck = [
+                    1 => ['w' => 'total_weight_sortie_guano_entier', 'p' => 'total_price_sortie_guano_entier', 'u' => 'pu_entier', 'desc' => 'Guano Entier'],
+                    2 => ['w' => 'total_weight_sortie_guano_hgt', 'p' => 'total_price_sortie_guano_hgt', 'u' => 'pu_hgt', 'desc' => 'Guano HGT'],
+                    3 => ['w' => 'total_weight_sortie_guano_hg', 'p' => 'total_price_sortie_guano_hg', 'u' => 'pu_hg', 'desc' => 'Guano HG'],
+                    4 => ['w' => 'total_weight_sortie_guano_filet', 'p' => 'total_price_sortie_guano_filet', 'u' => 'pu_filet', 'desc' => 'Guano Filet'],
+                ];
+                foreach ($columnsToCheck as $gid => $cDef) {
+                    $w = (float)($gu->{$cDef['w']} ?? 0);
+                    $p = (float)($gu->{$cDef['p']} ?? 0);
+                    $u = (float)($gu->{$cDef['u']} ?? ($w > 0 ? round($p / $w, 2) : 0));
+                    if ($w > 0 || $p > 0) {
+                        $guanoSubItems[] = [
+                            'gid' => $gid,
+                            'desc' => $cDef['desc'],
+                            'weight' => $w,
+                            'unit_price' => $u,
+                            'total_price' => $p,
+                        ];
+                    }
+                }
+            }
+
+            $totW = 0;
+            $totP = 0;
+            foreach ($guanoSubItems as $gsi) {
+                $totW += $gsi['weight'];
+                $totP += $gsi['total_price'];
+
+                $detailGuanoBatch[] = [
+                    'production_id' => $prodId,
+                    'detail_production_category_id' => 2, // Guano Produit
+                    'article_description' => $gsi['desc'],
+                    'stockable_type' => 'App\\Models\\GuanoType',
+                    'stockable_id' => $gsi['gid'],
+                    'weight' => $gsi['weight'],
+                    'unit_price' => $gsi['unit_price'],
+                    'total_price' => $gsi['total_price'],
+                    'package_type_id' => null,
+                    'nbr_box' => 0,
+                    'warehouse_id' => 992, // Guano warehouse
+                    'warehouse_operation' => 'stock_in',
+                    'created_at' => $gu->created_at ?? now(),
+                    'updated_at' => $gu->updated_at ?? now(),
+                ];
+            }
 
             $guanoBatch[] = [
                 'id' => $prodId,
@@ -929,31 +1285,13 @@ class MigrateVillamarToJupiterCommand extends Command
                 'total_price' => $totP,
                 'client_id' => ($gu->provider_id && $gu->provider_id > 0 ? $gu->provider_id : null),
                 'origin_id' => ($gu->origin_id && $gu->origin_id > 0 ? $gu->origin_id : null),
-                'production_tracking_number' => json_encode($bon ? [(string)$bon] : []),
+                'production_tracking_number' => json_encode($bonList),
                 'production_type' => 'guano',
                 'allow_invoice' => $gu->is_facture ? 1 : 0,
                 'client_invoice_id' => ($gu->is_facture && $gu->bill_id ? $gu->bill_id : null),
                 'created_at' => $gu->created_at ?? now(),
                 'updated_at' => $gu->updated_at ?? now(),
             ];
-
-            if ($totW > 0) {
-                $detailGuanoBatch[] = [
-                    'production_id' => $prodId,
-                    'detail_production_category_id' => 2, // Guano Produit
-                    'stockable_type' => 'App\\Models\\GuanoType',
-                    'stockable_id' => 1,
-                    'weight' => $totW,
-                    'unit_price' => $totW > 0 ? round($totP / $totW, 2) : 0,
-                    'total_price' => $totP,
-                    'package_type_id' => null,
-                    'nbr_box' => 0,
-                    'warehouse_id' => 992, // Guano warehouse
-                    'warehouse_operation' => 'stock_in',
-                    'created_at' => $gu->created_at ?? now(),
-                    'updated_at' => $gu->updated_at ?? now(),
-                ];
-            }
 
             if (count($guanoBatch) >= 1000) {
                 DB::table('productions')->insertOrIgnore($guanoBatch);
@@ -979,11 +1317,12 @@ class MigrateVillamarToJupiterCommand extends Command
         $ventes = DB::select("SELECT * FROM villamar.ventes");
         $shippingsBatch = [];
         $detailShippingsBatch = [];
+        $shippingTruckBatch = [];
 
         foreach ($ventes as $v) {
             $isExport = ($v->type_vente === 'export');
             $shipCatId = $isExport ? 2 : 1;
-            $bon = $v->num_bon_sortie ?: ($v->num_bon_sorties ? (json_decode($v->num_bon_sorties, true)[0] ?? null) : null);
+            $bonList = $this->parseTrackingBons($v->num_bon_sortie ?? null, $v->num_bon_sorties ?? null);
 
             $shippingsBatch[] = [
                 'id' => $v->id,
@@ -993,12 +1332,18 @@ class MigrateVillamarToJupiterCommand extends Command
                 'total_price' => $v->total_price_sortie ?? 0,
                 'client_id' => ($v->provider_id && $v->provider_id > 0 ? $v->provider_id : null),
                 'direction' => $isExport ? 'export' : 'local',
-                'shipping_tracking_number' => json_encode($bon ? [(string)$bon] : []),
+                'shipping_tracking_number' => json_encode($bonList),
                 'allow_invoice' => $v->is_facture ? 1 : 0,
                 'invoice_id' => ($v->is_facture && $v->bill_id ? $v->bill_id : null),
                 'created_at' => $v->created_at ?? now(),
                 'updated_at' => $v->updated_at ?? now(),
             ];
+
+            // Link trucks
+            $truckIds = $this->resolveTruckIds($v->matricules ?? $v->matricule ?? null);
+            foreach ($truckIds as $tId) {
+                $shippingTruckBatch[] = ['shipping_id' => $v->id, 'truck_id' => $tId];
+            }
 
             // Parse types_sortie JSON
             $typesSortie = json_decode($v->types_sortie ?? '[]', true) ?: [];
@@ -1006,16 +1351,36 @@ class MigrateVillamarToJupiterCommand extends Command
                 foreach ($typesSortie as $ts) {
                     $isGuano = ($v->type === 'guano');
                     $detailCatId = $isExport ? 4 : ($isGuano ? 3 : 1);
-                    $stockType = $isGuano ? 'App\\Models\\GuanoType' : 'App\\Models\\FishType';
+                    $w = (float)($ts['weight'] ?? 0);
+                    $u = (float)($ts['pu'] ?? 0);
+                    $p = (float)($ts['price'] ?? ($w * $u));
+
+                    if ($isGuano) {
+                        $rawType = $ts['type_id'] ?? 'Entier';
+                        $gid = match(strtoupper(trim((string)$rawType))) {
+                            'HGT', '2' => 2,
+                            'HG', '3' => 3,
+                            'FILET', '4' => 4,
+                            default => 1,
+                        };
+                        $stockType = 'App\\Models\\GuanoType';
+                        $stockId = $gid;
+                        $desc = $this->guanoTypesMap[$gid];
+                    } else {
+                        $stockType = 'App\\Models\\FishType';
+                        $stockId = $ts['type_id'] ?? null;
+                        $desc = ($stockId && isset($this->fishTypesMap[$stockId])) ? $this->fishTypesMap[$stockId] : 'Poisson Congelé';
+                    }
 
                     $detailShippingsBatch[] = [
                         'shipping_id' => $v->id,
                         'detail_shipping_category_id' => $detailCatId,
+                        'article_description' => $desc,
                         'stockable_type' => $stockType,
-                        'stockable_id' => $ts['type_id'] ?? null,
-                        'weight' => (float)($ts['weight'] ?? 0),
-                        'unit_price' => (float)($ts['pu'] ?? 0),
-                        'total_price' => (float)($ts['price'] ?? ((float)($ts['weight'] ?? 0) * (float)($ts['pu'] ?? 0))),
+                        'stockable_id' => $stockId,
+                        'weight' => $w,
+                        'unit_price' => $u,
+                        'total_price' => $p,
                         'package_type_id' => $ts['container_id'] ?? null,
                         'nbr_box' => (float)($ts['nbr'] ?? 0),
                         'warehouse_id' => ($ts['chambre_id'] && $ts['chambre_id'] > 0 ? $ts['chambre_id'] : 13),
@@ -1025,14 +1390,18 @@ class MigrateVillamarToJupiterCommand extends Command
                     ];
                 }
             } else if ($v->total_weight_sortie > 0) {
+                $w = (float)$v->total_weight_sortie;
+                $p = (float)$v->total_price_sortie;
+                $u = $w > 0 ? round($p / $w, 2) : 0;
                 $detailShippingsBatch[] = [
                     'shipping_id' => $v->id,
                     'detail_shipping_category_id' => ($isExport ? 4 : 1),
+                    'article_description' => 'Poisson Congelé',
                     'stockable_type' => 'App\\Models\\FishType',
                     'stockable_id' => null,
-                    'weight' => (float)$v->total_weight_sortie,
-                    'unit_price' => $v->total_weight_sortie > 0 ? round($v->total_price_sortie / $v->total_weight_sortie, 2) : 0,
-                    'total_price' => (float)$v->total_price_sortie,
+                    'weight' => $w,
+                    'unit_price' => $u,
+                    'total_price' => $p,
                     'warehouse_id' => 13,
                     'warehouse_operation' => 'stock_out',
                     'created_at' => $v->created_at ?? now(),
@@ -1048,9 +1417,14 @@ class MigrateVillamarToJupiterCommand extends Command
                 DB::table('detail_shippings')->insertOrIgnore($detailShippingsBatch);
                 $detailShippingsBatch = [];
             }
+            if (count($shippingTruckBatch) >= 2000) {
+                DB::table('shipping_truck')->insertOrIgnore($shippingTruckBatch);
+                $shippingTruckBatch = [];
+            }
         }
         if (!empty($shippingsBatch)) DB::table('shippings')->insertOrIgnore($shippingsBatch);
         if (!empty($detailShippingsBatch)) DB::table('detail_shippings')->insertOrIgnore($detailShippingsBatch);
+        if (!empty($shippingTruckBatch)) DB::table('shipping_truck')->insertOrIgnore($shippingTruckBatch);
 
         // 2. Stock Exits -> Shippings (Category 3: Sortie Sous-Traitance)
         $this->info("Processing stock_exits into sous-traitance shippings...");
@@ -1058,9 +1432,12 @@ class MigrateVillamarToJupiterCommand extends Command
         $stockExits = DB::select("SELECT * FROM villamar.stock_exits");
         $seBatch = [];
         $detailSeBatch = [];
+        $seTruckBatch = [];
 
         foreach ($stockExits as $se) {
             $shippingId = ++$maxShippingId;
+            $bonList = $this->parseTrackingBons($se->num_bon_sortie ?? null, $se->num_bon_sorties ?? null);
+
             $seBatch[] = [
                 'id' => $shippingId,
                 'shipping_category_id' => 3, // Sortie Sous-Traitance
@@ -1069,23 +1446,36 @@ class MigrateVillamarToJupiterCommand extends Command
                 'total_price' => $se->total_price_sortie ?? 0,
                 'client_id' => ($se->provider_id && $se->provider_id > 0 ? $se->provider_id : null),
                 'direction' => 'local',
-                'shipping_tracking_number' => json_encode($se->num_bon_sortie ? [(string)$se->num_bon_sortie] : []),
+                'shipping_tracking_number' => json_encode($bonList),
                 'allow_invoice' => (isset($se->is_facture) && $se->is_facture) ? 1 : 0,
                 'invoice_id' => (isset($se->is_facture) && $se->is_facture && !empty($se->bill_id)) ? $se->bill_id : null,
                 'created_at' => $se->created_at ?? now(),
                 'updated_at' => $se->updated_at ?? now(),
             ];
 
+            // Link trucks
+            $truckIds = $this->resolveTruckIds($se->matricules ?? $se->matricule ?? null);
+            foreach ($truckIds as $tId) {
+                $seTruckBatch[] = ['shipping_id' => $shippingId, 'truck_id' => $tId];
+            }
+
             $typesSortie = json_decode($se->types_sortie ?? '[]', true) ?: [];
             foreach ($typesSortie as $ts) {
+                $tId = $ts['type_id'] ?? null;
+                $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Sous-Traitance';
+                $w = (float)($ts['weight'] ?? 0);
+                $u = (float)($ts['pu'] ?? 0);
+                $p = (float)($ts['price'] ?? ($w * $u));
+
                 $detailSeBatch[] = [
                     'shipping_id' => $shippingId,
                     'detail_shipping_category_id' => 5, // Sortie Sous-Traitance
+                    'article_description' => $desc,
                     'stockable_type' => 'App\\Models\\FishType',
-                    'stockable_id' => $ts['type_id'] ?? null,
-                    'weight' => (float)($ts['weight'] ?? 0),
-                    'unit_price' => (float)($ts['pu'] ?? 0),
-                    'total_price' => (float)($ts['price'] ?? 0),
+                    'stockable_id' => $tId,
+                    'weight' => $w,
+                    'unit_price' => $u,
+                    'total_price' => $p,
                     'package_type_id' => $ts['container_id'] ?? null,
                     'nbr_box' => (float)($ts['nbr'] ?? 0),
                     'warehouse_id' => ($ts['chambre_id'] && $ts['chambre_id'] > 0 ? $ts['chambre_id'] : 13),
@@ -1103,9 +1493,14 @@ class MigrateVillamarToJupiterCommand extends Command
                 DB::table('detail_shippings')->insertOrIgnore($detailSeBatch);
                 $detailSeBatch = [];
             }
+            if (count($seTruckBatch) >= 2000) {
+                DB::table('shipping_truck')->insertOrIgnore($seTruckBatch);
+                $seTruckBatch = [];
+            }
         }
         if (!empty($seBatch)) DB::table('shippings')->insertOrIgnore($seBatch);
         if (!empty($detailSeBatch)) DB::table('detail_shippings')->insertOrIgnore($detailSeBatch);
+        if (!empty($seTruckBatch)) DB::table('shipping_truck')->insertOrIgnore($seTruckBatch);
 
         // 3. Emballage Clients -> Shippings (Category 4: Vente Emballage)
         $emballageClients = DB::select("SELECT * FROM villamar.emballage_clients");
@@ -1115,6 +1510,9 @@ class MigrateVillamarToJupiterCommand extends Command
             $shippingId = ++$maxShippingId;
             $weight = (float)($ec->total_weight_reception ?? $ec->total_weight_sortie ?? 0);
             $price = (float)($ec->total_price_reception ?? $ec->total_price_sortie ?? 0);
+            $bonList = $this->parseTrackingBons($ec->num_bon_sortie ?? null, null);
+            $containerId = $ec->container_id ?? 1;
+            $desc = $this->packageTypesMap[$containerId] ?? 'Emballage Client';
 
             $ecBatch[] = [
                 'id' => $shippingId,
@@ -1124,7 +1522,7 @@ class MigrateVillamarToJupiterCommand extends Command
                 'total_price' => $price,
                 'client_id' => ($ec->provider_id && $ec->provider_id > 0 ? $ec->provider_id : null),
                 'direction' => 'local',
-                'shipping_tracking_number' => json_encode($ec->num_bon_sortie ? [(string)$ec->num_bon_sortie] : []),
+                'shipping_tracking_number' => json_encode($bonList),
                 'allow_invoice' => (isset($ec->is_facture) && $ec->is_facture) ? 1 : 0,
                 'invoice_id' => (isset($ec->is_facture) && $ec->is_facture && !empty($ec->bill_id)) ? $ec->bill_id : null,
                 'created_at' => $ec->created_at ?? now(),
@@ -1135,12 +1533,13 @@ class MigrateVillamarToJupiterCommand extends Command
                 $detailEcBatch[] = [
                     'shipping_id' => $shippingId,
                     'detail_shipping_category_id' => 6, // Emballage Client
+                    'article_description' => $desc,
                     'stockable_type' => 'App\\Models\\PackageType',
-                    'stockable_id' => $ec->container_id ?? 1,
+                    'stockable_id' => $containerId,
                     'weight' => $weight,
                     'unit_price' => $weight > 0 ? round($price / $weight, 2) : 0,
                     'total_price' => $price,
-                    'package_type_id' => $ec->container_id ?? null,
+                    'package_type_id' => $containerId,
                     'nbr_box' => 0,
                     'warehouse_id' => 993, // Packaging warehouse
                     'warehouse_operation' => 'stock_out',
