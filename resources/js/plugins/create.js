@@ -13,8 +13,10 @@ import { usePwa } from '@/stores/pwa';
 import { setupCalendar, DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
 
+import { setActivePinia } from 'pinia';
 import pinia from "@/stores";
 export async function registerPlugins(app) {
+    setActivePinia(pinia);
     app
         .use(crerate())
         .use(pinia)
@@ -37,15 +39,18 @@ export async function registerPlugins(app) {
         console.log('[Vue warn]:', msg);
     };
     if (localStorage.getItem("token")) {
-        await useAuth().attemp().then(res => {
-            return res;
-        }).catch(err => {
+        try {
+            await useAuth(pinia).attemp().catch(err => {
+                router.push({ name: "login" });
+                return err;
+            });
+        } catch (e) {
+            console.error("Auth attempt error:", e);
             router.push({ name: "login" });
-            return err;
-        });
+        }
     }
-    useMain().initData();
-    usePwa().init();
+    useMain(pinia).initData();
+    usePwa(pinia).init();
 
     app.use(router);
 }

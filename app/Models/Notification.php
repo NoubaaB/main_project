@@ -24,6 +24,28 @@ class Notification extends Model
         'read_at' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::created(function (Notification $notification) {
+            try {
+                if ($notification->user_id) {
+                    $webPush = app(\App\Services\WebPushService::class);
+                    $snapshot = is_array($notification->data) ? $notification->data : (json_decode($notification->data, true) ?: []);
+                    $payload = $webPush->buildModelPayload(
+                        $notification->type ?: 'Notification',
+                        $notification->action ?: 'created',
+                        (int)$notification->record_id,
+                        $notification->actor_name ?: 'System',
+                        $snapshot
+                    );
+                    $webPush->sendToUser($notification->user_id, $payload);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('[Notification] WebPush dispatch failed on created: ' . $e->getMessage());
+            }
+        });
+    }
+
     /* ── Relationships ─────────────────────────────── */
 
     public function user(): BelongsTo

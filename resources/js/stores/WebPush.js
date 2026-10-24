@@ -89,9 +89,38 @@ export const useWebPush = defineStore('webPush', () => {
       const auth = useAuth();
       if (auth.is_auth) {
         await checkBackendStatus();
+        if (sub && deviceCount.value === 0) {
+          await registerSubWithBackend(sub);
+        }
       }
     } catch (err) {
       console.warn('[WebPush] Error during init:', err);
+    }
+  }
+
+  /**
+   * Register push subscription details with backend API.
+   */
+  async function registerSubWithBackend(sub) {
+    try {
+      const p256dh = sub.getKey('p256dh')
+        ? btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh'))))
+        : '';
+      const authSecret = sub.getKey('auth')
+        ? btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth'))))
+        : '';
+
+      await axios.post('/api/webpush/subscribe', {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: p256dh,
+          auth: authSecret,
+        },
+        content_encoding: (PushManager.supportedContentEncodings || ['aes128gcm'])[0] || 'aes128gcm',
+      });
+      deviceCount.value = Math.max(1, deviceCount.value);
+    } catch (e) {
+      console.warn('[WebPush] Failed to register subscription with backend:', e);
     }
   }
 
