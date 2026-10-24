@@ -234,11 +234,11 @@
             </div>
 
             <div class="month-metrics-cluster">
-              <v-chip size="small" color="deep-orange" variant="tonal" class="font-weight-bold font-monospace">
+              <v-chip size="small" color="deep-orange" variant="tonal" class="font-weight-bold font-monospace fnm-currency-num">
                 <v-icon size="12" start>mdi-arrow-up-circle</v-icon>
                 {{ main.formatDisplayNumber(monthTotals[m.num].invoices) }} {{ main.currency }}
               </v-chip>
-              <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold font-monospace">
+              <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold font-monospace fnm-currency-num">
                 <v-icon size="12" start>mdi-arrow-down-circle</v-icon>
                 {{ main.formatDisplayNumber(monthTotals[m.num].payments) }} {{ main.currency }}
               </v-chip>
@@ -246,11 +246,11 @@
                 size="small"
                 :color="monthTotals[m.num].balance > 0 ? 'error' : 'success'"
                 variant="flat"
-                class="font-weight-bold font-monospace"
+                class="font-weight-bold font-monospace fnm-currency-num"
               >
                 = {{ main.formatDisplayNumber(monthTotals[m.num].balance) }} {{ main.currency }}
               </v-chip>
-              <v-chip size="small" color="blue-grey" variant="tonal" class="font-weight-bold font-monospace">
+              <v-chip size="small" color="blue-grey" variant="tonal" class="font-weight-bold font-monospace fnm-currency-num">
                 <v-icon size="12" start>mdi-bank-transfer</v-icon>
                 {{ $t('carry_forward') }}: {{ main.formatDisplayNumber(cumulativeBalance(m.num)) }} {{ main.currency }}
               </v-chip>
@@ -286,18 +286,50 @@
                 <v-col cols="12" lg="6">
                   <div class="ss-sub-card">
                     <div class="ss-sub-header ss-sub-header-inv">
-                      <div class="d-flex align-center ga-2">
+                      <div class="d-flex align-center ga-2 min-w-0">
                         <v-icon size="16" color="#E65100">mdi-file-document-outline</v-icon>
-                        <span>{{ $t('supplier_invoices') }}</span>
+                        <span class="text-truncate">{{ $t('supplier_invoices') }}</span>
+                        <v-chip size="x-small" color="deep-orange" variant="tonal" class="font-weight-bold ml-1">
+                          {{ invoicesByMonth[m.num].length }}
+                        </v-chip>
                       </div>
-                      <v-chip size="x-small" color="deep-orange" variant="tonal" class="font-weight-bold">
-                        {{ invoicesByMonth[m.num].length }}
-                      </v-chip>
+
+                      <!-- Selected Invoices Action Bar in Sub-Header -->
+                      <div v-if="getSelectedInvoicesCountMonth(m.num) > 0" class="d-flex align-center ga-2 flex-wrap">
+                        <div class="ss-selected-badge ss-selected-badge-inv px-2 py-1 rounded-pill d-flex align-center ga-1">
+                          <v-icon size="13" color="#E65100">mdi-checkbox-marked-circle</v-icon>
+                          <span class="text-caption font-weight-bold">{{ getSelectedInvoicesCountMonth(m.num) }} {{ $t('selected') }}</span>
+                          <span class="opacity-40">•</span>
+                          <span class="text-caption font-weight-black text-deep-orange fnm-currency-num">
+                            {{ main.formatDisplayNumber(getSelectedInvoicesTotalMonth(m.num)) }} {{ main.currency }}
+                          </span>
+                        </div>
+                        <v-btn
+                          size="x-small"
+                          color="#E65100"
+                          variant="flat"
+                          rounded="lg"
+                          prepend-icon="mdi-eye-check-outline"
+                          class="font-weight-bold text-capitalize shadow-sm"
+                          @click="viewSelectedInvoices(m.num)"
+                        >
+                          {{ $t('view_selected_invoices') }}
+                        </v-btn>
+                      </div>
                     </div>
                     <div class="ss-sub-table-wrap">
                       <table class="ss-table" v-if="invoicesByMonth[m.num].length">
                         <thead>
                           <tr>
+                            <th class="ss-th text-center" style="width:40px; padding: 2px 4px;">
+                              <v-checkbox-btn
+                                :model-value="isAllInvoicesMonthSelected(m.num)"
+                                :indeterminate="isSomeInvoicesMonthSelected(m.num)"
+                                color="#E65100"
+                                density="compact"
+                                @click.stop="toggleAllInvoicesMonth(m.num)"
+                              ></v-checkbox-btn>
+                            </th>
                             <th class="ss-th text-center" style="width:90px">{{ $t('date') }}</th>
                             <th class="ss-th text-left">{{ $t('suppliers') }}</th>
                             <th class="ss-th text-center">{{ $t('tracking_number') }}</th>
@@ -307,14 +339,22 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="inv in invoicesByMonth[m.num]" :key="inv.id" class="ss-row">
-                            <td class="ss-td text-center text-caption font-monospace">{{ fmtDate(inv.date) }}</td>
+                          <tr v-for="inv in invoicesByMonth[m.num]" :key="inv.id" class="ss-row" :class="{'ss-row-selected': isInvoiceSelected(inv.id)}">
+                            <td class="ss-td text-center" style="width:40px; padding: 2px 4px;">
+                              <v-checkbox-btn
+                                :model-value="isInvoiceSelected(inv.id)"
+                                color="#E65100"
+                                density="compact"
+                                @click.stop="toggleInvoice(inv.id)"
+                              ></v-checkbox-btn>
+                            </td>
+                            <td class="ss-td text-center text-caption font-monospace fnm-currency-num">{{ fmtDate(inv.date) }}</td>
                             <td class="ss-td text-left font-weight-medium text-truncate" style="max-width:140px">{{ inv._supplierNames }}</td>
                             <td class="ss-td text-center">
-                              <v-chip size="x-small" color="#E65100" variant="tonal">{{ inv._trackingStr }}</v-chip>
+                              <v-chip size="x-small" color="#E65100" variant="tonal" class="fnm-currency-num">{{ inv._trackingStr }}</v-chip>
                             </td>
-                            <td class="ss-td text-right font-monospace tabular-nums">{{ main.formatDisplayNumber(inv.total_weight) }}</td>
-                            <td class="ss-td text-right font-weight-bold text-deep-orange font-monospace tabular-nums">
+                            <td class="ss-td text-right font-monospace tabular-nums fnm-currency-num">{{ main.formatDisplayNumber(inv.total_weight) }}</td>
+                            <td class="ss-td text-right font-weight-bold text-deep-orange font-monospace tabular-nums fnm-currency-num">
                               {{ main.formatDisplayNumber(inv.total_price) }}
                             </td>
                             <td class="ss-td text-center">
@@ -325,8 +365,8 @@
                             </td>
                           </tr>
                           <tr class="ss-foot">
-                            <td colspan="4" class="font-weight-bold text-right">{{ $t('total') }}</td>
-                            <td class="font-weight-bold text-deep-orange text-right font-monospace tabular-nums">
+                            <td colspan="5" class="font-weight-bold text-right">{{ $t('total') }}</td>
+                            <td class="font-weight-bold text-deep-orange text-right font-monospace tabular-nums fnm-currency-num">
                               {{ main.formatDisplayNumber(monthTotals[m.num].invoices) }}
                             </td>
                             <td></td>
@@ -345,18 +385,51 @@
                 <v-col cols="12" lg="6">
                   <div class="ss-sub-card">
                     <div class="ss-sub-header ss-sub-header-pay">
-                      <div class="d-flex align-center ga-2">
+                      <div class="d-flex align-center ga-2 min-w-0">
                         <v-icon size="16" color="teal">mdi-cash-multiple</v-icon>
-                        <span>{{ $t('payments') }}</span>
+                        <span class="text-truncate">{{ $t('payments') }}</span>
+                        <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold ml-1">
+                          {{ paymentsByMonth[m.num].length }}
+                        </v-chip>
                       </div>
-                      <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold">
-                        {{ paymentsByMonth[m.num].length }}
-                      </v-chip>
+
+                      <!-- Selected Payments Action Bar in Sub-Header -->
+                      <div v-if="getSelectedPaymentsCountMonth(m.num) > 0" class="d-flex align-center ga-2 flex-wrap">
+                        <div class="ss-selected-badge ss-selected-badge-pay px-2 py-1 rounded-pill d-flex align-center ga-1">
+                          <v-icon size="13" color="teal">mdi-cash-check</v-icon>
+                          <span class="text-caption font-weight-bold">{{ getSelectedPaymentsCountMonth(m.num) }} {{ $t('selected') }}</span>
+                          <span class="opacity-40">•</span>
+                          <span class="text-caption font-weight-black text-teal fnm-currency-num">
+                            {{ main.formatDisplayNumber(getSelectedPaymentsTotalMonth(m.num)) }} {{ main.currency }}
+                          </span>
+                        </div>
+                        <v-btn
+                          size="x-small"
+                          color="error"
+                          variant="flat"
+                          rounded="lg"
+                          prepend-icon="mdi-delete-sweep"
+                          class="font-weight-bold text-capitalize shadow-sm"
+                          @click="confirmBulkDeleteMonth(m.num)"
+                          :disabled="isClosed"
+                        >
+                          {{ $t('delete_selected') }}
+                        </v-btn>
+                      </div>
                     </div>
                     <div class="ss-sub-table-wrap">
                       <table class="ss-table" v-if="paymentsByMonth[m.num].length">
                         <thead>
                           <tr>
+                            <th class="ss-th text-center" style="width:40px; padding: 2px 4px;">
+                              <v-checkbox-btn
+                                :model-value="isAllPaymentsMonthSelected(m.num)"
+                                :indeterminate="isSomePaymentsMonthSelected(m.num)"
+                                color="teal"
+                                density="compact"
+                                @click.stop="toggleAllPaymentsMonth(m.num)"
+                              ></v-checkbox-btn>
+                            </th>
                             <th class="ss-th text-center" style="width:90px">{{ $t('date') }}</th>
                             <th class="ss-th text-left">{{ $t('suppliers') }}</th>
                             <th class="ss-th text-center" style="width:100px">{{ $t('payment_type') }}</th>
@@ -366,8 +439,16 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="p in paymentsByMonth[m.num]" :key="p.id" class="ss-row">
-                            <td class="ss-td text-center text-caption font-monospace">{{ fmtDate(p.date) }}</td>
+                          <tr v-for="p in paymentsByMonth[m.num]" :key="p.id" class="ss-row" :class="{'ss-row-selected': isPaymentSelected(p.id)}">
+                            <td class="ss-td text-center" style="width:40px; padding: 2px 4px;">
+                              <v-checkbox-btn
+                                :model-value="isPaymentSelected(p.id)"
+                                color="teal"
+                                density="compact"
+                                @click.stop="togglePayment(p.id)"
+                              ></v-checkbox-btn>
+                            </td>
+                            <td class="ss-td text-center text-caption font-monospace fnm-currency-num">{{ fmtDate(p.date) }}</td>
                             <td class="ss-td text-left font-weight-medium text-truncate" style="max-width:140px">{{ p._supplierName }}</td>
                             <td class="ss-td text-center">
                               <v-chip
@@ -378,8 +459,8 @@
                                 {{ paymentTypeLabel(p.payment_type) }}
                               </v-chip>
                             </td>
-                            <td class="ss-td text-left text-truncate font-monospace" style="max-width:110px">{{ p.reference || '-' }}</td>
-                            <td class="ss-td text-right font-weight-bold text-teal font-monospace tabular-nums">
+                            <td class="ss-td text-left text-truncate font-monospace fnm-currency-num" style="max-width:110px">{{ p.reference || '-' }}</td>
+                            <td class="ss-td text-right font-weight-bold text-teal font-monospace tabular-nums fnm-currency-num">
                               {{ main.formatDisplayNumber(p.amount) }}
                             </td>
                             <td class="ss-td text-center">
@@ -398,8 +479,8 @@
                             </td>
                           </tr>
                           <tr class="ss-foot">
-                            <td colspan="4" class="font-weight-bold text-right">{{ $t('total') }}</td>
-                            <td class="font-weight-bold text-teal text-right font-monospace tabular-nums">
+                            <td colspan="5" class="font-weight-bold text-right">{{ $t('total') }}</td>
+                            <td class="font-weight-bold text-teal text-right font-monospace tabular-nums fnm-currency-num">
                               {{ main.formatDisplayNumber(monthTotals[m.num].payments) }}
                             </td>
                             <td></td>
@@ -1609,6 +1690,7 @@ export default {
   font-weight: 800;
   letter-spacing: -.3px;
   font-feature-settings: "tnum";
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
@@ -1704,6 +1786,27 @@ export default {
 .ss-sub-header-pay {
   background: rgba(0,137,123, .05);
   color: #00695C;
+}
+.ss-selected-badge {
+  background: rgba(var(--v-theme-surface), 0.95);
+  border: 1px solid rgba(var(--v-border-color), 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+.ss-selected-badge-inv {
+  background: rgba(230, 81, 0, 0.08);
+  border-color: rgba(230, 81, 0, 0.3);
+}
+.ss-selected-badge-pay {
+  background: rgba(0, 137, 123, 0.08);
+  border-color: rgba(0, 137, 123, 0.3);
+}
+.ss-row-selected {
+  background: rgba(230, 81, 0, 0.09) !important;
+}
+.fnm-currency-num,
+.tabular-nums {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
 }
 .ss-sub-table-wrap {
   overflow-x: auto;

@@ -435,6 +435,8 @@
   "configure_columns": "Configurer les colonnes",
   "configured": "configurés",
   "confirm_bulk_delete_message": "Êtes-vous sûr de vouloir supprimer {count} enregistrement(s) sélectionné(s) ? Cette action est irréversible.",
+  "view_selected_invoices": "Afficher les factures sélectionnées",
+  "selected_total": "Total sélectionné",
   "confirm_close_year": "Êtes-vous sûr de vouloir clôturer l'année {year} ? Les soldes seront reportés.",
   "confirm_delete": "Confirmer la suppression",
   "confirm_delete_category_message": "Êtes-vous sûr de vouloir supprimer cette catégorie de charge ? Cette action est irréversible.",

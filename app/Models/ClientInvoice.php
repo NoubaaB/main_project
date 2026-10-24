@@ -42,6 +42,16 @@ class ClientInvoice extends Model
         return $this->hasMany(Production::class, 'client_invoice_id');
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(ClientPayment::class);
+    }
+
+    public function clientPayments(): HasMany
+    {
+        return $this->hasMany(ClientPayment::class);
+    }
+
     protected function shippingIds(): Attribute
     {
         return Attribute::get(fn() => $this->shippings->pluck('id')->toArray());

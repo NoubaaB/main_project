@@ -30,8 +30,10 @@ export default {
       editId: null,
       showPayForm: false,
       saving: false,
-      // Payments table
+      // Selection states for invoices and payments
       selected: [],
+      selectedPayments: [],
+      selectedInvoices: [],
       deleteDialog: false, deleting: false, deleteBulk: false, deleteId: null,
       // Close year
       closeYearDialog: false, closingYear: false,
@@ -783,14 +785,143 @@ export default {
       }
       this.saving = false;
     },
-    confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true },
-    confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true },
+    // === Invoices Multi-Selection Methods ===
+    isInvoiceSelected(id) {
+      return this.selectedInvoices.includes(id);
+    },
+    toggleInvoice(id) {
+      const idx = this.selectedInvoices.indexOf(id);
+      if (idx > -1) {
+        this.selectedInvoices.splice(idx, 1);
+      } else {
+        this.selectedInvoices.push(id);
+      }
+    },
+    isAllInvoicesMonthSelected(mNum) {
+      const monthInvs = this.invoicesByMonth[mNum] || [];
+      if (!monthInvs.length) return false;
+      return monthInvs.every(inv => this.selectedInvoices.includes(inv.id));
+    },
+    isSomeInvoicesMonthSelected(mNum) {
+      const monthInvs = this.invoicesByMonth[mNum] || [];
+      if (!monthInvs.length) return false;
+      const count = monthInvs.filter(inv => this.selectedInvoices.includes(inv.id)).length;
+      return count > 0 && count < monthInvs.length;
+    },
+    toggleAllInvoicesMonth(mNum) {
+      const monthInvs = this.invoicesByMonth[mNum] || [];
+      if (!monthInvs.length) return;
+      const allSelected = this.isAllInvoicesMonthSelected(mNum);
+      const ids = monthInvs.map(i => i.id);
+      if (allSelected) {
+        this.selectedInvoices = this.selectedInvoices.filter(id => !ids.includes(id));
+      } else {
+        const toAdd = ids.filter(id => !this.selectedInvoices.includes(id));
+        this.selectedInvoices = [...this.selectedInvoices, ...toAdd];
+      }
+    },
+    getSelectedInvoicesCountMonth(mNum) {
+      const monthInvs = this.invoicesByMonth[mNum] || [];
+      return monthInvs.filter(i => this.selectedInvoices.includes(i.id)).length;
+    },
+    getSelectedInvoicesTotalMonth(mNum) {
+      const monthInvs = this.invoicesByMonth[mNum] || [];
+      return monthInvs
+        .filter(i => this.selectedInvoices.includes(i.id))
+        .reduce((acc, i) => acc + (parseFloat(i.total_price) || 0), 0);
+    },
+    viewSelectedInvoices(mNum) {
+      const monthInvs = this.invoicesByMonth[mNum] || [];
+      let ids = monthInvs.filter(i => this.selectedInvoices.includes(i.id)).map(i => i.id);
+      if (!ids.length) ids = this.selectedInvoices;
+      if (!ids.length) return;
+      this.$router.push({ name: 'view_client_invoice', query: { ids } });
+    },
+
+    // === Payments Multi-Selection Methods ===
+    isPaymentSelected(id) {
+      return this.selectedPayments.includes(id);
+    },
+    togglePayment(id) {
+      const idx = this.selectedPayments.indexOf(id);
+      if (idx > -1) {
+        this.selectedPayments.splice(idx, 1);
+      } else {
+        this.selectedPayments.push(id);
+      }
+      this.selected = [...this.selectedPayments];
+    },
+    isAllPaymentsMonthSelected(mNum) {
+      const monthPays = this.paymentsByMonth[mNum] || [];
+      if (!monthPays.length) return false;
+      return monthPays.every(p => this.selectedPayments.includes(p.id));
+    },
+    isSomePaymentsMonthSelected(mNum) {
+      const monthPays = this.paymentsByMonth[mNum] || [];
+      if (!monthPays.length) return false;
+      const count = monthPays.filter(p => this.selectedPayments.includes(p.id)).length;
+      return count > 0 && count < monthPays.length;
+    },
+    toggleAllPaymentsMonth(mNum) {
+      const monthPays = this.paymentsByMonth[mNum] || [];
+      if (!monthPays.length) return;
+      const allSelected = this.isAllPaymentsMonthSelected(mNum);
+      const ids = monthPays.map(p => p.id);
+      if (allSelected) {
+        this.selectedPayments = this.selectedPayments.filter(id => !ids.includes(id));
+      } else {
+        const toAdd = ids.filter(id => !this.selectedPayments.includes(id));
+        this.selectedPayments = [...this.selectedPayments, ...toAdd];
+      }
+      this.selected = [...this.selectedPayments];
+    },
+    getSelectedPaymentsCountMonth(mNum) {
+      const monthPays = this.paymentsByMonth[mNum] || [];
+      return monthPays.filter(p => this.selectedPayments.includes(p.id)).length;
+    },
+    getSelectedPaymentsTotalMonth(mNum) {
+      const monthPays = this.paymentsByMonth[mNum] || [];
+      return monthPays
+        .filter(p => this.selectedPayments.includes(p.id))
+        .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+    },
+    getSelectedPaymentsTotal() {
+      if (this.deleteBulk) {
+        return this.store.payments
+          .filter(p => this.selected.includes(p.id))
+          .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+      }
+      const single = this.store.payments.find(p => p.id === this.deleteId);
+      return single ? (parseFloat(single.amount) || 0) : 0;
+    },
+    confirmDelete(id) {
+      this.deleteId = id;
+      this.deleteBulk = false;
+      this.deleteDialog = true;
+    },
+    confirmBulkDelete() {
+      this.deleteBulk = true;
+      this.deleteDialog = true;
+    },
+    confirmBulkDeleteMonth(mNum) {
+      const monthPays = this.paymentsByMonth[mNum] || [];
+      const ids = monthPays.filter(p => this.selectedPayments.includes(p.id)).map(p => p.id);
+      if (!ids.length) return;
+      this.selected = ids;
+      this.deleteBulk = true;
+      this.deleteDialog = true;
+    },
     async execDelete() {
       this.deleting = true;
       try {
         const ids = this.deleteBulk ? this.selected : [this.deleteId];
         await this.store.deletePayments(ids);
         this.triggerSummarySnackbar(this.$t('payment_deleted'), '', 'success');
+        if (this.deleteBulk) {
+          this.selectedPayments = this.selectedPayments.filter(id => !ids.includes(id));
+        } else {
+          this.selectedPayments = this.selectedPayments.filter(id => id !== this.deleteId);
+        }
         this.selected = [];
         this.deleteDialog = false;
         this.store.fetchYearSummary(this.currentYear);

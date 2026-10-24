@@ -435,6 +435,8 @@
   "configure_columns": "Configurar columnas",
   "configured": "configurados",
   "confirm_bulk_delete_message": "¿Seguro que quieres eliminar {count} registro(s) seleccionado(s)? Esta acción no se puede deshacer.",
+  "view_selected_invoices": "Ver facturas seleccionadas",
+  "selected_total": "Total seleccionado",
   "confirm_close_year": "¿Seguro que quieres cerrar el año {year}? Los saldos se arrastrarán.",
   "confirm_delete": "Confirmar eliminación",
   "confirm_delete_category_message": "¿Seguro que quieres eliminar esta categoría de cargo? Esta acción no se puede deshacer.",

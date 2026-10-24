@@ -176,3 +176,9 @@ input[type="datetime-local"]::placeholder {
 //     user-select: none;
 //     /* Standard syntax */
 // }
+
+.fnm-currency-num,
+.tabular-nums {
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+    font-variant-numeric: tabular-nums !important;
+}
