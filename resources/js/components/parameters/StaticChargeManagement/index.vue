@@ -123,7 +123,7 @@
             </template>
 
             <template v-slot:[`item.amount`]="{ item }">
-              <div class="text-center font-weight-bold" style="color: #00838F;">
+              <div class="text-center font-weight-bold fnm-currency-num" style="color: #00838F;">
                 {{ formatNumber(item.amount) }} {{ main.currency }}
               </div>
             </template>
@@ -731,5 +731,10 @@ export default {
 .sc-info-item {
   display: flex;
   align-items: flex-start;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 </style>

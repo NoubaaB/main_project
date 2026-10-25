@@ -138,15 +138,15 @@
             </template>
 
             <template v-slot:[`item.q1_max_salary`]="{ item }">
-              <div class="text-center font-weight-bold">{{ formatNumber(item.q1_max_salary) }} DH</div>
+              <div class="text-center font-weight-bold fnm-currency-num">{{ formatNumber(item.q1_max_salary) }} DH</div>
             </template>
 
             <template v-slot:[`item.q2_max_salary`]="{ item }">
-              <div class="text-center font-weight-bold">{{ formatNumber(item.q2_max_salary) }} DH</div>
+              <div class="text-center font-weight-bold fnm-currency-num">{{ formatNumber(item.q2_max_salary) }} DH</div>
             </template>
 
             <template v-slot:[`item.month_max_salary`]="{ item }">
-              <div class="text-center font-weight-bold" style="color: #1565C0;">
+              <div class="text-center font-weight-bold fnm-currency-num" style="color: #1565C0;">
                 {{ formatNumber(parseFloat(item.q1_max_salary || 0) + parseFloat(item.q2_max_salary || 0)) }} DH
               </div>
             </template>
@@ -196,7 +196,7 @@
                 <v-icon color="#1565C0" size="32">mdi-calendar-alert</v-icon>
                 <div>
                   <div class="text-caption font-weight-bold text-uppercase" style="color: #1565C0; letter-spacing: 0.5px;">{{ $t('current_absence_threshold') }}</div>
-                  <div class="text-h5 font-weight-black" style="color: #0D47A1;">
+                  <div class="text-h5 font-weight-black fnm-currency-num" style="color: #0D47A1;">
                     {{ absenceThreshold }} {{ $t('days') }}
                   </div>
                 </div>
@@ -759,5 +759,10 @@ export default {
 .fns-info-item {
   display: flex;
   align-items: flex-start;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 </style>

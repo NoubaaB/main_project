@@ -19,22 +19,22 @@
             <div class="d-flex flex-wrap align-center ga-2">
               <div class="scm-kpi-chip">
                 <v-icon size="16" color="#90CAF9" class="mr-1">mdi-sitemap</v-icon>
-                <span class="scm-kpi-num">{{ items.length }}</span>
+                <span class="scm-kpi-num fnm-currency-num">{{ items.length }}</span>
                 <span class="scm-kpi-lbl">{{ $t('total') }}</span>
               </div>
               <div class="scm-kpi-chip">
                 <v-icon size="16" color="#A5D6A7" class="mr-1">mdi-pencil-lock-outline</v-icon>
-                <span class="scm-kpi-num">{{ modifiableCount }}</span>
+                <span class="scm-kpi-num fnm-currency-num">{{ modifiableCount }}</span>
                 <span class="scm-kpi-lbl">{{ $t('modifiable') || 'Modifiable' }}</span>
               </div>
               <div class="scm-kpi-chip">
                 <v-icon size="16" color="#FFE082" class="mr-1">mdi-account-tie</v-icon>
-                <span class="scm-kpi-num">{{ totalCorporalsLinked }}</span>
+                <span class="scm-kpi-num fnm-currency-num">{{ totalCorporalsLinked }}</span>
                 <span class="scm-kpi-lbl">{{ $t('corporals') }}</span>
               </div>
               <div class="scm-kpi-chip">
                 <v-icon size="16" color="#80DEEA" class="mr-1">mdi-cash-multiple</v-icon>
-                <span class="scm-kpi-num">{{ avgPrice }}</span>
+                <span class="scm-kpi-num fnm-currency-num">{{ avgPrice }}</span>
                 <span class="scm-kpi-lbl">{{ main.currency || 'DH' }} avg</span>
               </div>
             </div>
@@ -192,7 +192,7 @@
                     {{ item.name }}
                   </div>
                   <div class="text-caption text-medium-emphasis">
-                    {{ (item.corporals || []).length }} {{ $t('corporals') }}
+                    <span class="fnm-currency-num">{{ (item.corporals || []).length }}</span> {{ $t('corporals') }}
                   </div>
                 </div>
               </div>
@@ -200,7 +200,7 @@
 
             <!-- Daily Price -->
             <template v-slot:[`item.daily_price`]="{ item }">
-              <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
+              <v-chip size="small" color="success" variant="tonal" class="font-weight-bold fnm-currency-num">
                 {{ formatNumber(item.daily_price) }} {{ main.currency || 'DH' }}
               </v-chip>
             </template>
@@ -866,6 +866,14 @@ export default {
 .scm-kpi-num {
   font-weight: 800;
   margin-right: 4px;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .scm-kpi-lbl {
   opacity: 0.85;

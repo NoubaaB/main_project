@@ -380,7 +380,7 @@
               <v-icon color="#a21ee5" size="22">mdi-package-variant-closed</v-icon>
             </div>
             <div>
-              <div class="wh-stat-value" style="color:#a21ee5">{{ totalActiveBalancesCount }}</div>
+              <div class="wh-stat-value fnm-currency-num" style="color:#a21ee5">{{ totalActiveBalancesCount }}</div>
               <div class="wh-stat-label">{{ $t('batches_count') }}</div>
             </div>
           </div>
@@ -392,7 +392,7 @@
               <v-icon color="#00897B" size="22">mdi-weight-kilogram</v-icon>
             </div>
             <div>
-              <div class="wh-stat-value" style="color:#00897B">{{ main.formatDisplayNumber(totalWeight) }} Kg</div>
+              <div class="wh-stat-value fnm-currency-num" style="color:#00897B">{{ main.formatDisplayNumber(totalWeight) }} Kg</div>
               <div class="wh-stat-label">{{ $t('total_weight') }} ({{ main.formatDisplayNumber(totalInitialWeight) }} Kg {{ $t('initial') || 'init.' }})</div>
             </div>
           </div>
@@ -404,7 +404,7 @@
               <v-icon color="#6D4C41" size="22">mdi-package-variant</v-icon>
             </div>
             <div>
-              <div class="wh-stat-value" style="color:#6D4C41">{{ main.formatDisplayNumber(totalPackages) }} {{ $t('boxes') }}</div>
+              <div class="wh-stat-value fnm-currency-num" style="color:#6D4C41">{{ main.formatDisplayNumber(totalPackages) }} {{ $t('boxes') }}</div>
               <div class="wh-stat-label">{{ $t('caisses') }} ({{ main.formatDisplayNumber(totalInitialPackages) }} init.)</div>
             </div>
           </div>
@@ -416,7 +416,7 @@
               <v-icon color="#FF9800" size="22">mdi-cash-multiple</v-icon>
             </div>
             <div>
-              <div class="wh-stat-value" style="color:#FF9800">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</div>
+              <div class="wh-stat-value fnm-currency-num" style="color:#FF9800">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</div>
               <div class="wh-stat-label">{{ $t('total_stock_value') }}</div>
             </div>
           </div>
@@ -1426,6 +1426,10 @@ export default { ...script, components: { ...script.components, apexchart: VueAp
   font-size: 17px;
   font-weight: 800;
   line-height: 1.2;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  -webkit-font-feature-settings: "tnum" 1 !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .wh-stat-label {
   font-size: 11px;

@@ -25,7 +25,7 @@
               size="small"
               prepend-icon="mdi-timer-sand"
             >
-              {{ $t('threshold') }}: {{ movementStore.thresholdDays }} {{ $t('days') }}
+              {{ $t('threshold') }}: <span class="fnm-currency-num">{{ movementStore.thresholdDays }}</span> {{ $t('days') }}
             </v-chip>
 
             <v-btn
@@ -68,7 +68,7 @@
                 <v-icon color="#E65100" size="22">mdi-account-alert-outline</v-icon>
               </div>
             </div>
-            <div class="wam-kpi-val text-warning">{{ movementStore.summary.absent_count || 0 }}</div>
+            <div class="wam-kpi-val text-warning fnm-currency-num">{{ movementStore.summary.absent_count || 0 }}</div>
             <div class="wam-kpi-sub">
               <v-icon size="13" color="#E65100" class="mr-1">mdi-timer-alert-outline</v-icon>
               <span>{{ $t('inactive_over_days', { days: movementStore.thresholdDays }) }}</span>
@@ -86,7 +86,7 @@
                 <v-icon color="#00897B" size="22">mdi-account-check-outline</v-icon>
               </div>
             </div>
-            <div class="wam-kpi-val" style="color: #00897B;">{{ movementStore.summary.active_count || 0 }}</div>
+            <div class="wam-kpi-val fnm-currency-num" style="color: #00897B;">{{ movementStore.summary.active_count || 0 }}</div>
             <div class="wam-kpi-sub">
               <v-icon size="13" color="#00897B" class="mr-1">mdi-shield-check</v-icon>
               <span>{{ $t('active_within_threshold') }}</span>
@@ -104,7 +104,7 @@
                 <v-icon color="#D32F2F" size="22">mdi-account-arrow-right-outline</v-icon>
               </div>
             </div>
-            <div class="wam-kpi-val" style="color: #D32F2F;">{{ movementStore.summary.left_company_count || 0 }}</div>
+            <div class="wam-kpi-val fnm-currency-num" style="color: #D32F2F;">{{ movementStore.summary.left_company_count || 0 }}</div>
             <div class="wam-kpi-sub">
               <v-icon size="13" color="#D32F2F" class="mr-1">mdi-account-off-outline</v-icon>
               <span>{{ $t('detached_from_teams') }}</span>
@@ -122,12 +122,12 @@
                 <v-icon color="#1565C0" size="22">mdi-calendar-remove-outline</v-icon>
               </div>
             </div>
-            <div class="wam-kpi-val" style="color: #1565C0;">
-              {{ movementStore.summary.total_absence_days || 0 }} <span class="wam-kpi-unit">{{ $t('days') }}</span>
+            <div class="wam-kpi-val fnm-currency-num" style="color: #1565C0;">
+              <span class="fnm-currency-num">{{ movementStore.summary.total_absence_days || 0 }}</span> <span class="wam-kpi-unit">{{ $t('days') }}</span>
             </div>
             <div class="wam-kpi-sub">
               <v-icon size="13" color="#1565C0" class="mr-1">mdi-counter</v-icon>
-              <span>{{ movementStore.summary.total_absence_incidents || 0 }} {{ $t('incidents_recorded') }}</span>
+              <span><span class="fnm-currency-num">{{ movementStore.summary.total_absence_incidents || 0 }}</span> {{ $t('incidents_recorded') }}</span>
             </div>
           </div>
         </v-col>
@@ -303,8 +303,8 @@
                   </v-chip>
                 </div>
                 <div class="text-caption text-medium-emphasis">
-                  <span v-if="item.matricule" class="mr-2">#{{ item.matricule }}</span>
-                  <span v-if="item.cni" class="mr-2">CNI: {{ item.cni }}</span>
+                  <span v-if="item.matricule" class="mr-2 fnm-currency-num">#{{ item.matricule }}</span>
+                  <span v-if="item.cni" class="mr-2">CNI: <span class="fnm-currency-num">{{ item.cni }}</span></span>
                 </div>
               </div>
             </div>
@@ -330,7 +330,7 @@
               prepend-icon="mdi-alert-circle"
               class="font-weight-bold"
             >
-              {{ $t('absent') }} ({{ item.days_since_last_activity }} {{ $t('days') }})
+              {{ $t('absent') }} (<span class="fnm-currency-num">{{ item.days_since_last_activity }}</span> {{ $t('days') }})
             </v-chip>
             <v-chip
               v-else-if="item.status === 'left_company'"
@@ -348,7 +348,7 @@
           <template v-slot:[`item.teams`]="{ item }">
             <div v-if="item.status === 'left_company'" class="text-caption text-medium-emphasis font-italic">
               <v-icon size="14" color="grey" class="mr-1">mdi-link-off</v-icon>
-              {{ $t('detached') }} ({{ item.previous_team_ids?.length || 0 }} {{ $t('previous') }})
+              {{ $t('detached') }} (<span class="fnm-currency-num">{{ item.previous_team_ids?.length || 0 }}</span> {{ $t('previous') }})
             </div>
             <div v-else-if="item.teams && item.teams.length > 0" class="d-flex flex-wrap ga-1">
               <v-chip
@@ -372,7 +372,7 @@
                 {{ formatDate(item.last_activity_date) }}
               </div>
               <div class="text-caption text-medium-emphasis">
-                {{ item.days_since_last_activity }} {{ $t('days_ago') }}
+                <span class="fnm-currency-num">{{ item.days_since_last_activity }}</span> {{ $t('days_ago') }}
               </div>
             </div>
             <span v-else class="text-caption text-medium-emphasis font-italic">
@@ -387,13 +387,13 @@
                 size="small"
                 :color="item.total_absence_days > 0 ? (item.status === 'absent' ? 'warning' : '#1565C0') : 'grey'"
                 variant="tonal"
-                class="font-weight-bold"
+                class="font-weight-bold fnm-currency-num"
               >
                 <v-icon start size="14">mdi-timer-sand</v-icon>
                 {{ item.total_absence_days }} {{ $t('days') }}
               </v-chip>
               <div class="text-caption text-medium-emphasis mt-1">
-                {{ item.absence_count }} {{ $t('incidents') }}
+                <span class="fnm-currency-num">{{ item.absence_count }}</span> {{ $t('incidents') }}
               </div>
             </div>
           </template>
@@ -2074,7 +2074,14 @@ export default {
   font-size: 26px;
   font-weight: 900;
   line-height: 1.1;
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .wam-kpi-unit {
   font-size: 14px;

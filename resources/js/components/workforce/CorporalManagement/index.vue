@@ -19,22 +19,22 @@
             <div class="d-flex flex-wrap align-center ga-2">
               <div class="cpm-kpi-chip">
                 <v-icon size="16" color="#90CAF9" class="mr-1">mdi-account-tie</v-icon>
-                <span class="cpm-kpi-num">{{ items.length }}</span>
+                <span class="cpm-kpi-num fnm-currency-num">{{ items.length }}</span>
                 <span class="cpm-kpi-lbl">{{ $t('total') }}</span>
               </div>
               <div class="cpm-kpi-chip">
                 <v-icon size="16" color="#A5D6A7" class="mr-1">mdi-calendar-check</v-icon>
-                <span class="cpm-kpi-num">{{ quinzaineCount }}</span>
+                <span class="cpm-kpi-num fnm-currency-num">{{ quinzaineCount }}</span>
                 <span class="cpm-kpi-lbl">{{ $t('quinzaine') }}</span>
               </div>
               <div class="cpm-kpi-chip">
                 <v-icon size="16" color="#FFE082" class="mr-1">mdi-sitemap</v-icon>
-                <span class="cpm-kpi-num">{{ withSectionsCount }}</span>
+                <span class="cpm-kpi-num fnm-currency-num">{{ withSectionsCount }}</span>
                 <span class="cpm-kpi-lbl">{{ $t('with_sections') || 'With Sections' }}</span>
               </div>
               <div class="cpm-kpi-chip">
                 <v-icon size="16" color="#80DEEA" class="mr-1">mdi-cash-multiple</v-icon>
-                <span class="cpm-kpi-num">{{ avgRate }}</span>
+                <span class="cpm-kpi-num fnm-currency-num">{{ avgRate }}</span>
                 <span class="cpm-kpi-lbl">{{ main.currency || 'DH' }} avg</span>
               </div>
             </div>
@@ -244,7 +244,7 @@
 
             <!-- Daily Price -->
             <template v-slot:[`item.daily_price`]="{ item }">
-              <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
+              <v-chip size="small" color="success" variant="tonal" class="font-weight-bold fnm-currency-num">
                 {{ formatNumber(item.daily_price) }} {{ main.currency || 'DH' }}
               </v-chip>
             </template>
@@ -914,6 +914,14 @@ export default {
 .cpm-kpi-num {
   font-weight: 800;
   margin-right: 4px;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .cpm-kpi-lbl {
   opacity: 0.85;

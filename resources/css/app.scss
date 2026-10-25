@@ -177,8 +177,77 @@ input[type="datetime-local"]::placeholder {
 //     /* Standard syntax */
 // }
 
+/* =========================================================================
+ * GLOBAL EXECUTIVE NUMERIC TYPOGRAPHY DESIGN SYSTEM
+ * Matches Fortnight Management Total Month Amount section:
+ * font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+ * font-variant-numeric: tabular-nums !important;
+ * font-feature-settings: "tnum" 1 !important;
+ * ========================================================================= */
+
+.numeric-num,
 .fnm-currency-num,
-.tabular-nums {
+.tabular-nums,
+.font-monospace,
+.font-mono,
+.num-font,
+.numeric-data,
+.numeric-val,
+.text-mono,
+.font-numeric,
+// Table numeric data cells (totals, weights, quantities, prices, currencies)
+.v-table td.text-right,
+.v-table th.text-right,
+.v-table tr.v-data-table__tr td.text-right,
+.v-data-table td.text-right,
+.v-data-table-server td.text-right,
+.v-data-table-virtual td.text-right,
+table td.text-right,
+td.text-right,
+td.text-right span,
+td.text-right div,
+td.text-right b,
+// Vuetify numeric inputs and fields
+input[type="number"],
+.v-field input.text-right,
+.v-text-field input.text-right,
+// Chips and totals in headers / tables
+.v-chip.font-monospace,
+.v-chip.tabular-nums,
+.v-chip.fnm-currency-num,
+.v-chip.numeric-num,
+.header-total,
+// Common KPI & Amount indicators across application
+[class*="kpi-value"],
+[class*="kpi-val"],
+[class*="kpi-main-val"],
+[class*="stat-val"],
+[class*="stat-value"],
+[class*="stat-number"],
+[class*="wh-stat-value"],
+[class*="us-stat-val"],
+[class*="total-num"],
+[class*="metric-num"],
+[class*="metric-value"],
+[class*="amount-num"],
+[class*="currency-num"],
+[class*="price-num"],
+[class*="balance-num"],
+.ss-kpi-value,
+.cs-kpi-value,
+.ss-pill-value,
+.cs-pill-value,
+.ss-selected-total,
+.cs-selected-total,
+.wh-stat-value,
+.kpi-main-val,
+.metric-value,
+.feed-item-weight,
+.total-amount,
+.grand-total {
     font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
     font-variant-numeric: tabular-nums !important;
+    -webkit-font-feature-settings: "tnum" 1 !important;
+    -moz-font-feature-settings: "tnum" 1 !important;
+    font-feature-settings: "tnum" 1 !important;
 }

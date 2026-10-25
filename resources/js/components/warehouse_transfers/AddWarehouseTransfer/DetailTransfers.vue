@@ -100,7 +100,7 @@
                 @input="recalcForm(group.category)"
               >
                 <template #append-inner v-if="getMaxWeight(group.category.id)">
-                  <v-chip size="x-small" color="#F9A825" variant="tonal">max: {{ formatNum(getMaxWeight(group.category.id)) }}</v-chip>
+                  <v-chip size="x-small" color="#F9A825" variant="tonal" class="fnm-currency-num">max: {{ formatNum(getMaxWeight(group.category.id)) }}</v-chip>
                 </template>
               </v-text-field>
             </v-col>
@@ -137,6 +137,7 @@
                 v-model.number="entryForms[group.category.id].nbr_box"
                 type="number" :label="$t('nbr_boxes')"
                 density="compact" variant="outlined" rounded color="#F9A825" hide-details readonly
+                class="fnm-currency-num"
               ></v-text-field>
             </v-col>
           </v-row>
@@ -165,7 +166,7 @@
                 {{ getArticleName(item, group.category) }}
               </v-chip>
             </template>
-            <template #item.weight="{ item }">{{ formatNum(item.weight) }} Kg</template>
+            <template #item.weight="{ item }"><span class="fnm-currency-num">{{ formatNum(item.weight) }}</span> Kg</template>
             <template #item.source_warehouse="{ item }">
               <v-chip v-if="item.source_warehouse_id" size="x-small" color="error" variant="tonal">{{ getWarehouseName(item.source_warehouse_id) }}</v-chip>
               <span v-else class="text-grey">-</span>
@@ -175,21 +176,21 @@
               <span v-else class="text-grey">-</span>
             </template>
             <template #item.source_tracking="{ item }">
-              <v-chip v-if="item.source_tracking_number" size="x-small" color="#F9A825" variant="tonal">{{ item.source_tracking_number }}</v-chip>
+              <v-chip v-if="item.source_tracking_number" size="x-small" color="#F9A825" variant="tonal" class="fnm-currency-num">{{ item.source_tracking_number }}</v-chip>
               <span v-else class="text-grey">-</span>
             </template>
             <template #item.package="{ item }">
               <span v-if="item.package_type_id">{{ getPackageName(item.package_type_id) }}</span>
               <span v-else class="text-grey">-</span>
             </template>
-            <template #item.nbr_box="{ item }">{{ item.nbr_box != null ? formatNum(item.nbr_box) : '-' }}</template>
+            <template #item.nbr_box="{ item }"><span class="fnm-currency-num">{{ item.nbr_box != null ? formatNum(item.nbr_box) : '-' }}</span></template>
             <template #item.actions="{ item }">
               <v-btn icon size="x-small" variant="text" color="warning" class="mr-1" @click="editArticle(item, group.category)"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="text" color="error" @click="transferStore.remove_detail(item._uid)"><v-icon size="16">mdi-delete</v-icon></v-btn>
             </template>
           </v-data-table>
           <v-btn v-if="selectedItems[group.category.id] && selectedItems[group.category.id].length > 0" block rounded variant="tonal" color="error" class="mt-2" prepend-icon="mdi-delete-sweep" @click="deleteSelected(group.category.id)">
-            {{ $t('delete_selected') }} ({{ selectedItems[group.category.id].length }})
+            {{ $t('delete_selected') }} (<span class="fnm-currency-num">{{ selectedItems[group.category.id].length }}</span>)
           </v-btn>
         </v-card-text>
       </v-card>
@@ -551,4 +552,9 @@ export default {
 <style scoped>
 .detail-transfers { font-family: 'Inter', sans-serif; }
 .text-transfer { color: #F9A825 !important; }
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

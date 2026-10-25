@@ -112,7 +112,7 @@
         </template>
 
         <template v-slot:[`item.usage_count`]="{ item }">
-          <v-chip size="x-small" color="#E65100" variant="tonal">{{ item.usage_count || 0 }}</v-chip>
+          <v-chip size="x-small" color="#E65100" variant="tonal" class="font-weight-bold fnm-currency-num">{{ item.usage_count || 0 }}</v-chip>
         </template>
 
         <template v-slot:[`item.actions`]="{ item }">
@@ -394,4 +394,9 @@ export default {
 .param-filter-input :deep(.v-field) { border-radius: 8px !important; font-size: 11px !important; }
 .param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 28px !important; }
 .param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

@@ -46,7 +46,7 @@
             </template>
             <template v-slot:[`item.has_sejour`]="{ item }"><v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">{{ item.has_sejour ? $t('yes') : $t('no') }}</v-chip></template>
             <template v-slot:[`item.allow_production_effect`]="{ item }"><v-chip :color="item.allow_production_effect ? '#a21ee5' : 'grey'" size="small" variant="tonal">{{ item.allow_production_effect ? $t('yes') : $t('no') }}</v-chip></template>
-            <template v-slot:[`item.operation_service_fee`]="{ item }">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '-' }}</template>
+            <template v-slot:[`item.operation_service_fee`]="{ item }"><span class="fnm-currency-num">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '-' }}</span></template>
             <template v-slot:[`item.category`]="{ item }"><v-chip :color="categoryColor(item.category?.name)" size="small" variant="tonal">{{ item.category?.name || 'N/A' }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
               <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openWarehouseDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
@@ -67,7 +67,7 @@
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
-            <template v-slot:[`item.warehouse_count`]="{ item }"><v-chip color="#a21ee5" size="small" variant="tonal">{{ item.warehouse_count || 0 }}</v-chip></template>
+            <template v-slot:[`item.warehouse_count`]="{ item }"><v-chip color="#a21ee5" size="small" variant="tonal" class="font-weight-bold fnm-currency-num">{{ item.warehouse_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
               <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openCategoryDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteCategory(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
@@ -216,13 +216,13 @@
                   <span v-else>{{ main.formateDate(item.end_date) }}</span>
                 </template>
                 <template v-slot:[`item.daily_rate_per_kg`]="{ item }">
-                  <span class="font-weight-bold" style="color:#a21ee5">{{ item.daily_rate_per_kg }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
+                  <span class="font-weight-bold fnm-currency-num" style="color:#a21ee5">{{ item.daily_rate_per_kg }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
                 </template>
                 <template v-slot:[`item.weight_unit`]="{ item }">
-                  <v-chip color="#a21ee5" size="small" variant="tonal" class="font-weight-bold">{{ formatWeightUnit(item.weight_unit || 1000) }} KG</v-chip>
+                  <v-chip color="#a21ee5" size="small" variant="tonal" class="font-weight-bold fnm-currency-num">{{ formatWeightUnit(item.weight_unit || 1000) }} KG</v-chip>
                 </template>
                 <template v-slot:[`item.service_unit_price`]="{ item }">
-                  <span class="font-weight-bold" style="color:#a21ee5">{{ item.service_unit_price || 0 }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
+                  <span class="font-weight-bold fnm-currency-num" style="color:#a21ee5">{{ item.service_unit_price || 0 }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
                 </template>
                 <template v-slot:[`item.actions`]="{ item }">
                   <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openRateDialog(item)" class="mr-1">
@@ -680,4 +680,9 @@ export default {
 .param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 26px !important; font-size: 11px; }
 .param-filter-input :deep(.v-field__clearable) { font-size: 14px; }
 .param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

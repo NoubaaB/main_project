@@ -9,17 +9,17 @@
         class="table_size"
         >
             <template v-slot:[`item.total_weight`]="{ item }">
-                {{ main.formatDisplayNumber(item.total_weight) }}
+                <span class="fnm-currency-num">{{ main.formatDisplayNumber(item.total_weight) }}</span>
             </template>
 
             <template v-slot:[`item.total_price`]="{ item }">
-                {{ main.formatDisplayNumber(item.total_price) }}
+                <span class="fnm-currency-num font-weight-bold text-success">{{ main.formatDisplayNumber(item.total_price) }}</span>
             </template>
             <template v-slot:[`item.unit_price`]="{ item }">
-                {{ main.formatDisplayNumber(item.unit_price) }}
+                <span class="fnm-currency-num">{{ main.formatDisplayNumber(item.unit_price) }}</span>
             </template>
             <template v-slot:[`item.total_package_count`]="{ item }">
-                <v-chip prepend-icon="mdi-package-variant-closed" :color="item.total_package_count?'info':main.not_aviable_color" class="ma-1">
+                <v-chip prepend-icon="mdi-package-variant-closed" :color="item.total_package_count?'info':main.not_aviable_color" class="ma-1 fnm-currency-num">
                     {{ main.formatDisplayNumberNonFloat(item.total_package_count) }}
                 </v-chip>
             </template>

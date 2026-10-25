@@ -579,18 +579,18 @@
                     </v-list-item>
                   </template>
                 </v-autocomplete>
-                <v-chip v-else-if="allowed_sigma(col.key)" color="info" class="mt-1 header-total">
+                <v-chip v-else-if="allowed_sigma(col.key)" color="info" class="mt-1 header-total fnm-currency-num">
                   <v-icon>mdi-sigma</v-icon> =
                   {{ cachedSigma[col.key] || 0 }}
                 </v-chip>
                 <div v-if="invoice_prop == col.key" >
-                  <v-chip color="success" class="mt-1 header-total">
+                  <v-chip color="success" class="mt-1 header-total fnm-currency-num">
                     <v-icon>mdi-sigma</v-icon> =
                     {{ cachedInvoiceTotals.invoiced || 0 }}
                     <v-icon class="ml-1">mdi-printer-check</v-icon>
                   </v-chip>
                   <v-divider class="mt-1"></v-divider>
-                  <v-chip color="warning" class="mt-1 header-total">
+                  <v-chip color="warning" class="mt-1 header-total fnm-currency-num">
                     <v-icon>mdi-sigma</v-icon> =
                     {{ cachedInvoiceTotals.none_invoiced || 0 }}
                     <v-icon class="ml-1">mdi-printer-pos-cog</v-icon>
@@ -620,7 +620,7 @@
       <v-col class="text-center mx-15" v-for="sigma_col in sigma" :key="sigma_col.name">
         <div class="text-info">{{$t(sigma_col.name)}}</div>
         <v-divider class="mt-1" color="light-blue-lighten-1" thickness="1" opacity="0.5" variant="dashed"></v-divider>    
-        <v-chip v-if="allowed_sigma(sigma_col.name)" color="info" class="mt-1 header-total">
+        <v-chip v-if="allowed_sigma(sigma_col.name)" color="info" class="mt-1 header-total fnm-currency-num">
           <v-icon>mdi-sigma</v-icon> =
           {{ cachedSigma[sigma_col.name] || 0 }}
           <v-icon class="ml-1">{{sigma_col.icon}}</v-icon>
@@ -629,7 +629,7 @@
       <v-col class="text-center mx-15" v-if="show_invoice">
         <div class="text-success">{{$t('invoice')}}</div>
         <v-divider class="mt-1" color="success" thickness="1" opacity="0.5" variant="dashed"></v-divider>
-        <v-chip color="success" class="mt-1 header-total">
+        <v-chip color="success" class="mt-1 header-total fnm-currency-num">
           <v-icon>mdi-sigma</v-icon> =
           {{ cachedInvoiceTotals.invoiced || 0 }}
           <v-icon class="ml-1">mdi-printer-check</v-icon>
@@ -638,7 +638,7 @@
       <v-col class="text-center mx-15" v-if="show_invoice">
         <div class="text-warning">{{$t('uninvoiced')}}</div>
         <v-divider class="mt-1" color="warning" thickness="1" opacity="0.5" variant="dashed"></v-divider>
-        <v-chip color="warning" class="mt-1 header-total">
+        <v-chip color="warning" class="mt-1 header-total fnm-currency-num">
           <v-icon>mdi-sigma</v-icon> =
           {{ cachedInvoiceTotals.none_invoiced || 0 }}
           <v-icon class="ml-1">mdi-printer-pos-cog</v-icon>
@@ -1917,10 +1917,15 @@ export default {
   max-width: 220px;
 }
 .header-bottom .header-filter,
-.header-bottom .header-total {
+.header-bottom .header-total,
+.header-total {
   white-space: nowrap;
   text-overflow: ellipsis;
   max-width: 260px;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  -webkit-font-feature-settings: "tnum" 1 !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .header-actions {
   flex: 0 0 auto;

@@ -49,7 +49,7 @@
                   {{ avgWeight(summary.charges) }} kg / rec
                 </span>
               </div>
-              <div class="metric-value text-blue-darken-2">
+              <div class="metric-value text-blue-darken-2 fnm-currency-num">
                 {{ main.formatDisplayNumber(summary.charges?.total_weight ?? 0) }}
                 <span class="metric-unit">kg</span>
               </div>
@@ -68,7 +68,7 @@
                   {{ avgPrice(summary.charges) }} {{ main.currency }} / rec
                 </span>
               </div>
-              <div class="metric-value text-blue-darken-4">
+              <div class="metric-value text-blue-darken-4 fnm-currency-num">
                 {{ main.formatDisplayNumber(summary.charges?.total_price ?? 0) }}
                 <span class="metric-unit">{{ main.currency }}</span>
               </div>
@@ -111,7 +111,7 @@
                   {{ avgWeight(summary.productions) }} kg / rec
                 </span>
               </div>
-              <div class="metric-value text-teal-darken-2">
+              <div class="metric-value text-teal-darken-2 fnm-currency-num">
                 {{ main.formatDisplayNumber(summary.productions?.total_weight ?? 0) }}
                 <span class="metric-unit">kg</span>
               </div>
@@ -130,7 +130,7 @@
                   {{ avgPrice(summary.productions) }} {{ main.currency }} / rec
                 </span>
               </div>
-              <div class="metric-value text-teal-darken-4">
+              <div class="metric-value text-teal-darken-4 fnm-currency-num">
                 {{ main.formatDisplayNumber(summary.productions?.total_price ?? 0) }}
                 <span class="metric-unit">{{ main.currency }}</span>
               </div>
@@ -173,7 +173,7 @@
                   {{ avgWeight(summary.shippings) }} kg / rec
                 </span>
               </div>
-              <div class="metric-value text-deep-purple-darken-1">
+              <div class="metric-value text-deep-purple-darken-1 fnm-currency-num">
                 {{ main.formatDisplayNumber(summary.shippings?.total_weight ?? 0) }}
                 <span class="metric-unit">kg</span>
               </div>
@@ -192,7 +192,7 @@
                   {{ avgPrice(summary.shippings) }} {{ main.currency }} / rec
                 </span>
               </div>
-              <div class="metric-value text-deep-purple-darken-3">
+              <div class="metric-value text-deep-purple-darken-3 fnm-currency-num">
                 {{ main.formatDisplayNumber(summary.shippings?.total_price ?? 0) }}
                 <span class="metric-unit">{{ main.currency }}</span>
               </div>
@@ -315,6 +315,10 @@ export default {
   font-weight: 800;
   letter-spacing: -0.3px;
   line-height: 1.2;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  -webkit-font-feature-settings: "tnum" 1 !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 
 :deep(.v-theme--dark) .card-charges .metric-value,

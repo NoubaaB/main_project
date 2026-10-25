@@ -31,17 +31,17 @@
           <div class="lwt-panel-header"><v-icon size="16" color="#F9A825" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
           <div v-for="(stat,si) in categoryStats" :key="si" class="lwt-stat-item mb-2">
             <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="#F9A825" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
-              <v-chip size="x-small" color="#F9A825" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+              <v-chip size="x-small" color="#F9A825" variant="tonal" class="font-weight-bold">{{ stat.name }} (<span class="fnm-currency-num">{{ stat.count }}</span>)</v-chip>
+              <v-chip size="x-small" color="#F9A825" variant="elevated" class="font-weight-bold fnm-currency-num">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
             </div>
             <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#F9A825" rounded height="6" class="mb-1"></v-progress-linear>
             <div class="d-flex align-center ga-3 text-caption">
-              <div><v-icon size="14" color="#F9A825">mdi-weight-kilogram</v-icon> {{ main.formatDisplayNumber(stat.weight) }} Kg</div>
+              <div><v-icon size="14" color="#F9A825">mdi-weight-kilogram</v-icon> <span class="fnm-currency-num">{{ main.formatDisplayNumber(stat.weight) }}</span> Kg</div>
             </div>
           </div>
           <div v-if="!categoryStats.length" class="text-center text-caption text-medium-emphasis pa-4">{{ $t('no_data_available') }}</div>
           <v-divider class="my-2" color="#F9A825"></v-divider>
-          <div class="d-flex align-center ga-1"><v-icon size="14" color="#F9A825">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><span class="text-caption font-weight-bold" style="color:#F9A825">{{ main.formatDisplayNumber(totalWeight) }} Kg</span></div>
+          <div class="d-flex align-center ga-1"><v-icon size="14" color="#F9A825">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><span class="text-caption font-weight-bold fnm-currency-num" style="color:#F9A825">{{ main.formatDisplayNumber(totalWeight) }} Kg</span></div>
         </div>
       </v-col>
     </v-row>
@@ -84,8 +84,8 @@
                 >
                   <template v-if="h.key==='expand'"><v-btn icon variant="text" size="x-small" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                   <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
-                  <template v-else-if="h.key==='total_weight'"><span class="font-weight-bold" style="color:#F9A825">{{ main.formatDisplayNumber(item.total_weight) }}</span></template>
-                  <template v-else-if="h.key==='_tracking'"><v-chip v-for="(tn,ti) in (item.transfer_tracking_number||[])" :key="ti" size="x-small" color="#F9A825" variant="tonal" class="mr-1">{{ tn }}</v-chip><span v-if="!(item.transfer_tracking_number||[]).length" class="text-grey">-</span></template>
+                  <template v-else-if="h.key==='total_weight'"><span class="font-weight-bold fnm-currency-num" style="color:#F9A825">{{ main.formatDisplayNumber(item.total_weight) }}</span></template>
+                  <template v-else-if="h.key==='_tracking'"><v-chip v-for="(tn,ti) in (item.transfer_tracking_number||[])" :key="ti" size="x-small" color="#F9A825" variant="tonal" class="mr-1 fnm-currency-num">{{ tn }}</v-chip><span v-if="!(item.transfer_tracking_number||[]).length" class="text-grey">-</span></template>
                   <template v-else-if="h.key==='actions'">
                     <v-btn v-if="auth.hasPermission('warehouse_transfers.edit')" icon variant="text" size="x-small" color="#F9A825" @click="$router.push({ name: 'edit_warehouse_transfer', params: { id: item.id } })"><v-icon size="16">mdi-pencil</v-icon></v-btn>
                     <v-btn v-if="auth.hasPermission('warehouse_transfers.delete')" icon variant="text" size="x-small" color="error" @click="confirmDelete(item.id)"><v-icon size="16">mdi-delete</v-icon></v-btn>
@@ -101,7 +101,7 @@
                     <div v-for="(grp, gi) in groupDetails(item)" :key="gi" class="mb-3">
                       <v-chip size="small" color="#F9A825" variant="tonal" class="mb-2 font-weight-bold">
                         {{ grp.category ? (grp.category[`name_${main.lang?.code||'en'}`] || grp.category.name_fr || '#') : '#' }}
-                        <span class="ml-1 text-caption">({{ grp.items.length }})</span>
+                        <span class="ml-1 text-caption">(<span class="fnm-currency-num">{{ grp.items.length }}</span>)</span>
                       </v-chip>
                       <table class="lwt-detail-table lwt-sub-table">
                         <thead><tr>
@@ -114,13 +114,13 @@
                         <tbody>
                           <tr v-for="d in grp.items" :key="d.id">
                             <td><v-chip size="x-small" color="#F9A825" variant="tonal">{{ articleName(d) }}</v-chip></td>
-                            <td class="font-weight-bold">{{ main.formatDisplayNumber(d.weight) }}</td>
+                            <td class="font-weight-bold fnm-currency-num">{{ main.formatDisplayNumber(d.weight) }}</td>
                             <td><v-chip size="x-small" color="error" variant="tonal">{{ warehouseName(d.source_warehouse_id) }}</v-chip></td>
-                            <td><v-chip v-if="d.source_tracking_number" size="x-small" color="#F9A825" variant="tonal">{{ d.source_tracking_number }}</v-chip><span v-else class="text-grey">-</span></td>
+                            <td><v-chip v-if="d.source_tracking_number" size="x-small" color="#F9A825" variant="tonal" class="fnm-currency-num">{{ d.source_tracking_number }}</v-chip><span v-else class="text-grey">-</span></td>
                             <td><v-chip size="x-small" color="success" variant="tonal">{{ warehouseName(d.destination_warehouse_id) }}</v-chip></td>
                           </tr>
                         </tbody>
-                        <tfoot class="lwt-tfoot"><tr><td></td><td class="text-center font-weight-bold" style="color:#F9A825">Σ {{ main.formatDisplayNumber(grp.totalW) }}</td><td colspan="3"></td></tr></tfoot>
+                        <tfoot class="lwt-tfoot"><tr><td></td><td class="text-center font-weight-bold fnm-currency-num" style="color:#F9A825">Σ {{ main.formatDisplayNumber(grp.totalW) }}</td><td colspan="3"></td></tr></tfoot>
                       </table>
                     </div>
                   </div>
@@ -128,14 +128,14 @@
               </tr>
             </template>
           </tbody>
-          <tfoot class="lwt-tfoot"><tr><td :colspan="headers.length"></td><td class="text-center font-weight-bold" style="color:#F9A825">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</td></tr></tfoot>
+          <tfoot class="lwt-tfoot"><tr><td :colspan="headers.length"></td><td class="text-center font-weight-bold fnm-currency-num" style="color:#F9A825">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</td></tr></tfoot>
         </table>
       </div>
     </div>
 
     <!-- Bulk actions -->
     <v-row v-if="selected.length && auth.hasPermission('warehouse_transfers.delete')" class="mt-2">
-      <v-col><v-btn block rounded variant="tonal" color="error" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn></v-col>
+      <v-col><v-btn block rounded variant="tonal" color="error" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} (<span class="fnm-currency-num">{{ selected.length }}</span>)</v-btn></v-col>
     </v-row>
 
     <!-- Excel export -->
@@ -186,5 +186,10 @@ export default {
   box-shadow: 2px 0 4px rgba(0,0,0,.4);
   background: #1c1f28 !important;
   color: #f1f5f9 !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 </style>

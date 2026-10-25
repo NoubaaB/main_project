@@ -44,7 +44,7 @@
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="familyColumnFilters[col.key]" :items="getFamilyColumnOptions(col.key)" density="compact" variant="outlined" color="#1565C0" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#1565C0" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
-            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="#1565C0" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
+            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="#1565C0" size="small" variant="tonal" class="fnm-currency-num font-weight-bold">{{ item.fish_types_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
               <v-btn icon size="x-small" variant="tonal" color="#1565C0" @click="openFamilyDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteFamily(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
@@ -107,7 +107,7 @@
               <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="processColumnFilters[col.key]" :items="getProcessColumnOptions(col.key)" density="compact" variant="outlined" color="#1565C0" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#1565C0" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
-            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="#1565C0" size="small" variant="tonal">{{ item.fish_types_count || 0 }}</v-chip></template>
+            <template v-slot:[`item.fish_types_count`]="{ item }"><v-chip color="#1565C0" size="small" variant="tonal" class="fnm-currency-num font-weight-bold">{{ item.fish_types_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
               <v-btn icon size="x-small" variant="tonal" color="#1565C0" @click="openProcessDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
               <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteProcess(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
@@ -1131,4 +1131,9 @@ export default {
 .param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 26px !important; font-size: 11px; }
 .param-filter-input :deep(.v-field__clearable) { font-size: 14px; }
 .param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

@@ -144,7 +144,7 @@
 
         <!-- Formula Column -->
         <template v-slot:[`item.formula`]="{ item }">
-          <code class="pa-1 px-2 rounded bg-indigo-lighten-5 text-indigo-darken-4 font-weight-bold">
+          <code class="pa-1 px-2 rounded bg-indigo-lighten-5 text-indigo-darken-4 font-weight-bold fnm-currency-num">
             {{ item.formula }}
           </code>
         </template>
@@ -555,7 +555,7 @@
                 <div class="text-caption text-indigo-darken-3 font-weight-bold">
                   {{ $t('evaluated_result') }}:
                 </div>
-                <div class="text-h6 font-weight-black text-indigo-darken-4">
+                <div class="text-h6 font-weight-black text-indigo-darken-4 fnm-currency-num">
                   <span v-if="!isFormulaInvalid && previewResult !== null && !isNaN(previewResult)">
                     {{ previewResult }} {{ form.unit }}
                   </span>
@@ -603,7 +603,7 @@
         <v-card-text class="pa-5">
           <div v-if="evaluatingItem" class="mb-3">
             <div class="text-caption text-grey mb-1">{{ $t('formula') }}:</div>
-            <code class="pa-2 d-block rounded bg-indigo-lighten-5 text-indigo-darken-4 font-weight-bold text-center">
+            <code class="pa-2 d-block rounded bg-indigo-lighten-5 text-indigo-darken-4 font-weight-bold text-center fnm-currency-num">
               {{ evaluatingItem.formula }}
             </code>
           </div>
@@ -633,7 +633,7 @@
 
           <v-card variant="tonal" color="#3F51B5" class="pa-4 rounded-lg mt-3 text-center">
             <div class="text-caption text-indigo-darken-2 font-weight-bold uppercase">{{ $t('calculated_result') }}</div>
-            <div class="text-h4 font-weight-black text-indigo-darken-4 my-1">
+            <div class="text-h4 font-weight-black text-indigo-darken-4 my-1 fnm-currency-num">
               <span v-if="evalModalResult !== null && !isNaN(evalModalResult)">
                 {{ evalModalResult }} {{ evaluatingItem?.unit }}
               </span>
@@ -1252,7 +1252,10 @@ export default {
 .cursor-pointer {
   cursor: pointer;
 }
-.font-monospace {
-  font-family: 'Fira Code', 'Courier New', Courier, monospace !important;
+.font-monospace,
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 </style>

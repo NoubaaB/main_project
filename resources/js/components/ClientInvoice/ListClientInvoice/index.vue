@@ -45,21 +45,21 @@
             </div>
             <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#00838F" bg-color="#B2EBF2" height="5" rounded class="mb-1"></v-progress-linear>
             <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="#00838F">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#00838F">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="#00838F">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#00838F" class="fnm-currency-num">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange fnm-currency-num">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
             </div>
           </div>
           <v-divider class="my-2"></v-divider>
           <!-- Summary totals -->
           <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-2"><v-icon size="14" color="#00838F">mdi-file-document-multiple</v-icon><span class="text-caption text-medium-emphasis">{{ $t('client_invoices') }}:</span><v-chip size="x-small" color="#00838F" variant="tonal"><b>{{ colFilteredItems.length }}</b></v-chip></div>
-            <div class="d-flex align-center ga-2"><v-icon size="14" color="#4643a0">mdi-package-variant-closed</v-icon><span class="text-caption text-medium-emphasis">{{ $t('shippings') }}:</span><v-chip size="x-small" color="#4643a0" variant="tonal"><b>{{ totalShippingsCount }}</b></v-chip></div>
-            <div class="d-flex align-center ga-2"><v-icon size="14" color="#00897B">mdi-factory</v-icon><span class="text-caption text-medium-emphasis">{{ $t('productions') }}:</span><v-chip size="x-small" color="#00897B" variant="tonal"><b>{{ totalProductionsCount }}</b></v-chip></div>
+            <div class="d-flex align-center ga-2"><v-icon size="14" color="#00838F">mdi-file-document-multiple</v-icon><span class="text-caption text-medium-emphasis">{{ $t('client_invoices') }}:</span><v-chip size="x-small" color="#00838F" variant="tonal"><b class="fnm-currency-num">{{ colFilteredItems.length }}</b></v-chip></div>
+            <div class="d-flex align-center ga-2"><v-icon size="14" color="#4643a0">mdi-package-variant-closed</v-icon><span class="text-caption text-medium-emphasis">{{ $t('shippings') }}:</span><v-chip size="x-small" color="#4643a0" variant="tonal"><b class="fnm-currency-num">{{ totalShippingsCount }}</b></v-chip></div>
+            <div class="d-flex align-center ga-2"><v-icon size="14" color="#00897B">mdi-factory</v-icon><span class="text-caption text-medium-emphasis">{{ $t('productions') }}:</span><v-chip size="x-small" color="#00897B" variant="tonal"><b class="fnm-currency-num">{{ totalProductionsCount }}</b></v-chip></div>
           </div>
           <v-divider class="my-2"></v-divider>
           <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#00838F">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b style="color:#00838F" class="text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#00838F">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b style="color:#00838F" class="text-caption fnm-currency-num">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption fnm-currency-num">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
           </div>
         </div>
       </v-col>
@@ -93,11 +93,11 @@
               <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
-                <template v-else-if="h.key==='_tracking_numbers'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_numbers||[])" :key="tn" size="x-small" color="#00838F" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.tracking_numbers||[]).length" class="text-grey">-</span></div></template>
+                <template v-else-if="h.key==='_tracking_numbers'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_numbers||[])" :key="tn" size="x-small" color="#00838F" variant="tonal" class="fnm-currency-num">{{ tn }}</v-chip><span v-if="!(item.tracking_numbers||[]).length" class="text-grey">-</span></div></template>
                 <template v-else-if="h.key==='_type_invoice'"><v-chip size="x-small" :color="item._type_invoice==='export'?'warning':'info'" variant="tonal">{{ $t(item._type_invoice==='export'?'export_type':'local') }}</v-chip></template>
                 <template v-else-if="h.key==='_clients'">{{ item._clients }}</template>
-                <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
-                <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>
+                <template v-else-if="h.key==='total_weight'"><span class="fnm-currency-num">{{ main.formatDisplayNumber(item.total_weight) }} Kg</span></template>
+                <template v-else-if="h.key==='total_price'"><span class="fnm-currency-num font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</span></template>
                 <template v-else-if="h.key==='print_counter'"><v-chip size="small" :color="item.print_counter>0?'success':'grey'" variant="tonal"><v-icon size="14" class="mr-1">mdi-printer</v-icon>{{ item.print_counter }}</v-chip></template>
                 <template v-else-if="h.key==='actions'">
                   <v-menu>

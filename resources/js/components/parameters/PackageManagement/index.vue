@@ -38,7 +38,7 @@
               class="font-weight-bold"
             >
               {{ comp.target_package_type ? (comp.target_package_type['name_' + main.lang.short] || comp.target_package_type.name_fr) : `#${comp.target_package_type_id}` }}
-              ({{ Number(comp.multiplier) }}x)
+              <span class="fnm-currency-num ms-1">({{ Number(comp.multiplier) }}x)</span>
             </v-chip>
           </div>
           <span v-else class="text-grey text-caption">-</span>
@@ -767,4 +767,9 @@ export default {
 .param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 26px !important; font-size: 11px; }
 .param-filter-input :deep(.v-field__clearable) { font-size: 14px; }
 .param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

@@ -388,32 +388,32 @@
               </template>
 
               <template #item.nbr_box="{ item }">
-                <v-chip v-if="item.nbr_box != null" size="small" color="teal" variant="tonal" class="font-weight-bold">
+                <v-chip v-if="item.nbr_box != null" size="small" color="teal" variant="tonal" class="font-weight-bold fnm-currency-num">
                   {{ item.nbr_box }} {{ $t('boxes') }}
                 </v-chip>
                 <span v-else class="text-grey">—</span>
               </template>
 
               <template #item.weight="{ item }">
-                <span class="font-weight-medium">{{ main.formatDisplayNumber(item.weight) }}</span>
+                <span class="font-weight-medium fnm-currency-num">{{ main.formatDisplayNumber(item.weight) }}</span>
               </template>
 
               <template #item.weight_invoice="{ item }">
-                <span class="text-medium-emphasis">{{ main.formatDisplayNumber(item.weight_invoice) }}</span>
+                <span class="text-medium-emphasis fnm-currency-num">{{ main.formatDisplayNumber(item.weight_invoice) }}</span>
               </template>
 
               <template #item.gap="{ item }">
-                <v-chip size="x-small" :color="Math.abs(Number(item.weight||0)-Number(item.weight_invoice||0)) < 0.01 ? 'success' : 'warning'" variant="tonal" class="font-weight-bold">
+                <v-chip size="x-small" :color="Math.abs(Number(item.weight||0)-Number(item.weight_invoice||0)) < 0.01 ? 'success' : 'warning'" variant="tonal" class="font-weight-bold fnm-currency-num">
                   {{ main.formatDisplayNumber(Math.abs(Number(item.weight||0)-Number(item.weight_invoice||0))) }}
                 </v-chip>
               </template>
 
               <template #item.unit_price="{ item }">
-                <span class="text-medium-emphasis">{{ main.formatDisplayNumber(item.unit_price) }}</span>
+                <span class="text-medium-emphasis fnm-currency-num">{{ main.formatDisplayNumber(item.unit_price) }}</span>
               </template>
 
               <template #item.total_price="{ item }">
-                <span class="font-weight-bold text-success">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</span>
+                <span class="font-weight-bold text-success fnm-currency-num">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</span>
               </template>
 
               <template #item.truck="{ item }">
@@ -439,10 +439,10 @@
             <div class="table-summary-strip pa-2 px-3 d-flex align-center justify-space-between flex-wrap ga-2 border-t">
               <div class="d-flex align-center ga-3 text-caption">
                 <span class="text-medium-emphasis">{{ group.items.length }} {{ $t('records_showing') || 'items' }}</span>
-                <span v-if="group.category.allow_weight" class="font-weight-bold text-charge">
+                <span v-if="group.category.allow_weight" class="font-weight-bold text-charge fnm-currency-num">
                   {{ $t('total_weight') }}: {{ main.formatDisplayNumber(getGroupTotalWeight(group)) }} Kg
                 </span>
-                <span v-if="group.category.allow_price || group.category.allow_unit_price" class="font-weight-bold text-success">
+                <span v-if="group.category.allow_price || group.category.allow_unit_price" class="font-weight-bold text-success fnm-currency-num">
                   {{ $t('total_price') }}: {{ main.formatDisplayNumber(getGroupTotalPrice(group)) }} {{ main.currency }}
                 </span>
               </div>

@@ -148,12 +148,12 @@
                     </v-chip>
                   </td>
                   <td class="font-weight-bold">{{ getArticleName(detail) }}</td>
-                  <td class="font-weight-bold" style="color:#6D4C41">{{ main.formatDisplayNumber(detail.weight) }}</td>
-                  <td>{{ main.formatDisplayNumber(detail.unit_price) }}</td>
-                  <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(detail.total_price) }}</td>
+                  <td class="font-weight-bold fnm-currency-num" style="color:#6D4C41">{{ main.formatDisplayNumber(detail.weight) }}</td>
+                  <td class="fnm-currency-num">{{ main.formatDisplayNumber(detail.unit_price) }}</td>
+                  <td class="font-weight-bold text-deep-orange fnm-currency-num">{{ main.formatDisplayNumber(detail.total_price) }}</td>
                   <td>{{ getPackageTypeName(detail.package_type_id) }}</td>
                   <td>
-                    <v-chip v-if="detail.nbr_box" size="x-small" color="#6D4C41" variant="tonal">{{ detail.nbr_box }}</v-chip>
+                    <v-chip v-if="detail.nbr_box" size="x-small" color="#6D4C41" variant="tonal" class="fnm-currency-num">{{ detail.nbr_box }}</v-chip>
                     <span v-else class="text-grey">-</span>
                   </td>
                   <td class="text-no-wrap">
@@ -169,9 +169,9 @@
               <tfoot>
                 <tr class="di-foot">
                   <td colspan="2" class="text-right font-weight-bold">{{ $t('total') }}:</td>
-                  <td class="font-weight-bold" style="color:#6D4C41">{{ main.formatDisplayNumber(warehouseTotalWeight(whId)) }} Kg</td>
+                  <td class="font-weight-bold fnm-currency-num" style="color:#6D4C41">{{ main.formatDisplayNumber(warehouseTotalWeight(whId)) }} Kg</td>
                   <td></td>
-                  <td class="font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(warehouseTotalPrice(whId)) }} {{ main.currency }}</td>
+                  <td class="font-weight-bold text-deep-orange fnm-currency-num">{{ main.formatDisplayNumber(warehouseTotalPrice(whId)) }} {{ main.currency }}</td>
                   <td colspan="3"></td>
                 </tr>
               </tfoot>

@@ -234,26 +234,68 @@
             </div>
 
             <div class="month-metrics-cluster">
-              <v-chip size="small" color="cyan-darken-3" variant="tonal" class="font-weight-bold font-monospace fnm-currency-num">
-                <v-icon size="12" start>mdi-arrow-up-circle</v-icon>
-                {{ main.formatDisplayNumber(monthTotals[m.num].invoices) }} {{ main.currency }}
-              </v-chip>
-              <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold font-monospace fnm-currency-num">
-                <v-icon size="12" start>mdi-arrow-down-circle</v-icon>
-                {{ main.formatDisplayNumber(monthTotals[m.num].payments) }} {{ main.currency }}
-              </v-chip>
-              <v-chip
-                size="small"
-                :color="monthTotals[m.num].balance > 0 ? 'error' : 'success'"
-                variant="flat"
-                class="font-weight-bold font-monospace fnm-currency-num"
+              <!-- Invoices KPI Pill -->
+              <div class="cs-metric-pill cs-metric-pill--invoices">
+                <div class="cs-pill-icon-wrap cs-icon--cyan">
+                  <v-icon size="14">mdi-receipt-text-outline</v-icon>
+                </div>
+                <div class="cs-pill-body">
+                  <span class="cs-pill-label">{{ $t('invoices') }}</span>
+                  <span class="cs-pill-value fnm-currency-num">
+                    {{ main.formatDisplayNumber(monthTotals[m.num].invoices) }}
+                    <span class="cs-pill-curr">{{ main.currency }}</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Payments KPI Pill -->
+              <div class="cs-metric-pill cs-metric-pill--payments">
+                <div class="cs-pill-icon-wrap cs-icon--teal">
+                  <v-icon size="14">mdi-cash-check</v-icon>
+                </div>
+                <div class="cs-pill-body">
+                  <span class="cs-pill-label">{{ $t('payments') }}</span>
+                  <span class="cs-pill-value fnm-currency-num">
+                    {{ main.formatDisplayNumber(monthTotals[m.num].payments) }}
+                    <span class="cs-pill-curr">{{ main.currency }}</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Month Balance KPI Pill -->
+              <div
+                class="cs-metric-pill cs-metric-pill--balance"
+                :class="monthTotals[m.num].balance > 0 ? 'cs-pill-bal--due' : 'cs-pill-bal--settled'"
               >
-                = {{ main.formatDisplayNumber(monthTotals[m.num].balance) }} {{ main.currency }}
-              </v-chip>
-              <v-chip size="small" color="blue-grey" variant="tonal" class="font-weight-bold font-monospace fnm-currency-num">
-                <v-icon size="12" start>mdi-bank-transfer</v-icon>
-                {{ $t('carry_forward') }}: {{ main.formatDisplayNumber(cumulativeBalance(m.num)) }} {{ main.currency }}
-              </v-chip>
+                <div
+                  class="cs-pill-icon-wrap"
+                  :class="monthTotals[m.num].balance > 0 ? 'cs-icon--red' : 'cs-icon--green'"
+                >
+                  <v-icon size="14">{{ monthTotals[m.num].balance > 0 ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}</v-icon>
+                </div>
+                <div class="cs-pill-body">
+                  <span class="cs-pill-label">{{ $t('balance') }}</span>
+                  <span class="cs-pill-value fnm-currency-num">
+                    {{ main.formatDisplayNumber(monthTotals[m.num].balance) }}
+                    <span class="cs-pill-curr">{{ main.currency }}</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Carry Forward / Cumulative KPI Pill -->
+              <div class="cs-metric-pill cs-metric-pill--carry">
+                <div class="cs-pill-icon-wrap cs-icon--slate">
+                  <v-icon size="14">mdi-bank-transfer</v-icon>
+                </div>
+                <div class="cs-pill-body">
+                  <span class="cs-pill-label">{{ $t('carry_forward') }}</span>
+                  <span class="cs-pill-value fnm-currency-num">
+                    {{ main.formatDisplayNumber(cumulativeBalance(m.num)) }}
+                    <span class="cs-pill-curr">{{ main.currency }}</span>
+                  </span>
+                </div>
+              </div>
+
               <v-btn
                 v-if="!isFutureMonth(m.num)"
                 icon
@@ -261,6 +303,7 @@
                 color="success"
                 size="x-small"
                 rounded="lg"
+                class="cs-excel-btn"
                 @click.stop="exportMonthExcel(m.num, m.label)"
                 :disabled="!invoicesByMonth[m.num].length && !paymentsByMonth[m.num].length"
               >
@@ -1744,6 +1787,124 @@ export default {
   gap: 8px;
   flex-wrap: wrap;
   margin-left: auto;
+}
+
+/* Executive Metric Pills */
+.cs-metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-border-color), 0.14);
+  background: rgba(var(--v-theme-surface), 0.95);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  user-select: none;
+}
+.cs-metric-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+}
+.cs-pill-icon-wrap {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.cs-metric-pill:hover .cs-pill-icon-wrap {
+  transform: scale(1.08);
+}
+.cs-pill-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+}
+.cs-pill-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+}
+.cs-pill-value {
+  font-size: 13.5px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -0.2px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  line-height: 1.2;
+}
+.cs-pill-curr {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+/* Client Invoices Theme (Cyan #00838F) */
+.cs-metric-pill--invoices {
+  background: linear-gradient(135deg, rgba(0, 131, 143, 0.05) 0%, rgba(38, 198, 218, 0.09) 100%);
+  border-color: rgba(0, 131, 143, 0.25);
+  color: #006064;
+}
+.cs-icon--cyan {
+  background: rgba(0, 131, 143, 0.12);
+  color: #00838F;
+}
+
+/* Payments Theme */
+.cs-metric-pill--payments {
+  background: linear-gradient(135deg, rgba(0, 137, 123, 0.05) 0%, rgba(38, 166, 154, 0.09) 100%);
+  border-color: rgba(0, 137, 123, 0.25);
+  color: #004d40;
+}
+.cs-icon--teal {
+  background: rgba(0, 137, 123, 0.12);
+  color: #00897B;
+}
+
+/* Balance Theme */
+.cs-pill-bal--due {
+  background: linear-gradient(135deg, rgba(211, 47, 47, 0.05) 0%, rgba(229, 57, 53, 0.1) 100%);
+  border-color: rgba(211, 47, 47, 0.28);
+  color: #c62828;
+}
+.cs-icon--red {
+  background: rgba(211, 47, 47, 0.12);
+  color: #d32f2f;
+}
+
+.cs-pill-bal--settled {
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.05) 0%, rgba(67, 160, 71, 0.1) 100%);
+  border-color: rgba(46, 125, 50, 0.25);
+  color: #1b5e20;
+}
+.cs-icon--green {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+/* Carry Forward Theme */
+.cs-metric-pill--carry {
+  background: linear-gradient(135deg, rgba(69, 90, 100, 0.05) 0%, rgba(96, 125, 139, 0.09) 100%);
+  border-color: rgba(69, 90, 100, 0.25);
+  color: #263238;
+}
+.cs-icon--slate {
+  background: rgba(69, 90, 100, 0.12);
+  color: #455A64;
+}
+
+.cs-excel-btn {
+  margin-left: 2px;
 }
 .cs-chevron {
   transition: transform .25s ease;

@@ -22,8 +22,8 @@
           </div>
           <div>
             <div class="d-flex align-baseline ga-2">
-              <span class="kpi-tile-val text-h6 font-weight-bold">{{ charts.length }}</span>
-              <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+              <span class="kpi-tile-val text-h6 font-weight-bold fnm-currency-num">{{ charts.length }}</span>
+              <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold fnm-currency-num">
                 {{ activeChartsCount }} {{ $t('active') || 'actifs' }}
               </v-chip>
             </div>
@@ -38,7 +38,7 @@
             <v-icon color="#0284c7" size="22">mdi-chart-areaspline</v-icon>
           </div>
           <div>
-            <div class="kpi-tile-val text-h6 font-weight-bold">{{ typeDistributionSummary }}</div>
+            <div class="kpi-tile-val text-h6 font-weight-bold fnm-currency-num">{{ typeDistributionSummary }}</div>
             <div class="kpi-tile-lbl text-caption text-medium-emphasis">{{ $t('chart_type') || 'Typologies visuelles' }}</div>
           </div>
         </div>
@@ -50,7 +50,7 @@
             <v-icon color="#4f46e5" size="22">mdi-database-eye-outline</v-icon>
           </div>
           <div>
-            <div class="kpi-tile-val text-h6 font-weight-bold">{{ totalSeriesCount }}</div>
+            <div class="kpi-tile-val text-h6 font-weight-bold fnm-currency-num">{{ totalSeriesCount }}</div>
             <div class="kpi-tile-lbl text-caption text-medium-emphasis">{{ $t('configured_series') || 'Flux de données / Séries' }}</div>
           </div>
         </div>
@@ -62,7 +62,7 @@
             <v-icon color="#d97706" size="22">mdi-engine-outline</v-icon>
           </div>
           <div>
-            <div class="kpi-tile-val text-h6 font-weight-bold">{{ activeSourcesCount }} / 6</div>
+            <div class="kpi-tile-val text-h6 font-weight-bold fnm-currency-num">{{ activeSourcesCount }} / 6</div>
             <div class="kpi-tile-lbl text-caption text-medium-emphasis">{{ $t('connected_sources') || 'Moteurs usine connectés' }}</div>
           </div>
         </div>
@@ -1360,4 +1360,10 @@ export default {
 .param-filter-input :deep(.v-field) { border-radius: 8px !important; font-size: 11px !important; }
 .param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 28px !important; }
 .param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
+.kpi-tile-val,
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

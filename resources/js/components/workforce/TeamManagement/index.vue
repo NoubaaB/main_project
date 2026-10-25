@@ -19,22 +19,22 @@
             <div class="d-flex flex-wrap align-center ga-2">
               <div class="tm-kpi-chip">
                 <v-icon size="16" color="#90CAF9" class="mr-1">mdi-account-group</v-icon>
-                <span class="tm-kpi-num">{{ teamStore.list.length }}</span>
+                <span class="tm-kpi-num fnm-currency-num">{{ teamStore.list.length }}</span>
                 <span class="tm-kpi-lbl">{{ $t('total_teams') }}</span>
               </div>
               <div class="tm-kpi-chip">
                 <v-icon size="16" color="#A5D6A7" class="mr-1">mdi-account-hard-hat</v-icon>
-                <span class="tm-kpi-num">{{ totalAssignedWorkforces }}</span>
+                <span class="tm-kpi-num fnm-currency-num">{{ totalAssignedWorkforces }}</span>
                 <span class="tm-kpi-lbl">{{ $t('total_assigned_workforces') }}</span>
               </div>
               <div class="tm-kpi-chip">
                 <v-icon size="16" color="#FFE082" class="mr-1">mdi-account-tie</v-icon>
-                <span class="tm-kpi-num">{{ chefsCount }}</span>
+                <span class="tm-kpi-num fnm-currency-num">{{ chefsCount }}</span>
                 <span class="tm-kpi-lbl">{{ $t('chef_de_equipe') }}</span>
               </div>
               <div class="tm-kpi-chip">
                 <v-icon size="16" color="#80DEEA" class="mr-1">mdi-chart-pie</v-icon>
-                <span class="tm-kpi-num">{{ avgTeamSize }}</span>
+                <span class="tm-kpi-num fnm-currency-num">{{ avgTeamSize }}</span>
                 <span class="tm-kpi-lbl">avg size</span>
               </div>
             </div>
@@ -220,7 +220,7 @@
                   :color="getWorkforceCountColor(item.workforces_count || (item.workforces ? item.workforces.length : 0))"
                   variant="tonal"
                   prepend-icon="mdi-account-hard-hat"
-                  class="cursor-pointer font-weight-bold"
+                  class="cursor-pointer font-weight-bold fnm-currency-num"
                   @click="openMembersDialog(item)"
                 >
                   {{ item.workforces_count || (item.workforces ? item.workforces.length : 0) }} {{ $t('workforces') }}
@@ -1078,6 +1078,14 @@ export default {
 .tm-kpi-num {
   font-weight: 800;
   margin-right: 4px;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .tm-kpi-lbl {
   opacity: 0.85;

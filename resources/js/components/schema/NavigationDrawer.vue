@@ -833,6 +833,7 @@ export default {
               perm: 'charges.view',
               children: [
                 ['mdi-view-list-outline', this.$t('list_charge'), 'list_charge', null, '#42A5F5'],
+                ['mdi-plus-circle-outline', this.$t('add_charge'), 'add_charge', 'charges.create', '#42A5F5'],
               ]
             },
             {
@@ -853,6 +854,7 @@ export default {
               perm: 'shippings.view',
               children: [
                 ['mdi-view-list-outline', this.$t('list_shipping'), 'list_shipping', null, '#4643a0'],
+                ['mdi-plus-circle-outline', this.$t('add_shipping'), 'add_shipping', 'shippings.create', '#4643a0'],
               ]
             },
             {
@@ -1140,12 +1142,21 @@ export default {
     },
 
     isRouteActive(routeName) {
-      return this.$route.name === routeName;
+      if (this.$route.name === routeName) {
+        if (routeName === 'list_charge' && this.$route.query.tab === 'add') return false;
+        if (routeName === 'list_shipping' && this.$route.query.tab === 'add') return false;
+        return true;
+      }
+      if (routeName === 'add_charge' && (this.$route.name === 'list_charge' && this.$route.query.tab === 'add')) return true;
+      if (routeName === 'add_shipping' && (this.$route.name === 'list_shipping' && this.$route.query.tab === 'add')) return true;
+      if (routeName === 'list_charge' && (this.$route.name === 'view_charge' || this.$route.name === 'edit_charge')) return true;
+      if (routeName === 'list_shipping' && (this.$route.name === 'view_shipping' || this.$route.name === 'edit_shipping')) return true;
+      return false;
     },
 
     isAnyChildActive(item) {
       if (!item.children) return false;
-      return item.children.some(c => c[2] === this.$route.name);
+      return item.children.some(c => this.isRouteActive(c[2]));
     },
 
     toggleGroup(groupId) {
@@ -2285,7 +2296,7 @@ export default {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  border: 2px solid #0d1117;
+  border: 1px solid #5cb379 !important;
 }
 
 .user-popover-banner {

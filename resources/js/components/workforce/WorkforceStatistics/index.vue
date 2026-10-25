@@ -363,10 +363,10 @@
               <v-icon color="#1976D2" size="22">mdi-cash-multiple</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val text-primary">{{ fmt(stats.grand_total) }} <span class="wfs-kpi-unit">{{ currency }}</span></div>
+          <div class="wfs-kpi-val text-primary fnm-currency-num">{{ fmt(stats.grand_total) }} <span class="wfs-kpi-unit">{{ currency }}</span></div>
           <div class="wfs-kpi-sub">
             <v-icon size="13" color="#1976D2" class="mr-1">mdi-chart-line</v-icon>
-            <span>~ {{ fmt(dailyAverage) }} {{ currency }} {{ $t('avg_per_day') }}</span>
+            <span>~ <span class="fnm-currency-num">{{ fmt(dailyAverage) }}</span> {{ currency }} {{ $t('avg_per_day') }}</span>
           </div>
         </div>
       </v-col>
@@ -381,10 +381,10 @@
               <v-icon color="#00897B" size="22">mdi-calendar-check-outline</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val" style="color: #00897B;">{{ stats.total_activities }}</div>
+          <div class="wfs-kpi-val fnm-currency-num" style="color: #00897B;">{{ stats.total_activities }}</div>
           <div class="wfs-kpi-sub">
             <v-icon size="13" color="#00897B" class="mr-1">mdi-calendar-range</v-icon>
-            <span>{{ stats.daily ? stats.daily.length : 0 }} {{ $t('active_work_days') }}</span>
+            <span><span class="fnm-currency-num">{{ stats.daily ? stats.daily.length : 0 }}</span> {{ $t('active_work_days') }}</span>
           </div>
         </div>
       </v-col>
@@ -399,7 +399,7 @@
               <v-icon color="#E65100" size="22">mdi-sitemap-outline</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val" style="color: #E65100;">{{ stats.sections ? stats.sections.length : 0 }}</div>
+          <div class="wfs-kpi-val fnm-currency-num" style="color: #E65100;">{{ stats.sections ? stats.sections.length : 0 }}</div>
           <div class="wfs-kpi-sub" :title="topSectionInfo">
             <v-icon size="13" color="#E65100" class="mr-1">mdi-trophy-outline</v-icon>
             <span class="text-truncate">{{ topSectionInfo }}</span>
@@ -417,10 +417,10 @@
               <v-icon color="#7B1FA2" size="22">mdi-account-group-outline</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val" style="color: #7B1FA2;">{{ stats.workforces ? stats.workforces.length : 0 }}</div>
+          <div class="wfs-kpi-val fnm-currency-num" style="color: #7B1FA2;">{{ stats.workforces ? stats.workforces.length : 0 }}</div>
           <div class="wfs-kpi-sub">
             <v-icon size="13" color="#7B1FA2" class="mr-1">mdi-account-tie</v-icon>
-            <span>{{ stats.corporals ? stats.corporals.length : 0 }} {{ $t('corporals') }}</span>
+            <span><span class="fnm-currency-num">{{ stats.corporals ? stats.corporals.length : 0 }}</span> {{ $t('corporals') }}</span>
           </div>
         </div>
       </v-col>
@@ -542,11 +542,11 @@
                     <div class="d-flex align-center ga-2">
                       <span class="wfs-rank-badge" :class="'wfs-rank-' + (idx + 1)">#{{ idx + 1 }}</span>
                       <span class="font-weight-bold text-body-2">{{ sec.name }}</span>
-                      <span class="text-caption text-medium-emphasis">({{ sec.count }} {{ $t('count') }})</span>
+                      <span class="text-caption text-medium-emphasis">(<span class="fnm-currency-num">{{ sec.count }}</span> {{ $t('count') }})</span>
                     </div>
                     <div class="text-right">
-                      <span class="font-weight-bold text-body-2" style="color: #E65100;">{{ fmt(sec.total) }} {{ currency }}</span>
-                      <span class="text-caption text-medium-emphasis ml-2">({{ calcPercent(sec.total, stats.grand_total) }}%)</span>
+                      <span class="font-weight-bold text-body-2 fnm-currency-num" style="color: #E65100;">{{ fmt(sec.total) }} {{ currency }}</span>
+                      <span class="text-caption text-medium-emphasis ml-2">(<span class="fnm-currency-num">{{ calcPercent(sec.total, stats.grand_total) }}</span>%)</span>
                     </div>
                   </div>
                   <v-progress-linear
@@ -619,11 +619,11 @@
                     <div class="d-flex align-center ga-2">
                       <span class="wfs-rank-badge" :class="'wfs-rank-' + (idx + 1)">#{{ idx + 1 }}</span>
                       <span class="font-weight-bold text-body-2">{{ corp.name }}</span>
-                      <span class="text-caption text-medium-emphasis">({{ corp.count }} {{ $t('count') }})</span>
+                      <span class="text-caption text-medium-emphasis">(<span class="fnm-currency-num">{{ corp.count }}</span> {{ $t('count') }})</span>
                     </div>
                     <div class="text-right">
-                      <span class="font-weight-bold text-body-2" style="color: #7B1FA2;">{{ fmt(corp.total) }} {{ currency }}</span>
-                      <span class="text-caption text-medium-emphasis ml-2">({{ calcPercent(corp.total, stats.grand_total) }}%)</span>
+                      <span class="font-weight-bold text-body-2 fnm-currency-num" style="color: #7B1FA2;">{{ fmt(corp.total) }} {{ currency }}</span>
+                      <span class="text-caption text-medium-emphasis ml-2">(<span class="fnm-currency-num">{{ calcPercent(corp.total, stats.grand_total) }}</span>%)</span>
                     </div>
                   </div>
                   <v-progress-linear
@@ -731,13 +731,13 @@
 
                 <!-- Matricule -->
                 <td>
-                  <v-chip size="x-small" variant="outlined" color="primary" class="font-weight-medium">
+                  <v-chip size="x-small" variant="outlined" color="primary" class="font-weight-medium fnm-currency-num">
                     {{ wf.matricule || '-' }}
                   </v-chip>
                 </td>
 
                 <!-- CIN -->
-                <td><span class="text-body-2">{{ wf.cin || '-' }}</span></td>
+                <td><span class="text-body-2 fnm-currency-num">{{ wf.cin || '-' }}</span></td>
 
                 <!-- Section -->
                 <td>
@@ -751,19 +751,19 @@
 
                 <!-- Work Days -->
                 <td class="text-center">
-                  <span class="font-weight-bold text-body-2">{{ wf.work_days || 0 }}</span>
+                  <span class="font-weight-bold text-body-2 fnm-currency-num">{{ wf.work_days || 0 }}</span>
                 </td>
 
                 <!-- Activities Count -->
                 <td class="text-center">
-                  <v-chip size="x-small" color="info" variant="tonal" class="font-weight-bold">
+                  <v-chip size="x-small" color="info" variant="tonal" class="font-weight-bold fnm-currency-num">
                     {{ wf.count || 0 }}
                   </v-chip>
                 </td>
 
                 <!-- Total Amount -->
                 <td class="text-right">
-                  <span class="font-weight-bold text-body-2 text-primary">{{ fmt(wf.total) }} {{ currency }}</span>
+                  <span class="font-weight-bold text-body-2 text-primary fnm-currency-num">{{ fmt(wf.total) }} {{ currency }}</span>
                 </td>
 
                 <!-- Action: Quick Filter -->
@@ -2080,6 +2080,14 @@ export default {
   line-height: 1.2;
   letter-spacing: -0.3px;
   margin-bottom: 4px;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .wfs-kpi-unit {
   font-size: 13px;

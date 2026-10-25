@@ -30,20 +30,20 @@
           <!-- Per-currency stats -->
           <div v-for="stat in currencyStats" :key="stat.name" class="ot-stat-item mb-2">
             <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
-              <v-chip size="x-small" color="success" variant="elevated" class="font-weight-bold">{{ formatNum(stat.total) }}</v-chip>
+              <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold"><span class="fnm-currency-num">{{ stat.name }} ({{ stat.count }})</span></v-chip>
+              <v-chip size="x-small" color="success" variant="elevated" class="font-weight-bold"><span class="fnm-currency-num">{{ formatNum(stat.total) }}</span></v-chip>
             </div>
             <v-progress-linear :model-value="totalAmount>0?(stat.total/totalAmount*100):0" color="#00897B" bg-color="teal-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
             <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="#00897B">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('amount') }}:</span><b class="text-success">{{ formatNum(stat.total) }} {{ stat.name }}</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-percent</v-icon><span class="text-medium-emphasis">{{ $t('share') }}:</span><b class="text-deep-orange">{{ totalAmount>0 ? Math.round(stat.total/totalAmount*1000)/10 : 0 }}%</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="#00897B">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('amount') }}:</span><b class="text-success fnm-currency-num">{{ formatNum(stat.total) }} {{ stat.name }}</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-percent</v-icon><span class="text-medium-emphasis">{{ $t('share') }}:</span><b class="text-deep-orange fnm-currency-num">{{ totalAmount>0 ? Math.round(stat.total/totalAmount*1000)/10 : 0 }}%</b></div>
             </div>
           </div>
           <v-divider class="my-2"></v-divider>
           <!-- Totals -->
           <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#00897B">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total') }}:</span><b class="text-success text-caption">{{ colFilteredItems.length }} {{ $t('records') }}</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_amount') }}:</span><b class="text-deep-orange text-caption">{{ formatNum(totalAmount) }}</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#00897B">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total') }}:</span><b class="text-success text-caption fnm-currency-num">{{ colFilteredItems.length }} {{ $t('records') }}</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_amount') }}:</span><b class="text-deep-orange text-caption fnm-currency-num">{{ formatNum(totalAmount) }}</b></div>
           </div>
         </div>
       </v-col>
@@ -86,9 +86,9 @@
             <tr class="ot-row">
               <td class="ot-td"><v-checkbox-btn :model-value="selectedIds.includes(item.id)" color="#00897B" density="compact" hide-details @update:model-value="toggleSelect(item.id)"></v-checkbox-btn></td>
               <td v-for="h in headers" :key="h.key" class="ot-td" :class="{'ot-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
-                <template v-if="h.key==='transfer_number'"><v-chip color="#00897B" variant="tonal" size="small" class="font-weight-bold">{{ item.transfer_number }}</v-chip></template>
+                <template v-if="h.key==='transfer_number'"><v-chip color="#00897B" variant="tonal" size="small" class="font-weight-bold fnm-currency-num">{{ item.transfer_number }}</v-chip></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
-                <template v-else-if="h.key==='amount'"><span class="font-weight-bold text-success">{{ formatNum(item.amount) }} {{ currencySymbol(item.currency) }}</span></template>
+                <template v-else-if="h.key==='amount'"><span class="font-weight-bold text-success fnm-currency-num">{{ formatNum(item.amount) }} {{ currencySymbol(item.currency) }}</span></template>
                 <template v-else-if="h.key==='currency'"><v-chip :color="item.currency==='MAD'?'#00897B':item.currency==='EUR'?'#1565C0':'#F57C00'" variant="tonal" size="small">{{ item.currency }}</v-chip></template>
                 <template v-else-if="h.key==='_beneficiaries'"><span class="text-caption">{{ item._beneficiaries }}</span></template>
                 <template v-else-if="h.key==='motif'"><span class="text-caption" style="max-width:200px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.motif || '-' }}</span></template>
@@ -102,7 +102,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="ot-tfoot"><tr><td class="ot-td"></td><td v-for="h in headers" :key="'f-'+h.key" class="ot-td text-center font-weight-bold"><template v-if="h.key==='amount'">Σ {{ formatNum(totalAmount) }}</template></td></tr></tfoot>
+        <tfoot class="ot-tfoot"><tr><td class="ot-td"></td><td v-for="h in headers" :key="'f-'+h.key" class="ot-td text-center font-weight-bold"><template v-if="h.key==='amount'"><span class="fnm-currency-num">Σ {{ formatNum(totalAmount) }}</span></template></td></tr></tfoot>
       </table>
     </div>
 
@@ -229,4 +229,9 @@ export default {
   color: #26A69A !important;
 }
 .text-ot{color:#00897B!important}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

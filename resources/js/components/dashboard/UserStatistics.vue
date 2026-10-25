@@ -148,7 +148,7 @@
               </div>
             </div>
             <div class="d-flex align-baseline ga-2">
-              <div class="text-h4 font-weight-black us-stat-val text-primary">
+              <div class="text-h4 font-weight-black us-stat-val fnm-currency-num text-primary">
                 {{ formatNumber(periodSummary.total_actions) }}
               </div>
               <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
@@ -158,7 +158,7 @@
             <div class="d-flex align-center justify-space-between mt-3 text-caption text-medium-emphasis">
               <span class="d-flex align-center">
                 <v-icon size="12" color="success" class="mr-1">mdi-arrow-up</v-icon>
-                {{ $t('today') }}: <strong class="ml-1 text-high-emphasis">{{ stats.today_stats?.total || 0 }}</strong>
+                {{ $t('today') }}: <strong class="ml-1 text-high-emphasis fnm-currency-num">{{ stats.today_stats?.total || 0 }}</strong>
               </span>
               <span>{{ stats.user_stats?.length || 0 }} {{ $t('users') }}</span>
             </div>
@@ -179,7 +179,7 @@
               </div>
             </div>
             <div class="d-flex align-baseline ga-2">
-              <div class="text-h4 font-weight-black us-stat-val text-teal-darken-1">
+              <div class="text-h4 font-weight-black us-stat-val fnm-currency-num text-teal-darken-1">
                 {{ periodSummary.active_users }}
               </div>
               <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold">
@@ -187,7 +187,7 @@
               </v-chip>
             </div>
             <div class="d-flex align-center justify-space-between mt-3 text-caption text-medium-emphasis">
-              <span>{{ $t('today') }}: <strong class="text-high-emphasis">{{ stats.today_stats?.active_users || 0 }}</strong></span>
+              <span>{{ $t('today') }}: <strong class="text-high-emphasis fnm-currency-num">{{ stats.today_stats?.active_users || 0 }}</strong></span>
               <span class="text-success font-weight-medium">
                 <v-icon size="12" color="success" class="mr-1">mdi-check-decagram</v-icon>
                 {{ percentActive }}%
@@ -210,15 +210,15 @@
               </div>
             </div>
             <div class="d-flex align-baseline ga-2">
-              <div class="text-h4 font-weight-black us-stat-val text-success">
+              <div class="text-h4 font-weight-black us-stat-val fnm-currency-num text-success">
                 {{ formatNumber(periodSummary.creates) }}
               </div>
-              <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+              <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold fnm-currency-num">
                 {{ percentCreates }}%
               </v-chip>
             </div>
             <div class="d-flex align-center justify-space-between mt-3 text-caption text-medium-emphasis">
-              <span>{{ $t('today') }}: <strong class="text-high-emphasis">{{ stats.today_stats?.creates || 0 }}</strong></span>
+              <span>{{ $t('today') }}: <strong class="text-high-emphasis fnm-currency-num">{{ stats.today_stats?.creates || 0 }}</strong></span>
               <span>{{ $t('creates') }}</span>
             </div>
           </v-card-text>
@@ -238,16 +238,16 @@
               </div>
             </div>
             <div class="d-flex align-baseline ga-2">
-              <div class="text-h4 font-weight-black us-stat-val text-warning">
+              <div class="text-h4 font-weight-black us-stat-val fnm-currency-num text-warning">
                 {{ formatNumber(periodSummary.updates) }}
               </div>
-              <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold">
+              <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold fnm-currency-num">
                 {{ percentUpdates }}%
               </v-chip>
             </div>
             <div class="d-flex align-center justify-space-between mt-3 text-caption text-medium-emphasis">
-              <span>{{ $t('today') }}: <strong class="text-high-emphasis">{{ stats.today_stats?.updates || 0 }}</strong></span>
-              <span class="text-error">{{ periodSummary.deletes }} {{ $t('deletes') }}</span>
+              <span>{{ $t('today') }}: <strong class="text-high-emphasis fnm-currency-num">{{ stats.today_stats?.updates || 0 }}</strong></span>
+              <span class="text-error fnm-currency-num">{{ periodSummary.deletes }} {{ $t('deletes') }}</span>
             </div>
           </v-card-text>
         </v-card>
@@ -516,7 +516,7 @@
 
                 <!-- Total Actions -->
                 <td>
-                  <div class="font-weight-black text-body-2 text-primary">
+                  <div class="font-weight-black text-body-2 text-primary fnm-currency-num">
                     {{ formatNumber(u.total_actions) }}
                   </div>
                   <v-progress-linear
@@ -531,21 +531,21 @@
 
                 <!-- Creates -->
                 <td>
-                  <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                  <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold fnm-currency-num">
                     +{{ formatNumber(u.creates) }}
                   </v-chip>
                 </td>
 
                 <!-- Updates -->
                 <td>
-                  <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold">
+                  <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold fnm-currency-num">
                     ~{{ formatNumber(u.updates) }}
                   </v-chip>
                 </td>
 
                 <!-- Deletes -->
                 <td>
-                  <v-chip size="x-small" color="error" variant="tonal" class="font-weight-bold">
+                  <v-chip size="x-small" color="error" variant="tonal" class="font-weight-bold fnm-currency-num">
                     -{{ formatNumber(u.deletes) }}
                   </v-chip>
                 </td>
@@ -1897,6 +1897,10 @@ export default {
 .us-stat-val {
   letter-spacing: -0.5px;
   line-height: 1.1;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  -webkit-font-feature-settings: "tnum" 1 !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 
 /* ── Panel Cards & Visuals ── */

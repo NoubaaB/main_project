@@ -19,22 +19,22 @@
             <div class="d-flex flex-wrap align-center ga-2">
               <div class="wfm-kpi-chip">
                 <v-icon size="16" color="#90CAF9" class="mr-1">mdi-account-group</v-icon>
-                <span class="wfm-kpi-num">{{ items.length }}</span>
+                <span class="wfm-kpi-num fnm-currency-num">{{ items.length }}</span>
                 <span class="wfm-kpi-lbl">{{ $t('total') }}</span>
               </div>
               <div class="wfm-kpi-chip">
                 <v-icon size="16" color="#A5D6A7" class="mr-1">mdi-file-document-check-outline</v-icon>
-                <span class="wfm-kpi-num">{{ declaredCount }}</span>
+                <span class="wfm-kpi-num fnm-currency-num">{{ declaredCount }}</span>
                 <span class="wfm-kpi-lbl">{{ $t('declared') }}</span>
               </div>
               <div class="wfm-kpi-chip">
                 <v-icon size="16" color="#FFE082" class="mr-1">mdi-cash-lock</v-icon>
-                <span class="wfm-kpi-num">{{ fixedPayCount }}</span>
+                <span class="wfm-kpi-num fnm-currency-num">{{ fixedPayCount }}</span>
                 <span class="wfm-kpi-lbl">{{ $t('fixed_pay') }}</span>
               </div>
               <div class="wfm-kpi-chip">
                 <v-icon size="16" color="#FFCC80" class="mr-1">mdi-earth</v-icon>
-                <span class="wfm-kpi-num">{{ migrantCount }}</span>
+                <span class="wfm-kpi-num fnm-currency-num">{{ migrantCount }}</span>
                 <span class="wfm-kpi-lbl">{{ $t('migrant') }}</span>
               </div>
             </div>
@@ -193,7 +193,7 @@
                     {{ item.full_name }}
                   </div>
                   <div class="d-flex align-center ga-1 mt-0">
-                    <span class="text-caption font-weight-medium text-medium-emphasis">#{{ item.matricule }}</span>
+                    <span class="text-caption font-weight-medium text-medium-emphasis fnm-currency-num">#{{ item.matricule }}</span>
                     <span v-if="item.nationality" class="text-caption text-disabled">• {{ item.nationality }}</span>
                   </div>
                 </div>
@@ -202,7 +202,7 @@
 
             <!-- Matricule -->
             <template v-slot:[`item.matricule`]="{ item }">
-              <v-chip size="x-small" variant="tonal" color="#1565C0" class="font-weight-bold">
+              <v-chip size="x-small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num">
                 {{ item.matricule }}
               </v-chip>
             </template>
@@ -272,7 +272,7 @@
 
             <!-- Daily Price -->
             <template v-slot:[`item.daily_price`]="{ item }">
-              <v-chip v-if="item.fixed_daily_pay" size="small" color="success" variant="tonal" class="font-weight-bold">
+              <v-chip v-if="item.fixed_daily_pay" size="small" color="success" variant="tonal" class="font-weight-bold fnm-currency-num">
                 {{ formatNumber(item.daily_price) }} {{ main.currency || 'DH' }}
               </v-chip>
               <span v-else class="text-grey text-caption">—</span>
@@ -1037,6 +1037,14 @@ export default {
 .wfm-kpi-num {
   font-weight: 800;
   margin-right: 4px;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 .wfm-kpi-lbl {
   opacity: 0.85;

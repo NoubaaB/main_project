@@ -1185,6 +1185,10 @@ table.invoice-table tbody tr.invoice-empty-row td {
     font-size: 11.5px;
     font-weight: 800;
     letter-spacing: 0.02em;
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+    font-variant-numeric: tabular-nums !important;
+    -webkit-font-feature-settings: "tnum" 1 !important;
+    font-feature-settings: "tnum" 1 !important;
 }
 
 .pagination-wrap {

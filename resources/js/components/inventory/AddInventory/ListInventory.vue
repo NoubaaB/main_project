@@ -32,20 +32,20 @@
           <!-- Per-category stats -->
           <div v-for="(stat,si) in categoryStats" :key="si" class="li-stat-item mb-2">
             <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="#6D4C41" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
-              <v-chip size="x-small" color="#6D4C41" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+              <v-chip size="x-small" color="#6D4C41" variant="tonal" class="font-weight-bold">{{ stat.name }} (<span class="fnm-currency-num">{{ stat.count }}</span>)</v-chip>
+              <v-chip size="x-small" color="#6D4C41" variant="elevated" class="font-weight-bold fnm-currency-num">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
             </div>
             <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#6D4C41" bg-color="brown-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
             <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="#6D4C41">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#6D4C41">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="#6D4C41">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color:#6D4C41" class="fnm-currency-num">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange fnm-currency-num">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
             </div>
           </div>
           <!-- Totals -->
           <v-divider class="my-2"></v-divider>
           <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#6D4C41">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b style="color:#6D4C41" class="text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#6D4C41">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b style="color:#6D4C41" class="text-caption fnm-currency-num">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption fnm-currency-num">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
           </div>
         </div>
       </v-col>
@@ -92,12 +92,12 @@
                 <!-- date -->
                 <template v-else-if="h.key==='date'">{{ (item.date||'').slice(0,10) }}</template>
                 <!-- tracking chips -->
-                <template v-else-if="h.key==='_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.inventory_tracking_numbers||[])" :key="tn" size="x-small" color="#6D4C41" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.inventory_tracking_numbers||[]).length" class="text-grey">-</span></div></template>
+                <template v-else-if="h.key==='_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.inventory_tracking_numbers||[])" :key="tn" size="x-small" color="#6D4C41" variant="tonal" class="fnm-currency-num">{{ tn }}</v-chip><span v-if="!(item.inventory_tracking_numbers||[]).length" class="text-grey">-</span></div></template>
                 <!-- weight/price -->
-                <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
-                <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>
+                <template v-else-if="h.key==='total_weight'"><span class="fnm-currency-num">{{ main.formatDisplayNumber(item.total_weight) }}</span> Kg</template>
+                <template v-else-if="h.key==='total_price'"><span class="fnm-currency-num">{{ main.formatDisplayNumber(item.total_price) }}</span> {{ main.currency }}</template>
                 <!-- details count -->
-                <template v-else-if="h.key==='_details_count'"><v-chip size="x-small" color="#6D4C41" variant="tonal">{{ item._details_count }}</v-chip></template>
+                <template v-else-if="h.key==='_details_count'"><v-chip size="x-small" color="#6D4C41" variant="tonal" class="fnm-currency-num font-weight-bold">{{ item._details_count }}</v-chip></template>
                 <!-- actions -->
                 <template v-else-if="h.key==='actions'">
                   <v-btn v-if="auth.hasPermission('inventory.edit')" icon size="x-small" variant="tonal" color="#6D4C41" @click="editInventory(item)" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
@@ -125,18 +125,18 @@
                     <td class="font-weight-bold">{{ articleName(di) }}</td>
                     <td><v-chip v-if="di.warehouse" size="x-small" variant="tonal">{{ di.warehouse.name }}</v-chip><span v-else>-</span></td>
                     <td><v-chip v-if="di.warehouse_operation" :color="di.warehouse_operation==='stock_in'?'success':'warning'" size="x-small" variant="tonal">{{ di.warehouse_operation }}</v-chip><span v-else>-</span></td>
-                    <td>{{ main.formatDisplayNumber(di.weight) }}</td>
-                    <td>{{ main.formatDisplayNumber(di.unit_price) }}</td>
-                    <td>{{ main.formatDisplayNumber(di.total_price) }}</td>
+                    <td class="fnm-currency-num">{{ main.formatDisplayNumber(di.weight) }}</td>
+                    <td class="fnm-currency-num">{{ main.formatDisplayNumber(di.unit_price) }}</td>
+                    <td class="fnm-currency-num">{{ main.formatDisplayNumber(di.total_price) }}</td>
                   </tr></tbody>
-                  <tfoot><tr class="li-detail-foot"><td colspan="3" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalW) }}</td><td></td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalP) }}</td></tr></tfoot>
+                  <tfoot><tr class="li-detail-foot"><td colspan="3" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold fnm-currency-num">{{ main.formatDisplayNumber(grp.totalW) }}</td><td></td><td class="font-weight-bold fnm-currency-num">{{ main.formatDisplayNumber(grp.totalP) }}</td></tr></tfoot>
                   </table>
                 </div>
               </div>
             </td></tr>
           </template>
         </tbody>
-        <tfoot class="li-tfoot"><tr><td class="li-td"></td><td v-for="h in headers" :key="'foot-'+h.key" class="li-td text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        <tfoot class="li-tfoot"><tr><td class="li-td"></td><td v-for="h in headers" :key="'foot-'+h.key" class="li-td text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ <span class="fnm-currency-num">{{ main.formatDisplayNumber(totalWeight) }}</span> Kg</template><template v-else-if="h.key==='total_price'">Σ <span class="fnm-currency-num">{{ main.formatDisplayNumber(totalPrice) }}</span> {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
   </v-card-text>
@@ -198,4 +198,9 @@ export default {
 .li-detail-table th{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.6;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.1)}
 .li-detail-table td{padding:6px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.05)}
 .li-detail-foot td{padding:8px 10px;background:rgba(109,76,65,.04);border-top:1px solid rgba(109,76,65,.15)}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

@@ -205,19 +205,19 @@
             <v-row class="ma-0 mb-3 ga-2">
               <v-col class="pa-2 kpi-mini-card rounded-lg">
                 <div class="text-caption text-medium-emphasis">{{ $t('warehouses') || 'Warehouses' }}</div>
-                <div class="text-h6 font-weight-bold" style="color: #6D4C41">
+                <div class="text-h6 font-weight-bold fnm-currency-num" style="color: #6D4C41">
                   {{ previewData.warehouses.length }}
                 </div>
               </v-col>
               <v-col class="pa-2 kpi-mini-card rounded-lg">
                 <div class="text-caption text-medium-emphasis">{{ $t('total_weight_to_clear') || 'Weight to Clear' }}</div>
-                <div class="text-h6 font-weight-bold" style="color: #6D4C41">
+                <div class="text-h6 font-weight-bold fnm-currency-num" style="color: #6D4C41">
                   {{ main.formatDisplayNumber(previewData.grand_total_weight) }} Kg
                 </div>
               </v-col>
               <v-col class="pa-2 kpi-mini-card rounded-lg">
                 <div class="text-caption text-medium-emphasis">{{ $t('total_value_to_clear') || 'Value to Clear' }}</div>
-                <div class="text-h6 font-weight-bold text-success">
+                <div class="text-h6 font-weight-bold text-success fnm-currency-num">
                   {{ main.formatDisplayNumber(previewData.grand_total_price) }} {{ main.currency }}
                 </div>
               </v-col>
@@ -238,13 +238,13 @@
                         <span class="font-weight-bold text-body-2">{{ wh.warehouse_name }}</span>
                       </div>
                       <div class="d-flex align-center ga-3 text-caption">
-                        <span style="color: #6D4C41" class="font-weight-bold">
+                        <span style="color: #6D4C41" class="font-weight-bold fnm-currency-num">
                           {{ main.formatDisplayNumber(wh.total_weight) }} Kg
                         </span>
-                        <span class="text-success font-weight-bold">
+                        <span class="text-success font-weight-bold fnm-currency-num">
                           {{ main.formatDisplayNumber(wh.total_price) }} {{ main.currency }}
                         </span>
-                        <v-chip size="x-small" color="#6D4C41" variant="tonal">
+                        <v-chip size="x-small" color="#6D4C41" variant="tonal" class="fnm-currency-num font-weight-bold">
                           {{ wh.articles_count }} {{ $t('articles') || 'articles' }}
                         </v-chip>
                       </div>
@@ -266,11 +266,11 @@
                             <span class="text-body-2">{{ art.article_name }}</span>
                             <span class="text-caption text-medium-emphasis ml-1">({{ art.stockable_type }})</span>
                           </td>
-                          <td class="text-right">{{ art.package_count || 0 }}</td>
-                          <td class="text-right font-weight-bold" style="color: #6D4C41">
+                          <td class="text-right fnm-currency-num">{{ art.package_count || 0 }}</td>
+                          <td class="text-right font-weight-bold fnm-currency-num" style="color: #6D4C41">
                             {{ main.formatDisplayNumber(art.remaining_weight) }}
                           </td>
-                          <td class="text-right text-success font-weight-medium">
+                          <td class="text-right text-success font-weight-medium fnm-currency-num">
                             {{ main.formatDisplayNumber(art.total_price) }}
                           </td>
                         </tr>
@@ -344,13 +344,13 @@
               </v-chip>
             </td>
             <td class="text-right font-weight-bold" style="color: #6D4C41">
-              {{ main.formatDisplayNumber(reset.total_weight_cleared) }}
+              <span class="fnm-currency-num">{{ main.formatDisplayNumber(reset.total_weight_cleared) }}</span>
             </td>
             <td class="text-right font-weight-medium text-success">
-              {{ main.formatDisplayNumber(reset.total_price_cleared) }} {{ main.currency }}
+              <span class="fnm-currency-num">{{ main.formatDisplayNumber(reset.total_price_cleared) }}</span> {{ main.currency }}
             </td>
             <td class="text-center">
-              <v-chip size="x-small" variant="outlined" color="#6D4C41">
+              <v-chip size="x-small" variant="outlined" color="#6D4C41" class="fnm-currency-num font-weight-bold">
                 {{ reset.articles_count }}
               </v-chip>
             </td>
@@ -405,15 +405,15 @@
             </div>
             <div class="d-flex justify-space-between">
               <span class="text-medium-emphasis">{{ $t('cutoff_date') }}:</span>
-              <strong>{{ resetDate }}</strong>
+              <strong class="fnm-currency-num">{{ resetDate }}</strong>
             </div>
             <div v-if="previewData" class="d-flex justify-space-between">
               <span class="text-medium-emphasis">{{ $t('total_weight_cleared') }}:</span>
-              <strong style="color: #6D4C41">{{ main.formatDisplayNumber(previewData.grand_total_weight) }} Kg</strong>
+              <strong style="color: #6D4C41" class="fnm-currency-num">{{ main.formatDisplayNumber(previewData.grand_total_weight) }} Kg</strong>
             </div>
             <div v-if="previewData" class="d-flex justify-space-between">
               <span class="text-medium-emphasis">{{ $t('total_value_cleared') }}:</span>
-              <strong class="text-success">{{ main.formatDisplayNumber(previewData.grand_total_price) }} {{ main.currency }}</strong>
+              <strong class="text-success fnm-currency-num">{{ main.formatDisplayNumber(previewData.grand_total_price) }} {{ main.currency }}</strong>
             </div>
           </div>
           <v-alert
@@ -467,8 +467,8 @@
           </p>
           <div v-if="resetToUndo" class="text-caption d-flex flex-column ga-1">
             <div>{{ $t('warehouse') }}: <strong>{{ resetToUndo.warehouse?.name }}</strong></div>
-            <div>{{ $t('cutoff_date') }}: <strong>{{ formatDate(resetToUndo.reset_date) }}</strong></div>
-            <div>{{ $t('weight') }}: <strong>{{ main.formatDisplayNumber(resetToUndo.total_weight_cleared) }} Kg</strong></div>
+            <div>{{ $t('cutoff_date') }}: <strong class="fnm-currency-num">{{ formatDate(resetToUndo.reset_date) }}</strong></div>
+            <div>{{ $t('weight') }}: <strong class="fnm-currency-num">{{ main.formatDisplayNumber(resetToUndo.total_weight_cleared) }} Kg</strong></div>
           </div>
         </v-card-text>
         <v-card-actions class="pa-4 pt-0">
@@ -840,5 +840,11 @@ export default {
 .date-picker-wrapper :deep(.vc-container) {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.12) !important;
   border-radius: 12px !important;
+}
+
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
 }
 </style>

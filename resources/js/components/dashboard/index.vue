@@ -25,7 +25,7 @@
                 <v-icon size="12" class="mr-1">mdi-clock-outline</v-icon>
                 {{ systemInfo.shift || 'Shift A' }}
               </span>
-              <span class="time-pill">
+              <span class="time-pill fnm-currency-num">
                 <v-icon size="12" class="mr-1">mdi-timer-outline</v-icon>
                 {{ currentTime }}
               </span>
@@ -134,14 +134,14 @@
         <div class="kpi-card-data">
           <span class="kpi-label">{{ $t('raw_reception') || 'Raw Reception' }}</span>
           <div class="kpi-metric-row">
-            <span class="kpi-main-val">{{ formatWeight(kpiPeriod === 'month' ? kpis.charges.month_weight : kpis.charges.today_weight) }}</span>
+            <span class="kpi-main-val fnm-currency-num">{{ formatWeight(kpiPeriod === 'month' ? kpis.charges.month_weight : kpis.charges.today_weight) }}</span>
             <span class="kpi-unit">T</span>
           </div>
           <div class="kpi-footer-row">
             <span class="kpi-sub-count">
               {{ kpiPeriod === 'month' ? kpis.charges.month_count : kpis.charges.today_count }} {{ $t('charges') }}
             </span>
-            <span class="kpi-total-hint">({{ formatNumber(kpis.charges.total_count) }} {{ $t('total_records') || 'total' }})</span>
+            <span class="kpi-total-hint fnm-currency-num">({{ formatNumber(kpis.charges.total_count) }} {{ $t('total_records') || 'total' }})</span>
           </div>
         </div>
         <div class="kpi-card-watermark">
@@ -160,14 +160,14 @@
         <div class="kpi-card-data">
           <span class="kpi-label">{{ $t('fish_processed') || 'Processed Fish' }}</span>
           <div class="kpi-metric-row">
-            <span class="kpi-main-val">{{ formatWeight(kpiPeriod === 'month' ? kpis.productions.month_weight : kpis.productions.today_weight) }}</span>
+            <span class="kpi-main-val fnm-currency-num">{{ formatWeight(kpiPeriod === 'month' ? kpis.productions.month_weight : kpis.productions.today_weight) }}</span>
             <span class="kpi-unit">T</span>
           </div>
           <div class="kpi-footer-row">
             <span class="kpi-sub-count">
               {{ kpiPeriod === 'month' ? kpis.productions.month_count : kpis.productions.today_count }} {{ $t('production') }}
             </span>
-            <span class="kpi-total-hint">({{ formatNumber(kpis.productions.total_count) }} {{ $t('total_records') || 'total' }})</span>
+            <span class="kpi-total-hint fnm-currency-num">({{ formatNumber(kpis.productions.total_count) }} {{ $t('total_records') || 'total' }})</span>
           </div>
         </div>
         <div class="kpi-card-watermark">
@@ -186,14 +186,14 @@
         <div class="kpi-card-data">
           <span class="kpi-label">{{ $t('export_dispatch') || 'Export Shipments' }}</span>
           <div class="kpi-metric-row">
-            <span class="kpi-main-val">{{ formatWeight(kpiPeriod === 'month' ? kpis.shippings.month_weight : kpis.shippings.today_weight) }}</span>
+            <span class="kpi-main-val fnm-currency-num">{{ formatWeight(kpiPeriod === 'month' ? kpis.shippings.month_weight : kpis.shippings.today_weight) }}</span>
             <span class="kpi-unit">T</span>
           </div>
           <div class="kpi-footer-row">
             <span class="kpi-sub-count">
               {{ kpiPeriod === 'month' ? kpis.shippings.month_count : kpis.shippings.today_count }} {{ $t('shippings') }}
             </span>
-            <span class="kpi-total-hint">({{ formatNumber(kpis.shippings.total_count) }} {{ $t('total_records') || 'total' }})</span>
+            <span class="kpi-total-hint fnm-currency-num">({{ formatNumber(kpis.shippings.total_count) }} {{ $t('total_records') || 'total' }})</span>
           </div>
         </div>
         <div class="kpi-card-watermark">
@@ -212,14 +212,14 @@
         <div class="kpi-card-data">
           <span class="kpi-label">{{ $t('cold_storage') || 'Cold Storage' }}</span>
           <div class="kpi-metric-row">
-            <span class="kpi-main-val">{{ formatWeight(kpis.warehouses.stored_weight) }}</span>
+            <span class="kpi-main-val fnm-currency-num">{{ formatWeight(kpis.warehouses.stored_weight) }}</span>
             <span class="kpi-unit">T</span>
           </div>
           <div class="kpi-footer-row">
             <span class="kpi-sub-count">
               {{ kpis.warehouses.total_warehouses }} {{ $t('warehouses') }}
             </span>
-            <span class="kpi-total-hint">({{ formatShort(kpis.warehouses.stored_packages) }} {{ $t('package_count_label') || 'pkgs' }})</span>
+            <span class="kpi-total-hint fnm-currency-num">({{ formatShort(kpis.warehouses.stored_packages) }} {{ $t('package_count_label') || 'pkgs' }})</span>
           </div>
         </div>
         <div class="kpi-card-watermark">
@@ -347,7 +347,7 @@
                   </div>
                   <div class="feed-item-bottom">
                     <span class="feed-item-entity">{{ act.subtitle }}</span>
-                    <span class="feed-item-weight">{{ formatNumber(act.weight) }} kg</span>
+                    <span class="feed-item-weight fnm-currency-num">{{ formatNumber(act.weight) }} kg</span>
                   </div>
                 </div>
               </div>
@@ -1206,6 +1206,10 @@ export default {
   font-weight: 800;
   letter-spacing: -0.5px;
   line-height: 1.1;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  -webkit-font-feature-settings: "tnum" 1 !important;
+  font-feature-settings: "tnum" 1 !important;
   color: rgba(var(--v-theme-on-surface), 0.95);
 }
 
