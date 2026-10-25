@@ -32,7 +32,7 @@ class ProductionController extends Controller
             ->join('charge_categories', 'charges.charge_category_id', '=', 'charge_categories.id')
             ->join('fish_types', function ($join) {
                 $join->on('detail_charges.stockable_id', '=', 'fish_types.id')
-                    ->where('detail_charges.stockable_type', '=', 'FishType');
+                    ->whereIn('detail_charges.stockable_type', ['FishType', 'App\\Models\\FishType']);
             })
             ->whereNull('detail_charges.deleted_at')
             ->whereNull('charges.deleted_at')
@@ -55,7 +55,7 @@ class ProductionController extends Controller
             ->join('productions', 'detail_productions.production_id', '=', 'productions.id')
             ->join('fish_types', function ($join) {
                 $join->on('detail_productions.stockable_id', '=', 'fish_types.id')
-                    ->where('detail_productions.stockable_type', '=', 'FishType');
+                    ->whereIn('detail_productions.stockable_type', ['FishType', 'App\\Models\\FishType']);
             })
             ->whereNull('detail_productions.deleted_at')
             ->whereNull('productions.deleted_at')
@@ -76,7 +76,7 @@ class ProductionController extends Controller
             ->join('productions', 'detail_productions.production_id', '=', 'productions.id')
             ->whereNull('detail_productions.deleted_at')
             ->whereNull('productions.deleted_at')
-            ->where('detail_productions.stockable_type', 'GuanoType');
+            ->whereIn('detail_productions.stockable_type', ['GuanoType', 'App\\Models\\GuanoType']);
 
         if ($dateStart && $dateEnd) {
             $guanoQuery->whereBetween('productions.date', [$dateStart, $dateEnd]);
@@ -124,7 +124,7 @@ class ProductionController extends Controller
                 ->join('productions', 'detail_productions.production_id', '=', 'productions.id')
                 ->join('fish_types', function ($join) use ($pt) {
                     $join->on('detail_productions.stockable_id', '=', 'fish_types.id')
-                        ->where('detail_productions.stockable_type', '=', 'FishType')
+                        ->whereIn('detail_productions.stockable_type', ['FishType', 'App\\Models\\FishType'])
                         ->where('fish_types.fish_process_type_id', '=', $pt->id);
                 })
                 ->whereNull('detail_productions.deleted_at')
@@ -146,7 +146,7 @@ class ProductionController extends Controller
                 ->join('charge_categories', 'charges.charge_category_id', '=', 'charge_categories.id')
                 ->join('fish_types', function ($join) use ($pt) {
                     $join->on('detail_charges.stockable_id', '=', 'fish_types.id')
-                        ->where('detail_charges.stockable_type', '=', 'FishType')
+                        ->whereIn('detail_charges.stockable_type', ['FishType', 'App\\Models\\FishType'])
                         ->where('fish_types.fish_process_type_id', '=', $pt->id);
                 })
                 ->whereNull('detail_charges.deleted_at')
@@ -673,7 +673,7 @@ class ProductionController extends Controller
                     // FIFO query: Order chronologically by date asc, id asc
                     $query = WarehouseBalance::where(function ($q) use ($pTypeId) {
                             $q->where(function ($q2) use ($pTypeId) {
-                                $q2->where('stockable_type', 'PackageType')
+                                $q2->whereIn('stockable_type', ['PackageType', 'App\\Models\\PackageType'])
                                    ->where('stockable_id', $pTypeId);
                             })->orWhere('package_type_id', $pTypeId);
                         })
@@ -692,7 +692,7 @@ class ProductionController extends Controller
                     if ($packageBalances->isEmpty() && $targetWarehouseId) {
                         $packageBalances = WarehouseBalance::where(function ($q) use ($pTypeId) {
                                 $q->where(function ($q2) use ($pTypeId) {
-                                    $q2->where('stockable_type', 'PackageType')
+                                    $q2->whereIn('stockable_type', ['PackageType', 'App\\Models\\PackageType'])
                                        ->where('stockable_id', $pTypeId);
                                 })->orWhere('package_type_id', $pTypeId);
                             })

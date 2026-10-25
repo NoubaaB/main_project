@@ -2,6 +2,7 @@
   <div class="chart-preview-wrap">
     <apexchart
       v-if="computedOptions && computedSeries.length"
+      :key="`${effectiveType}-${chartConfig.chart_type}-${categories.length}`"
       :type="effectiveType"
       :height="height"
       :options="computedOptions"
@@ -27,37 +28,20 @@ export default {
     height: { type: [String, Number], default: 350 },
   },
   computed: {
-    pieDonutOverride() {
-      for (const s of this.series) {
-        const sType = s.type || s.series_type;
-        if (sType === 'pie' || sType === 'donut') return sType;
-      }
-      return null;
-    },
-
     effectiveType() {
-      if (this.pieDonutOverride) return this.pieDonutOverride;
       const t = this.chartConfig.chart_type || 'bar';
-      if (this.isMixedChart) return 'line';
-      if (t === 'mixed') return 'line';
+      if (['pie', 'donut'].includes(t)) return t;
+      if (t === 'mixed' || this.isMixedChart) return 'line';
       if (t === 'bar') return 'bar';
       if (t === 'radar') return 'radar';
+      if (t === 'area') return 'area';
+      if (t === 'line') return 'line';
       return t;
     },
 
     isMixedChart() {
-      if (this.pieDonutOverride) return false;
       const chartType = this.chartConfig.chart_type || 'bar';
-      if (chartType === 'mixed') return true;
-      if (['pie', 'donut', 'radar', 'heatmap'].includes(chartType)) return false;
-
-      const mainSeriesType = chartType === 'bar' ? 'column' : chartType;
-
-      return this.series.some(s => {
-        const sType = s.type || s.series_type || mainSeriesType;
-        if (sType === 'pie' || sType === 'donut') return false;
-        return sType !== mainSeriesType;
-      });
+      return chartType === 'mixed';
     },
 
     unitAxisMap() {
@@ -77,16 +61,17 @@ export default {
     },
 
     computedSeries() {
-      if (['pie', 'donut'].includes(this.chartConfig.chart_type) || this.pieDonutOverride) {
+      const chartType = this.chartConfig.chart_type || 'bar';
+
+      if (['pie', 'donut'].includes(chartType)) {
         const pieSeries = this.series.find(s => ['pie', 'donut'].includes(s.type || s.series_type)) || this.series[0];
         return pieSeries ? (pieSeries.data || []) : [];
       }
 
-      const chartType = this.chartConfig.chart_type || 'bar';
       const mainSeriesType = chartType === 'bar' ? 'column' : chartType;
 
       return this.series.map(s => {
-        const seriesType = s.type || s.series_type || mainSeriesType;
+        const seriesType = (chartType === 'mixed') ? (s.type || s.series_type || 'column') : mainSeriesType;
         return {
           name: s.name,
           type: this.isMixedChart ? seriesType : undefined,
@@ -183,11 +168,11 @@ export default {
       }
 
       // Pie/donut labels
-      if (['pie', 'donut'].includes(this.chartConfig.chart_type) || this.pieDonutOverride) {
+      if (['pie', 'donut'].includes(this.chartConfig.chart_type)) {
         base.labels = this.categories;
         base.dataLabels = { enabled: true, style: { fontSize: '13px', fontWeight: 600 } };
         base.legend = { position: 'bottom', fontSize: '13px', fontWeight: 500 };
-        if (this.pieDonutOverride === 'donut' || this.chartConfig.chart_type === 'donut') {
+        if (this.chartConfig.chart_type === 'donut') {
           base.plotOptions = {
             pie: {
               donut: {

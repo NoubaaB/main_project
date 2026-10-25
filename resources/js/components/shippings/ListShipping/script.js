@@ -9,19 +9,33 @@ import { useWarehouse } from '@/stores/Warehouse';
 import { useFishProcessType } from '@/stores/FishProcessType';
 import mitt from '@/plugins/mitt.js';
 import * as XLSX from 'xlsx';
-import { createListWorker } from '@/utils/listDataWorker.js';
+import { createListWorker, extractAdvFilterOptions } from '@/utils/listDataWorker.js';
 export default {
   name: 'ListShipping',
   data() {
     const n = new Date(), sm = new Date(n.getFullYear(), n.getMonth(), 1);
     return {
+      tableModuleKey: 'shipping',
+      moduleColor: '#4643a0',
       shippings: [], loading: false, selected: [],
       searchQuery: '',
       dateRange: [sm, n], dateMenu: false,
       colFilters: {}, colSorts: [], pinState: {},
       expanded: {},
+      tableConfigMenu: false,
       showAdvanced: false, showInvoice: false,
-      advFilter: { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] },
+      advFilter: {
+        articleTypes: [],
+        articleType: null,
+        fishFamilies: [],
+        fishFreshFrozen: [],
+        fishProcessTypes: [],
+        fishTypes: [],
+        guanoTypes: [],
+        packageTypes: [],
+        warehouses: []
+      },
+      workerAdvOptions: null,
       invForm: { date: null, type_invoice: 'local', trackingNumbers: [], trackingInput: '', incoterm: null, currency: null, total_gross_weight: null, intermediary_company: '', intermediary_address: '', intermediary_country: '', destination_company: '', destination_address: '', destination_country: '', shipment_country: '', tax_percentage: 0, export_details: [] },
       invChecking: false,
       deleteDialog: false, deleting: false, deleteId: null, deleteBulk: false,
@@ -75,17 +89,70 @@ export default {
     },
     activeFilterCount() {
       let count = 0;
-      Object.values(this.colFilters).forEach(vals => { if (vals && vals.length) count++; });
-      const af = this.advFilter;
-      if (af.warehouses?.length) count++;
-      if (af.articleType) count++;
-      if (af.fishFamilies?.length) count++;
-      if (af.fishFreshFrozen?.length) count++;
-      if (af.fishProcessTypes?.length) count++;
-      if (af.guanoTypes?.length) count++;
-      if (af.packageTypes?.length) count++;
       if (this.searchQuery && this.searchQuery.trim()) count++;
+      if (this.colFilters) {
+        Object.values(this.colFilters).forEach(v => {
+          if (Array.isArray(v) && v.length) count += v.length;
+        });
+      }
+      count += this.activeAdvFilterCount;
       return count;
+    },
+    activeAdvFilterCount() {
+      if (!this.advFilter) return 0;
+      const af = this.advFilter;
+      let count = 0;
+      if (af.articleTypes?.length) count += af.articleTypes.length;
+      else if (af.articleType) count++;
+      if (af.warehouses?.length) count += af.warehouses.length;
+      if (af.fishFamilies?.length) count += af.fishFamilies.length;
+      if (af.fishFreshFrozen?.length) count += af.fishFreshFrozen.length;
+      if (af.fishProcessTypes?.length) count += af.fishProcessTypes.length;
+      if (af.fishTypes?.length) count += af.fishTypes.length;
+      if (af.guanoTypes?.length) count += af.guanoTypes.length;
+      if (af.packageTypes?.length) count += af.packageTypes.length;
+      return count;
+    },
+    dynamicAdvOptions() {
+      const lang = this.main.lang?.code || 'en';
+      const items = this.shippings || [];
+      return extractAdvFilterOptions(
+        items,
+        this.advFilter || {},
+        {
+          fishFamilies: this.fishFamilies,
+          fishTypes: this.fishTypes,
+          fishProcessTypes: this.fishProcessTypes,
+          guanoTypes: this.guanoTypes,
+          packageTypes: this.packageTypes,
+          warehouses: this.warehouses,
+        },
+        lang
+      );
+    },
+    articleTypeOptions() {
+      return this.dynamicAdvOptions?.articleTypes || [];
+    },
+    warehouseOptions() {
+      return this.dynamicAdvOptions?.warehouses || [];
+    },
+    fishFamilyOptions() {
+      return this.dynamicAdvOptions?.fishFamilies || [];
+    },
+    fishFreshFrozenOptions() {
+      return this.dynamicAdvOptions?.fishFreshFrozen || [];
+    },
+    fishProcessTypeOptions() {
+      return this.dynamicAdvOptions?.fishProcessTypes || [];
+    },
+    fishTypeOptions() {
+      return this.dynamicAdvOptions?.fishTypes || [];
+    },
+    guanoTypeOptions() {
+      return this.dynamicAdvOptions?.guanoTypes || [];
+    },
+    packageTypeOptions() {
+      return this.dynamicAdvOptions?.packageTypes || [];
     },
     itemsById() {
       const m = new Map();
@@ -179,7 +246,12 @@ export default {
       return rules;
     },
   },
-  mounted() { this.columnOrder = this.allHeaders.filter(h => !h.fixed).map(h => h.key); this.fetchShippings(); mitt.on('model-changed', this.onMC) },
+  mounted() {
+    this.columnOrder = this.allHeaders.filter(h => !h.fixed).map(h => h.key);
+    if (this.loadTableConfig) this.loadTableConfig();
+    this.fetchShippings();
+    mitt.on('model-changed', this.onMC);
+  },
   activated() { this.fetchShippings(); },
   beforeUnmount() {
     mitt.off('model-changed', this.onMC);
@@ -226,6 +298,9 @@ export default {
           this.workerChartBuckets = res.chartBuckets;
           this.workerFilterOptions = res.filterOptions || {};
           this.workerFilterOptionCounts = res.filterOptionCounts || {};
+          if (res.advFilterOptions) {
+            this.workerAdvOptions = res.advFilterOptions;
+          }
         }
       } catch (e) {
         console.error('[dispatchWorkerFilter error]', e);
@@ -333,22 +408,37 @@ export default {
     onColFilterChange() {
       this.dispatchWorkerFilter(0);
     },
-    toggleSort(key) { const i = this.colSorts.findIndex(s => s.key === key); if (i === -1) this.colSorts.push({ key, dir: 'asc' }); else if (this.colSorts[i].dir === 'asc') this.colSorts[i].dir = 'desc'; else this.colSorts.splice(i, 1) },
-    sortDir(key) { const s = this.colSorts.find(x => x.key === key); return s ? s.dir : null },
-    sortIdx(key) { return this.colSorts.findIndex(x => x.key === key) + 1 },
-    sortItems(items) { if (!this.colSorts.length) return items; return [...items].sort((a, b) => { for (const { key, dir } of this.colSorts) { let va = key === 'shipping_category_id' ? this.catName(a[key]) : a[key], vb = key === 'shipping_category_id' ? this.catName(b[key]) : b[key]; if (va == null) va = ''; if (vb == null) vb = ''; const n = typeof va === 'number' && typeof vb === 'number'; if (n) { if (va !== vb) return dir === 'asc' ? va - vb : vb - va } else { const c = String(va).localeCompare(String(vb)); if (c) return dir === 'asc' ? c : -c } } return 0 }) },
-    togglePin(k) { const cur = this.pinState[k]; if (!cur) this.pinState[k] = 'left'; else if (cur === 'left') this.pinState[k] = 'right'; else delete this.pinState[k]; this.pinState = { ...this.pinState } },
-    isPinned(k) { return !!this.pinState[k] },
-    pinSide(k) { return this.pinState[k] || null },
-    getPinLeft(key) { let o = this.colWidths['__checkbox'] || 50; for (const h of this.headers) { if (h.key === key) break; if (this.pinState[h.key] === 'left') o += (this.colWidths[h.key] || 150) } return o },
-    getPinRight(key) { let o = 0; const rev = [...this.headers].reverse(); for (const h of rev) { if (h.key === key) break; if (this.pinState[h.key] === 'right') o += (this.colWidths[h.key] || 150) } return o },
-    toggleExpand(id) { this.expanded[id] = !this.expanded[id]; this.expanded = { ...this.expanded } },
-    onDragStart(key) { this.dragCol = key },
-    onDragOver(key, e) { e.preventDefault(); this.dragOverCol = key },
-    onDragEnd() { if (this.dragCol && this.dragOverCol && this.dragCol !== this.dragOverCol) { const order = [...this.columnOrder]; const fi = order.indexOf(this.dragCol); const ti = order.indexOf(this.dragOverCol); if (fi > -1 && ti > -1) { order.splice(fi, 1); order.splice(ti, 0, this.dragCol); this.columnOrder = order } } this.dragCol = null; this.dragOverCol = null },
+    sortItems(items) { if (!this.colSorts || !this.colSorts.length) return items; return [...items].sort((a, b) => { for (const { key, dir } of this.colSorts) { let va = key === 'shipping_category_id' ? this.catName(a[key]) : a[key], vb = key === 'shipping_category_id' ? this.catName(b[key]) : b[key]; if (va == null) va = ''; if (vb == null) vb = ''; const n = typeof va === 'number' && typeof vb === 'number'; if (n) { if (va !== vb) return dir === 'asc' ? va - vb : vb - va } else { const c = String(va).localeCompare(String(vb)); if (c) return dir === 'asc' ? c : -c } } return 0 }) },
     groupDetails(shipping) { const groups = {}; (shipping.detail_shippings || []).forEach(dc => { const catId = dc.detail_shipping_category_id; if (!groups[catId]) groups[catId] = { category: dc.detail_shipping_category, items: [], totalW: 0, totalP: 0 }; groups[catId].items.push(dc); groups[catId].totalW += Number(dc.weight || 0); groups[catId].totalP += Number(dc.total_price || 0) }); return Object.values(groups) },
     articleName(dc) { if (!dc.stockable_type || dc.stockable_type === 'text') return dc.article_description || '-'; const s = dc.stockable; return s ? (s.name || s[`name_${this.main.lang?.code}`] || '-') : '-' },
-    articleFamily(dc) { if (dc.stockable_type === 'FishType' && dc.stockable) { const fam = this.fishFamilies.find(f => f.id === dc.stockable.fish_family_id); return fam ? (fam[`name_${this.main.lang?.code}`] || fam.name || '-') : '-' } return '-' },
+    articleFamily(dc) { if ((dc.stockable_type === 'FishType' || dc.stockable_type?.includes('FishType')) && dc.stockable) { const fam = this.fishFamilies.find(f => f.id === dc.stockable.fish_family_id); return fam ? (fam[`name_${this.main.lang?.code}`] || fam.name || '-') : '-' } return '-' },
+    clearAdvFilters() {
+      this.advFilter = {
+        articleTypes: [],
+        articleType: null,
+        fishFamilies: [],
+        fishFreshFrozen: [],
+        fishProcessTypes: [],
+        guanoTypes: [],
+        packageTypes: [],
+        warehouses: [],
+      };
+      this.dispatchWorkerFilter(0);
+    },
+    clearAllFilters() {
+      this.searchQuery = '';
+      this.colFilters = {};
+      this.clearAdvFilters();
+    },
+    removeAdvFilterItem(category, val) {
+      if (!this.advFilter) return;
+      if (Array.isArray(this.advFilter[category])) {
+        this.advFilter[category] = this.advFilter[category].filter(x => x !== val);
+      } else if (this.advFilter[category] === val) {
+        this.advFilter[category] = null;
+      }
+      this.dispatchWorkerFilter(0);
+    },
     confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true },
     confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true },
     async execDelete() { this.deleting = true; try { const ids = this.deleteBulk ? this.selected : [this.deleteId]; await axios.delete('/api/shipping', { data: { ids } }); this.main.add_snackbar({ show: true, message: this.$t('delete_many_shippings'), color: 'success' }); this.selected = []; this.deleteDialog = false; this.fetchShippings() } catch (e) { console.error(e) } this.deleting = false },
@@ -424,12 +514,35 @@ export default {
         this.invForm = this.resetInvForm(); this.showInvoice = false; this.fetchShippings();
       } catch (e) { console.error(e) }
     },
+    clearAdvFilters() {
+      this.advFilter = {
+        articleTypes: [],
+        articleType: null,
+        fishFamilies: [],
+        fishFreshFrozen: [],
+        fishProcessTypes: [],
+        fishTypes: [],
+        guanoTypes: [],
+        packageTypes: [],
+        warehouses: [],
+      };
+      this.dispatchWorkerFilter(0);
+    },
     clearAllFilters() {
       this.colFilters = {};
-      this.advFilter = { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] };
+      this.clearAdvFilters();
       this.searchQuery = '';
       this.dispatchWorkerFilter(0);
       if (this.resetTableScroll) this.resetTableScroll();
+    },
+    removeAdvFilterItem(category, val) {
+      if (!this.advFilter) return;
+      if (Array.isArray(this.advFilter[category])) {
+        this.advFilter[category] = this.advFilter[category].filter(x => x !== val);
+      } else if (this.advFilter[category] === val) {
+        this.advFilter[category] = null;
+      }
+      this.dispatchWorkerFilter(0);
     },
     cancelInvoice() { this.selected = []; this.invForm = this.resetInvForm(); this.showInvoice = false; },
     exportExcel() { const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions' && h.key !== 'expand').forEach(h => { row[h.title] = this.cellText(h.key, c) }); return row }); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Shippings'); XLSX.writeFile(wb, `shippings_${this.today}.xlsx`) },

@@ -220,101 +220,222 @@
     </v-card-text>
 
     <!-- Add/Edit Dialog -->
-    <v-dialog v-model="dialog.show" max-width="620" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon color="#00BCD4" class="mr-2">{{ dialog.editId ? 'mdi-pencil' : 'mdi-plus-circle' }}</v-icon>
-          <span>{{ dialog.editId ? $t('edit_static_charge') : $t('add_static_charge') }}</span>
-          <v-spacer></v-spacer>
-          <v-btn icon variant="text" size="small" @click="dialog.show = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
+    <v-dialog v-model="dialog.show" max-width="680" persistent scrollable>
+      <v-card class="rounded-xl overflow-hidden" elevation="24">
+        <!-- Dialog Header Banner -->
+        <div class="sc-dialog-hero pa-5">
+          <div class="d-flex align-center justify-space-between">
+            <div class="d-flex align-center ga-3">
+              <div class="sc-dialog-hero-icon">
+                <v-icon color="white" size="26">{{ dialog.editId ? 'mdi-pencil-box-outline' : 'mdi-plus-circle-outline' }}</v-icon>
+              </div>
+              <div>
+                <div class="sc-dialog-title text-white font-weight-black">
+                  {{ dialog.editId ? $t('edit_static_charge') : $t('add_static_charge') }}
+                </div>
+                <div class="text-caption text-white opacity-80">
+                  {{ $t('static_charge_dialog_subtitle') || 'Paramétrez les charges d\'exploitation avec horizon temporel flexible' }}
+                </div>
+              </div>
+            </div>
+            <v-btn icon variant="text" size="small" color="white" @click="dialog.show = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </div>
+        </div>
 
-        <v-divider style="border-color: #00BCD4;"></v-divider>
+        <v-card-text class="pa-5" style="max-height: 75vh;">
+          <!-- Section 1: Multilingual Name with Tab Switcher -->
+          <div class="sc-section-card rounded-xl pa-4 mb-4 border">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <div class="d-flex align-center ga-2">
+                <v-icon color="#00BCD4" size="18">mdi-translate</v-icon>
+                <span class="text-caption font-weight-bold text-medium-emphasis">
+                  {{ $t('charge_name_and_translations') || 'Nom de la charge & Traductions' }}
+                </span>
+              </div>
+              <div class="d-flex align-center ga-1">
+                <v-btn-toggle v-model="dialogLangTab" mandatory density="compact" rounded="lg" color="#00BCD4" variant="outlined">
+                  <v-btn value="en" size="x-small" class="font-weight-bold">
+                    <span class="mr-1">🇬🇧</span> EN
+                    <v-icon v-if="dialog.form.name_en" size="10" color="success" class="ml-1">mdi-check</v-icon>
+                  </v-btn>
+                  <v-btn value="fr" size="x-small" class="font-weight-bold">
+                    <span class="mr-1">🇫🇷</span> FR
+                    <v-icon v-if="dialog.form.name_fr" size="10" color="success" class="ml-1">mdi-check</v-icon>
+                  </v-btn>
+                  <v-btn value="es" size="x-small" class="font-weight-bold">
+                    <span class="mr-1">🇪🇸</span> ES
+                    <v-icon v-if="dialog.form.name_es" size="10" color="success" class="ml-1">mdi-check</v-icon>
+                  </v-btn>
+                </v-btn-toggle>
+                <v-tooltip :text="$t('copy_to_all_languages') || 'Copier vers toutes les langues'" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon="mdi-content-copy"
+                      size="x-small"
+                      variant="tonal"
+                      color="#00BCD4"
+                      class="ml-1"
+                      @click="copyActiveNameToAll"
+                    />
+                  </template>
+                </v-tooltip>
+              </div>
+            </div>
 
-        <v-card-text class="pa-4">
-          <v-row>
-            <!-- Names (multilingual) -->
-            <v-col cols="12" sm="4">
-              <v-text-field
-                v-model="dialog.form.name_en"
-                :label="$t('name') + ' (EN)'"
-                density="compact"
-                variant="outlined"
-                rounded
-                color="#00BCD4"
-                prepend-inner-icon="mdi-translate"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="4">
-              <v-text-field
-                v-model="dialog.form.name_fr"
-                :label="$t('name') + ' (FR)'"
-                density="compact"
-                variant="outlined"
-                rounded
-                color="#00BCD4"
-                prepend-inner-icon="mdi-translate"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="4">
-              <v-text-field
-                v-model="dialog.form.name_es"
-                :label="$t('name') + ' (ES)'"
-                density="compact"
-                variant="outlined"
-                rounded
-                color="#00BCD4"
-                prepend-inner-icon="mdi-translate"
-              ></v-text-field>
-            </v-col>
+            <!-- Active Language Name Input -->
+            <v-text-field
+              v-if="dialogLangTab === 'en'"
+              v-model="dialog.form.name_en"
+              :label="$t('name') + ' (EN)'"
+              placeholder="e.g. Factory Electricity, Cold Storage Lease..."
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              color="#00BCD4"
+              prepend-inner-icon="mdi-format-title"
+              hide-details="auto"
+            ></v-text-field>
+            <v-text-field
+              v-else-if="dialogLangTab === 'fr'"
+              v-model="dialog.form.name_fr"
+              :label="$t('name') + ' (FR)'"
+              placeholder="Ex: Électricité Usine, Loyer Entrepôt..."
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              color="#00BCD4"
+              prepend-inner-icon="mdi-format-title"
+              hide-details="auto"
+            ></v-text-field>
+            <v-text-field
+              v-else-if="dialogLangTab === 'es'"
+              v-model="dialog.form.name_es"
+              :label="$t('name') + ' (ES)'"
+              placeholder="Ej: Electricidad Fábrica, Alquiler Almacén..."
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              color="#00BCD4"
+              prepend-inner-icon="mdi-format-title"
+              hide-details="auto"
+            ></v-text-field>
+          </div>
 
-            <!-- Amount -->
-            <v-col cols="12" sm="6">
+          <!-- Section 2: Amount & Active Status -->
+          <v-row dense class="mb-4" align="center">
+            <v-col cols="12" sm="7">
               <v-text-field
                 v-model.number="dialog.form.amount"
                 :label="$t('static_charge_amount')"
                 density="compact"
                 variant="outlined"
-                rounded
+                rounded="lg"
                 color="#00BCD4"
                 type="number"
                 min="0"
                 step="0.01"
                 :prefix="main.currency"
-                prepend-inner-icon="mdi-cash"
+                prepend-inner-icon="mdi-cash-multiple"
+                hide-details="auto"
               ></v-text-field>
             </v-col>
-
-            <!-- Active toggle -->
-            <v-col cols="12" sm="6" class="d-flex align-center">
-              <v-switch
-                v-model="dialog.form.is_active"
-                :label="$t('is_active')"
-                color="#00BCD4"
-                density="compact"
-                hide-details
-              ></v-switch>
+            <v-col cols="12" sm="5">
+              <div class="sc-status-toggle-box rounded-lg pa-2 d-flex align-center justify-space-between border">
+                <div class="d-flex align-center ga-2">
+                  <v-icon :color="dialog.form.is_active ? 'success' : 'grey'" size="18">
+                    {{ dialog.form.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                  </v-icon>
+                  <span class="text-caption font-weight-bold">
+                    {{ dialog.form.is_active ? ($t('active') || 'Actif') : ($t('inactive') || 'Inactif') }}
+                  </span>
+                </div>
+                <v-switch
+                  v-model="dialog.form.is_active"
+                  color="#00BCD4"
+                  density="compact"
+                  hide-details
+                ></v-switch>
+              </div>
             </v-col>
+          </v-row>
 
-            <!-- Date Range Type -->
-            <v-col cols="12">
-              <v-select
-                v-model="dialog.form.date_range_type"
-                :items="dateRangeTypeOptions"
-                :label="$t('date_range_type')"
-                density="compact"
-                variant="outlined"
-                rounded
-                color="#00BCD4"
-                prepend-inner-icon="mdi-calendar-range"
-              ></v-select>
-            </v-col>
+          <!-- Section 3: Validity Horizon (3 Cards) -->
+          <div class="mb-4">
+            <div class="text-caption font-weight-bold text-medium-emphasis mb-2">
+              {{ $t('date_range_type') }}
+            </div>
+            <v-row dense>
+              <v-col v-for="mode in staticDateModes" :key="mode.value" cols="12" sm="4">
+                <div
+                  class="sc-mode-card cursor-pointer"
+                  :class="{ 'is-selected': dialog.form.date_range_type === mode.value }"
+                  @click="dialog.form.date_range_type = mode.value"
+                >
+                  <div class="d-flex align-center justify-space-between mb-1">
+                    <v-icon :color="dialog.form.date_range_type === mode.value ? '#00BCD4' : 'grey'" size="20">
+                      {{ mode.icon }}
+                    </v-icon>
+                    <v-icon v-if="dialog.form.date_range_type === mode.value" color="#00BCD4" size="16">
+                      mdi-radiobox-marked
+                    </v-icon>
+                    <v-icon v-else color="grey" size="16">mdi-radiobox-blank</v-icon>
+                  </div>
+                  <div class="mode-title font-weight-bold text-caption">{{ mode.title }}</div>
+                  <div class="mode-desc text-caption text-medium-emphasis">{{ mode.desc }}</div>
+                </div>
+              </v-col>
+            </v-row>
+          </div>
 
-            <!-- Calendar section -->
-            <v-col v-if="dialog.form.date_range_type !== 'all_time'" cols="12">
-              <!-- Date Range mode: range picker -->
+          <!-- Section 4: Calendar / Presets (when not All Time) -->
+          <div v-if="dialog.form.date_range_type !== 'all_time'" class="mb-4">
+            <!-- Quick Presets Toolbar -->
+            <div class="d-flex align-center ga-1 flex-wrap mb-2">
+              <span class="text-caption text-medium-emphasis mr-1 font-weight-medium">
+                {{ $t('quick_presets') || 'Périodes rapides' }}:
+              </span>
+              <v-btn
+                v-for="p in datePresets"
+                :key="p.id"
+                size="x-small"
+                variant="tonal"
+                color="#00838F"
+                rounded="lg"
+                class="font-weight-medium"
+                @click="applyDatePreset(p.id)"
+              >
+                {{ p.label }}
+              </v-btn>
+            </div>
+
+            <!-- Date Display Strip with Duration -->
+            <div class="d-flex align-center justify-space-between rounded-lg pa-2 mb-2 sc-date-summary-strip border">
+              <div class="d-flex align-center ga-2 flex-wrap">
+                <v-chip size="small" color="#00BCD4" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="14">mdi-calendar-start</v-icon>
+                  {{ formatDate(dialog.dateRange.start) }}
+                </v-chip>
+                <v-icon size="14" color="grey">mdi-arrow-right</v-icon>
+                <v-chip
+                  size="small"
+                  :color="dialog.form.date_range_type === 'ongoing' ? 'success' : '#00BCD4'"
+                  variant="tonal"
+                  class="font-weight-bold"
+                >
+                  <v-icon start size="14">{{ dialog.form.date_range_type === 'ongoing' ? 'mdi-infinity' : 'mdi-calendar-end' }}</v-icon>
+                  {{ dialog.form.date_range_type === 'ongoing' ? ($t('ongoing') || 'Indéterminé') : formatDate(dialog.dateRange.end) }}
+                </v-chip>
+              </div>
+              <v-chip size="x-small" variant="outlined" color="#00838F" class="font-weight-medium">
+                {{ dialogDurationDays }}
+              </v-chip>
+            </div>
+
+            <!-- Calendar Picker -->
+            <div class="sc-calendar-container rounded-xl overflow-hidden border">
               <DatePicker
                 v-if="dialog.form.date_range_type === 'date_range'"
                 :is-dark="main.is_dark"
@@ -324,7 +445,6 @@
                 expanded
                 color="teal"
               />
-              <!-- Ongoing mode: single date picker (start only) -->
               <DatePicker
                 v-if="dialog.form.date_range_type === 'ongoing'"
                 :is-dark="main.is_dark"
@@ -334,60 +454,92 @@
                 expanded
                 color="teal"
               />
+            </div>
+          </div>
 
-              <!-- Date display chips -->
-              <div class="text-center mt-3" role="group">
-                <v-chip color="#00BCD4" variant="tonal" class="mr-2">
-                  <v-icon left small class="mr-2">mdi-calendar-start</v-icon>
-                  <span>{{ main.formateDate(dialog.dateRange.start) }}</span>
-                </v-chip>
-                <v-divider vertical></v-divider>
-                <v-chip
-                  :color="dialog.form.date_range_type === 'ongoing' ? 'success' : '#00BCD4'"
-                  variant="tonal"
-                  class="ml-2"
-                >
-                  <span>{{ dialog.form.date_range_type === 'ongoing' ? $t('ongoing') : main.formateDate(dialog.dateRange.end) }}</span>
-                  <v-icon left small class="ml-2">{{ dialog.form.date_range_type === 'ongoing' ? 'mdi-infinity' : 'mdi-calendar-end' }}</v-icon>
-                </v-chip>
+          <!-- All Time Friendly Alert -->
+          <v-alert
+            v-if="dialog.form.date_range_type === 'all_time'"
+            variant="tonal"
+            color="#00BCD4"
+            density="compact"
+            rounded="lg"
+            icon="mdi-infinity"
+            class="text-caption mb-4"
+          >
+            {{ $t('static_charge_all_time_hint') }}
+          </v-alert>
+
+          <!-- Section 5: Description Note -->
+          <div class="mb-3">
+            <v-textarea
+              v-model="dialog.form.description"
+              :label="$t('description')"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              color="#00BCD4"
+              rows="2"
+              auto-grow
+              :counter="1000"
+              :maxlength="1000"
+              placeholder="Notes d'exploitation, modalités de calcul ou contrat..."
+              hide-details="auto"
+            ></v-textarea>
+          </div>
+
+          <!-- Section 6: Live Charge Preview Card -->
+          <div class="sc-preview-card rounded-xl pa-3 border">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <div class="d-flex align-center ga-2">
+                <v-avatar size="22" color="rgba(0, 188, 212, 0.15)">
+                  <v-icon color="#00838F" size="13">mdi-eye-outline</v-icon>
+                </v-avatar>
+                <span class="text-caption font-weight-bold text-medium-emphasis">
+                  {{ $t('charge_preview') || 'Aperçu dans le tableau' }}
+                </span>
               </div>
-            </v-col>
-
-            <!-- All Time info -->
-            <v-col v-if="dialog.form.date_range_type === 'all_time'" cols="12">
-              <v-alert type="info" variant="tonal" density="compact" rounded="lg" icon="mdi-infinity">
-                {{ $t('static_charge_all_time_hint') }}
-              </v-alert>
-            </v-col>
-
-            <!-- Description -->
-            <v-col cols="12">
-              <v-textarea
-                v-model="dialog.form.description"
-                :label="$t('description')"
-                density="compact"
-                variant="outlined"
-                rounded
-                color="#00BCD4"
-                rows="2"
-                auto-grow
-                :counter="1000"
-                :maxlength="1000"
-              ></v-textarea>
-            </v-col>
-          </v-row>
+              <v-chip size="x-small" :color="dialog.form.is_active ? 'success' : 'grey'" variant="tonal" class="font-weight-bold">
+                {{ dialog.form.is_active ? ($t('active') || 'Actif') : ($t('inactive') || 'Inactif') }}
+              </v-chip>
+            </div>
+            <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+              <div>
+                <div class="text-subtitle-2 font-weight-bold text-truncate" style="max-width: 280px;">
+                  {{ activeDialogPreviewName }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  <v-icon size="12" class="mr-1" :color="dateRangeChipColor(dialog.form.date_range_type)">
+                    {{ dateRangeIcon(dialog.form.date_range_type) }}
+                  </v-icon>
+                  <span v-if="dialog.form.date_range_type === 'all_time'">{{ $t('all_time') }}</span>
+                  <span v-else-if="dialog.form.date_range_type === 'ongoing'">{{ formatDate(dialog.dateRange.start) }} → {{ $t('ongoing') }}</span>
+                  <span v-else>{{ formatDate(dialog.dateRange.start) }} — {{ formatDate(dialog.dateRange.end) }}</span>
+                </div>
+              </div>
+              <div class="text-end">
+                <div class="text-subtitle-1 font-weight-black" style="color: #00838F;">
+                  {{ formatNumber(dialog.form.amount) }} {{ main.currency }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  {{ $t(dialog.form.date_range_type) }}
+                </div>
+              </div>
+            </div>
+          </div>
         </v-card-text>
 
-        <v-divider></v-divider>
-        <v-card-actions class="pa-4">
-          <v-btn variant="text" color="red-lighten-1" rounded @click="dialog.show = false">
+        <!-- Dialog Footer Actions -->
+        <v-card-actions class="pa-4 bg-surface border-t">
+          <v-btn variant="text" color="grey-darken-1" rounded="lg" @click="dialog.show = false">
             {{ $t('cancel') }}
           </v-btn>
           <v-spacer></v-spacer>
           <v-btn
             variant="flat"
-            style="background-color: #00BCD4; color: #fff;"
-            rounded
+            color="#00BCD4"
+            class="text-white font-weight-bold px-5"
+            rounded="lg"
             :loading="dialog.saving"
             :disabled="!canSave || dialog.saving"
             prepend-icon="mdi-content-save"
@@ -465,6 +617,7 @@ export default {
     return {
       activeTab: 'charges',
       columnFilters: {},
+      dialogLangTab: 'en',
       dialog: {
         show: false,
         editId: null,
@@ -494,6 +647,52 @@ export default {
     store() { return useStaticCharge(); },
     main() { return useMain(); },
     lang() { return this.main.lang?.code || 'en'; },
+    datePresets() {
+      return [
+        { id: 'this_month', label: this.$t('this_month') || 'Ce mois' },
+        { id: 'this_quarter', label: this.$t('this_quarter') || 'Ce trimestre' },
+        { id: 'this_year', label: this.$t('this_year') || 'Cette année' },
+        { id: 'next_month', label: this.$t('next_month') || 'Mois prochain' },
+      ];
+    },
+    staticDateModes() {
+      return [
+        {
+          value: 'all_time',
+          icon: 'mdi-infinity',
+          title: this.$t('all_time') || 'Plein temps',
+          desc: this.$t('no_end_date_limit') || 'Appliqué en permanence sans restriction de dates',
+        },
+        {
+          value: 'date_range',
+          icon: 'mdi-calendar-range',
+          title: this.$t('date_range') || 'Période définie',
+          desc: this.$t('step_dates_desc') || 'Limité entre une date de début et de fin',
+        },
+        {
+          value: 'ongoing',
+          icon: 'mdi-calendar-arrow-right',
+          title: this.$t('ongoing') || 'En cours',
+          desc: this.$t('ongoing_from') || 'Prend effet dès la date de début indéfiniment',
+        },
+      ];
+    },
+    dialogDurationDays() {
+      if (this.dialog.form.date_range_type === 'all_time') {
+        return this.$t('no_end_date_limit') || 'Plein temps';
+      }
+      if (this.dialog.form.date_range_type === 'ongoing') {
+        return `${this.$t('ongoing_from') || 'En cours depuis'} ${this.formatDate(this.dialog.dateRange.start)}`;
+      }
+      if (!this.dialog.dateRange.start || !this.dialog.dateRange.end) return '—';
+      const diffTime = Math.abs(new Date(this.dialog.dateRange.end) - new Date(this.dialog.dateRange.start));
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      return `${diffDays} ${this.$t('duration_days') || 'jours'}`;
+    },
+    activeDialogPreviewName() {
+      const f = this.dialog.form;
+      return f[`name_${this.lang}`] || f.name_fr || f.name_en || f.name_es || (this.$t('untitled_charge') || 'Charge sans nom');
+    },
     headers() {
       return [
         { title: this.$t('static_charge_name'), key: 'name', align: 'start' },
@@ -560,6 +759,36 @@ export default {
     getLocalizedName(charge) {
       return charge[`name_${this.lang}`] || charge.name_fr || charge.name_en || charge.name_es || `#${charge.id}`;
     },
+    copyActiveNameToAll() {
+      const activeName = this.dialog.form[`name_${this.dialogLangTab}`];
+      if (!activeName) return;
+      this.dialog.form.name_en = activeName;
+      this.dialog.form.name_fr = activeName;
+      this.dialog.form.name_es = activeName;
+      this.showSnackbar(this.$t('copied_to_all') || 'Copié vers toutes les langues', true, null);
+    },
+    applyDatePreset(id) {
+      const now = new Date();
+      let start = new Date(now.getFullYear(), now.getMonth(), 1);
+      let end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      if (id === 'this_month') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      } else if (id === 'next_month') {
+        start = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+      } else if (id === 'this_quarter') {
+        const q = Math.floor(now.getMonth() / 3);
+        start = new Date(now.getFullYear(), q * 3, 1);
+        end = new Date(now.getFullYear(), (q + 1) * 3, 0);
+      } else if (id === 'this_year') {
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31);
+      }
+
+      this.dialog.dateRange = { start, end };
+    },
     formatNumber(n) {
       if (n == null || isNaN(n)) return '0';
       return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -613,6 +842,7 @@ export default {
     openAddDialog() {
       this.dialog.editId = null;
       this.dialog.dateRange = { start: new Date(), end: new Date() };
+      this.dialogLangTab = this.lang || 'en';
       this.dialog.form = {
         name_en: '',
         name_fr: '',
@@ -626,6 +856,7 @@ export default {
     },
     openEditDialog(s) {
       this.dialog.editId = s.id;
+      this.dialogLangTab = this.lang || 'en';
       this.dialog.form = {
         name_en: s.name_en || '',
         name_fr: s.name_fr || '',
@@ -736,5 +967,68 @@ export default {
   font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
   font-variant-numeric: tabular-nums !important;
   font-feature-settings: "tnum" 1 !important;
+}
+
+/* Dialog Redesign Styles */
+.sc-dialog-hero {
+  background: linear-gradient(135deg, #00838F 0%, #00BCD4 60%, #26C6DA 100%);
+  position: relative;
+  box-shadow: 0 4px 20px -2px rgba(0, 188, 212, 0.25);
+}
+.sc-dialog-hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.sc-dialog-title {
+  font-size: 17px;
+  line-height: 1.2;
+}
+.sc-section-card {
+  background: rgba(var(--v-theme-on-surface), 0.02);
+  border-color: rgba(0, 188, 212, 0.15) !important;
+}
+.sc-status-toggle-box {
+  background: rgba(var(--v-theme-on-surface), 0.02);
+  border-color: rgba(var(--v-theme-on-surface), 0.08) !important;
+  height: 40px;
+}
+.sc-mode-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-on-surface), 0.015);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+}
+.sc-mode-card:hover {
+  background: rgba(0, 188, 212, 0.04);
+  border-color: rgba(0, 188, 212, 0.25);
+  transform: translateY(-1px);
+}
+.sc-mode-card.is-selected {
+  background: rgba(0, 188, 212, 0.08);
+  border-color: #00BCD4;
+  box-shadow: 0 0 0 1px #00BCD4, 0 4px 12px -2px rgba(0, 188, 212, 0.15);
+}
+.sc-mode-card.is-selected .mode-title {
+  color: #00838F;
+}
+.sc-date-summary-strip {
+  background: rgba(0, 188, 212, 0.03);
+  border-color: rgba(0, 188, 212, 0.15) !important;
+}
+.sc-calendar-container {
+  border-color: rgba(0, 188, 212, 0.18) !important;
+}
+.sc-preview-card {
+  background: linear-gradient(135deg, rgba(0, 188, 212, 0.04) 0%, rgba(0, 131, 143, 0.04) 100%);
+  border-color: rgba(0, 188, 212, 0.2) !important;
 }
 </style>

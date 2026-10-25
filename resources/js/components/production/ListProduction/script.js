@@ -9,19 +9,32 @@ import { useWarehouse } from '@/stores/Warehouse';
 import { useFishProcessType } from '@/stores/FishProcessType';
 import mitt from '@/plugins/mitt.js';
 import * as XLSX from 'xlsx';
-import { createListWorker } from '@/utils/listDataWorker.js';
+import { createListWorker, extractAdvFilterOptions } from '@/utils/listDataWorker.js';
 export default {
   name: 'ListProduction',
   data() {
     const n = new Date(), sm = new Date(n.getFullYear(), n.getMonth(), 1);
     return {
       productions: [], loading: false, selected: [],
+      tableModuleKey: 'production',
+      moduleColor: '#00897B',
       searchQuery: '',
       dateRange: [sm, n], dateMenu: false,
       colFilters: {}, colSorts: [], pinState: {},
       expanded: {},
       showAdvanced: false, showInvoice: false,
-      advFilter: { articleType: null, fishFamilies: [], fishFreshFrozen: [], fishProcessTypes: [], guanoTypes: [], packageTypes: [], warehouses: [] },
+      advFilter: {
+        articleTypes: [],
+        articleType: null,
+        fishFamilies: [],
+        fishFreshFrozen: [],
+        fishProcessTypes: [],
+        fishTypes: [],
+        guanoTypes: [],
+        packageTypes: [],
+        warehouses: []
+      },
+      workerAdvOptions: null,
       invForm: { date: null, type_invoice: 'local', invoiceKind: 'supplier', trackingNumbers: [], trackingInput: '' },
       invChecking: false,
       deleteDialog: false, deleting: false, deleteId: null, deleteBulk: false,
@@ -54,6 +67,73 @@ export default {
     today() { return new Date().toISOString().slice(0, 10) },
     dateRangeVC: { get() { return { start: this.dateRange[0], end: this.dateRange[1] || this.dateRange[0] } }, set(v) { if (v && v.start && v.end) this.dateRange = [v.start, v.end] } },
     catName() { return (id) => { const l = this.main.lang?.code || 'en'; const c = this.cats.find(x => x.id === id); return c ? (c[`name_${l}`] || c.name || `#${id}`) : `#${id}` } },
+    activeFilterCount() {
+      let count = 0;
+      if (this.searchQuery && this.searchQuery.trim()) count++;
+      if (this.colFilters) {
+        Object.values(this.colFilters).forEach(v => {
+          if (Array.isArray(v) && v.length) count += v.length;
+        });
+      }
+      count += this.activeAdvFilterCount;
+      return count;
+    },
+    activeAdvFilterCount() {
+      if (!this.advFilter) return 0;
+      const af = this.advFilter;
+      let count = 0;
+      if (af.articleTypes?.length) count += af.articleTypes.length;
+      else if (af.articleType) count++;
+      if (af.warehouses?.length) count += af.warehouses.length;
+      if (af.fishFamilies?.length) count += af.fishFamilies.length;
+      if (af.fishFreshFrozen?.length) count += af.fishFreshFrozen.length;
+      if (af.fishProcessTypes?.length) count += af.fishProcessTypes.length;
+      if (af.fishTypes?.length) count += af.fishTypes.length;
+      if (af.guanoTypes?.length) count += af.guanoTypes.length;
+      if (af.packageTypes?.length) count += af.packageTypes.length;
+      return count;
+    },
+    dynamicAdvOptions() {
+      const lang = this.main.lang?.code || 'en';
+      const items = this.productions || [];
+      return extractAdvFilterOptions(
+        items,
+        this.advFilter || {},
+        {
+          fishFamilies: this.fishFamilies,
+          fishTypes: this.fishTypes,
+          fishProcessTypes: this.fishProcessTypes,
+          guanoTypes: this.guanoTypes,
+          packageTypes: this.packageTypes,
+          warehouses: this.warehouses,
+        },
+        lang
+      );
+    },
+    articleTypeOptions() {
+      return this.dynamicAdvOptions?.articleTypes || [];
+    },
+    warehouseOptions() {
+      return this.dynamicAdvOptions?.warehouses || [];
+    },
+    fishFamilyOptions() {
+      return this.dynamicAdvOptions?.fishFamilies || [];
+    },
+    fishFreshFrozenOptions() {
+      return this.dynamicAdvOptions?.fishFreshFrozen || [];
+    },
+    fishProcessTypeOptions() {
+      return this.dynamicAdvOptions?.fishProcessTypes || [];
+    },
+    fishTypeOptions() {
+      return this.dynamicAdvOptions?.fishTypes || [];
+    },
+    guanoTypeOptions() {
+      return this.dynamicAdvOptions?.guanoTypes || [];
+    },
+    packageTypeOptions() {
+      return this.dynamicAdvOptions?.packageTypes || [];
+    },
     allHeaders() {
       return [
         { title: '', key: 'expand', sortable: false, width: 40, fixed: true },
@@ -364,7 +444,11 @@ export default {
       return rules.length ? rules : undefined;
     },
   },
-  mounted() { this.columnOrder = this.allHeaders.filter(h => !h.fixed).map(h => h.key); this.fetchProductions(); this.fetchAnalytics(); this.fetchClosedYears(); mitt.on('model-changed', this.onMC) },
+  mounted() {
+    this.columnOrder = this.allHeaders.filter(h => !h.fixed).map(h => h.key);
+    if (this.loadTableConfig) this.loadTableConfig();
+    this.fetchProductions(); this.fetchAnalytics(); this.fetchClosedYears(); mitt.on('model-changed', this.onMC);
+  },
   activated() { this.fetchProductions(); this.fetchAnalytics(); this.fetchClosedYears(); },
   beforeUnmount() {
     mitt.off('model-changed', this.onMC);
@@ -442,6 +526,9 @@ export default {
           this.workerFilterOptions = res.filterOptions || {};
           this.workerFilterOptionCounts = res.filterOptionCounts || {};
           this.workerSecondaryPackagingStats = res.secondaryPackagingStats;
+          if (res.advFilterOptions) {
+            this.workerAdvOptions = res.advFilterOptions;
+          }
         }
       } catch (e) {
         console.error('[dispatchWorkerFilter error]', e);
@@ -569,22 +656,38 @@ export default {
     onColFilterChange() {
       this.dispatchWorkerFilter(0);
     },
-    toggleSort(key) { const i = this.colSorts.findIndex(s => s.key === key); if (i === -1) this.colSorts.push({ key, dir: 'asc' }); else if (this.colSorts[i].dir === 'asc') this.colSorts[i].dir = 'desc'; else this.colSorts.splice(i, 1) },
-    sortDir(key) { const s = this.colSorts.find(x => x.key === key); return s ? s.dir : null },
-    sortIdx(key) { return this.colSorts.findIndex(x => x.key === key) + 1 },
-    sortItems(items) { if (!this.colSorts.length) return items; return [...items].sort((a, b) => { for (const { key, dir } of this.colSorts) { let va = key === 'production_category_id' ? this.catName(a[key]) : a[key], vb = key === 'production_category_id' ? this.catName(b[key]) : b[key]; if (va == null) va = ''; if (vb == null) vb = ''; const n = typeof va === 'number' && typeof vb === 'number'; if (n) { if (va !== vb) return dir === 'asc' ? va - vb : vb - va } else { const c = String(va).localeCompare(String(vb)); if (c) return dir === 'asc' ? c : -c } } return 0 }) },
-    togglePin(k) { const cur = this.pinState[k]; if (!cur) this.pinState[k] = 'left'; else if (cur === 'left') this.pinState[k] = 'right'; else delete this.pinState[k]; this.pinState = { ...this.pinState } },
-    isPinned(k) { return !!this.pinState[k] },
-    pinSide(k) { return this.pinState[k] || null },
-    getPinLeft(key) { let o = this.colWidths['__checkbox'] || 50; for (const h of this.headers) { if (h.key === key) break; if (this.pinState[h.key] === 'left') o += (this.colWidths[h.key] || 150) } return o },
-    getPinRight(key) { let o = 0; const rev = [...this.headers].reverse(); for (const h of rev) { if (h.key === key) break; if (this.pinState[h.key] === 'right') o += (this.colWidths[h.key] || 150) } return o },
-    toggleExpand(id) { this.expanded[id] = !this.expanded[id]; this.expanded = { ...this.expanded } },
-    onDragStart(key) { this.dragCol = key },
-    onDragOver(key, e) { e.preventDefault(); this.dragOverCol = key },
-    onDragEnd() { if (this.dragCol && this.dragOverCol && this.dragCol !== this.dragOverCol) { const order = [...this.columnOrder]; const fi = order.indexOf(this.dragCol); const ti = order.indexOf(this.dragOverCol); if (fi > -1 && ti > -1) { order.splice(fi, 1); order.splice(ti, 0, this.dragCol); this.columnOrder = order } } this.dragCol = null; this.dragOverCol = null },
+    sortItems(items) { if (!this.colSorts || !this.colSorts.length) return items; return [...items].sort((a, b) => { for (const { key, dir } of this.colSorts) { let va = key === 'production_category_id' ? this.catName(a[key]) : a[key], vb = key === 'production_category_id' ? this.catName(b[key]) : b[key]; if (va == null) va = ''; if (vb == null) vb = ''; const n = typeof va === 'number' && typeof vb === 'number'; if (n) { if (va !== vb) return dir === 'asc' ? va - vb : vb - va } else { const c = String(va).localeCompare(String(vb)); if (c) return dir === 'asc' ? c : -c } } return 0 }) },
     groupDetails(prod) { const groups = {}; (prod.detail_productions || []).forEach(dc => { const catId = dc.detail_production_category_id; if (!groups[catId]) groups[catId] = { category: dc.detail_production_category, items: [], totalW: 0, totalP: 0 }; groups[catId].items.push(dc); groups[catId].totalW += Number(dc.weight || 0); groups[catId].totalP += Number(dc.total_price || 0) }); return Object.values(groups) },
     articleName(dc) { if (!dc.stockable_type || dc.stockable_type === 'text') return dc.article_description || '-'; const s = dc.stockable; return s ? (s.name || s[`name_${this.main.lang?.code}`] || '-') : '-' },
-    articleFamily(dc) { if (dc.stockable_type === 'FishType' && dc.stockable) { const fam = this.fishFamilies.find(f => f.id === dc.stockable.fish_family_id); return fam ? (fam[`name_${this.main.lang?.code}`] || fam.name || '-') : '-' } return '-' },
+    articleFamily(dc) { if ((dc.stockable_type === 'FishType' || dc.stockable_type?.includes('FishType')) && dc.stockable) { const fam = this.fishFamilies.find(f => f.id === dc.stockable.fish_family_id); return fam ? (fam[`name_${this.main.lang?.code}`] || fam.name || '-') : '-' } return '-' },
+    clearAdvFilters() {
+      this.advFilter = {
+        articleTypes: [],
+        articleType: null,
+        fishFamilies: [],
+        fishFreshFrozen: [],
+        fishProcessTypes: [],
+        fishTypes: [],
+        guanoTypes: [],
+        packageTypes: [],
+        warehouses: [],
+      };
+      this.dispatchWorkerFilter(0);
+    },
+    clearAllFilters() {
+      this.searchQuery = '';
+      this.colFilters = {};
+      this.clearAdvFilters();
+    },
+    removeAdvFilterItem(category, val) {
+      if (!this.advFilter) return;
+      if (Array.isArray(this.advFilter[category])) {
+        this.advFilter[category] = this.advFilter[category].filter(x => x !== val);
+      } else if (this.advFilter[category] === val) {
+        this.advFilter[category] = null;
+      }
+      this.dispatchWorkerFilter(0);
+    },
     confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true },
     confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true },
     async execDelete() { this.deleting = true; try { const ids = this.deleteBulk ? this.selected : [this.deleteId]; await axios.delete('/api/productions', { data: { ids } }); this.main.add_snackbar({ show: true, message: this.$t('productions_deleted_successfully'), color: 'success' }); this.selected = []; this.deleteDialog = false; this.fetchProductions() } catch (e) { console.error(e) } this.deleting = false },

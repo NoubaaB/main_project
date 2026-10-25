@@ -366,7 +366,7 @@ class ShippingController extends Controller
                     $packageBalances = WarehouseBalance::where('warehouse_id', $targetWarehouseId)
                         ->where(function ($q) use ($pTypeId) {
                             $q->where(function ($q2) use ($pTypeId) {
-                                $q2->where('stockable_type', 'PackageType')
+                                $q2->whereIn('stockable_type', ['PackageType', 'App\\Models\\PackageType'])
                                    ->where('stockable_id', $pTypeId);
                             })->orWhere('package_type_id', $pTypeId);
                         })

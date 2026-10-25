@@ -350,11 +350,11 @@
               class="systembar-context-pill systembar-context-interactive d-none d-sm-flex"
               :style="contextStyle"
             >
-              <v-icon size="17" class="mr-1.5" :style="{ color: currentContext.color }">{{ currentContext.icon }}</v-icon>
+              <v-icon size="17" class="mr-2" :style="{ color: currentContext.color }">{{ currentContext.icon }}</v-icon>
               <span class="context-section">{{ currentContext.section }}</span>
               <v-icon size="14" class="context-separator mx-1 text-medium-emphasis">mdi-chevron-right</v-icon>
               <span class="context-page">{{ currentContext.title }}</span>
-              <v-icon size="13" class="ml-1.5 context-dropdown-arrow" :style="{ color: currentContext.color }">mdi-chevron-down</v-icon>
+              <v-icon size="13" class="ml-2 context-dropdown-arrow" :style="{ color: currentContext.color }">mdi-chevron-down</v-icon>
               <v-tooltip activator="parent" location="bottom">
                 {{ $t('jump_to_sibling') }}
               </v-tooltip>

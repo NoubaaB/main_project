@@ -110,7 +110,7 @@
             </div>
 
             <!-- Title & Display Type -->
-            <v-row dense class="mb-3">
+            <v-row dense class="mb-3" align="center">
               <v-col cols="12" md="7">
                 <v-text-field
                   v-model="form.title"
@@ -118,38 +118,21 @@
                   placeholder="Ex: Production vs Expéditions Mensuelles"
                   prepend-inner-icon="mdi-format-title"
                   variant="outlined"
-                  rounded
+                  rounded="lg"
                   density="compact"
                   color="#0d9488"
                   hide-details="auto"
                 ></v-text-field>
               </v-col>
 
-              <v-col cols="12" md="5">
-                <div class="d-flex align-center ga-2 h-100">
-                  <v-btn
-                    block
-                    rounded="pill"
-                    density="comfortable"
-                    :variant="form.display_type === 'chart' ? 'flat' : 'outlined'"
-                    :color="form.display_type === 'chart' ? '#0d9488' : 'grey'"
-                    prepend-icon="mdi-chart-areaspline"
-                    @click="form.display_type = 'chart'"
-                  >
-                    {{ $t('chart') || 'Graphique' }}
-                  </v-btn>
-                  <v-btn
-                    block
-                    rounded="pill"
-                    density="comfortable"
-                    :variant="form.display_type === 'statistic' ? 'flat' : 'outlined'"
-                    :color="form.display_type === 'statistic' ? '#0d9488' : 'grey'"
-                    prepend-icon="mdi-numeric-1-box-outline"
-                    @click="form.display_type = 'statistic'"
-                  >
-                    {{ $t('visual_type_stat') || 'Indicateur KPI' }}
-                  </v-btn>
-                </div>
+              <v-col cols="12" md="5" class="d-flex align-center">
+                <SegmentedPillToggle
+                  v-model="form.display_type"
+                  :items="displayTypeOptions"
+                  color="#0d9488"
+                  size="medium"
+                  block
+                />
               </v-col>
             </v-row>
 
@@ -163,13 +146,14 @@
                   v-for="t in chartTypeCards"
                   :key="t.value"
                   cols="6"
-                  sm="4"
-                  md="3"
+                  sm="6"
+                  md="4"
+                  lg="3"
                 >
                   <div
                     class="visual-type-card cursor-pointer"
                     :class="{ 'is-selected': form.chart_type === t.value }"
-                    @click="form.chart_type = t.value"
+                    @click="selectChartType(t.value)"
                   >
                     <div class="d-flex align-center justify-space-between mb-1">
                       <v-icon :color="form.chart_type === t.value ? '#0d9488' : 'grey'" size="22">{{ t.icon }}</v-icon>
@@ -183,7 +167,7 @@
             </div>
 
             <!-- Grid Layout & Toggles Card -->
-            <div class="layout-controls-card rounded-lg pa-4 mt-3">
+            <div class="layout-controls-card rounded-xl pa-4 mt-3 border">
               <v-row dense align="center">
                 <v-col cols="12" md="6">
                   <div class="d-flex align-center justify-space-between mb-1">
@@ -197,7 +181,7 @@
                       v-for="g in [3, 4, 6, 8, 12]"
                       :key="g"
                       size="x-small"
-                      rounded="pill"
+                      rounded="lg"
                       :variant="form.grid_cols === g ? 'flat' : 'outlined'"
                       :color="form.grid_cols === g ? '#0d9488' : 'grey'"
                       class="flex-grow-1"
@@ -271,7 +255,7 @@
             </v-row>
 
             <!-- Specific Month / Year Controls -->
-            <div v-if="form.date_range_type === 'fixed_month' || form.date_range_type === 'fixed_year'" class="period-picker-box rounded-lg pa-4">
+            <div v-if="form.date_range_type === 'fixed_month' || form.date_range_type === 'fixed_year'" class="period-picker-box rounded-xl pa-4 mt-2 border">
               <v-row dense>
                 <v-col v-if="form.date_range_type === 'fixed_month'" cols="12" sm="6">
                   <v-select
@@ -280,20 +264,20 @@
                     :label="$t('month') || 'Mois'"
                     prepend-inner-icon="mdi-calendar-month"
                     variant="outlined"
-                    rounded
+                    rounded="lg"
                     density="compact"
                     color="#0d9488"
                     hide-details
                   ></v-select>
                 </v-col>
-                <v-col cols="12" sm="6">
+                <v-col cols="12" :sm="form.date_range_type === 'fixed_month' ? 6 : 12">
                   <v-select
                     v-model="form.fixed_year"
                     :items="years"
                     :label="$t('year') || 'Année'"
                     prepend-inner-icon="mdi-calendar-blank"
                     variant="outlined"
-                    rounded
+                    rounded="lg"
                     density="compact"
                     color="#0d9488"
                     hide-details
@@ -381,7 +365,7 @@
                   </template>
                 </v-expansion-panel-title>
 
-                <v-expansion-panel-text class="pt-2 px-2">
+                <v-expansion-panel-text class="pt-3 px-3 pb-3">
                   <!-- Row 1: Identity & Mode -->
                   <v-row dense class="mb-2">
                     <v-col cols="12" sm="5">
@@ -391,7 +375,7 @@
                         placeholder="Ex: Tonnage Traité"
                         prepend-inner-icon="mdi-tag-outline"
                         variant="outlined"
-                        rounded
+                        rounded="lg"
                         density="compact"
                         color="#0d9488"
                         hide-details
@@ -405,7 +389,7 @@
                         :label="$t('type') || 'Type'"
                         prepend-inner-icon="mdi-chart-line"
                         variant="outlined"
-                        rounded
+                        rounded="lg"
                         density="compact"
                         color="#0d9488"
                         hide-details
@@ -419,7 +403,7 @@
                         :label="$t('measure_unit') || 'Unité'"
                         prepend-inner-icon="mdi-ruler"
                         variant="outlined"
-                        rounded
+                        rounded="lg"
                         density="compact"
                         color="#0d9488"
                         hide-details
@@ -464,7 +448,7 @@
 
                   <!-- Standard Database Query Mode -->
                   <template v-if="!s.is_formula">
-                    <div class="source-pipeline-card rounded-lg pa-3 mb-3">
+                    <div class="source-pipeline-card rounded-xl pa-4 mb-3 border">
                       <div class="text-caption font-weight-bold text-medium-emphasis mb-2">
                         {{ $t('data_source') || 'Source de données' }}
                       </div>
@@ -473,7 +457,7 @@
                           v-for="src in dataSources"
                           :key="src.value"
                           size="small"
-                          rounded="pill"
+                          rounded="lg"
                           :variant="s.data_source === src.value ? 'flat' : 'outlined'"
                           :color="s.data_source === src.value ? '#0d9488' : 'grey'"
                           :prepend-icon="src.icon"
@@ -491,7 +475,7 @@
                             :label="$t('aggregate_field') || 'Champ métrique'"
                             prepend-inner-icon="mdi-database-search"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             hide-details
@@ -504,7 +488,7 @@
                             :label="$t('aggregate_function') || 'Fonction'"
                             prepend-inner-icon="mdi-calculator"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             hide-details
@@ -517,7 +501,7 @@
                             :label="$t('group_by_period') || 'Regroupement'"
                             prepend-inner-icon="mdi-calendar-clock"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             hide-details
@@ -527,7 +511,7 @@
                     </div>
 
                     <!-- Contextual Filters Section -->
-                    <div class="filters-card rounded-lg pa-3">
+                    <div class="filters-card rounded-xl pa-4 border mb-2">
                       <div class="text-caption font-weight-bold text-medium-emphasis mb-2">
                         {{ $t('filters') || 'Filtres contextuels' }}
                       </div>
@@ -539,7 +523,7 @@
                             :label="$t('category') || 'Catégorie'"
                             prepend-inner-icon="mdi-tag-outline"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -553,7 +537,7 @@
                             :label="$t('process_types') || 'Type de traitement'"
                             prepend-inner-icon="mdi-cogs"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -567,7 +551,7 @@
                             :label="$t('supplier') || 'Fournisseur'"
                             prepend-inner-icon="mdi-account-group"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -581,7 +565,7 @@
                             :label="$t('client') || 'Client'"
                             prepend-inner-icon="mdi-account-tie"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -595,7 +579,7 @@
                             :label="$t('fishery') || 'Zone de pêche'"
                             prepend-inner-icon="mdi-fish"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -609,7 +593,7 @@
                             :label="$t('origin') || 'Origine'"
                             prepend-inner-icon="mdi-map-marker"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -623,7 +607,7 @@
                             :label="$t('ship') || 'Bateau'"
                             prepend-inner-icon="mdi-ferry"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -637,7 +621,7 @@
                             :label="$t('product') || 'Espèce / Article'"
                             prepend-inner-icon="mdi-package-variant"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -651,7 +635,7 @@
                             :label="$t('warehouse_name') || 'Chambre / Entrepôt'"
                             prepend-inner-icon="mdi-warehouse"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -665,7 +649,7 @@
                             :label="$t('warehouse_category') || 'Catégorie Entrepôt'"
                             prepend-inner-icon="mdi-shape"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -679,7 +663,7 @@
                             :label="$t('production_type') || 'Type de production'"
                             prepend-inner-icon="mdi-factory"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -693,7 +677,7 @@
                             :label="$t('direction') || 'Destination'"
                             prepend-inner-icon="mdi-compass-outline"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -707,7 +691,7 @@
                             :label="$t('section') || 'Section'"
                             prepend-inner-icon="mdi-layers-outline"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -721,7 +705,7 @@
                             :label="$t('corporal') || 'Caporal'"
                             prepend-inner-icon="mdi-account-star"
                             variant="outlined"
-                            rounded
+                            rounded="lg"
                             density="compact"
                             color="#0d9488"
                             clearable
@@ -734,7 +718,7 @@
 
                   <!-- Formula Calculation Mode -->
                   <template v-else>
-                    <div class="formula-builder-card rounded-lg pa-4">
+                    <div class="formula-builder-card rounded-xl pa-4 border">
                       <div class="d-flex align-center justify-space-between mb-2">
                         <span class="text-caption font-weight-bold text-medium-emphasis">
                           {{ $t('formula_expression') || 'Expression mathématique' }}
@@ -747,10 +731,10 @@
                         placeholder="(S0 / S1) * 100"
                         prepend-inner-icon="mdi-function-variant"
                         variant="outlined"
-                        rounded
+                        rounded="lg"
                         density="compact"
                         color="purple"
-                        class="mb-2"
+                        class="mb-3"
                         hide-details
                       ></v-text-field>
 
@@ -790,7 +774,7 @@
                         :label="$t('group_by_period') || 'Période'"
                         prepend-inner-icon="mdi-calendar-clock"
                         variant="outlined"
-                        rounded
+                        rounded="lg"
                         density="compact"
                         color="purple"
                         hide-details
@@ -874,7 +858,7 @@
               v-if="step > 1"
               variant="outlined"
               color="#0d9488"
-              rounded="pill"
+              rounded="lg"
               size="small"
               prepend-icon="mdi-arrow-left"
               @click="step--"
@@ -888,7 +872,7 @@
                 v-if="step < 4"
                 variant="flat"
                 color="#0d9488"
-                rounded="pill"
+                rounded="lg"
                 size="small"
                 append-icon="mdi-arrow-right"
                 class="font-weight-bold px-4"
@@ -900,7 +884,7 @@
                 v-else
                 variant="flat"
                 color="#0d9488"
-                rounded="pill"
+                rounded="lg"
                 size="small"
                 :loading="saving"
                 prepend-icon="mdi-check-circle-outline"
@@ -1008,6 +992,7 @@ import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
 import { useCustomChart } from '@/stores/CustomChart';
 import ChartPreview from './ChartPreview.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 
 const DESIGNER_COLORS = [
   '#0d9488', // Ocean Teal
@@ -1024,7 +1009,7 @@ const DESIGNER_COLORS = [
 
 export default {
   name: 'ChartForm',
-  components: { ChartPreview },
+  components: { ChartPreview, SegmentedPillToggle },
   props: {
     editChart: { type: Object, default: null }
   },
@@ -1050,6 +1035,21 @@ export default {
     store() { return useCustomChart(); },
     editing() { return !!this.editChart?.id && typeof this.editChart.id === 'number'; },
     lang() { return this.main.lang?.code || 'en'; },
+
+    displayTypeOptions() {
+      return [
+        {
+          value: 'chart',
+          label: this.$t('chart') || 'Chart',
+          icon: 'mdi-chart-areaspline',
+        },
+        {
+          value: 'statistic',
+          label: this.$t('visual_type_stat') || 'Single Executive KPI',
+          icon: 'mdi-numeric-1-box-outline',
+        },
+      ];
+    },
 
     steps() {
       return [
@@ -1217,8 +1217,11 @@ export default {
       },
       immediate: true,
     },
-    'form.chart_type'() {
-      this.updateSeriesTypesForMainType();
+    'form.chart_type'(newType) {
+      this.updateSeriesTypesForMainType(newType);
+      this.loadPreview();
+    },
+    'form.display_type'() {
       this.loadPreview();
     },
     'form.series': {
@@ -1291,10 +1294,23 @@ export default {
         this.form.series.splice(idx, 1);
       }
     },
-    updateSeriesTypesForMainType() {
-      const ct = this.form.chart_type;
+    selectChartType(type) {
+      this.form.chart_type = type;
+      this.updateSeriesTypesForMainType(type);
+      this.loadPreview();
+    },
+    updateSeriesTypesForMainType(ct = this.form.chart_type) {
+      if (!ct) return;
       if (['donut', 'pie'].includes(ct)) {
         this.form.series.forEach(s => { s.series_type = ct; });
+      } else if (ct === 'bar') {
+        this.form.series.forEach(s => { s.series_type = 'column'; });
+      } else if (ct === 'line') {
+        this.form.series.forEach(s => { s.series_type = 'line'; });
+      } else if (ct === 'area') {
+        this.form.series.forEach(s => { s.series_type = 'area'; });
+      } else if (ct === 'radar') {
+        this.form.series.forEach(s => { s.series_type = 'radar'; });
       }
     },
     getSourceLabel(source) {
@@ -1362,6 +1378,8 @@ export default {
     },
     async loadPreview() {
       this.previewLoading = true;
+      const ct = this.form.chart_type || 'bar';
+      const defaultType = ct === 'bar' ? 'column' : ct;
       try {
         if (this.editing && this.editChart?.id) {
           const result = await this.store.fetchChartData(this.editChart.id, true);
@@ -1371,7 +1389,7 @@ export default {
               const serverSeries = result.series?.[i];
               return {
                 name: s.name || `Série ${i + 1}`,
-                type: s.series_type || 'column',
+                type: ct === 'mixed' ? (s.series_type || 'column') : defaultType,
                 color: s.color || this.designerColors[i % this.designerColors.length],
                 measure_unit: s.measure_unit || 'Kg',
                 data: serverSeries?.data || Array.from({ length: result.categories.length }, () => Math.floor(Math.random() * 1200 + 200)),
@@ -1392,7 +1410,7 @@ export default {
         .filter(s => s.is_visible !== false)
         .map((s, i) => ({
           name: s.name || (s.is_formula ? `Formule S${i}` : `${this.getSourceLabel(s.data_source)}`),
-          type: s.series_type || (this.form.chart_type === 'bar' ? 'column' : this.form.chart_type),
+          type: ct === 'mixed' ? (s.series_type || 'column') : defaultType,
           color: s.color || this.designerColors[i % this.designerColors.length],
           measure_unit: s.measure_unit || 'Kg',
           data: [850, 1120, 940, 1400, 1250, 1680, 1520, 1890].map(v => Math.round(v * (1 + i * 0.25))),
@@ -1456,29 +1474,45 @@ export default {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   border-radius: 16px;
   padding: 8px 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.stepper-nav-bar::-webkit-scrollbar {
+  height: 4px;
+}
+.stepper-nav-bar::-webkit-scrollbar-thumb {
+  background: rgba(13, 148, 136, 0.25);
+  border-radius: 4px;
+}
+.stepper-track {
+  min-width: 560px;
 }
 .step-pill-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: 12px;
+  padding: 10px 16px;
   border-radius: 12px;
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 1;
+  min-width: 135px;
 }
 .step-pill-btn:hover {
-  background: rgba(13, 148, 136, 0.04);
+  background: rgba(13, 148, 136, 0.05);
+  border-color: rgba(13, 148, 136, 0.15);
 }
 .step-pill-btn.is-active {
-  background: rgba(13, 148, 136, 0.08);
-  border-color: rgba(13, 148, 136, 0.3);
+  background: rgba(13, 148, 136, 0.09);
+  border-color: rgba(13, 148, 136, 0.35);
+  box-shadow: 0 2px 8px -2px rgba(13, 148, 136, 0.15);
 }
 .step-pill-num {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1488,26 +1522,32 @@ export default {
   background: rgba(var(--v-theme-on-surface), 0.08);
   color: rgba(var(--v-theme-on-surface), 0.6);
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 .step-pill-btn.is-active .step-pill-num {
   background: #0d9488;
   color: white;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.35);
 }
 .step-pill-btn.is-completed .step-pill-num {
-  background: rgba(13, 148, 136, 0.2);
+  background: rgba(13, 148, 136, 0.18);
   color: #0d9488;
 }
 .step-pill-title {
   font-size: 13px;
   font-weight: 600;
   color: rgba(var(--v-theme-on-surface), 0.85);
+  line-height: 1.2;
 }
 .step-pill-btn.is-active .step-pill-title {
   color: #0d9488;
+  font-weight: 700;
 }
 .step-pill-sub {
   font-size: 11px;
   color: rgba(var(--v-theme-on-surface), 0.5);
+  line-height: 1.2;
+  margin-top: 2px;
 }
 
 /* Form Canvas Card */

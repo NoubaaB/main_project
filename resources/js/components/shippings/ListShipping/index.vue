@@ -150,6 +150,26 @@
             ></v-badge>
           </v-btn>
 
+          <!-- Expand / Collapse All Details Button -->
+          <v-btn
+            :variant="isAllExpanded ? 'flat' : 'tonal'"
+            :color="isAllExpanded ? 'warning' : '#4643a0'"
+            rounded
+            size="small"
+            class="ls-filter-btn"
+            @click="toggleExpandAll"
+          >
+            <v-icon size="16" class="mr-1">{{ isAllExpanded ? 'mdi-arrow-collapse-vertical' : 'mdi-arrow-expand-vertical' }}</v-icon>
+            {{ isAllExpanded ? $t('collapse_all') : $t('expand_all') }}
+            <v-badge
+              v-if="expandedCount > 0"
+              :content="expandedCount"
+              :color="isAllExpanded ? 'warning' : '#4643a0'"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
           <v-btn
             v-if="activeFilterCount > 0"
             variant="text"
@@ -163,11 +183,90 @@
           </v-btn>
         </v-col>
 
-        <!-- Right: Actions (Records Counter & Excel) -->
+        <!-- Right: Actions (Records Counter, Table Settings & Excel) -->
         <v-col cols="12" md="3" sm="12" class="d-flex justify-end align-center ga-2">
           <v-chip size="small" variant="tonal" color="#4643a0" class="font-weight-medium">
             {{ colFilteredItems.length }} / {{ shippings.length }} {{ $t('records') }}
           </v-chip>
+
+          <!-- Table Settings Menu -->
+          <v-menu v-model="tableConfigMenu" :close-on-content-click="false" location="bottom end" width="300">
+            <template #activator="{ props: menuProps }">
+              <v-btn
+                v-bind="menuProps"
+                icon
+                variant="tonal"
+                color="#4643a0"
+                size="small"
+                :title="$t('table_settings')"
+              >
+                <v-icon size="18">mdi-table-cog</v-icon>
+              </v-btn>
+            </template>
+            <v-card class="rounded-xl pa-3" elevation="8">
+              <div class="d-flex align-center justify-space-between mb-2 pb-2 border-b">
+                <div class="d-flex align-center ga-1 font-weight-bold text-caption text-shipping">
+                  <v-icon size="16" color="#4643a0">mdi-table-cog</v-icon>
+                  <span>{{ $t('table_settings') }}</span>
+                </div>
+                <v-btn icon="mdi-close" size="x-small" variant="text" @click="tableConfigMenu = false"></v-btn>
+              </div>
+
+              <!-- Quick Reset Button -->
+              <v-btn
+                size="small"
+                variant="tonal"
+                color="warning"
+                prepend-icon="mdi-restore"
+                rounded="lg"
+                block
+                class="mb-3"
+                @click="resetTableConfig"
+              >
+                {{ $t('reset_table_config') }}
+              </v-btn>
+
+              <div class="text-caption text-medium-emphasis mb-2 font-weight-bold">
+                {{ $t('columns_order_and_pin') }}:
+              </div>
+
+              <div class="table-config-col-list" style="max-height: 260px; overflow-y: auto;">
+                <div
+                  v-for="h in configColumns"
+                  :key="h.key"
+                  class="d-flex align-center justify-space-between pa-1 px-2 mb-1 rounded bg-surface-variant-subtle"
+                  style="font-size: 11px;"
+                >
+                  <span class="text-truncate font-weight-medium" style="max-width: 140px;" :title="h.title">
+                    {{ h.title }}
+                  </span>
+                  <div class="d-flex align-center ga-1">
+                    <v-btn
+                      size="20"
+                      icon
+                      :variant="pinSide(h.key) === 'left' ? 'flat' : 'text'"
+                      :color="pinSide(h.key) === 'left' ? '#4643a0' : 'grey'"
+                      :title="$t('pin_left')"
+                      @click="setPin(h.key, pinSide(h.key) === 'left' ? 'none' : 'left')"
+                    >
+                      <v-icon size="12">mdi-dock-left</v-icon>
+                    </v-btn>
+                    <v-btn
+                      size="20"
+                      icon
+                      :variant="pinSide(h.key) === 'right' ? 'flat' : 'text'"
+                      :color="pinSide(h.key) === 'right' ? '#FF7043' : 'grey'"
+                      :title="$t('pin_right')"
+                      @click="setPin(h.key, pinSide(h.key) === 'right' ? 'none' : 'right')"
+                    >
+                      <v-icon size="12">mdi-dock-right</v-icon>
+                    </v-btn>
+                  </div>
+                </div>
+              </div>
+            </v-card>
+          </v-menu>
+
           <v-btn
             icon
             variant="tonal"
@@ -187,16 +286,554 @@
 
       <!-- Advanced Filters Expandable Panel -->
       <v-expand-transition>
-        <div v-if="showAdvanced" class="adv-panel pa-3 mt-2 rounded-xl">
-          <v-row dense>
-            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.articleType" :items="[{title:$t('text'),value:'text'},{title:'FishType',value:'FishType'},{title:'GuanoType',value:'GuanoType'},{title:'PackageType',value:'PackageType'}]" :label="$t('article_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFamilies" :items="fishFamilies.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_family')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishFreshFrozen" :items="['fresh','frozen']" :label="$t('fish_type_fresh_frozen')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='FishType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.fishProcessTypes" :items="fishProcessTypes.map(f=>({title:f[`name_${main.lang?.code}`]||f.name,value:f.id}))" :label="$t('fish_process_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='GuanoType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.guanoTypes" :items="guanoTypes.map(g=>({title:g[`name_${main.lang?.code}`]||g.name,value:g.id}))" :label="$t('guano_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col v-if="advFilter.articleType==='PackageType'" cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.packageTypes" :items="packageTypes.map(p=>({title:p[`name_${main.lang?.code}`]||p.name,value:p.id}))" :label="$t('package_type')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
-            <v-col cols="12" sm="6" md="3"><v-autocomplete v-model="advFilter.warehouses" :items="warehouses.map(w=>({title:w[`name_${main.lang?.code}`]||w.name,value:w.id}))" :label="$t('warehouse')" variant="outlined" density="compact" rounded color="#4643a0" class="text-shipping" hide-details clearable multiple chips closable-chips></v-autocomplete></v-col>
+        <div v-if="showAdvanced" class="adv-panel pa-4 mt-2 rounded-xl">
+          <!-- Advanced Filter Header -->
+          <div class="d-flex align-center justify-space-between mb-3 pb-2 border-b">
+            <div class="d-flex align-center ga-2">
+              <v-avatar size="28" color="#4643a0" variant="tonal" rounded="lg">
+                <v-icon size="16" color="#4643a0">mdi-filter-cog-outline</v-icon>
+              </v-avatar>
+              <div>
+                <span class="text-subtitle-2 font-weight-bold text-shipping">{{ $t('advanced_filters') }}</span>
+                <span class="text-caption text-medium-emphasis ml-2">{{ $t('active_advanced_filters') }}: <b>{{ activeAdvFilterCount }}</b></span>
+              </div>
+            </div>
+
+            <div class="d-flex align-center ga-1">
+              <v-btn
+                v-if="activeAdvFilterCount > 0"
+                variant="tonal"
+                color="warning"
+                size="small"
+                rounded="lg"
+                prepend-icon="mdi-filter-off"
+                @click="clearAdvFilters"
+              >
+                {{ $t('clear_advanced_filters') }}
+              </v-btn>
+              <v-btn
+                icon="mdi-close"
+                size="small"
+                variant="text"
+                @click="showAdvanced = false"
+              ></v-btn>
+            </div>
+          </div>
+
+          <!-- Primary Multi-Filter Controls (Row 1) -->
+          <v-row dense class="mb-2">
+            <!-- Designation / Article Types (Multi-Filter) -->
+            <v-col cols="12" md="6">
+              <v-autocomplete
+                v-model="advFilter.articleTypes"
+                :items="articleTypeOptions"
+                item-title="title"
+                item-value="value"
+                :label="$t('article_types')"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#4643a0"
+                class="text-shipping"
+                hide-details
+                clearable
+                multiple
+                chips
+                closable-chips
+                prepend-inner-icon="mdi-shape-outline"
+                :placeholder="$t('all_types')"
+              >
+                <template #chip="{ item, props }">
+                  <v-chip
+                    v-bind="props"
+                    color="#4643a0"
+                    variant="tonal"
+                    size="small"
+                    class="font-weight-medium"
+                    rounded="lg"
+                  >
+                    <v-icon start size="14">{{ item.raw.icon }}</v-icon>
+                    {{ item.title }}
+                  </v-chip>
+                </template>
+                <template #item="{ props, item }">
+                  <v-list-item v-bind="props" :title="item.title">
+                    <template #prepend>
+                      <v-icon size="18" color="#4643a0" class="mr-2">{{ item.raw.icon }}</v-icon>
+                    </template>
+                  </v-list-item>
+                </template>
+              </v-autocomplete>
+            </v-col>
+
+            <!-- Warehouses (Multi-Filter) -->
+            <v-col cols="12" md="6">
+              <v-autocomplete
+                v-model="advFilter.warehouses"
+                :items="warehouseOptions"
+                item-title="title"
+                item-value="value"
+                :label="$t('warehouse')"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#4643a0"
+                class="text-shipping"
+                hide-details
+                clearable
+                multiple
+                chips
+                closable-chips
+                prepend-inner-icon="mdi-warehouse"
+              >
+                <template #chip="{ item, props }">
+                  <v-chip
+                    v-bind="props"
+                    color="#4643a0"
+                    variant="tonal"
+                    size="small"
+                    class="font-weight-medium"
+                    rounded="lg"
+                  >
+                    <v-icon start size="14">mdi-warehouse</v-icon>
+                    {{ item.title }}
+                  </v-chip>
+                </template>
+              </v-autocomplete>
+            </v-col>
           </v-row>
+
+          <!-- Contextual Sub-Filters: Fish Specifications -->
+          <v-expand-transition>
+            <div
+              v-if="!advFilter.articleTypes?.length || advFilter.articleTypes.includes('FishType')"
+              class="subfilter-card pa-3 rounded-lg mb-2"
+              style="background: rgba(70, 67, 160, 0.04); border: 1px solid rgba(70, 67, 160, 0.18);"
+            >
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="d-flex align-center ga-1 text-caption font-weight-bold text-shipping">
+                  <v-icon size="15" color="#4643a0">mdi-fish</v-icon>
+                  <span>{{ $t('fish_filters') }}</span>
+                  <v-chip size="x-small" color="#4643a0" variant="tonal" class="ml-1 font-weight-medium">
+                    {{ fishTypeOptions.length }} {{ $t('in_table') }}
+                  </v-chip>
+                </div>
+                <span class="text-caption text-medium-emphasis" style="font-size: 11px;">
+                  {{ $t('cascading_hint') }}
+                </span>
+              </div>
+              <v-row dense>
+                <!-- Cascading Step 1: Fish Family -->
+                <v-col cols="12" md="4" sm="6">
+                  <v-autocomplete
+                    v-model="advFilter.fishFamilies"
+                    :items="fishFamilyOptions"
+                    item-title="title"
+                    item-value="value"
+                    :label="$t('fish_family')"
+                    :placeholder="$t('select_fish_family')"
+                    variant="outlined"
+                    density="compact"
+                    rounded="lg"
+                    color="#4643a0"
+                    class="text-shipping"
+                    hide-details
+                    clearable
+                    multiple
+                    chips
+                    closable-chips
+                    prepend-inner-icon="mdi-family-tree"
+                  >
+                    <template #chip="{ item, props }">
+                      <v-chip v-bind="props" color="#4643a0" variant="tonal" size="small" rounded="lg">
+                        <v-icon start size="13">mdi-family-tree</v-icon>
+                        {{ item.raw.rawTitle || item.title }}
+                      </v-chip>
+                    </template>
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :title="item.raw.rawTitle || item.title">
+                        <template #prepend>
+                          <v-icon size="16" color="#4643a0" class="mr-2">mdi-family-tree</v-icon>
+                        </template>
+                        <template #append>
+                          <v-chip size="x-small" color="#4643a0" variant="tonal" class="font-weight-bold">
+                            {{ item.raw.count }} {{ $t('in_table') }}
+                          </v-chip>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+
+                <!-- Cascading Step 2: Fresh / Frozen State -->
+                <v-col cols="12" md="4" sm="6">
+                  <v-autocomplete
+                    v-model="advFilter.fishFreshFrozen"
+                    :items="fishFreshFrozenOptions"
+                    item-title="title"
+                    item-value="value"
+                    :label="$t('fish_type_fresh_frozen')"
+                    :placeholder="$t('fish_type_fresh_frozen')"
+                    variant="outlined"
+                    density="compact"
+                    rounded="lg"
+                    color="#4643a0"
+                    class="text-shipping"
+                    hide-details
+                    clearable
+                    multiple
+                    chips
+                    closable-chips
+                    prepend-inner-icon="mdi-snowflake"
+                  >
+                    <template #chip="{ item, props }">
+                      <v-chip v-bind="props" color="#4643a0" variant="tonal" size="small" rounded="lg">
+                        <v-icon start size="13">{{ item.raw.icon || 'mdi-snowflake' }}</v-icon>
+                        {{ item.raw.rawTitle || item.title }}
+                      </v-chip>
+                    </template>
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :title="item.raw.rawTitle || item.title">
+                        <template #prepend>
+                          <v-icon size="16" color="#4643a0" class="mr-2">{{ item.raw.icon || 'mdi-snowflake' }}</v-icon>
+                        </template>
+                        <template #append>
+                          <v-chip size="x-small" color="#4643a0" variant="tonal" class="font-weight-bold">
+                            {{ item.raw.count }} {{ $t('in_table') }}
+                          </v-chip>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+
+                <!-- Cascading Step 3: Process Type -->
+                <v-col cols="12" md="4" sm="12">
+                  <v-autocomplete
+                    v-model="advFilter.fishProcessTypes"
+                    :items="fishProcessTypeOptions"
+                    item-title="title"
+                    item-value="value"
+                    :label="$t('fish_process_type')"
+                    :placeholder="$t('select_fish_process_type')"
+                    variant="outlined"
+                    density="compact"
+                    rounded="lg"
+                    color="#4643a0"
+                    class="text-shipping"
+                    hide-details
+                    clearable
+                    multiple
+                    chips
+                    closable-chips
+                    prepend-inner-icon="mdi-cog-outline"
+                  >
+                    <template #chip="{ item, props }">
+                      <v-chip v-bind="props" color="#4643a0" variant="tonal" size="small" rounded="lg">
+                        <v-icon start size="13">mdi-cog-outline</v-icon>
+                        {{ item.raw.rawTitle || item.title }}
+                      </v-chip>
+                    </template>
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :title="item.raw.rawTitle || item.title">
+                        <template #prepend>
+                          <v-icon size="16" color="#4643a0" class="mr-2">mdi-cog-outline</v-icon>
+                        </template>
+                        <template #append>
+                          <v-chip size="x-small" color="#4643a0" variant="tonal" class="font-weight-bold">
+                            {{ item.raw.count }} {{ $t('in_table') }}
+                          </v-chip>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+
+                <!-- Cascading Step 4: Specific Fish Types Autocomplete (Crosses all active filters!) -->
+                <v-col cols="12" class="mt-1">
+                  <v-autocomplete
+                    v-model="advFilter.fishTypes"
+                    :items="fishTypeOptions"
+                    item-title="title"
+                    item-value="value"
+                    :label="$t('fish_types')"
+                    :placeholder="$t('select_fish_types')"
+                    variant="outlined"
+                    density="compact"
+                    rounded="lg"
+                    color="#4643a0"
+                    class="text-shipping"
+                    hide-details
+                    clearable
+                    multiple
+                    chips
+                    closable-chips
+                    prepend-inner-icon="mdi-fish"
+                  >
+                    <template #chip="{ item, props }">
+                      <v-chip v-bind="props" color="#4643a0" variant="tonal" size="small" rounded="lg" class="font-weight-medium">
+                        <v-icon start size="13">mdi-fish</v-icon>
+                        <span>{{ item.raw.rawTitle || item.title }}</span>
+                        <v-badge
+                          :content="item.raw.count"
+                          inline
+                          color="#4643a0"
+                          class="ml-1"
+                        ></v-badge>
+                      </v-chip>
+                    </template>
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :title="item.raw.rawTitle || item.title" :subtitle="item.raw.subtitle">
+                        <template #prepend>
+                          <v-avatar size="24" color="#4643a0" variant="tonal" rounded="md" class="mr-2">
+                            <v-icon size="14" color="#4643a0">mdi-fish</v-icon>
+                          </v-avatar>
+                        </template>
+                        <template #append>
+                          <v-chip size="x-small" color="#4643a0" variant="tonal" class="font-weight-bold">
+                            {{ item.raw.count }} {{ $t('in_table') }}
+                          </v-chip>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+              </v-row>
+            </div>
+          </v-expand-transition>
+
+          <!-- Contextual Sub-Filters: Guano Specifications -->
+          <v-expand-transition>
+            <div
+              v-if="!advFilter.articleTypes?.length || advFilter.articleTypes.includes('GuanoType')"
+              class="subfilter-card pa-3 rounded-lg mb-2"
+              style="background: rgba(76, 175, 80, 0.04); border: 1px solid rgba(76, 175, 80, 0.18);"
+            >
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="d-flex align-center ga-1 text-caption font-weight-bold text-success">
+                  <v-icon size="15" color="success">mdi-leaf</v-icon>
+                  <span>{{ $t('guano_filters') }}</span>
+                  <v-chip size="x-small" color="success" variant="tonal" class="ml-1 font-weight-medium">
+                    {{ guanoTypeOptions.length }} {{ $t('in_table') }}
+                  </v-chip>
+                </div>
+              </div>
+              <v-row dense>
+                <v-col cols="12">
+                  <v-autocomplete
+                    v-model="advFilter.guanoTypes"
+                    :items="guanoTypeOptions"
+                    item-title="title"
+                    item-value="value"
+                    :label="$t('guano_type')"
+                    :placeholder="$t('select_guano_types')"
+                    variant="outlined"
+                    density="compact"
+                    rounded="lg"
+                    color="#4643a0"
+                    class="text-shipping"
+                    hide-details
+                    clearable
+                    multiple
+                    chips
+                    closable-chips
+                    prepend-inner-icon="mdi-leaf"
+                  >
+                    <template #chip="{ item, props }">
+                      <v-chip v-bind="props" color="success" variant="tonal" size="small" rounded="lg" class="font-weight-medium">
+                        <v-icon start size="13">mdi-leaf</v-icon>
+                        <span>{{ item.raw.rawTitle || item.title }}</span>
+                        <v-badge :content="item.raw.count" inline color="success" class="ml-1"></v-badge>
+                      </v-chip>
+                    </template>
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :title="item.raw.rawTitle || item.title" :subtitle="item.raw.subtitle">
+                        <template #prepend>
+                          <v-avatar size="24" color="success" variant="tonal" rounded="md" class="mr-2">
+                            <v-icon size="14" color="success">mdi-leaf</v-icon>
+                          </v-avatar>
+                        </template>
+                        <template #append>
+                          <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                            {{ item.raw.count }} {{ $t('in_table') }}
+                          </v-chip>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+              </v-row>
+            </div>
+          </v-expand-transition>
+
+          <!-- Contextual Sub-Filters: Packaging Specifications -->
+          <v-expand-transition>
+            <div
+              v-if="!advFilter.articleTypes?.length || advFilter.articleTypes.includes('PackageType')"
+              class="subfilter-card pa-3 rounded-lg mb-2"
+              style="background: rgba(120, 144, 156, 0.06); border: 1px solid rgba(120, 144, 156, 0.2);"
+            >
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="d-flex align-center ga-1 text-caption font-weight-bold text-blue-grey">
+                  <v-icon size="15" color="blue-grey">mdi-package-variant-closed</v-icon>
+                  <span>{{ $t('package_filters') }}</span>
+                  <v-chip size="x-small" color="blue-grey" variant="tonal" class="ml-1 font-weight-medium">
+                    {{ packageTypeOptions.length }} {{ $t('in_table') }}
+                  </v-chip>
+                </div>
+              </div>
+              <v-row dense>
+                <v-col cols="12">
+                  <v-autocomplete
+                    v-model="advFilter.packageTypes"
+                    :items="packageTypeOptions"
+                    item-title="title"
+                    item-value="value"
+                    :label="$t('package_type')"
+                    :placeholder="$t('select_package_types')"
+                    variant="outlined"
+                    density="compact"
+                    rounded="lg"
+                    color="#4643a0"
+                    class="text-shipping"
+                    hide-details
+                    clearable
+                    multiple
+                    chips
+                    closable-chips
+                    prepend-inner-icon="mdi-package-variant"
+                  >
+                    <template #chip="{ item, props }">
+                      <v-chip v-bind="props" color="blue-grey" variant="tonal" size="small" rounded="lg" class="font-weight-medium">
+                        <v-icon start size="13">mdi-package-variant</v-icon>
+                        <span>{{ item.raw.rawTitle || item.title }}</span>
+                        <v-badge :content="item.raw.count" inline color="blue-grey" class="ml-1"></v-badge>
+                      </v-chip>
+                    </template>
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :title="item.raw.rawTitle || item.title" :subtitle="item.raw.subtitle">
+                        <template #prepend>
+                          <v-avatar size="24" color="blue-grey" variant="tonal" rounded="md" class="mr-2">
+                            <v-icon size="14" color="blue-grey">mdi-package-variant</v-icon>
+                          </v-avatar>
+                        </template>
+                        <template #append>
+                          <v-chip size="x-small" color="blue-grey" variant="tonal" class="font-weight-bold">
+                            {{ item.raw.count }} {{ $t('in_table') }}
+                          </v-chip>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+              </v-row>
+            </div>
+          </v-expand-transition>
+
+          <!-- Active Filter Chips Strip -->
+          <div v-if="activeAdvFilterCount > 0" class="active-chips-strip d-flex align-center flex-wrap ga-1 pt-2 border-t mt-2">
+            <span class="text-caption font-weight-medium text-medium-emphasis mr-1 d-flex align-center ga-1">
+              <v-icon size="12">mdi-tag-multiple-outline</v-icon>
+              {{ $t('active_advanced_filters') }}:
+            </span>
+            <v-chip
+              v-for="at in (advFilter.articleTypes || [])"
+              :key="'at_' + at"
+              size="x-small"
+              rounded="lg"
+              color="#4643a0"
+              variant="flat"
+              closable
+              @click:close="removeAdvFilterItem('articleTypes', at)"
+            >
+              {{ at }}
+            </v-chip>
+            <v-chip
+              v-for="wid in (advFilter.warehouses || [])"
+              :key="'w_' + wid"
+              size="x-small"
+              rounded="lg"
+              color="#4643a0"
+              variant="tonal"
+              closable
+              @click:close="removeAdvFilterItem('warehouses', wid)"
+            >
+              {{ warehouseOptions.find(w => w.value === wid)?.rawTitle || wid }}
+            </v-chip>
+            <v-chip
+              v-for="fid in (advFilter.fishFamilies || [])"
+              :key="'ff_' + fid"
+              size="x-small"
+              rounded="lg"
+              color="#4643a0"
+              variant="tonal"
+              closable
+              @click:close="removeAdvFilterItem('fishFamilies', fid)"
+            >
+              {{ fishFamilyOptions.find(f => f.value === fid)?.rawTitle || fid }}
+            </v-chip>
+            <v-chip
+              v-for="ff in (advFilter.fishFreshFrozen || [])"
+              :key="'fff_' + ff"
+              size="x-small"
+              rounded="lg"
+              color="#4643a0"
+              variant="tonal"
+              closable
+              @click:close="removeAdvFilterItem('fishFreshFrozen', ff)"
+            >
+              {{ ff === 'frozen' ? $t('frozen') : $t('fresh') }}
+            </v-chip>
+            <v-chip
+              v-for="pid in (advFilter.fishProcessTypes || [])"
+              :key="'fpt_' + pid"
+              size="x-small"
+              rounded="lg"
+              color="#4643a0"
+              variant="tonal"
+              closable
+              @click:close="removeAdvFilterItem('fishProcessTypes', pid)"
+            >
+              {{ fishProcessTypeOptions.find(p => p.value === pid)?.rawTitle || pid }}
+            </v-chip>
+            <v-chip
+              v-for="ftid in (advFilter.fishTypes || [])"
+              :key="'ft_' + ftid"
+              size="x-small"
+              rounded="lg"
+              color="#4643a0"
+              variant="tonal"
+              closable
+              @click:close="removeAdvFilterItem('fishTypes', ftid)"
+            >
+              <v-icon start size="11">mdi-fish</v-icon>
+              {{ fishTypeOptions.find(ft => ft.value === ftid)?.rawTitle || ftid }}
+            </v-chip>
+            <v-chip
+              v-for="gid in (advFilter.guanoTypes || [])"
+              :key="'gt_' + gid"
+              size="x-small"
+              rounded="lg"
+              color="success"
+              variant="tonal"
+              closable
+              @click:close="removeAdvFilterItem('guanoTypes', gid)"
+            >
+              {{ guanoTypeOptions.find(g => g.value === gid)?.rawTitle || gid }}
+            </v-chip>
+            <v-chip
+              v-for="ptid in (advFilter.packageTypes || [])"
+              :key="'pt_' + ptid"
+              size="x-small"
+              rounded="lg"
+              color="blue-grey"
+              variant="tonal"
+              closable
+              @click:close="removeAdvFilterItem('packageTypes', ptid)"
+            >
+              {{ packageTypeOptions.find(p => p.value === ptid)?.rawTitle || ptid }}
+            </v-chip>
+          </div>
         </div>
       </v-expand-transition>
 
@@ -315,19 +952,94 @@
         </div>
       </v-expand-transition>
     </div>
+    <!-- Active Multi-Sorts Strip -->
+    <div v-if="colSorts && colSorts.length > 0" class="ls-active-sorts-strip d-flex align-center flex-wrap ga-1 px-3 py-1 mb-2 rounded-lg" style="background: rgba(70, 67, 160, 0.06); border: 1px dashed rgba(70, 67, 160, 0.3);">
+      <span class="text-caption font-weight-bold d-flex align-center ga-1 text-shipping mr-1">
+        <v-icon size="14" color="#4643a0">mdi-sort</v-icon>
+        {{ $t('sorted_by') }}:
+      </span>
+      <v-chip
+        v-for="(s, sIdx) in colSorts"
+        :key="'sort_' + s.key"
+        size="x-small"
+        rounded="lg"
+        color="#4643a0"
+        variant="flat"
+        closable
+        @click:close="removeColSort(s.key)"
+        @click="toggleMultiSort(s.key)"
+      >
+        <span class="font-weight-bold mr-1">{{ sIdx + 1 }}.</span>
+        <span>{{ getHeaderTitle(s.key) }}</span>
+        <v-icon end size="12">{{ s.dir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>
+      </v-chip>
+      <v-btn
+        size="x-small"
+        variant="text"
+        color="error"
+        class="ml-1 text-caption font-weight-medium"
+        @click="clearColSorts"
+      >
+        {{ $t('clear_sorts') }}
+      </v-btn>
+    </div>
+
     <!-- Table -->
     <div class="ls-table-wrap" ref="tableWrap" @scroll.passive="onTableScroll">
       <v-progress-linear v-if="isWorkerFiltering" indeterminate color="#4643a0" height="2" class="ls-table-loader"></v-progress-linear>
       <table class="ls-table">
         <thead class="ls-thead"><tr>
-          <th class="ls-th ls-th-pin" style="min-width:50px;left:0"><v-checkbox-btn v-model="selectAll" color="#4643a0" density="compact" hide-details></v-checkbox-btn></th>
-          <th v-for="h in headers" :key="h.key" class="ls-th" :class="{'ls-th-pin':isPinned(h.key),'ls-th-dragover':dragOverCol===h.key}" :style="colPinStyle(h.key,3)" :draggable="!h.fixed" @dragstart="onDragStart(h.key)" @dragover="onDragOver(h.key,$event)" @dragend="onDragEnd" @drop="onDragEnd">
+          <th class="ls-th ls-th-pin" :style="colPinStyle('__checkbox', 3)"><v-checkbox-btn v-model="selectAll" color="#4643a0" density="compact" hide-details></v-checkbox-btn></th>
+          <th
+            v-for="h in headers"
+            :key="h.key"
+            class="ls-th"
+            :class="{'ls-th-pin': isPinned(h.key) || h.fixed, 'ls-th-dragover': dragOverCol === h.key}"
+            :style="colPinStyle(h.key, 3)"
+            :draggable="!h.fixed"
+            @dragstart="onDragStart(h.key)"
+            @dragover="onDragOver(h.key, $event)"
+            @dragend="onDragEnd"
+            @drop="onDragEnd"
+          >
+            <!-- Column Resizer Handle -->
+            <div
+              v-if="!h.fixed"
+              class="ls-col-resizer"
+              :class="{ 'ls-col-resizer-active': activeResizeCol === h.key }"
+              @mousedown.stop.prevent="startColResize(h.key, $event)"
+              :title="$t('resize_column')"
+            ></div>
+
             <div class="ls-th-inner">
-              <v-icon v-if="!h.fixed" size="12" class="drag-handle" color="grey-lighten-1">mdi-drag-vertical</v-icon>
-              <span class="ls-th-title" @click="h.sortable!==false&&toggleSort(h.key)">{{ h.title }}</span>
-              <template v-if="h.key!=='actions'&&h.key!=='expand'">
-                <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="#4643a0">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
-                <span v-if="sortIdx(h.key)" class="sort-badge-s">{{ sortIdx(h.key) }}</span>
+              <v-icon v-if="!h.fixed" size="12" class="drag-handle mr-1" color="grey-lighten-1">mdi-drag-vertical</v-icon>
+              <span
+                class="ls-th-title text-truncate"
+                @click="h.sortable !== false && toggleSort(h.key, $event)"
+                :title="$t('multi_sort_hint')"
+              >
+                {{ h.title }}
+              </span>
+
+              <template v-if="h.key !== 'actions' && h.key !== 'expand'">
+                <!-- Sort Arrow Button -->
+                <v-btn
+                  v-if="sortDir(h.key)"
+                  icon
+                  variant="text"
+                  size="14"
+                  @click.stop="toggleMultiSort(h.key)"
+                  :title="sortDir(h.key) === 'asc' ? 'ASC (Click to toggle)' : 'DESC (Click to clear)'"
+                >
+                  <v-icon size="12" color="#4643a0">mdi-arrow-{{ sortDir(h.key) === 'asc' ? 'up' : 'down' }}</v-icon>
+                </v-btn>
+
+                <!-- Priority Badge for Multi-Sort -->
+                <span v-if="sortIdx(h.key) && colSorts && colSorts.length > 1" class="sort-badge-s">
+                  {{ sortIdx(h.key) }}
+                </span>
+
+                <!-- Column Values Filter Menu -->
                 <TableColumnFilter
                   v-model="colFilters[h.key]"
                   :options="filterOpts(h.key)"
@@ -336,7 +1048,43 @@
                   color="#4643a0"
                   @change="onColFilterChange"
                 />
-                <v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'blue':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn>
+
+                <!-- Modern Pin / Unpin Menu -->
+                <v-menu v-if="!h.fixed" location="bottom end" :close-on-content-click="true">
+                  <template #activator="{ props: pinMenuProps }">
+                    <v-btn
+                      v-bind="pinMenuProps"
+                      icon
+                      variant="text"
+                      size="14"
+                      class="ls-th-pin-btn"
+                      :title="$t('pin_column')"
+                      @click.stop
+                    >
+                      <v-icon
+                        size="11"
+                        :color="pinSide(h.key) === 'left' ? '#4643a0' : pinSide(h.key) === 'right' ? '#FF7043' : 'grey-lighten-1'"
+                      >
+                        {{ pinSide(h.key) === 'left' ? 'mdi-dock-left' : pinSide(h.key) === 'right' ? 'mdi-dock-right' : 'mdi-pin-outline' }}
+                      </v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+                    <v-list-item density="compact" :active="pinSide(h.key) === 'left'" @click="setPin(h.key, 'left')">
+                      <template #prepend><v-icon size="15" color="#4643a0">mdi-dock-left</v-icon></template>
+                      <v-list-item-title class="text-caption font-weight-medium">{{ $t('pin_left') }}</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item density="compact" :active="pinSide(h.key) === 'right'" @click="setPin(h.key, 'right')">
+                      <template #prepend><v-icon size="15" color="#FF7043">mdi-dock-right</v-icon></template>
+                      <v-list-item-title class="text-caption font-weight-medium">{{ $t('pin_right') }}</v-list-item-title>
+                    </v-list-item>
+                    <v-divider v-if="pinSide(h.key)" class="my-1"></v-divider>
+                    <v-list-item v-if="pinSide(h.key)" density="compact" @click="setPin(h.key, 'none')">
+                      <template #prepend><v-icon size="15" color="grey">mdi-pin-off-outline</v-icon></template>
+                      <v-list-item-title class="text-caption text-error">{{ $t('unpin') }}</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
               </template>
             </div>
           </th>
@@ -350,8 +1098,8 @@
             </tr>
             <template v-for="item in visibleItems" :key="item.id">
             <tr class="ls-row" :class="{'ls-row-expanded':expanded[item.id],'ls-row-invoiced':item._is_invoiced}">
-              <td class="ls-td ls-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="#4643a0" density="compact" hide-details></v-checkbox-btn></td>
-              <td v-for="h in headers" :key="h.key" class="ls-td" :class="{'ls-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
+              <td class="ls-td ls-th-pin" :style="colPinStyle('__checkbox', 2)"><v-checkbox-btn v-model="selected" :value="item.id" color="#4643a0" density="compact" hide-details></v-checkbox-btn></td>
+              <td v-for="h in headers" :key="h.key" class="ls-td" :class="{'ls-col-pin': isPinned(h.key) || h.fixed}" :style="colPinStyle(h.key, 2)">
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
                 <template v-else-if="h.key==='shipping_category_id'"><v-chip size="small" color="#4643a0" variant="tonal">{{ catName(item.shipping_category_id) }}</v-chip></template>
@@ -394,7 +1142,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="ls-tfoot"><tr><td :colspan="headers.length-1"></td><td class="text-center font-weight-bold">Σ = {{ main.formatDisplayNumber(totalWeight) }}</td><td class="text-center font-weight-bold">Σ = {{ main.formatDisplayNumber(totalPrice) }}</td><td></td></tr></tfoot>
+        <tfoot class="ls-tfoot"><tr><td :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
   </v-card-text>
@@ -410,6 +1158,7 @@
 <script>
 import script from './script.js';
 import virtualTableMixin from '@/utils/virtualTableMixin.js';
+import tableConfigMixin from '@/utils/tableConfigMixin.js';
 import AddShipping from '../AddShipping/index.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
@@ -418,15 +1167,14 @@ import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
-  mixins: [virtualTableMixin],
+  mixins: [virtualTableMixin, tableConfigMixin],
   components:{...script.components,AddShipping,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle,TableColumnFilter},
   data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,sellTabs:[{value:0,label:'list_shipping',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('shippings.create')?[{value:1,label:'add_shipping',icon:'mdi-sticker-plus-outline'}]:[])]}},
   computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
-  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
-  watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true},activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0)this.fetchShippings()},showInvoice(v){if(v&&this.selectedShippings.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
-  mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths());if(this.$route.query.tab==='add')this.activeTab=1},
+  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true}},
+  watch:{...script.watch,activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0)this.fetchShippings()},showInvoice(v){if(v&&this.selectedShippings.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
+  mounted(){script.mounted.call(this);if(this.loadTableConfig)this.loadTableConfig();if(this.$route.query.tab==='add')this.activeTab=1},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
-  updated(){this.measureColWidths()},
 };
 </script>
 <style scoped>
@@ -460,29 +1208,28 @@ export default {
 .adv-panel{border:1.5px solid rgba(70,67,160,.15);background:rgba(70,67,160,.03)}
 .inv-panel{border:1.5px solid rgba(0,150,136,.15);background:rgba(0,150,136,.03)}
 .ls-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
-.ls-table{width:100%;border-collapse:collapse;font-size:13px}
+.ls-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
 .ls-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
-.ls-th{padding:10px 12px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s}
-.ls-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+.ls-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
+.ls-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+.ls-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
+.ls-col-resizer:hover,.ls-col-resizer-active{background:#4643a0!important;width:3px!important}
+.ls-th-pin-btn{opacity:.65;transition:opacity .15s}.ls-th-pin-btn:hover{opacity:1}
+.ls-active-sorts-strip{font-family:'Inter',sans-serif}
+.ls-col-pin{position:sticky!important;z-index:2!important;background:#ffffff!important}
+.ls-th-pin{position:sticky!important;z-index:5!important;background:#f8fafc!important}
+:deep(.v-theme--dark) .ls-col-pin,
 :deep(.v-theme--dark) .ls-th-pin,
+.v-theme--dark .ls-col-pin,
 .v-theme--dark .ls-th-pin {
-  background: #1c1f28 !important;
+  background: #1e293b !important;
   color: #f1f5f9 !important;
-  box-shadow: 2px 0 4px -2px rgba(0,0,0,.4) !important;
 }
 .ls-th-dragover{background:rgba(70,67,160,.08)!important}
 .ls-th-inner{display:flex;align-items:center;justify-content:center;gap:2px}
 .ls-th-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.7;cursor:pointer}
 .drag-handle{cursor:grab;opacity:.5;transition:opacity .15s}.drag-handle:hover{opacity:1}
 .sort-badge-s{font-size:9px;background:#4643a0;color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center}
-.ls-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
-.ls-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
-:deep(.v-theme--dark) .ls-col-pin,
-.v-theme--dark .ls-col-pin {
-  background: #1c1f28 !important;
-  color: #f1f5f9 !important;
-  box-shadow: 2px 0 4px -2px rgba(0,0,0,.4) !important;
-}
 .ls-row:hover{background:rgba(70,67,160,.04)}.ls-row-expanded{background:rgba(70,67,160,.06)}
 .ls-row-invoiced{background:rgba(76,175,80,.06)}.ls-row-invoiced:hover{background:rgba(76,175,80,.1)}.ls-row-invoiced td{border-bottom-color:rgba(76,175,80,.12)}
 .ls-tfoot td{padding:10px 12px;border-top:2px solid rgba(70,67,160,.2);color:#4643a0;font-size:14px}

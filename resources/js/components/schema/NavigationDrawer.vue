@@ -626,7 +626,7 @@
           <div class="d-flex align-center justify-space-between ga-2">
             <!-- Left: Avatar + Identity -->
             <div class="d-flex align-center ga-2.5 overflow-hidden">
-              <div class="footer-avatar-wrap">
+              <div class="footer-avatar-wrap mr-2">
                 <v-avatar size="40" class="footer-avatar-orb">
                   <v-icon size="20" color="white">mdi-account</v-icon>
                 </v-avatar>
@@ -642,10 +642,6 @@
                   {{ auth.user?.name }}
                 </div>
                 <div class="footer-user-role-line d-flex align-center ga-1">
-                  <span
-                    class="footer-live-micro-dot"
-                    :class="isServerConnected ? 'dot-green' : 'dot-red'"
-                  ></span>
                   <span class="footer-role-text text-truncate">
                     {{ auth.user?.role?.name || 'Administrator' }}
                   </span>
@@ -1609,7 +1605,7 @@ export default {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  border: 2px solid #0d1117;
+  border: 1px solid #5cb379 !important;
   z-index: 3;
 }
 
@@ -2230,18 +2226,12 @@ export default {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid #0d1117;
+  border: 1px solid #5cb379 !important;
 }
 
 .footer-user-name {
   font-size: 0.84rem;
   letter-spacing: 0.2px;
-}
-
-.footer-live-micro-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
 }
 
 .dot-green {
