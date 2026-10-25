@@ -244,7 +244,8 @@
     </div>
 
     <!-- Data Table -->
-    <div class="lc-table-wrap" ref="tableWrap">
+    <div class="lc-table-wrap" ref="tableWrap" @scroll.passive="onTableScroll">
+      <v-progress-linear v-if="isWorkerFiltering" indeterminate color="#42A5F5" height="2" class="lc-table-loader"></v-progress-linear>
       <table class="lc-table">
         <thead class="lc-thead"><tr>
           <th class="lc-th lc-th-pin" style="min-width:50px;left:0"><v-checkbox-btn v-model="selectAll" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></th>
@@ -255,7 +256,14 @@
               <template v-if="h.key!=='actions'&&h.key!=='expand'">
                 <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="#42A5F5">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
                 <span v-if="sortIdx(h.key)" class="sort-badge">{{ sortIdx(h.key) }}</span>
-                <v-menu v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom"><template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="14"><v-icon size="12" :color="colFilters[h.key]&&colFilters[h.key].length?'#42A5F5':'grey'">mdi-filter</v-icon></v-btn></template><v-card min-width="220" class="rounded-lg pa-2"><v-autocomplete v-model="colFilters[h.key]" :items="filterOpts(h.key)" density="compact" variant="outlined" color="#42A5F5" hide-details multiple chips closable-chips :placeholder="$t('filter')" class="text-charge"><template #chip="{item,props:p}"><v-chip v-bind="p" size="x-small" color="#42A5F5" variant="tonal" closable>{{item.title}}</v-chip></template></v-autocomplete></v-card></v-menu>
+                <TableColumnFilter
+                  v-model="colFilters[h.key]"
+                  :options="filterOpts(h.key)"
+                  :counts="filterCounts(h.key)"
+                  :title="h.title"
+                  color="#42A5F5"
+                  @change="onColFilterChange"
+                />
                 <v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'blue':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn>
               </template>
             </div>
@@ -263,7 +271,12 @@
         </tr></thead>
         <tbody>
           <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="#42A5F5"></v-progress-circular></td></tr></template>
-          <template v-else v-for="item in colFilteredItems" :key="item.id">
+          <template v-else-if="colFilteredItems.length === 0"><tr><td :colspan="headers.length+1" class="text-center pa-8 text-grey">{{ $t('no_data_available') }}</td></tr></template>
+          <template v-else>
+            <tr v-if="virtualTopHeight > 0" class="virtual-spacer-row" :style="{ height: virtualTopHeight + 'px' }">
+              <td :colspan="headers.length + 1" :style="{ height: virtualTopHeight + 'px', padding: 0, border: 'none' }"></td>
+            </tr>
+            <template v-for="item in visibleItems" :key="item.id">
             <tr class="lc-row" :class="{'lc-row-expanded':expanded[item.id],'lc-row-invoiced':item._is_invoiced}">
               <td class="lc-td lc-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></td>
               <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
@@ -339,6 +352,10 @@
                 </div>
               </div>
             </td></tr>
+            </template>
+            <tr v-if="virtualBottomHeight > 0" class="virtual-spacer-row" :style="{ height: virtualBottomHeight + 'px' }">
+              <td :colspan="headers.length + 1" :style="{ height: virtualBottomHeight + 'px', padding: 0, border: 'none' }"></td>
+            </tr>
           </template>
         </tbody>
         <tfoot class="lc-tfoot"><tr><td class="lc-td"></td><td v-for="h in headers" :key="'foot-'+h.key" class="lc-td text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
@@ -360,15 +377,18 @@
 </template>
 <script>
 import script from './script.js';
+import virtualTableMixin from '@/utils/virtualTableMixin.js';
 import AddCharge from '../AddCharge/index.vue';
 import QualityControlDialog from '../QualityControl/QualityControlDialog.vue';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
 import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
+import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
-  components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle},
+  mixins: [virtualTableMixin],
+  components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle,TableColumnFilter},
   data(){return{...script.data.call(this),activeTab:0,qcDialogOpen:false,qcDialogCharge:null,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,chargeTabs:[{value:0,label:'list_charge',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('charges.create')?[{value:1,label:'add_charge',icon:'mdi-sticker-plus-outline'}]:[])]}},
   computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
   methods:{...script.methods,openQcDialog(item){this.qcDialogCharge=item;this.qcDialogOpen=true},onQcSaved(){this.fetchCharges()},onQcDeleted(){this.fetchCharges()},openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true},colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
@@ -379,6 +399,20 @@ export default {
 };
 </script>
 <style scoped>
+.virtual-spacer-row, .virtual-spacer-row td {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  background: transparent !important;
+  pointer-events: none;
+}
+.lc-table-loader {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
 .lc-card{border-radius:20px!important;font-family:'Inter',sans-serif}
 .lc-tab-toolbar{background:rgba(var(--v-theme-surface),.95);border:1px solid rgba(66,165,245,.2)!important;box-shadow:0 2px 8px rgba(13,71,161,.04)}
 .lc-segmented-toggle{background:rgba(var(--v-theme-on-surface),.02)}

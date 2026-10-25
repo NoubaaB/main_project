@@ -62,13 +62,14 @@
                   <span class="cursor-pointer" @click="h.sortable!==false&&toggleSort(h.key)">{{ h.title }}</span>
                   <v-icon v-if="sortDir(h.key)==='asc'" size="14" color="#F9A825">mdi-arrow-up</v-icon>
                   <v-icon v-else-if="sortDir(h.key)==='desc'" size="14" color="#F9A825">mdi-arrow-down</v-icon>
-                  <v-menu v-if="h.sortable!==false&&h.key!=='expand'" v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom">
-                    <template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="x-small" :color="colFilters[h.key]?.length?'#F9A825':'grey'"><v-icon size="14">mdi-filter</v-icon></v-btn></template>
-                    <v-card min-width="200" class="rounded-lg"><v-card-text class="pa-2">
-                      <v-checkbox v-for="opt in filterOpts(h.key)" :key="opt" v-model="colFilters[h.key]" :value="opt" :label="opt" density="compact" hide-details color="#F9A825" class="my-0"></v-checkbox>
-                      <v-btn v-if="colFilters[h.key]?.length" block size="small" variant="tonal" color="warning" class="mt-1" @click="colFilters[h.key]=[]">{{ $t('clear') }}</v-btn>
-                    </v-card-text></v-card>
-                  </v-menu>
+                  <TableColumnFilter
+                    v-if="h.sortable!==false&&h.key!=='expand'"
+                    v-model="colFilters[h.key]"
+                    :options="filterOpts(h.key)"
+                    :counts="filterCounts(h.key)"
+                    :title="h.title"
+                    color="#F9A825"
+                  />
                   <v-btn v-if="!h.fixed" icon variant="text" size="x-small" :color="isPinned(h.key)?'#F9A825':'grey'" @click="togglePin(h.key)"><v-icon size="14">mdi-pin{{ isPinned(h.key)?'':'-off' }}</v-icon></v-btn>
                 </div>
               </th>
@@ -156,10 +157,11 @@
 import VueApexCharts from 'vue3-apexcharts';
 import script from './listScript.js';
 import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
+import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
-  components: { apexchart: VueApexCharts, ...script.components, AuditLogDialog },
+  components: { apexchart: VueApexCharts, ...script.components, AuditLogDialog, TableColumnFilter },
   data() { return { ...script.data.call(this), auditLogDialogOpen: false, auditLogRecordId: 0 }; },
   computed: { ...script.computed, auth() { return useAuth(); } },
   methods: { ...script.methods, openAuditLog(id) { this.auditLogRecordId = id; this.auditLogDialogOpen = true; } },

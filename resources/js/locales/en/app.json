@@ -2845,5 +2845,8 @@
   "click_to_collapse": "Click to collapse",
   "no_team": "No Team",
   "no_options_found": "No options found",
-  "active_filters": "active filters"
+  "active_filters": "active filters",
+  "select_all": "Select All",
+  "clear_all": "Clear All",
+  "search_values": "Search values..."
 }

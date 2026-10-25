@@ -2845,5 +2845,8 @@
   "click_to_collapse": "Cliquer pour réduire",
   "no_team": "Sans équipe",
   "no_options_found": "Aucune option trouvée",
-  "active_filters": "filtres actifs"
+  "active_filters": "filtres actifs",
+  "select_all": "Tout sélectionner",
+  "clear_all": "Tout effacer",
+  "search_values": "Rechercher des valeurs..."
 }

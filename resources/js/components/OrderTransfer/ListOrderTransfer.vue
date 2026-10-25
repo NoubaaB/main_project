@@ -70,10 +70,13 @@
                 <template v-if="h.key!=='actions'">
                   <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="#00897B">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
                   <span v-if="sortIdx(h.key)" class="sort-badge">{{ sortIdx(h.key) }}</span>
-                  <v-menu v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom">
-                    <template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="14"><v-icon size="12" :color="colFilters[h.key]&&colFilters[h.key].length?'#00897B':'grey'">mdi-filter</v-icon></v-btn></template>
-                    <v-card min-width="220" class="rounded-lg pa-2"><v-autocomplete v-model="colFilters[h.key]" :items="filterOpts(h.key)" density="compact" variant="outlined" color="#00897B" hide-details multiple chips closable-chips :placeholder="$t('filter')" class="text-ot"></v-autocomplete></v-card>
-                  </v-menu>
+                  <TableColumnFilter
+                    v-model="colFilters[h.key]"
+                    :options="filterOpts(h.key)"
+                    :counts="filterCounts(h.key)"
+                    :title="h.title"
+                    color="#00897B"
+                  />
                   <v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'blue':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn>
                 </template>
               </div>
@@ -189,10 +192,11 @@
 import script from './listScript.js';
 import print from 'vue3-print-nb';
 import { DatePicker } from 'v-calendar';
+import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
 export default {
   ...script,
   directives: { print },
-  components: { DatePicker },
+  components: { DatePicker, TableColumnFilter },
   emits: ['edit'],
 };
 </script>

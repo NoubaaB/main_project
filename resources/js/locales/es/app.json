@@ -2845,5 +2845,8 @@
   "click_to_collapse": "Clic para contraer",
   "no_team": "Sin equipo",
   "no_options_found": "No se encontraron opciones",
-  "active_filters": "filtros activos"
+  "active_filters": "filtros activos",
+  "select_all": "Seleccionar todo",
+  "clear_all": "Borrar todo",
+  "search_values": "Buscar valores..."
 }

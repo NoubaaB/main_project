@@ -76,7 +76,13 @@
               <template v-if="h.key!=='actions'&&h.key!=='expand'">
                 <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="#00897B">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
                 <span v-if="sortIdx(h.key)" class="sort-badge">{{ sortIdx(h.key) }}</span>
-                <v-menu v-model="filterMenus[h.key]" :close-on-content-click="false" location="bottom"><template #activator="{props}"><v-btn v-bind="props" icon variant="text" size="14"><v-icon size="12" :color="colFilters[h.key]&&colFilters[h.key].length?'#00897B':'grey'">mdi-filter</v-icon></v-btn></template><v-card min-width="220" class="rounded-lg pa-2"><v-autocomplete v-model="colFilters[h.key]" :items="filterOpts(h.key)" density="compact" variant="outlined" color="#00897B" hide-details multiple chips closable-chips :placeholder="$t('filter')" class="text-teal"><template #chip="{item,props:p}"><v-chip v-bind="p" size="x-small" color="#00897B" variant="tonal" closable>{{item.title}}</v-chip></template></v-autocomplete></v-card></v-menu>
+                <TableColumnFilter
+                  v-model="colFilters[h.key]"
+                  :options="filterOpts(h.key)"
+                  :counts="filterCounts(h.key)"
+                  :title="h.title"
+                  color="#00897B"
+                />
                 <v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'blue':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn>
               </template>
             </div>
@@ -147,8 +153,10 @@
 </template>
 <script>
 import script from './script.js';
+import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
 export default {
   ...script,
+  components: { ...script.components, TableColumnFilter },
   methods:{...script.methods,colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=this.headers[i]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths())},

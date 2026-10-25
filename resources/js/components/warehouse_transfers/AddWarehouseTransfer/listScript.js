@@ -130,10 +130,20 @@ export default {
       const v = item[key]; return v == null ? '-' : String(v);
     },
     filterOpts(key) {
-      const other = Object.entries(this.colFilters).filter(([k]) => k !== key);
-      let items = this.transfers;
-      other.forEach(([k, vals]) => { if (vals && vals.length) items = items.filter(it => vals.includes(this.cellText(k, it))) });
-      const s = new Set(); items.forEach(i => s.add(this.cellText(key, i))); return [...s].sort();
+      const s = new Set();
+      (this.transfers || []).forEach(i => {
+        const v = this.cellText(key, i);
+        if (v && v !== '-') s.add(v);
+      });
+      return [...s].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    },
+    filterCounts(key) {
+      const counts = {};
+      (this.transfers || []).forEach(i => {
+        const v = this.cellText(key, i);
+        if (v && v !== '-') counts[v] = (counts[v] || 0) + 1;
+      });
+      return counts;
     },
     toggleSort(key) { const i = this.colSorts.findIndex(s => s.key === key); if (i === -1) this.colSorts.push({ key, dir: 'asc' }); else if (this.colSorts[i].dir === 'asc') this.colSorts[i].dir = 'desc'; else this.colSorts.splice(i, 1) },
     sortDir(key) { const s = this.colSorts.find(x => x.key === key); return s ? s.dir : null },
