@@ -12,6 +12,8 @@ import { Swiper } from 'swiper/dist/js/swiper.esm.js';
 window.Swiper = Swiper;
 
 const app = createApp(App)
+app.config.globalProperties.clearInterval = window.clearInterval;
+app.config.globalProperties.setInterval = window.setInterval;
 
 registerPlugins(app).then(res => {
     app.mount('#app')

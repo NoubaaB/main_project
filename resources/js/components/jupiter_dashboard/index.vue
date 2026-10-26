@@ -24,7 +24,7 @@
             </div>
           </div>
 
-          <!-- Right: Status info & Refresh Button with explicit icon margins -->
+          <!-- Right: Status info & Refresh Button -->
           <div class="d-flex align-center ga-2.5 flex-wrap">
             <v-chip v-if="lastFetched" variant="flat" size="small" class="hero-stat-pill">
               <v-icon start size="14" class="mr-1.5">mdi-clock-outline</v-icon>
@@ -47,41 +47,66 @@
       </div>
     </div>
 
-    <!-- 1. Sleek Compact Date Range Section -->
-    <JupiterDateRange v-model="dateRange" />
-
-    <!-- 2. Responsive Filter Section -->
-    <JupiterFilterBuilder @apply="onFiltersApply" ref="filterBuilder" />
-
-    <!-- 3. Multi-mode Eye-Relief Chart Section -->
-    <JupiterChart
-      :categories="chartData.categories"
-      :series="chartData.series"
-      :costLines="chartData.cost_lines || []"
-      :loading="loading"
+    <!-- 1. Full-Width Extended VCalendar Date Range Section with 6 Assistant Presets & Periodicity -->
+    <JupiterDateRange
+      v-model="dateRange"
+      :periodicity="periodicity"
       @update:periodicity="onPeriodicityChange"
-      @update:measures="onMeasuresChange"
     />
 
-    <!-- 4. Luxury Executive Summary Cards -->
-    <JupiterSummaryCards :summary="chartData.summary" />
+    <!-- 2. Main Analytics & Statistics Row (Exact like production/list) -->
+    <v-row dense class="mb-4">
+      <!-- Left: Analytics Chart Card (Production Balance / Factory Operations / Yields) -->
+      <v-col cols="12" lg="8">
+        <JupiterChart
+          :analytics="chartData.analytics"
+          :operations="chartData.operations"
+          :yields="chartData.yields"
+          :categories="chartData.categories"
+          :categoryOptions="chartData.category_options"
+          :loading="loading"
+          :periodicity="periodicity"
+          @update:periodicity="onPeriodicityChange"
+        />
+      </v-col>
 
-    <!-- Summary Snackbar -->
+      <!-- Right: Statistics Card (Categories with progress bars, Invoicing, Mass Equilibrium, Packaging, Yields) -->
+      <v-col cols="12" lg="4">
+        <JupiterStatistics
+          :statistics="chartData.statistics"
+        />
+      </v-col>
+    </v-row>
+
+    <!-- 3. Consolidated Operational & Financial Summary Cards -->
+    <JupiterSummaryCards
+      :summary="operationalSummary"
+    />
+
+    <!-- Summary Snackbar with Countdown Progress Bar (Rule 5 & AddCharge style) -->
     <v-snackbar
-      v-model="snackbar.show"
-      location="top"
-      :color="main.color_theme_reverse"
+      v-model="summarySnackbar.show"
       :timeout="6000"
-      rounded="pill"
+      location="top right"
+      color="surface"
+      rounded="lg"
+      elevation="12"
+      min-width="340"
+      max-width="420"
+      @update:modelValue="onSnackbarVisibilityChange"
     >
-      <v-row align="center" no-gutters>
-        <v-col cols="auto" class="mr-3">
-          <v-icon :color="snackbar.iconColor">{{ snackbar.icon }}</v-icon>
-        </v-col>
-        <v-col class="text-caption font-weight-medium">{{ snackbar.text }}</v-col>
-      </v-row>
-      <template v-slot:actions>
-        <v-btn color="info" variant="text" size="small" @click="snackbar.show = false">{{ $t('close') }}</v-btn>
+      <v-progress-linear :model-value="snackbarProgress" color="#0891B2" height="3" class="mb-2" rounded></v-progress-linear>
+      <div class="d-flex align-center mb-1">
+        <v-icon :color="summarySnackbar.color || 'success'" class="mr-2">
+          {{ summarySnackbar.color === 'error' ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+        </v-icon>
+        <span class="text-subtitle-2 font-weight-bold">{{ summarySnackbar.title }}</span>
+      </div>
+      <div v-if="summarySnackbar.detail" class="text-caption text-medium-emphasis ms-7">
+        {{ summarySnackbar.detail }}
+      </div>
+      <template #actions>
+        <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
       </template>
     </v-snackbar>
   </div>
@@ -89,19 +114,21 @@
 
 <script>
 import JupiterDateRange from './JupiterDateRange.vue';
-import JupiterFilterBuilder from './JupiterFilterBuilder.vue';
 import JupiterChart from './JupiterChart.vue';
+import JupiterStatistics from './JupiterStatistics.vue';
 import JupiterSummaryCards from './JupiterSummaryCards.vue';
 import { useMain } from '@/stores/Main';
+import mitt from '@/plugins/mitt';
 import axios from 'axios';
 import moment from 'moment';
+import _ from 'lodash';
 
 export default {
   name: 'JupiterDashboard',
   components: {
     JupiterDateRange,
-    JupiterFilterBuilder,
     JupiterChart,
+    JupiterStatistics,
     JupiterSummaryCards,
   },
   data() {
@@ -111,25 +138,54 @@ export default {
         end: new Date(),
       },
       periodicity: 'daily',
-      measures: ['weight', 'price'],
-      filters: [],
       chartData: {
         categories: [],
-        series: [],
-        summary: {
-          charges: { count: 0, total_weight: 0, total_price: 0 },
-          productions: { count: 0, total_weight: 0, total_price: 0 },
-          shippings: { count: 0, total_weight: 0, total_price: 0 },
+        analytics: {
+          fresh_reception: [],
+          frozen_production: [],
+          guano_production: [],
+          equilibrium: [],
+        },
+        operations: { charges: {}, productions: {}, shippings: {} },
+        yields: [],
+        statistics: {
+          totals: {
+            fresh_reception: 0,
+            frozen_production: 0,
+            guano_production: 0,
+            equilibrium: 0,
+            is_surplus: true,
+            charges: {},
+            productions: {},
+            shippings: {},
+          },
+          invoicing: {
+            total_invoiced: 0,
+            total_not_invoiced: 0,
+            invoiced_weight: 0,
+            invoiced_price: 0,
+          },
+          category_stats: [],
+          secondary_packaging: { total_cost: 0, items: [] },
+          yields: [],
+        },
+        category_options: {
+          charge_categories: [],
+          production_categories: [],
+          shipping_categories: [],
+          fish_process_types: [],
         },
       },
       loading: false,
       lastFetched: null,
-      snackbar: {
+      summarySnackbar: {
         show: false,
-        text: '',
-        icon: 'mdi-check-circle',
-        iconColor: 'success',
+        title: '',
+        detail: '',
+        color: 'success',
       },
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
@@ -139,9 +195,18 @@ export default {
       return moment(this.lastFetched).fromNow();
     },
     dateKey() {
-      const s = this.dateRange.start ? moment(this.dateRange.start).format('YYYY-MM-DD') : '';
-      const e = this.dateRange.end ? moment(this.dateRange.end).format('YYYY-MM-DD') : '';
+      const s = this.dateRange?.start ? moment(this.dateRange.start).format('YYYY-MM-DD') : '';
+      const e = this.dateRange?.end ? moment(this.dateRange.end).format('YYYY-MM-DD') : '';
       return `${s}|${e}`;
+    },
+    operationalSummary() {
+      const totals = this.chartData?.statistics?.totals || {};
+      return {
+        charges: totals.charges || { count: 0, total_weight: 0, total_price: 0 },
+        productions: totals.productions || { count: 0, total_weight: 0, total_price: 0 },
+        shippings: totals.shippings || { count: 0, total_weight: 0, total_price: 0 },
+        yields: this.chartData?.statistics?.yields || [],
+      };
     },
   },
   watch: {
@@ -153,10 +218,15 @@ export default {
   },
   mounted() {
     this.fetchData();
+    mitt.on('model-changed', this.handleModelChanged);
+  },
+  beforeUnmount() {
+    mitt.off('model-changed', this.handleModelChanged);
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
   },
   methods: {
     async fetchData() {
-      if (!this.dateRange.start || !this.dateRange.end) return;
+      if (!this.dateRange?.start || !this.dateRange?.end) return;
       if (this.loading) return;
       this.loading = true;
       try {
@@ -164,52 +234,69 @@ export default {
           start: moment(this.dateRange.start).format('YYYY-MM-DD'),
           end: moment(this.dateRange.end).format('YYYY-MM-DD'),
           periodicity: this.periodicity,
-          'measures[]': this.measures,
         };
-        if (this.filters.length) {
-          params.filters = JSON.stringify(this.filters);
-        }
         const { data } = await axios.get('/api/jupiter-dashboard/chart-data', { params });
         this.chartData = data;
         this.lastFetched = new Date();
 
-        const c = data.summary?.charges || {};
-        const p = data.summary?.productions || {};
-        const s = data.summary?.shippings || {};
+        const totals = data.statistics?.totals || {};
+        const c = totals.charges || {};
+        const p = totals.productions || {};
+        const s = totals.shippings || {};
         const totalRecords = (c.count || 0) + (p.count || 0) + (s.count || 0);
-        this.snackbar = {
-          show: true,
-          text: `${this.$t('jupiter_data_loaded')}: ${totalRecords} ${this.$t('records')} — ${this.$t('charges')}: ${c.count || 0}, ${this.$t('production')}: ${p.count || 0}, ${this.$t('shippings')}: ${s.count || 0}`,
-          icon: 'mdi-check-circle',
-          iconColor: 'success',
-        };
+
+        this.triggerSummarySnackbar(
+          this.$t('jupiter_data_loaded') || 'Jupiter Data Loaded',
+          `${totalRecords} ${this.$t('records') || 'records'} — ${this.$t('charges') || 'Charges'}: ${c.count || 0}, ${this.$t('production') || 'Production'}: ${p.count || 0}, ${this.$t('shippings') || 'Shippings'}: ${s.count || 0}`,
+          'success'
+        );
       } catch (e) {
         console.error('[Jupiter] fetchData failed:', e);
-        this.snackbar = {
-          show: true,
-          text: this.$t('jupiter_fetch_error'),
-          icon: 'mdi-alert-circle',
-          iconColor: 'error',
-        };
+        this.triggerSummarySnackbar(
+          this.$t('jupiter_fetch_error') || 'Failed to load Jupiter Dashboard data',
+          e.message || '',
+          'error'
+        );
       }
       this.loading = false;
     },
     debouncedFetch: _.debounce(function () {
       this.fetchData();
-    }, 600),
+    }, 500),
     onPeriodicityChange(val) {
       if (this.periodicity === val) return;
       this.periodicity = val;
       this.fetchData();
     },
-    onMeasuresChange(val) {
-      if (JSON.stringify(this.measures) === JSON.stringify(val)) return;
-      this.measures = val;
-      this.fetchData();
+    handleModelChanged(event) {
+      const relevant = ['charge', 'production', 'shipping', 'detail', 'guano', 'fish'];
+      const modelName = (event?.model || '').toLowerCase();
+      if (!modelName || relevant.some(r => modelName.includes(r))) {
+        this.triggerSummarySnackbar(
+          this.$t('live_sync_update') || 'Live Sync Update',
+          this.$t('data_synchronized') || 'Factory data synchronized in real-time.',
+          'info'
+        );
+        this.debouncedFetch();
+      }
     },
-    onFiltersApply(filters) {
-      this.filters = filters;
-      this.fetchData();
+    triggerSummarySnackbar(title, detail = '', color = 'success') {
+      if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+      this.snackbarProgress = 100;
+      this.summarySnackbar = { show: true, title, detail, color };
+      const step = 100 / 60;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= step;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, 100);
+    },
+    onSnackbarVisibilityChange(val) {
+      if (!val && this.snackbarTimer) {
+        clearInterval(this.snackbarTimer);
+      }
     },
   },
 };
@@ -250,59 +337,73 @@ export default {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(8px);
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.2);
+  backdrop-filter: blur(8px);
 }
 
 .jupiter-hero-title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
-  color: white;
-  letter-spacing: -0.3px;
+  color: #FFFFFF;
+  letter-spacing: -0.5px;
 }
 
 .live-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 10px;
-  border-radius: 20px;
-  background: rgba(6, 182, 212, 0.2);
-  color: #38BDF8;
   font-size: 11px;
   font-weight: 700;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #22D3EE;
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
 .live-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #38BDF8;
-  box-shadow: 0 0 8px #38BDF8;
+  background: #22D3EE;
+  box-shadow: 0 0 8px #22D3EE;
   animation: pulse-dot 2s infinite ease-in-out;
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
 }
 
 .hero-stat-pill {
-  background: rgba(255, 255, 255, 0.12) !important;
-  color: white !important;
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
 }
 
 .hero-refresh-btn {
   background: linear-gradient(135deg, #0891B2 0%, #06B6D4 100%) !important;
-  color: white !important;
-  box-shadow: 0 3px 12px rgba(8, 145, 178, 0.35);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+  transition: all 0.2s ease;
+}
+
+.hero-refresh-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.45);
 }
 </style>
