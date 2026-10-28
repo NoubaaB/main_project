@@ -14,51 +14,38 @@
       </div>
     </div>
     <v-card-text class="pa-4">
-      <!-- Top Toolbar (Search, Filter, Count & Add) -->
-      <div class="param-top-toolbar mb-4">
-        <div class="d-flex align-center flex-grow-1" style="max-width: 360px;">
-          <v-text-field
-            v-model="search"
-            prepend-inner-icon="mdi-magnify"
-            :placeholder="$t('search') || 'Rechercher...'"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            clearable
-            class="param-search-input"
-          />
-        </div>
-        <v-spacer></v-spacer>
+      <!-- Top Toolbar (Filter Reset, Count & Add) -->
+      <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
         <div class="d-flex align-center ga-2 flex-wrap">
-          <v-chip color="#6D4C41" variant="tonal" size="small" class="font-weight-bold">
+          <v-chip color="#6D4C41" variant="tonal" size="small" class="font-weight-bold px-3" rounded="lg">
             <v-icon start size="14">mdi-clipboard-text-clock-outline</v-icon>
             {{ filteredItems.length }} {{ $t('records') || 'enregistrements' }}
           </v-chip>
           <v-btn
-            v-if="hasActiveColumnFilters || search"
+            v-if="hasActiveColumnFilters"
             variant="tonal"
             color="warning"
             rounded="lg"
             size="small"
             prepend-icon="mdi-filter-off"
-            @click="columnFilters = {}; search = ''"
+            @click="columnFilters = {}"
           >
             {{ $t('clear_filters') }}
           </v-btn>
-          <v-btn
-            color="#6D4C41"
-            prepend-icon="mdi-plus"
-            rounded="lg"
-            elevation="0"
-            class="text-white font-weight-bold"
-            @click="openDialog(null)"
-          >
-            {{ $t('add_detail_category') }}
-          </v-btn>
         </div>
+        <v-btn
+          color="#6D4C41"
+          variant="flat"
+          rounded="xl"
+          height="38"
+          class="param-add-btn text-white text-capitalize font-weight-bold px-4"
+          prepend-icon="mdi-plus"
+          @click="openDialog(null)"
+        >
+          {{ $t('add_detail_category') }}
+        </v-btn>
       </div>
-      <v-data-table :headers="headers" :items="filteredItems" :search="search" :loading="loading ? '#6D4C41' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#6D4C41' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
           <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#6D4C41" class="param-filter-input" style="color:#6D4C41" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#6D4C41" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -116,19 +103,19 @@
         </div>
         <v-card-text class="pa-5 param-dialog-body" style="max-height: 75vh;">
           <v-row dense>
-            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#6D4C41"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#6D4C41"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#6D4C41"></v-text-field></v-col>
-            <v-col cols="6">
-              <v-select v-model="form.article_type" :items="articleTypes" :label="$t('type_article')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded="lg" color="#6D4C41"></v-select>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#6D4C41" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#6D4C41" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#6D4C41" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6">
+              <v-select v-model="form.article_type" :items="articleTypes" :label="$t('type_article')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded="lg" color="#6D4C41" hide-details="auto"></v-select>
             </v-col>
-            <v-col cols="6" v-if="form.article_type === 'FishType'">
-              <v-select v-model="form.fish_type_filter" :items="[{title:$t('all'),value:'all'},{title:$t('fresh'),value:'fresh'},{title:$t('frozen'),value:'frozen'}]" :label="$t('fish_type_filter')" variant="outlined" density="compact" rounded="lg" color="#6D4C41" prepend-inner-icon="mdi-filter-variant"></v-select>
+            <v-col cols="12" sm="6" v-if="form.article_type === 'FishType'">
+              <v-select v-model="form.fish_type_filter" :items="[{title:$t('all'),value:'all'},{title:$t('fresh'),value:'fresh'},{title:$t('frozen'),value:'frozen'}]" :label="$t('fish_type_filter')" variant="outlined" density="compact" rounded="lg" color="#6D4C41" prepend-inner-icon="mdi-filter-variant" hide-details="auto"></v-select>
             </v-col>
-            <v-col cols="6" v-if="form.allow_warehouse">
-              <v-select v-model="form.warehouse_operation" :items="warehouseOps" :label="$t('warehouse_operation')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded color="#6D4C41" style="color:#6D4C41" clearable></v-select>
+            <v-col cols="12" sm="6" v-if="form.allow_warehouse">
+              <v-select v-model="form.warehouse_operation" :items="warehouseOps" :label="$t('warehouse_operation')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#6D4C41" style="color:#6D4C41" clearable hide-details="auto"></v-select>
             </v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#6D4C41" rows="2" auto-grow></v-textarea></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#6D4C41" rows="2" auto-grow hide-details="auto"></v-textarea></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
@@ -136,7 +123,7 @@
             {{ $t('enabled_fields') }}
           </div>
           <v-row dense>
-            <v-col cols="6" v-for="toggle in toggleFields" :key="toggle.key">
+            <v-col cols="12" sm="6" v-for="toggle in toggleFields" :key="toggle.key">
               <div class="ccm-toggle-card rounded-lg pa-2 border d-flex align-center justify-space-between cursor-pointer" :class="{ 'ccm-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
                 <div class="d-flex align-center ga-2">
                   <div class="ccm-toggle-icon-wrap" :style="{ background: form[toggle.key] ? toggle.activeColor + '1A' : 'rgba(var(--v-border-color), .06)' }">

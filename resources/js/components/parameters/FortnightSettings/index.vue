@@ -34,59 +34,47 @@
       <v-window v-model="activeTab">
         <!-- ============= SALARY THRESHOLDS TAB ============= -->
         <v-window-item value="settings">
-          <v-card class="param-top-toolbar mb-4" elevation="0">
-            <div class="d-flex flex-wrap align-center justify-space-between ga-3">
-              <div class="d-flex align-center flex-grow-1 flex-wrap ga-3" style="max-width: 600px;">
-                <v-text-field
-                  v-model="search"
-                  prepend-inner-icon="mdi-magnify"
-                  :placeholder="$t('search')"
-                  density="compact"
-                  variant="outlined"
-                  hide-details
-                  clearable
-                  rounded="lg"
-                  color="#1565C0"
-                  class="param-search-input flex-grow-1"
-                ></v-text-field>
-                <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold">
-                  {{ filteredSettings.length }} {{ $t('settings') }}
-                </v-chip>
-              </div>
-              <div class="d-flex align-center ga-2">
-                <v-btn
-                  v-if="hasActiveColumnFilters || search"
-                  variant="tonal"
-                  color="warning"
-                  size="small"
-                  rounded="lg"
-                  prepend-icon="mdi-filter-off"
-                  @click="clearAllColumnFilters"
-                >
-                  {{ $t('clear_filters') }}
-                </v-btn>
-                <v-btn
-                  color="#1565C0"
-                  rounded="lg"
-                  prepend-icon="mdi-plus"
-                  elevation="0"
-                  @click="openAddDialog"
-                >
-                  {{ $t('add_setting') }}
-                </v-btn>
-              </div>
+          <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
+                <v-icon start size="14">mdi-calendar-clock</v-icon>
+                {{ filteredSettings.length }} {{ $t('settings') }}
+              </v-chip>
+              <v-btn
+                v-if="hasActiveColumnFilters"
+                variant="tonal"
+                color="warning"
+                size="small"
+                rounded="lg"
+                prepend-icon="mdi-filter-off"
+                @click="clearAllColumnFilters"
+              >
+                {{ $t('clear_filters') }}
+              </v-btn>
             </div>
-          </v-card>
+            <v-btn
+              color="#1565C0"
+              variant="flat"
+              rounded="xl"
+              height="38"
+              class="param-add-btn text-white text-capitalize font-weight-bold px-4"
+              prepend-icon="mdi-plus"
+              @click="openAddDialog"
+            >
+              {{ $t('add_setting') }}
+            </v-btn>
+          </div>
 
           <!-- Empty State -->
           <div v-if="!settingStore.list.length && !settingStore.loading" class="text-center pa-8 text-grey">
             <v-icon size="56" color="grey-lighten-2">mdi-calendar-blank-outline</v-icon>
             <div class="mt-3 text-body-1">{{ $t('no_settings_found') }}</div>
             <v-btn
-              class="mt-4"
+              class="mt-4 param-add-btn"
               variant="flat"
-              style="background-color: #1565C0; color: #fff;"
-              rounded="lg"
+              color="#1565C0"
+              rounded="xl"
+              height="38"
               prepend-icon="mdi-plus"
               @click="openAddDialog"
             >
@@ -99,7 +87,6 @@
             v-else
             :headers="headers"
             :items="filteredSettings"
-            :search="search"
             :loading="settingStore.loading ? '#1565C0' : false"
             :multi-sort="true"
             density="comfortable"

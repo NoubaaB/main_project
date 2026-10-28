@@ -17,21 +17,9 @@
 
     <v-card-text class="pa-4">
       <!-- Top Toolbar -->
-      <div class="param-top-toolbar mb-4">
-        <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-          <v-text-field
-            v-model="search"
-            :label="$t('search')"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            color="#42A5F5"
-            prepend-inner-icon="mdi-magnify"
-            hide-details
-            clearable
-            class="param-search-input"
-          ></v-text-field>
-          <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold fnm-currency-num">
+      <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
             <v-icon start size="14">mdi-shape-outline</v-icon>
             {{ filteredItems.length }} {{ $t('records') }}
           </v-chip>
@@ -39,7 +27,7 @@
             {{ $t('clear_filters') }}
           </v-btn>
         </div>
-        <v-btn color="#42A5F5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openDialog(null)">
+        <v-btn color="#42A5F5" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openDialog(null)">
           {{ $t('add_charge_category') }}
         </v-btn>
       </div>
@@ -53,7 +41,6 @@
         density="comfortable"
         class="rounded-xl param-table"
         hover
-        :search="search"
       >
         <!-- Custom headers with filter inputs -->
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
@@ -185,19 +172,19 @@
           </div>
           <v-row dense>
             <v-col cols="12" sm="6">
-              <v-text-field v-model="form.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-text-field>
+              <v-text-field v-model="form.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#42A5F5" hide-details="auto"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
-              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-text-field>
+              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5" hide-details="auto"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
-              <v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-text-field>
+              <v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5" hide-details="auto"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
-              <v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-text-field>
+              <v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5" hide-details="auto"></v-text-field>
             </v-col>
             <v-col cols="12">
-              <v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#42A5F5" rows="2"></v-textarea>
+              <v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#42A5F5" rows="2" hide-details="auto"></v-textarea>
             </v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>

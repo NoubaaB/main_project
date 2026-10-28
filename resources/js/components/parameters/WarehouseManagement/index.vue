@@ -34,29 +34,17 @@
       <!-- ============= WAREHOUSES TAB ============= -->
       <v-window v-model="activeTab">
         <v-window-item value="warehouses">
-          <div class="param-top-toolbar mb-4">
-            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-              <v-text-field
-                v-model="search"
-                :label="$t('search')"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                color="#a21ee5"
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-                class="param-search-input"
-              ></v-text-field>
-              <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num">
+          <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
                 <v-icon start size="14">mdi-warehouse</v-icon>
                 {{ filteredWarehouses.length }} {{ $t('records') }}
               </v-chip>
               <v-btn v-if="hasActiveWarehouseFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="warehouseColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
             </div>
-            <v-btn color="#a21ee5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
+            <v-btn color="#a21ee5" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
           </div>
-          <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="search">
+          <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -88,29 +76,17 @@
 
         <!-- ============= CATEGORIES TAB ============= -->
         <v-window-item value="categories">
-          <div class="param-top-toolbar mb-4">
-            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-              <v-text-field
-                v-model="categorySearch"
-                :label="$t('search')"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                color="#a21ee5"
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-                class="param-search-input"
-              ></v-text-field>
-              <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num">
+          <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
                 <v-icon start size="14">mdi-tag-multiple-outline</v-icon>
                 {{ filteredCategories.length }} {{ $t('records') }}
               </v-chip>
               <v-btn v-if="hasActiveCategoryFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="categoryColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
             </div>
-            <v-btn color="#a21ee5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
+            <v-btn color="#a21ee5" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
           </div>
-          <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="categorySearch">
+          <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -329,15 +305,31 @@
           </v-btn>
         </div>
         <v-card-text class="param-dialog-body">
-          <v-text-field v-model="warehouseForm.name" :label="$t('name')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="warehouseNameError"></v-text-field>
-          <v-textarea v-model="warehouseForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" rows="2"></v-textarea>
-          <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
-          <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
-          <v-switch v-model="warehouseForm.has_sejour" :label="$t('has_sejour')" color="warning" density="compact" class="mb-1" hide-details></v-switch>
-          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" prepend-inner-icon="mdi-cash" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mt-3" hide-details="auto" type="number"></v-text-field>
-          <v-divider class="my-4"></v-divider>
-          <div class="text-caption font-weight-bold mb-2" style="color:#a21ee5">{{ $t('enabled_fields') }}</div>
-          <v-switch v-model="warehouseForm.allow_production_effect" :label="$t('allow_production_effect')" color="#a21ee5" density="compact" hide-details></v-switch>
+          <v-row dense>
+            <v-col cols="12">
+              <v-text-field v-model="warehouseForm.name" :label="$t('name')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" :error-messages="warehouseNameError"></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" clearable></v-select>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" clearable></v-select>
+            </v-col>
+            <v-col cols="12">
+              <v-textarea v-model="warehouseForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" rows="2"></v-textarea>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-switch v-model="warehouseForm.has_sejour" :label="$t('has_sejour')" color="warning" density="compact" hide-details></v-switch>
+            </v-col>
+            <v-col v-if="warehouseForm.has_sejour" cols="12" sm="6">
+              <v-text-field v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" prepend-inner-icon="mdi-cash" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" type="number"></v-text-field>
+            </v-col>
+            <v-col cols="12">
+              <v-divider class="my-2"></v-divider>
+              <div class="text-caption font-weight-bold mb-2" style="color:#a21ee5">{{ $t('enabled_fields') }}</div>
+              <v-switch v-model="warehouseForm.allow_production_effect" :label="$t('allow_production_effect')" color="#a21ee5" density="compact" hide-details></v-switch>
+            </v-col>
+          </v-row>
         </v-card-text>
         <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>
@@ -365,8 +357,14 @@
           </v-btn>
         </div>
         <v-card-text class="param-dialog-body">
-          <v-text-field v-model="categoryForm.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="categoryNameError"></v-text-field>
-          <v-textarea v-model="categoryForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" rows="3"></v-textarea>
+          <v-row dense>
+            <v-col cols="12">
+              <v-text-field v-model="categoryForm.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" :error-messages="categoryNameError"></v-text-field>
+            </v-col>
+            <v-col cols="12">
+              <v-textarea v-model="categoryForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" rows="3"></v-textarea>
+            </v-col>
+          </v-row>
         </v-card-text>
         <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>

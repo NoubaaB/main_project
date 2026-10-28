@@ -16,49 +16,37 @@
     </div>
 
     <v-card-text class="pa-4">
-      <!-- Top Toolbar (Search, Filter, Count & Add) -->
+      <!-- Top Toolbar (Count, Active Filters, & Add) -->
       <div class="param-top-toolbar mb-4">
-        <div class="d-flex align-center flex-grow-1" style="max-width: 360px;">
-          <v-text-field
-            v-model="search"
-            prepend-inner-icon="mdi-magnify"
-            :placeholder="$t('search') || 'Rechercher...'"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            clearable
-            class="param-search-input"
-          />
-        </div>
-        <v-spacer></v-spacer>
         <div class="d-flex align-center ga-2 flex-wrap">
           <v-chip color="#E65100" variant="tonal" size="small" class="font-weight-bold">
             <v-icon start size="14">mdi-bank</v-icon>
             {{ filteredItems.length }} {{ $t('records') || 'enregistrements' }}
           </v-chip>
           <v-btn
-            v-if="hasActiveColumnFilters || search"
+            v-if="hasActiveColumnFilters"
             variant="tonal"
             color="warning"
             rounded="lg"
             size="small"
             prepend-icon="mdi-filter-off"
-            @click="clearAllColumnFilters(); search = ''"
+            @click="clearAllColumnFilters"
           >
             {{ $t('clear_filters') }}
           </v-btn>
-          <v-btn
-            color="#E65100"
-            prepend-icon="mdi-plus"
-            rounded="lg"
-            elevation="0"
-            class="text-white font-weight-bold"
-            @click="openDialog(null)"
-          >
-            {{ $t('add_bank_name') }}
-          </v-btn>
         </div>
+        <v-spacer></v-spacer>
+        <v-btn
+          color="#E65100"
+          prepend-icon="mdi-plus"
+          rounded="xl"
+          variant="flat"
+          height="38"
+          class="text-white font-weight-bold param-add-btn"
+          @click="openDialog(null)"
+        >
+          {{ $t('add_bank_name') }}
+        </v-btn>
       </div>
 
       <v-data-table
@@ -69,7 +57,6 @@
         density="comfortable"
         class="rounded-xl param-table"
         hover
-        :search="search"
       >
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>
@@ -168,18 +155,22 @@
           </div>
         </div>
         <v-card-text class="pa-5 param-dialog-body" style="max-height: 75vh;">
-          <v-text-field
-            v-model="form.name"
-            :label="$t('bank_name')"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            color="#E65100"
-            prepend-inner-icon="mdi-bank"
-            :rules="[v => !!v || $t('is_required', { type: $t('name') })]"
-            @keydown.enter="save"
-            hide-details="auto"
-          ></v-text-field>
+          <v-row dense>
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.name"
+                :label="$t('bank_name')"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#E65100"
+                prepend-inner-icon="mdi-bank"
+                :rules="[v => !!v || $t('is_required', { type: $t('name') })]"
+                @keydown.enter="save"
+                hide-details="auto"
+              ></v-text-field>
+            </v-col>
+          </v-row>
         </v-card-text>
         <v-card-actions class="param-dialog-actions pa-4 border-t bg-surface">
           <v-btn variant="tonal" color="grey" rounded="lg" class="px-4" @click="dialog = false">{{ $t('cancel') }}</v-btn>

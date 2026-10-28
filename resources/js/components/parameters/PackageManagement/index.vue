@@ -17,22 +17,9 @@
 
     <v-card-text class="pa-4">
       <!-- Parameter Top Toolbar with Global Search & Stats -->
-      <div class="param-top-toolbar mb-4">
-        <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-          <v-text-field
-            v-model="search"
-            :label="$t('search')"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            color="#546E7A"
-            prepend-inner-icon="mdi-magnify"
-            hide-details
-            clearable
-            class="param-search-input"
-          ></v-text-field>
-
-          <v-chip size="small" variant="tonal" color="#546E7A" class="font-weight-bold fnm-currency-num">
+      <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <v-chip size="small" variant="tonal" color="#546E7A" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
             <v-icon start size="14">mdi-package-variant-closed</v-icon>
             {{ filteredItems.length }} {{ $t('records') }}
           </v-chip>
@@ -50,19 +37,17 @@
           </v-btn>
         </div>
 
-        <div class="d-flex align-center ga-2">
-          <v-btn
-            color="#546E7A"
-            variant="flat"
-            rounded="lg"
-            prepend-icon="mdi-plus"
-            class="text-capitalize font-weight-bold"
-            elevation="2"
-            @click="openDialog(null)"
-          >
-            {{ $t('add_package_type') }}
-          </v-btn>
-        </div>
+        <v-btn
+          color="#546E7A"
+          variant="flat"
+          rounded="xl"
+          height="38"
+          class="param-add-btn text-white text-capitalize font-weight-bold px-4"
+          prepend-icon="mdi-plus"
+          @click="openDialog(null)"
+        >
+          {{ $t('add_package_type') }}
+        </v-btn>
       </div>
 
       <v-data-table
@@ -73,7 +58,6 @@
         density="comfortable"
         class="rounded-xl param-table"
         hover
-        :search="search"
       >
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>

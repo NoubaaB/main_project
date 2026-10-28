@@ -16,56 +16,42 @@
     </div>
 
     <v-card-text class="pa-4">
-      <!-- Top Toolbar (Search, Filter, Count & Add) -->
-      <div class="param-top-toolbar mb-4">
-        <div class="d-flex align-center flex-grow-1" style="max-width: 360px;">
-          <v-text-field
-            v-model="search"
-            prepend-inner-icon="mdi-magnify"
-            :placeholder="$t('search') || 'Rechercher...'"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            clearable
-            class="param-search-input"
-          />
-        </div>
-        <v-spacer></v-spacer>
+      <!-- Top Toolbar (Filter Reset, Count & Add) -->
+      <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
         <div class="d-flex align-center ga-2 flex-wrap">
-          <v-chip color="#4643a0" variant="tonal" size="small" class="font-weight-bold">
+          <v-chip color="#4643a0" variant="tonal" size="small" class="font-weight-bold px-3" rounded="lg">
             <v-icon start size="14">mdi-tag-multiple-outline</v-icon>
             {{ filteredItems.length }} {{ $t('records') || 'enregistrements' }}
           </v-chip>
           <v-btn
-            v-if="hasActiveColumnFilters || search"
+            v-if="hasActiveColumnFilters"
             variant="tonal"
             color="warning"
             rounded="lg"
             size="small"
             prepend-icon="mdi-filter-off"
-            @click="clearAllColumnFilters(); search = ''"
+            @click="clearAllColumnFilters()"
           >
             {{ $t('clear_filters') }}
           </v-btn>
-          <v-btn
-            color="#4643a0"
-            prepend-icon="mdi-plus"
-            rounded="lg"
-            elevation="0"
-            class="text-white font-weight-bold"
-            @click="openDialog(null)"
-          >
-            {{ $t('add_shipping_category') }}
-          </v-btn>
         </div>
+        <v-btn
+          color="#4643a0"
+          variant="flat"
+          rounded="xl"
+          height="38"
+          class="param-add-btn text-white text-capitalize font-weight-bold px-4"
+          prepend-icon="mdi-plus"
+          @click="openDialog(null)"
+        >
+          {{ $t('add_shipping_category') }}
+        </v-btn>
       </div>
 
       <!-- Data Table -->
       <v-data-table
         :headers="headers"
         :items="filteredItems"
-        :search="search"
         :loading="loading ? '#4643a0' : false"
         :multi-sort="true"
         density="comfortable"
@@ -203,20 +189,20 @@
             {{ $t('names') }}
           </div>
           <v-row dense>
-            <v-col cols="6">
-              <v-text-field v-model="form.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="form.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#4643a0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0" hide-details="auto"></v-text-field>
             </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0" hide-details="auto"></v-text-field>
             </v-col>
             <v-col cols="12">
-              <v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#4643a0" rows="2" auto-grow></v-textarea>
+              <v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#4643a0" rows="2" auto-grow hide-details="auto"></v-textarea>
             </v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
@@ -225,7 +211,7 @@
             {{ $t('enabled_fields') }}
           </div>
           <v-row dense>
-            <v-col cols="6" v-for="toggle in toggleFields" :key="toggle.key">
+            <v-col cols="12" sm="6" v-for="toggle in toggleFields" :key="toggle.key">
               <div class="scm-toggle-card rounded-lg pa-2 border d-flex align-center justify-space-between cursor-pointer" :class="{ 'scm-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
                 <div class="d-flex align-center ga-2">
                   <div class="scm-toggle-icon-wrap" :style="{ background: form[toggle.key] ? toggle.activeColor + '1A' : 'rgba(var(--v-border-color), .06)' }">

@@ -16,49 +16,38 @@
     </div>
 
     <v-card-text class="pa-4">
-      <v-card class="param-top-toolbar mb-4" elevation="0">
-        <div class="d-flex flex-wrap align-center justify-space-between ga-3">
-          <div class="d-flex align-center flex-grow-1 flex-wrap ga-3" style="max-width: 600px;">
-            <v-text-field
-              v-model="search"
-              prepend-inner-icon="mdi-magnify"
-              :placeholder="$t('search')"
-              density="compact"
-              variant="outlined"
-              hide-details
-              clearable
-              rounded="lg"
-              color="#3F51B5"
-              class="param-search-input flex-grow-1"
-            ></v-text-field>
-            <v-chip size="small" variant="tonal" color="#3F51B5" class="font-weight-bold">
-              {{ filteredItems.length }} {{ $t('configurations') }}
-            </v-chip>
-          </div>
-          <div class="d-flex align-center ga-2">
-            <v-btn
-              v-if="hasActiveFilters || search"
-              variant="tonal"
-              color="warning"
-              size="small"
-              rounded="lg"
-              prepend-icon="mdi-filter-off"
-              @click="columnFilters = {}; search = ''"
-            >
-              {{ $t('clear_filters') }}
-            </v-btn>
-            <v-btn
-              color="#3F51B5"
-              rounded="lg"
-              prepend-icon="mdi-plus"
-              elevation="0"
-              @click="openDialog(null)"
-            >
-              {{ $t('add_cost_configuration') }}
-            </v-btn>
-          </div>
+      <!-- Top Toolbar (Count, Active Filters, & Add) -->
+      <div class="param-top-toolbar mb-4">
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <v-chip color="#3F51B5" variant="tonal" size="small" class="font-weight-bold">
+            <v-icon start size="14">mdi-calculator-variant-outline</v-icon>
+            {{ filteredItems.length }} {{ $t('configurations') }}
+          </v-chip>
+          <v-btn
+            v-if="hasActiveFilters"
+            variant="tonal"
+            color="warning"
+            rounded="lg"
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="columnFilters = {}"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
         </div>
-      </v-card>
+        <v-spacer></v-spacer>
+        <v-btn
+          color="#3F51B5"
+          prepend-icon="mdi-plus"
+          rounded="xl"
+          variant="flat"
+          height="38"
+          class="text-white font-weight-bold param-add-btn"
+          @click="openDialog(null)"
+        >
+          {{ $t('add_cost_configuration') }}
+        </v-btn>
+      </div>
 
       <!-- Data Table -->
       <v-data-table
@@ -69,7 +58,6 @@
         density="comfortable"
         class="rounded-xl param-table"
         hover
-        :search="search"
       >
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>

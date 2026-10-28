@@ -16,21 +16,9 @@
     </div>
 
     <v-card-text class="pa-4">
-      <div class="param-top-toolbar mb-4">
-        <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-          <v-text-field
-            v-model="search"
-            :label="$t('search')"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            color="#a21ee5"
-            prepend-inner-icon="mdi-magnify"
-            hide-details
-            clearable
-            class="param-search-input"
-          ></v-text-field>
-          <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num">
+      <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
             <v-icon start size="14">mdi-cog-transfer-outline</v-icon>
             {{ filteredItems.length }} {{ $t('records') }}
           </v-chip>
@@ -38,12 +26,12 @@
             {{ $t('clear_filters') }}
           </v-btn>
         </div>
-        <v-btn color="#a21ee5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openDialog(null)">
+        <v-btn color="#a21ee5" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openDialog(null)">
           {{ $t('add_wco') }}
         </v-btn>
       </div>
 
-      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#a21ee5' : false" density="comfortable" class="rounded-xl param-table" hover :search="search">
+      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#a21ee5' : false" density="comfortable" class="rounded-xl param-table" hover>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>
             <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
@@ -148,17 +136,17 @@
         <v-card-text class="param-dialog-body">
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-translate</v-icon>{{ $t('names') }}</div>
           <v-row dense>
-            <v-col cols="12" sm="4"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-text-field></v-col>
-            <v-col cols="12" sm="4"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-text-field></v-col>
-            <v-col cols="12" sm="4"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-text-field></v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" rows="2"></v-textarea></v-col>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" rows="2" hide-details="auto"></v-textarea></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-format-list-bulleted-type</v-icon>{{ $t('type') }}</div>
           <v-row dense>
-            <v-col cols="12" sm="4"><v-select v-model="form.production_role" :items="productionRoleOptions" :label="$t('production_role')" prepend-inner-icon="mdi-account-hard-hat" variant="outlined" density="compact" rounded="lg" color="#a21ee5" clearable></v-select></v-col>
-            <v-col cols="12" sm="4"><v-select v-model="form.operation_type" :items="operationTypeOptions" :label="$t('operation_type')" prepend-inner-icon="mdi-swap-horizontal" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-select></v-col>
-            <v-col cols="12" sm="4"><v-select v-model="form.warehouse_type" :items="warehouseTypeOptions" :label="$t('warehouse_type_label')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#a21ee5" clearable></v-select></v-col>
+            <v-col cols="12" sm="4"><v-select v-model="form.production_role" :items="productionRoleOptions" :label="$t('production_role')" prepend-inner-icon="mdi-account-hard-hat" variant="outlined" density="compact" rounded="lg" color="#a21ee5" clearable hide-details="auto"></v-select></v-col>
+            <v-col cols="12" sm="4"><v-select v-model="form.operation_type" :items="operationTypeOptions" :label="$t('operation_type')" prepend-inner-icon="mdi-swap-horizontal" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto"></v-select></v-col>
+            <v-col cols="12" sm="4"><v-select v-model="form.warehouse_type" :items="warehouseTypeOptions" :label="$t('warehouse_type_label')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#a21ee5" clearable hide-details="auto"></v-select></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-toggle-switch-outline</v-icon>{{ $t('enabled_fields') }}</div>

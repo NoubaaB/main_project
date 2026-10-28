@@ -16,52 +16,39 @@
     </div>
 
     <v-card-text class="pa-4">
-      <!-- Top Toolbar (Search, Filter, Count & Add) -->
-      <div class="param-top-toolbar mb-4">
-        <div class="d-flex align-center flex-grow-1" style="max-width: 360px;">
-          <v-text-field
-            v-model="search"
-            prepend-inner-icon="mdi-magnify"
-            :placeholder="$t('search') || 'Rechercher...'"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            clearable
-            class="param-search-input"
-          />
-        </div>
-        <v-spacer></v-spacer>
+      <!-- Top Toolbar (Filter Reset, Count & Add) -->
+      <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
         <div class="d-flex align-center ga-2 flex-wrap">
-          <v-chip color="#388E3C" variant="tonal" size="small" class="font-weight-bold">
+          <v-chip color="#388E3C" variant="tonal" size="small" class="font-weight-bold px-3" rounded="lg">
             <v-icon start size="14">mdi-leaf</v-icon>
             {{ filteredItems.length }} {{ $t('records') || 'enregistrements' }}
           </v-chip>
           <v-btn
-            v-if="hasActiveFilters || search"
+            v-if="hasActiveFilters"
             variant="tonal"
             color="warning"
             rounded="lg"
             size="small"
             prepend-icon="mdi-filter-off"
-            @click="columnFilters = {}; search = ''"
+            @click="columnFilters = {}"
           >
             {{ $t('clear_filters') }}
           </v-btn>
-          <v-btn
-            color="#388E3C"
-            prepend-icon="mdi-plus"
-            rounded="lg"
-            elevation="0"
-            class="text-white font-weight-bold"
-            @click="openDialog(null)"
-          >
-            {{ $t('add_guano_type') }}
-          </v-btn>
         </div>
+        <v-btn
+          color="#388E3C"
+          variant="flat"
+          rounded="xl"
+          height="38"
+          class="param-add-btn text-white text-capitalize font-weight-bold px-4"
+          prepend-icon="mdi-plus"
+          @click="openDialog(null)"
+        >
+          {{ $t('add_guano_type') }}
+        </v-btn>
       </div>
 
-      <v-data-table :headers="headers" :items="filteredItems" :search="search" :loading="loading ? '#388E3C' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#388E3C' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
           <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#388E3C" class="param-filter-input" style="color:#388E3C" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#388E3C" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -110,13 +97,13 @@
         </div>
         <v-card-text class="pa-5 param-dialog-body" style="max-height: 75vh;">
           <v-row dense>
-            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#388E3C"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#388E3C"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#388E3C"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_in_invoice" :label="$t('name_in_invoice')" prepend-inner-icon="mdi-receipt-text-outline" variant="outlined" density="compact" rounded="lg" color="#388E3C"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.scientific_name" :label="$t('scientific_name')" prepend-inner-icon="mdi-leaf" variant="outlined" density="compact" rounded="lg" color="#388E3C"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.image" :label="$t('image_url')" variant="outlined" density="compact" rounded="lg" color="#388E3C" prepend-inner-icon="mdi-image-outline"></v-text-field></v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#388E3C" rows="2" auto-grow></v-textarea></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#388E3C" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#388E3C" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#388E3C" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.name_in_invoice" :label="$t('name_in_invoice')" prepend-inner-icon="mdi-receipt-text-outline" variant="outlined" density="compact" rounded="lg" color="#388E3C" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.scientific_name" :label="$t('scientific_name')" prepend-inner-icon="mdi-leaf" variant="outlined" density="compact" rounded="lg" color="#388E3C" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.image" :label="$t('image_url')" variant="outlined" density="compact" rounded="lg" color="#388E3C" prepend-inner-icon="mdi-image-outline" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#388E3C" rows="2" auto-grow hide-details="auto"></v-textarea></v-col>
           </v-row>
         </v-card-text>
         <v-card-actions class="param-dialog-actions pa-4 border-t bg-surface">

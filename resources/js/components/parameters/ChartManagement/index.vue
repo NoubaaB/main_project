@@ -119,10 +119,10 @@
           <v-btn
             color="#00BCD4"
             variant="flat"
-            size="small"
-            rounded="pill"
+            height="38"
+            rounded="xl"
             prepend-icon="mdi-plus"
-            class="font-weight-bold text-white text-none shadow-sm ml-1"
+            class="font-weight-bold text-white text-none param-add-btn ml-1"
             @click="startCreate"
           >
             {{ $t('create_new_chart') || 'Nouveau Graphique' }}
@@ -133,24 +133,9 @@
 
     <!-- VIEW 1: CHARTS LIST -->
     <div v-if="activeViewTab === 'list'" class="view-panel">
-      <!-- Search & Filters Toolbar -->
+      <!-- Filters Toolbar -->
       <v-card class="filter-toolbar-card rounded-xl pa-3 mb-4" elevation="0">
         <div class="d-flex align-center justify-space-between flex-wrap ga-3">
-          <!-- Search Field (AddCharge style: density=compact, variant=outlined, rounded) -->
-          <div style="min-width: 280px; flex: 1; max-width: 480px;">
-            <v-text-field
-              v-model="searchQuery"
-              density="compact"
-              variant="outlined"
-              rounded
-              color="#0d9488"
-              hide-details
-              clearable
-              prepend-inner-icon="mdi-magnify"
-              :placeholder="$t('search_charts_placeholder') || 'Rechercher par titre, source ou métrique...'"
-            ></v-text-field>
-          </div>
-
           <!-- Type Filter Chips -->
           <div class="d-flex align-center ga-1 flex-wrap">
             <v-chip
@@ -169,6 +154,10 @@
               <span v-if="ft.count !== undefined" class="ml-1 opacity-70">({{ ft.count }})</span>
             </v-chip>
           </div>
+          <v-chip size="small" variant="tonal" color="#00BCD4" class="font-weight-bold">
+            <v-icon start size="14">mdi-chart-areaspline</v-icon>
+            {{ filteredCharts.length }} {{ $t('records') || 'enregistrements' }}
+          </v-chip>
         </div>
       </v-card>
 
@@ -368,7 +357,6 @@
         <v-data-table
           :headers="headers"
           :items="filteredCharts"
-          :search="searchQuery"
           :loading="store.loading"
           :multi-sort="true"
           density="comfortable"

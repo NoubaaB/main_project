@@ -33,21 +33,10 @@
       <v-window v-model="activeTab">
         <!-- ============= STATIC CHARGES TAB ============= -->
         <v-window-item value="charges">
+          <!-- Top Toolbar (Count, Active Filters, & Add) -->
           <div class="param-top-toolbar mb-4">
-            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-              <v-text-field
-                v-model="search"
-                :label="$t('search')"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                color="#42A5F5"
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-                class="param-search-input"
-              ></v-text-field>
-              <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold fnm-currency-num">
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-chip color="#42A5F5" variant="tonal" size="small" class="font-weight-bold fnm-currency-num">
                 <v-icon start size="14">mdi-cash-lock-open</v-icon>
                 {{ filteredCharges.length }} {{ $t('records') }}
               </v-chip>
@@ -63,7 +52,16 @@
                 {{ $t('clear_filters') }}
               </v-btn>
             </div>
-            <v-btn color="#42A5F5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openAddDialog">
+            <v-spacer></v-spacer>
+            <v-btn
+              color="#42A5F5"
+              prepend-icon="mdi-plus"
+              rounded="xl"
+              variant="flat"
+              height="38"
+              class="text-white font-weight-bold param-add-btn"
+              @click="openAddDialog"
+            >
               {{ $t('add_static_charge') }}
             </v-btn>
           </div>
@@ -73,10 +71,11 @@
             <v-icon size="56" color="grey-lighten-2">mdi-cash-lock-open</v-icon>
             <div class="mt-3 text-body-1">{{ $t('no_static_charges_found') }}</div>
             <v-btn
-              class="mt-4"
+              class="mt-4 param-add-btn"
               variant="flat"
               color="#42A5F5"
-              rounded="lg"
+              rounded="xl"
+              height="38"
               prepend-icon="mdi-plus"
               @click="openAddDialog"
             >
@@ -94,7 +93,6 @@
             density="comfortable"
             class="rounded-xl param-table"
             hover
-            :search="search"
           >
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>

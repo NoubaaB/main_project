@@ -34,30 +34,18 @@
       <v-window v-model="activeTab">
         <!-- ============= FISH FAMILIES TAB ============= -->
         <v-window-item value="families">
-          <div class="param-top-toolbar mb-4">
-            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-              <v-text-field
-                v-model="search"
-                :label="$t('search')"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                color="#1565C0"
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-                class="param-search-input"
-              ></v-text-field>
-              <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num">
+          <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
                 <v-icon start size="14">mdi-family-tree</v-icon>
                 {{ filteredFamilies.length }} {{ $t('records') }}
               </v-chip>
               <v-btn v-if="hasActiveFamilyFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="familyColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
             </div>
-            <v-btn color="#1565C0" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openFamilyDialog(null)">{{ $t('add_fish_family') }}</v-btn>
+            <v-btn color="#1565C0" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openFamilyDialog(null)">{{ $t('add_fish_family') }}</v-btn>
           </div>
 
-          <v-data-table :headers="familyHeaders" :items="filteredFamilies" :loading="loadingFamilies ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="search">
+          <v-data-table :headers="familyHeaders" :items="filteredFamilies" :loading="loadingFamilies ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>
                 <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
@@ -99,30 +87,18 @@
 
         <!-- ============= FISH TYPES TAB ============= -->
         <v-window-item value="types">
-          <div class="param-top-toolbar mb-4">
-            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-              <v-text-field
-                v-model="search"
-                :label="$t('search')"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                color="#1565C0"
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-                class="param-search-input"
-              ></v-text-field>
-              <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num">
+          <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
                 <v-icon start size="14">mdi-fish</v-icon>
                 {{ filteredTypes.length }} {{ $t('records') }}
               </v-chip>
               <v-btn v-if="hasActiveTypeFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="typeColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
             </div>
-            <v-btn color="#1565C0" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openTypeDialog(null)">{{ $t('add_fish_type') }}</v-btn>
+            <v-btn color="#1565C0" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openTypeDialog(null)">{{ $t('add_fish_type') }}</v-btn>
           </div>
 
-          <v-data-table :headers="typeHeaders" :items="filteredTypes" :loading="loadingTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="search">
+          <v-data-table :headers="typeHeaders" :items="filteredTypes" :loading="loadingTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>
                 <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
@@ -193,30 +169,18 @@
 
         <!-- ============= PROCESS TYPES TAB ============= -->
         <v-window-item value="process_types">
-          <div class="param-top-toolbar mb-4">
-            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
-              <v-text-field
-                v-model="search"
-                :label="$t('search')"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                color="#1565C0"
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-                class="param-search-input"
-              ></v-text-field>
-              <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num">
+          <div class="param-top-toolbar d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold fnm-currency-num px-3" rounded="lg">
                 <v-icon start size="14">mdi-cog-outline</v-icon>
                 {{ filteredProcessTypes.length }} {{ $t('records') }}
               </v-chip>
               <v-btn v-if="hasActiveProcessFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="processColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
             </div>
-            <v-btn color="#1565C0" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openProcessDialog(null)">{{ $t('add_process_type') }}</v-btn>
+            <v-btn color="#1565C0" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openProcessDialog(null)">{{ $t('add_process_type') }}</v-btn>
           </div>
 
-          <v-data-table :headers="processHeaders" :items="filteredProcessTypes" :loading="loadingProcessTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="search">
+          <v-data-table :headers="processHeaders" :items="filteredProcessTypes" :loading="loadingProcessTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>
                 <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
@@ -276,9 +240,11 @@
           </v-btn>
         </div>
         <v-card-text class="param-dialog-body">
-          <v-text-field v-model="familyForm.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#1565C0" class="mb-3" hide-details="auto"></v-text-field>
-          <v-text-field v-model="familyForm.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#1565C0" class="mb-3" hide-details="auto"></v-text-field>
-          <v-text-field v-model="familyForm.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#1565C0" hide-details="auto"></v-text-field>
+          <v-row dense>
+            <v-col cols="12"><v-text-field v-model="familyForm.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#1565C0" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12"><v-text-field v-model="familyForm.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#1565C0" hide-details="auto"></v-text-field></v-col>
+            <v-col cols="12"><v-text-field v-model="familyForm.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#1565C0" hide-details="auto"></v-text-field></v-col>
+          </v-row>
         </v-card-text>
         <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>
@@ -383,8 +349,8 @@
             {{ $t('productivity_type') }}
           </div>
 
-          <v-row>
-            <v-col cols="8">
+          <v-row dense>
+            <v-col cols="12" sm="8">
               <v-autocomplete
                 v-model="typeForm.fish_process_type_id"
                 :items="processTypes"
@@ -433,7 +399,7 @@
                 </v-alert>
               </v-slide-y-transition>
             </v-col>
-            <v-col cols="4">
+            <v-col cols="12" sm="4">
               <div class="text-caption text-grey mb-1">{{ $t('productivity_color') }}</div>
               <v-menu :close-on-content-click="false" location="bottom">
                 <template v-slot:activator="{ props }">
