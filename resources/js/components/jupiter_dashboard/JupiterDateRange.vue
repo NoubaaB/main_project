@@ -90,39 +90,6 @@
             @change="onEndDateInputChange"
           />
         </div>
-
-        <div class="d-flex align-center ga-1.5 flex-wrap">
-          <v-btn
-            size="small"
-            variant="tonal"
-            color="#0891B2"
-            rounded="pill"
-            class="text-none font-weight-medium"
-            @click="applyPreset('7d')"
-          >
-            {{ $t('last_7_days') || 'Last 7 Days' }}
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="tonal"
-            color="#0891B2"
-            rounded="pill"
-            class="text-none font-weight-medium"
-            @click="applyPreset('30d')"
-          >
-            {{ $t('last_30_days') || 'Last 30 Days' }}
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="tonal"
-            color="#0891B2"
-            rounded="pill"
-            class="text-none font-weight-medium"
-            @click="applyPreset('month')"
-          >
-            {{ $t('this_month') || 'This Month' }}
-          </v-btn>
-        </div>
       </div>
 
       <!-- Extended Full-Width Range VCalendar Area -->
@@ -139,7 +106,7 @@
             </v-chip>
           </div>
 
-          <div class="vcalendar-styled-container rounded-xl overflow-hidden pa-2 border bg-surface">
+          <div class="vcalendar-styled-container rounded-xl overflow-hidden pa-2 border">
             <DatePicker
               :is-dark="main.is_dark"
               v-model.range="localRange"
@@ -396,7 +363,7 @@ export default {
   background: rgba(30, 41, 59, 0.7) !important;
 }
 
-/* VCalendar Futuristic Jupiter Theme Styling */
+/* VCalendar Futuristic Jupiter Cyan Theme Styling */
 .expanded-calendar-wrap :deep(.vc-container) {
   border: none !important;
   font-family: inherit;
@@ -409,30 +376,132 @@ export default {
 }
 
 .expanded-calendar-wrap :deep(.vc-header) {
-  padding-bottom: 8px;
+  padding-bottom: 12px !important;
 }
 
 .expanded-calendar-wrap :deep(.vc-title) {
-  font-weight: 700;
+  font-weight: 800 !important;
+  font-size: 16px !important;
   color: #0891B2 !important;
 }
 
-.expanded-calendar-wrap :deep(.vc-highlight-base-start),
-.expanded-calendar-wrap :deep(.vc-highlight-base-end) {
-  background: #0891B2 !important;
+.expanded-calendar-wrap :deep(.vc-dark .vc-title),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-title) {
+  color: #22D3EE !important;
 }
 
-.expanded-calendar-wrap :deep(.vc-highlight-base-middle) {
-  background: rgba(8, 145, 178, 0.16) !important;
+.expanded-calendar-wrap :deep(.vc-arrow) {
+  color: #0891B2 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
 }
 
-.expanded-calendar-wrap :deep(.vc-day-content:hover) {
+.expanded-calendar-wrap :deep(.vc-arrow:hover) {
   background: rgba(8, 145, 178, 0.12) !important;
 }
 
-.expanded-calendar-wrap :deep(.vc-day-content.is-selected) {
-  background: #0891B2 !important;
+.expanded-calendar-wrap :deep(.vc-dark .vc-arrow),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-arrow) {
+  color: #22D3EE !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-weekday) {
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  color: #0e7490 !important;
+  padding-bottom: 8px !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-dark .vc-weekday),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-weekday) {
+  color: #67e8f9 !important;
+}
+
+/* Day base layout and cell size */
+.expanded-calendar-wrap :deep(.vc-day-content) {
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-day-content:hover) {
+  background-color: rgba(8, 145, 178, 0.12) !important;
+}
+
+/* 1. SELECTED DATES CIRCLE: Start & End */
+.expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-bg-solid) {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 9999px !important;
+  background-color: #0891B2 !important;
+  box-shadow: 0 2px 10px rgba(8, 145, 178, 0.5) !important;
+  z-index: 2 !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-dark .vc-highlight.vc-highlight-bg-solid),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-bg-solid) {
+  background-color: #06B6D4 !important;
+  box-shadow: 0 2px 12px rgba(6, 182, 212, 0.55) !important;
+}
+
+/* 2. TEXT FOR SELECTED START & END DATES: Bold White */
+.expanded-calendar-wrap :deep(.vc-highlight-content-solid),
+.expanded-calendar-wrap :deep(.vc-day-content.vc-highlight-content-solid) {
   color: #ffffff !important;
+  font-weight: 800 !important;
+  position: relative !important;
+  z-index: 3 !important;
+  background-color: transparent !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-day-content.vc-highlight-content-solid:hover) {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+
+/* 3. CONNECTING RIBBON (Between Start & End): Soft translucent cyan */
+.expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-base-start),
+.expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-base-end) {
+  background-color: rgba(8, 145, 178, 0.15) !important;
+  height: 30px !important;
+  z-index: 1 !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-base-middle),
+.expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-bg-light) {
+  background-color: rgba(8, 145, 178, 0.15) !important;
+  height: 30px !important;
+  z-index: 1 !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-dark .vc-highlight.vc-highlight-base-start),
+.expanded-calendar-wrap :deep(.vc-dark .vc-highlight.vc-highlight-base-end),
+.expanded-calendar-wrap :deep(.vc-dark .vc-highlight.vc-highlight-base-middle),
+.expanded-calendar-wrap :deep(.vc-dark .vc-highlight.vc-highlight-bg-light),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-base-start),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-base-end),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-base-middle),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-highlight.vc-highlight-bg-light) {
+  background-color: rgba(6, 182, 212, 0.22) !important;
+}
+
+/* 4. TEXT FOR CONNECTED MIDDLE DATES */
+.expanded-calendar-wrap :deep(.vc-highlight-content-light),
+.expanded-calendar-wrap :deep(.vc-day-content.vc-highlight-content-light) {
+  color: #0e7490 !important;
+  font-weight: 700 !important;
+}
+
+.expanded-calendar-wrap :deep(.vc-dark .vc-highlight-content-light),
+.expanded-calendar-wrap :deep(.vc-dark .vc-day-content.vc-highlight-content-light),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-highlight-content-light),
+:deep(.v-theme--dark) .expanded-calendar-wrap :deep(.vc-day-content.vc-highlight-content-light) {
+  color: #67e8f9 !important;
+  font-weight: 700 !important;
 }
 
 .expanded-calendar-wrap :deep(.vc-focus:focus-within) {

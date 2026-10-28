@@ -48,15 +48,15 @@
   <v-card-text v-if="activeTab === 0" class="pa-4">
     <!-- Analytics Row: Calendar | Chart | Statistics -->
     <v-row dense class="mb-3">
-      <v-col cols="3">
+      <v-col cols="12" md="3" lg="3">
         <div class="lp-panel-card">
-          <div class="lp-panel-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
+          <div class="lp-panel-header mb-2 pa-1"><v-icon size="16" color="#00897B" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
           <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="teal" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
         </div>
       </v-col>
-      <v-col cols="6">
+      <v-col cols="12" md="6" lg="6">
         <div class="lp-panel-card" style="height:100%">
-          <div class="lp-panel-header d-flex align-center justify-space-between">
+          <div class="lp-panel-header mb-2 pa-1 d-flex align-center justify-space-between">
             <div class="d-flex align-center"><v-icon size="16" color="#00897B" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div>
             <v-btn-toggle v-model="chartMode" mandatory density="compact" color="#00897B" variant="outlined" rounded="lg" divided>
               <v-btn value="daily" size="x-small">{{ $t('daily') }}</v-btn>
@@ -68,7 +68,7 @@
           <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-line-variant</v-icon></div>
         </div>
       </v-col>
-      <v-col cols="3">
+      <v-col cols="12" md="3" lg="3">
         <div class="lp-panel-card lp-stats-panel" style="height:100%;overflow-y:auto">
           <div class="lp-panel-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
           <div v-for="(stat,si) in categoryStats" :key="si" class="lp-stat-item mb-2">
@@ -1062,7 +1062,7 @@
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
                 <template v-else-if="h.key==='production_category_id'"><v-chip size="small" color="#00897B" variant="tonal">{{ catName(item.production_category_id) }}</v-chip></template>
-                <template v-else-if="h.key==='production_type'"><v-chip v-if="item.production_type" size="x-small" :color="item.production_type==='intern'?'info':'warning'" variant="tonal">{{ $t(item.production_type) }}</v-chip><span v-else class="text-grey">-</span></template>
+                <template v-else-if="h.key==='production_type'"><v-chip v-if="item.production_type" size="x-small" :color="productionTypeColor(item.production_type)" variant="tonal">{{ $t(item.production_type) }}</v-chip><span v-else class="text-grey">-</span></template>
                 <template v-else-if="h.key==='_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.production_tracking_number||[])" :key="tn" size="x-small" color="deep-purple" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.production_tracking_number||[]).length" class="text-grey">-</span></div></template>
                 <template v-else-if="h.key==='_charge'"><v-chip v-if="item.charge" size="x-small" color="#00897B" variant="tonal" @click="$router.push({name:'view_charge',params:{id:item.charge.id}})"><v-icon size="12" class="mr-1">mdi-link</v-icon>{{ item._charge }}</v-chip><span v-else class="text-grey">-</span></template>
                 <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
@@ -1118,6 +1118,33 @@
 </v-card>
 <AuditLogDialog v-model="auditLogDialogOpen" auditable-type="Production" :auditable-id="auditLogRecordId" module-color="#00897B" />
 <RecordIssueDialog v-model="issueDialogOpen" record-type="Production" :record-id="issueDialogRecordId" module-color="#00897B" @issue-changed="fetchProductions" />
+
+<!-- Summary Snackbar with Countdown Progress Bar (Rule 5 & AddCharge style) -->
+<v-snackbar
+  v-model="summarySnackbar.show"
+  :timeout="6000"
+  location="top right"
+  color="surface"
+  rounded="lg"
+  elevation="12"
+  min-width="340"
+  max-width="420"
+  @update:modelValue="val => { if (!val) clearInterval(snackbarTimer); }"
+>
+  <v-progress-linear :model-value="snackbarProgress" color="#00897B" height="3" class="mb-2" rounded></v-progress-linear>
+  <div class="d-flex align-center mb-1">
+    <v-icon :color="summarySnackbar.color || 'success'" class="mr-2">
+      {{ summarySnackbar.color === 'error' ? 'mdi-alert-circle' : (summarySnackbar.color === 'info' ? 'mdi-information' : 'mdi-check-circle') }}
+    </v-icon>
+    <span class="text-subtitle-2 font-weight-bold">{{ summarySnackbar.title }}</span>
+  </div>
+  <div v-if="summarySnackbar.detail" class="text-caption text-medium-emphasis ms-7">
+    {{ summarySnackbar.detail }}
+  </div>
+  <template #actions>
+    <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
+  </template>
+</v-snackbar>
 </template>
 <script>
 import script from './script.js';
@@ -1133,9 +1160,30 @@ export default {
   ...script,
   mixins: [virtualTableMixin, tableConfigMixin],
   components:{...script.components,AddProduction,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle,TableColumnFilter},
-  data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,productionTabs:[{value:0,label:'list_production',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('production.create')?[{value:1,label:'add_production',icon:'mdi-sticker-plus-outline'}]:[])]}},
-  computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
-  methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true}},
+  data(){
+    return {
+      ...script.data.call(this),
+      activeTab: 0,
+      auditLogDialogOpen: false,
+      auditLogRecordId: 0,
+      issueDialogOpen: false,
+      issueDialogRecordId: 0,
+      productionTabs: [
+        { value: 0, label: 'list_production', icon: 'mdi-view-list-outline' },
+        ...(useAuth().hasPermission('production.create') ? [{ value: 1, label: 'add_production', icon: 'mdi-sticker-plus-outline' }] : [])
+      ]
+    };
+  },
+  computed:{
+    ...script.computed,
+    auth(){return useAuth()},
+    selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}},
+  },
+  methods:{
+    ...script.methods,
+    openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},
+    openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true}
+  },
   watch:{...script.watch,activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0){this.fetchProductions();this.fetchAnalytics()}},showInvoice(v){if(v&&this.uninvoicedSelectedProductions.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
   mounted(){script.mounted.call(this);if(this.loadTableConfig)this.loadTableConfig();if(this.$route.query.tab==='add')this.activeTab=1},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
@@ -1208,4 +1256,6 @@ export default {
 .lp-panel-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center}
 .lp-stats-panel{max-height:400px}
 .lp-stat-item{padding:8px 10px;border-radius:10px;background:rgba(0,137,123,.03);border:1px solid rgba(0,137,123,.06)}
+:deep(.mdi-pallet:before),.mdi-pallet:before{content:"\F184E"}
 </style>
+

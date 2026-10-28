@@ -61,8 +61,17 @@ class PackageSecondaryConfigController extends Controller
         $item->save();
         $item->load('packageType');
 
+        $recalcResult = app(\App\Services\SecondaryPackagingService::class)->recalculateForPackageType(
+            (int) $item->package_type_id,
+            $item->date_start,
+            $item->date_end
+        );
+
         $this->broadcastChange('PackageSecondaryConfig', 'created', $item->id, $item->toArray());
-        return response()->json(['package_secondary_config' => $item], 201);
+        return response()->json([
+            'package_secondary_config' => $item,
+            'recalculation' => $recalcResult,
+        ], 201);
     }
 
     public function update(Request $request, $id)
@@ -107,16 +116,34 @@ class PackageSecondaryConfigController extends Controller
         $item->save();
         $item->load('packageType');
 
+        $recalcResult = app(\App\Services\SecondaryPackagingService::class)->recalculateForPackageType(
+            (int) $item->package_type_id,
+            $item->date_start,
+            $item->date_end
+        );
+
         $this->broadcastChange('PackageSecondaryConfig', 'updated', $item->id, $item->toArray());
-        return response()->json(['package_secondary_config' => $item]);
+        return response()->json([
+            'package_secondary_config' => $item,
+            'recalculation' => $recalcResult,
+        ]);
     }
 
     public function destroy($id)
     {
         $item = PackageSecondaryConfig::findOrFail($id);
+        $packageTypeId = (int) $item->package_type_id;
         $item->delete();
+
+        $recalcResult = app(\App\Services\SecondaryPackagingService::class)->recalculateForPackageType(
+            $packageTypeId
+        );
+
         $this->broadcastChange('PackageSecondaryConfig', 'deleted', (int) $id);
-        return response()->json(['message' => 'Deleted']);
+        return response()->json([
+            'message' => 'Deleted',
+            'recalculation' => $recalcResult,
+        ]);
     }
 
     public function getActiveConfig(Request $request)

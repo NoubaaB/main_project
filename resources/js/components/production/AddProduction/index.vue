@@ -78,7 +78,7 @@
               <div v-if="selectedCategory?.enable_production_type" class="mb-3">
                 <v-autocomplete
                   v-model="prodStore.production.production_type"
-                  :items="[{ title: $t('intern') || 'Internal', value: 'intern' }, { title: $t('extern') || 'External', value: 'extern' }]"
+                  :items="productionTypeOptions"
                   :label="$t('production_type')"
                   chips
                   density="compact"
@@ -89,7 +89,11 @@
                   hide-details
                   clearable
                   prepend-inner-icon="mdi-domain"
-                ></v-autocomplete>
+                >
+                  <template #chip="{ item }">
+                    <v-chip color="#00897B" variant="tonal" class="font-weight-medium">{{ item.title }}</v-chip>
+                  </template>
+                </v-autocomplete>
               </div>
 
               <!-- Full-width Inline VCalendar DatePicker (matching design specification) -->
@@ -456,6 +460,15 @@ export default {
         title: c[`name_${this.lang}`] || c.name || `#${c.id}`,
         value: c.id,
       }));
+    },
+    productionTypeOptions() {
+      return [
+        { title: this.$t('intern') || 'Internal', value: 'intern' },
+        { title: this.$t('extern') || 'External', value: 'extern' },
+        { title: this.$t('standard') || 'Standard', value: 'standard' },
+        { title: this.$t('sous_traitance') || 'Subcontracting', value: 'sous_traitance' },
+        { title: this.$t('guano') || 'Guano', value: 'guano' },
+      ];
     },
     canSubmit() {
       const p = this.prodStore.production;

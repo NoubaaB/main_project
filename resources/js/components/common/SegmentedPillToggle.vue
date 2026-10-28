@@ -65,8 +65,8 @@ export default {
     },
     size: {
       type: String,
-      default: 'medium', // 'small' | 'medium'
-      validator: v => ['small', 'medium'].includes(v)
+      default: 'medium', // 'x-small' | 'small' | 'medium'
+      validator: v => ['x-small', 'small', 'medium'].includes(v)
     },
     block: {
       type: Boolean,
@@ -321,6 +321,18 @@ export default {
 }
 
 /* Sizes */
+.segmented-pill--x-small {
+  padding: 2px;
+}
+.segmented-pill--x-small .segmented-pill-btn {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 10px;
+  gap: 4px;
+}
+.segmented-pill--x-small .segmented-pill-icon {
+  font-size: 11px;
+}
 .segmented-pill--small .segmented-pill-btn {
   height: 28px;
   padding: 0 12px;

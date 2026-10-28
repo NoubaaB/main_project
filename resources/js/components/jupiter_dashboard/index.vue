@@ -78,9 +78,12 @@
       </v-col>
     </v-row>
 
-    <!-- 3. Consolidated Operational & Financial Summary Cards -->
+    <!-- 3. Consolidated Operational & Financial Summary Cards & Charges Categories Breakdown -->
     <JupiterSummaryCards
       :summary="operationalSummary"
+      :chargesCategoryStats="chartData.statistics?.charges_category_stats || []"
+      :chargeCategories="chartData.category_options?.charge_categories || []"
+      :loading="loading"
     />
 
     <!-- Summary Snackbar with Countdown Progress Bar (Rule 5 & AddCharge style) -->
@@ -202,10 +205,12 @@ export default {
     operationalSummary() {
       const totals = this.chartData?.statistics?.totals || {};
       return {
-        charges: totals.charges || { count: 0, total_weight: 0, total_price: 0 },
-        productions: totals.productions || { count: 0, total_weight: 0, total_price: 0 },
+        charges: totals.charges || { count: 0, total_weight: 0, total_price: 0, avg_price_per_kg: 0, avg_price: 0, avg_weight: 0 },
+        productions: totals.productions || { count: 0, total_weight: 0, total_price: 0, total_sec_cost: 0 },
         shippings: totals.shippings || { count: 0, total_weight: 0, total_price: 0 },
         yields: this.chartData?.statistics?.yields || [],
+        equilibrium: totals.equilibrium || 0,
+        is_surplus: totals.is_surplus ?? true,
       };
     },
   },

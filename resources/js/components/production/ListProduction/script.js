@@ -53,6 +53,11 @@ export default {
       workerFilterOptionCounts: {},
       workerSecondaryPackagingStats: null,
       isWorkerFiltering: false,
+      recalculatingPackaging: false,
+      summarySnackbar: { show: false, title: '', detail: '', color: 'success' },
+      snackbarProgress: 100,
+      snackbarTimer: null,
+      secPackDisplayMode: (typeof localStorage !== 'undefined' && localStorage.getItem('jupiter_sec_pack_display_mode')) || 'price',
     };
   },
   computed: {
@@ -451,12 +456,18 @@ export default {
   },
   activated() { this.fetchProductions(); this.fetchAnalytics(); this.fetchClosedYears(); },
   beforeUnmount() {
+    if (this.snackbarTimer) clearInterval(this.snackbarTimer);
     mitt.off('model-changed', this.onMC);
     if (this._listWorker) {
       this._listWorker.terminate();
     }
   },
   watch: {
+    secPackDisplayMode(val) {
+      try {
+        localStorage.setItem('jupiter_sec_pack_display_mode', val);
+      } catch (e) {}
+    },
     chartMode() {
       this.fetchAnalytics();
       this.dispatchWorkerFilter(0);
@@ -565,8 +576,15 @@ export default {
           this.dispatchWorkerFilter(0);
           this.fetchAnalytics();
         }
-      } else if (d.model === 'SupplierInvoice' || d.model === 'ClientInvoice') {
+      } else if (d.model === 'SupplierInvoice' || d.model === 'ClientInvoice' || d.model === 'PackageSecondaryConfig') {
         this.fetchProductions(); this.fetchAnalytics();
+        if (d.model === 'PackageSecondaryConfig') {
+          this.triggerSummarySnackbar(
+            this.$t('realtime_sync'),
+            this.$t('secondary_packaging_config') + (d.actor_name ? ` (${d.actor_name})` : ''),
+            'info'
+          );
+        }
       } else if (d.model === 'RecordIssue') {
         this._fetchIssueCounts('Production');
       }
@@ -627,8 +645,15 @@ export default {
     cellText(key, item) {
       if (key === 'production_category_id') return this.catName(item.production_category_id);
       if (key === 'date') return this.main.formateDate(item.date);
-      if (key === 'production_type') return item.production_type || '-';
+      if (key === 'production_type') return item.production_type ? this.$t(item.production_type) : '-';
       const v = item[key]; return v == null ? '-' : String(v);
+    },
+    productionTypeColor(type) {
+      if (!type) return 'grey';
+      if (type === 'intern' || type === 'standard') return '#00897B';
+      if (type === 'extern' || type === 'sous_traitance') return '#FF9800';
+      if (type === 'guano') return '#388E3C';
+      return '#00897B';
     },
     filterOpts(key) {
       if (this.workerFilterOptions && this.workerFilterOptions[key] && this.workerFilterOptions[key].length) {
@@ -774,5 +799,60 @@ export default {
     },
     cancelInvoice() { this.selected = []; this.invForm = { date: null, type_invoice: 'local', trackingNumbers: [], trackingInput: '', invoiceKind: 'supplier' }; this.showInvoice = false; },
     exportExcel() { const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions' && h.key !== 'expand').forEach(h => { row[h.title] = this.cellText(h.key, c) }); return row }); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Productions'); XLSX.writeFile(wb, `productions_${this.today}.xlsx`) },
+    triggerSummarySnackbar(title, detail = '', color = 'success') {
+      if (this.snackbarTimer) clearInterval(this.snackbarTimer);
+      this.summarySnackbar = { show: true, title, detail, color };
+      this.snackbarProgress = 100;
+      const duration = 5000;
+      const interval = 50;
+      const step = (interval / duration) * 100;
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= step;
+        if (this.snackbarProgress <= 0) {
+          clearInterval(this.snackbarTimer);
+          this.summarySnackbar.show = false;
+        }
+      }, interval);
+    },
+    async updatePackageSecondaryPackaging() {
+      this.recalculatingPackaging = true;
+      try {
+        const ds = this.fmtDate(this.dateRange[0]);
+        const de = this.fmtDate(this.dateRange[1] || this.dateRange[0]);
+        const res = await axios.post('/api/productions/recalculate-secondary-packaging', {
+          date_start: ds,
+          date_end: de,
+        });
+        const result = res.data?.result || {};
+        const count = result.productions_count ?? 0;
+        const totalCost = this.main.formatDisplayNumber(result.total_secondary_packaging_cost ?? 0);
+        await Promise.all([this.fetchProductions(), this.fetchAnalytics()]);
+        this.triggerSummarySnackbar(
+          this.$t('secondary_packaging_recalculated_success'),
+          `${count} ${this.$t('productions_updated')} • ${totalCost} ${this.main.currency}`,
+          'success'
+        );
+      } catch (e) {
+        console.error(e);
+        this.triggerSummarySnackbar(
+          this.$t('error_occurred'),
+          e.response?.data?.message || 'Recalculation failed',
+          'error'
+        );
+      } finally {
+        this.recalculatingPackaging = false;
+      }
+    },
+    getPackagingIcon(key) {
+      const icons = {
+        caisses: 'mdi-archive-outline',
+        cellophane: 'mdi-filmstrip',
+        plastique: 'mdi-shopping-outline',
+        strapex: 'mdi-tape-measure',
+        palletes: 'mdi-shipping-pallet',
+        scotch: 'mdi-sticker-circle-outline',
+      };
+      return icons[key] || 'mdi-package-variant-closed';
+    },
   },
 };

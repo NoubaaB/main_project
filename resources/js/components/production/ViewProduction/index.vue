@@ -1,7 +1,7 @@
 <template>
   <v-card class="view-prod-card" elevation="0">
     <div class="vp-hero"><div class="vp-hero-inner">
-      <div class="d-flex align-center ga-4"><div class="vp-hero-icon"><v-icon size="28" color="white">mdi-eye</v-icon></div><div><div class="vp-hero-title">{{ $t('view_production') }} #{{ production?.id }}</div><div class="text-white text-caption" style="opacity:.7">{{ production ? main.formateDate(production.date) : '' }}</div></div></div>
+      <div class="d-flex align-center ga-4"><div class="vp-hero-icon"><v-icon size="28" color="white">mdi-eye</v-icon></div><div><div class="vp-hero-title d-flex align-center">{{ $t('view_production') }} #{{ production?.id }} <v-chip v-if="production?.production_type" size="x-small" color="white" variant="tonal" class="font-weight-bold ml-2">{{ $t(production.production_type) }}</v-chip></div><div class="text-white text-caption" style="opacity:.7">{{ production ? main.formateDate(production.date) : '' }}</div></div></div>
       <div class="d-flex ga-2">
         <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'production_list' })">{{ $t('back') }}</v-btn>
         <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-flag-outline" @click="issueDialog = true" v-if="production">{{ $t('record_issues') }}</v-btn>

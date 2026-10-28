@@ -1173,6 +1173,9 @@ export default {
       return [
         { title: this.$t('intern') || 'Interne', value: 'intern' },
         { title: this.$t('extern') || 'Externe', value: 'extern' },
+        { title: this.$t('standard') || 'Standard', value: 'standard' },
+        { title: this.$t('sous_traitance') || 'Sous-traitance', value: 'sous_traitance' },
+        { title: this.$t('guano') || 'Guano', value: 'guano' },
       ];
     },
     directionOptions() {

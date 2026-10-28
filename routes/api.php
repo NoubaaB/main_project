@@ -120,6 +120,7 @@ Route::middleware(["auth:sanctum"])->group(
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         Route::get("productions/analytics", [App\Http\Controllers\ProductionController::class, "analytics"])->middleware('check.permission:production.view');
         Route::get("productions", [App\Http\Controllers\ProductionController::class, "index"])->middleware('check.permission:production.view');
+        Route::post("productions/recalculate-secondary-packaging", [App\Http\Controllers\ProductionController::class, "recalculateSecondaryPackaging"])->middleware('check.permission:production.edit');
         Route::get("productions/{production}", [App\Http\Controllers\ProductionController::class, "show"])->middleware('check.permission:production.view');
         Route::post("productions", [App\Http\Controllers\ProductionController::class, "store"])->middleware('check.permission:production.create');
         Route::put("productions/{production}", [App\Http\Controllers\ProductionController::class, "update"])->middleware('check.permission:production.edit');

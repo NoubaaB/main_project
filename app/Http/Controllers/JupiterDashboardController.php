@@ -72,9 +72,12 @@ class JupiterDashboardController extends Controller
             ->first();
 
         $chargesSummaryData = [
-            'count'        => (int) ($chargesSummary->cnt ?? 0),
-            'total_weight' => round((float) ($chargesSummary->tw ?? 0), 2),
-            'total_price'  => round((float) ($chargesSummary->tp ?? 0), 2),
+            'count'            => (int) ($chargesSummary->cnt ?? 0),
+            'total_weight'     => round((float) ($chargesSummary->tw ?? 0), 2),
+            'total_price'      => round((float) ($chargesSummary->tp ?? 0), 2),
+            'avg_weight'       => ($chargesSummary->cnt ?? 0) > 0 ? round(((float)$chargesSummary->tw) / ((int)$chargesSummary->cnt), 2) : 0,
+            'avg_price'        => ($chargesSummary->cnt ?? 0) > 0 ? round(((float)$chargesSummary->tp) / ((int)$chargesSummary->cnt), 2) : 0,
+            'avg_price_per_kg' => ($chargesSummary->tw ?? 0) > 0 ? round(((float)$chargesSummary->tp) / ((float)$chargesSummary->tw), 2) : 0,
         ];
 
         // Charges per-period totals
@@ -92,12 +95,15 @@ class JupiterDashboardController extends Controller
         }
 
         // Charges by Category
-        $chargeCategories = ChargeCategory::select('id', 'name', 'name_fr', 'name_en', 'name_es')->get();
+        $chargeCategories = ChargeCategory::select('id', 'name', 'name_fr', 'name_en', 'name_es', 'is_production', 'description')->get();
         $chargesCatRows = (clone $chargesBaseQuery)
             ->whereNotNull('charge_category_id')
             ->selectRaw("charge_category_id, {$periodSelect} as period, COALESCE(SUM(total_weight), 0) as tw, COALESCE(SUM(total_price), 0) as tp")
             ->groupByRaw("charge_category_id, {$periodGroup}")
             ->get();
+
+        $grandChargesPrice  = max(0.0001, (float) ($chargesSummary->tp ?? 0));
+        $grandChargesWeight = max(0.0001, (float) ($chargesSummary->tw ?? 0));
 
         $chargesByCategory = [];
         $chargesCategoryStats = [];
@@ -117,26 +123,69 @@ class JupiterDashboardController extends Controller
             }
             $catCount = (clone $chargesBaseQuery)->where('charge_category_id', $cc->id)->count();
             $chargesByCategory[] = [
-                'id'           => $cc->id,
-                'name'         => $cc->name,
-                'name_fr'      => $cc->name_fr ?: $cc->name,
-                'name_en'      => $cc->name_en ?: $cc->name,
-                'name_es'      => $cc->name_es ?: $cc->name,
-                'weight'       => $wData,
-                'price'        => $pData,
-                'total_weight' => round($catTotalW, 2),
-                'total_price'  => round($catTotalP, 2),
+                'id'            => $cc->id,
+                'name'          => $cc->name,
+                'name_fr'       => $cc->name_fr ?: $cc->name,
+                'name_en'       => $cc->name_en ?: $cc->name,
+                'name_es'       => $cc->name_es ?: $cc->name,
+                'is_production' => (bool) $cc->is_production,
+                'weight'        => $wData,
+                'price'         => $pData,
+                'total_weight'  => round($catTotalW, 2),
+                'total_price'   => round($catTotalP, 2),
             ];
-            if ($catCount > 0 || $catTotalW > 0) {
-                $chargesCategoryStats[] = [
-                    'id'           => $cc->id,
-                    'name'         => $cc->name_fr ?: ($cc->name_en ?: $cc->name),
-                    'count'        => $catCount,
-                    'total_weight' => round($catTotalW, 2),
-                    'total_price'  => round($catTotalP, 2),
-                ];
-            }
+
+            $hasWeight = $catTotalW > 0;
+            $chargesCategoryStats[] = [
+                'id'                 => $cc->id,
+                'name'               => $cc->name,
+                'name_fr'            => $cc->name_fr ?: $cc->name,
+                'name_en'            => $cc->name_en ?: $cc->name,
+                'name_es'            => $cc->name_es ?: $cc->name,
+                'is_production'      => (bool) $cc->is_production,
+                'description'        => $cc->description,
+                'count'              => $catCount,
+                'total_weight'       => round($catTotalW, 2),
+                'total_price'        => round($catTotalP, 2),
+                'has_weight'         => $hasWeight,
+                'avg_price_per_kg'   => $hasWeight ? round($catTotalP / $catTotalW, 2) : null,
+                'avg_price'          => $catCount > 0 ? round($catTotalP / $catCount, 2) : 0,
+                'avg_weight'         => ($catCount > 0 && $hasWeight) ? round($catTotalW / $catCount, 2) : 0,
+                'price_percentage'   => round(($catTotalP / $grandChargesPrice) * 100, 2),
+                'weight_percentage'  => $hasWeight ? round(($catTotalW / $grandChargesWeight) * 100, 2) : 0,
+            ];
         }
+
+        // Check if there are uncategorized charges
+        $uncatCount = (clone $chargesBaseQuery)->whereNull('charge_category_id')->count();
+        if ($uncatCount > 0) {
+            $uncatW = (float) (clone $chargesBaseQuery)->whereNull('charge_category_id')->sum('total_weight');
+            $uncatP = (float) (clone $chargesBaseQuery)->whereNull('charge_category_id')->sum('total_price');
+            $hasWeight = $uncatW > 0;
+            $chargesCategoryStats[] = [
+                'id'                 => 0,
+                'name'               => 'Uncategorized',
+                'name_fr'            => 'Non catégorisé',
+                'name_en'            => 'Uncategorized',
+                'name_es'            => 'Sin categoría',
+                'is_production'      => false,
+                'description'        => null,
+                'count'              => $uncatCount,
+                'total_weight'       => round($uncatW, 2),
+                'total_price'        => round($uncatP, 2),
+                'has_weight'         => $hasWeight,
+                'avg_price_per_kg'   => $hasWeight ? round($uncatP / $uncatW, 2) : null,
+                'avg_price'          => round($uncatP / $uncatCount, 2),
+                'avg_weight'         => $hasWeight ? round($uncatW / $uncatCount, 2) : 0,
+                'price_percentage'   => round(($uncatP / $grandChargesPrice) * 100, 2),
+                'weight_percentage'  => $hasWeight ? round(($uncatW / $grandChargesWeight) * 100, 2) : 0,
+            ];
+        }
+
+        // Sort by total_price descending by default
+        usort($chargesCategoryStats, function ($a, $b) {
+            return $b['total_price'] <=> $a['total_price'];
+        });
 
         // ════════════════════════════════════════════════════════════════
         // 2. PRODUCTIONS (Total, By-Category, Invoicing & Packaging)

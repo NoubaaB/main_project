@@ -724,11 +724,15 @@ export default {
         };
 
         if (this.editingSecondaryRule) {
-          await axios.put(`/api/package-secondary-configs/${this.editingSecondaryRule.id}`, payload);
-          this.triggerSummarySnackbar(this.$t('secondary_packaging_config') + ': ' + this.$t('updated'), startDate, 'success');
+          const res = await axios.put(`/api/package-secondary-configs/${this.editingSecondaryRule.id}`, payload);
+          const recalc = res.data?.recalculation;
+          const countInfo = recalc ? ` (${recalc.productions_count} ${this.$t('productions_updated')})` : '';
+          this.triggerSummarySnackbar(this.$t('secondary_packaging_config') + ': ' + this.$t('updated') + countInfo, startDate, 'success');
         } else {
-          await axios.post('/api/package-secondary-configs', payload);
-          this.triggerSummarySnackbar(this.$t('secondary_packaging_config') + ': ' + this.$t('created'), startDate, 'success');
+          const res = await axios.post('/api/package-secondary-configs', payload);
+          const recalc = res.data?.recalculation;
+          const countInfo = recalc ? ` (${recalc.productions_count} ${this.$t('productions_updated')})` : '';
+          this.triggerSummarySnackbar(this.$t('secondary_packaging_config') + ': ' + this.$t('created') + countInfo, startDate, 'success');
         }
         this.resetSecondaryForm();
         await this.fetchSecondaryRules();
@@ -740,8 +744,10 @@ export default {
     },
     async deleteSecondaryRule(rule) {
       try {
-        await axios.delete(`/api/package-secondary-configs/${rule.id}`);
-        this.triggerSummarySnackbar(this.$t('secondary_packaging_config') + ': ' + this.$t('deleted'), '', 'success');
+        const res = await axios.delete(`/api/package-secondary-configs/${rule.id}`);
+        const recalc = res.data?.recalculation;
+        const countInfo = recalc ? ` (${recalc.productions_count} ${this.$t('productions_updated')})` : '';
+        this.triggerSummarySnackbar(this.$t('secondary_packaging_config') + ': ' + this.$t('deleted') + countInfo, '', 'success');
         await this.fetchSecondaryRules();
       } catch (e) {
         console.error(e);

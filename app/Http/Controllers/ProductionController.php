@@ -240,7 +240,7 @@ class ProductionController extends Controller
             'reception_tracking_number' => 'nullable|array',
             'tracking_onp_numbers' => 'nullable|array',
             'production_tracking_number' => 'nullable|array',
-            'production_type' => 'nullable|string|in:intern,extern',
+            'production_type' => 'nullable|string|in:intern,extern,standard,sous_traitance,guano',
             'fishery_id' => 'nullable|exists:fisheries,id',
             'ship_id' => 'nullable|exists:ships,id',
             'origin_id' => 'nullable|exists:origins,id',
@@ -329,7 +329,7 @@ class ProductionController extends Controller
             'reception_tracking_number' => 'nullable|array',
             'tracking_onp_numbers' => 'nullable|array',
             'production_tracking_number' => 'nullable|array',
-            'production_type' => 'nullable|string|in:intern,extern',
+            'production_type' => 'nullable|string|in:intern,extern,standard,sous_traitance,guano',
             'fishery_id' => 'nullable|exists:fisheries,id',
             'ship_id' => 'nullable|exists:ships,id',
             'origin_id' => 'nullable|exists:origins,id',
@@ -801,53 +801,33 @@ class ProductionController extends Controller
      */
     private function enrichDetailWithSecondaryPackaging(array $detail, string $date): array
     {
-        $detailCategoryId = $detail['detail_production_category_id'] ?? null;
-        $packageTypeId = $detail['package_type_id'] ?? null;
-        $nbrBox = (float) ($detail['nbr_box'] ?? 0);
+        return app(\App\Services\SecondaryPackagingService::class)->enrichDetail($detail, $date);
+    }
 
-        if (!$detailCategoryId || !$packageTypeId || $nbrBox <= 0) {
-            $detail['secondary_packaging_cost'] = 0;
-            $detail['secondary_packaging_details'] = null;
-            return $detail;
-        }
+    /**
+     * Manually recalculate secondary packaging for a given date range or specific productions.
+     */
+    public function recalculateSecondaryPackaging(Request $request)
+    {
+        $data = $request->validate([
+            'date_start' => 'nullable|date',
+            'date_end' => 'nullable|date',
+            'package_type_id' => 'nullable|exists:package_types,id',
+            'production_ids' => 'nullable|array',
+            'production_ids.*' => 'integer|exists:productions,id',
+        ]);
 
-        $category = \App\Models\DetailProductionCategory::find($detailCategoryId);
-        if (!$category || !$category->allow_secondary_packaging) {
-            $detail['secondary_packaging_cost'] = 0;
-            $detail['secondary_packaging_details'] = null;
-            return $detail;
-        }
+        $service = app(\App\Services\SecondaryPackagingService::class);
+        $result = $service->recalculateForDateRange(
+            $data['date_start'] ?? null,
+            $data['date_end'] ?? null,
+            $data['package_type_id'] ?? null,
+            $data['production_ids'] ?? null
+        );
 
-        $config = \App\Models\PackageSecondaryConfig::getConfigForPackageAndDate($packageTypeId, $date);
-        if (!$config) {
-            $detail['secondary_packaging_cost'] = 0;
-            $detail['secondary_packaging_details'] = null;
-            return $detail;
-        }
-
-        $unitCost = $config->computeUnitCost();
-        $totalSecCost = round($nbrBox * $unitCost, 2);
-
-        $detail['secondary_packaging_cost'] = $totalSecCost;
-        $detail['secondary_packaging_details'] = [
-            'config_id' => $config->id,
-            'unit_cost' => $unitCost,
-            'nbr_box' => $nbrBox,
-            'components' => $config->resolved_components,
-            'caisses_qte' => (float) $config->caisses_qte,
-            'caisses_price' => (float) $config->caisses_price,
-            'cellophane_qte' => (float) $config->cellophane_qte,
-            'cellophane_price' => (float) $config->cellophane_price,
-            'plastique_qte' => (float) $config->plastique_qte,
-            'plastique_price' => (float) $config->plastique_price,
-            'strapex_qte' => (float) $config->strapex_qte,
-            'strapex_price' => (float) $config->strapex_price,
-            'palletes_qte' => (float) $config->palletes_qte,
-            'palletes_price' => (float) $config->palletes_price,
-            'scotch_qte' => (float) $config->scotch_qte,
-            'scotch_price' => (float) $config->scotch_price,
-        ];
-
-        return $detail;
+        return response()->json([
+            'message' => 'Secondary packaging recalculated successfully',
+            'result' => $result,
+        ]);
     }
 }

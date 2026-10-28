@@ -251,3 +251,45 @@ input[type="number"],
     -moz-font-feature-settings: "tnum" 1 !important;
     font-feature-settings: "tnum" 1 !important;
 }
+
+/* V-Calendar Cyan Theme Definition */
+.vc-cyan {
+  --vc-accent-50: #ecfeff;
+  --vc-accent-100: #cffafe;
+  --vc-accent-200: #a5f3fc;
+  --vc-accent-300: #67e8f9;
+  --vc-accent-400: #22d3ee;
+  --vc-accent-500: #06b6d4;
+  --vc-accent-600: #0891b2;
+  --vc-accent-700: #0e7490;
+  --vc-accent-800: #155e75;
+  --vc-accent-900: #164e63;
+}
+
+.vc-light .vc-cyan,
+.vc-light.vc-cyan,
+.vc-cyan.vc-light {
+  --vc-content-color: var(--vc-accent-600);
+  --vc-highlight-outline-border: var(--vc-accent-600);
+  --vc-highlight-outline-content-color: var(--vc-accent-700);
+  --vc-highlight-light-bg: rgba(8, 145, 178, 0.14);
+  --vc-highlight-light-content-color: var(--vc-accent-900);
+  --vc-highlight-solid-bg: #0891b2;
+  --vc-highlight-solid-content-color: #ffffff;
+  --vc-dot-bg: #0891b2;
+  --vc-bar-bg: #0891b2;
+}
+
+.vc-dark .vc-cyan,
+.vc-dark.vc-cyan,
+.vc-cyan.vc-dark {
+  --vc-content-color: var(--vc-accent-400);
+  --vc-highlight-outline-border: var(--vc-accent-400);
+  --vc-highlight-outline-content-color: var(--vc-accent-200);
+  --vc-highlight-light-bg: rgba(6, 182, 212, 0.22);
+  --vc-highlight-light-content-color: var(--vc-accent-100);
+  --vc-highlight-solid-bg: #06b6d4;
+  --vc-highlight-solid-content-color: #ffffff;
+  --vc-dot-bg: #06b6d4;
+  --vc-bar-bg: #06b6d4;
+}

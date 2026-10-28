@@ -1,5 +1,5 @@
-const CACHE_NAME = 'jupiter-shell-cache-v17';
-const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v17';
+const CACHE_NAME = 'jupiter-shell-cache-v26';
+const DYNAMIC_CACHE_NAME = 'jupiter-dynamic-cache-v26';
 
 const PRECACHE_ASSETS = [
   '/js/manifest.json',

@@ -47,7 +47,24 @@
 
             <v-row v-if="selectedCategory?.enable_production_type" class="text-center">
               <v-col>
-                <v-autocomplete v-model="prodStore.production.production_type" :items="[{ title: $t('intern'), value: 'intern' }, { title: $t('extern'), value: 'extern' }]" :label="$t('production_type')" chips density="compact" variant="outlined" rounded color="#00897B" class="text-prod" hide-details clearable></v-autocomplete>
+                <v-autocomplete
+                  v-model="prodStore.production.production_type"
+                  :items="productionTypeOptions"
+                  :label="$t('production_type')"
+                  chips
+                  density="compact"
+                  variant="outlined"
+                  rounded
+                  color="#00897B"
+                  class="text-prod"
+                  hide-details
+                  clearable
+                  prepend-inner-icon="mdi-domain"
+                >
+                  <template #chip="{ item }">
+                    <v-chip color="#00897B" variant="tonal" class="font-weight-medium">{{ item.title }}</v-chip>
+                  </template>
+                </v-autocomplete>
               </v-col>
             </v-row>
 
@@ -175,6 +192,7 @@ import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
 import { useProductionCategory } from '@/stores/ProductionCategory';
 import { useDetailProductionCategory } from '@/stores/DetailProductionCategory';
+import { useNotification } from '@/stores/Notification';
 import { v4 as uuidv4 } from 'uuid';
 import Production from '../AddProduction/Production.vue';
 import DetailProductions from '../AddProduction/DetailProductions.vue';
@@ -189,6 +207,15 @@ export default {
     auth() { return useAuth(); },
     lang() { return this.main.lang?.code || 'en'; },
     catOptions() { return useProductionCategory().list.map(c => ({ title: c[`name_${this.lang}`] || c.name || `#${c.id}`, value: c.id })); },
+    productionTypeOptions() {
+      return [
+        { title: this.$t('intern') || 'Internal', value: 'intern' },
+        { title: this.$t('extern') || 'External', value: 'extern' },
+        { title: this.$t('standard') || 'Standard', value: 'standard' },
+        { title: this.$t('sous_traitance') || 'Subcontracting', value: 'sous_traitance' },
+        { title: this.$t('guano') || 'Guano', value: 'guano' },
+      ];
+    },
     selectedCategory() { return useProductionCategory().list.find(c => c.id === this.prodStore.production?.production_category_id); },
     descriptionLength() { return (this.prodStore.production?.description || '').length; },
     dateModel: {
@@ -296,8 +323,28 @@ export default {
         this.prodStore.clearDraft();
         sessionStorage.removeItem('detail_productions_draft');
         this.showSnackbarFromSnapshot(snapshot);
+        try {
+          useNotification().notifyUpdate({
+            type: 'production',
+            icon: 'mdi-factory',
+            color: 'teal-darken-1',
+            fields: [
+              { label: this.$t('production_category'), value: snapshot.category, icon: 'mdi-tag' },
+              { label: this.$t('date'), value: snapshot.date, icon: 'mdi-calendar' },
+              { label: this.$t('total_weight'), value: snapshot.totalWeight + ' Kg', icon: 'mdi-weight-kilogram' },
+              { label: this.$t('total_price'), value: snapshot.totalPrice + ' ' + this.main.currency, icon: 'mdi-cash' },
+            ],
+          });
+        } catch (e) { /* ignore */ }
+        this.main.add_snackbar({ show: true, message: this.$t('production_updated_successfully'), color: 'success' });
         this.$router.push({ name: 'production_list' });
-      } catch (err) { this.main.add_snackbar({ show: true, message: this.$t('production_update_failed'), color: 'error' }); }
+      } catch (err) {
+        this.main.add_snackbar({
+          show: true,
+          message: err.response?.data?.message || this.$t('production_update_failed'),
+          color: 'error'
+        });
+      }
       this.submitting = false;
     },
   },
