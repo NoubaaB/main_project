@@ -34,43 +34,105 @@
       <!-- ============= WAREHOUSES TAB ============= -->
       <v-window v-model="activeTab">
         <v-window-item value="warehouses">
-          <div class="d-flex align-center ga-3 mb-3">
-            <v-spacer></v-spacer>
-            <v-btn v-if="hasActiveWarehouseFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="warehouseColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-            <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
+          <div class="param-top-toolbar mb-4">
+            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
+              <v-text-field
+                v-model="search"
+                :label="$t('search')"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#a21ee5"
+                prepend-inner-icon="mdi-magnify"
+                hide-details
+                clearable
+                class="param-search-input"
+              ></v-text-field>
+              <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num">
+                <v-icon start size="14">mdi-warehouse</v-icon>
+                {{ filteredWarehouses.length }} {{ $t('records') }}
+              </v-chip>
+              <v-btn v-if="hasActiveWarehouseFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="warehouseColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+            </div>
+            <v-btn color="#a21ee5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
           </div>
-          <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? 'info' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
+          <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="search">
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
-              <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
             <template v-slot:[`item.has_sejour`]="{ item }"><v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">{{ item.has_sejour ? $t('yes') : $t('no') }}</v-chip></template>
             <template v-slot:[`item.allow_production_effect`]="{ item }"><v-chip :color="item.allow_production_effect ? '#a21ee5' : 'grey'" size="small" variant="tonal">{{ item.allow_production_effect ? $t('yes') : $t('no') }}</v-chip></template>
             <template v-slot:[`item.operation_service_fee`]="{ item }"><span class="fnm-currency-num">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '-' }}</span></template>
             <template v-slot:[`item.category`]="{ item }"><v-chip :color="categoryColor(item.category?.name)" size="small" variant="tonal">{{ item.category?.name || 'N/A' }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openWarehouseDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteWarehouse(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+              <div class="param-actions-cell">
+                <v-tooltip :text="$t('edit')" location="top">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon size="28" variant="tonal" color="#a21ee5" class="param-action-btn" @click="openWarehouseDialog(item)">
+                      <v-icon size="15">mdi-pencil</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip :text="$t('delete')" location="top">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon size="28" variant="tonal" color="error" class="param-action-btn param-action-delete" @click="deleteWarehouse(item)">
+                      <v-icon size="15">mdi-delete-outline</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </div>
             </template>
           </v-data-table>
         </v-window-item>
 
         <!-- ============= CATEGORIES TAB ============= -->
         <v-window-item value="categories">
-          <div class="d-flex align-center ga-3 mb-3">
-            <v-spacer></v-spacer>
-            <v-btn v-if="hasActiveCategoryFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="categoryColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-            <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
+          <div class="param-top-toolbar mb-4">
+            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
+              <v-text-field
+                v-model="categorySearch"
+                :label="$t('search')"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#a21ee5"
+                prepend-inner-icon="mdi-magnify"
+                hide-details
+                clearable
+                class="param-search-input"
+              ></v-text-field>
+              <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num">
+                <v-icon start size="14">mdi-tag-multiple-outline</v-icon>
+                {{ filteredCategories.length }} {{ $t('records') }}
+              </v-chip>
+              <v-btn v-if="hasActiveCategoryFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="categoryColumnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+            </div>
+            <v-btn color="#a21ee5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
           </div>
-          <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? 'info' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
+          <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="categorySearch">
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
-              <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+              <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+              <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
             <template v-slot:[`item.warehouse_count`]="{ item }"><v-chip color="#a21ee5" size="small" variant="tonal" class="font-weight-bold fnm-currency-num">{{ item.warehouse_count || 0 }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openCategoryDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteCategory(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+              <div class="param-actions-cell">
+                <v-tooltip :text="$t('edit')" location="top">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon size="28" variant="tonal" color="#a21ee5" class="param-action-btn" @click="openCategoryDialog(item)">
+                      <v-icon size="15">mdi-pencil</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip :text="$t('delete')" location="top">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon size="28" variant="tonal" color="error" class="param-action-btn param-action-delete" @click="deleteCategory(item)">
+                      <v-icon size="15">mdi-delete-outline</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </div>
             </template>
           </v-data-table>
         </v-window-item>
@@ -200,10 +262,10 @@
                 v-if="selectedSejourWarehouse"
                 :headers="rateHeaders"
                 :items="sejourRates"
-                :loading="loadingRates ? 'info' : false"
+                :loading="loadingRates ? '#a21ee5' : false"
                 :multi-sort="true"
                 density="comfortable"
-                class="rounded-lg mb-6"
+                class="rounded-xl param-table mb-6"
                 hover
               >
                 <template v-slot:[`item.start_date`]="{ item }">
@@ -225,12 +287,22 @@
                   <span class="font-weight-bold fnm-currency-num" style="color:#a21ee5">{{ item.service_unit_price || 0 }} DH/{{ formatWeightUnit(item.weight_unit) }} KG</span>
                 </template>
                 <template v-slot:[`item.actions`]="{ item }">
-                  <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openRateDialog(item)" class="mr-1">
-                    <v-icon size="16">mdi-pencil</v-icon>
-                  </v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteRate(item)">
-                    <v-icon size="16">mdi-delete</v-icon>
-                  </v-btn>
+                  <div class="param-actions-cell">
+                    <v-tooltip :text="$t('edit')" location="top">
+                      <template #activator="{ props }">
+                        <v-btn v-bind="props" icon size="28" variant="tonal" color="#a21ee5" class="param-action-btn" @click="openRateDialog(item)">
+                          <v-icon size="15">mdi-pencil</v-icon>
+                        </v-btn>
+                      </template>
+                    </v-tooltip>
+                    <v-tooltip :text="$t('delete')" location="top">
+                      <template #activator="{ props }">
+                        <v-btn v-bind="props" icon size="28" variant="tonal" color="error" class="param-action-btn param-action-delete" @click="deleteRate(item)">
+                          <v-icon size="15">mdi-delete-outline</v-icon>
+                        </v-btn>
+                      </template>
+                    </v-tooltip>
+                  </div>
                 </template>
               </v-data-table>
             </v-col>
@@ -240,66 +312,86 @@
     </v-card-text>
 
     <!-- ============= WAREHOUSE DIALOG ============= -->
-    <v-dialog v-model="warehouseDialog" max-width="550" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="#a21ee5" class="mr-2">mdi-warehouse</v-icon>
-          {{ editingWarehouse ? $t('edit_warehouse') : $t('add_warehouse') }}
-        </v-card-title>
-        <v-card-text class="pa-5">
-          <v-text-field v-model="warehouseForm.name" :label="$t('name')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="warehouseNameError"></v-text-field>
-          <v-textarea v-model="warehouseForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" rows="2"></v-textarea>
-          <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
-          <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
+    <v-dialog v-model="warehouseDialog" max-width="580" persistent scrollable>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(162, 30, 229, 0.12); color: #a21ee5;">
+              <v-icon size="22">mdi-warehouse</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ editingWarehouse ? $t('edit_warehouse') : $t('add_warehouse') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('parameters') }} • {{ $t('warehouse_management') }}</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" size="small" density="comfortable" @click="warehouseDialog = false">
+            <v-icon size="18">mdi-close</v-icon>
+          </v-btn>
+        </div>
+        <v-card-text class="param-dialog-body">
+          <v-text-field v-model="warehouseForm.name" :label="$t('name')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="warehouseNameError"></v-text-field>
+          <v-textarea v-model="warehouseForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" rows="2"></v-textarea>
+          <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
+          <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" clearable></v-select>
           <v-switch v-model="warehouseForm.has_sejour" :label="$t('has_sejour')" color="warning" density="compact" class="mb-1" hide-details></v-switch>
-          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" prepend-inner-icon="mdi-cash" variant="outlined" density="compact" rounded color="#a21ee5" class="mt-3" hide-details="auto" type="number"></v-text-field>
-          <v-divider class="my-3"></v-divider>
+          <v-text-field v-if="warehouseForm.has_sejour" v-model.number="warehouseForm.operation_service_fee" :label="$t('operation_service_fee') + ' (DH)'" prepend-inner-icon="mdi-cash" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mt-3" hide-details="auto" type="number"></v-text-field>
+          <v-divider class="my-4"></v-divider>
           <div class="text-caption font-weight-bold mb-2" style="color:#a21ee5">{{ $t('enabled_fields') }}</div>
           <v-switch v-model="warehouseForm.allow_production_effect" :label="$t('allow_production_effect')" color="#a21ee5" density="compact" hide-details></v-switch>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+        <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>
-          <v-btn @click="warehouseDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="#a21ee5" variant="flat" rounded @click="saveWarehouse" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn @click="warehouseDialog = false" variant="tonal" rounded="lg" class="text-capitalize">{{ $t('cancel') }}</v-btn>
+          <v-btn color="#a21ee5" variant="flat" rounded="lg" class="text-capitalize font-weight-bold" @click="saveWarehouse" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- ============= CATEGORY DIALOG ============= -->
-    <v-dialog v-model="categoryDialog" max-width="450" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="#a21ee5" class="mr-2">mdi-tag-multiple-outline</v-icon>
-          {{ editingCategory ? $t('edit_category') : $t('add_category') }}
-        </v-card-title>
-        <v-card-text class="pa-5">
-          <v-text-field v-model="categoryForm.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="categoryNameError"></v-text-field>
-          <v-textarea v-model="categoryForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#a21ee5" hide-details="auto" rows="2"></v-textarea>
+    <v-dialog v-model="categoryDialog" max-width="480" persistent scrollable>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(162, 30, 229, 0.12); color: #a21ee5;">
+              <v-icon size="22">mdi-tag-multiple-outline</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ editingCategory ? $t('edit_category') : $t('add_category') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('parameters') }} • {{ $t('warehouse_categories') }}</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" size="small" density="comfortable" @click="categoryDialog = false">
+            <v-icon size="18">mdi-close</v-icon>
+          </v-btn>
+        </div>
+        <v-card-text class="param-dialog-body">
+          <v-text-field v-model="categoryForm.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#a21ee5" class="mb-3" hide-details="auto" :error-messages="categoryNameError"></v-text-field>
+          <v-textarea v-model="categoryForm.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" rows="3"></v-textarea>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+        <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>
-          <v-btn @click="categoryDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="#a21ee5" variant="flat" rounded @click="saveCategory" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn @click="categoryDialog = false" variant="tonal" rounded="lg" class="text-capitalize">{{ $t('cancel') }}</v-btn>
+          <v-btn color="#a21ee5" variant="flat" rounded="lg" class="text-capitalize font-weight-bold" @click="saveCategory" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-
     <!-- ============= CONFIRM DELETE DIALOG ============= -->
-    <v-dialog v-model="confirmDeleteDialog" max-width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>
-          {{ $t('confirm_delete') }}
-        </v-card-title>
-        <v-card-text class="pa-5 pt-2 text-body-1">
-          {{ $t('confirm_delete_message') }}
-        </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
-          <v-spacer></v-spacer>
-          <v-btn @click="confirmDeleteDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="error" variant="flat" rounded @click="executeDelete">{{ $t('delete') }}</v-btn>
-        </v-card-actions>
+    <v-dialog v-model="confirmDeleteDialog" max-width="440">
+      <v-card class="param-dialog-card">
+        <div class="pa-6 text-center">
+          <div class="param-dialog-icon-badge mx-auto mb-4" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; width: 56px; height: 56px;">
+            <v-icon size="28">mdi-trash-can-outline</v-icon>
+          </div>
+          <div class="text-h6 font-weight-bold mb-2">{{ $t('confirm_delete') }}</div>
+          <div class="text-body-2 text-medium-emphasis mb-6">
+            {{ $t('confirm_delete_message') }}
+          </div>
+          <div class="d-flex align-center ga-3 justify-center">
+            <v-btn variant="tonal" rounded="lg" class="text-capitalize px-5" @click="confirmDeleteDialog = false">{{ $t('cancel') }}</v-btn>
+            <v-btn color="error" variant="flat" rounded="lg" class="text-capitalize font-weight-bold px-6" elevation="2" @click="executeDelete">{{ $t('delete') }}</v-btn>
+          </div>
+        </div>
       </v-card>
     </v-dialog>
     <!-- Summary Snackbar (Rule 5) -->
@@ -352,6 +444,8 @@ export default {
       confirmDeleteDialog: false,
       deleteTarget: null,
       deleteEntityType: null,
+      search: '',
+      categorySearch: '',
       saving: false,
       snackbar: { show: false, message: '', success: true },
       snackbarProgress: 100,
@@ -370,7 +464,7 @@ export default {
         { title: this.$t('has_sejour'), key: 'has_sejour', align: 'center' },
         { title: this.$t('allow_production_effect'), key: 'allow_production_effect', align: 'center' },
         { title: this.$t('operation_service_fee'), key: 'operation_service_fee', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     categoryHeaders() {
@@ -378,7 +472,7 @@ export default {
         { title: this.$t('name'), key: 'name', align: 'center' },
         { title: this.$t('description'), key: 'description', align: 'center' },
         { title: this.$t('warehouses'), key: 'warehouse_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     rateHeaders() {
@@ -388,7 +482,7 @@ export default {
         { title: this.$t('weight_unit'), key: 'weight_unit', align: 'center' },
         { title: this.$t('sejour_unit_price'), key: 'daily_rate_per_kg', align: 'center' },
         { title: this.$t('service_unit_price'), key: 'service_unit_price', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     sejourWarehouses() {

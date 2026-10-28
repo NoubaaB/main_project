@@ -1,5 +1,6 @@
 {
   "statistics": "Estadísticas",
+  "all": "Todos",
   "categories": "Categorías",
   "flow": "Flujo",
   "packaging": "Embalaje",
@@ -16,6 +17,8 @@
   "display": "Mostrar",
   "price": "Precio",
   "quantity": "Cantidad",
+  "measure": "Medida",
+  "mesure": "Medida",
   "both": "Ambos",
   "fresh_reception": "Recepción Fresco",
   "frozen_production": "Producción Congelado",
@@ -32,5 +35,20 @@
   "plastique": "Plástico",
   "strapex": "Strapex",
   "palletes": "Paletas",
-  "scotch": "Cinta"
+  "scotch": "Cinta",
+  "cannot_undo_action": "Esta acción no se puede deshacer",
+  "packages": "envases",
+  "fish_species": "especies de pescado",
+  "warehouses": "almacenes",
+  "charges": "cargos",
+  "shippings": "envíos",
+  "guano_items": "entradas de guano",
+  "banks": "bancos",
+  "settings": "configuraciones",
+  "configurations": "configuraciones",
+  "items": "elementos",
+  "rule_configuration": "Configuración de Regla",
+  "rule_history": "Historial de Reglas",
+  "period": "Período de Aplicación",
+  "components_breakdown": "Componentes de Envasado"
 }

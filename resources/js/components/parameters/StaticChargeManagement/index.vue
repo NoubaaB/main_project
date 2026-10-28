@@ -33,20 +33,37 @@
       <v-window v-model="activeTab">
         <!-- ============= STATIC CHARGES TAB ============= -->
         <v-window-item value="charges">
-          <div class="d-flex align-center ga-3 mb-3">
-            <v-spacer></v-spacer>
-            <v-btn
-              v-if="hasActiveColumnFilters"
-              variant="tonal"
-              color="warning"
-              rounded
-              size="small"
-              prepend-icon="mdi-filter-off"
-              @click="clearAllColumnFilters"
-            >
-              {{ $t('clear_filters') }}
-            </v-btn>
-            <v-btn color="#00BCD4" prepend-icon="mdi-plus" rounded @click="openAddDialog">
+          <div class="param-top-toolbar mb-4">
+            <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
+              <v-text-field
+                v-model="search"
+                :label="$t('search')"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#42A5F5"
+                prepend-inner-icon="mdi-magnify"
+                hide-details
+                clearable
+                class="param-search-input"
+              ></v-text-field>
+              <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold fnm-currency-num">
+                <v-icon start size="14">mdi-cash-lock-open</v-icon>
+                {{ filteredCharges.length }} {{ $t('records') }}
+              </v-chip>
+              <v-btn
+                v-if="hasActiveColumnFilters"
+                variant="tonal"
+                color="warning"
+                rounded="lg"
+                size="small"
+                prepend-icon="mdi-filter-off"
+                @click="clearAllColumnFilters"
+              >
+                {{ $t('clear_filters') }}
+              </v-btn>
+            </div>
+            <v-btn color="#42A5F5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openAddDialog">
               {{ $t('add_static_charge') }}
             </v-btn>
           </div>
@@ -58,8 +75,8 @@
             <v-btn
               class="mt-4"
               variant="flat"
-              style="background-color: #00BCD4; color: #fff;"
-              rounded
+              color="#42A5F5"
+              rounded="lg"
               prepend-icon="mdi-plus"
               @click="openAddDialog"
             >
@@ -72,15 +89,16 @@
             v-else
             :headers="headers"
             :items="filteredCharges"
-            :loading="store.loading ? '#00BCD4' : false"
+            :loading="store.loading ? '#42A5F5' : false"
             :multi-sort="true"
             density="comfortable"
-            class="rounded-lg param-table"
+            class="rounded-xl param-table"
             hover
+            :search="search"
           >
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>
-                <th v-for="col in columns" :key="col.key" class="param-th">
+                <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
                   <div
                     class="param-th-label"
                     @click="col.sortable !== false ? toggleSort(col) : null"
@@ -92,14 +110,14 @@
                 </th>
               </tr>
               <tr class="param-filter-row">
-                <th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th">
+                <th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}">
                   <v-autocomplete
                     v-if="col.key !== 'actions'"
                     v-model="columnFilters[col.key]"
                     :items="getColumnOptions(col.key)"
                     density="compact"
                     variant="outlined"
-                    color="#00BCD4"
+                    color="#42A5F5"
                     class="param-filter-input"
                     hide-details
                     clearable
@@ -109,7 +127,7 @@
                     :placeholder="$t('filter')"
                   >
                     <template #chip="{ item, props }">
-                      <v-chip v-bind="props" size="x-small" color="#00BCD4" variant="tonal" closable>
+                      <v-chip v-bind="props" size="x-small" color="#42A5F5" variant="tonal" closable>
                         {{ item.title }}
                       </v-chip>
                     </template>
@@ -123,7 +141,7 @@
             </template>
 
             <template v-slot:[`item.amount`]="{ item }">
-              <div class="text-center font-weight-bold fnm-currency-num" style="color: #00838F;">
+              <div class="text-center font-weight-bold fnm-currency-num" style="color: #1565C0;">
                 {{ formatNumber(item.amount) }} {{ main.currency }}
               </div>
             </template>
@@ -143,7 +161,7 @@
             </template>
 
             <template v-slot:[`item.date_start`]="{ item }">
-              <v-chip v-if="item.date_start" size="small" color="#00BCD4" variant="tonal" label>
+              <v-chip v-if="item.date_start" size="small" color="#42A5F5" variant="tonal" label>
                 <v-icon start size="14">mdi-calendar-start</v-icon>
                 {{ formatDate(item.date_start) }}
               </v-chip>
@@ -175,15 +193,21 @@
             </template>
 
             <template v-slot:[`item.actions`]="{ item }">
-              <div class="d-flex align-center justify-center">
-                <v-btn icon size="x-small" variant="tonal" color="#00BCD4" @click="openEditDialog(item)" class="mr-1">
-                  <v-icon size="16">mdi-pencil</v-icon>
-                  <v-tooltip activator="parent">{{ $t('edit') }}</v-tooltip>
-                </v-btn>
-                <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)">
-                  <v-icon size="16">mdi-delete</v-icon>
-                  <v-tooltip activator="parent">{{ $t('delete') }}</v-tooltip>
-                </v-btn>
+              <div class="param-actions-cell">
+                <v-tooltip :text="$t('edit')" location="top">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon size="28" variant="tonal" color="#42A5F5" class="param-action-btn" @click="openEditDialog(item)">
+                      <v-icon size="15">mdi-pencil</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip :text="$t('delete')" location="top">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon size="28" variant="tonal" color="error" class="param-action-btn param-action-delete" @click="confirmDelete(item)">
+                      <v-icon size="15">mdi-delete-outline</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
               </div>
             </template>
           </v-data-table>
@@ -221,30 +245,28 @@
 
     <!-- Add/Edit Dialog -->
     <v-dialog v-model="dialog.show" max-width="680" persistent scrollable>
-      <v-card class="rounded-xl overflow-hidden" elevation="24">
+      <v-card class="rounded-xl overflow-hidden param-dialog-card" elevation="24">
         <!-- Dialog Header Banner -->
-        <div class="sc-dialog-hero pa-5">
-          <div class="d-flex align-center justify-space-between">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center justify-space-between w-100">
             <div class="d-flex align-center ga-3">
-              <div class="sc-dialog-hero-icon">
-                <v-icon color="white" size="26">{{ dialog.editId ? 'mdi-pencil-box-outline' : 'mdi-plus-circle-outline' }}</v-icon>
+              <div class="param-dialog-icon-badge" style="background: rgba(66, 165, 245, 0.15); color: #42A5F5;">
+                <v-icon size="24">{{ dialog.editId ? 'mdi-pencil-box-outline' : 'mdi-plus-circle-outline' }}</v-icon>
               </div>
               <div>
-                <div class="sc-dialog-title text-white font-weight-black">
+                <div class="param-dialog-title">
                   {{ dialog.editId ? $t('edit_static_charge') : $t('add_static_charge') }}
                 </div>
-                <div class="text-caption text-white opacity-80">
+                <div class="param-dialog-subtitle">
                   {{ $t('static_charge_dialog_subtitle') || 'Paramétrez les charges d\'exploitation avec horizon temporel flexible' }}
                 </div>
               </div>
             </div>
-            <v-btn icon variant="text" size="small" color="white" @click="dialog.show = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
+            <v-btn icon="mdi-close" variant="text" size="small" class="param-dialog-close" @click="dialog.show = false" />
           </div>
         </div>
 
-        <v-card-text class="pa-5" style="max-height: 75vh;">
+        <v-card-text class="pa-5 param-dialog-body" style="max-height: 75vh;">
           <!-- Section 1: Multilingual Name with Tab Switcher -->
           <div class="sc-section-card rounded-xl pa-4 mb-4 border">
             <div class="d-flex align-center justify-space-between mb-2">
@@ -530,8 +552,8 @@
         </v-card-text>
 
         <!-- Dialog Footer Actions -->
-        <v-card-actions class="pa-4 bg-surface border-t">
-          <v-btn variant="text" color="grey-darken-1" rounded="lg" @click="dialog.show = false">
+        <v-card-actions class="param-dialog-actions pa-4 border-t bg-surface">
+          <v-btn variant="tonal" color="grey" rounded="lg" class="px-4" @click="dialog.show = false">
             {{ $t('cancel') }}
           </v-btn>
           <v-spacer></v-spacer>
@@ -552,29 +574,31 @@
     </v-dialog>
 
     <!-- Delete Confirm Dialog -->
-    <v-dialog v-model="deleteDialog.show" max-width="420">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
-          <span>{{ $t('confirm_delete_static_charge') }}</span>
-        </v-card-title>
-        <v-card-text class="pa-4 pt-0">
-          {{ $t('confirm_delete_static_charge_text') }}
-          <div v-if="deleteDialog.charge" class="mt-3 pa-3 rounded-lg" style="background: rgba(244,67,54,.06);">
-            <strong>{{ getLocalizedName(deleteDialog.charge) }}</strong>
-            <br>
-            {{ formatNumber(deleteDialog.charge.amount) }} {{ main.currency }}
-            <span class="text-grey ml-2">·</span>
-            <span class="ml-2">{{ $t(deleteDialog.charge.date_range_type) }}</span>
+    <v-dialog v-model="deleteDialog.show" max-width="440">
+      <v-card class="rounded-xl overflow-hidden param-dialog-card">
+        <div class="pa-6 text-center">
+          <div class="param-dialog-icon-badge mx-auto mb-4" style="background: rgba(244, 67, 54, 0.12); color: #f44336; width: 56px; height: 56px;">
+            <v-icon size="32">mdi-alert-circle-outline</v-icon>
           </div>
-        </v-card-text>
-        <v-card-actions class="pa-4">
-          <v-btn variant="text" rounded @click="deleteDialog.show = false">{{ $t('cancel') }}</v-btn>
+          <div class="text-h6 font-weight-bold mb-2">{{ $t('confirm_delete_static_charge') }}</div>
+          <div class="text-body-2 text-medium-emphasis mb-4">
+            {{ $t('confirm_delete_static_charge_text') }}
+          </div>
+          <div v-if="deleteDialog.charge" class="pa-3 rounded-lg text-left" style="background: rgba(244,67,54,.06); border: 1px solid rgba(244, 67, 54, 0.15);">
+            <div class="font-weight-bold">{{ getLocalizedName(deleteDialog.charge) }}</div>
+            <div class="text-caption text-medium-emphasis">
+              {{ formatNumber(deleteDialog.charge.amount) }} {{ main.currency }} · {{ $t(deleteDialog.charge.date_range_type) }}
+            </div>
+          </div>
+        </div>
+        <v-card-actions class="param-dialog-actions pa-4 border-t bg-surface">
+          <v-btn variant="tonal" rounded="lg" color="grey" class="px-4" @click="deleteDialog.show = false">{{ $t('cancel') }}</v-btn>
           <v-spacer></v-spacer>
           <v-btn
             variant="flat"
             color="error"
-            rounded
+            rounded="lg"
+            class="px-5 font-weight-bold"
             :loading="deleteDialog.deleting"
             prepend-icon="mdi-delete"
             @click="doDelete"
@@ -615,6 +639,7 @@ export default {
   components: { SegmentedPillToggle },
   data() {
     return {
+      search: '',
       activeTab: 'charges',
       columnFilters: {},
       dialogLangTab: 'en',
@@ -701,7 +726,7 @@ export default {
         { title: this.$t('date_start'), key: 'date_start', align: 'start' },
         { title: this.$t('date_end'), key: 'date_end', align: 'start' },
         { title: this.$t('status'), key: 'is_active', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     hasActiveColumnFilters() {

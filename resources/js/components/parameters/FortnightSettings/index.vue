@@ -34,23 +34,49 @@
       <v-window v-model="activeTab">
         <!-- ============= SALARY THRESHOLDS TAB ============= -->
         <v-window-item value="settings">
-          <div class="d-flex align-center ga-3 mb-3">
-            <v-spacer></v-spacer>
-            <v-btn
-              v-if="hasActiveColumnFilters"
-              variant="tonal"
-              color="warning"
-              rounded
-              size="small"
-              prepend-icon="mdi-filter-off"
-              @click="clearAllColumnFilters"
-            >
-              {{ $t('clear_filters') }}
-            </v-btn>
-            <v-btn color="#1565C0" prepend-icon="mdi-plus" rounded @click="openAddDialog">
-              {{ $t('add_setting') }}
-            </v-btn>
-          </div>
+          <v-card class="param-top-toolbar mb-4" elevation="0">
+            <div class="d-flex flex-wrap align-center justify-space-between ga-3">
+              <div class="d-flex align-center flex-grow-1 flex-wrap ga-3" style="max-width: 600px;">
+                <v-text-field
+                  v-model="search"
+                  prepend-inner-icon="mdi-magnify"
+                  :placeholder="$t('search')"
+                  density="compact"
+                  variant="outlined"
+                  hide-details
+                  clearable
+                  rounded="lg"
+                  color="#1565C0"
+                  class="param-search-input flex-grow-1"
+                ></v-text-field>
+                <v-chip size="small" variant="tonal" color="#1565C0" class="font-weight-bold">
+                  {{ filteredSettings.length }} {{ $t('settings') }}
+                </v-chip>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <v-btn
+                  v-if="hasActiveColumnFilters || search"
+                  variant="tonal"
+                  color="warning"
+                  size="small"
+                  rounded="lg"
+                  prepend-icon="mdi-filter-off"
+                  @click="clearAllColumnFilters"
+                >
+                  {{ $t('clear_filters') }}
+                </v-btn>
+                <v-btn
+                  color="#1565C0"
+                  rounded="lg"
+                  prepend-icon="mdi-plus"
+                  elevation="0"
+                  @click="openAddDialog"
+                >
+                  {{ $t('add_setting') }}
+                </v-btn>
+              </div>
+            </div>
+          </v-card>
 
           <!-- Empty State -->
           <div v-if="!settingStore.list.length && !settingStore.loading" class="text-center pa-8 text-grey">
@@ -60,7 +86,7 @@
               class="mt-4"
               variant="flat"
               style="background-color: #1565C0; color: #fff;"
-              rounded
+              rounded="lg"
               prepend-icon="mdi-plus"
               @click="openAddDialog"
             >
@@ -73,10 +99,11 @@
             v-else
             :headers="headers"
             :items="filteredSettings"
+            :search="search"
             :loading="settingStore.loading ? '#1565C0' : false"
             :multi-sort="true"
             density="comfortable"
-            class="rounded-lg param-table"
+            class="rounded-xl param-table"
             hover
           >
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
@@ -152,14 +179,26 @@
             </template>
 
             <template v-slot:[`item.actions`]="{ item }">
-              <div class="d-flex align-center justify-center">
-                <v-btn icon size="x-small" variant="tonal" color="#1565C0" @click="openEditDialog(item)" class="mr-1">
+              <div class="param-actions-cell">
+                <v-btn
+                  size="x-small"
+                  variant="tonal"
+                  color="#1565C0"
+                  class="param-action-btn"
+                  @click="openEditDialog(item)"
+                >
                   <v-icon size="16">mdi-pencil</v-icon>
-                  <v-tooltip activator="parent">{{ $t('edit') }}</v-tooltip>
+                  <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
                 </v-btn>
-                <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)">
+                <v-btn
+                  size="x-small"
+                  variant="tonal"
+                  color="error"
+                  class="param-action-btn param-action-delete"
+                  @click="confirmDelete(item)"
+                >
                   <v-icon size="16">mdi-delete</v-icon>
-                  <v-tooltip activator="parent">{{ $t('delete') }}</v-tooltip>
+                  <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
                 </v-btn>
               </div>
             </template>
@@ -301,20 +340,22 @@
     </v-card-text>
 
     <!-- Add/Edit Dialog -->
-    <v-dialog v-model="dialog.show" max-width="520" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon color="#42A5F5" class="mr-2">{{ dialog.editId ? 'mdi-pencil' : 'mdi-plus-circle' }}</v-icon>
-          <span>{{ dialog.editId ? $t('edit_setting') : $t('add_setting') }}</span>
-          <v-spacer></v-spacer>
-          <v-btn icon variant="text" size="small" @click="dialog.show = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
+    <v-dialog v-model="dialog.show" max-width="540" persistent scrollable>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(21, 101, 192, 0.12); color: #1565C0;">
+              <v-icon size="20">{{ dialog.editId ? 'mdi-pencil' : 'mdi-plus' }}</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ dialog.editId ? $t('edit_setting') : $t('add_setting') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('fortnight_settings') }}</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="dialog.show = false"></v-btn>
+        </div>
 
-        <v-divider style="border-color: #42A5F5;"></v-divider>
-
-        <v-card-text class="pa-4">
+        <v-card-text class="param-dialog-body">
           <v-row>
             <!-- VCalendar Date Picker Section -->
             <v-col cols="12">
@@ -361,13 +402,15 @@
 
             <!-- Q1 Max Salary -->
             <v-col cols="12" sm="6">
+              <label class="text-caption font-weight-bold mb-1 d-block text-medium-emphasis">
+                {{ $t('q1_max_salary') }} *
+              </label>
               <v-text-field
                 v-model.number="dialog.form.q1_max_salary"
-                :label="$t('q1_max_salary')"
                 density="compact"
                 variant="outlined"
-                rounded
-                color="#42A5F5"
+                rounded="lg"
+                color="#1565C0"
                 type="number"
                 min="0"
                 step="0.01"
@@ -380,13 +423,15 @@
 
             <!-- Q2 Max Salary -->
             <v-col cols="12" sm="6">
+              <label class="text-caption font-weight-bold mb-1 d-block text-medium-emphasis">
+                {{ $t('q2_max_salary') }} *
+              </label>
               <v-text-field
                 v-model.number="dialog.form.q2_max_salary"
-                :label="$t('q2_max_salary')"
                 density="compact"
                 variant="outlined"
-                rounded
-                color="#42A5F5"
+                rounded="lg"
+                color="#1565C0"
                 type="number"
                 min="0"
                 step="0.01"
@@ -399,26 +444,25 @@
           </v-row>
 
           <!-- Month Total Preview -->
-          <v-divider class="my-3" style="border-color: #42A5F5;"></v-divider>
+          <v-divider class="my-3"></v-divider>
           <div class="fns-month-total">
-            <v-icon color="#42A5F5" class="mr-2">mdi-sigma</v-icon>
-            <span class="text-body-1 font-weight-medium">{{ $t('month_max_salary') }}:</span>
-            <v-chip color="#42A5F5" variant="flat" size="small" class="ml-2 font-weight-bold">
+            <v-icon color="#1565C0" class="mr-2">mdi-sigma</v-icon>
+            <span class="text-body-2 font-weight-medium">{{ $t('month_max_salary') }}:</span>
+            <v-chip color="#1565C0" variant="flat" size="small" class="ml-2 font-weight-bold">
               {{ formatNumber(dialogMonthTotal) }} DH
             </v-chip>
           </div>
         </v-card-text>
 
-        <v-divider></v-divider>
-        <v-card-actions class="pa-4">
-          <v-btn variant="text" color="red-lighten-1" rounded @click="dialog.show = false">
+        <v-card-actions class="param-dialog-actions">
+          <v-btn variant="tonal" color="grey" rounded="lg" @click="dialog.show = false">
             {{ $t('cancel') }}
           </v-btn>
           <v-spacer></v-spacer>
           <v-btn
             variant="flat"
-            style="background-color: #42A5F5; color: #fff;"
-            rounded
+            color="#1565C0"
+            rounded="lg"
             :loading="dialog.saving"
             :disabled="!dialog.dateRange.start || dialog.saving"
             prepend-icon="mdi-content-save"
@@ -431,15 +475,23 @@
     </v-dialog>
 
     <!-- Delete Confirm Dialog -->
-    <v-dialog v-model="deleteDialog.show" max-width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
-          <span>{{ $t('confirm_delete_setting') }}</span>
-        </v-card-title>
-        <v-card-text class="pa-4 pt-0">
-          {{ $t('confirm_delete_setting_text') }}
-          <div v-if="deleteDialog.setting" class="mt-3 pa-3 rounded-lg" style="background: rgba(244,67,54,.06);">
+    <v-dialog v-model="deleteDialog.show" max-width="440">
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(244, 67, 54, 0.12); color: #F44336;">
+              <v-icon size="20">mdi-alert-circle</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ $t('confirm_delete_setting') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('cannot_undo_action') }}</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="deleteDialog.show = false"></v-btn>
+        </div>
+        <v-card-text class="param-dialog-body pt-2">
+          <p class="text-body-2 mb-3">{{ $t('confirm_delete_setting_text') }}</p>
+          <div v-if="deleteDialog.setting" class="pa-3 rounded-lg" style="background: rgba(244,67,54,.06); border: 1px dashed rgba(244,67,54,.25);">
             <strong>{{ formatDate(deleteDialog.setting.date_start) }}</strong>
             →
             <strong>{{ deleteDialog.setting.date_end ? formatDate(deleteDialog.setting.date_end) : $t('open_ended') }}</strong>
@@ -448,13 +500,13 @@
             Q2: {{ formatNumber(deleteDialog.setting.q2_max_salary) }} DH
           </div>
         </v-card-text>
-        <v-card-actions class="pa-4">
-          <v-btn variant="text" rounded @click="deleteDialog.show = false">{{ $t('cancel') }}</v-btn>
+        <v-card-actions class="param-dialog-actions">
+          <v-btn variant="tonal" color="grey" rounded="lg" @click="deleteDialog.show = false">{{ $t('cancel') }}</v-btn>
           <v-spacer></v-spacer>
           <v-btn
             variant="flat"
             color="error"
-            rounded
+            rounded="lg"
             :loading="deleteDialog.deleting"
             prepend-icon="mdi-delete"
             @click="doDelete"
@@ -504,6 +556,7 @@ export default {
   data() {
     return {
       activeTab: 'settings',
+      search: '',
       columnFilters: {},
       absenceThreshold: 7,
       savingAbsenceSetting: false,
@@ -538,7 +591,7 @@ export default {
         { title: this.$t('q1_max_salary'), key: 'q1_max_salary', align: 'center' },
         { title: this.$t('q2_max_salary'), key: 'q2_max_salary', align: 'center' },
         { title: this.$t('month_max_salary'), key: 'month_max_salary', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     hasActiveColumnFilters() {
@@ -606,6 +659,7 @@ export default {
     },
     clearAllColumnFilters() {
       this.columnFilters = {};
+      this.search = '';
     },
     isCurrentlyActive(s) {
       const today = new Date();

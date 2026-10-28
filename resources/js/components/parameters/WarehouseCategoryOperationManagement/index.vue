@@ -16,20 +16,37 @@
     </div>
 
     <v-card-text class="pa-4">
-      <div class="d-flex align-center ga-3 mb-3">
-        <v-spacer></v-spacer>
-        <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="clearAllColumnFilters">
-          {{ $t('clear_filters') }}
-        </v-btn>
-        <v-btn color="#a21ee5" prepend-icon="mdi-plus" rounded @click="openDialog(null)">
+      <div class="param-top-toolbar mb-4">
+        <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
+          <v-text-field
+            v-model="search"
+            :label="$t('search')"
+            variant="outlined"
+            density="compact"
+            rounded="lg"
+            color="#a21ee5"
+            prepend-inner-icon="mdi-magnify"
+            hide-details
+            clearable
+            class="param-search-input"
+          ></v-text-field>
+          <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold fnm-currency-num">
+            <v-icon start size="14">mdi-cog-transfer-outline</v-icon>
+            {{ filteredItems.length }} {{ $t('records') }}
+          </v-chip>
+          <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="clearAllColumnFilters">
+            {{ $t('clear_filters') }}
+          </v-btn>
+        </div>
+        <v-btn color="#a21ee5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openDialog(null)">
           {{ $t('add_wco') }}
         </v-btn>
       </div>
 
-      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? 'info' : false" density="comfortable" class="rounded-lg param-table" hover>
+      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#a21ee5' : false" density="comfortable" class="rounded-xl param-table" hover :search="search">
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>
-            <th v-for="col in columns" :key="col.key" class="param-th">
+            <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
               <div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">
                 {{ col.title }}
                 <v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon>
@@ -37,7 +54,7 @@
             </th>
           </tr>
           <tr class="param-filter-row">
-            <th v-for="col in columns" :key="col.key + '-filter'" class="param-filter-th">
+            <th v-for="col in columns" :key="col.key + '-filter'" class="param-filter-th" :style="col.width ? { width: col.width } : {}">
               <v-autocomplete
                 v-if="col.key !== 'actions'"
                 v-model="columnFilters[col.key]"
@@ -45,7 +62,7 @@
                 density="compact"
                 variant="outlined"
                 color="#a21ee5"
-                class="param-filter-input text-info"
+                class="param-filter-input"
                 hide-details
                 clearable
                 multiple
@@ -88,44 +105,68 @@
           <span v-else class="text-grey">-</span>
         </template>
         <template v-slot:[`item.usage_count`]="{ item }">
-          <v-chip color="#a21ee5" size="small" variant="tonal">{{ (item.warehouse_stockable_tracking_number_operations_count || 0) + (item.non_warehouse_stockable_operations_count || 0) }}</v-chip>
+          <v-chip color="#a21ee5" size="small" variant="tonal" class="fnm-currency-num font-weight-bold">{{ (item.warehouse_stockable_tracking_number_operations_count || 0) + (item.non_warehouse_stockable_operations_count || 0) }}</v-chip>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon size="x-small" variant="tonal" color="#a21ee5" @click="openDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
-          <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+          <div class="param-actions-cell">
+            <v-tooltip :text="$t('edit')" location="top">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon size="28" variant="tonal" color="#a21ee5" class="param-action-btn" @click="openDialog(item)">
+                  <v-icon size="15">mdi-pencil</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip :text="$t('delete')" location="top">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon size="28" variant="tonal" color="error" class="param-action-btn param-action-delete" @click="confirmDelete(item)">
+                  <v-icon size="15">mdi-delete-outline</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
         </template>
       </v-data-table>
     </v-card-text>
 
     <!-- CREATE/EDIT DIALOG -->
-    <v-dialog v-model="dialog" max-width="750" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="#a21ee5" class="mr-2">mdi-cog-transfer-outline</v-icon>
-          {{ editing ? $t('edit_wco') : $t('add_wco') }}
-        </v-card-title>
-        <v-card-text class="pa-5">
+    <v-dialog v-model="dialog" max-width="760" persistent scrollable>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(162, 30, 229, 0.12); color: #a21ee5;">
+              <v-icon size="22">mdi-cog-transfer-outline</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ editing ? $t('edit_wco') : $t('add_wco') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('parameters') }} • {{ $t('wco_management') }}</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" size="small" density="comfortable" @click="dialog = false">
+            <v-icon size="18">mdi-close</v-icon>
+          </v-btn>
+        </div>
+        <v-card-text class="param-dialog-body">
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-translate</v-icon>{{ $t('names') }}</div>
-          <v-row>
-            <v-col cols="4"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-text-field></v-col>
-            <v-col cols="4"><v-text-field v-model="form.name_en" :label="$t('name_en')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-text-field></v-col>
-            <v-col cols="4"><v-text-field v-model="form.name_es" :label="$t('name_es')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-text-field></v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" rows="2"></v-textarea></v-col>
+          <v-row dense>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-text-field></v-col>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-text-field></v-col>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-text-field></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#a21ee5" rows="2"></v-textarea></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-format-list-bulleted-type</v-icon>{{ $t('type') }}</div>
-          <v-row>
-            <v-col cols="4"><v-select v-model="form.production_role" :items="productionRoleOptions" :label="$t('production_role')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" clearable></v-select></v-col>
-            <v-col cols="4"><v-select v-model="form.operation_type" :items="operationTypeOptions" :label="$t('operation_type')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info"></v-select></v-col>
-            <v-col cols="4"><v-select v-model="form.warehouse_type" :items="warehouseTypeOptions" :label="$t('warehouse_type_label')" variant="outlined" density="compact" rounded color="#a21ee5" class="text-info" clearable></v-select></v-col>
+          <v-row dense>
+            <v-col cols="12" sm="4"><v-select v-model="form.production_role" :items="productionRoleOptions" :label="$t('production_role')" prepend-inner-icon="mdi-account-hard-hat" variant="outlined" density="compact" rounded="lg" color="#a21ee5" clearable></v-select></v-col>
+            <v-col cols="12" sm="4"><v-select v-model="form.operation_type" :items="operationTypeOptions" :label="$t('operation_type')" prepend-inner-icon="mdi-swap-horizontal" variant="outlined" density="compact" rounded="lg" color="#a21ee5"></v-select></v-col>
+            <v-col cols="12" sm="4"><v-select v-model="form.warehouse_type" :items="warehouseTypeOptions" :label="$t('warehouse_type_label')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#a21ee5" clearable></v-select></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"><v-icon color="#a21ee5" class="mr-2" size="20">mdi-toggle-switch-outline</v-icon>{{ $t('enabled_fields') }}</div>
           <v-row dense>
-            <v-col cols="6" v-for="toggle in toggleFields" :key="toggle.key">
-              <div class="wco-toggle-card" :class="{ 'wco-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
+            <v-col cols="12" sm="6" v-for="toggle in toggleFields" :key="toggle.key">
+              <div class="wco-toggle-card rounded-lg" :class="{ 'wco-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
                 <div class="wco-toggle-left">
-                  <div class="wco-toggle-icon-wrap" :style="{ background: form[toggle.key] ? toggle.activeColor + '1A' : 'rgba(var(--v-border-color), .06)' }">
+                  <div class="wco-toggle-icon-wrap rounded-lg" :style="{ background: form[toggle.key] ? toggle.activeColor + '1A' : 'rgba(var(--v-border-color), .06)' }">
                     <v-icon :color="form[toggle.key] ? toggle.activeColor : 'grey'" size="20">{{ toggle.icon }}</v-icon>
                   </div>
                   <div class="wco-toggle-info"><div class="wco-toggle-label">{{ $t(toggle.label) }}</div></div>
@@ -135,24 +176,30 @@
             </v-col>
           </v-row>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+        <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>
-          <v-btn @click="dialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="#a21ee5" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn @click="dialog = false" variant="tonal" rounded="lg" class="text-capitalize">{{ $t('cancel') }}</v-btn>
+          <v-btn color="#a21ee5" variant="flat" rounded="lg" class="text-capitalize font-weight-bold" @click="save" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- CONFIRM DELETE DIALOG -->
-    <v-dialog v-model="confirmDeleteDialog" max-width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2"><v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>{{ $t('confirm_delete') }}</v-card-title>
-        <v-card-text class="pa-5 pt-2 text-body-1">{{ $t('confirm_delete_wco_message') }}</v-card-text>
-        <v-card-actions class="pa-5 pt-0">
-          <v-spacer></v-spacer>
-          <v-btn @click="confirmDeleteDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="error" variant="flat" rounded @click="executeDelete" :loading="deleting">{{ $t('delete') }}</v-btn>
-        </v-card-actions>
+    <v-dialog v-model="confirmDeleteDialog" max-width="440">
+      <v-card class="param-dialog-card">
+        <div class="pa-6 text-center">
+          <div class="param-dialog-icon-badge mx-auto mb-4" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; width: 56px; height: 56px;">
+            <v-icon size="28">mdi-trash-can-outline</v-icon>
+          </div>
+          <div class="text-h6 font-weight-bold mb-2">{{ $t('confirm_delete') }}</div>
+          <div class="text-body-2 text-medium-emphasis mb-6">
+            {{ $t('confirm_delete_wco_message') }}
+          </div>
+          <div class="d-flex align-center ga-3 justify-center">
+            <v-btn variant="tonal" rounded="lg" class="text-capitalize px-5" @click="confirmDeleteDialog = false">{{ $t('cancel') }}</v-btn>
+            <v-btn color="error" variant="flat" rounded="lg" class="text-capitalize font-weight-bold px-6" elevation="2" @click="executeDelete" :loading="deleting">{{ $t('delete') }}</v-btn>
+          </div>
+        </div>
       </v-card>
     </v-dialog>
 
@@ -216,6 +263,7 @@ export default {
       summarySnackbar: { show: false, title: '', detail: '', color: 'success' },
       snackbarProgress: 100,
       snackbarTimer: null,
+      search: '',
     };
   },
   computed: {
@@ -235,7 +283,7 @@ export default {
         { title: this.$t('operation_type'), key: 'operation_type', align: 'center' },
         { title: this.$t('warehouse_type_label'), key: 'warehouse_type', align: 'center' },
         { title: this.$t('usage_count'), key: 'usage_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     productionRoleOptions() {

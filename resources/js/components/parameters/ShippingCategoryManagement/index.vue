@@ -16,25 +16,60 @@
     </div>
 
     <v-card-text class="pa-4">
-      <!-- Add button -->
-      <div class="d-flex align-center ga-3 mb-3">
+      <!-- Top Toolbar (Search, Filter, Count & Add) -->
+      <div class="param-top-toolbar mb-4">
+        <div class="d-flex align-center flex-grow-1" style="max-width: 360px;">
+          <v-text-field
+            v-model="search"
+            prepend-inner-icon="mdi-magnify"
+            :placeholder="$t('search') || 'Rechercher...'"
+            density="compact"
+            variant="outlined"
+            rounded="lg"
+            hide-details
+            clearable
+            class="param-search-input"
+          />
+        </div>
         <v-spacer></v-spacer>
-        <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="clearAllColumnFilters">
-          {{ $t('clear_filters') }}
-        </v-btn>
-        <v-btn color="#4643a0" prepend-icon="mdi-plus" rounded @click="openDialog(null)">
-          {{ $t('add_shipping_category') }}
-        </v-btn>
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <v-chip color="#4643a0" variant="tonal" size="small" class="font-weight-bold">
+            <v-icon start size="14">mdi-tag-multiple-outline</v-icon>
+            {{ filteredItems.length }} {{ $t('records') || 'enregistrements' }}
+          </v-chip>
+          <v-btn
+            v-if="hasActiveColumnFilters || search"
+            variant="tonal"
+            color="warning"
+            rounded="lg"
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="clearAllColumnFilters(); search = ''"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
+          <v-btn
+            color="#4643a0"
+            prepend-icon="mdi-plus"
+            rounded="lg"
+            elevation="0"
+            class="text-white font-weight-bold"
+            @click="openDialog(null)"
+          >
+            {{ $t('add_shipping_category') }}
+          </v-btn>
+        </div>
       </div>
 
       <!-- Data Table -->
       <v-data-table
         :headers="headers"
         :items="filteredItems"
+        :search="search"
         :loading="loading ? '#4643a0' : false"
         :multi-sort="true"
         density="comfortable"
-        class="rounded-lg param-table"
+        class="rounded-xl param-table"
         hover
       >
         <!-- Custom headers with filter inputs -->
@@ -119,49 +154,69 @@
           </v-icon>
         </template>
         <template v-slot:[`item.shippings_count`]="{ item }">
-          <v-chip color="#4643a0" size="small" variant="tonal">{{ item.shippings_count ?? item.sells_count ?? 0 }}</v-chip>
+          <v-chip color="#4643a0" size="small" variant="tonal" class="font-weight-bold">{{ item.shippings_count ?? item.sells_count ?? 0 }}</v-chip>
         </template>
         <template v-slot:[`item.sells_count`]="{ item }">
-          <v-chip color="#4643a0" size="small" variant="tonal">{{ item.shippings_count ?? item.sells_count ?? 0 }}</v-chip>
+          <v-chip color="#4643a0" size="small" variant="tonal" class="font-weight-bold">{{ item.shippings_count ?? item.sells_count ?? 0 }}</v-chip>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon size="x-small" variant="tonal" color="#4643a0" @click="openDialog(item)" class="mr-1">
-            <v-icon size="16">mdi-pencil</v-icon>
-          </v-btn>
-          <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)">
-            <v-icon size="16">mdi-delete</v-icon>
-          </v-btn>
+          <div class="param-actions-cell">
+            <v-tooltip :text="$t('edit')" location="top">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon size="28" variant="tonal" color="#4643a0" class="param-action-btn" @click="openDialog(item)">
+                  <v-icon size="15">mdi-pencil</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip :text="$t('delete')" location="top">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon size="28" variant="tonal" color="error" class="param-action-btn param-action-delete" @click="confirmDelete(item)">
+                  <v-icon size="15">mdi-delete-outline</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
         </template>
       </v-data-table>
     </v-card-text>
 
     <!-- ============= CREATE/EDIT DIALOG ============= -->
-    <v-dialog v-model="dialog" max-width="700" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="#4643a0" class="mr-2">mdi-tag-multiple-outline</v-icon>
-          {{ editing ? $t('edit_shipping_category') : $t('add_shipping_category') }}
-        </v-card-title>
-        <v-card-text class="pa-5">
+    <v-dialog v-model="dialog" max-width="700" persistent scrollable>
+      <v-card class="rounded-xl overflow-hidden param-dialog-card" elevation="24">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center justify-space-between w-100">
+            <div class="d-flex align-center ga-3">
+              <div class="param-dialog-icon-badge" style="background: rgba(70, 67, 160, 0.15); color: #4643a0;">
+                <v-icon size="24">{{ editing ? 'mdi-pencil-box-outline' : 'mdi-plus-circle-outline' }}</v-icon>
+              </div>
+              <div>
+                <div class="param-dialog-title">{{ editing ? $t('edit_shipping_category') : $t('add_shipping_category') }}</div>
+                <div class="param-dialog-subtitle">{{ $t('manage_sell_categories_desc') }}</div>
+              </div>
+            </div>
+            <v-btn icon="mdi-close" variant="text" size="small" class="param-dialog-close" @click="dialog = false" />
+          </div>
+        </div>
+        <v-card-text class="pa-5 param-dialog-body" style="max-height: 75vh;">
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
             <v-icon color="#4643a0" class="mr-2" size="20">mdi-translate</v-icon>
             {{ $t('names') }}
           </div>
-          <v-row>
+          <v-row dense>
             <v-col cols="6">
-              <v-text-field v-model="form.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0"></v-text-field>
+              <v-text-field v-model="form.name" :label="$t('name')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0"></v-text-field>
+              <v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0"></v-text-field>
+              <v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0"></v-text-field>
+              <v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#4643a0"></v-text-field>
             </v-col>
             <v-col cols="12">
-              <v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#4643a0" style="color: #4643a0" rows="2"></v-textarea>
+              <v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#4643a0" rows="2" auto-grow></v-textarea>
             </v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
@@ -171,42 +226,46 @@
           </div>
           <v-row dense>
             <v-col cols="6" v-for="toggle in toggleFields" :key="toggle.key">
-              <div class="scm-toggle-card" :class="{ 'scm-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
-                <div class="scm-toggle-left">
+              <div class="scm-toggle-card rounded-lg pa-2 border d-flex align-center justify-space-between cursor-pointer" :class="{ 'scm-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
+                <div class="d-flex align-center ga-2">
                   <div class="scm-toggle-icon-wrap" :style="{ background: form[toggle.key] ? toggle.activeColor + '1A' : 'rgba(var(--v-border-color), .06)' }">
                     <v-icon :color="form[toggle.key] ? toggle.activeColor : 'grey'" size="20">{{ toggle.icon }}</v-icon>
                   </div>
-                  <div class="scm-toggle-info">
-                    <div class="scm-toggle-label">{{ $t(toggle.label) }}</div>
-                  </div>
+                  <div class="text-caption font-weight-medium">{{ $t(toggle.label) }}</div>
                 </div>
                 <v-switch v-model="form[toggle.key]" :color="toggle.activeColor" inset density="compact" hide-details @click.stop></v-switch>
               </div>
             </v-col>
           </v-row>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+        <v-card-actions class="param-dialog-actions pa-4 border-t bg-surface">
+          <v-btn variant="tonal" color="grey" rounded="lg" class="px-4" @click="dialog = false">{{ $t('cancel') }}</v-btn>
           <v-spacer></v-spacer>
-          <v-btn @click="dialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="#4643a0" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn color="#4643a0" variant="flat" rounded="lg" class="px-5 text-white font-weight-bold" @click="save" :loading="saving" prepend-icon="mdi-content-save">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- ============= CONFIRM DELETE DIALOG ============= -->
-    <v-dialog v-model="confirmDeleteDialog" max-width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>
-          {{ $t('confirm_delete') }}
-        </v-card-title>
-        <v-card-text class="pa-5 pt-2 text-body-1">
-          {{ $t('confirm_delete_shipping_category_message') }}
-        </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+    <v-dialog v-model="confirmDeleteDialog" max-width="440">
+      <v-card class="rounded-xl overflow-hidden param-dialog-card">
+        <div class="pa-6 text-center">
+          <div class="param-dialog-icon-badge mx-auto mb-4" style="background: rgba(244, 67, 54, 0.12); color: #f44336; width: 56px; height: 56px;">
+            <v-icon size="32">mdi-alert-circle-outline</v-icon>
+          </div>
+          <div class="text-h6 font-weight-bold mb-2">{{ $t('confirm_delete') }}</div>
+          <div class="text-body-2 text-medium-emphasis mb-4">
+            {{ $t('confirm_delete_shipping_category_message') }}
+          </div>
+          <div v-if="deleteTarget" class="pa-3 rounded-lg text-left" style="background: rgba(244,67,54,.06); border: 1px solid rgba(244, 67, 54, 0.15);">
+            <div class="font-weight-bold">{{ deleteTarget.name_fr || deleteTarget.name || deleteTarget.name_en }}</div>
+            <div class="text-caption text-medium-emphasis" v-if="deleteTarget.description">{{ deleteTarget.description }}</div>
+          </div>
+        </div>
+        <v-card-actions class="param-dialog-actions pa-4 border-t bg-surface">
+          <v-btn variant="tonal" rounded="lg" color="grey" class="px-4" @click="confirmDeleteDialog = false">{{ $t('cancel') }}</v-btn>
           <v-spacer></v-spacer>
-          <v-btn @click="confirmDeleteDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="error" variant="flat" rounded @click="executeDelete" :loading="deleting">{{ $t('delete') }}</v-btn>
+          <v-btn color="error" variant="flat" rounded="lg" class="px-5 font-weight-bold" @click="executeDelete" :loading="deleting" prepend-icon="mdi-delete">{{ $t('delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -251,6 +310,7 @@ export default {
   props: { embedded: { type: Boolean, default: false } },
   data() {
     return {
+      search: '',
       categories: [],
       loading: false,
       columnFilters: {},
@@ -297,7 +357,7 @@ export default {
         { title: this.$t('direction'), key: 'enable_direction', align: 'center' },
         { title: this.$t('enable_invoices'), key: 'enable_invoices', align: 'center' },
         { title: this.$t('shippings_count'), key: 'shippings_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     filteredItems() {

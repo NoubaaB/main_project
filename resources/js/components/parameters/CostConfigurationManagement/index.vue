@@ -16,41 +16,49 @@
     </div>
 
     <v-card-text class="pa-4">
-      <div class="d-flex align-center ga-3 mb-3">
-        <v-text-field
-          v-model="search"
-          :label="$t('search')"
-          variant="outlined"
-          density="compact"
-          rounded
-          color="#3F51B5"
-          prepend-inner-icon="mdi-magnify"
-          hide-details
-          clearable
-          class="flex-grow-1"
-          style="max-width:360px"
-        ></v-text-field>
-        <v-spacer></v-spacer>
-        <v-btn
-          v-if="hasActiveFilters"
-          variant="tonal"
-          color="warning"
-          rounded
-          size="small"
-          prepend-icon="mdi-filter-off"
-          @click="columnFilters = {}"
-        >
-          {{ $t('clear_filters') }}
-        </v-btn>
-        <v-btn
-          color="#3F51B5"
-          prepend-icon="mdi-plus"
-          rounded
-          @click="openDialog(null)"
-        >
-          {{ $t('add_cost_configuration') }}
-        </v-btn>
-      </div>
+      <v-card class="param-top-toolbar mb-4" elevation="0">
+        <div class="d-flex flex-wrap align-center justify-space-between ga-3">
+          <div class="d-flex align-center flex-grow-1 flex-wrap ga-3" style="max-width: 600px;">
+            <v-text-field
+              v-model="search"
+              prepend-inner-icon="mdi-magnify"
+              :placeholder="$t('search')"
+              density="compact"
+              variant="outlined"
+              hide-details
+              clearable
+              rounded="lg"
+              color="#3F51B5"
+              class="param-search-input flex-grow-1"
+            ></v-text-field>
+            <v-chip size="small" variant="tonal" color="#3F51B5" class="font-weight-bold">
+              {{ filteredItems.length }} {{ $t('configurations') }}
+            </v-chip>
+          </div>
+          <div class="d-flex align-center ga-2">
+            <v-btn
+              v-if="hasActiveFilters || search"
+              variant="tonal"
+              color="warning"
+              size="small"
+              rounded="lg"
+              prepend-icon="mdi-filter-off"
+              @click="columnFilters = {}; search = ''"
+            >
+              {{ $t('clear_filters') }}
+            </v-btn>
+            <v-btn
+              color="#3F51B5"
+              rounded="lg"
+              prepend-icon="mdi-plus"
+              elevation="0"
+              @click="openDialog(null)"
+            >
+              {{ $t('add_cost_configuration') }}
+            </v-btn>
+          </div>
+        </div>
+      </v-card>
 
       <!-- Data Table -->
       <v-data-table
@@ -59,7 +67,7 @@
         :loading="loading ? '#3F51B5' : false"
         :multi-sort="true"
         density="comfortable"
-        class="rounded-lg param-table"
+        class="rounded-xl param-table"
         hover
         :search="search"
       >
@@ -174,57 +182,59 @@
 
         <!-- Actions Column -->
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn
-            icon
-            size="x-small"
-            variant="tonal"
-            color="#3F51B5"
-            @click="openEvaluateDialog(item)"
-            class="mr-1"
-            :title="$t('test_calculator')"
-          >
-            <v-icon size="16">mdi-calculator</v-icon>
-          </v-btn>
-          <v-btn
-            icon
-            size="x-small"
-            variant="tonal"
-            color="#3F51B5"
-            @click="openDialog(item)"
-            class="mr-1"
-            :title="$t('edit')"
-          >
-            <v-icon size="16">mdi-pencil</v-icon>
-          </v-btn>
-          <v-btn
-            icon
-            size="x-small"
-            variant="tonal"
-            color="error"
-            @click="confirmDelete(item)"
-            :title="$t('delete')"
-          >
-            <v-icon size="16">mdi-delete</v-icon>
-          </v-btn>
+          <div class="param-actions-cell">
+            <v-btn
+              size="x-small"
+              variant="tonal"
+              color="#3F51B5"
+              class="param-action-btn"
+              @click="openEvaluateDialog(item)"
+            >
+              <v-icon size="16">mdi-calculator</v-icon>
+              <v-tooltip activator="parent" location="top">{{ $t('test_calculator') }}</v-tooltip>
+            </v-btn>
+            <v-btn
+              size="x-small"
+              variant="tonal"
+              color="#3F51B5"
+              class="param-action-btn"
+              @click="openDialog(item)"
+            >
+              <v-icon size="16">mdi-pencil</v-icon>
+              <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
+            </v-btn>
+            <v-btn
+              size="x-small"
+              variant="tonal"
+              color="error"
+              class="param-action-btn param-action-delete"
+              @click="confirmDelete(item)"
+            >
+              <v-icon size="16">mdi-delete</v-icon>
+              <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
+            </v-btn>
+          </div>
         </template>
       </v-data-table>
     </v-card-text>
 
     <!-- Create / Edit Dialog -->
     <v-dialog v-model="dialog" max-width="900" persistent scrollable>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-3 bg-indigo-lighten-5">
-          <v-icon color="#3F51B5" class="mr-2">mdi-calculator-variant-outline</v-icon>
-          <span class="text-h6 font-weight-bold text-indigo-darken-4">
-            {{ editing ? $t('edit_cost_configuration') : $t('add_cost_configuration') }}
-          </span>
-          <v-spacer></v-spacer>
-          <v-btn icon variant="text" size="small" @click="dialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(63, 81, 181, 0.12); color: #3F51B5;">
+              <v-icon size="20">{{ editing ? 'mdi-pencil' : 'mdi-plus' }}</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ editing ? $t('edit_cost_configuration') : $t('add_cost_configuration') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('cost_configuration_management') }}</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="dialog = false"></v-btn>
+        </div>
 
-        <v-card-text class="pa-5">
+        <v-card-text class="param-dialog-body pa-5">
           <v-form ref="formRef" v-model="validForm">
             <!-- Basic Information -->
             <div class="text-subtitle-2 font-weight-bold text-indigo mb-3 d-flex align-center">
@@ -240,7 +250,7 @@
                   prepend-inner-icon="mdi-translate"
                   variant="outlined"
                   density="compact"
-                  rounded
+                  rounded="lg"
                   color="#3F51B5"
                   :rules="[v => !!v || $t('field_required')]"
                 ></v-text-field>
@@ -252,7 +262,7 @@
                   prepend-inner-icon="mdi-translate"
                   variant="outlined"
                   density="compact"
-                  rounded
+                  rounded="lg"
                   color="#3F51B5"
                 ></v-text-field>
               </v-col>
@@ -263,7 +273,7 @@
                   prepend-inner-icon="mdi-translate"
                   variant="outlined"
                   density="compact"
-                  rounded
+                  rounded="lg"
                   color="#3F51B5"
                 ></v-text-field>
               </v-col>
@@ -275,7 +285,7 @@
                   prepend-inner-icon="mdi-ruler"
                   variant="outlined"
                   density="compact"
-                  rounded
+                  rounded="lg"
                   color="#3F51B5"
                   :rules="[v => !!v || $t('field_required')]"
                   hint="e.g. KG, DH, DH/KG, %"
@@ -507,7 +517,7 @@
               prepend-inner-icon="mdi-function-variant"
               variant="outlined"
               density="compact"
-              rounded
+              rounded="lg"
               color="#3F51B5"
               class="font-monospace font-weight-bold text-body-1"
               :rules="[
@@ -541,7 +551,7 @@
                     prepend-inner-icon="mdi-numeric"
                     variant="outlined"
                     density="compact"
-                    rounded
+                    rounded="lg"
                     color="#3F51B5"
                     hide-details
                     bg-color="white"
@@ -569,16 +579,17 @@
           </v-form>
         </v-card-text>
 
-        <v-card-actions class="pa-5 pt-0">
+        <v-card-actions class="param-dialog-actions">
+          <v-btn @click="dialog = false" variant="tonal" color="grey" rounded="lg">{{ $t('cancel') }}</v-btn>
           <v-spacer></v-spacer>
-          <v-btn @click="dialog = false" variant="text">{{ $t('cancel') }}</v-btn>
           <v-btn
             color="#3F51B5"
             variant="flat"
-            rounded
+            rounded="lg"
             @click="save"
             :loading="saving"
             :disabled="!form.name_fr || !form.formula || form.variables.length === 0 || isFormulaInvalid"
+            prepend-icon="mdi-content-save"
           >
             {{ $t('save') }}
           </v-btn>
@@ -587,23 +598,24 @@
     </v-dialog>
 
     <!-- Standalone Test Evaluator Dialog -->
-    <v-dialog v-model="evaluateDialog" max-width="500" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-3 bg-indigo-lighten-5">
-          <v-icon color="#3F51B5" class="mr-2">mdi-calculator</v-icon>
-          <span class="text-subtitle-1 font-weight-bold text-indigo-darken-4">
-            {{ $t('test_calculator') }} - {{ evaluatingItem ? (evaluatingItem['name_' + currentLang] || evaluatingItem.name_fr) : '' }}
-          </span>
-          <v-spacer></v-spacer>
-          <v-btn icon variant="text" size="small" @click="evaluateDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pa-5">
+    <v-dialog v-model="evaluateDialog" max-width="500" persistent scrollable>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(63, 81, 181, 0.12); color: #3F51B5;">
+              <v-icon size="20">mdi-calculator</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ $t('test_calculator') }}</div>
+              <div class="param-dialog-subtitle">{{ evaluatingItem ? (evaluatingItem['name_' + currentLang] || evaluatingItem.name_fr) : '' }}</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="evaluateDialog = false"></v-btn>
+        </div>
+        <v-card-text class="param-dialog-body pa-5">
           <div v-if="evaluatingItem" class="mb-3">
             <div class="text-caption text-grey mb-1">{{ $t('formula') }}:</div>
-            <code class="pa-2 d-block rounded bg-indigo-lighten-5 text-indigo-darken-4 font-weight-bold text-center fnm-currency-num">
+            <code class="pa-2 d-block rounded-lg bg-indigo-lighten-5 text-indigo-darken-4 font-weight-bold text-center fnm-currency-num">
               {{ evaluatingItem.formula }}
             </code>
           </div>
@@ -624,14 +636,14 @@
                 prepend-inner-icon="mdi-numeric"
                 variant="outlined"
                 density="compact"
-                rounded
+                rounded="lg"
                 color="#3F51B5"
                 @input="runModalEvaluation"
               ></v-text-field>
             </v-col>
           </v-row>
 
-          <v-card variant="tonal" color="#3F51B5" class="pa-4 rounded-lg mt-3 text-center">
+          <v-card variant="tonal" color="#3F51B5" class="pa-4 rounded-xl mt-3 text-center">
             <div class="text-caption text-indigo-darken-2 font-weight-bold uppercase">{{ $t('calculated_result') }}</div>
             <div class="text-h4 font-weight-black text-indigo-darken-4 my-1 fnm-currency-num">
               <span v-if="evalModalResult !== null && !isNaN(evalModalResult)">
@@ -646,25 +658,35 @@
             </div>
           </v-card>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+        <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>
-          <v-btn color="#3F51B5" variant="flat" rounded @click="evaluateDialog = false">{{ $t('close') }}</v-btn>
+          <v-btn color="#3F51B5" variant="flat" rounded="lg" @click="evaluateDialog = false">{{ $t('close') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Delete Confirmation Dialog -->
-    <v-dialog v-model="deleteDialog" max-width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>
-          {{ $t('confirm_delete') }}
-        </v-card-title>
-        <v-card-text class="pa-5 pt-2 text-body-1">{{ $t('confirm_delete_cost_configuration_message') }}</v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+    <v-dialog v-model="deleteDialog" max-width="440">
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(244, 67, 54, 0.12); color: #F44336;">
+              <v-icon size="20">mdi-alert-circle</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ $t('confirm_delete') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('cannot_undo_action') }}</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="deleteDialog = false"></v-btn>
+        </div>
+        <v-card-text class="param-dialog-body pt-2">
+          <p class="text-body-2 mb-0">{{ $t('confirm_delete_cost_configuration_message') }}</p>
+        </v-card-text>
+        <v-card-actions class="param-dialog-actions">
+          <v-btn @click="deleteDialog = false" variant="tonal" color="grey" rounded="lg">{{ $t('cancel') }}</v-btn>
           <v-spacer></v-spacer>
-          <v-btn @click="deleteDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="error" variant="flat" rounded @click="executeDelete" :loading="deleting">{{ $t('delete') }}</v-btn>
+          <v-btn color="error" variant="flat" rounded="lg" @click="executeDelete" :loading="deleting" prepend-icon="mdi-delete">{{ $t('delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -786,7 +808,7 @@ export default {
         { title: this.$t('formula'), key: 'formula', align: 'center' },
         { title: this.$t('status'), key: 'enabled', align: 'center' },
         { title: this.$t('chart'), key: 'show_in_chart', align: 'center', sortable: false },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '130px' },
       ];
     },
 

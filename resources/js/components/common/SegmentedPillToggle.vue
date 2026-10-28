@@ -27,6 +27,7 @@
       type="button"
       role="tab"
       :aria-selected="modelValue === item.value"
+      :title="item.label"
       class="segmented-pill-btn"
       :class="{
         'is-active': modelValue === item.value
@@ -326,9 +327,9 @@ export default {
 }
 .segmented-pill--x-small .segmented-pill-btn {
   height: 22px;
-  padding: 0 8px;
-  font-size: 10px;
-  gap: 4px;
+  padding: 0 4px;
+  font-size: 9.5px;
+  gap: 3px;
 }
 .segmented-pill--x-small .segmented-pill-icon {
   font-size: 11px;

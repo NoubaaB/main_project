@@ -1,0 +1,482 @@
+/**
+ * resources/css/parameters.scss
+ * Executive Parameter Modules UI/UX Design System
+ * Universal Datatable, Dialog, Input & NavigationDrawer-Matched Scrollbar
+ */
+
+/* =========================================================================
+ * 1. UNIVERSAL SCROLLBAR SYSTEM (EXACT NAVIGATION DRAWER SPECIFICATION)
+ * Width: 4.5px | Height: 4.5px | Zero Arrows | Rounded 999px | Transparent Track
+ * Applied universally across dialogs, popups, tables, and views.
+ * ========================================================================= */
+
+/* Chromium, Edge, Safari, Opera (WebKit / Blink) */
+::-webkit-scrollbar,
+*::-webkit-scrollbar,
+.v-overlay-container *::-webkit-scrollbar,
+.v-dialog *::-webkit-scrollbar,
+.param-dialog-card *::-webkit-scrollbar,
+.param-dialog-body::-webkit-scrollbar,
+.v-card-text::-webkit-scrollbar,
+.param-table *::-webkit-scrollbar,
+.v-table__wrapper::-webkit-scrollbar,
+.param-scrollable::-webkit-scrollbar,
+.param-dialog-scroll::-webkit-scrollbar {
+  width: 4.5px !important;
+  height: 4.5px !important;
+}
+
+/* Zero top/bottom arrow buttons ("fleches") */
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button,
+.v-overlay-container *::-webkit-scrollbar-button,
+.v-dialog *::-webkit-scrollbar-button,
+.param-dialog-card *::-webkit-scrollbar-button,
+.param-dialog-body::-webkit-scrollbar-button,
+.v-card-text::-webkit-scrollbar-button,
+.param-table *::-webkit-scrollbar-button,
+.v-table__wrapper::-webkit-scrollbar-button,
+.param-scrollable::-webkit-scrollbar-button,
+.param-dialog-scroll::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Transparent track */
+::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track,
+.v-overlay-container *::-webkit-scrollbar-track,
+.v-dialog *::-webkit-scrollbar-track,
+.param-dialog-card *::-webkit-scrollbar-track,
+.param-dialog-body::-webkit-scrollbar-track,
+.v-card-text::-webkit-scrollbar-track,
+.param-table *::-webkit-scrollbar-track,
+.v-table__wrapper::-webkit-scrollbar-track,
+.param-scrollable::-webkit-scrollbar-track,
+.param-dialog-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+  margin: 4px 0 !important;
+}
+
+::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Light Theme Thumb: Unactive = rgba(148, 163, 184, 0.4) | Active = rgba(100, 116, 139, 0.65) */
+::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb,
+.v-overlay-container *::-webkit-scrollbar-thumb,
+.v-dialog *::-webkit-scrollbar-thumb,
+.param-dialog-card *::-webkit-scrollbar-thumb,
+.param-dialog-body::-webkit-scrollbar-thumb,
+.v-card-text::-webkit-scrollbar-thumb,
+.param-table *::-webkit-scrollbar-thumb,
+.v-table__wrapper::-webkit-scrollbar-thumb,
+.param-scrollable::-webkit-scrollbar-thumb,
+.param-dialog-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active,
+*::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:active,
+.v-overlay-container *::-webkit-scrollbar-thumb:hover,
+.v-overlay-container *::-webkit-scrollbar-thumb:active,
+.v-dialog *::-webkit-scrollbar-thumb:hover,
+.v-dialog *::-webkit-scrollbar-thumb:active,
+.param-dialog-card *::-webkit-scrollbar-thumb:hover,
+.param-dialog-card *::-webkit-scrollbar-thumb:active,
+.param-dialog-body::-webkit-scrollbar-thumb:hover,
+.param-dialog-body::-webkit-scrollbar-thumb:active,
+.v-card-text::-webkit-scrollbar-thumb:hover,
+.v-card-text::-webkit-scrollbar-thumb:active,
+.param-table *::-webkit-scrollbar-thumb:hover,
+.param-table *::-webkit-scrollbar-thumb:active,
+.v-table__wrapper::-webkit-scrollbar-thumb:hover,
+.v-table__wrapper::-webkit-scrollbar-thumb:active,
+.param-scrollable::-webkit-scrollbar-thumb:hover,
+.param-scrollable::-webkit-scrollbar-thumb:active,
+.param-dialog-scroll::-webkit-scrollbar-thumb:hover,
+.param-dialog-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(100, 116, 139, 0.65) !important;
+}
+
+/* Dark Theme Thumb: Unactive = rgba(208, 211, 218, 0.29) | Active = rgba(208, 211, 218, 0.65) */
+.v-theme--dark ::-webkit-scrollbar-thumb,
+.v-theme--dark *::-webkit-scrollbar-thumb,
+.v-theme--dark .v-overlay-container *::-webkit-scrollbar-thumb,
+.v-theme--dark .v-dialog *::-webkit-scrollbar-thumb,
+.v-theme--dark .param-dialog-card *::-webkit-scrollbar-thumb,
+.v-theme--dark .param-dialog-body::-webkit-scrollbar-thumb,
+.v-theme--dark .v-card-text::-webkit-scrollbar-thumb,
+.v-theme--dark .param-table *::-webkit-scrollbar-thumb,
+.v-theme--dark .v-table__wrapper::-webkit-scrollbar-thumb,
+.v-theme--dark .param-scrollable::-webkit-scrollbar-thumb,
+.v-theme--dark .param-dialog-scroll::-webkit-scrollbar-thumb {
+  background: rgba(208, 211, 218, 0.29) !important;
+}
+
+.v-theme--dark ::-webkit-scrollbar-thumb:hover,
+.v-theme--dark ::-webkit-scrollbar-thumb:active,
+.v-theme--dark *::-webkit-scrollbar-thumb:hover,
+.v-theme--dark *::-webkit-scrollbar-thumb:active,
+.v-theme--dark .v-overlay-container *::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .v-overlay-container *::-webkit-scrollbar-thumb:active,
+.v-theme--dark .v-dialog *::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .v-dialog *::-webkit-scrollbar-thumb:active,
+.v-theme--dark .param-dialog-card *::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .param-dialog-card *::-webkit-scrollbar-thumb:active,
+.v-theme--dark .param-dialog-body::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .param-dialog-body::-webkit-scrollbar-thumb:active,
+.v-theme--dark .v-card-text::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .v-card-text::-webkit-scrollbar-thumb:active,
+.v-theme--dark .param-table *::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .param-table *::-webkit-scrollbar-thumb:active,
+.v-theme--dark .v-table__wrapper::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .v-table__wrapper::-webkit-scrollbar-thumb:active,
+.v-theme--dark .param-scrollable::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .param-scrollable::-webkit-scrollbar-thumb:active,
+.v-theme--dark .param-dialog-scroll::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .param-dialog-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(208, 211, 218, 0.65) !important;
+}
+
+/* Firefox standards */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent !important;
+}
+
+*:hover {
+  scrollbar-color: rgba(100, 116, 139, 0.65) transparent !important;
+}
+
+.v-theme--dark,
+.v-theme--dark * {
+  scrollbar-color: rgba(208, 211, 218, 0.29) transparent !important;
+}
+
+.v-theme--dark:hover,
+.v-theme--dark *:hover {
+  scrollbar-color: rgba(208, 211, 218, 0.65) transparent !important;
+}
+
+/* =========================================================================
+ * 2. DATATABLE LUXURY FRAME & HEADER SYSTEM (.param-table)
+ * ========================================================================= */
+
+.param-table {
+  border: 1px solid rgba(var(--v-border-color), 0.12) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: rgba(var(--v-theme-surface), 0.98) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.param-table:hover {
+  border-color: rgba(var(--v-border-color), 0.18) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Datatable thead headers */
+.param-table thead tr th,
+.v-table thead tr th {
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.1) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  color: rgba(var(--v-theme-on-surface), 0.75) !important;
+  background: rgba(var(--v-theme-on-surface), 0.02) !important;
+  vertical-align: middle !important;
+}
+
+.v-theme--dark .param-table thead tr th,
+.v-theme--dark .v-table thead tr th {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.param-th {
+  padding: 10px 12px 6px !important;
+}
+
+.param-th-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  opacity: 0.8;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.param-th-label:hover {
+  opacity: 1;
+}
+
+/* =========================================================================
+ * 3. FILTER ROW & INPUTS (Sleek pill design matching modern ERP)
+ * ========================================================================= */
+
+.param-filter-row {
+  background: rgba(var(--v-theme-on-surface), 0.015) !important;
+}
+
+.param-filter-row th,
+.param-filter-th {
+  padding: 4px 6px 8px !important;
+  vertical-align: middle !important;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.08) !important;
+}
+
+.param-filter-input {
+  min-width: 80px;
+}
+
+.param-filter-input .v-field {
+  font-size: 11px !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  border-radius: 10px !important;
+  background: rgba(var(--v-theme-surface), 0.85) !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.param-filter-input .v-field__outline__start,
+.param-filter-input .v-field__outline__notch,
+.param-filter-input .v-field__outline__end {
+  border-color: rgba(var(--v-border-color), 0.14) !important;
+}
+
+.param-filter-input .v-field--focused .v-field__outline__start,
+.param-filter-input .v-field--focused .v-field__outline__notch,
+.param-filter-input .v-field--focused .v-field__outline__end {
+  border-color: currentColor !important;
+  border-width: 1.5px !important;
+}
+
+.param-filter-input .v-field__input {
+  padding: 0 8px !important;
+  min-height: 26px !important;
+  height: 26px !important;
+  font-size: 11px !important;
+  align-items: center !important;
+}
+
+.param-filter-input .v-field__input input::placeholder {
+  font-size: 10.5px !important;
+  opacity: 0.55 !important;
+  letter-spacing: 0.2px !important;
+}
+
+.param-filter-input .v-field__append-inner {
+  padding-top: 0 !important;
+  align-items: center !important;
+}
+
+.param-filter-input .v-field__append-inner .v-icon {
+  font-size: 12px !important;
+  opacity: 0.45 !important;
+}
+
+.param-filter-input .v-field__clearable {
+  margin: 0 !important;
+}
+
+.param-filter-input .v-field__clearable .v-icon {
+  font-size: 13px !important;
+  opacity: 0.6 !important;
+}
+
+.param-filter-input .v-chip {
+  height: 18px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  margin: 1px 2px !important;
+  padding: 0 6px !important;
+}
+
+/* =========================================================================
+ * 4. TABLE ROWS, CELLS & HOVER UX
+ * ========================================================================= */
+
+.param-table tbody tr td,
+.v-table tbody tr td {
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.06) !important;
+  vertical-align: middle !important;
+  transition: background 0.15s ease !important;
+}
+
+.param-table tbody tr:hover td {
+  background: rgba(var(--v-theme-primary), 0.035) !important;
+}
+
+.v-theme--dark .param-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* =========================================================================
+ * 5. ACTIONS COLUMN & SLEEK BUTTONS (Fixes vertical wrapping & ugly pink circles)
+ * ========================================================================= */
+
+.param-actions-cell {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  width: 100% !important;
+}
+
+.param-action-btn {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.param-action-btn:hover {
+  transform: translateY(-1.5px) scale(1.06) !important;
+}
+
+/* Refined Delete Button: gentle red tint instead of heavy pink circle */
+.param-action-delete {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.16) !important;
+}
+
+.param-action-delete:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* =========================================================================
+ * 6. V-DIALOG LUXURY REDESIGN (Applies to all dialogs in Parameters & App)
+ * ========================================================================= */
+
+/* Dialog card framing: pinned header and footer with flexible scrollable body */
+.v-dialog > .v-overlay__content > .v-card,
+.param-dialog-card {
+  border-radius: 20px !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(var(--v-border-color), 0.05) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Dialog Title Header Bar - Pinned at top */
+.param-dialog-header {
+  flex-shrink: 0 !important;
+  padding: 18px 24px 14px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.param-dialog-icon,
+.param-dialog-icon-badge {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  flex-shrink: 0 !important;
+}
+
+.param-dialog-title-text,
+.param-dialog-title {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  line-height: 1.3 !important;
+}
+
+.param-dialog-subtitle-text,
+.param-dialog-subtitle {
+  font-size: 12px !important;
+  opacity: 0.7 !important;
+  margin-top: 1px !important;
+}
+
+/* Dialog Body - Smooth 4.5px scrolling */
+.param-dialog-body,
+.v-dialog .v-card-text {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+  max-height: calc(90vh - 140px) !important;
+}
+
+/* Dialog Form Inputs (Matches AddCharge style: variant="outlined", density="compact", rounded="lg") */
+.param-dialog-card .v-field--variant-outlined,
+.param-dialog-body .v-field--variant-outlined,
+.v-dialog .v-field--variant-outlined {
+  border-radius: 12px !important;
+  font-size: 13px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Dialog Actions Footer - Pinned at bottom */
+.param-dialog-actions,
+.v-dialog .v-card-actions {
+  flex-shrink: 0 !important;
+  padding: 14px 24px !important;
+  border-top: 1px solid rgba(var(--v-border-color), 0.08) !important;
+  background: rgba(var(--v-theme-on-surface), 0.015) !important;
+}
+
+/* =========================================================================
+ * 7. PARAMETER TOP TOOLBARS (Search + Badges + Add Action)
+ * ========================================================================= */
+
+.param-top-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.param-search-input {
+  max-width: 320px;
+  flex: 1 1 200px;
+}
+
+.param-search-input .v-field {
+  border-radius: 20px !important;
+  font-size: 12.5px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+}
+
+.param-search-input .v-field__input {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 36px !important;
+  align-items: center !important;
+}

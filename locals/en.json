@@ -1,5 +1,6 @@
 {
   "statistics": "Statistics",
+  "all": "All",
   "categories": "Categories",
   "flow": "Flow",
   "packaging": "Packaging",
@@ -16,6 +17,8 @@
   "display": "Display",
   "price": "Price",
   "quantity": "Quantity",
+  "measure": "Measure",
+  "mesure": "Measure",
   "both": "Both",
   "fresh_reception": "Fresh Reception",
   "frozen_production": "Frozen Production",
@@ -32,5 +35,20 @@
   "plastique": "Plastic",
   "strapex": "Strapex",
   "palletes": "Pallets",
-  "scotch": "Tape"
+  "scotch": "Tape",
+  "cannot_undo_action": "This action cannot be undone",
+  "packages": "packages",
+  "fish_species": "fish species",
+  "warehouses": "warehouses",
+  "charges": "charges",
+  "shippings": "shippings",
+  "guano_items": "guano entries",
+  "banks": "banks",
+  "settings": "settings",
+  "configurations": "configurations",
+  "items": "items",
+  "rule_configuration": "Rule Configuration",
+  "rule_history": "Rule History",
+  "period": "Period",
+  "components_breakdown": "Packaging Components Breakdown"
 }

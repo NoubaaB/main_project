@@ -16,16 +16,102 @@
     </div>
 
     <v-card-text class="pa-4">
-      <div class="d-flex align-center ga-3 mb-3">
-        <v-spacer></v-spacer>
-        <v-btn v-if="hasActiveFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="columnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-        <v-btn color="#546E7A" prepend-icon="mdi-plus" rounded @click="openDialog(null)">{{ $t('add_package_type') }}</v-btn>
+      <!-- Parameter Top Toolbar with Global Search & Stats -->
+      <div class="param-top-toolbar mb-4">
+        <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
+          <v-text-field
+            v-model="search"
+            :label="$t('search')"
+            variant="outlined"
+            density="compact"
+            rounded="lg"
+            color="#546E7A"
+            prepend-inner-icon="mdi-magnify"
+            hide-details
+            clearable
+            class="param-search-input"
+          ></v-text-field>
+
+          <v-chip size="small" variant="tonal" color="#546E7A" class="font-weight-bold fnm-currency-num">
+            <v-icon start size="14">mdi-package-variant-closed</v-icon>
+            {{ filteredItems.length }} {{ $t('records') }}
+          </v-chip>
+
+          <v-btn
+            v-if="hasActiveFilters"
+            variant="tonal"
+            color="warning"
+            rounded="lg"
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="columnFilters = {}"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
+        </div>
+
+        <div class="d-flex align-center ga-2">
+          <v-btn
+            color="#546E7A"
+            variant="flat"
+            rounded="lg"
+            prepend-icon="mdi-plus"
+            class="text-capitalize font-weight-bold"
+            elevation="2"
+            @click="openDialog(null)"
+          >
+            {{ $t('add_package_type') }}
+          </v-btn>
+        </div>
       </div>
 
-      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#546E7A' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
+      <v-data-table
+        :headers="headers"
+        :items="filteredItems"
+        :loading="loading ? '#546E7A' : false"
+        :multi-sort="true"
+        density="comfortable"
+        class="rounded-xl param-table"
+        hover
+        :search="search"
+      >
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
-          <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-          <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#546E7A" class="param-filter-input" style="color:#546E7A" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#546E7A" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+          <tr>
+            <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
+              <div
+                class="param-th-label"
+                @click="col.sortable !== false ? toggleSort(col) : null"
+                :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }"
+              >
+                {{ col.title }}
+                <v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon>
+              </div>
+            </th>
+          </tr>
+          <tr class="param-filter-row">
+            <th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}">
+              <v-autocomplete
+                v-if="col.key !== 'actions'"
+                v-model="columnFilters[col.key]"
+                :items="getColumnOptions(col.key)"
+                density="compact"
+                variant="outlined"
+                color="#546E7A"
+                class="param-filter-input"
+                style="color:#546E7A"
+                hide-details
+                clearable
+                multiple
+                chips
+                closable-chips
+                :placeholder="$t('filter')"
+              >
+                <template #chip="{ item, props }">
+                  <v-chip v-bind="props" size="x-small" color="#546E7A" variant="tonal" closable>{{ item.title }}</v-chip>
+                </template>
+              </v-autocomplete>
+            </th>
+          </tr>
         </template>
         <template v-slot:[`item.components`]="{ item }">
           <div v-if="item.components && item.components.length" class="d-flex flex-wrap ga-1 justify-center">
@@ -44,48 +130,188 @@
           <span v-else class="text-grey text-caption">-</span>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon size="x-small" variant="tonal" color="#546E7A" @click="openSecondaryDialog(item)" class="mr-1" :title="$t('secondary_packaging_config')">
-            <v-icon size="16">mdi-layers-outline</v-icon>
-          </v-btn>
-          <v-btn icon size="x-small" variant="tonal" color="#546E7A" @click="openDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
-          <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+          <div class="param-actions-cell">
+            <v-tooltip :text="$t('secondary_packaging_config')" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  size="28"
+                  variant="tonal"
+                  color="#546E7A"
+                  class="param-action-btn"
+                  @click="openSecondaryDialog(item)"
+                >
+                  <v-icon size="15">mdi-layers-outline</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+
+            <v-tooltip :text="$t('edit')" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  size="28"
+                  variant="tonal"
+                  color="#546E7A"
+                  class="param-action-btn"
+                  @click="openDialog(item)"
+                >
+                  <v-icon size="15">mdi-pencil</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+
+            <v-tooltip :text="$t('delete')" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  size="28"
+                  variant="tonal"
+                  color="error"
+                  class="param-action-btn param-action-delete"
+                  @click="confirmDelete(item)"
+                >
+                  <v-icon size="15">mdi-delete-outline</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
         </template>
       </v-data-table>
     </v-card-text>
 
     <!-- Edit/Add Package Dialog -->
-    <v-dialog v-model="dialog" max-width="650" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="#546E7A" class="mr-2">mdi-package-variant-closed</v-icon>
-          {{ editing ? $t('edit_package_type') : $t('add_package_type') }}
-        </v-card-title>
-        <v-card-text class="pa-5">
-          <v-row>
-            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#546E7A" class="mb-3"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#546E7A" class="mb-3"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#546E7A"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_in_invoice" :label="$t('name_in_invoice')" prepend-inner-icon="mdi-receipt-text-outline" variant="outlined" density="compact" rounded color="#546E7A"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.size" :label="$t('size')" prepend-inner-icon="mdi-ruler-square" variant="outlined" density="compact" rounded color="#546E7A"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.type_emballage" :label="$t('packaging_type')" prepend-inner-icon="mdi-package-variant" variant="outlined" density="compact" rounded color="#546E7A"></v-text-field></v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#546E7A" rows="2"></v-textarea></v-col>
+    <v-dialog v-model="dialog" max-width="680" persistent scrollable>
+      <v-card class="rounded-2xl param-dialog-card">
+        <!-- Header -->
+        <div class="param-dialog-header d-flex align-center justify-space-between pa-5 pb-3">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon" style="background: rgba(84, 110, 122, 0.14); color: #546E7A;">
+              <v-icon size="22">mdi-package-variant-closed</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title-text">{{ editing ? $t('edit_package_type') : $t('add_package_type') }}</div>
+              <div class="param-dialog-subtitle-text">{{ $t('manage_package_types') }}</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" rounded="lg" @click="dialog = false"></v-btn>
+        </div>
+        <v-divider></v-divider>
+
+        <v-card-text class="param-dialog-body pa-6">
+          <v-row dense>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.name_fr"
+                :label="$t('name_fr')"
+                prepend-inner-icon="mdi-translate"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#546E7A"
+                class="mb-2"
+                hide-details="auto"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.name_en"
+                :label="$t('name_en')"
+                prepend-inner-icon="mdi-translate"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#546E7A"
+                class="mb-2"
+                hide-details="auto"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.name_es"
+                :label="$t('name_es')"
+                prepend-inner-icon="mdi-translate"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#546E7A"
+                class="mb-2"
+                hide-details="auto"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.name_in_invoice"
+                :label="$t('name_in_invoice')"
+                prepend-inner-icon="mdi-receipt-text-outline"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#546E7A"
+                class="mb-2"
+                hide-details="auto"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.size"
+                :label="$t('size')"
+                prepend-inner-icon="mdi-ruler-square"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#546E7A"
+                class="mb-2"
+                hide-details="auto"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.type_emballage"
+                :label="$t('packaging_type')"
+                prepend-inner-icon="mdi-package-variant"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#546E7A"
+                class="mb-2"
+                hide-details="auto"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12">
+              <v-textarea
+                v-model="form.description"
+                :label="$t('description')"
+                prepend-inner-icon="mdi-text"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#546E7A"
+                rows="2"
+                hide-details="auto"
+                class="mb-2"
+              ></v-textarea>
+            </v-col>
           </v-row>
 
-          <v-divider class="my-3"></v-divider>
+          <v-divider class="my-4"></v-divider>
 
           <!-- Linked Package Components Section -->
-          <div class="d-flex align-center justify-space-between mb-2">
-            <div class="text-subtitle-2 font-weight-bold text-blue-grey d-flex align-center">
+          <div class="d-flex align-center justify-space-between mb-3">
+            <div class="text-subtitle-2 font-weight-bold d-flex align-center" style="color: #546E7A;">
               <v-icon size="18" color="#546E7A" class="mr-1">mdi-link-variant</v-icon>
               {{ $t('linked_packages') }}
             </div>
-            <v-btn size="small" color="#546E7A" variant="tonal" rounded prepend-icon="mdi-plus" @click="addLinkedPackageComponent">
+            <v-btn size="small" color="#546E7A" variant="tonal" rounded="lg" prepend-icon="mdi-plus" @click="addLinkedPackageComponent">
               {{ $t('add_linked_package') }}
             </v-btn>
           </div>
 
           <div v-if="form.components && form.components.length">
-            <v-card v-for="(comp, cIdx) in form.components" :key="cIdx" variant="outlined" color="#546E7A" class="pa-3 rounded-lg mb-2">
+            <v-card v-for="(comp, cIdx) in form.components" :key="cIdx" variant="outlined" class="pa-3 rounded-xl mb-2" style="border-color: rgba(84, 110, 122, 0.25); background: rgba(84, 110, 122, 0.02)">
               <div class="d-flex align-center ga-2">
                 <v-autocomplete
                   v-model="comp.target_package_type_id"
@@ -96,7 +322,7 @@
                   prepend-inner-icon="mdi-package-variant-closed"
                   variant="outlined"
                   density="compact"
-                  rounded
+                  rounded="lg"
                   color="#546E7A"
                   hide-details
                   class="flex-grow-1"
@@ -111,258 +337,401 @@
                   prepend-inner-icon="mdi-close"
                   variant="outlined"
                   density="compact"
-                  rounded
+                  rounded="lg"
                   color="#546E7A"
                   hide-details
                   style="max-width: 140px"
                 ></v-text-field>
 
                 <v-btn
-                  icon="mdi-delete"
+                  icon="mdi-delete-outline"
                   size="small"
-                  variant="text"
+                  variant="tonal"
                   color="error"
+                  class="param-action-delete"
+                  rounded="lg"
                   @click="removeLinkedPackageComponent(cIdx)"
                 ></v-btn>
               </div>
             </v-card>
           </div>
-          <div v-else class="text-caption text-grey text-center pa-3" style="border: 1px dashed rgba(84, 110, 122, 0.3); border-radius: 8px">
+          <div v-else class="text-caption text-grey text-center pa-4 rounded-xl" style="border: 1px dashed rgba(84, 110, 122, 0.3); background: rgba(84, 110, 122, 0.02)">
             {{ $t('no_data') }} — {{ $t('add_linked_package') }}
           </div>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
-          <v-spacer></v-spacer>
-          <v-btn @click="dialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="#546E7A" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
+
+        <v-divider></v-divider>
+        <v-card-actions class="param-dialog-actions pa-4 px-6 d-flex align-center justify-end ga-2">
+          <v-btn @click="dialog = false" variant="tonal" color="grey-darken-1" rounded="lg">{{ $t('cancel') }}</v-btn>
+          <v-btn color="#546E7A" variant="flat" rounded="lg" prepend-icon="mdi-content-save" @click="save" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Secondary Packaging Configuration Dialog with DatePicker (WAP-like UX) -->
-    <v-dialog v-model="secondaryDialog" max-width="900" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="#546E7A" class="mr-2">mdi-layers-outline</v-icon>
-          <span class="text-subtitle-1 font-weight-bold">
-            {{ $t('secondary_packaging_config') }} - {{ selectedPackage ? (selectedPackage['name_' + main.lang.short] || selectedPackage.name_fr || selectedPackage.name_en) : '' }}
-          </span>
-          <v-spacer></v-spacer>
-          <v-btn icon variant="text" size="small" @click="secondaryDialog = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pa-5">
-          <!-- Rule Entry Form -->
-          <v-card variant="outlined" class="rounded-lg pa-4 mb-4" style="border-color: rgba(84, 110, 122, 0.3); background: rgba(84, 110, 122, 0.02)">
-            <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center text-blue-grey-darken-2">
-              <v-icon size="18" color="#546E7A" class="mr-1">mdi-plus-circle-outline</v-icon>
-              {{ editingSecondaryRule ? $t('edit_secondary_rule') : $t('add_secondary_rule') }}
+    <v-dialog v-model="secondaryDialog" max-width="1060" persistent scrollable>
+      <v-card class="rounded-2xl param-dialog-card">
+        <div class="param-dialog-header d-flex align-center justify-space-between pa-4 px-6 pb-3">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon" style="background: rgba(84, 110, 122, 0.14); color: #546E7A;">
+              <v-icon size="22">mdi-layers-outline</v-icon>
             </div>
-
-            <!-- Date Range Selector using DatePicker -->
-            <div class="d-flex align-center justify-space-between mb-2">
-              <div class="text-caption font-weight-bold text-blue-grey">{{ $t('secondary_packaging_config') }}</div>
-              <v-checkbox
-                v-model="secondaryForm.is_range"
-                :label="$t('date_range')"
-                density="compact"
-                hide-details
-                color="#546E7A"
-              ></v-checkbox>
+            <div>
+              <div class="param-dialog-title-text">{{ $t('secondary_packaging_config') }}</div>
+              <div class="param-dialog-subtitle-text font-weight-bold" style="color: #546E7A;">
+                {{ selectedPackage ? (selectedPackage['name_' + main.lang.short] || selectedPackage.name_fr || selectedPackage.name_en) : '' }}
+              </div>
             </div>
+          </div>
 
-            <DatePicker
-              v-if="secondaryForm.is_range"
-              v-model.range="secondaryDateRangeVC"
-              expanded
-              :is-dark="main.is_dark"
-              mode="date"
-              color="gray"
-              class="rounded-lg mb-2"
-            />
-            <DatePicker
-              v-else
-              v-model="secondarySingleDateVC"
-              expanded
-              :is-dark="main.is_dark"
-              mode="date"
-              color="gray"
-              class="rounded-lg mb-2"
-            />
-
-            <div class="d-flex align-center ga-4 text-caption mb-3">
-              <div><b>{{ $t('start_date') }}:</b> <span class="text-blue-grey-darken-2 font-weight-bold">{{ secondaryStartDateDisplay }}</span></div>
-              <div><b>{{ $t('end_date') }}:</b> <span class="text-blue-grey-darken-2 font-weight-bold">{{ secondaryEndDateDisplay }}</span></div>
-            </div>
-
-            <v-divider class="my-3"></v-divider>
-
-            <!-- Components Fields Grid (Measure, Quantity & Price per package) -->
-            <div class="d-flex align-center justify-space-between mb-2">
-              <div class="text-caption font-weight-bold text-blue-grey">{{ $t('secondary_packaging') }} Components (Measure, Quantity & Price per package)</div>
-              <v-btn size="small" color="#546E7A" variant="tonal" rounded prepend-icon="mdi-plus" @click="addSecondaryComponent">
-                {{ $t('add_component') }}
+          <!-- Segmented Pill Tabs for fast mode switching -->
+          <div class="d-flex align-center ga-2">
+            <v-btn-toggle
+              v-model="secondaryActiveTab"
+              mandatory
+              density="compact"
+              rounded="xl"
+              color="#546E7A"
+              variant="outlined"
+            >
+              <v-btn value="config" size="small" prepend-icon="mdi-tune-variant" class="text-caption font-weight-bold">
+                {{ editingSecondaryRule ? $t('edit_secondary_rule') : $t('rule_configuration') }}
               </v-btn>
-            </div>
+              <v-btn value="history" size="small" prepend-icon="mdi-history" class="text-caption font-weight-bold">
+                {{ $t('rule_history') }} ({{ secondaryRulesList.length }})
+              </v-btn>
+            </v-btn-toggle>
+            <v-btn icon="mdi-close" variant="text" size="small" rounded="lg" @click="secondaryDialog = false"></v-btn>
+          </div>
+        </div>
+        <v-divider></v-divider>
 
+        <v-card-text class="param-dialog-body pa-5">
+          <!-- TAB 1: RULE CONFIGURATION (2 COLUMNS: LEFT = DATE + COST SUMMARY; RIGHT = COMPONENTS) -->
+          <div v-if="secondaryActiveTab === 'config'">
             <v-row dense>
-              <v-col v-for="(comp, cIdx) in secondaryForm.components" :key="comp.key || cIdx" cols="12" sm="6">
-                <v-card variant="tonal" color="#546E7A" class="pa-2 rounded-lg mb-2">
-                  <div class="d-flex align-center justify-space-between mb-1">
-                    <div class="text-caption font-weight-bold text-truncate flex-grow-1 mr-1">
-                      <v-text-field
-                        v-if="comp.is_custom"
-                        v-model="comp.name"
-                        :placeholder="$t('component_name')"
-                        variant="underlined"
-                        density="compact"
-                        hide-details
-                        color="#546E7A"
-                        class="text-caption font-weight-bold pa-0 ma-0"
-                      ></v-text-field>
-                      <span v-else>{{ comp.name }}</span>
+              <!-- LEFT COLUMN: DATE SELECTION & EXECUTIVE COST SUMMARY & ACTIONS -->
+              <v-col cols="12" md="5">
+                <!-- Date Card -->
+                <v-card variant="outlined" class="rounded-xl pa-4 mb-3" style="border-color: rgba(84, 110, 122, 0.25); background: rgba(84, 110, 122, 0.02)">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <div class="text-caption font-weight-bold d-flex align-center text-blue-grey-darken-2">
+                      <v-icon size="16" color="#546E7A" class="mr-1">mdi-calendar-range</v-icon>
+                      {{ $t('period') }}
                     </div>
-                    <v-btn
-                      v-if="comp.is_custom"
-                      icon="mdi-close-circle"
-                      size="x-small"
-                      variant="text"
-                      color="error"
-                      @click="removeSecondaryComponent(cIdx)"
-                      :title="$t('remove_component')"
-                    ></v-btn>
+                    <v-checkbox
+                      v-model="secondaryForm.is_range"
+                      :label="$t('date_range')"
+                      density="compact"
+                      hide-details
+                      color="#546E7A"
+                    ></v-checkbox>
                   </div>
-                  <v-row dense>
-                    <v-col cols="4">
-                      <v-combobox
-                        v-model="comp.unit"
-                        :items="['U', 'Kg', 'g', 'm', 'Rouleau', 'Pièce', 'Carton', 'L']"
-                        :label="$t('measure')"
-                        prepend-inner-icon="mdi-ruler"
-                        variant="outlined"
-                        density="compact"
-                        rounded
-                        color="#546E7A"
-                        hide-details
-                      ></v-combobox>
-                    </v-col>
-                    <v-col cols="4">
-                      <v-text-field
-                        v-model.number="comp.qte"
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        :label="$t('qte')"
-                        prepend-inner-icon="mdi-numeric"
-                        variant="outlined"
-                        density="compact"
-                        rounded
-                        color="#546E7A"
-                        hide-details
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="4">
-                      <v-text-field
-                        v-model.number="comp.price"
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        :label="$t('price') + ' (DH)'"
-                        prepend-inner-icon="mdi-cash"
-                        variant="outlined"
-                        density="compact"
-                        rounded
-                        color="#546E7A"
-                        hide-details
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
+
+                  <DatePicker
+                    v-if="secondaryForm.is_range"
+                    v-model.range="secondaryDateRangeVC"
+                    expanded
+                    :is-dark="main.is_dark"
+                    mode="date"
+                    color="gray"
+                    class="rounded-lg mb-2"
+                  />
+                  <DatePicker
+                    v-else
+                    v-model="secondarySingleDateVC"
+                    expanded
+                    :is-dark="main.is_dark"
+                    mode="date"
+                    color="gray"
+                    class="rounded-lg mb-2"
+                  />
+
+                  <div class="d-flex align-center justify-space-between text-caption px-1 pt-1">
+                    <div>
+                      <span class="text-grey">{{ $t('start_date') }}:</span>
+                      <span class="text-blue-grey-darken-2 font-weight-bold ms-1">{{ secondaryStartDateDisplay }}</span>
+                    </div>
+                    <div>
+                      <span class="text-grey">{{ $t('end_date') }}:</span>
+                      <span class="text-blue-grey-darken-2 font-weight-bold ms-1">{{ secondaryEndDateDisplay }}</span>
+                    </div>
+                  </div>
+                </v-card>
+
+                <!-- Cost Summary Card -->
+                <v-card variant="tonal" class="rounded-xl pa-4" style="background: rgba(84, 110, 122, 0.08); border: 1px solid rgba(84, 110, 122, 0.2)">
+                  <div class="text-caption font-weight-bold text-uppercase tracking-wider text-blue-grey mb-1">
+                    {{ $t('unit_cost_per_package') }}
+                  </div>
+                  <div class="d-flex align-baseline ga-2 mb-3">
+                    <span class="text-h4 font-weight-black" style="color: #37474F;">{{ calculatedUnitCost }}</span>
+                    <span class="text-subtitle-1 font-weight-bold text-blue-grey">DH / package</span>
+                  </div>
+
+                  <div class="d-flex align-center ga-2 mb-3 text-caption text-medium-emphasis">
+                    <v-icon size="14">mdi-package-variant</v-icon>
+                    <span>{{ secondaryForm.components.filter(c => c.qte > 0).length }} active component(s)</span>
+                  </div>
+
+                  <div class="d-flex align-center ga-2">
+                    <v-btn
+                      v-if="editingSecondaryRule"
+                      variant="tonal"
+                      color="grey-darken-1"
+                      size="small"
+                      rounded="lg"
+                      @click="resetSecondaryForm"
+                    >
+                      {{ $t('cancel') }}
+                    </v-btn>
+                    <v-btn
+                      color="#546E7A"
+                      variant="flat"
+                      rounded="lg"
+                      class="flex-grow-1"
+                      :loading="savingSecondaryRule"
+                      @click="saveSecondaryRule"
+                      prepend-icon="mdi-content-save"
+                    >
+                      {{ editingSecondaryRule ? $t('update') : $t('save') }}
+                    </v-btn>
+                  </div>
+                </v-card>
+              </v-col>
+
+              <!-- RIGHT COLUMN: COMPONENTS BREAKDOWN -->
+              <v-col cols="12" md="7">
+                <v-card variant="outlined" class="rounded-xl pa-4" style="border-color: rgba(84, 110, 122, 0.25); background: rgba(84, 110, 122, 0.02)">
+                  <div class="d-flex align-center justify-space-between mb-3">
+                    <div class="text-caption font-weight-bold d-flex align-center text-blue-grey-darken-2">
+                      <v-icon size="16" color="#546E7A" class="mr-1">mdi-format-list-checks</v-icon>
+                      {{ $t('components_breakdown') }}
+                    </div>
+                    <v-btn size="x-small" color="#546E7A" variant="tonal" rounded="lg" prepend-icon="mdi-plus" @click="addSecondaryComponent">
+                      {{ $t('add_component') }}
+                    </v-btn>
+                  </div>
+
+                  <div class="ga-2 d-flex flex-column">
+                    <v-card
+                      v-for="(comp, cIdx) in secondaryForm.components"
+                      :key="comp.key || cIdx"
+                      variant="outlined"
+                      class="pa-2 px-3 rounded-lg"
+                      style="border-color: rgba(84, 110, 122, 0.2); background: rgba(var(--v-theme-surface), 0.95)"
+                    >
+                      <div class="d-flex align-center justify-space-between mb-1">
+                        <div class="text-caption font-weight-bold text-truncate flex-grow-1 mr-2">
+                          <v-text-field
+                            v-if="comp.is_custom"
+                            v-model="comp.name"
+                            :placeholder="$t('component_name')"
+                            variant="underlined"
+                            density="compact"
+                            hide-details
+                            color="#546E7A"
+                            class="text-caption font-weight-bold pa-0 ma-0"
+                          ></v-text-field>
+                          <span v-else style="color: #455A64;">{{ comp.name }}</span>
+                        </div>
+                        <div class="d-flex align-center ga-2">
+                          <span class="text-caption font-weight-bold" style="color: #546E7A;">
+                            {{ (Number(comp.qte || 0) * Number(comp.price || 0)).toFixed(3) }} DH
+                          </span>
+                          <v-btn
+                            v-if="comp.is_custom"
+                            icon="mdi-close-circle"
+                            size="x-small"
+                            variant="text"
+                            color="error"
+                            @click="removeSecondaryComponent(cIdx)"
+                            :title="$t('remove_component')"
+                          ></v-btn>
+                        </div>
+                      </div>
+                      <v-row dense>
+                        <v-col cols="4">
+                          <v-combobox
+                            v-model="comp.unit"
+                            :items="['U', 'Kg', 'g', 'm', 'Rouleau', 'Pièce', 'Carton', 'L']"
+                            :label="$t('measure')"
+                            prepend-inner-icon="mdi-ruler"
+                            variant="outlined"
+                            density="compact"
+                            rounded="lg"
+                            color="#546E7A"
+                            hide-details
+                          ></v-combobox>
+                        </v-col>
+                        <v-col cols="4">
+                          <v-text-field
+                            v-model.number="comp.qte"
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            :label="$t('qte')"
+                            prepend-inner-icon="mdi-numeric"
+                            variant="outlined"
+                            density="compact"
+                            rounded="lg"
+                            color="#546E7A"
+                            hide-details
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="4">
+                          <v-text-field
+                            v-model.number="comp.price"
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            :label="$t('price') + ' (DH)'"
+                            prepend-inner-icon="mdi-cash"
+                            variant="outlined"
+                            density="compact"
+                            rounded="lg"
+                            color="#546E7A"
+                            hide-details
+                          ></v-text-field>
+                        </v-col>
+                      </v-row>
+                    </v-card>
+                  </div>
                 </v-card>
               </v-col>
             </v-row>
+          </div>
 
-            <!-- Unit Cost Preview & Save -->
-            <div class="d-flex align-center justify-space-between mt-3 pt-2" style="border-top: 1px dashed rgba(84, 110, 122, 0.3)">
-              <div>
-                <span class="text-caption text-grey">{{ $t('unit_cost_per_package') }}: </span>
-                <b class="text-blue-grey-darken-3 text-subtitle-1">{{ calculatedUnitCost }} DH</b>
+          <!-- TAB 2: RULES HISTORY DATATABLE -->
+          <div v-else>
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="text-subtitle-2 font-weight-bold d-flex align-center ga-2">
+                <v-icon size="18" color="#546E7A">mdi-history</v-icon>
+                <span>{{ $t('secondary_packaging_config') }} — {{ $t('rule_history') }}</span>
               </div>
-              <div>
-                <v-btn v-if="editingSecondaryRule" variant="text" size="small" @click="resetSecondaryForm" class="mr-2">{{ $t('cancel') }}</v-btn>
-                <v-btn color="#546E7A" variant="flat" rounded :loading="savingSecondaryRule" @click="saveSecondaryRule" prepend-icon="mdi-check">
-                  {{ editingSecondaryRule ? $t('update') : $t('save') }}
-                </v-btn>
-              </div>
+              <v-btn
+                size="small"
+                color="#546E7A"
+                variant="flat"
+                rounded="lg"
+                prepend-icon="mdi-plus"
+                @click="resetSecondaryForm(); secondaryActiveTab = 'config'"
+              >
+                {{ $t('add_secondary_rule') }}
+              </v-btn>
             </div>
-          </v-card>
 
-          <!-- Existing Secondary Packaging Rules Table -->
-          <div class="text-subtitle-2 font-weight-bold mb-2">{{ $t('secondary_packaging_config') }}</div>
-          <v-data-table
-            :headers="secondaryHeaders"
-            :items="secondaryRulesList"
-            :loading="loadingSecondaryRules ? '#546E7A' : false"
-            :multi-sort="true"
-            density="compact"
-            class="rounded-lg param-table"
-            hover
-          >
-            <template v-slot:[`item.date_start`]="{ item }">
-              <span>{{ main.formateDate(item.date_start) }}</span>
-            </template>
-            <template v-slot:[`item.date_end`]="{ item }">
-              <v-chip size="x-small" :color="item.date_end ? '#546E7A' : 'warning'" variant="tonal" class="font-weight-bold">
-                {{ item.date_end ? main.formateDate(item.date_end) : $t('open_ended') }}
-              </v-chip>
-            </template>
-            <template v-slot:[`item.breakdown`]="{ item }">
-              <div class="text-caption ga-1 d-flex flex-wrap">
-                <template v-if="item.resolved_components && item.resolved_components.length">
-                  <v-chip
-                    v-for="(comp, cIdx) in item.resolved_components.filter(c => c.qte > 0)"
-                    :key="cIdx"
-                    size="x-small"
-                    variant="tonal"
-                    color="blue-grey"
-                  >
-                    {{ comp.name }} ({{ comp.unit || 'U' }}): {{ comp.qte }}x{{ comp.price }}
-                  </v-chip>
-                </template>
-                <template v-else>
-                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.caisses_qte > 0">Caisses (U): {{ item.caisses_qte }}x{{ item.caisses_price }}</v-chip>
-                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.cellophane_qte > 0">Cello (Kg): {{ item.cellophane_qte }}x{{ item.cellophane_price }}</v-chip>
-                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.plastique_qte > 0">Plast (Kg): {{ item.plastique_qte }}x{{ item.plastique_price }}</v-chip>
-                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.strapex_qte > 0">Strap (m): {{ item.strapex_qte }}x{{ item.strapex_price }}</v-chip>
-                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.palletes_qte > 0">Pallet (U): {{ item.palletes_qte }}x{{ item.palletes_price }}</v-chip>
-                  <v-chip size="x-small" variant="tonal" color="blue-grey" v-if="item.scotch_qte > 0">Scotch (Rouleau): {{ item.scotch_qte }}x{{ item.scotch_price }}</v-chip>
-                </template>
-              </div>
-            </template>
-            <template v-slot:[`item.unit_cost`]="{ item }">
-              <b class="text-blue-grey-darken-2">{{ main.formatDisplayNumber(item.unit_cost) }} DH</b>
-            </template>
-            <template v-slot:[`item.actions`]="{ item }">
-              <v-btn icon size="x-small" variant="tonal" color="#546E7A" @click="editSecondaryRule(item)" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-              <v-btn icon size="x-small" variant="tonal" color="error" @click="deleteSecondaryRule(item)"><v-icon size="14">mdi-delete</v-icon></v-btn>
-            </template>
-          </v-data-table>
+            <v-data-table
+              :headers="secondaryHeaders"
+              :items="secondaryRulesList"
+              :loading="loadingSecondaryRules ? '#546E7A' : false"
+              :multi-sort="true"
+              density="compact"
+              class="rounded-xl param-table"
+              hover
+            >
+              <template v-slot:[`item.date_start`]="{ item }">
+                <span>{{ main.formateDate(item.date_start) }}</span>
+              </template>
+              <template v-slot:[`item.date_end`]="{ item }">
+                <v-chip size="x-small" :color="item.date_end ? '#546E7A' : 'success'" variant="tonal" class="font-weight-bold">
+                  {{ item.date_end ? main.formateDate(item.date_end) : $t('open_ended') }}
+                </v-chip>
+              </template>
+              <template v-slot:[`item.breakdown`]="{ item }">
+                <div class="text-caption ga-1 d-flex flex-wrap">
+                  <template v-if="item.resolved_components && item.resolved_components.length">
+                    <v-chip
+                      v-for="(comp, cIdx) in item.resolved_components.filter(c => c.qte > 0)"
+                      :key="cIdx"
+                      size="x-small"
+                      variant="tonal"
+                      color="#546E7A"
+                      class="font-weight-medium"
+                    >
+                      {{ comp.name }} ({{ comp.unit || 'U' }}): {{ comp.qte }}x{{ comp.price }}
+                    </v-chip>
+                  </template>
+                  <template v-else>
+                    <v-chip size="x-small" variant="tonal" color="#546E7A" v-if="item.caisses_qte > 0">Caisses (U): {{ item.caisses_qte }}x{{ item.caisses_price }}</v-chip>
+                    <v-chip size="x-small" variant="tonal" color="#546E7A" v-if="item.cellophane_qte > 0">Cello (Kg): {{ item.cellophane_qte }}x{{ item.cellophane_price }}</v-chip>
+                    <v-chip size="x-small" variant="tonal" color="#546E7A" v-if="item.plastique_qte > 0">Plast (Kg): {{ item.plastique_qte }}x{{ item.plastique_price }}</v-chip>
+                    <v-chip size="x-small" variant="tonal" color="#546E7A" v-if="item.strapex_qte > 0">Strap (m): {{ item.strapex_qte }}x{{ item.strapex_price }}</v-chip>
+                    <v-chip size="x-small" variant="tonal" color="#546E7A" v-if="item.palletes_qte > 0">Pallet (U): {{ item.palletes_qte }}x{{ item.palletes_price }}</v-chip>
+                    <v-chip size="x-small" variant="tonal" color="#546E7A" v-if="item.scotch_qte > 0">Scotch (Rouleau): {{ item.scotch_qte }}x{{ item.scotch_price }}</v-chip>
+                  </template>
+                </div>
+              </template>
+              <template v-slot:[`item.unit_cost`]="{ item }">
+                <b class="fnm-currency-num" style="color: #546E7A;">{{ main.formatDisplayNumber(item.unit_cost) }} DH</b>
+              </template>
+              <template v-slot:[`item.actions`]="{ item }">
+                <div class="param-actions-cell">
+                  <v-tooltip :text="$t('edit')" location="top">
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        icon
+                        size="26"
+                        variant="tonal"
+                        color="#546E7A"
+                        class="param-action-btn"
+                        @click="editSecondaryRule(item)"
+                      >
+                        <v-icon size="13">mdi-pencil</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                  <v-tooltip :text="$t('delete')" location="top">
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        icon
+                        size="26"
+                        variant="tonal"
+                        color="error"
+                        class="param-action-btn param-action-delete"
+                        @click="deleteSecondaryRule(item)"
+                      >
+                        <v-icon size="13">mdi-delete-outline</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                </div>
+              </template>
+            </v-data-table>
+          </div>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
-          <v-spacer></v-spacer>
-          <v-btn @click="secondaryDialog = false" variant="text">{{ $t('close') }}</v-btn>
+        <v-divider></v-divider>
+        <v-card-actions class="param-dialog-actions pa-4 px-6 d-flex align-center justify-end">
+          <v-btn @click="secondaryDialog = false" variant="tonal" color="grey-darken-1" rounded="lg">{{ $t('close') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Delete Dialog -->
-    <v-dialog v-model="deleteDialog" max-width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2"><v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>{{ $t('confirm_delete') }}</v-card-title>
-        <v-card-text class="pa-5 pt-2 text-body-1">{{ $t('confirm_delete_message') }}</v-card-text>
-        <v-card-actions class="pa-5 pt-0">
-          <v-spacer></v-spacer>
-          <v-btn @click="deleteDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="error" variant="flat" rounded @click="executeDelete">{{ $t('delete') }}</v-btn>
+    <v-dialog v-model="deleteDialog" max-width="440">
+      <v-card class="rounded-2xl param-dialog-card">
+        <div class="pa-5 pb-3 d-flex align-center ga-3">
+          <div class="param-dialog-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+            <v-icon size="24">mdi-alert-circle-outline</v-icon>
+          </div>
+          <div>
+            <div class="text-h6 font-weight-bold" style="line-height: 1.2;">{{ $t('confirm_delete') }}</div>
+            <div class="text-caption text-medium-emphasis">{{ $t('cannot_be_undone') || 'This action cannot be undone' }}</div>
+          </div>
+        </div>
+        <v-divider></v-divider>
+        <v-card-text class="pa-5 text-body-2">
+          {{ $t('confirm_delete_message') }}
+          <div v-if="deleteTarget" class="mt-2 font-weight-bold pa-2 rounded-lg" style="background: rgba(var(--v-border-color), 0.05); color: #546E7A;">
+            "{{ deleteTarget['name_' + main.lang.short] || deleteTarget.name_fr || deleteTarget.name_en }}"
+          </div>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card-actions class="param-dialog-actions pa-4 px-6 d-flex align-center justify-end ga-2">
+          <v-btn @click="deleteDialog = false" variant="tonal" color="grey-darken-1" rounded="lg">{{ $t('cancel') }}</v-btn>
+          <v-btn color="error" variant="flat" rounded="lg" prepend-icon="mdi-delete" @click="executeDelete">{{ $t('delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -406,6 +775,7 @@ export default {
   data() {
     return {
       items: [], loading: false,
+      search: '',
       dialog: false, editing: null, saving: false,
       form: { name_fr: '', name_en: '', name_es: '', name_in_invoice: '', size: '', description: '', type_emballage: '', components: [] },
       columnFilters: {},
@@ -416,6 +786,7 @@ export default {
 
       // Secondary Packaging Configuration State with DatePicker
       secondaryDialog: false,
+      secondaryActiveTab: 'config',
       selectedPackage: null,
       loadingSecondaryRules: false,
       secondaryRulesList: [],
@@ -437,10 +808,10 @@ export default {
         { title: this.$t('name_en'), key: 'name_en', align: 'center' },
         { title: this.$t('name_es'), key: 'name_es', align: 'center' },
         { title: this.$t('name_in_invoice'), key: 'name_in_invoice', align: 'center' },
-        { title: this.$t('size'), key: 'size', align: 'center' },
+        { title: this.$t('size'), key: 'size', align: 'center', width: '90px' },
         { title: this.$t('packaging_type'), key: 'type_emballage', align: 'center' },
         { title: this.$t('linked_packages'), key: 'components', align: 'center', sortable: false },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '135px' },
       ];
     },
     targetPackageOptions() {
@@ -458,7 +829,7 @@ export default {
         { title: this.$t('end_date'), key: 'date_end', align: 'center' },
         { title: this.$t('secondary_packaging'), key: 'breakdown', align: 'center' },
         { title: this.$t('unit_cost_per_package'), key: 'unit_cost', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '100px' },
       ];
     },
     secondaryStartDateDisplay() {
@@ -486,10 +857,22 @@ export default {
       return Math.round(total * 10000) / 10000;
     },
     filteredItems() {
-      return this.items.filter(item => Object.entries(this.columnFilters).every(([key, sel]) => {
+      let list = this.items.filter(item => Object.entries(this.columnFilters).every(([key, sel]) => {
         if (!sel || !sel.length) return true;
         return sel.includes(String(item[key] ?? ''));
       }));
+      if (this.search && this.search.trim()) {
+        const q = this.search.toLowerCase().trim();
+        list = list.filter(item => {
+          return (item.name_fr && item.name_fr.toLowerCase().includes(q)) ||
+                 (item.name_en && item.name_en.toLowerCase().includes(q)) ||
+                 (item.name_es && item.name_es.toLowerCase().includes(q)) ||
+                 (item.name_in_invoice && item.name_in_invoice.toLowerCase().includes(q)) ||
+                 (item.size && String(item.size).toLowerCase().includes(q)) ||
+                 (item.type_emballage && item.type_emballage.toLowerCase().includes(q));
+        });
+      }
+      return list;
     },
     hasActiveFilters() { return Object.values(this.columnFilters).some(f => f && f.length > 0); },
   },
@@ -639,6 +1022,7 @@ export default {
     },
     openSecondaryDialog(pkg) {
       this.selectedPackage = pkg;
+      this.secondaryActiveTab = 'config';
       this.resetSecondaryForm();
       this.fetchSecondaryRules();
       this.secondaryDialog = true;
@@ -679,6 +1063,7 @@ export default {
     },
     editSecondaryRule(rule) {
       this.editingSecondaryRule = rule;
+      this.secondaryActiveTab = 'config';
       const s = rule.date_start ? new Date(rule.date_start) : new Date();
       const e = rule.date_end ? new Date(rule.date_end) : null;
       this.secondaryForm.is_range = !!rule.date_end;
@@ -736,6 +1121,7 @@ export default {
         }
         this.resetSecondaryForm();
         await this.fetchSecondaryRules();
+        this.secondaryActiveTab = 'history';
       } catch (e) {
         console.error(e);
         this.triggerSummarySnackbar(this.$t('error_occurred'), e.response?.data?.message || 'Error saving secondary rule', 'error');
@@ -764,15 +1150,6 @@ export default {
 .pm-hero-inner { position: relative; z-index: 1; padding: 22px 26px; color: #fff; }
 .pm-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.15); }
 .pm-hero-title { font-size: 19px; font-weight: 800; letter-spacing: .3px; }
-.param-th { padding: 10px 8px 4px !important; }
-.param-th-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; opacity: .7; text-align: center; white-space: nowrap; cursor: pointer; }
-.param-filter-row th { padding: 0 4px 6px !important; }
-.param-filter-th { vertical-align: top; }
-.param-filter-input { min-width: 80px; }
-.param-filter-input :deep(.v-field) { font-size: 11px !important; min-height: 30px !important; border-radius: 8px !important; }
-.param-filter-input :deep(.v-field__input) { padding: 2px 6px !important; min-height: 26px !important; font-size: 11px; }
-.param-filter-input :deep(.v-field__clearable) { font-size: 14px; }
-.param-filter-input :deep(.v-chip) { height: 18px !important; font-size: 10px !important; }
 .fnm-currency-num {
   font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
   font-variant-numeric: tabular-nums !important;

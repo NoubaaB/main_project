@@ -845,11 +845,11 @@ export default {
     },
     getPackagingIcon(key) {
       const icons = {
-        caisses: 'mdi-archive-outline',
-        cellophane: 'mdi-filmstrip',
+        caisses: 'mdi-package-variant-closed',
+        cellophane: 'mdi-layers-triple-outline',
         plastique: 'mdi-shopping-outline',
         strapex: 'mdi-tape-measure',
-        palletes: 'mdi-shipping-pallet',
+        palletes: 'mdi-pallet',
         scotch: 'mdi-sticker-circle-outline',
       };
       return icons[key] || 'mdi-package-variant-closed';

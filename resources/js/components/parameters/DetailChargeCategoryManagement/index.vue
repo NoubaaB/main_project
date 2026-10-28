@@ -14,16 +14,46 @@
       </div>
     </div>
     <v-card-text class="pa-4">
-      <div class="d-flex align-center ga-3 mb-3">
-        <v-autocomplete v-model="selectedChargeCategoryId" :items="chargeCategoryOptions" :label="$t('charge_category')" prepend-inner-icon="mdi-shape-outline" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info" style="max-width:300px" hide-details clearable></v-autocomplete>
-        <v-spacer></v-spacer>
-        <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="columnFilters = {}">{{ $t('clear_filters') }}</v-btn>
-        <v-btn color="#42A5F5" prepend-icon="mdi-plus" rounded @click="openDialog(null)" :disabled="!selectedChargeCategoryId">{{ $t('add_detail_category') }}</v-btn>
+      <div class="param-top-toolbar mb-4">
+        <div class="d-flex align-center ga-3 flex-wrap flex-grow-1">
+          <v-autocomplete
+            v-model="selectedChargeCategoryId"
+            :items="chargeCategoryOptions"
+            :label="$t('charge_category')"
+            prepend-inner-icon="mdi-shape-outline"
+            variant="outlined"
+            density="compact"
+            rounded="lg"
+            color="#42A5F5"
+            style="max-width:240px; min-width: 180px;"
+            hide-details
+            clearable
+          ></v-autocomplete>
+          <v-text-field
+            v-model="search"
+            :label="$t('search')"
+            variant="outlined"
+            density="compact"
+            rounded="lg"
+            color="#42A5F5"
+            prepend-inner-icon="mdi-magnify"
+            hide-details
+            clearable
+            class="param-search-input"
+          ></v-text-field>
+          <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold fnm-currency-num">
+            <v-icon start size="14">mdi-format-list-checks</v-icon>
+            {{ filteredItems.length }} {{ $t('records') }}
+          </v-chip>
+          <v-btn v-if="hasActiveColumnFilters" variant="tonal" color="warning" rounded="lg" size="small" prepend-icon="mdi-filter-off" @click="columnFilters = {}">{{ $t('clear_filters') }}</v-btn>
+        </div>
+        <v-btn color="#42A5F5" variant="flat" rounded="lg" prepend-icon="mdi-plus" class="text-capitalize font-weight-bold" elevation="2" @click="openDialog(null)" :disabled="!selectedChargeCategoryId">{{ $t('add_detail_category') }}</v-btn>
       </div>
-      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? 'info' : false" :multi-sort="true" density="comfortable" class="rounded-lg param-table" hover>
+
+      <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#42A5F5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover :search="search">
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
-          <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
-          <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#42A5F5" class="param-filter-input text-info" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#42A5F5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
+          <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
+          <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#42A5F5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#42A5F5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
         </template>
         <template v-slot:[`item.charge_category_name`]="{ item }">
           <v-chip color="#42A5F5" size="small" variant="tonal">{{ getCategoryName(item.charge_category_id) }}</v-chip>
@@ -43,35 +73,60 @@
           <span v-else class="text-grey">-</span>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon size="x-small" variant="tonal" color="#42A5F5" @click="openDialog(item)" class="mr-1"><v-icon size="16">mdi-pencil</v-icon></v-btn>
-          <v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)"><v-icon size="16">mdi-delete</v-icon></v-btn>
+          <div class="param-actions-cell">
+            <v-tooltip :text="$t('edit')" location="top">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon size="28" variant="tonal" color="#42A5F5" class="param-action-btn" @click="openDialog(item)">
+                  <v-icon size="15">mdi-pencil</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip :text="$t('delete')" location="top">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon size="28" variant="tonal" color="error" class="param-action-btn param-action-delete" @click="confirmDelete(item)">
+                  <v-icon size="15">mdi-delete-outline</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
         </template>
       </v-data-table>
     </v-card-text>
 
-    <v-dialog v-model="dialog" max-width="700" persistent>
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="#42A5F5" class="mr-2">mdi-format-list-checks</v-icon>
-          {{ editing ? $t('edit_detail_category') : $t('add_detail_category') }}
-        </v-card-title>
-        <v-card-text class="pa-5">
-          <v-row>
-            <v-col cols="6"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-text-field></v-col>
-            <v-col cols="6"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-text-field></v-col>
-            <v-col cols="6">
-              <v-select v-model="form.article_type" :items="articleTypes" :label="$t('type_article')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info"></v-select>
+    <!-- CREATE/EDIT DIALOG -->
+    <v-dialog v-model="dialog" max-width="720" persistent scrollable>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(66, 165, 245, 0.12); color: #42A5F5;">
+              <v-icon size="22">mdi-format-list-checks</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ editing ? $t('edit_detail_category') : $t('add_detail_category') }}</div>
+              <div class="param-dialog-subtitle">{{ $t('parameters') }} • {{ $t('detail_charge_categories') }}</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" size="small" density="comfortable" @click="dialog = false">
+            <v-icon size="18">mdi-close</v-icon>
+          </v-btn>
+        </div>
+        <v-card-text class="param-dialog-body">
+          <v-row dense>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_fr" :label="$t('name_fr')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-text-field></v-col>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_en" :label="$t('name_en')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-text-field></v-col>
+            <v-col cols="12" sm="4"><v-text-field v-model="form.name_es" :label="$t('name_es')" prepend-inner-icon="mdi-translate" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-text-field></v-col>
+            <v-col cols="12" sm="6">
+              <v-select v-model="form.article_type" :items="articleTypes" :label="$t('type_article')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded="lg" color="#42A5F5"></v-select>
             </v-col>
-            <v-col cols="6" v-if="form.article_type === 'FishType'">
-              <v-select v-model="form.fish_type_filter" :items="[{title:$t('all'),value:'all'},{title:$t('fresh'),value:'fresh'},{title:$t('frozen'),value:'frozen'}]" :label="$t('fish_type_filter')" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info">
+            <v-col cols="12" sm="6" v-if="form.article_type === 'FishType'">
+              <v-select v-model="form.fish_type_filter" :items="[{title:$t('all'),value:'all'},{title:$t('fresh'),value:'fresh'},{title:$t('frozen'),value:'frozen'}]" :label="$t('fish_type_filter')" variant="outlined" density="compact" rounded="lg" color="#42A5F5">
                 <template #prepend-inner><v-icon size="18" color="#42A5F5" class="mr-1">mdi-filter-variant</v-icon></template>
               </v-select>
             </v-col>
-            <v-col cols="6" v-if="form.allow_warehouse">
-              <v-select v-model="form.warehouse_operation" :items="warehouseOps" :label="$t('warehouse_operation')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info" clearable></v-select>
+            <v-col cols="12" sm="6" v-if="form.allow_warehouse">
+              <v-select v-model="form.warehouse_operation" :items="warehouseOps" :label="$t('warehouse_operation')" prepend-inner-icon="mdi-warehouse" variant="outlined" density="compact" rounded="lg" color="#42A5F5" clearable></v-select>
             </v-col>
-            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded color="#42A5F5" class="text-info" rows="2"></v-textarea></v-col>
+            <v-col cols="12"><v-textarea v-model="form.description" :label="$t('description')" prepend-inner-icon="mdi-text" variant="outlined" density="compact" rounded="lg" color="#42A5F5" rows="2"></v-textarea></v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
           <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
@@ -79,10 +134,10 @@
             {{ $t('enabled_fields') }}
           </div>
           <v-row dense>
-            <v-col cols="6" v-for="toggle in toggleFields" :key="toggle.key">
-              <div class="ccm-toggle-card" :class="{ 'ccm-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
+            <v-col cols="12" sm="6" v-for="toggle in toggleFields" :key="toggle.key">
+              <div class="ccm-toggle-card rounded-lg" :class="{ 'ccm-toggle-active': form[toggle.key] }" :style="{ '--toggle-color': form[toggle.key] ? toggle.activeColor : 'transparent' }" @click="form[toggle.key] = !form[toggle.key]">
                 <div class="ccm-toggle-left">
-                  <div class="ccm-toggle-icon-wrap" :style="{ background: form[toggle.key] ? toggle.activeColor + '1A' : 'rgba(var(--v-border-color), .06)' }">
+                  <div class="ccm-toggle-icon-wrap rounded-lg" :style="{ background: form[toggle.key] ? toggle.activeColor + '1A' : 'rgba(var(--v-border-color), .06)' }">
                     <v-icon :color="form[toggle.key] ? toggle.activeColor : 'grey'" size="20">{{ toggle.icon }}</v-icon>
                   </div>
                   <div class="ccm-toggle-label">{{ $t(toggle.label) }}</div>
@@ -92,26 +147,30 @@
             </v-col>
           </v-row>
         </v-card-text>
-        <v-card-actions class="pa-5 pt-0">
+        <v-card-actions class="param-dialog-actions">
           <v-spacer></v-spacer>
-          <v-btn @click="dialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="#42A5F5" variant="flat" rounded @click="save" :loading="saving">{{ $t('save') }}</v-btn>
+          <v-btn @click="dialog = false" variant="tonal" rounded="lg" class="text-capitalize">{{ $t('cancel') }}</v-btn>
+          <v-btn color="#42A5F5" variant="flat" rounded="lg" class="text-capitalize font-weight-bold" @click="save" :loading="saving">{{ $t('save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="confirmDeleteDialog" max-width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-5 pb-2">
-          <v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>
-          {{ $t('confirm_delete') }}
-        </v-card-title>
-        <v-card-text class="pa-5 pt-2">{{ $t('confirm_delete_message') }}</v-card-text>
-        <v-card-actions class="pa-5 pt-0">
-          <v-spacer></v-spacer>
-          <v-btn @click="confirmDeleteDialog = false" variant="text">{{ $t('cancel') }}</v-btn>
-          <v-btn color="error" variant="flat" rounded @click="executeDelete" :loading="deleting">{{ $t('delete') }}</v-btn>
-        </v-card-actions>
+    <!-- CONFIRM DELETE DIALOG -->
+    <v-dialog v-model="confirmDeleteDialog" max-width="440">
+      <v-card class="param-dialog-card">
+        <div class="pa-6 text-center">
+          <div class="param-dialog-icon-badge mx-auto mb-4" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; width: 56px; height: 56px;">
+            <v-icon size="28">mdi-trash-can-outline</v-icon>
+          </div>
+          <div class="text-h6 font-weight-bold mb-2">{{ $t('confirm_delete') }}</div>
+          <div class="text-body-2 text-medium-emphasis mb-6">
+            {{ $t('confirm_delete_message') }}
+          </div>
+          <div class="d-flex align-center ga-3 justify-center">
+            <v-btn variant="tonal" rounded="lg" class="text-capitalize px-5" @click="confirmDeleteDialog = false">{{ $t('cancel') }}</v-btn>
+            <v-btn color="error" variant="flat" rounded="lg" class="text-capitalize font-weight-bold px-6" elevation="2" @click="executeDelete" :loading="deleting">{{ $t('delete') }}</v-btn>
+          </div>
+        </div>
       </v-card>
     </v-dialog>
 
@@ -175,6 +234,7 @@ export default {
       summarySnackbar: { show: false, title: '', detail: '', color: 'success' },
       snackbarProgress: 100,
       snackbarTimer: null,
+      search: '',
     };
   },
   computed: {
@@ -205,7 +265,7 @@ export default {
         { title: this.$t('allow_warehouse'), key: 'allow_warehouse', align: 'center' },
         { title: this.$t('warehouse_operation'), key: 'warehouse_operation', align: 'center' },
         { title: this.$t('include_in_invoice'), key: 'include_in_invoice', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
   },

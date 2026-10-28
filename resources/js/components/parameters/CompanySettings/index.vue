@@ -6,13 +6,13 @@
         <!-- Section: General -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-office-building</v-icon>{{ $t('general_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="4"><v-text-field v-model="form.company_name" :label="$t('company_name')" prepend-inner-icon="mdi-domain" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="4"><v-text-field v-model="form.director_name" :label="$t('director_name')" prepend-inner-icon="mdi-account-tie" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-select v-model="form.director_gender" :items="genderOptions" :label="$t('director_gender')" prepend-inner-icon="mdi-gender-male-female" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-select></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.company_origin" :label="$t('company_origin')" prepend-inner-icon="mdi-earth" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="4"><v-text-field v-model="form.company_name" :label="$t('company_name')" prepend-inner-icon="mdi-domain" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="4"><v-text-field v-model="form.director_name" :label="$t('director_name')" prepend-inner-icon="mdi-account-tie" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-select v-model="form.director_gender" :items="genderOptions" :label="$t('director_gender')" prepend-inner-icon="mdi-gender-male-female" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-select></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.company_origin" :label="$t('company_origin')" prepend-inner-icon="mdi-earth" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
         <v-row dense class="mt-1">
-          <v-col cols="12"><v-text-field v-model="form.company_address" :label="$t('company_address')" prepend-inner-icon="mdi-map-marker" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12"><v-text-field v-model="form.company_address" :label="$t('company_address')" prepend-inner-icon="mdi-map-marker" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -20,10 +20,10 @@
         <!-- Section: Contact -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-phone</v-icon>{{ $t('contact_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="3"><v-text-field v-model="form.phone_number" :label="$t('phone_number')" prepend-inner-icon="mdi-phone" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.fax_number" :label="$t('fax_number')" prepend-inner-icon="mdi-fax" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.email" :label="$t('email')" type="email" prepend-inner-icon="mdi-email-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.swift_code" :label="$t('swift_code')" prepend-inner-icon="mdi-bank-transfer" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.phone_number" :label="$t('phone_number')" prepend-inner-icon="mdi-phone" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.fax_number" :label="$t('fax_number')" prepend-inner-icon="mdi-fax" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.email" :label="$t('email')" type="email" prepend-inner-icon="mdi-email-outline" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.swift_code" :label="$t('swift_code')" prepend-inner-icon="mdi-bank-transfer" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -31,8 +31,8 @@
         <!-- Section: Banking -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-bank</v-icon>{{ $t('banking_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="6"><v-text-field v-model="form.bank_name" :label="$t('bank_name')" prepend-inner-icon="mdi-bank" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="6"><v-text-field v-model="form.bank_account_number" :label="$t('bank_account_number')" prepend-inner-icon="mdi-credit-card-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="6"><v-text-field v-model="form.bank_name" :label="$t('bank_name')" prepend-inner-icon="mdi-bank" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="6"><v-text-field v-model="form.bank_account_number" :label="$t('bank_account_number')" prepend-inner-icon="mdi-credit-card-outline" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -40,11 +40,11 @@
         <!-- Section: Legal -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-gavel</v-icon>{{ $t('legal_info') }}</div>
         <v-row dense>
-          <v-col cols="12" md="3"><v-text-field v-model="form.capital" :label="$t('capital')" prepend-inner-icon="mdi-cash-multiple" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="3"><v-text-field v-model="form.ice" :label="$t('ice')" prepend-inner-icon="mdi-card-account-details-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.rc" :label="$t('rc')" prepend-inner-icon="mdi-file-certificate-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.cnss" :label="$t('cnss')" prepend-inner-icon="mdi-shield-check-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
-          <v-col cols="12" md="2"><v-text-field v-model="form.tva_number" :label="$t('tva_number')" prepend-inner-icon="mdi-percent-outline" density="compact" variant="outlined" rounded color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.capital" :label="$t('capital')" prepend-inner-icon="mdi-cash-multiple" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model="form.ice" :label="$t('ice')" prepend-inner-icon="mdi-card-account-details-outline" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.rc" :label="$t('rc')" prepend-inner-icon="mdi-file-certificate-outline" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.cnss" :label="$t('cnss')" prepend-inner-icon="mdi-shield-check-outline" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
+          <v-col cols="12" md="2"><v-text-field v-model="form.tva_number" :label="$t('tva_number')" prepend-inner-icon="mdi-percent-outline" density="compact" variant="outlined" rounded="lg" color="#546E7A" hide-details></v-text-field></v-col>
         </v-row>
 
         <v-divider class="my-4"></v-divider>
@@ -226,7 +226,7 @@
           </v-col>
         </v-row>
 
-        <div class="d-flex justify-end mt-6"><v-btn color="#546E7A" rounded prepend-icon="mdi-content-save" :loading="saving" @click="save">{{ $t('save') }}</v-btn></div>
+        <div class="d-flex justify-end mt-6"><v-btn color="#546E7A" rounded="lg" prepend-icon="mdi-content-save" :loading="saving" @click="save">{{ $t('save') }}</v-btn></div>
       </v-form>
     </v-card-text>
 

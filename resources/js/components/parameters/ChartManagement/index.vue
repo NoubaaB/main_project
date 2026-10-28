@@ -368,11 +368,12 @@
         <v-data-table
           :headers="headers"
           :items="filteredCharts"
+          :search="searchQuery"
           :loading="store.loading"
           :multi-sort="true"
           density="comfortable"
           hover
-          class="bg-transparent param-table"
+          class="bg-transparent rounded-xl param-table"
         >
           <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
             <tr>
@@ -455,11 +456,47 @@
           </template>
 
           <template #item.actions="{ item }">
-            <div class="d-flex align-center justify-end ga-1">
-              <v-btn icon="mdi-eye-outline" size="small" variant="text" color="#0d9488" @click="openQuickPreview(item)" />
-              <v-btn icon="mdi-content-copy" size="small" variant="text" color="#0284c7" @click="duplicateChart(item)" />
-              <v-btn icon="mdi-pencil-outline" size="small" variant="text" color="#0d9488" @click="editItem(item)" />
-              <v-btn icon="mdi-delete-outline" size="small" variant="text" color="error" @click="confirmDelete(item)" />
+            <div class="param-actions-cell">
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="#00BCD4"
+                class="param-action-btn"
+                @click="openQuickPreview(item)"
+              >
+                <v-icon size="16">mdi-eye-outline</v-icon>
+                <v-tooltip activator="parent" location="top">{{ $t('quick_preview') || 'Aperçu' }}</v-tooltip>
+              </v-btn>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="#0284c7"
+                class="param-action-btn"
+                @click="duplicateChart(item)"
+              >
+                <v-icon size="16">mdi-content-copy</v-icon>
+                <v-tooltip activator="parent" location="top">{{ $t('duplicate') || 'Dupliquer' }}</v-tooltip>
+              </v-btn>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="#00BCD4"
+                class="param-action-btn"
+                @click="editItem(item)"
+              >
+                <v-icon size="16">mdi-pencil-outline</v-icon>
+                <v-tooltip activator="parent" location="top">{{ $t('edit') || 'Modifier' }}</v-tooltip>
+              </v-btn>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="error"
+                class="param-action-btn param-action-delete"
+                @click="confirmDelete(item)"
+              >
+                <v-icon size="16">mdi-delete-outline</v-icon>
+                <v-tooltip activator="parent" location="top">{{ $t('delete') || 'Supprimer' }}</v-tooltip>
+              </v-btn>
             </div>
           </template>
         </v-data-table>
@@ -546,18 +583,23 @@
 
     <!-- QUICK PREVIEW MODAL -->
     <v-dialog v-model="previewModal.show" max-width="840" scrollable>
-      <v-card class="rounded-xl overflow-hidden" elevation="16">
-        <v-card-title class="d-flex align-center justify-space-between py-3 px-4 border-b">
-          <div class="d-flex align-center ga-2">
-            <v-icon color="#0d9488" size="22">mdi-chart-box-outline</v-icon>
-            <span class="font-weight-bold text-subtitle-1">{{ previewModal.chart?.title }}</span>
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(0, 188, 212, 0.12); color: #00BCD4;">
+              <v-icon size="20">mdi-chart-box-outline</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ previewModal.chart?.title }}</div>
+              <div class="param-dialog-subtitle">{{ previewModal.chart?.series?.length }} {{ $t('series') || 'séries' }} • {{ previewModal.chart?.chart_type }}</div>
+            </div>
           </div>
-          <v-btn icon="mdi-close" size="small" variant="text" @click="previewModal.show = false" />
-        </v-card-title>
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="previewModal.show = false"></v-btn>
+        </div>
 
-        <v-card-text class="pa-4">
+        <v-card-text class="param-dialog-body pa-4">
           <div v-if="previewModal.loading" class="d-flex flex-column align-center justify-center py-12">
-            <v-progress-circular indeterminate color="#0d9488" size="40" class="mb-3" />
+            <v-progress-circular indeterminate color="#00BCD4" size="40" class="mb-3" />
             <span class="text-caption text-medium-emphasis">{{ $t('loading') || 'Chargement des données...' }}</span>
           </div>
           <template v-else>
@@ -570,59 +612,65 @@
           </template>
         </v-card-text>
 
-        <v-card-actions class="py-2 px-4 border-t d-flex align-center justify-space-between">
-          <div class="text-caption text-medium-emphasis">
-            {{ previewModal.chart?.series?.length }} {{ $t('series') || 'séries' }} • {{ previewModal.chart?.chart_type }}
-          </div>
-          <div class="d-flex align-center ga-2">
-            <v-btn
-              variant="tonal"
-              color="#0d9488"
-              size="small"
-              rounded="pill"
-              prepend-icon="mdi-pencil-outline"
-              @click="editItemFromPreview"
-            >
-              {{ $t('edit') || 'Modifier' }}
-            </v-btn>
-            <v-btn
-              variant="outlined"
-              size="small"
-              rounded="pill"
-              @click="previewModal.show = false"
-            >
-              {{ $t('close') || 'Fermer' }}
-            </v-btn>
-          </div>
+        <v-card-actions class="param-dialog-actions">
+          <v-btn
+            variant="tonal"
+            color="grey"
+            rounded="lg"
+            @click="previewModal.show = false"
+          >
+            {{ $t('close') || 'Fermer' }}
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn
+            variant="flat"
+            color="#00BCD4"
+            rounded="lg"
+            class="text-white"
+            prepend-icon="mdi-pencil-outline"
+            @click="editItemFromPreview"
+          >
+            {{ $t('edit') || 'Modifier' }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- DELETE CONFIRMATION MODAL -->
     <v-dialog v-model="deleteDialog" max-width="440" persistent>
-      <v-card class="rounded-xl pa-2">
-        <v-card-title class="d-flex align-center ga-2 text-h6">
-          <v-avatar size="32" color="rgba(239, 68, 68, 0.1)">
-            <v-icon color="error" size="20">mdi-alert-circle-outline</v-icon>
-          </v-avatar>
-          <span>{{ $t('confirm_delete') || 'Confirmer la suppression' }}</span>
-        </v-card-title>
-        <v-card-text class="pt-2">
-          {{ $t('confirm_delete_chart_message') || 'Êtes-vous sûr de vouloir supprimer ce graphique ? Cette action est irréversible.' }}
-          <div v-if="deletingItem" class="font-weight-bold mt-2 text-subtitle-2">
-            "{{ deletingItem.title }}"
+      <v-card class="param-dialog-card">
+        <div class="param-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="param-dialog-icon-badge" style="background: rgba(244, 67, 54, 0.12); color: #F44336;">
+              <v-icon size="20">mdi-alert-circle</v-icon>
+            </div>
+            <div>
+              <div class="param-dialog-title">{{ $t('confirm_delete') || 'Confirmer la suppression' }}</div>
+              <div class="param-dialog-subtitle">{{ $t('cannot_undo_action') || 'Action irréversible' }}</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="deleteDialog = false"></v-btn>
+        </div>
+        <v-card-text class="param-dialog-body pt-2">
+          <p class="text-body-2 mb-2">{{ $t('confirm_delete_chart_message') || 'Êtes-vous sûr de vouloir supprimer ce graphique ?' }}</p>
+          <div v-if="deletingItem" class="pa-3 rounded-lg" style="background: rgba(244,67,54,.06); border: 1px dashed rgba(244,67,54,.25);">
+            <strong class="text-subtitle-2 font-weight-bold">{{ deletingItem.title }}</strong>
+            <div class="text-caption text-medium-emphasis mt-1">
+              {{ getTypeName(deletingItem.chart_type) }} • {{ (deletingItem.series || []).length }} {{ $t('series') || 'séries' }}
+            </div>
           </div>
         </v-card-text>
-        <v-card-actions class="pt-3">
-          <v-spacer />
-          <v-btn variant="text" rounded="pill" @click="deleteDialog = false">
+        <v-card-actions class="param-dialog-actions">
+          <v-btn variant="tonal" color="grey" rounded="lg" @click="deleteDialog = false">
             {{ $t('cancel') || 'Annuler' }}
           </v-btn>
+          <v-spacer></v-spacer>
           <v-btn
             color="error"
             variant="flat"
-            rounded="pill"
+            rounded="lg"
             :loading="deleting"
+            prepend-icon="mdi-delete"
             @click="doDelete"
           >
             {{ $t('delete') || 'Supprimer' }}
@@ -812,7 +860,7 @@ export default {
         { title: this.$t('date_range_type') || 'Période', key: 'date_range_type' },
         { title: this.$t('series') || 'Séries', key: 'series_count' },
         { title: this.$t('status') || 'Statut', key: 'is_active' },
-        { title: this.$t('actions') || 'Actions', key: 'actions', sortable: false, align: 'end' },
+        { title: this.$t('actions') || 'Actions', key: 'actions', sortable: false, align: 'center', width: '150px' },
       ];
     },
 

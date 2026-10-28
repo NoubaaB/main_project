@@ -70,49 +70,116 @@
       </v-col>
       <v-col cols="12" md="3" lg="3">
         <div class="lp-panel-card lp-stats-panel" style="height:100%;overflow-y:auto">
-          <div class="lp-panel-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
-          <div v-for="(stat,si) in categoryStats" :key="si" class="lp-stat-item mb-2">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
-              <v-chip size="x-small" color="#00897B" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+          <!-- Top Header: Title & Dynamic Summary Chip -->
+          <div class="d-flex align-center justify-space-between mb-2">
+            <div class="lp-panel-header mb-0">
+              <v-icon size="16" color="#00897B" class="mr-1">mdi-chart-box-outline</v-icon>
+              <span>{{ $t('statistics') }}</span>
             </div>
-            <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#00897B" bg-color="#B2DFDB" height="5" rounded class="mb-1"></v-progress-linear>
-            <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="#00897B">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color: #00897B">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="teal-lighten-1">mdi-scale-balance</v-icon><span class="text-medium-emphasis">{{ $t('invoice_weight') }}:</span><b class="text-teal-lighten-1">{{ main.formatDisplayNumber(stat.invoiceWeight) }} Kg</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="amber-darken-2">mdi-cash-check</v-icon><span class="text-medium-emphasis">{{ $t('invoice_price') }}:</span><b class="text-amber-darken-2">{{ main.formatDisplayNumber(stat.invoicePrice) }} {{ main.currency }}</b></div>
-            </div>
+            <v-chip
+              size="x-small"
+              color="#00897B"
+              variant="tonal"
+              class="font-weight-bold px-2"
+              style="font-size: 10px; height: 19px;"
+            >
+              {{ statsSummaryChipText }}
+            </v-chip>
           </div>
-          <v-divider class="my-2"></v-divider>
-          <!-- Invoice stats -->
-          <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-2"><v-icon size="14" color="success">mdi-check-decagram</v-icon><span class="text-caption text-medium-emphasis">{{ $t('invoiced') }}:</span><v-chip size="x-small" color="success" variant="tonal"><b>{{ totalInvoiced }}</b></v-chip></div>
-            <div class="d-flex align-center ga-2"><v-icon size="14" color="grey">mdi-close-circle-outline</v-icon><span class="text-caption text-medium-emphasis">{{ $t('not_invoiced') }}:</span><v-chip size="x-small" color="grey" variant="tonal"><b>{{ totalNotInvoiced }}</b></v-chip></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="teal-lighten-1">mdi-scale-balance</v-icon><span class="text-caption font-weight-bold">{{ $t('invoice_weight') }}:</span><b class="text-teal-lighten-1 text-caption">{{ main.formatDisplayNumber(totalInvoiceWeight) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="amber-darken-2">mdi-cash-check</v-icon><span class="text-caption font-weight-bold">{{ $t('invoice_price') }}:</span><b class="text-amber-darken-2 text-caption">{{ main.formatDisplayNumber(totalInvoicePrice) }} {{ main.currency }}</b></div>
+
+          <!-- Section Switcher Toggle with segmented-pill-indicator -->
+          <div class="mb-2-5">
+            <SegmentedPillToggle
+              :model-value="statsActiveTab"
+              @update:model-value="setStatsSectionTab"
+              :items="statsSectionItems"
+              color="#00897B"
+              size="x-small"
+              block
+            />
           </div>
-          <v-divider class="my-2"></v-divider>
-          <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-fishbowl-outline</v-icon><span class="text-caption font-weight-bold">{{ $t('fresh_reception') }}:</span><b style="color:#42A5F5" class="text-caption">{{ main.formatDisplayNumber(totalFreshReception) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#AB47BC">mdi-snowflake</v-icon><span class="text-caption font-weight-bold">{{ $t('frozen_production') }}:</span><b style="color:#AB47BC" class="text-caption">{{ main.formatDisplayNumber(totalFrozenProduction) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#8D6E63">mdi-leaf</v-icon><span class="text-caption font-weight-bold">{{ $t('guano_production') }}:</span><b style="color:#8D6E63" class="text-caption">{{ main.formatDisplayNumber(totalGuanoProduction) }} Kg</b></div>
-            <div class="d-flex align-center ga-1">
-              <v-icon size="14" :color="totalEquilibrium >= 0 ? '#4CAF50' : '#EF5350'">{{ totalEquilibrium >= 0 ? 'mdi-arrow-up-bold' : 'mdi-arrow-down-bold' }}</v-icon>
-              <span class="text-caption font-weight-bold">{{ $t('equilibrium') }}:</span>
-              <b :style="{ color: totalEquilibrium >= 0 ? '#4CAF50' : '#EF5350' }" class="text-caption">{{ main.formatDisplayNumber(Math.abs(totalEquilibrium)) }} Kg ({{ $t(totalEquilibrium >= 0 ? 'surplus' : 'shortage') }})</b>
-            </div>
-            <v-divider class="my-1"></v-divider>
-            <div class="lp-stat-item mt-1 pa-2 rounded-lg" style="background: rgba(84, 110, 122, 0.05); border: 1px solid rgba(84, 110, 122, 0.15)">
+
+          <!-- SECTION: CATEGORIES -->
+          <div v-if="statsActiveTab === 'all' || statsActiveTab === 'categories'" class="lp-stats-section-categories">
+            <div v-for="(stat,si) in categoryStats" :key="si" class="lp-stat-item mb-2">
               <div class="d-flex align-center justify-space-between mb-1">
-                <div class="d-flex align-center ga-1">
-                  <v-icon size="14" color="#546E7A">mdi-layers-outline</v-icon>
-                  <span class="text-caption font-weight-bold" style="color: #37474F">{{ $t('secondary_packaging_config') }}</span>
+                <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
+                <v-chip size="x-small" color="#00897B" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+              </div>
+              <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#00897B" bg-color="#B2DFDB" height="5" rounded class="mb-1"></v-progress-linear>
+              <div class="d-flex flex-column ga-1 text-caption">
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="#00897B">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color: #00897B">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="teal-lighten-1">mdi-scale-balance</v-icon><span class="text-medium-emphasis">{{ $t('invoice_weight') }}:</span><b class="text-teal-lighten-1">{{ main.formatDisplayNumber(stat.invoiceWeight) }} Kg</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="amber-darken-2">mdi-cash-check</v-icon><span class="text-medium-emphasis">{{ $t('invoice_price') }}:</span><b class="text-amber-darken-2">{{ main.formatDisplayNumber(stat.invoicePrice) }} {{ main.currency }}</b></div>
+              </div>
+            </div>
+            <div v-if="!categoryStats.length" class="text-center py-4 text-caption text-medium-emphasis">
+              <v-icon size="24" color="grey" class="mb-1" style="opacity: 0.5">mdi-shape-outline</v-icon>
+              <div>{{ $t('no_categories_found') }}</div>
+            </div>
+          </div>
+
+          <v-divider v-if="statsActiveTab === 'all'" class="my-2"></v-divider>
+
+          <!-- SECTION: INVOICING & FLOW -->
+          <div v-if="statsActiveTab === 'all' || statsActiveTab === 'flow'" class="lp-stats-section-flow">
+            <!-- Invoice stats -->
+            <div class="d-flex flex-column ga-1 mb-2">
+              <div class="d-flex align-center ga-2"><v-icon size="14" color="success">mdi-check-decagram</v-icon><span class="text-caption text-medium-emphasis">{{ $t('invoiced') }}:</span><v-chip size="x-small" color="success" variant="tonal"><b>{{ totalInvoiced }}</b></v-chip></div>
+              <div class="d-flex align-center ga-2"><v-icon size="14" color="grey">mdi-close-circle-outline</v-icon><span class="text-caption text-medium-emphasis">{{ $t('not_invoiced') }}:</span><v-chip size="x-small" color="grey" variant="tonal"><b>{{ totalNotInvoiced }}</b></v-chip></div>
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="teal-lighten-1">mdi-scale-balance</v-icon><span class="text-caption font-weight-bold">{{ $t('invoice_weight') }}:</span><b class="text-teal-lighten-1 text-caption">{{ main.formatDisplayNumber(totalInvoiceWeight) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="amber-darken-2">mdi-cash-check</v-icon><span class="text-caption font-weight-bold">{{ $t('invoice_price') }}:</span><b class="text-amber-darken-2 text-caption">{{ main.formatDisplayNumber(totalInvoicePrice) }} {{ main.currency }}</b></div>
+            </div>
+
+            <v-divider class="my-2"></v-divider>
+
+            <!-- Production / Reception / Equilibrium -->
+            <div class="d-flex flex-column ga-1">
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-fishbowl-outline</v-icon><span class="text-caption font-weight-bold">{{ $t('fresh_reception') }}:</span><b style="color:#42A5F5" class="text-caption">{{ main.formatDisplayNumber(totalFreshReception) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="#AB47BC">mdi-snowflake</v-icon><span class="text-caption font-weight-bold">{{ $t('frozen_production') }}:</span><b style="color:#AB47BC" class="text-caption">{{ main.formatDisplayNumber(totalFrozenProduction) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="#8D6E63">mdi-leaf</v-icon><span class="text-caption font-weight-bold">{{ $t('guano_production') }}:</span><b style="color:#8D6E63" class="text-caption">{{ main.formatDisplayNumber(totalGuanoProduction) }} Kg</b></div>
+              <div class="d-flex align-center ga-1">
+                <v-icon size="14" :color="totalEquilibrium >= 0 ? '#4CAF50' : '#EF5350'">{{ totalEquilibrium >= 0 ? 'mdi-arrow-up-bold' : 'mdi-arrow-down-bold' }}</v-icon>
+                <span class="text-caption font-weight-bold">{{ $t('equilibrium') }}:</span>
+                <b :style="{ color: totalEquilibrium >= 0 ? '#4CAF50' : '#EF5350' }" class="text-caption">{{ main.formatDisplayNumber(Math.abs(totalEquilibrium)) }} Kg ({{ $t(totalEquilibrium >= 0 ? 'surplus' : 'shortage') }})</b>
+              </div>
+            </div>
+          </div>
+
+          <v-divider v-if="statsActiveTab === 'all'" class="my-2"></v-divider>
+
+          <!-- SECTION: SECONDARY PACKAGING -->
+          <div v-if="statsActiveTab === 'all' || statsActiveTab === 'packaging'" class="lp-stats-section-packaging">
+            <div class="lp-stat-item pa-2 rounded-lg" style="background: rgba(84, 110, 122, 0.05); border: 1px solid rgba(84, 110, 122, 0.15)">
+              <div class="d-flex align-center justify-space-between mb-1 ga-2">
+                <div class="d-flex align-center ga-1 min-width-0 mr-1">
+                  <v-icon size="14" color="#546E7A" class="flex-shrink-0">mdi-layers-outline</v-icon>
+                  <span class="text-caption font-weight-bold" :style="{ color: main?.is_dark ? '#B0BEC5' : '#37474F' }">{{ $t('secondary_packaging_config') }}</span>
                 </div>
-                <v-chip size="x-small" color="#546E7A" variant="elevated" class="font-weight-bold">
+                <v-chip
+                  size="x-small"
+                  color="#546E7A"
+                  variant="elevated"
+                  class="font-weight-bold px-3 flex-shrink-0 text-center"
+                  style="min-width: 110px; height: 22px; justify-content: center; font-size: 10.5px;"
+                >
                   {{ main.formatDisplayNumber(secondaryPackagingStats.total_cost) }} {{ main.currency }}
                 </v-chip>
               </div>
+
+              <!-- Segmented Pill Toggle: Price | Measure | Both -->
+              <div class="my-1-5">
+                <SegmentedPillToggle
+                  :model-value="secPackDisplayMode"
+                  @update:model-value="setSecPackMode"
+                  :items="secPackModeItems"
+                  color="#546E7A"
+                  size="x-small"
+                  block
+                />
+              </div>
+
               <div class="d-flex flex-column ga-1 mt-1">
                 <div
                   v-for="comp in secondaryPackagingStats.items"
@@ -120,11 +187,40 @@
                   class="d-flex align-center justify-space-between px-2 py-1 rounded"
                   :style="{ background: comp.qte > 0 ? 'rgba(84, 110, 122, 0.08)' : 'transparent', opacity: comp.qte > 0 ? 1 : 0.5 }"
                 >
-                  <span class="text-caption font-weight-medium">{{ comp.label }} <span v-if="comp.unit" class="text-grey text-caption font-weight-bold" style="opacity: 0.8">({{ comp.unit }})</span></span>
-                  <div class="d-flex align-center ga-2 text-caption">
-                    <span v-if="comp.qte > 0" class="text-medium-emphasis"><b>{{ main.formatDisplayNumber(comp.qte) }}</b> {{ comp.unit || '' }}</span>
+                  <div class="d-flex align-center ga-1-5 min-width-0 mr-1">
+                    <v-icon size="14" :color="comp.qte > 0 ? '#546E7A' : 'grey'" class="flex-shrink-0">
+                      {{ getPackagingIcon(comp.key) }}
+                    </v-icon>
+                    <span class="text-caption font-weight-medium text-truncate" :title="comp.label">
+                      {{ comp.label }}
+                      <span v-if="comp.unit && secPackDisplayMode === 'price'" class="text-grey text-caption font-weight-bold" style="opacity: 0.8">({{ comp.unit }})</span>
+                    </span>
+                  </div>
+
+                  <!-- Mode: Price only -->
+                  <div v-if="secPackDisplayMode === 'price'" class="d-flex align-center text-caption">
+                    <b class="text-blue-grey-darken-3 font-weight-bold">
+                      {{ main.formatDisplayNumber(comp.total_cost) }} {{ main.currency }}
+                    </b>
+                  </div>
+
+                  <!-- Mode: Measure only -->
+                  <div v-else-if="secPackDisplayMode === 'measure' || secPackDisplayMode === 'mesure'" class="d-flex align-center text-caption">
+                    <b v-if="comp.qte > 0" class="text-blue-grey-darken-3 font-weight-bold">
+                      {{ main.formatDisplayNumber(comp.qte) }} {{ comp.unit || '' }}
+                    </b>
                     <span v-else class="text-grey">-</span>
-                    <b class="text-blue-grey-darken-3">{{ main.formatDisplayNumber(comp.total_cost) }} {{ main.currency }}</b>
+                  </div>
+
+                  <!-- Mode: Both (Price & Measure) -->
+                  <div v-else class="d-flex align-center ga-2 text-caption">
+                    <span v-if="comp.qte > 0" class="text-medium-emphasis">
+                      <b>{{ main.formatDisplayNumber(comp.qte) }}</b> {{ comp.unit || '' }}
+                    </span>
+                    <span v-else class="text-grey">-</span>
+                    <b class="text-blue-grey-darken-3 font-weight-bold">
+                      {{ main.formatDisplayNumber(comp.total_cost) }} {{ main.currency }}
+                    </b>
                   </div>
                 </div>
               </div>
@@ -1164,6 +1260,8 @@ export default {
     return {
       ...script.data.call(this),
       activeTab: 0,
+      statsActiveTab: (typeof localStorage !== 'undefined' && localStorage.getItem('jupiter_stats_section_tab')) || 'all',
+      secPackDisplayMode: (typeof localStorage !== 'undefined' && localStorage.getItem('jupiter_sec_pack_display_mode')) || 'both',
       auditLogDialogOpen: false,
       auditLogRecordId: 0,
       issueDialogOpen: false,
@@ -1178,13 +1276,77 @@ export default {
     ...script.computed,
     auth(){return useAuth()},
     selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}},
+    statsSectionItems() {
+      return [
+        { value: 'all', label: this.$t('all'), icon: 'mdi-view-grid-outline' },
+        { value: 'categories', label: this.$t('categories'), icon: 'mdi-shape-outline' },
+        { value: 'flow', label: this.$t('flow'), icon: 'mdi-swap-horizontal' },
+        { value: 'packaging', label: this.$t('packaging'), icon: 'mdi-package-variant-closed' }
+      ];
+    },
+    statsSummaryChipText() {
+      if (this.statsActiveTab === 'categories') {
+        return `${this.categoryStats?.length || 0} ${this.$t('categories')}`;
+      }
+      if (this.statsActiveTab === 'packaging') {
+        return `${this.main.formatDisplayNumber(this.secondaryPackagingStats?.total_cost || 0)} ${this.main.currency}`;
+      }
+      if (this.statsActiveTab === 'flow') {
+        return `${this.main.formatDisplayNumber(this.totalFreshReception || 0)} Kg`;
+      }
+      return `${this.main.formatDisplayNumber(this.totalWeight || 0)} Kg`;
+    },
+    secPackModeItems() {
+      return [
+        { value: 'price', label: this.$t('price'), icon: 'mdi-cash' },
+        { value: 'measure', label: this.$t('measure'), icon: 'mdi-ruler' },
+        { value: 'both', label: this.$t('both'), icon: 'mdi-view-parallel-outline' }
+      ];
+    }
   },
   methods:{
     ...script.methods,
+    getPackagingIcon(key) {
+      const icons = {
+        caisses: 'mdi-package-variant-closed',
+        cellophane: 'mdi-layers-triple-outline',
+        plastique: 'mdi-shopping-outline',
+        strapex: 'mdi-tape-measure',
+        palletes: 'mdi-pallet',
+        scotch: 'mdi-sticker-circle-outline',
+      };
+      return icons[key] || 'mdi-package-variant-closed';
+    },
+    setStatsSectionTab(tab) {
+      this.statsActiveTab = tab;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('jupiter_stats_section_tab', tab);
+      }
+    },
+    setSecPackMode(mode) {
+      this.secPackDisplayMode = mode;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('jupiter_sec_pack_display_mode', mode);
+      }
+    },
     openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},
     openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true}
   },
-  watch:{...script.watch,activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0){this.fetchProductions();this.fetchAnalytics()}},showInvoice(v){if(v&&this.uninvoicedSelectedProductions.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
+  watch:{
+    ...script.watch,
+    statsActiveTab(v) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('jupiter_stats_section_tab', v);
+      }
+    },
+    secPackDisplayMode(v) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('jupiter_sec_pack_display_mode', v);
+      }
+    },
+    activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0){this.fetchProductions();this.fetchAnalytics()}},
+    showInvoice(v){if(v&&this.uninvoicedSelectedProductions.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}
+  },
   mounted(){script.mounted.call(this);if(this.loadTableConfig)this.loadTableConfig();if(this.$route.query.tab==='add')this.activeTab=1},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
 };
@@ -1254,8 +1416,84 @@ export default {
 .lp-detail-foot td{padding:8px 10px;background:rgba(0,137,123,.04);border-top:1px solid rgba(0,137,123,.15)}
 .lp-panel-card{border:1.5px solid rgba(0,137,123,.12);border-radius:14px;padding:12px;background:rgba(var(--v-theme-surface),1)}
 .lp-panel-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center}
-.lp-stats-panel{max-height:400px}
+/* Tiny Y-Scrollbar matching NavigationDrawer */
+.lp-stats-panel {
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent !important;
+}
+
+.lp-stats-panel:hover {
+  scrollbar-color: rgba(100, 116, 139, 0.65) transparent !important;
+}
+
+/* WebKit / Chromium (Chrome, Edge, Safari, Opera) */
+.lp-stats-panel::-webkit-scrollbar {
+  width: 4.5px !important;
+  height: 4.5px !important;
+}
+
+/* Remove top and bottom arrow buttons ("fleches") completely */
+.lp-stats-panel::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Fully transparent track with vertical margin */
+.lp-stats-panel::-webkit-scrollbar-track {
+  background: transparent !important;
+  margin: 4px 0 !important;
+}
+
+.lp-stats-panel::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Scrollbar Thumb: Unactive */
+.lp-stats-panel::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
+}
+
+/* Scrollbar Thumb: Active / Hover */
+.lp-stats-panel:hover::-webkit-scrollbar-thumb,
+.lp-stats-panel::-webkit-scrollbar-thumb:hover,
+.lp-stats-panel::-webkit-scrollbar-thumb:active {
+  background: rgba(100, 116, 139, 0.65) !important;
+}
+
+/* Dark Theme Variant */
+:deep(.v-theme--dark) .lp-stats-panel,
+.v-theme--dark .lp-stats-panel {
+  scrollbar-color: rgba(208, 211, 218, 0.29) transparent !important;
+}
+
+:deep(.v-theme--dark) .lp-stats-panel:hover,
+.v-theme--dark .lp-stats-panel:hover {
+  scrollbar-color: rgba(208, 211, 218, 0.65) transparent !important;
+}
+
+:deep(.v-theme--dark) .lp-stats-panel::-webkit-scrollbar-thumb,
+.v-theme--dark .lp-stats-panel::-webkit-scrollbar-thumb {
+  background: rgba(208, 211, 218, 0.29) !important;
+}
+
+:deep(.v-theme--dark) .lp-stats-panel:hover::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .lp-stats-panel::-webkit-scrollbar-thumb:hover,
+:deep(.v-theme--dark) .lp-stats-panel::-webkit-scrollbar-thumb:active,
+.v-theme--dark .lp-stats-panel:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .lp-stats-panel::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .lp-stats-panel::-webkit-scrollbar-thumb:active {
+  background: rgba(208, 211, 218, 0.65) !important;
+}
 .lp-stat-item{padding:8px 10px;border-radius:10px;background:rgba(0,137,123,.03);border:1px solid rgba(0,137,123,.06)}
 :deep(.mdi-pallet:before),.mdi-pallet:before{content:"\F184E"}
+:deep(.v-theme--dark) .text-blue-grey-darken-3,
+.v-theme--dark .text-blue-grey-darken-3 {
+  color: #B0BEC5 !important;
+}
 </style>
 
