@@ -1,3 +1,5 @@
+@use "./parameters.scss" as *;
+
 /**
  * src/styles/settings.scss
  *
@@ -293,5 +295,3 @@ input[type="number"],
   --vc-dot-bg: #06b6d4;
   --vc-bar-bg: #06b6d4;
 }
-
-@import "./parameters.scss";
