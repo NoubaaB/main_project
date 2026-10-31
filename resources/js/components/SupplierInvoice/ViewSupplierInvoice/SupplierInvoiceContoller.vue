@@ -559,8 +559,8 @@ export default {
 <style lang="scss" scoped>
 .luxury-controller-card {
     position: sticky;
-    top: 80px;
-    max-height: calc(100vh - 100px);
+    top: 70px;
+    max-height: calc(100vh - 85px);
     overflow-y: auto;
     overflow-x: hidden;
     border-radius: 18px !important;

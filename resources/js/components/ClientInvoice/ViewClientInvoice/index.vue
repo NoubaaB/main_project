@@ -78,6 +78,10 @@
     min-width: 370px;
     flex: 0 0 420px;
     padding: 0;
+    position: sticky !important;
+    top: 70px !important;
+    align-self: flex-start !important;
+    z-index: 20;
   }
   .invoice-width {
     width: var(--invoice-width) !important;
@@ -93,6 +97,14 @@
       width: 100% !important;
       max-width: 100% !important;
       flex: 1 1 100% !important;
+      position: static !important;
+      top: auto !important;
+    }
+  }
+
+  @media print {
+    .invoice-sidebar-col {
+      display: none !important;
     }
   }
 </style>
