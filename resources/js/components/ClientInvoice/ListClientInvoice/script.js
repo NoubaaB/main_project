@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { gqlGetClientInvoices } from '@/services/appGraphql.js';
 import { useMain } from '@/stores/Main';
 import { useClientInvoice } from '@/stores/ClientInvoice';
 import mitt from '@/plugins/mitt.js';
@@ -137,9 +138,16 @@ export default {
       this.loading = true;
       try {
         const ds = this.dateRange[0], de = this.dateRange[1] || this.dateRange[0];
-        const p = { date_start: this.fmtDate(ds), date_end: this.fmtDate(de) };
-        const r = await axios.get('/api/client_invoice', { params: p });
-        this.invoices = r.data.client_invoices || [];
+        const date_start = this.fmtDate(ds), date_end = this.fmtDate(de);
+        let items = [];
+        try {
+          items = await gqlGetClientInvoices({ date_start, date_end });
+        } catch (gqlErr) {
+          console.warn('[ListClientInvoice] GraphQL fetch failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/client_invoice', { params: { date_start, date_end } });
+          items = r.data.client_invoices || [];
+        }
+        this.invoices = items || [];
       } catch (e) { console.error(e) }
       this.loading = false;
     },

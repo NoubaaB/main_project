@@ -8,6 +8,7 @@ export const useShipping = defineStore("shipping", {
         shipping: null,
         shippings: [],
         showAdditionalInfo: false,
+        plafondCheckResult: null,
     }),
     actions: {
         add_shipping(categoryId) {

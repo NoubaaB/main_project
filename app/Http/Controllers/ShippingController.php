@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shipping;
+use App\Models\Client;
 use App\Models\DetailShipping;
 use App\Models\WarehouseBalance;
 use App\Models\WarehouseBalanceOperation;
+use App\Services\PlafondService;
 use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,9 +46,23 @@ class ShippingController extends Controller
             'details.*.selected_balance_id' => 'nullable|integer',
         ]);
 
-        return DB::transaction(function () use ($data) {
-            $totalPrice = collect($data['details'])->sum('total_price') ?? 0;
-            $totalWeight = collect($data['details'])->sum('weight') ?? 0;
+        $totalPrice = collect($data['details'])->sum('total_price') ?? 0;
+        $totalWeight = collect($data['details'])->sum('weight') ?? 0;
+
+        if (!empty($data['client_id'])) {
+            $client = Client::find($data['client_id']);
+            if ($client && $client->enable_plafond && $client->block_on_plafond) {
+                $plafondCheck = app(PlafondService::class)->checkClientPlafond($client, $data['date'], (float)$totalPrice);
+                if ($plafondCheck['is_blocked']) {
+                    return response()->json([
+                        'message' => $plafondCheck['message'] ?: "Le client a atteint son plafond de crédit. Création bloquée.",
+                        'plafond_details' => $plafondCheck,
+                    ], 422);
+                }
+            }
+        }
+
+        return DB::transaction(function () use ($data, $totalPrice, $totalWeight) {
 
             $shipping = Shipping::create([
                 'date' => $data['date'],

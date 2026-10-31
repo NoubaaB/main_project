@@ -134,8 +134,11 @@ class UserStatisticsController extends Controller
         }
 
         // 6. Per-hour distribution (activity heatmap)
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $hourExpr = $isSqlite ? "CAST(strftime('%H', created_at) AS INTEGER)" : "HOUR(created_at)";
+
         $hourlyQuery = AuditLog::select(
-                DB::raw('HOUR(created_at) as hour'),
+                DB::raw("{$hourExpr} as hour"),
                 DB::raw('COUNT(*) as count')
             )
             ->whereBetween('created_at', [$dateStart . ' 00:00:00', $dateEnd . ' 23:59:59']);
@@ -147,7 +150,7 @@ class UserStatisticsController extends Controller
             $hourlyQuery->where('auditable_type', $moduleFilter);
         }
 
-        $hourly = $hourlyQuery->groupBy(DB::raw('HOUR(created_at)'))
+        $hourly = $hourlyQuery->groupBy(DB::raw($hourExpr))
             ->orderBy('hour')
             ->get();
 

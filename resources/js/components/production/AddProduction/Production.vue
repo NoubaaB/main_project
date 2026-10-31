@@ -11,6 +11,7 @@
           prepend-inner-icon="mdi-account"
           density="compact" variant="outlined" rounded clearable
           color="#00897B" class="text-prod" hide-details
+          @update:modelValue="onSupplierChanged"
           @update:search="val => supplierSearch = val"
           @keydown.enter.prevent="createSupplierIfNew"
         >
@@ -23,6 +24,33 @@
             </v-list-item>
           </template>
         </v-autocomplete>
+      </v-col>
+
+      <!-- Supplier Plafond Warning / Blocking Alert Banner -->
+      <v-col v-if="selectedCategory.enable_suppliers && prodStore.plafondCheckResult?.is_reached" cols="12">
+        <v-alert
+          :color="prodStore.plafondCheckResult.is_blocked ? 'error' : 'warning'"
+          variant="tonal"
+          rounded="lg"
+          density="comfortable"
+          :icon="prodStore.plafondCheckResult.is_blocked ? 'mdi-cancel' : 'mdi-alert'"
+          class="font-weight-medium text-caption"
+        >
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+            <div>
+              <strong>{{ prodStore.plafondCheckResult.is_blocked ? $t('supplier_debt_plafond_reached_blocked') : $t('supplier_debt_plafond_reached_warning') }}:</strong>
+              {{ prodStore.plafondCheckResult.message }}
+            </div>
+            <v-chip
+              size="x-small"
+              :color="prodStore.plafondCheckResult.is_blocked ? 'error' : 'warning'"
+              variant="flat"
+              class="font-weight-bold text-white"
+            >
+              {{ prodStore.plafondCheckResult.is_blocked ? $t('creation_blocked') : $t('warning_only') }}
+            </v-chip>
+          </div>
+        </v-alert>
       </v-col>
 
       <!-- Client -->
@@ -195,6 +223,7 @@ import { useProduction } from '@/stores/Production';
 import { useMain } from '@/stores/Main';
 import { useProductionCategory } from '@/stores/ProductionCategory';
 import { useAuth } from '@/stores/Auth';
+import { useSupplier } from '@/stores/Supplier';
 
 export default {
   name: 'ProductionForm',
@@ -394,6 +423,60 @@ export default {
         this.main.add_snackbar({ show: true, message: this.$t('ship_create_error'), color: 'error' });
       }
     },
+    async onSupplierChanged() {
+      await this.checkSupplierPlafond();
+    },
+    async checkSupplierPlafond() {
+      const supplierId = this.prodStore.production?.supplier_id;
+      if (!supplierId) {
+        this.prodStore.plafondCheckResult = null;
+        return;
+      }
+      const date = this.prodStore.production?.date;
+      const amount = this.prodStore.production?.total_price || 0;
+      try {
+        const res = await useSupplier().checkPlafond(supplierId, date, amount);
+        this.prodStore.plafondCheckResult = res;
+        if (res?.is_reached) {
+          if (res.is_blocked) {
+            this.main.add_snackbar({
+              show: true,
+              message: res.message || this.$t('supplier_debt_plafond_blocked_msg'),
+              color: 'error',
+            });
+          } else {
+            this.main.add_snackbar({
+              show: true,
+              message: res.message || this.$t('supplier_debt_plafond_warning_msg'),
+              color: 'warning',
+            });
+          }
+        }
+      } catch (e) {
+        console.error('[ProductionForm] Check supplier plafond failed:', e);
+      }
+    },
+  },
+  watch: {
+    'prodStore.production.supplier_id'(newVal) {
+      if (newVal) this.checkSupplierPlafond();
+      else this.prodStore.plafondCheckResult = null;
+    },
+    'prodStore.production.total_price'(newVal, oldVal) {
+      if (newVal !== oldVal && this.prodStore.production?.supplier_id) {
+        this.checkSupplierPlafond();
+      }
+    },
+    'prodStore.production.date'(newVal, oldVal) {
+      if (newVal !== oldVal && this.prodStore.production?.supplier_id) {
+        this.checkSupplierPlafond();
+      }
+    },
+  },
+  mounted() {
+    if (this.prodStore.production?.supplier_id) {
+      this.checkSupplierPlafond();
+    }
   },
 };
 </script>

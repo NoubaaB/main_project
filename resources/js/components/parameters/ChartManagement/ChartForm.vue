@@ -1068,7 +1068,7 @@ export default {
         { value: 'donut', title: this.$t('visual_type_donut') || 'Donut', icon: 'mdi-chart-donut', desc: this.$t('visual_type_donut_desc') || 'Proportions & parts' },
         { value: 'pie', title: this.$t('visual_type_pie') || 'Camembert', icon: 'mdi-chart-pie', desc: this.$t('visual_type_pie_desc') || 'Répartition d\'un ensemble' },
         { value: 'mixed', title: this.$t('visual_type_mixed') || 'Mixte', icon: 'mdi-chart-multiline', desc: this.$t('visual_type_mixed_desc') || 'Barres + Lignes combinées' },
-        { value: 'radar', title: 'Radar', icon: 'mdi-spider-web', desc: 'Performance multi-critères' },
+        { value: 'radar', title: this.$t('visual_type_radar') || 'Radar', icon: 'mdi-spider-web', desc: this.$t('visual_type_radar_desc') || 'Performance multi-critères' },
       ];
     },
 

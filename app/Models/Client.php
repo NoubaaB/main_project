@@ -14,6 +14,13 @@ class Client extends Model
     use HasFactory, SoftDeletes;
     protected $guarded = [];
 
+    protected $casts = [
+        'enable_plafond' => 'boolean',
+        'block_on_plafond' => 'boolean',
+        'active_status' => 'boolean',
+        'plafond_amount' => 'float',
+    ];
+
     public function shippings(): HasMany
     {
         return $this->hasMany(Shipping::class);

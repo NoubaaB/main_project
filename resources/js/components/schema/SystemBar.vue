@@ -772,7 +772,7 @@
               {{ main.is_dark ? 'mdi-white-balance-sunny' : 'mdi-weather-night' }}
             </v-icon>
             <v-tooltip activator="parent" location="bottom">
-              {{ main.is_dark ? 'Light Mode' : 'Dark Mode' }}
+              {{ main.is_dark ? ($t('light_mode') || 'Light Mode') : ($t('dark_mode') || 'Dark Mode') }}
             </v-tooltip>
           </v-btn>
 

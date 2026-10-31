@@ -88,6 +88,7 @@
           color="#42A5F5"
           class="text-charge"
           hide-details
+          @update:modelValue="onSupplierChanged"
           @update:search="val => supplierSearch = val"
           @keydown.enter.prevent="createSupplierIfNew"
         >
@@ -100,6 +101,33 @@
             </v-list-item>
           </template>
         </v-autocomplete>
+      </v-col>
+
+      <!-- Supplier Plafond Warning / Blocking Alert Banner -->
+      <v-col v-if="selectedCategory.enable_suppliers && chargeStore.plafondCheckResult?.is_reached" cols="12">
+        <v-alert
+          :color="chargeStore.plafondCheckResult.is_blocked ? 'error' : 'warning'"
+          variant="tonal"
+          rounded="lg"
+          density="comfortable"
+          :icon="chargeStore.plafondCheckResult.is_blocked ? 'mdi-cancel' : 'mdi-alert'"
+          class="font-weight-medium text-caption"
+        >
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+            <div>
+              <strong>{{ chargeStore.plafondCheckResult.is_blocked ? $t('supplier_debt_plafond_reached_blocked') : $t('supplier_debt_plafond_reached_warning') }}:</strong>
+              {{ chargeStore.plafondCheckResult.message }}
+            </div>
+            <v-chip
+              size="x-small"
+              :color="chargeStore.plafondCheckResult.is_blocked ? 'error' : 'warning'"
+              variant="flat"
+              class="font-weight-bold text-white"
+            >
+              {{ chargeStore.plafondCheckResult.is_blocked ? $t('creation_blocked') : $t('warning_only') }}
+            </v-chip>
+          </div>
+        </v-alert>
       </v-col>
 
       <!-- Fishery -->
@@ -230,6 +258,7 @@ import { useCharge } from '@/stores/Charge';
 import { useMain } from '@/stores/Main';
 import { useChargeCategory } from '@/stores/ChargeCategory';
 import { useAuth } from '@/stores/Auth';
+import { useSupplier } from '@/stores/Supplier';
 
 export default {
   name: 'ChargeForm',
@@ -415,6 +444,60 @@ export default {
         this.main.add_snackbar({ show: true, message: this.$t('ship_create_error'), color: 'error' });
       }
     },
+    async onSupplierChanged() {
+      await this.checkSupplierPlafond();
+    },
+    async checkSupplierPlafond() {
+      const supplierId = this.chargeStore.charge?.supplier_id;
+      if (!supplierId) {
+        this.chargeStore.plafondCheckResult = null;
+        return;
+      }
+      const date = this.chargeStore.charge?.date;
+      const amount = this.chargeStore.charge?.total_price || 0;
+      try {
+        const res = await useSupplier().checkPlafond(supplierId, date, amount);
+        this.chargeStore.plafondCheckResult = res;
+        if (res?.is_reached) {
+          if (res.is_blocked) {
+            this.main.add_snackbar({
+              show: true,
+              message: res.message || this.$t('supplier_debt_plafond_blocked_msg'),
+              color: 'error',
+            });
+          } else {
+            this.main.add_snackbar({
+              show: true,
+              message: res.message || this.$t('supplier_debt_plafond_warning_msg'),
+              color: 'warning',
+            });
+          }
+        }
+      } catch (e) {
+        console.error('[ChargeForm] Check supplier plafond failed:', e);
+      }
+    },
+  },
+  watch: {
+    'chargeStore.charge.supplier_id'(newVal) {
+      if (newVal) this.checkSupplierPlafond();
+      else this.chargeStore.plafondCheckResult = null;
+    },
+    'chargeStore.charge.total_price'(newVal, oldVal) {
+      if (newVal !== oldVal && this.chargeStore.charge?.supplier_id) {
+        this.checkSupplierPlafond();
+      }
+    },
+    'chargeStore.charge.date'(newVal, oldVal) {
+      if (newVal !== oldVal && this.chargeStore.charge?.supplier_id) {
+        this.checkSupplierPlafond();
+      }
+    },
+  },
+  mounted() {
+    if (this.chargeStore.charge?.supplier_id) {
+      this.checkSupplierPlafond();
+    }
   },
 };
 </script>

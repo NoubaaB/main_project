@@ -482,86 +482,100 @@
                     {{ cell.day }}
                     <span v-if="cell.monthLabel" class="fnm-cal-month-label">{{ cell.monthLabel }}</span>
                   </div>
-                  <!-- Cell delete button -->
-                  <v-btn
-                    v-if="cell.activities && cell.activities.length && !cell.isOutside && !cell.isFuture"
-                    icon
-                    size="18"
-                    variant="text"
-                    color="error"
-                    class="fnm-cell-delete-btn"
-                    @click.stop="deleteCellActivities(cell)"
-                    :loading="deletingCell === cell.dateStr"
-                  >
-                    <v-icon size="14">mdi-delete-outline</v-icon>
-                    <v-tooltip activator="parent" location="top">{{ $t('delete_all_cell_activities') }}</v-tooltip>
-                  </v-btn>
+                  <!-- Cell header actions: View Day Detail + Delete cell -->
+                  <div class="fnm-cell-header-actions" v-if="cell.activities && cell.activities.length && !cell.isOutside && !cell.isFuture">
+                    <v-btn
+                      icon
+                      size="18"
+                      variant="text"
+                      color="primary"
+                      class="fnm-cell-view-btn"
+                      @click.stop="openDayDetail(cell)"
+                    >
+                      <v-icon size="14">mdi-eye-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('click_to_view_day_activities') || 'View day activities' }}</v-tooltip>
+                    </v-btn>
+
+                    <v-btn
+                      icon
+                      size="18"
+                      variant="text"
+                      color="error"
+                      class="fnm-cell-delete-btn"
+                      @click.stop="deleteCellActivities(cell)"
+                      :loading="deletingCell === cell.dateStr"
+                    >
+                      <v-icon size="14">mdi-delete-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('delete_all_cell_activities') }}</v-tooltip>
+                    </v-btn>
+                  </div>
                 </div>
 
                 <!-- Activities in cell (normal mode: workforce selected) -->
                 <div v-if="cell.activities && cell.activities.length && !cell.isSummary" class="fnm-cal-activities">
                   <div
-                    v-for="act in cell.activities.slice(0, 4)"
+                    v-for="act in cell.activities.slice(0, 3)"
                     :key="act.id"
-                    class="fnm-cal-activity"
-                    :class="getActivityClass(act)"
-                    @click.stop="editActivity(act)"
+                    class="fnm-cal-activity-pill"
+                    :class="getActTypeClass(act)"
+                    @click.stop="openDayDetail(cell, act)"
                   >
-                    <span v-if="(multipleSelected || act.is_fixed_price) && act.workforce" class="fnm-act-wf" :title="act.workforce.full_name">
-                      {{ getWorkforceInitials(act.workforce) }}
+                    <span class="fnm-pill-badge" :title="act.workforce ? act.workforce.full_name : ''">
+                      <v-icon v-if="act.is_fixed_price" size="10">mdi-cash-lock</v-icon>
+                      <v-icon v-else-if="act.section" size="10">mdi-sitemap-outline</v-icon>
+                      <v-icon v-else size="10">mdi-account-tie</v-icon>
                     </span>
-                    <span class="fnm-act-price">{{ formatNumber(act.price) }} Dh</span>
-                    <span class="fnm-act-label">{{ getActivityLabel(act) }}</span>
-                    <!-- Delete button on hover -->
-                    <v-btn
-                      icon
-                      size="12"
-                      variant="flat"
-                      color="error"
-                      class="fnm-act-delete"
-                      @click.stop="deleteActivity(act)"
-                    >
-                      <v-icon size="10">mdi-close</v-icon>
-                    </v-btn>
+                    <div class="fnm-pill-info">
+                      <span v-if="act.workforce" class="fnm-pill-worker">{{ getWorkforceInitials(act.workforce) }}</span>
+                      <span class="fnm-pill-price">{{ formatNumber(act.price) }} Dh</span>
+                    </div>
+
+                    <!-- Quick Action Buttons on hover -->
+                    <div class="fnm-pill-actions">
+                      <v-btn
+                        icon
+                        size="14"
+                        variant="flat"
+                        color="primary"
+                        class="fnm-pill-act-btn"
+                        @click.stop="editActivity(act)"
+                        :title="$t('edit') || 'Edit'"
+                      >
+                        <v-icon size="9">mdi-pencil</v-icon>
+                      </v-btn>
+                      <v-btn
+                        icon
+                        size="14"
+                        variant="flat"
+                        color="error"
+                        class="fnm-pill-act-btn ml-0.5"
+                        @click.stop="deleteActivity(act)"
+                        :title="$t('delete') || 'Delete'"
+                      >
+                        <v-icon size="9">mdi-close</v-icon>
+                      </v-btn>
+                    </div>
                   </div>
-                  <!-- "+X more" indicator -->
-                  <v-menu v-if="cell.activities.length > 4" location="bottom center" :close-on-content-click="false" max-width="320">
-                    <template #activator="{ props }">
-                      <div v-bind="props" class="fnm-cal-more" @click.stop>
-                        +{{ cell.activities.length - 4 }} {{ $t('more') }}
-                      </div>
-                    </template>
-                    <v-card class="rounded-lg pa-0" elevation="8" min-width="280">
-                      <div class="fnm-more-header">
-                        <v-icon size="16" color="white" class="mr-1">mdi-calendar</v-icon>
-                        {{ cell.dateStr }} — {{ cell.activities.length }} {{ $t('activities') }}
-                      </div>
-                      <div class="fnm-more-list">
-                        <div
-                          v-for="act in cell.activities"
-                          :key="'more-' + act.id"
-                          class="fnm-more-item"
-                          @click="editActivity(act)"
-                        >
-                          <span v-if="act.workforce" class="fnm-more-wf">{{ act.workforce.full_name }}</span>
-                          <v-icon v-if="act.is_fixed_price" size="12" color="amber-darken-2" class="mr-1">mdi-cash-lock</v-icon>
-                          <span class="fnm-more-price">{{ formatNumber(act.price) }} Dh</span>
-                          <span class="fnm-more-label">{{ getActivityLabel(act) }}</span>
-                          <v-btn icon size="18" variant="text" color="error" class="fnm-more-del" @click.stop="deleteActivity(act)">
-                            <v-icon size="14">mdi-close</v-icon>
-                          </v-btn>
-                        </div>
-                      </div>
-                    </v-card>
-                  </v-menu>
+
+                  <!-- "+X more" Pill -->
+                  <div
+                    v-if="cell.activities.length > 3"
+                    class="fnm-cal-more-pill"
+                    @click.stop="openDayDetail(cell)"
+                  >
+                    +{{ cell.activities.length - 3 }} {{ $t('more') }}
+                  </div>
                 </div>
 
                 <!-- Summary mode: no workforce selected - show aggregated total -->
                 <div v-if="cell.isSummary && cell.summaryData" class="fnm-cal-activities">
-                  <div class="fnm-cal-activity fnm-act-summary" @click.stop="openDayDetail(cell)" style="cursor:pointer">
-                    <v-icon size="12" color="white" class="mr-1">mdi-sigma</v-icon>
-                    <span class="fnm-act-price">{{ formatNumber(cell.summaryData.total_price) }} Dh</span>
-                    <span class="fnm-act-label">{{ cell.summaryData.count }} {{ $t('activities') }}</span>
+                  <div class="fnm-summary-chip" @click.stop="openDayDetail(cell)">
+                    <div class="fnm-summary-chip-left">
+                      <v-icon size="13" color="white">mdi-sigma</v-icon>
+                      <span class="fnm-summary-amount">{{ formatNumber(cell.summaryData.total_price) }} Dh</span>
+                      <span class="fnm-summary-count">({{ cell.summaryData.count }})</span>
+                    </div>
+                    <v-icon size="13" class="fnm-summary-arrow">mdi-chevron-right</v-icon>
                   </div>
                 </div>
               </div>
@@ -1361,87 +1375,491 @@
       </v-card>
     </v-dialog>
 
-    <!-- ============= DAY DETAIL DIALOG (Summary mode) ============= -->
-    <v-dialog v-model="dayDetailDialog" max-width="680" scrollable>
-      <v-card class="rounded-xl">
-        <!-- Header -->
-        <div class="fnm-dd-header">
-          <div class="d-flex align-center ga-2">
-            <div class="fnm-dd-icon">
-              <v-icon color="white" size="22">mdi-calendar-text</v-icon>
+    <!-- ============= REDESIGNED ENTERPRISE DAY ACTIVITIES DIALOG ============= -->
+    <v-dialog v-model="dayDetailDialog" max-width="840" scrollable>
+      <v-card class="fnm-day-detail-card">
+        <!-- 1. Workforce Hero Header -->
+        <div class="fnm-dd-hero">
+          <div class="fnm-dd-hero-left">
+            <div class="fnm-dd-hero-icon-box">
+              <v-icon color="white" size="24">mdi-calendar-multiselect</v-icon>
             </div>
             <div>
-              <div class="fnm-dd-title">{{ $t('day_activities_detail') }}</div>
-              <div class="fnm-dd-subtitle">{{ dayDetailDate }}</div>
+              <div class="fnm-dd-hero-title">{{ $t('day_activities_detail') || 'Day Activities Management' }}</div>
+              <div class="fnm-dd-hero-subtitle">{{ formatLongDate(dayDetailDate) }}</div>
             </div>
           </div>
-          <v-btn icon size="small" variant="text" color="white" @click="dayDetailDialog = false">
-            <v-icon>mdi-close</v-icon>
+          <div class="fnm-dd-hero-right">
+            <span class="fnm-dd-hero-badge">{{ dayDetailPeriodLabel }}</span>
+            <v-btn
+              prepend-icon="mdi-plus"
+              size="small"
+              variant="flat"
+              color="white"
+              class="text-primary font-weight-bold ml-2"
+              @click="toggleDayDetailAddForm"
+            >
+              {{ dayDetailShowAddForm ? $t('cancel') : ($t('add_activity') || 'Add Activity') }}
+            </v-btn>
+            <v-btn icon size="small" variant="text" color="white" @click="dayDetailDialog = false">
+              <v-icon size="18">mdi-close</v-icon>
+            </v-btn>
+          </div>
+        </div>
+
+        <!-- 2. 4 KPI Stat Cards Grid -->
+        <div class="fnm-dd-stats-grid">
+          <!-- Total Amount -->
+          <div class="fnm-dd-stat-card">
+            <div class="fnm-dd-stat-icon" style="background: rgba(46, 125, 50, 0.12); color: #2E7D32;">
+              <v-icon size="20">mdi-cash-multiple</v-icon>
+            </div>
+            <div class="fnm-dd-stat-content">
+              <span class="fnm-dd-stat-val text-success">{{ formatNumber(dayDetailTotal) }} Dh</span>
+              <span class="fnm-dd-stat-lbl">{{ $t('total_amount') }}</span>
+            </div>
+          </div>
+
+          <!-- Total Workforces -->
+          <div class="fnm-dd-stat-card">
+            <div class="fnm-dd-stat-icon" style="background: rgba(21, 101, 192, 0.12); color: #1565C0;">
+              <v-icon size="20">mdi-account-group</v-icon>
+            </div>
+            <div class="fnm-dd-stat-content">
+              <span class="fnm-dd-stat-val text-primary">{{ dayDetailWorkforceCount }}</span>
+              <span class="fnm-dd-stat-lbl">{{ $t('workforces') }}</span>
+            </div>
+          </div>
+
+          <!-- Total Activities -->
+          <div class="fnm-dd-stat-card">
+            <div class="fnm-dd-stat-icon" style="background: rgba(142, 36, 170, 0.12); color: #8E24AA;">
+              <v-icon size="20">mdi-clipboard-list-outline</v-icon>
+            </div>
+            <div class="fnm-dd-stat-content">
+              <span class="fnm-dd-stat-val text-purple">{{ dayDetailActivities.length }}</span>
+              <span class="fnm-dd-stat-lbl">{{ $t('activities') }}</span>
+            </div>
+          </div>
+
+          <!-- Average Pay -->
+          <div class="fnm-dd-stat-card">
+            <div class="fnm-dd-stat-icon" style="background: rgba(245, 127, 23, 0.12); color: #F57F17;">
+              <v-icon size="20">mdi-calculator-variant</v-icon>
+            </div>
+            <div class="fnm-dd-stat-content">
+              <span class="fnm-dd-stat-val text-amber-darken-3">{{ formatNumber(dayDetailAverage) }} Dh</span>
+              <span class="fnm-dd-stat-lbl">{{ $t('average_per_worker') || 'Avg / Worker' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Collapsible Quick Add Activity Panel -->
+        <v-expand-transition>
+          <div v-if="dayDetailShowAddForm" class="fnm-dd-quick-add-panel">
+            <v-card variant="outlined" class="fnm-quick-add-card pa-4">
+              <div class="d-flex align-center justify-space-between mb-3">
+                <div class="d-flex align-center ga-2">
+                  <v-icon size="18" color="#42A5F5">mdi-account-plus</v-icon>
+                  <span class="font-weight-bold text-subtitle-2">{{ $t('add_new_activity_for_date') || 'Add New Activity' }} ({{ dayDetailDate }})</span>
+                </div>
+                <!-- Segmented Type Selector -->
+                <v-btn-toggle
+                  v-model="dayDetailAddForm.assignment_type"
+                  mandatory
+                  density="compact"
+                  variant="outlined"
+                  color="#42A5F5"
+                  rounded="lg"
+                  class="fnm-type-toggle"
+                  @update:model-value="onDayDetailAssignmentTypeChange"
+                >
+                  <v-btn value="section" size="small">
+                    <v-icon size="14" class="mr-1">mdi-sitemap-outline</v-icon>{{ $t('section') }}
+                  </v-btn>
+                  <v-btn value="corporal" size="small">
+                    <v-icon size="14" class="mr-1">mdi-account-tie</v-icon>{{ $t('corporal') }}
+                  </v-btn>
+                  <v-btn value="fixed" size="small">
+                    <v-icon size="14" class="mr-1">mdi-cash-lock</v-icon>{{ $t('fixed_pay') || 'Fixed' }}
+                  </v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <v-row dense>
+                <!-- Workforce Select -->
+                <v-col cols="12" md="4">
+                  <v-autocomplete
+                    v-model="dayDetailAddForm.workforce_id"
+                    :items="activeWorkforces"
+                    item-title="full_name"
+                    item-value="id"
+                    :label="$t('workforce')"
+                    prepend-inner-icon="mdi-account"
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    hide-details="auto"
+                    clearable
+                    @update:model-value="onDayDetailAddWorkforceChange"
+                  >
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :subtitle="item.raw.matricule"></v-list-item>
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+
+                <!-- Section Select -->
+                <v-col v-if="dayDetailAddForm.assignment_type === 'section'" cols="12" md="4">
+                  <v-autocomplete
+                    v-model="dayDetailAddForm.section_id"
+                    :items="sections"
+                    item-title="name"
+                    item-value="id"
+                    :label="$t('section')"
+                    prepend-inner-icon="mdi-sitemap-outline"
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    hide-details="auto"
+                    @update:model-value="onDayDetailAddSectionChange"
+                  ></v-autocomplete>
+                </v-col>
+
+                <!-- Corporal Select -->
+                <v-col v-if="dayDetailAddForm.assignment_type === 'corporal'" cols="12" md="4">
+                  <v-autocomplete
+                    v-model="dayDetailAddForm.corporal_id"
+                    :items="corporals"
+                    item-title="full_name"
+                    item-value="id"
+                    :label="$t('corporal')"
+                    prepend-inner-icon="mdi-account-tie"
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    hide-details="auto"
+                    @update:model-value="onDayDetailAddCorporalChange"
+                  ></v-autocomplete>
+                </v-col>
+
+                <!-- Price Field -->
+                <v-col cols="12" :md="dayDetailAddForm.assignment_type === 'fixed' ? 6 : 2">
+                  <v-text-field
+                    v-model.number="dayDetailAddForm.price"
+                    type="number"
+                    :label="$t('price') + ' (Dh)'"
+                    prepend-inner-icon="mdi-cash"
+                    density="compact"
+                    variant="outlined"
+                    rounded
+                    hide-details="auto"
+                    :readonly="dayDetailAddPriceReadonly"
+                  ></v-text-field>
+                </v-col>
+
+                <!-- Save Button -->
+                <v-col cols="12" :md="dayDetailAddForm.assignment_type === 'fixed' ? 2 : 2" class="d-flex align-center">
+                  <v-btn
+                    color="#42A5F5"
+                    variant="flat"
+                    block
+                    rounded
+                    :disabled="!canSaveDayDetailAdd"
+                    :loading="dayDetailAddSaving"
+                    @click="saveDayDetailAdd"
+                  >
+                    <v-icon size="16" class="mr-1">mdi-plus</v-icon>{{ $t('save') }}
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-card>
+          </div>
+        </v-expand-transition>
+
+        <!-- 4. Interactive Live Search & Filter Bar -->
+        <div class="fnm-dd-toolbar">
+          <v-text-field
+            v-model="dayDetailSearch"
+            :placeholder="$t('search_by_worker_or_section') || 'Search workers, matricule, sections...'"
+            prepend-inner-icon="mdi-magnify"
+            density="compact"
+            variant="outlined"
+            rounded="lg"
+            hide-details
+            clearable
+            class="fnm-dd-search-input"
+          ></v-text-field>
+
+          <div class="fnm-dd-filter-chips">
+            <v-chip
+              size="small"
+              :color="dayDetailFilterType === 'all' ? '#42A5F5' : undefined"
+              :variant="dayDetailFilterType === 'all' ? 'flat' : 'outlined'"
+              class="cursor-pointer"
+              @click="dayDetailFilterType = 'all'"
+            >
+              {{ $t('all') }} ({{ dayDetailActivities.length }})
+            </v-chip>
+            <v-chip
+              size="small"
+              :color="dayDetailFilterType === 'section' ? '#E65100' : undefined"
+              :variant="dayDetailFilterType === 'section' ? 'flat' : 'outlined'"
+              class="cursor-pointer"
+              @click="dayDetailFilterType = 'section'"
+            >
+              <v-icon size="13" class="mr-1">mdi-sitemap-outline</v-icon>
+              {{ $t('section') }} ({{ dayDetailSectionCount }})
+            </v-chip>
+            <v-chip
+              size="small"
+              :color="dayDetailFilterType === 'corporal' ? '#1565C0' : undefined"
+              :variant="dayDetailFilterType === 'corporal' ? 'flat' : 'outlined'"
+              class="cursor-pointer"
+              @click="dayDetailFilterType = 'corporal'"
+            >
+              <v-icon size="13" class="mr-1">mdi-account-tie</v-icon>
+              {{ $t('corporal') }} ({{ dayDetailCorporalCount }})
+            </v-chip>
+            <v-chip
+              size="small"
+              :color="dayDetailFilterType === 'fixed' ? '#F57F17' : undefined"
+              :variant="dayDetailFilterType === 'fixed' ? 'flat' : 'outlined'"
+              class="cursor-pointer"
+              @click="dayDetailFilterType = 'fixed'"
+            >
+              <v-icon size="13" class="mr-1">mdi-cash-lock</v-icon>
+              {{ $t('fixed_pay') || 'Fixed' }} ({{ dayDetailFixedCount }})
+            </v-chip>
+          </div>
+        </div>
+
+        <!-- 5. Cards Container (Scrollable) -->
+        <v-card-text class="pa-0 fnm-dd-cards-container">
+          <!-- Loading State -->
+          <div v-if="dayDetailLoading" class="d-flex justify-center pa-10">
+            <v-progress-circular indeterminate color="#42A5F5" size="48" width="4" />
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="!filteredDayDetailActivities.length" class="fnm-dd-empty-state">
+            <v-icon size="56" color="grey-lighten-1">mdi-calendar-blank</v-icon>
+            <div class="text-subtitle-1 font-weight-bold mt-2">{{ $t('no_activities_found') }}</div>
+            <div class="text-caption text-medium-emphasis">
+              {{ dayDetailSearch ? ($t('try_adjusting_search') || 'Try adjusting your search or filters') : ($t('click_add_activity_to_start') || 'Click Add Activity above to record work') }}
+            </div>
+          </div>
+
+          <!-- Activity Rows -->
+          <div v-else class="d-flex flex-column ga-2 pa-3">
+            <div
+              v-for="act in filteredDayDetailActivities"
+              :key="act.id"
+              class="fnm-dd-card-row"
+              :class="{ 'fnm-dd-card-focused': focusedActivityId === act.id }"
+            >
+              <div class="fnm-dd-row-header">
+                <div class="fnm-dd-worker-info">
+                  <v-avatar
+                    size="40"
+                    :color="act.is_fixed_price ? 'amber-darken-3' : act.section ? 'orange-darken-3' : 'blue-darken-3'"
+                    class="fnm-dd-avatar text-white"
+                  >
+                    <span>{{ getWorkforceInitials(act.workforce) }}</span>
+                  </v-avatar>
+
+                  <div class="fnm-dd-worker-meta">
+                    <div class="d-flex align-center ga-2">
+                      <span class="fnm-dd-worker-name">{{ act.workforce ? act.workforce.full_name : '—' }}</span>
+                      <v-chip v-if="act.workforce && act.workforce.matricule" size="x-small" variant="tonal" class="fnm-dd-matricule-chip">
+                        {{ act.workforce.matricule }}
+                      </v-chip>
+                    </div>
+
+                    <div class="fnm-dd-chips-line">
+                      <!-- Section Badge -->
+                      <v-chip
+                        v-if="act.section"
+                        size="x-small"
+                        color="orange-darken-3"
+                        variant="tonal"
+                        prepend-icon="mdi-sitemap-outline"
+                        class="fnm-dd-affil-chip"
+                      >
+                        {{ act.section.name }}
+                      </v-chip>
+
+                      <!-- Corporal Badge -->
+                      <v-chip
+                        v-if="act.corporal"
+                        size="x-small"
+                        color="blue-darken-3"
+                        variant="tonal"
+                        prepend-icon="mdi-account-tie"
+                        class="fnm-dd-affil-chip"
+                      >
+                        {{ act.corporal.full_name }}
+                      </v-chip>
+
+                      <!-- Fixed Price Badge -->
+                      <v-chip
+                        v-if="act.is_fixed_price"
+                        size="x-small"
+                        color="amber-darken-3"
+                        variant="tonal"
+                        prepend-icon="mdi-cash-lock"
+                        class="fnm-dd-affil-chip"
+                      >
+                        {{ $t('fixed_pay') || 'Fixed Pay' }}
+                      </v-chip>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Side: Price & Actions -->
+                <div class="fnm-dd-row-actions">
+                  <div class="fnm-dd-price-tag">
+                    <span class="fnm-dd-price-num">{{ formatNumber(act.price) }}</span>
+                    <span class="fnm-dd-price-curr">Dh</span>
+                  </div>
+
+                  <!-- Edit Button -->
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="tonal"
+                    color="primary"
+                    class="fnm-dd-edit-btn"
+                    @click="startDayDetailEdit(act)"
+                    :title="$t('edit') || 'Edit'"
+                  >
+                    <v-icon size="16">mdi-pencil-outline</v-icon>
+                  </v-btn>
+
+                  <!-- Delete Button -->
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="tonal"
+                    color="error"
+                    class="fnm-dd-del-btn"
+                    @click="deleteActivityFromDetail(act)"
+                    :loading="deletingDetailId === act.id"
+                    :title="$t('delete') || 'Delete'"
+                  >
+                    <v-icon size="16">mdi-delete-outline</v-icon>
+                  </v-btn>
+                </div>
+              </div>
+
+              <!-- Inline Quick-Edit Form -->
+              <v-expand-transition>
+                <div v-if="dayDetailEditingId === act.id" class="fnm-dd-inline-edit-form">
+                  <v-row dense class="align-center mt-2">
+                    <v-col cols="12" md="5">
+                      <v-autocomplete
+                        v-if="act.section_id"
+                        v-model="dayDetailEditForm.section_id"
+                        :items="sections"
+                        item-title="name"
+                        item-value="id"
+                        :label="$t('section')"
+                        density="compact"
+                        variant="outlined"
+                        rounded
+                        hide-details
+                        @update:model-value="onDayDetailEditSectionChange"
+                      ></v-autocomplete>
+                      <v-autocomplete
+                        v-else-if="act.corporal_id"
+                        v-model="dayDetailEditForm.corporal_id"
+                        :items="corporals"
+                        item-title="full_name"
+                        item-value="id"
+                        :label="$t('corporal')"
+                        density="compact"
+                        variant="outlined"
+                        rounded
+                        hide-details
+                        @update:model-value="onDayDetailEditCorporalChange"
+                      ></v-autocomplete>
+                      <v-text-field
+                        v-else
+                        :model-value="$t('fixed_pay')"
+                        readonly
+                        density="compact"
+                        variant="outlined"
+                        rounded
+                        hide-details
+                      ></v-text-field>
+                    </v-col>
+
+                    <v-col cols="12" md="4">
+                      <v-text-field
+                        v-model.number="dayDetailEditForm.price"
+                        type="number"
+                        :label="$t('price') + ' (Dh)'"
+                        density="compact"
+                        variant="outlined"
+                        rounded
+                        hide-details
+                        :readonly="dayDetailEditPriceReadonly"
+                      ></v-text-field>
+                    </v-col>
+
+                    <v-col cols="12" md="3" class="d-flex ga-1 justify-end">
+                      <v-btn
+                        size="small"
+                        color="success"
+                        variant="flat"
+                        rounded
+                        :loading="dayDetailEditSaving"
+                        @click="saveDayDetailEdit(act)"
+                      >
+                        {{ $t('save') }}
+                      </v-btn>
+                      <v-btn
+                        size="small"
+                        variant="outlined"
+                        rounded
+                        @click="dayDetailEditingId = null"
+                      >
+                        {{ $t('cancel') }}
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </div>
+              </v-expand-transition>
+            </div>
+          </div>
+        </v-card-text>
+
+        <!-- 6. Footer -->
+        <div class="fnm-dd-footer">
+          <v-btn
+            v-if="dayDetailActivities.length"
+            variant="outlined"
+            color="error"
+            size="small"
+            rounded
+            prepend-icon="mdi-delete-sweep-outline"
+            :loading="dayDetailDeletingAll"
+            @click="confirmDeleteAllDayActivities"
+          >
+            {{ $t('delete_all_day_activities') || 'Delete All Day Activities' }}
+          </v-btn>
+          <div v-else></div>
+
+          <v-btn
+            variant="tonal"
+            color="primary"
+            size="small"
+            rounded
+            @click="dayDetailDialog = false"
+          >
+            {{ $t('close') }}
           </v-btn>
         </div>
-
-        <!-- Summary bar -->
-        <div v-if="dayDetailActivities.length" class="fnm-dd-summary">
-          <v-chip size="small" color="#42A5F5" variant="flat" prepend-icon="mdi-account-group" class="text-white">
-            {{ dayDetailWorkforceCount }} {{ $t('workforces') }}
-          </v-chip>
-          <v-chip size="small" color="purple" variant="flat" prepend-icon="mdi-sigma">
-            {{ formatNumber(dayDetailTotal) }} {{ main.currency || 'DH' }}
-          </v-chip>
-          <v-chip size="small" variant="flat" prepend-icon="mdi-counter">
-            {{ dayDetailActivities.length }} {{ $t('activities') }}
-          </v-chip>
-        </div>
-
-        <!-- Activity list -->
-        <v-card-text class="pa-0" style="max-height: 420px;">
-          <div v-if="dayDetailLoading" class="d-flex justify-center pa-8">
-            <v-progress-circular indeterminate color="#42A5F5" />
-          </div>
-          <div v-else-if="!dayDetailActivities.length" class="text-center pa-8 text-grey">
-            <v-icon size="48" color="grey-lighten-1">mdi-calendar-blank</v-icon>
-            <div class="mt-2">{{ $t('no_activities_found') }}</div>
-          </div>
-          <v-list v-else lines="three" class="pa-2">
-            <template v-for="(act, idx) in dayDetailActivities" :key="act.id">
-              <v-list-item class="fnm-dd-item rounded-lg mb-1" :ripple="false">
-                <template #prepend>
-                  <v-avatar size="38" :color="act.section ? '#42A5F5' : 'purple'" class="mr-3">
-                    <span class="text-white text-caption font-weight-bold">{{ getWorkforceInitials(act.workforce) }}</span>
-                  </v-avatar>
-                </template>
-                <v-list-item-title class="font-weight-bold text-body-2">
-                  {{ act.workforce ? act.workforce.full_name : '—' }}
-                  <v-chip v-if="act.workforce" size="x-small" variant="outlined" color="grey" class="ml-1">{{ act.workforce.matricule }}</v-chip>
-                </v-list-item-title>
-                <v-list-item-subtitle class="d-flex align-center ga-2 mt-1">
-                  <v-chip v-if="act.section" size="x-small" color="#42A5F5" variant="tonal" prepend-icon="mdi-sitemap-outline">
-                    {{ act.section.name }}
-                  </v-chip>
-                  <v-chip v-if="act.corporal" size="x-small" color="purple" variant="tonal" prepend-icon="mdi-account-tie">
-                    {{ act.corporal.full_name }}
-                  </v-chip>
-                  <v-chip size="x-small" color="success" variant="tonal" prepend-icon="mdi-cash">
-                    {{ formatNumber(act.price) }} {{ main.currency || 'DH' }}
-                  </v-chip>
-                </v-list-item-subtitle>
-                <template #append>
-                  <div class="d-flex ga-1">
-                    <v-btn icon size="x-small" variant="text" color="#42A5F5" @click="editActivityFromDetail(act)">
-                      <v-icon size="16">mdi-pencil</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('edit_activity') }}</v-tooltip>
-                    </v-btn>
-                    <v-btn icon size="x-small" variant="text" color="error" @click="deleteActivityFromDetail(act)" :loading="deletingDetailId === act.id">
-                      <v-icon size="16">mdi-delete-outline</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
-                    </v-btn>
-                  </div>
-                </template>
-              </v-list-item>
-              <v-divider v-if="idx < dayDetailActivities.length - 1" class="mx-3" />
-            </template>
-          </v-list>
-        </v-card-text>
       </v-card>
     </v-dialog>
 
@@ -2357,6 +2775,7 @@ import mitt from '@/plugins/mitt.js';
 import print from 'vue3-print-nb';
 import axios from 'axios';
 import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
+import { gqlToggleWorkforcePayment, gqlBulkToggleWorkforcePayments } from '@/services/appGraphql';
 
 export default {
   name: 'FortnightManagement',
@@ -2400,6 +2819,22 @@ export default {
       dayDetailActivities: [],
       dayDetailLoading: false,
       deletingDetailId: null,
+      dayDetailSearch: '',
+      dayDetailFilterType: 'all',
+      dayDetailShowAddForm: false,
+      dayDetailAddForm: {
+        workforce_id: null,
+        assignment_type: 'section',
+        section_id: null,
+        corporal_id: null,
+        price: 0
+      },
+      dayDetailAddSaving: false,
+      dayDetailEditingId: null,
+      dayDetailEditForm: { section_id: null, corporal_id: null, price: 0 },
+      dayDetailEditSaving: false,
+      dayDetailDeletingAll: false,
+      focusedActivityId: null,
       exporting: false,
       companySettings: {},
       editDialog: false,
@@ -2609,6 +3044,57 @@ export default {
     /** Total price of day detail activities */
     dayDetailTotal() {
       return this.dayDetailActivities.reduce((sum, a) => sum + parseFloat(a.price || 0), 0);
+    },
+    /** Average pay per worker for day detail activities */
+    dayDetailAverage() {
+      const count = this.dayDetailWorkforceCount;
+      if (!count) return 0;
+      return this.dayDetailTotal / count;
+    },
+    dayDetailPeriodLabel() {
+      if (!this.selectedFortnight) return '';
+      return `${this.formatDateShort(this.selectedFortnight.start_date)} - ${this.formatDateShort(this.selectedFortnight.end_date)}`;
+    },
+    dayDetailSectionCount() {
+      return this.dayDetailActivities.filter(a => !!a.section_id).length;
+    },
+    dayDetailCorporalCount() {
+      return this.dayDetailActivities.filter(a => !!a.corporal_id).length;
+    },
+    dayDetailFixedCount() {
+      return this.dayDetailActivities.filter(a => !!a.is_fixed_price).length;
+    },
+    filteredDayDetailActivities() {
+      let list = this.dayDetailActivities || [];
+      if (this.dayDetailFilterType === 'section') {
+        list = list.filter(a => !!a.section_id);
+      } else if (this.dayDetailFilterType === 'corporal') {
+        list = list.filter(a => !!a.corporal_id);
+      } else if (this.dayDetailFilterType === 'fixed') {
+        list = list.filter(a => !!a.is_fixed_price);
+      }
+      const q = (this.dayDetailSearch || '').trim().toLowerCase();
+      if (!q) return list;
+      return list.filter(a => {
+        const wfName = (a.workforce?.full_name || '').toLowerCase();
+        const mat = (a.workforce?.matricule || '').toLowerCase();
+        const sec = (a.section?.name || '').toLowerCase();
+        const corp = (a.corporal?.full_name || '').toLowerCase();
+        return wfName.includes(q) || mat.includes(q) || sec.includes(q) || corp.includes(q);
+      });
+    },
+    canSaveDayDetailAdd() {
+      if (!this.dayDetailAddForm.workforce_id) return false;
+      if (this.dayDetailAddForm.assignment_type === 'section' && !this.dayDetailAddForm.section_id) return false;
+      if (this.dayDetailAddForm.assignment_type === 'corporal' && !this.dayDetailAddForm.corporal_id) return false;
+      return (parseFloat(this.dayDetailAddForm.price) || 0) > 0;
+    },
+    dayDetailAddPriceReadonly() {
+      return this.dayDetailAddForm.assignment_type === 'fixed';
+    },
+    dayDetailEditPriceReadonly() {
+      const act = this.dayDetailActivities.find(a => a.id === this.dayDetailEditingId);
+      return act ? !!act.is_fixed_price : false;
     },
     /** Whether there are multi-selected dates */
     hasMultiSelection() {
@@ -3154,13 +3640,24 @@ export default {
       const periodParam = periodStr.toUpperCase();
       const paidBool = Boolean(isPaid);
       try {
-        await axios.post('/api/workforce-payments/toggle', {
-          workforce_id: workforce.id,
-          year: this.currentYear,
-          month: this.currentMonth + 1,
-          fortnight_period: periodParam,
-          is_paid: paidBool,
-        });
+        try {
+          await gqlToggleWorkforcePayment({
+            workforce_id: parseInt(workforce.id, 10),
+            year: this.currentYear,
+            month: this.currentMonth + 1,
+            fortnight_period: periodParam,
+            is_paid: paidBool,
+          });
+        } catch (gqlErr) {
+          console.warn('[GraphQL fallback to REST] togglePaymentStatus:', gqlErr);
+          await axios.post('/api/workforce-payments/toggle', {
+            workforce_id: workforce.id,
+            year: this.currentYear,
+            month: this.currentMonth + 1,
+            fortnight_period: periodParam,
+            is_paid: paidBool,
+          });
+        }
         
         // Update local state
         workforce[`is_paid_${periodStr}`] = paidBool;
@@ -3191,18 +3688,29 @@ export default {
     async toggleAllPayments(periodStr, isPaid) {
       const periodParam = periodStr.toUpperCase();
       const workforces = this.sortedFilteredWorkforces;
-      const workforceIds = workforces.map(w => w.id);
+      const workforceIds = workforces.map(w => parseInt(w.id, 10));
       if (!workforceIds.length) return;
       const paidBool = Boolean(isPaid);
 
       try {
-        await axios.post('/api/workforce-payments/bulk-toggle', {
-          workforce_ids: workforceIds,
-          year: this.currentYear,
-          month: this.currentMonth + 1,
-          fortnight_period: periodParam,
-          is_paid: paidBool,
-        });
+        try {
+          await gqlBulkToggleWorkforcePayments({
+            workforce_ids: workforceIds,
+            year: this.currentYear,
+            month: this.currentMonth + 1,
+            fortnight_period: periodParam,
+            is_paid: paidBool,
+          });
+        } catch (gqlErr) {
+          console.warn('[GraphQL fallback to REST] toggleAllPayments:', gqlErr);
+          await axios.post('/api/workforce-payments/bulk-toggle', {
+            workforce_ids: workforceIds,
+            year: this.currentYear,
+            month: this.currentMonth + 1,
+            fortnight_period: periodParam,
+            is_paid: paidBool,
+          });
+        }
         
         // Update local state for all currently visible workforces
         workforces.forEach(w => {
@@ -4214,11 +4722,16 @@ export default {
       if (act.corporal) return act.corporal.full_name;
       return '';
     },
-    /** Open day detail dialog for a summary cell */
-    async openDayDetail(cell) {
+    /** Open day detail dialog for a cell with optional focused activity */
+    async openDayDetail(cell, act = null) {
       if (!cell || !cell.dateStr) return;
       this.dayDetailDate = cell.dateStr;
       this.dayDetailActivities = [];
+      this.dayDetailSearch = '';
+      this.dayDetailFilterType = 'all';
+      this.dayDetailShowAddForm = false;
+      this.dayDetailEditingId = null;
+      this.focusedActivityId = act ? act.id : null;
       this.dayDetailDialog = true;
       this.dayDetailLoading = true;
       try {
@@ -4228,25 +4741,224 @@ export default {
       }
       this.dayDetailLoading = false;
     },
-    /** Edit an activity from the detail dialog - opens the standard edit dialog */
-    editActivityFromDetail(act) {
-      this.editForm = {
-        id: act.id,
+
+    async refreshDayDetail() {
+      if (!this.dayDetailDate) return;
+      this.dayDetailLoading = true;
+      try {
+        this.dayDetailActivities = await this.activityStore.fetchActivitiesByDate(this.dayDetailDate);
+      } catch (e) {
+        console.error(e);
+      }
+      this.dayDetailLoading = false;
+    },
+
+    formatLongDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr + 'T00:00:00');
+        const langCode = this.lang === 'fr' ? 'fr-FR' : this.lang === 'es' ? 'es-ES' : 'en-US';
+        return d.toLocaleDateString(langCode, {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      } catch (e) {
+        return dateStr;
+      }
+    },
+
+    getActTypeClass(act) {
+      if (act.is_fixed_price) return 'fnm-act-fixed';
+      if (act.section || act.section_id) return 'fnm-act-section';
+      if (act.corporal || act.corporal_id) return 'fnm-act-corporal';
+      return '';
+    },
+
+    toggleDayDetailAddForm() {
+      this.dayDetailShowAddForm = !this.dayDetailShowAddForm;
+      if (this.dayDetailShowAddForm) {
+        this.dayDetailAddForm = {
+          workforce_id: null,
+          assignment_type: 'section',
+          section_id: this.sections.length ? this.sections[0].id : null,
+          corporal_id: this.corporals.length ? this.corporals[0].id : null,
+          price: this.sections.length ? parseFloat(this.sections[0].price) || 0 : 0
+        };
+      }
+    },
+
+    onDayDetailAssignmentTypeChange(type) {
+      if (type === 'section') {
+        const sec = this.sections.find(s => s.id === this.dayDetailAddForm.section_id) || this.sections[0];
+        if (sec) {
+          this.dayDetailAddForm.section_id = sec.id;
+          this.dayDetailAddForm.price = parseFloat(sec.price) || 0;
+        }
+      } else if (type === 'corporal') {
+        const corp = this.corporals.find(c => c.id === this.dayDetailAddForm.corporal_id) || this.corporals[0];
+        if (corp) {
+          this.dayDetailAddForm.corporal_id = corp.id;
+          this.dayDetailAddForm.price = parseFloat(corp.price) || 0;
+        }
+      } else if (type === 'fixed') {
+        if (this.dayDetailAddForm.workforce_id) {
+          const wf = this.activeWorkforces.find(w => w.id === this.dayDetailAddForm.workforce_id);
+          this.dayDetailAddForm.price = wf ? parseFloat(wf.fixed_daily_pay_amount) || 0 : 0;
+        }
+      }
+    },
+
+    onDayDetailAddWorkforceChange(val) {
+      const wf = this.activeWorkforces.find(w => w.id === val);
+      if (wf && wf.has_fixed_daily_pay) {
+        this.dayDetailAddForm.assignment_type = 'fixed';
+        this.dayDetailAddForm.price = parseFloat(wf.fixed_daily_pay_amount) || 0;
+      } else if (this.dayDetailAddForm.assignment_type === 'fixed') {
+        this.dayDetailAddForm.assignment_type = 'section';
+        this.onDayDetailAssignmentTypeChange('section');
+      }
+    },
+
+    onDayDetailAddSectionChange(val) {
+      const sec = this.sections.find(s => s.id === val);
+      if (sec) {
+        this.dayDetailAddForm.price = parseFloat(sec.price) || 0;
+      }
+    },
+
+    onDayDetailAddCorporalChange(val) {
+      const corp = this.corporals.find(c => c.id === val);
+      if (corp) {
+        this.dayDetailAddForm.price = parseFloat(corp.price) || 0;
+      }
+    },
+
+    async saveDayDetailAdd() {
+      if (!this.canSaveDayDetailAdd) return;
+      this.dayDetailAddSaving = true;
+      try {
+        const payload = {
+          date: this.dayDetailDate,
+          workforce_id: this.dayDetailAddForm.workforce_id,
+          price: parseFloat(this.dayDetailAddForm.price) || 0,
+        };
+        if (this.dayDetailAddForm.assignment_type === 'section') {
+          payload.section_id = this.dayDetailAddForm.section_id;
+        } else if (this.dayDetailAddForm.assignment_type === 'corporal') {
+          payload.corporal_id = this.dayDetailAddForm.corporal_id;
+        }
+
+        await this.activityStore.create(payload);
+
+        if (this.online?.notifySuccess) {
+          this.online.notifySuccess(this.$t('activity_recorded') || 'Activity recorded successfully');
+        }
+
+        this.dayDetailAddForm.workforce_id = null;
+        this.dayDetailAddForm.price = 0;
+        this.dayDetailShowAddForm = false;
+
+        await this.refreshDayDetail();
+        await this.loadActivities();
+        await this.loadSummary();
+        await this.loadBreakdown();
+      } catch (e) {
+        console.error(e);
+      }
+      this.dayDetailAddSaving = false;
+    },
+
+    startDayDetailEdit(act) {
+      this.dayDetailEditingId = act.id;
+      this.dayDetailEditForm = {
         section_id: act.section_id,
         corporal_id: act.corporal_id,
         price: parseFloat(act.price) || 0,
       };
-      this.editDialog = true;
     },
+
+    onDayDetailEditSectionChange(val) {
+      const sec = this.sections.find(s => s.id === val);
+      if (sec) {
+        this.dayDetailEditForm.price = parseFloat(sec.price) || 0;
+      }
+    },
+
+    onDayDetailEditCorporalChange(val) {
+      const corp = this.corporals.find(c => c.id === val);
+      if (corp) {
+        this.dayDetailEditForm.price = parseFloat(corp.price) || 0;
+      }
+    },
+
+    async saveDayDetailEdit(act) {
+      this.dayDetailEditSaving = true;
+      try {
+        const payload = {
+          price: parseFloat(this.dayDetailEditForm.price) || 0,
+        };
+        if (act.section_id) {
+          payload.section_id = this.dayDetailEditForm.section_id;
+        } else if (act.corporal_id) {
+          payload.corporal_id = this.dayDetailEditForm.corporal_id;
+        }
+
+        await this.activityStore.update(act.id, payload);
+
+        if (this.online?.notifySuccess) {
+          this.online.notifySuccess(this.$t('activity_updated') || 'Activity updated successfully');
+        }
+
+        this.dayDetailEditingId = null;
+
+        await this.refreshDayDetail();
+        await this.loadActivities();
+        await this.loadSummary();
+        await this.loadBreakdown();
+      } catch (e) {
+        console.error(e);
+      }
+      this.dayDetailEditSaving = false;
+    },
+
+    async confirmDeleteAllDayActivities() {
+      if (!confirm(this.$t('confirm_delete_all_day_activities') || `Delete all activities recorded for ${this.dayDetailDate}?`)) return;
+
+      this.dayDetailDeletingAll = true;
+      try {
+        const ids = this.activeWorkforces.map(w => w.id);
+        await this.activityStore.bulkDeleteByDate(ids, this.dayDetailDate);
+
+        if (this.online?.notifySuccess) {
+          this.online.notifySuccess(this.$t('all_activities_deleted') || 'All day activities deleted successfully');
+        }
+
+        this.dayDetailActivities = [];
+        this.dayDetailDialog = false;
+
+        await this.loadActivities();
+        await this.loadSummary();
+        await this.loadBreakdown();
+      } catch (e) {
+        console.error(e);
+      }
+      this.dayDetailDeletingAll = false;
+    },
+
+    /** Edit an activity from the detail dialog - opens the standard edit dialog */
+    editActivityFromDetail(act) {
+      this.startDayDetailEdit(act);
+    },
+
     /** Delete an activity from the detail dialog */
     async deleteActivityFromDetail(act) {
       this.deletingDetailId = act.id;
       try {
         await this.activityStore.remove(act.id);
-        // Remove from local detail list
         this.dayDetailActivities = this.dayDetailActivities.filter(a => a.id !== act.id);
 
-        // Rich notification
         const fields = [];
         if (act.workforce) fields.push({ label: this.$t('workforce'), value: act.workforce.full_name, icon: 'mdi-account' });
         if (act.section) fields.push({ label: this.$t('section_affiliated'), value: act.section.name, icon: 'mdi-sitemap-outline' });
@@ -4260,12 +4972,10 @@ export default {
           fields,
         });
 
-        // Reload totals
         await this.loadActivities();
         await this.loadSummary();
         await this.loadBreakdown();
 
-        // Close dialog if no activities left
         if (!this.dayDetailActivities.length) {
           this.dayDetailDialog = false;
         }
@@ -4862,6 +5572,80 @@ export default {
 .fnm-hero-stat { padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,.18); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.22); color: #fff; }
 .fnm-hero-toggle { background: rgba(255,255,255,.18) !important; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.25) !important; color: #fff !important; }
 .fnm-hero-toggle :deep(.v-btn--active) { background: #fff !important; color: #1565C0 !important; font-weight: 700 !important; }
+
+/* ── Segmented Pill Toggles in Fortnight Management ── */
+/* 1. Hero View Switcher Toggle */
+.fnm-hero :deep(.segmented-pill-container) {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+.fnm-hero :deep(.segmented-pill-indicator) {
+  background: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+.fnm-hero :deep(.segmented-pill-btn.is-active) {
+  color: #1565C0 !important;
+  font-weight: 700 !important;
+}
+.fnm-hero :deep(.segmented-pill-btn.is-active .segmented-pill-icon) {
+  color: #1565C0 !important;
+}
+.fnm-hero :deep(.segmented-pill-btn:not(.is-active)) {
+  color: #FFFFFF !important;
+  opacity: 0.95 !important;
+}
+.fnm-hero :deep(.segmented-pill-btn:not(.is-active) .segmented-pill-icon) {
+  color: #FFFFFF !important;
+  opacity: 0.95 !important;
+}
+.fnm-hero :deep(.segmented-pill-btn:hover:not(.is-active)) {
+  background: rgba(255, 255, 255, 0.14) !important;
+  opacity: 1 !important;
+}
+
+/* 2. Light Mode: Noticeable inactive button text matching Workforce description (#1565C0), font characteristics preserved */
+.segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:not(.is-active),
+.fnm-panel-card :deep(.segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:not(.is-active)),
+.fnm-panel-card :deep(.segmented-pill-btn:not(.is-active)),
+.fnm-breakdown-toolbar :deep(.segmented-pill-btn:not(.is-active)) {
+  color: #1565C0 !important;
+}
+
+.segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:not(.is-active) .segmented-pill-icon,
+.fnm-panel-card :deep(.segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:not(.is-active) .segmented-pill-icon),
+.fnm-panel-card :deep(.segmented-pill-btn:not(.is-active) .segmented-pill-icon),
+.fnm-breakdown-toolbar :deep(.segmented-pill-btn:not(.is-active) .segmented-pill-icon) {
+  color: #1565C0 !important;
+}
+
+.segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:hover:not(.is-active),
+.fnm-panel-card :deep(.segmented-pill-btn:hover:not(.is-active)),
+.fnm-breakdown-toolbar :deep(.segmented-pill-btn:hover:not(.is-active)) {
+  color: #0D47A1 !important;
+  background-color: rgba(66, 165, 245, 0.12) !important;
+}
+
+/* 3. Dark Mode Guard for Fortnight Management Segmented Pills */
+.v-theme--dark .segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:not(.is-active),
+.v-theme--dark .fnm-panel-card :deep(.segmented-pill-btn:not(.is-active)),
+.v-theme--dark .fnm-breakdown-toolbar :deep(.segmented-pill-btn:not(.is-active)) {
+  color: #94A3B8 !important;
+}
+
+.v-theme--dark .segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:not(.is-active) .segmented-pill-icon,
+.v-theme--dark .fnm-panel-card :deep(.segmented-pill-btn:not(.is-active) .segmented-pill-icon),
+.v-theme--dark .fnm-breakdown-toolbar :deep(.segmented-pill-btn:not(.is-active) .segmented-pill-icon) {
+  color: #94A3B8 !important;
+}
+
+.v-theme--dark .segmented-pill-container.segmented-pill--medium.has-indicator .segmented-pill-btn:hover:not(.is-active),
+.v-theme--dark .fnm-panel-card :deep(.segmented-pill-btn:hover:not(.is-active)),
+.v-theme--dark .fnm-breakdown-toolbar :deep(.segmented-pill-btn:hover:not(.is-active)) {
+  color: #60A5FA !important;
+  background-color: rgba(96, 165, 250, 0.12) !important;
+}
 
 /* Left Panel */
 .fnm-panel-card { border-color: rgba(var(--v-border-color), .12) !important; }
@@ -6428,5 +7212,528 @@ export default {
   .fnm-print-stage {
     padding: 16px 12px 36px !important;
   }
+}
+
+/* =========================================================================
+ * REDESIGNED CALENDAR ACTIVITIES & DAY ACTIVITIES MODAL (Enterprise Style)
+ * ========================================================================= */
+.fnm-cell-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.fnm-cell-view-btn,
+.fnm-cell-delete-btn {
+  opacity: 0;
+  transition: opacity .18s ease, transform .15s ease;
+}
+.fnm-cal-cell:hover .fnm-cell-view-btn,
+.fnm-cal-cell:hover .fnm-cell-delete-btn {
+  opacity: 1;
+}
+.fnm-cell-view-btn:hover {
+  transform: scale(1.15);
+  color: #42A5F5 !important;
+}
+
+/* ── Calendar Activities (Micro-Badges & Summary Pill) ── */
+.fnm-cal-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+/* Summary Mode Pill */
+.fnm-summary-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 50%, #42A5F5 100%);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(13, 71, 161, 0.25);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fnm-summary-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(13, 71, 161, 0.35);
+  filter: brightness(1.08);
+}
+.fnm-summary-chip-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.fnm-summary-amount {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.fnm-summary-count {
+  font-size: 9.5px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.fnm-summary-arrow {
+  opacity: 0.7;
+  transition: transform 0.18s ease;
+}
+.fnm-summary-chip:hover .fnm-summary-arrow {
+  transform: translateX(2px);
+  opacity: 1;
+}
+
+/* Normal Mode Activity Pill */
+.fnm-cal-activity-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 6px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+.fnm-cal-activity-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.06);
+}
+.fnm-cal-activity-pill:hover .fnm-pill-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Badge variants with distinctive color ramps */
+.fnm-act-section {
+  background: linear-gradient(135deg, #E65100 0%, #FF9800 100%);
+  color: #FFFFFF;
+}
+.fnm-act-corporal {
+  background: linear-gradient(135deg, #0D47A1 0%, #1E88E5 100%);
+  color: #FFFFFF;
+}
+.fnm-act-fixed {
+  background: linear-gradient(135deg, #B26A00 0%, #FFA000 100%);
+  color: #FFFFFF;
+}
+
+.fnm-pill-badge {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.fnm-pill-badge .v-icon {
+  color: #FFFFFF !important;
+}
+.fnm-pill-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.fnm-pill-worker {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.fnm-pill-price {
+  font-weight: 800;
+  font-size: 9.5px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.fnm-pill-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: inherit;
+  border-radius: 4px;
+  padding-left: 2px;
+}
+.fnm-pill-act-btn {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 3px !important;
+}
+
+/* "+X More" Pill */
+.fnm-cal-more-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #1565C0;
+  background: rgba(66, 165, 245, 0.1);
+  border: 1px dashed rgba(66, 165, 245, 0.4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+.fnm-cal-more-pill:hover {
+  background: rgba(66, 165, 245, 0.22);
+  border-color: #42A5F5;
+  color: #0D47A1;
+  transform: translateY(-0.5px);
+}
+
+/* =========================================================================
+ * REDESIGNED DAY ACTIVITIES DIALOG (Enterprise Control Center)
+ * ========================================================================= */
+.fnm-day-detail-card {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Workforce Hero Header */
+.fnm-dd-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 45%, #42A5F5 100%);
+  color: #FFFFFF;
+}
+.fnm-dd-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.fnm-dd-hero-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.fnm-dd-hero-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  line-height: 1.25;
+}
+.fnm-dd-hero-subtitle {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  letter-spacing: 0.2px;
+}
+.fnm-dd-hero-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.fnm-dd-hero-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 4 KPI Stat Cards */
+.fnm-dd-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px 24px;
+  background: rgba(var(--v-theme-surface-variant), 0.03);
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.08);
+}
+.fnm-dd-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(var(--v-theme-surface), 0.7);
+  border: 1px solid rgba(var(--v-border-color), 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.fnm-dd-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.fnm-dd-stat-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.fnm-dd-stat-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.fnm-dd-stat-val {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.fnm-dd-stat-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.65;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+/* Quick Add Panel */
+.fnm-dd-quick-add-panel {
+  padding: 14px 24px 8px;
+  border-bottom: 1px dashed rgba(66, 165, 245, 0.35);
+  background: rgba(66, 165, 245, 0.02);
+}
+.fnm-quick-add-card {
+  border-radius: 14px;
+  border: 1px solid rgba(66, 165, 245, 0.25);
+  box-shadow: 0 4px 16px rgba(66, 165, 245, 0.06);
+}
+.fnm-type-toggle :deep(.v-btn) {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+}
+
+/* Toolbar: Search + Filter Chips */
+.fnm-dd-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.08);
+}
+.fnm-dd-search-input {
+  max-width: 280px;
+}
+.fnm-dd-filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fnm-dd-filter-chips .v-chip {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Activity Cards List Container */
+.fnm-dd-cards-container {
+  padding: 12px 24px 20px;
+  max-height: 440px;
+  overflow-y: auto;
+}
+.fnm-dd-card-row {
+  border-radius: 14px;
+  border: 1px solid rgba(var(--v-border-color), 0.1);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: rgba(var(--v-theme-surface), 0.6);
+  transition: all 0.18s ease;
+}
+.fnm-dd-card-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  border-color: rgba(66, 165, 245, 0.35);
+}
+.fnm-dd-card-focused {
+  border-color: #42A5F5 !important;
+  box-shadow: 0 0 0 2px rgba(66, 165, 245, 0.35), 0 4px 16px rgba(66, 165, 245, 0.15) !important;
+}
+
+/* Worker Info Row */
+.fnm-dd-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fnm-dd-worker-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.fnm-dd-avatar {
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+.fnm-dd-worker-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.fnm-dd-worker-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fnm-dd-chips-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fnm-dd-matricule-chip {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  opacity: 0.85;
+}
+.fnm-dd-affil-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+/* Price & Row Actions */
+.fnm-dd-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.fnm-dd-price-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(46, 125, 50, 0.09);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+.fnm-dd-price-num {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2E7D32;
+  letter-spacing: 0.2px;
+}
+.fnm-dd-price-curr {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #2E7D32;
+  opacity: 0.85;
+}
+.fnm-dd-edit-btn,
+.fnm-dd-del-btn {
+  transition: transform 0.15s ease;
+}
+.fnm-dd-edit-btn:hover,
+.fnm-dd-del-btn:hover {
+  transform: scale(1.15);
+}
+
+/* Inline Edit Card */
+.fnm-dd-inline-edit-form {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(var(--v-border-color), 0.15);
+}
+
+/* Empty State */
+.fnm-dd-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+/* Dialog Footer */
+.fnm-dd-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-top: 1px solid rgba(var(--v-border-color), 0.08);
+  background: rgba(var(--v-theme-surface-variant), 0.02);
+}
+
+/* =========================================================================
+ * DARK THEME ENHANCEMENTS FOR DAY ACTIVITIES & CALENDAR PILLS
+ * ========================================================================= */
+.v-theme--dark .fnm-dd-hero {
+  background: linear-gradient(135deg, #0A2E68 0%, #0D47A1 45%, #1976D2 100%) !important;
+}
+.v-theme--dark .fnm-dd-stat-card {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.v-theme--dark .fnm-dd-stat-val {
+  color: #F8FAFC !important;
+}
+.v-theme--dark .fnm-dd-card-row {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+.v-theme--dark .fnm-dd-card-row:hover {
+  border-color: rgba(66, 165, 245, 0.5) !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+}
+.v-theme--dark .fnm-dd-price-tag {
+  background: rgba(76, 175, 80, 0.15) !important;
+  border-color: rgba(76, 175, 80, 0.3) !important;
+}
+.v-theme--dark .fnm-dd-price-num,
+.v-theme--dark .fnm-dd-price-curr {
+  color: #81C784 !important;
+}
+.v-theme--dark .fnm-cal-more-pill {
+  color: #64B5F6 !important;
+  background: rgba(66, 165, 245, 0.14) !important;
+  border-color: rgba(66, 165, 245, 0.45) !important;
+}
+.v-theme--dark .fnm-cal-more-pill:hover {
+  background: rgba(66, 165, 245, 0.28) !important;
+  color: #90CAF9 !important;
 }
 </style>

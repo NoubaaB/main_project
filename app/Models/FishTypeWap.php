@@ -24,6 +24,19 @@ class FishTypeWap extends Model
         'wap' => 'decimal:2',
     ];
 
+    protected static ?\Illuminate\Support\Collection $cachedRules = null;
+
+    protected static function booted()
+    {
+        static::saved(fn() => static::clearCachedRules());
+        static::deleted(fn() => static::clearCachedRules());
+    }
+
+    public static function clearCachedRules(): void
+    {
+        static::$cachedRules = null;
+    }
+
     public function fishType()
     {
         return $this->belongsTo(FishType::class);
@@ -43,18 +56,32 @@ class FishTypeWap extends Model
             return null;
         }
 
+        if (static::$cachedRules === null) {
+            static::$cachedRules = static::orderBy('date_start', 'desc')->orderBy('id', 'desc')->get();
+        }
+
+        if (static::$cachedRules->isEmpty()) {
+            return null;
+        }
+
         $dateStr = is_string($date) ? substr($date, 0, 10) : $date->format('Y-m-d');
 
-        $record = static::where('fish_type_id', $fishTypeId)
-            ->where('warehouse_id', $warehouseId)
-            ->where('date_start', '<=', $dateStr)
-            ->where(function ($q) use ($dateStr) {
-                $q->whereNull('date_end')
-                  ->orWhere('date_end', '>=', $dateStr);
-            })
-            ->orderBy('date_start', 'desc')
-            ->orderBy('id', 'desc')
-            ->first();
+        $record = static::$cachedRules->first(function ($rule) use ($fishTypeId, $warehouseId, $dateStr) {
+            if ($rule->fish_type_id != $fishTypeId || $rule->warehouse_id != $warehouseId) {
+                return false;
+            }
+            $ruleStart = is_string($rule->date_start) ? substr($rule->date_start, 0, 10) : ($rule->date_start?->format('Y-m-d') ?? '');
+            if ($ruleStart > $dateStr) {
+                return false;
+            }
+            if ($rule->date_end !== null) {
+                $ruleEnd = is_string($rule->date_end) ? substr($rule->date_end, 0, 10) : ($rule->date_end?->format('Y-m-d') ?? '');
+                if ($ruleEnd < $dateStr) {
+                    return false;
+                }
+            }
+            return true;
+        });
 
         return $record ? (float) $record->wap : null;
     }

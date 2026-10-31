@@ -7,6 +7,7 @@ export const useProduction = defineStore("production", {
     state: () => ({
         production: null,
         productions: [],
+        plafondCheckResult: null,
     }),
     actions: {
         add_production(categoryId) {

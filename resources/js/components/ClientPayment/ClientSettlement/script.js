@@ -5,6 +5,7 @@ import { useBankName } from '@/stores/BankName';
 import { useCompanySettings } from '@/stores/CompanySettings';
 import mitt from '@/plugins/mitt.js';
 import axios from 'axios';
+import { gqlGetClientInvoices } from '@/services/appGraphql.js';
 import * as XLSX from 'xlsx';
 
 export default {
@@ -678,24 +679,39 @@ export default {
     },
     async fetchYearInvoices() {
       this.yearInvoicesLoading = true;
+      const date_start = `${this.currentYear}-01-01`;
+      const date_end = `${this.currentYear}-12-31`;
       try {
-        const r = await axios.get('/api/client_invoice', {
-          params: { date_start: `${this.currentYear}-01-01`, date_end: `${this.currentYear}-12-31` },
-        });
-        this.yearInvoices = r.data.client_invoices || [];
+        let items = [];
+        try {
+          items = await gqlGetClientInvoices({ date_start, date_end });
+        } catch (gqlErr) {
+          console.warn('[ClientSettlement] GraphQL fetchYearInvoices failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/client_invoice', {
+            params: { date_start, date_end },
+          });
+          items = r.data.client_invoices || [];
+        }
+        this.yearInvoices = items || [];
       } catch (e) { console.error(e) }
       this.yearInvoicesLoading = false;
     },
     async fetchClientInvoices() {
       if (!this.payForm.client_id) { this.clientInvoices = []; return; }
+      const date_start = `${this.currentYear}-01-01`;
+      const date_end = `${this.currentYear}-12-31`;
       try {
-        const r = await axios.get('/api/client_invoice', {
-          params: {
-            date_start: `${this.currentYear}-01-01`,
-            date_end: `${this.currentYear}-12-31`,
-          }
-        });
-        this.clientInvoices = (r.data.client_invoices || []).filter(inv => {
+        let items = [];
+        try {
+          items = await gqlGetClientInvoices({ date_start, date_end });
+        } catch (gqlErr) {
+          console.warn('[ClientSettlement] GraphQL fetchClientInvoices failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/client_invoice', {
+            params: { date_start, date_end },
+          });
+          items = r.data.client_invoices || [];
+        }
+        this.clientInvoices = (items || []).filter(inv => {
           return inv.client_id === this.payForm.client_id;
         });
       } catch (e) { console.error(e) }

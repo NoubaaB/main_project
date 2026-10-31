@@ -453,6 +453,7 @@ export default {
     },
     canSubmit() {
       const s = this.shippingStore.shipping;
+      if (this.shippingStore.plafondCheckResult?.is_blocked) return false;
       return !!(s?.date && s?.shipping_category_id && s?.details?.length > 0);
     },
     descriptionLength() {

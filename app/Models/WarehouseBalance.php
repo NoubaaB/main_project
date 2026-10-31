@@ -61,7 +61,18 @@ class WarehouseBalance extends Model
         'is_finished' => 'boolean',
     ];
 
-    protected $appends = ['wap', 'effective_total_price', 'clean_stockable_type', 'clean_source_type', 'article_name'];
+    protected $appends = ['wap', 'effective_total_price', 'clean_stockable_type', 'clean_source_type', 'article_name', 'lot_number'];
+
+    public function getLotNumberAttribute(): string
+    {
+        $raw = $this->reception_tracking_number;
+        if (empty($raw)) return '-';
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return implode(', ', array_filter(array_map('trim', $decoded)));
+        }
+        return trim(str_replace(['[', ']', '"', "'", '\\'], '', (string)$raw));
+    }
 
     public function warehouse()
     {

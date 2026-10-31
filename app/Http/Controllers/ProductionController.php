@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Production;
 use App\Models\DetailProduction;
 use App\Models\Charge;
+use App\Models\Supplier;
 use App\Models\FishProcessType;
 use App\Models\Warehouse;
 use App\Models\WarehouseBalance;
 use App\Models\WarehouseBalanceOperation;
 use App\Models\PackageSecondaryConfig;
+use App\Services\PlafondService;
 use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -262,9 +264,23 @@ class ProductionController extends Controller
             'details.*.truck_id' => 'nullable|exists:trucks,id',
         ]);
 
-        return DB::transaction(function () use ($data) {
-            $totalPrice = collect($data['details'])->sum('total_price') ?? 0;
-            $totalWeight = collect($data['details'])->sum('weight') ?? 0;
+        $totalPrice = collect($data['details'])->sum('total_price') ?? 0;
+        $totalWeight = collect($data['details'])->sum('weight') ?? 0;
+
+        if (!empty($data['supplier_id'])) {
+            $supplier = Supplier::find($data['supplier_id']);
+            if ($supplier && $supplier->enable_plafond && $supplier->block_on_plafond) {
+                $plafondCheck = app(PlafondService::class)->checkSupplierPlafond($supplier, $data['date'], (float)$totalPrice);
+                if ($plafondCheck['is_blocked']) {
+                    return response()->json([
+                        'message' => $plafondCheck['message'] ?: "Le plafond fournisseur a été atteint. Création bloquée.",
+                        'plafond_details' => $plafondCheck,
+                    ], 422);
+                }
+            }
+        }
+
+        return DB::transaction(function () use ($data, $totalPrice, $totalWeight) {
 
             $production = Production::create([
                 'date' => $data['date'],

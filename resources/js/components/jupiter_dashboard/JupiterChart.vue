@@ -552,6 +552,11 @@ export default {
       computedSeries: [],
       workerBusy: false,
       workerFn: null,
+      workerStatus: null,
+      workerTerminate: null,
+      recalcTimer: null,
+      isCalculating: false,
+      hasPendingRecalc: false,
       chartRenderKey: 1,
     };
   },
@@ -747,40 +752,55 @@ export default {
   },
   watch: {
     analytics: {
-      handler() { this.triggerWorkerRecalc(); },
+      handler() { this.triggerWorkerRecalc(40); },
       deep: true,
     },
     operations: {
       handler() {
         this.initSelections();
-        this.triggerWorkerRecalc();
+        this.triggerWorkerRecalc(40);
       },
       deep: true,
     },
     yields: {
       handler() {
         this.initYieldSelections();
-        this.triggerWorkerRecalc();
+        this.triggerWorkerRecalc(40);
       },
       deep: true,
     },
     categories() {
-      this.triggerWorkerRecalc();
+      this.triggerWorkerRecalc(40);
     },
   },
   created() {
     try {
-      const { workerFn } = useWebWorkerFn(transformChartDataWorker);
+      const { workerFn, workerStatus, workerTerminate } = useWebWorkerFn(transformChartDataWorker);
       this.workerFn = workerFn;
+      this.workerStatus = workerStatus;
+      this.workerTerminate = workerTerminate;
     } catch (e) {
       console.warn('[JupiterWorker] Worker fallback:', e);
       this.workerFn = null;
+      this.workerStatus = null;
+      this.workerTerminate = null;
     }
   },
   mounted() {
     this.initSelections();
     this.initYieldSelections();
-    this.triggerWorkerRecalc();
+    this.triggerWorkerRecalc(0);
+  },
+  beforeUnmount() {
+    if (this.recalcTimer) {
+      clearTimeout(this.recalcTimer);
+      this.recalcTimer = null;
+    }
+    if (this.workerTerminate) {
+      try {
+        this.workerTerminate();
+      } catch (_) {}
+    }
   },
   methods: {
     initSelections() {
@@ -890,8 +910,18 @@ export default {
       this.showYields = true;
       this.triggerWorkerRecalc();
     },
-    async triggerWorkerRecalc() {
-      const payload = {
+    triggerWorkerRecalc(delay = 40) {
+      const wait = typeof delay === 'number' ? delay : 40;
+      if (this.recalcTimer) {
+        clearTimeout(this.recalcTimer);
+      }
+      this.recalcTimer = setTimeout(() => {
+        this.recalcTimer = null;
+        this._doWorkerRecalc();
+      }, wait);
+    },
+    _buildWorkerPayload() {
+      return {
         datasetMode: this.chartDatasetMode,
         analytics: JSON.parse(JSON.stringify(this.analytics || {})),
         operations: JSON.parse(JSON.stringify(this.operations || {})),
@@ -906,23 +936,50 @@ export default {
         chartType: this.chartVisualMode,
         showYields: this.showYields,
       };
+    },
+    async _doWorkerRecalc() {
+      if (this.isCalculating) {
+        this.hasPendingRecalc = true;
+        return;
+      }
 
+      this.isCalculating = true;
       this.workerBusy = true;
       try {
+        const payload = this._buildWorkerPayload();
         if (this.workerFn) {
+          if (this.workerStatus && this.workerStatus.value === 'RUNNING' && this.workerTerminate) {
+            try { this.workerTerminate(); } catch (_) {}
+          }
           const res = await this.workerFn(payload);
-          this.computedSeries = res.series;
+          if (res && res.series) {
+            this.computedSeries = res.series;
+          }
         } else {
           const res = transformChartDataWorker(payload);
-          this.computedSeries = res.series;
+          if (res && res.series) {
+            this.computedSeries = res.series;
+          }
         }
       } catch (err) {
-        console.warn('[JupiterWorker] Worker fallback:', err);
-        const res = transformChartDataWorker(payload);
-        this.computedSeries = res.series;
+        try {
+          const payload = this._buildWorkerPayload();
+          const res = transformChartDataWorker(payload);
+          if (res && res.series) {
+            this.computedSeries = res.series;
+          }
+        } catch (fallbackErr) {
+          console.warn('[JupiterWorker] Recalc fallback error:', fallbackErr);
+        }
       } finally {
+        this.isCalculating = false;
         this.workerBusy = false;
         this.chartRenderKey++;
+
+        if (this.hasPendingRecalc) {
+          this.hasPendingRecalc = false;
+          this.triggerWorkerRecalc(0);
+        }
       }
     },
   },

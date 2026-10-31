@@ -323,7 +323,7 @@ class JupiterDashboardController extends Controller
         }
 
         // Shippings by Category
-        $shippingCategories = ShippingCategory::select('id', 'name', 'name_fr', 'name_en', 'name_es')->get();
+        $shippingCategories = ShippingCategory::select('id', 'name', 'name_fr', 'name_en', 'name_es', 'description', 'enable_ship_id')->get();
         $shipCatRows = (clone $shippingsBaseQuery)
             ->whereNotNull('shipping_category_id')
             ->selectRaw("shipping_category_id, {$periodSelect} as period, COALESCE(SUM(total_weight), 0) as tw, COALESCE(SUM(total_price), 0) as tp")
@@ -332,6 +332,9 @@ class JupiterDashboardController extends Controller
 
         $shippingsByCategory = [];
         $shippingsCategoryStats = [];
+        $grandShippingsWeight = max(0.001, $shipSummaryData['total_weight']);
+        $grandShippingsPrice  = max(0.001, $shipSummaryData['total_price']);
+
         foreach ($shippingCategories as $sc) {
             $rowsForCat = $shipCatRows->where('shipping_category_id', $sc->id)->keyBy('period');
             $wData = [];
@@ -358,16 +361,60 @@ class JupiterDashboardController extends Controller
                 'total_weight' => round($catTotalW, 2),
                 'total_price'  => round($catTotalP, 2),
             ];
-            if ($catCount > 0 || $catTotalW > 0) {
-                $shippingsCategoryStats[] = [
-                    'id'           => $sc->id,
-                    'name'         => $sc->name_fr ?: ($sc->name_en ?: $sc->name),
-                    'count'        => $catCount,
-                    'total_weight' => round($catTotalW, 2),
-                    'total_price'  => round($catTotalP, 2),
-                ];
-            }
+
+            $hasWeight = $catTotalW > 0;
+            $isExport = (bool) ($sc->enable_ship_id || str_contains(strtolower($sc->name ?? ''), 'export'));
+
+            $shippingsCategoryStats[] = [
+                'id'                 => $sc->id,
+                'name'               => $sc->name,
+                'name_fr'            => $sc->name_fr ?: $sc->name,
+                'name_en'            => $sc->name_en ?: $sc->name,
+                'name_es'            => $sc->name_es ?: $sc->name,
+                'description'        => $sc->description,
+                'is_export'          => $isExport,
+                'count'              => $catCount,
+                'total_weight'       => round($catTotalW, 2),
+                'total_price'        => round($catTotalP, 2),
+                'has_weight'         => $hasWeight,
+                'avg_price_per_kg'   => $hasWeight ? round($catTotalP / $catTotalW, 2) : null,
+                'avg_price'          => $catCount > 0 ? round($catTotalP / $catCount, 2) : 0,
+                'avg_weight'         => ($catCount > 0 && $hasWeight) ? round($catTotalW / $catCount, 2) : 0,
+                'price_percentage'   => round(($catTotalP / $grandShippingsPrice) * 100, 2),
+                'weight_percentage'  => $hasWeight ? round(($catTotalW / $grandShippingsWeight) * 100, 2) : 0,
+            ];
         }
+
+        // Check if there are uncategorized shippings
+        $uncatShipCount = (clone $shippingsBaseQuery)->whereNull('shipping_category_id')->count();
+        if ($uncatShipCount > 0) {
+            $uncatShipW = (float) (clone $shippingsBaseQuery)->whereNull('shipping_category_id')->sum('total_weight');
+            $uncatShipP = (float) (clone $shippingsBaseQuery)->whereNull('shipping_category_id')->sum('total_price');
+            $hasWeight = $uncatShipW > 0;
+            $shippingsCategoryStats[] = [
+                'id'                 => 0,
+                'name'               => 'Uncategorized',
+                'name_fr'            => 'Non catégorisé',
+                'name_en'            => 'Uncategorized',
+                'name_es'            => 'Sin categoría',
+                'description'        => null,
+                'is_export'          => false,
+                'count'              => $uncatShipCount,
+                'total_weight'       => round($uncatShipW, 2),
+                'total_price'        => round($uncatShipP, 2),
+                'has_weight'         => $hasWeight,
+                'avg_price_per_kg'   => $hasWeight ? round($uncatShipP / $uncatShipW, 2) : null,
+                'avg_price'          => round($uncatShipP / $uncatShipCount, 2),
+                'avg_weight'         => $hasWeight ? round($uncatShipW / $uncatShipCount, 2) : 0,
+                'price_percentage'   => round(($uncatShipP / $grandShippingsPrice) * 100, 2),
+                'weight_percentage'  => $hasWeight ? round(($uncatShipW / $grandShippingsWeight) * 100, 2) : 0,
+            ];
+        }
+
+        // Sort by total_price descending by default
+        usort($shippingsCategoryStats, function ($a, $b) {
+            return $b['total_price'] <=> $a['total_price'];
+        });
 
         // ════════════════════════════════════════════════════════════════
         // 4. PRODUCTION MASS BALANCE & EQUILIBRIUM (Exact like production/list)

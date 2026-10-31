@@ -78,11 +78,13 @@
       </v-col>
     </v-row>
 
-    <!-- 3. Consolidated Operational & Financial Summary Cards & Charges Categories Breakdown -->
+    <!-- 3. Consolidated Operational & Financial Summary Cards & Charges / Shipping Categories Breakdown -->
     <JupiterSummaryCards
       :summary="operationalSummary"
       :chargesCategoryStats="chartData.statistics?.charges_category_stats || []"
       :chargeCategories="chartData.category_options?.charge_categories || []"
+      :shippingCategoryStats="chartData.statistics?.shipping_category_stats || []"
+      :shippingCategories="chartData.category_options?.shipping_categories || []"
       :loading="loading"
     />
 
@@ -169,6 +171,8 @@ export default {
             invoiced_price: 0,
           },
           category_stats: [],
+          charges_category_stats: [],
+          shipping_category_stats: [],
           secondary_packaging: { total_cost: 0, items: [] },
           yields: [],
         },

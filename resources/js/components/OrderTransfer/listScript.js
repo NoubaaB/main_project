@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { gqlGetOrderTransfers } from '@/services/appGraphql.js';
 import mitt from '@/plugins/mitt';
 import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
@@ -142,8 +143,15 @@ export default {
       this.loading = true;
       try {
         const ds = this.fmtDate(this.dateRange[0]), de = this.fmtDate(this.dateRange[1] || this.dateRange[0]);
-        const r = await axios.get('/api/order-transfers', { params: { date_start: ds, date_end: de } });
-        this.transfers = (r.data.order_transfers || []).map(t => this.mapTransfer(t));
+        let items = [];
+        try {
+          items = await gqlGetOrderTransfers({ date_start: ds, date_end: de });
+        } catch (gqlErr) {
+          console.warn('[OrderTransferList] GraphQL fetch failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/order-transfers', { params: { date_start: ds, date_end: de } });
+          items = r.data.order_transfers || [];
+        }
+        this.transfers = (items || []).map(t => this.mapTransfer(t));
       } catch (e) { console.error(e); }
       this.loading = false;
     },

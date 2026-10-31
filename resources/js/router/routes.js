@@ -99,7 +99,16 @@ const routes = [
                         path: "/charges",
                         keeplive: true,
                         name: "charges",
+                        redirect: { name: "list_charge" },
                         children: [
+                            {
+                                path: "list",
+                                redirect: { name: "list_charge" }
+                            },
+                            {
+                                path: "create",
+                                redirect: { name: "add_charge" }
+                            },
                             {
                                 path: "add_charge",
                                 keeplive: true,
@@ -134,12 +143,17 @@ const routes = [
                     {
                         path: '/production',
                         name: 'production',
+                        redirect: { name: 'production_list' },
                         children: [
                             {
                                 path: 'list',
                                 name: 'production_list',
                                 keeplive: true,
                                 component: () => import('@/components/production/ListProduction/index.vue')
+                            },
+                            {
+                                path: 'create',
+                                redirect: { name: 'add_production' }
                             },
                             {
                                 path: 'add',
@@ -171,6 +185,22 @@ const routes = [
                             },
                         ]
                     },
+                    {
+                        path: '/productions',
+                        redirect: '/production/list',
+                    },
+                    {
+                        path: '/productions/list',
+                        redirect: '/production/list',
+                    },
+                    {
+                        path: '/productions/create',
+                        redirect: '/production/add',
+                    },
+                    {
+                        path: '/productions/add',
+                        redirect: '/production/add',
+                    },
                     // =======================================
                     //  SHIPPINGS
                     // =======================================
@@ -178,7 +208,16 @@ const routes = [
                         path: "/shippings",
                         keeplive: true,
                         name: "shippings",
+                        redirect: { name: "list_shipping" },
                         children: [
+                            {
+                                path: "list",
+                                redirect: { name: "list_shipping" }
+                            },
+                            {
+                                path: "create",
+                                redirect: { name: "add_shipping" }
+                            },
                             {
                                 path: "add_shipping",
                                 keeplive: true,
@@ -438,6 +477,26 @@ const routes = [
                                 beforeEnter: (to, from, next) => {
                                     useAuth().hasPermission('settings.cost_configuration') ? next() : next({ name: 'index' });
                                 }
+                            },
+                            {
+                                path: "client-management",
+                                name: "client_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/ClientManagement/index.vue")
+                            },
+                            {
+                                path: "clients",
+                                redirect: { name: "client_management" }
+                            },
+                            {
+                                path: "supplier-management",
+                                name: "supplier_management",
+                                keeplive: true,
+                                component: () => import("@/components/parameters/SupplierManagement/index.vue")
+                            },
+                            {
+                                path: "suppliers",
+                                redirect: { name: "supplier_management" }
                             },
                         ]
                     },

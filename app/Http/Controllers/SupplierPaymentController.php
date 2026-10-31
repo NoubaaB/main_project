@@ -152,12 +152,15 @@ class SupplierPaymentController extends Controller
             $invoiceMap[$sid][$month] = ($invoiceMap[$sid][$month] ?? 0) + (float) $inv->total_price;
         }
 
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $monthExpr = $isSqlite ? "CAST(strftime('%m', date) AS INTEGER)" : "MONTH(date)";
+
         // Monthly payments per supplier (exclude soft-deleted)
         $payments = DB::table('supplier_payments')
             ->whereYear('date', $year)
             ->whereNull('deleted_at')
-            ->select('supplier_id', DB::raw('MONTH(date) as month'), DB::raw('SUM(amount) as total'))
-            ->groupBy('supplier_id', DB::raw('MONTH(date)'))
+            ->select('supplier_id', DB::raw("{$monthExpr} as month"), DB::raw('SUM(amount) as total'))
+            ->groupBy('supplier_id', DB::raw($monthExpr))
             ->get();
 
         // Build balance matrix
@@ -238,7 +241,10 @@ class SupplierPaymentController extends Controller
             ->merge($payments->keys())
             ->merge(array_keys($carryForward))
             ->unique();
-        $suppliers = DB::table('suppliers')->whereIn('id', $supplierIds)->pluck('name', 'id');
+        $suppliersData = DB::table('suppliers')->whereIn('id', $supplierIds)
+            ->select('id', 'name', 'enable_plafond', 'plafond_amount', 'block_on_plafond', 'plafond_mode')
+            ->get()
+            ->keyBy('id');
 
         $summary = [];
         foreach ($supplierIds as $sid) {
@@ -249,9 +255,14 @@ class SupplierPaymentController extends Controller
             $payTotal = $payData ? (float) $payData->total_payments : 0;
             $payCount = $payData ? $payData->payment_count : 0;
             $cf = (float) ($carryForward[$sid] ?? 0);
+            $sData = $suppliersData[$sid] ?? null;
             $summary[] = [
                 'supplier_id' => $sid,
-                'supplier_name' => $suppliers[$sid] ?? '—',
+                'supplier_name' => $sData->name ?? '—',
+                'enable_plafond' => (bool) ($sData->enable_plafond ?? false),
+                'plafond_amount' => $sData && $sData->plafond_amount !== null ? (float) $sData->plafond_amount : null,
+                'block_on_plafond' => (bool) ($sData->block_on_plafond ?? false),
+                'plafond_mode' => $sData->plafond_mode ?? 'monthly',
                 'carry_forward' => round($cf, 2),
                 'total_invoices' => round($invTotal, 2),
                 'total_payments' => round($payTotal, 2),

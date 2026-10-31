@@ -5,470 +5,514 @@
     :scrim="false"
     :disable-resize-watcher="true"
     :rail="main.sidebar_mini"
-    :rail-width="74"
-    :width="286"
+    :rail-width="70"
+    :width="272"
     :theme="main.is_dark ? 'dark' : 'light'"
+    class="pro-nav-drawer"
     :class="[
-      'futuristic-nav-drawer',
-      main.is_dark ? 'cyber-dark-theme' : 'cyber-light-theme',
+      main.is_dark ? 'drawer-theme-dark' : 'drawer-theme-light',
       main.sidebar_mini ? 'drawer-is-rail' : 'drawer-is-expanded'
     ]"
-    @click="handleDrawerClick"
   >
     <!-- ============================================================
-         1. BRAND / SYSTEM HEADER
-         Displays Jupiter system image avatar if DB has no custom logo
+         1. BRAND & SYSTEM HEADER
          ============================================================ -->
-    <div class="cyber-brand-header" :class="{ 'brand-rail': main.sidebar_mini }">
+    <div class="pro-header-area">
       <div
-        class="brand-clickable-container"
+        class="pro-brand-row cursor-pointer"
         @click.stop="handleBrandClick"
         :title="main.sidebar_mini ? t('expand_sidebar') : t('home')"
       >
-        <!-- Orbit Glow Avatar Container -->
-        <div class="brand-avatar-halo-wrap">
-          <div class="brand-avatar-glow-ring"></div>
-          <v-avatar size="44" class="brand-avatar-orb">
-            <img
-              :src="displayAvatarUrl"
-              alt="Jupiter"
-              class="brand-avatar-img"
-              @error="onAvatarError"
-            />
-          </v-avatar>
+        <!-- Orbit Logo Avatar -->
+        <div class="pro-brand-orb-box">
+          <img
+            :src="displayAvatarUrl"
+            alt="Jupiter"
+            class="pro-brand-logo-img"
+            @error="onAvatarError"
+          />
           <span
-            class="brand-online-orb-dot"
-            :class="isServerConnected ? 'status-green' : 'status-cut'"
+            class="pro-brand-status-dot"
+            :class="isServerConnected ? 'status-connected' : 'status-cut'"
             :title="isServerConnected ? t('server_connected') : t('connection_cut')"
           ></span>
         </div>
 
-        <!-- Expanded Brand Identity Text -->
-        <transition name="fade-slide">
-          <div v-show="!main.sidebar_mini" class="brand-details-block">
-            <div class="brand-title-row">
-              <span class="brand-name-glitch">Jupiter</span>
-              <span class="cyber-badge-pill">ERP</span>
-            </div>
-            <div class="brand-sub-row">
-              <span
-                class="brand-live-pulse-dot"
-                :class="isServerConnected ? 'pulse-live' : 'pulse-severed'"
-              ></span>
-              <span class="brand-live-caption">
-                {{ isServerConnected ? (t('active') + ' • Cloud') : t('connection_cut') }}
-              </span>
-            </div>
+        <!-- Brand Details (Expanded Mode) -->
+        <div class="pro-brand-text-block">
+          <div class="pro-brand-name-line">
+            <span class="pro-brand-title">Jupiter</span>
+            <span class="pro-brand-edition-chip">ERP</span>
           </div>
-        </transition>
+          <div class="pro-brand-meta-line">
+            <span
+              class="pro-meta-pulse-dot"
+              :class="isServerConnected ? 'pulse-live' : 'pulse-cut'"
+            ></span>
+            <span class="pro-meta-label">
+              {{ isServerConnected ? (t('active') + ' • Cloud') : t('connection_cut') }}
+            </span>
+          </div>
+        </div>
 
-        <!-- Rail Tooltip -->
-        <v-tooltip
-          v-if="main.sidebar_mini"
-          activator="parent"
-          location="end"
-          offset="14"
-          :content-class="main.is_dark ? 'cyber-tooltip-dark' : 'cyber-tooltip-light'"
+        <!-- In-Drawer Toggle Button (Visible when expanded) -->
+        <button
+          v-if="!main.sidebar_mini"
+          type="button"
+          class="pro-collapse-btn ml-auto"
+          @click.stop="toggleSidebar"
+          :title="t('collapse_sidebar')"
         >
-          <div class="d-flex align-center ga-2">
-            <v-icon size="16" color="#42A5F5">mdi-orbit-variant</v-icon>
-            <span class="font-weight-bold">Jupiter ERP</span>
-            <span class="text-caption text-medium-emphasis">({{ t('expand_sidebar') }})</span>
-          </div>
-        </v-tooltip>
+          <v-icon size="16">mdi-chevron-left</v-icon>
+        </button>
       </div>
+
+      <!-- Rail Tooltip for Brand -->
+      <v-tooltip
+        v-if="main.sidebar_mini"
+        activator="parent"
+        location="end"
+        offset="14"
+        :open-delay="50"
+        :close-delay="100"
+        :theme="main.is_dark ? 'dark' : 'light'"
+        :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
+      >
+        <div class="pro-single-tooltip-card">
+          <div
+            class="pro-single-tooltip-icon-box"
+            :style="{
+              backgroundColor: hexToRgba('#42A5F5', main.is_dark ? 0.22 : 0.12),
+              borderColor: hexToRgba('#42A5F5', 0.35)
+            }"
+          >
+            <v-icon size="16" color="#42A5F5">mdi-orbit-variant</v-icon>
+          </div>
+          <div class="pro-tooltip-text-col">
+            <span
+              class="pro-tooltip-theme-title font-weight-bold"
+              :style="{ color: getAccessibleThemeColor('#42A5F5', main.is_dark) }"
+            >
+              Jupiter ERP
+            </span>
+            <span
+              class="pro-tooltip-parent-tag"
+              :style="{ color: main.is_dark ? '#94A3B8' : '#64748B' }"
+            >
+              {{ isServerConnected ? (t('active') + ' • Cloud') : t('connection_cut') }}
+            </span>
+          </div>
+        </div>
+      </v-tooltip>
     </div>
 
     <!-- ============================================================
-         2. NAVIGATION SEARCH FILTER (Matches AddCharge Input Style)
+         2. NAVIGATION SEARCH FILTER
          ============================================================ -->
-    <transition name="fade-slide">
-      <div v-show="!main.sidebar_mini" class="cyber-search-wrapper px-3.5 mb-2">
+    <div class="pro-search-area">
+      <!-- Expanded Search Input -->
+      <div v-if="!main.sidebar_mini" class="pro-search-input-wrap">
         <v-text-field
           v-model="filterQuery"
           :placeholder="t('filter_menu')"
           prepend-inner-icon="mdi-magnify"
           density="compact"
           variant="outlined"
-          rounded
-          color="#42A5F5"
-          clearable
+          rounded="lg"
           hide-details
-          class="nav-cyber-search-field"
+          clearable
+          color="#42A5F5"
+          class="pro-search-text-field"
         ></v-text-field>
       </div>
-    </transition>
 
-    <div class="cyber-header-divider mx-3.5 mb-2"></div>
+      <!-- Rail Search Icon Button -->
+      <div v-else class="pro-rail-search-box">
+        <button
+          type="button"
+          class="pro-rail-search-btn"
+          @click.stop="openSearchFromRail"
+        >
+          <v-icon size="17">mdi-magnify</v-icon>
+          <v-tooltip
+            activator="parent"
+            location="end"
+            offset="14"
+            :open-delay="50"
+            :close-delay="100"
+            :theme="main.is_dark ? 'dark' : 'light'"
+            :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
+          >
+            <div class="pro-single-tooltip-card">
+              <div
+                class="pro-single-tooltip-icon-box"
+                :style="{
+                  backgroundColor: hexToRgba('#42A5F5', main.is_dark ? 0.22 : 0.12),
+                  borderColor: hexToRgba('#42A5F5', 0.35)
+                }"
+              >
+                <v-icon size="16" color="#42A5F5">mdi-magnify</v-icon>
+              </div>
+              <div class="pro-tooltip-text-col">
+                <span
+                  class="pro-tooltip-theme-title font-weight-bold"
+                  :style="{ color: getAccessibleThemeColor('#42A5F5', main.is_dark) }"
+                >
+                  {{ t('filter_menu') }}
+                </span>
+                <span
+                  class="pro-tooltip-parent-tag"
+                  :style="{ color: main.is_dark ? '#94A3B8' : '#64748B' }"
+                >
+                  {{ t('search') || 'Search' }}
+                </span>
+              </div>
+            </div>
+          </v-tooltip>
+        </button>
+      </div>
+    </div>
+
+    <!-- Micro Section Divider -->
+    <div class="pro-nav-divider mx-3 my-1"></div>
 
     <!-- ============================================================
-         3. UNIFIED FUTURISTIC NAVIGATION LIST
+         3. UNIFIED NAVIGATION LIST (Zero Destroy/Mount Lag)
          ============================================================ -->
-    <div class="nav-cyber-list" @click="handleNavListClick">
-      <template v-for="(section, sIdx) in filteredSections" :key="'sec-' + sIdx">
-        <!-- Section Header Label or Rail Micro Divider -->
-        <div class="cyber-section-header" :class="{ 'section-rail': main.sidebar_mini }">
-          <span v-if="!main.sidebar_mini" class="cyber-section-title">{{ section.title }}</span>
-          <div v-else-if="sIdx > 0" class="rail-micro-divider"></div>
+    <div class="pro-nav-scroll-area">
+      <div
+        v-for="(section, sIdx) in filteredSections"
+        :key="'sec-' + sIdx"
+        class="pro-section-group"
+      >
+        <!-- Section Header Label or Rail Micro Separator -->
+        <div class="pro-section-header">
+          <span class="pro-section-title">{{ section.title }}</span>
+          <div v-if="sIdx > 0" class="pro-rail-micro-separator"></div>
         </div>
 
-        <template v-for="item in section.items" :key="'item-' + item.id">
-          <!-- ─── 3A. AI PROMPT ITEM WITH COLORED GLOWING BORDER ─── -->
-          <div
-            v-if="item.url === 'ai_prompt'"
-            class="ai-glowing-nav-card my-1.5"
-            :class="{
-              'ai-rail-mode': main.sidebar_mini,
-              'ai-is-active': isRouteActive(item.url)
-            }"
-            :style="getItemAccentStyle(item)"
-          >
-            <!-- Expanded AI Item -->
+        <!-- Section Items -->
+        <div class="pro-section-items-col">
+          <template v-for="item in section.items" :key="'item-' + item.id">
+            <!-- ── 3A. AI PROMPT SPECIAL CARD ── -->
             <div
-              v-if="!main.sidebar_mini"
-              class="nav-cyber-item ai-item-inner cursor-pointer"
-              :class="{ 'route-active': isRouteActive(item.url) }"
+              v-if="item.url === 'ai_prompt'"
+              class="pro-nav-item pro-ai-card cursor-pointer"
+              :class="{ 'is-active': isRouteActive(item.url) }"
+              :style="getItemAccentStyle(item)"
               @click.stop="navigateTo(item.url)"
             >
-              <div class="cyber-icon-pill ai-icon-glow">
-                <v-icon size="19" :color="item.color">{{ item.icon || 'mdi-robot' }}</v-icon>
+              <div class="pro-item-active-bar" :style="{ backgroundColor: item.color }"></div>
+              <div class="pro-icon-box pro-ai-icon-box">
+                <v-icon size="18" :color="item.color">{{ item.icon || 'mdi-robot' }}</v-icon>
               </div>
-              <span class="nav-item-label font-weight-bold ai-gradient-text">
-                {{ item.title }}
-              </span>
-              <span class="ai-spark-chip ml-auto">
-                <v-icon size="11" class="mr-0.5">mdi-sparkles</v-icon>AI
-              </span>
-            </div>
+              <div class="pro-item-label-wrap">
+                <span class="pro-item-title pro-ai-gradient-title">{{ item.title }}</span>
+                <span class="pro-ai-sparkle-pill ml-auto">
+                  <v-icon size="11" class="mr-0.5">mdi-sparkles</v-icon>AI
+                </span>
+              </div>
 
-            <!-- Rail Mode AI Item with Hover Popover -->
-            <v-menu
-              v-else
-              location="end center"
-              offset="14"
-              open-on-hover
-              :open-delay="80"
-              :close-delay="160"
-              transition="slide-x-transition"
-              :theme="main.is_dark ? 'dark' : 'light'"
-            >
-              <template v-slot:activator="{ props: aiMenuProps }">
-                <div
-                  v-bind="aiMenuProps"
-                  class="rail-icon-wrapper ai-rail-activator cursor-pointer"
-                  :class="{ 'route-active': isRouteActive(item.url) }"
-                  @click.stop="handleRailAiClick(item.url)"
-                >
-                  <div class="cyber-icon-pill ai-icon-glow">
-                    <v-icon size="20" :color="item.color">{{ item.icon || 'mdi-robot' }}</v-icon>
-                  </div>
-                  <span class="ai-rail-spark-dot"></span>
-                </div>
-              </template>
-
-              <!-- Popover for AI Prompt in Rail Mode -->
-              <div
-                class="cyber-rail-popover ai-popover-card cursor-pointer"
-                :class="main.is_dark ? 'popover-dark' : 'popover-light'"
-                @click.stop="navigateTo(item.url)"
+              <!-- Rail Tooltip for AI Prompt -->
+              <v-tooltip
+                v-if="main.sidebar_mini"
+                activator="parent"
+                location="end"
+                offset="14"
+                :open-delay="50"
+                :close-delay="100"
+                :theme="main.is_dark ? 'dark' : 'light'"
+                :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
               >
-                <div class="popover-hero-header ai-header-gradient">
-                  <div class="popover-hero-icon-box mr-2.5">
-                    <v-icon size="17" color="white">mdi-robot</v-icon>
-                  </div>
-                  <span class="popover-hero-title">{{ item.title }}</span>
-                  <span class="popover-ai-pill ml-auto">PROMPT</span>
-                </div>
-                <div class="popover-body-content pa-3">
-                  <div class="popover-caption font-weight-medium d-flex align-center justify-space-between">
-                    <span>{{ t('click_to_open') || 'Click to launch AI Prompt assistant' }}</span>
-                    <v-icon size="15" color="#42A5F5" class="ml-2">mdi-arrow-right</v-icon>
-                  </div>
-                </div>
-              </div>
-            </v-menu>
-          </div>
-
-          <!-- ─── 3B. SINGLE LEAF NAV LINK (No Children) ─── -->
-          <template v-else-if="!item.children || item.children.length === 0">
-            <!-- Expanded Leaf Link -->
-            <div
-              v-if="!main.sidebar_mini"
-              class="nav-cyber-item mb-1 cursor-pointer"
-              :class="{ 'route-active': isRouteActive(item.url) }"
-              :style="getItemAccentStyle(item)"
-              @click.stop="item.url && navigateTo(item.url)"
-            >
-              <div
-                class="cyber-icon-pill"
-                :style="{ backgroundColor: hexToRgba(item.color, 0.12) }"
-              >
-                <v-icon size="18" :color="item.color">{{ item.icon }}</v-icon>
-              </div>
-              <span class="nav-item-label">
-                {{ item.title }}
-              </span>
-            </div>
-
-            <!-- Rail Leaf Link with Hover Popover Card -->
-            <v-menu
-              v-else
-              location="end center"
-              offset="14"
-              open-on-hover
-              :open-delay="70"
-              :close-delay="150"
-              transition="slide-x-transition"
-              :theme="main.is_dark ? 'dark' : 'light'"
-            >
-              <template v-slot:activator="{ props: leafMenuProps }">
-                <div
-                  v-bind="leafMenuProps"
-                  class="rail-icon-wrapper mb-1 cursor-pointer"
-                  :class="{ 'route-active': isRouteActive(item.url) }"
-                  :style="getItemAccentStyle(item)"
-                  @click.stop="handleRailLeafClick(item.url)"
-                >
+                <div class="pro-single-tooltip-card">
                   <div
-                    class="cyber-icon-pill"
-                    :style="{ backgroundColor: hexToRgba(item.color, 0.13) }"
+                    class="pro-single-tooltip-icon-box pro-ai-tooltip-icon"
+                    :style="{
+                      backgroundColor: hexToRgba(item.color, main.is_dark ? 0.25 : 0.12),
+                      borderColor: hexToRgba(item.color, 0.4)
+                    }"
                   >
-                    <v-icon size="19" :color="item.color">{{ item.icon }}</v-icon>
+                    <v-icon size="16" :color="item.color">{{ item.icon || 'mdi-robot' }}</v-icon>
+                  </div>
+                  <div class="pro-tooltip-text-col">
+                    <div class="pro-tooltip-title-row">
+                      <span
+                        class="pro-tooltip-theme-title font-weight-bold"
+                        :style="{ color: getAccessibleThemeColor(item.color, main.is_dark) }"
+                      >
+                        {{ item.title }}
+                      </span>
+                      <span class="pro-ai-sparkle-pill">
+                        <v-icon size="10" class="mr-0.5">mdi-sparkles</v-icon>AI
+                      </span>
+                    </div>
+                    <span
+                      class="pro-tooltip-parent-tag"
+                      :style="{ color: main.is_dark ? '#94A3B8' : '#64748B' }"
+                    >
+                      {{ t('ai_assistant') || 'AI Assistant' }}
+                    </span>
                   </div>
                   <span
                     v-if="isRouteActive(item.url)"
-                    class="rail-active-glow-bar"
-                    :style="{ backgroundColor: item.color }"
-                  ></span>
-                </div>
-              </template>
-
-              <!-- Rail Popover for Leaf Item -->
-              <div
-                class="cyber-rail-popover leaf-popover-card cursor-pointer"
-                :class="main.is_dark ? 'popover-dark' : 'popover-light'"
-                @click.stop="item.url && navigateTo(item.url)"
-              >
-                <div class="d-flex align-center ga-2.5 pa-3">
-                  <div
-                    class="cyber-icon-pill mini-pill"
-                    :style="{ backgroundColor: hexToRgba(item.color, 0.16) }"
-                  >
-                    <v-icon size="17" :color="item.color">{{ item.icon }}</v-icon>
-                  </div>
-                  <span class="popover-leaf-title font-weight-bold">{{ item.title }}</span>
-                  <v-icon size="14" class="ml-auto text-medium-emphasis leaf-arrow">mdi-arrow-right</v-icon>
-                </div>
-              </div>
-            </v-menu>
-          </template>
-
-          <!-- ─── 3C. ACCORDION GROUP WITH SUB-NAVS ─── -->
-          <template v-else>
-            <!-- 1) EXPANDED DRAWER: Custom Accordion Group (Immune to unmount state loss) -->
-            <div
-              v-if="!main.sidebar_mini"
-              class="cyber-group-block mb-1"
-              :class="{
-                'group-is-expanded': isGroupExpanded(item.id),
-                'route-active': isAnyChildActive(item)
-              }"
-              :style="getItemAccentStyle(item)"
-            >
-              <!-- Group Activator Header -->
-              <div
-                class="nav-cyber-item nav-cyber-parent"
-                :class="{
-                  'route-active': isAnyChildActive(item),
-                  'group-is-open': isGroupExpanded(item.id)
-                }"
-                @click.stop="toggleGroup(item.id)"
-              >
-                <div
-                  class="cyber-icon-pill"
-                  :style="{ backgroundColor: hexToRgba(item.color, 0.12) }"
-                >
-                  <v-icon size="18" :color="item.color">{{ item.icon }}</v-icon>
-                </div>
-
-                <span class="nav-item-label">
-                  {{ item.title }}
-                </span>
-
-                <v-chip
-                  size="x-small"
-                  variant="tonal"
-                  :color="item.color"
-                  class="mr-2 group-count-chip font-weight-bold"
-                >
-                  {{ item.children.length }}
-                </v-chip>
-
-                <v-icon
-                  size="16"
-                  class="group-chevron-icon"
-                  :class="{ 'chevron-rotated': isGroupExpanded(item.id) }"
-                >
-                  mdi-chevron-down
-                </v-icon>
-              </div>
-
-              <!-- Expanded Sub-Nav Items List with smooth animation -->
-              <v-expand-transition>
-                <div
-                  v-show="isGroupExpanded(item.id)"
-                  class="nav-group-children-wrap"
-                >
-                  <div
-                    v-for="(child, cIdx) in item.children"
-                    :key="'child-' + cIdx"
-                    class="nav-cyber-item nav-child-subitem mb-0.5 cursor-pointer"
-                    :class="{ 'route-active': isRouteActive(child[2]) }"
-                    :style="getChildAccentStyle(child, item)"
-                    @click.stop="navigateTo(child[2])"
-                  >
-                    <div
-                      class="cyber-child-icon-box"
-                      :style="{ backgroundColor: hexToRgba(getChildColor(child, item), 0.11) }"
-                    >
-                      <v-icon size="16" :color="getChildColor(child, item)">
-                        {{ child[0] || 'mdi-circle-small' }}
-                      </v-icon>
-                    </div>
-                    <span class="nav-child-label">
-                      {{ child[1] }}
-                    </span>
-                  </div>
-                </div>
-              </v-expand-transition>
-            </div>
-
-            <!-- 2) COLLAPSED RAIL MODE:
-                 - When group was expanded: displays parent icon + small mini icons of expanded sub-navs!
-                 - Hover popover on rail icon displays interactive list of all sub-navs! -->
-            <div
-              v-else
-              class="rail-group-container mb-1"
-              :class="{
-                'rail-group-expanded': isGroupExpanded(item.id),
-                'route-active': isAnyChildActive(item)
-              }"
-              :style="getItemAccentStyle(item)"
-            >
-              <!-- Popover on Hover: Full Interactive Sub-Navs List for Rail Mode -->
-              <v-menu
-                v-model="groupPopovers[item.id]"
-                location="end top"
-                offset="14"
-                open-on-hover
-                :open-delay="80"
-                :close-delay="200"
-                transition="slide-x-transition"
-                :theme="main.is_dark ? 'dark' : 'light'"
-                :close-on-content-click="false"
-              >
-                <!-- Rail Activator: Parent Group Icon (click toggles mini expanded state) -->
-                <template v-slot:activator="{ props: groupMenuProps }">
-                  <div
-                    v-bind="groupMenuProps"
-                    class="rail-icon-wrapper rail-group-parent cursor-pointer"
-                    :class="{ 'is-active': isAnyChildActive(item) }"
-                    @click.stop="handleRailGroupClick(item.id)"
-                  >
-                    <div
-                      class="cyber-icon-pill"
-                      :style="{ backgroundColor: hexToRgba(item.color, 0.13) }"
-                    >
-                      <v-icon size="19" :color="item.color">{{ item.icon }}</v-icon>
-                    </div>
-
-                    <!-- Indicator dots or active line -->
-                    <span
-                      v-if="isAnyChildActive(item)"
-                      class="rail-active-glow-bar"
-                      :style="{ backgroundColor: item.color }"
-                    ></span>
-
-                    <span
-                      v-if="isGroupExpanded(item.id)"
-                      class="rail-group-expanded-badge"
-                      :style="{ backgroundColor: item.color }"
-                    ></span>
-                  </div>
-                </template>
-
-                <!-- Interactive Popover Menu of Sub-Nav Links -->
-                <div
-                  class="cyber-rail-popover group-popover-card"
-                  :class="main.is_dark ? 'popover-dark' : 'popover-light'"
-                  @click.stop=""
-                >
-                  <!-- Popover Top Gradient Header -->
-                  <div
-                    class="popover-hero-header"
+                    class="pro-subnav-tooltip-badge"
                     :style="{
-                      background: getGroupHeaderGradient(item)
+                      color: getAccessibleThemeColor(item.color, main.is_dark),
+                      backgroundColor: hexToRgba(item.color, main.is_dark ? 0.25 : 0.12),
+                      borderColor: hexToRgba(item.color, 0.35)
                     }"
                   >
-                    <div class="popover-hero-icon-box mr-2.5">
-                      <v-icon size="17" color="white">{{ item.icon }}</v-icon>
-                    </div>
-                    <span class="popover-hero-title">{{ item.title }}</span>
-                    <span class="popover-count-chip ml-auto">{{ item.children.length }}</span>
-                  </div>
+                    {{ t('active') }}
+                  </span>
+                </div>
+              </v-tooltip>
+            </div>
 
-                  <!-- Sub-Nav Items List (Clickable!) with clean margins between elements -->
-                  <div class="popover-children-scroll">
-                    <div
-                      v-for="(child, scIdx) in item.children"
-                      :key="'pop-child-' + scIdx"
-                      class="popover-child-row cursor-pointer"
-                      :class="{ 'is-child-active': isRouteActive(child[2]) }"
-                      @click.stop="onPopoverChildClick(item.id, child[2])"
+            <!-- ── 3B. SINGLE LEAF NAV LINK (No Children) ── -->
+            <div
+              v-else-if="!item.children || item.children.length === 0"
+              class="pro-nav-item cursor-pointer"
+              :class="{ 'is-active': isRouteActive(item.url) }"
+              :style="getItemAccentStyle(item)"
+              @click.stop="item.url && navigateTo(item.url)"
+            >
+              <div class="pro-item-active-bar" :style="{ backgroundColor: item.color }"></div>
+              <div
+                class="pro-icon-box"
+                :style="{ backgroundColor: hexToRgba(item.color, isRouteActive(item.url) ? 0.22 : 0.1) }"
+              >
+                <v-icon size="17" :color="item.color">{{ item.icon }}</v-icon>
+              </div>
+              <div class="pro-item-label-wrap">
+                <span class="pro-item-title">{{ item.title }}</span>
+              </div>
+
+              <!-- Rail Tooltip for Single Leaf Nav Link -->
+              <v-tooltip
+                v-if="main.sidebar_mini"
+                activator="parent"
+                location="end"
+                offset="14"
+                :open-delay="50"
+                :close-delay="100"
+                :theme="main.is_dark ? 'dark' : 'light'"
+                :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
+              >
+                <div class="pro-single-tooltip-card">
+                  <div
+                    class="pro-single-tooltip-icon-box"
+                    :style="{
+                      backgroundColor: hexToRgba(item.color, main.is_dark ? 0.22 : 0.12),
+                      borderColor: hexToRgba(item.color, 0.35)
+                    }"
+                  >
+                    <v-icon size="16" :color="item.color">{{ item.icon }}</v-icon>
+                  </div>
+                  <div class="pro-tooltip-text-col">
+                    <span
+                      class="pro-tooltip-theme-title font-weight-bold"
+                      :style="{ color: getAccessibleThemeColor(item.color, main.is_dark) }"
                     >
+                      {{ item.title }}
+                    </span>
+                    <span
+                      v-if="section && section.title"
+                      class="pro-tooltip-parent-tag"
+                      :style="{ color: main.is_dark ? '#94A3B8' : '#64748B' }"
+                    >
+                      {{ section.title }}
+                    </span>
+                  </div>
+                  <span
+                    v-if="isRouteActive(item.url)"
+                    class="pro-subnav-tooltip-badge"
+                    :style="{
+                      color: getAccessibleThemeColor(item.color, main.is_dark),
+                      backgroundColor: hexToRgba(item.color, main.is_dark ? 0.25 : 0.12),
+                      borderColor: hexToRgba(item.color, 0.35)
+                    }"
+                  >
+                    {{ t('active') }}
+                  </span>
+                </div>
+              </v-tooltip>
+            </div>
+
+            <!-- ── 3C. ACCORDION GROUP WITH SUB-ITEMS ── -->
+            <div
+              v-else
+              class="pro-nav-group-root"
+              :class="{
+                'group-open': isGroupExpanded(item.id) && !main.sidebar_mini,
+                'has-active-child': isAnyChildActive(item)
+              }"
+              :style="getItemAccentStyle(item)"
+            >
+              <!-- Group Trigger Row -->
+              <div
+                class="pro-nav-item pro-group-header cursor-pointer"
+                :class="{ 'is-active': isAnyChildActive(item) }"
+                @click.stop="handleGroupClick(item.id)"
+              >
+                <div class="pro-item-active-bar" :style="{ backgroundColor: item.color }"></div>
+                <div
+                  class="pro-icon-box"
+                  :style="{ backgroundColor: hexToRgba(item.color, isAnyChildActive(item) ? 0.22 : 0.1) }"
+                >
+                  <v-icon size="17" :color="item.color">{{ item.icon }}</v-icon>
+                </div>
+                <div class="pro-item-label-wrap">
+                  <span class="pro-item-title">{{ item.title }}</span>
+                  <span
+                    class="pro-group-count-pill ml-auto mr-1"
+                    :style="{ color: item.color, backgroundColor: hexToRgba(item.color, 0.14) }"
+                  >
+                    {{ item.children.length }}
+                  </span>
+                  <v-icon
+                    size="15"
+                    class="pro-group-chevron"
+                    :class="{ 'chevron-rotated': isGroupExpanded(item.id) }"
+                  >
+                    mdi-chevron-down
+                  </v-icon>
+                </div>
+
+                <!-- Rail Tooltip: Detail of all sub-navs with original icons & theme colors -->
+                <v-tooltip
+                  v-if="main.sidebar_mini"
+                  activator="parent"
+                  location="end"
+                  offset="14"
+                  :open-delay="60"
+                  :close-delay="150"
+                  :theme="main.is_dark ? 'dark' : 'light'"
+                  :content-class="['pro-nav-tooltip', 'pro-nav-group-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
+                >
+                  <div class="pro-group-tooltip-card">
+                    <!-- Group Header Row -->
+                    <div class="pro-group-tooltip-header">
                       <div
-                        class="popover-child-icon-box"
-                        :style="{ backgroundColor: hexToRgba(getChildColor(child, item), 0.14) }"
+                        class="pro-group-tooltip-header-icon-box"
+                        :style="{
+                          backgroundColor: hexToRgba(item.color, main.is_dark ? 0.22 : 0.12),
+                          borderColor: hexToRgba(item.color, 0.35)
+                        }"
                       >
-                        <v-icon size="15" :color="getChildColor(child, item)">
-                          {{ child[0] || 'mdi-circle-small' }}
+                        <v-icon size="17" :color="item.color">{{ item.icon }}</v-icon>
+                      </div>
+                      <div class="pro-tooltip-text-col">
+                        <span
+                          class="pro-group-tooltip-title font-weight-bold"
+                          :style="{ color: getAccessibleThemeColor(item.color, main.is_dark) }"
+                        >
+                          {{ item.title }}
+                        </span>
+                        <span
+                          class="pro-group-tooltip-subtitle"
+                          :style="{ color: main.is_dark ? '#94A3B8' : '#64748B' }"
+                        >
+                          {{ item.children.length }} {{ item.children.length === 1 ? t('item') : t('items') }}
+                        </span>
+                      </div>
+                      <span
+                        class="pro-group-tooltip-badge"
+                        :style="{
+                          color: getAccessibleThemeColor(item.color, main.is_dark),
+                          backgroundColor: hexToRgba(item.color, main.is_dark ? 0.22 : 0.1),
+                          borderColor: hexToRgba(item.color, 0.3)
+                        }"
+                      >
+                        {{ item.children.length }}
+                      </span>
+                    </div>
+
+                    <!-- Divider -->
+                    <div
+                      class="pro-group-tooltip-divider"
+                      :style="{ borderColor: main.is_dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }"
+                    ></div>
+
+                    <!-- Sub-Nav Items List -->
+                    <div class="pro-group-tooltip-list">
+                      <div
+                        v-for="(child, cIdx) in item.children"
+                        :key="'tooltip-child-' + cIdx"
+                        class="pro-group-tooltip-item"
+                        :class="{ 'is-active': isRouteActive(child[2]) }"
+                        :style="{
+                          '--child-hover-bg': hexToRgba(getChildColor(child, item), main.is_dark ? 0.18 : 0.1),
+                          '--child-active-bg': hexToRgba(getChildColor(child, item), main.is_dark ? 0.25 : 0.15)
+                        }"
+                        @click.stop="navigateTo(child[2])"
+                      >
+                        <!-- Child Icon in original theme color -->
+                        <div
+                          class="pro-group-tooltip-child-icon"
+                          :style="{
+                            backgroundColor: hexToRgba(getChildColor(child, item), main.is_dark ? 0.22 : 0.12),
+                            borderColor: isRouteActive(child[2])
+                              ? getChildColor(child, item)
+                              : hexToRgba(getChildColor(child, item), 0.25)
+                          }"
+                        >
+                          <v-icon size="14" :color="getChildColor(child, item)">
+                            {{ child[0] || 'mdi-circle-small' }}
+                          </v-icon>
+                        </div>
+
+                        <!-- Child Title in Theme Color -->
+                        <span
+                          class="pro-group-tooltip-child-title font-weight-medium"
+                          :style="{
+                            color: isRouteActive(child[2])
+                              ? getAccessibleThemeColor(getChildColor(child, item), main.is_dark)
+                              : (main.is_dark ? '#E2E8F0' : '#1E293B')
+                          }"
+                        >
+                          {{ child[1] }}
+                        </span>
+
+                        <!-- Active Indicator Dot or Right Arrow -->
+                        <span
+                          v-if="isRouteActive(child[2])"
+                          class="pro-group-tooltip-active-dot"
+                          :style="{
+                            backgroundColor: getAccessibleThemeColor(getChildColor(child, item), main.is_dark),
+                            boxShadow: '0 0 8px ' + hexToRgba(getChildColor(child, item), 0.85)
+                          }"
+                        ></span>
+                        <v-icon
+                          v-else
+                          size="13"
+                          class="pro-group-tooltip-arrow opacity-40"
+                          :style="{ color: getAccessibleThemeColor(getChildColor(child, item), main.is_dark) }"
+                        >
+                          mdi-chevron-right
                         </v-icon>
                       </div>
-                      <span class="popover-child-text">{{ child[1] }}</span>
-                      <v-icon
-                        v-if="isRouteActive(child[2])"
-                        size="13"
-                        :color="getChildColor(child, item)"
-                        class="ml-auto flex-shrink-0"
-                      >mdi-check-circle</v-icon>
-                      <v-icon
-                        v-else
-                        size="14"
-                        class="ml-auto flex-shrink-0 popover-arrow-icon"
-                      >mdi-chevron-right</v-icon>
                     </div>
                   </div>
-                </div>
-              </v-menu>
+                </v-tooltip>
+              </div>
 
-              <!-- Expanded Sub-Navs Mini Icons Column in Rail Mode
-                   Displays small icons of sub-navs that were expanded before collapse -->
+              <!-- Rail Mode Mini Sub-navs Column (Visible only in rail mode when group is expanded) -->
               <div
-                v-if="isGroupExpanded(item.id)"
-                class="rail-mini-subnavs-col"
+                v-if="main.sidebar_mini && isGroupExpanded(item.id)"
+                class="pro-rail-subnavs-col"
               >
                 <div
                   v-for="(child, msIdx) in item.children"
                   :key="'rail-sub-' + msIdx"
-                  class="rail-mini-sub-item cursor-pointer"
-                  :class="{ 'mini-sub-active': isRouteActive(child[2]) }"
-                  @click.stop="handleRailSubItemClick(child[2])"
+                  class="pro-rail-sub-item cursor-pointer"
+                  :class="{ 'is-active': isRouteActive(child[2]) }"
+                  @click.stop="navigateTo(child[2])"
                 >
                   <div
-                    class="rail-mini-sub-icon-box"
+                    class="pro-rail-sub-icon-box"
                     :style="{
-                      backgroundColor: hexToRgba(getChildColor(child, item), isRouteActive(child[2]) ? 0.25 : 0.12),
-                      borderColor: isRouteActive(child[2]) ? getChildColor(child, item) : 'transparent'
+                      backgroundColor: hexToRgba(getChildColor(child, item), isRouteActive(child[2]) ? 0.3 : 0.12),
+                      borderColor: isRouteActive(child[2]) ? getChildColor(child, item) : hexToRgba(getChildColor(child, item), 0.25)
                     }"
                   >
                     <v-icon size="14" :color="getChildColor(child, item)">
@@ -480,213 +524,165 @@
                   <v-tooltip
                     activator="parent"
                     location="end"
-                    offset="12"
-                    :content-class="main.is_dark ? 'cyber-tooltip-dark' : 'cyber-tooltip-light'"
+                    offset="14"
+                    :open-delay="50"
+                    :close-delay="100"
+                    :theme="main.is_dark ? 'dark' : 'light'"
+                    :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
                   >
-                    <div class="d-flex align-center ga-1.5">
-                      <v-icon size="14" :color="getChildColor(child, item)">{{ child[0] || 'mdi-circle-small' }}</v-icon>
-                      <span class="font-weight-medium">{{ child[1] }}</span>
+                    <div class="pro-subnav-tooltip-card">
+                      <div
+                        class="pro-single-tooltip-icon-box"
+                        :style="{
+                          backgroundColor: hexToRgba(getChildColor(child, item), main.is_dark ? 0.22 : 0.12),
+                          borderColor: hexToRgba(getChildColor(child, item), 0.35)
+                        }"
+                      >
+                        <v-icon size="15" :color="getChildColor(child, item)">
+                          {{ child[0] || 'mdi-circle-small' }}
+                        </v-icon>
+                      </div>
+                      <div class="pro-tooltip-text-col">
+                        <span
+                          class="pro-tooltip-theme-title font-weight-bold"
+                          :style="{ color: getAccessibleThemeColor(getChildColor(child, item), main.is_dark) }"
+                        >
+                          {{ child[1] }}
+                        </span>
+                        <span
+                          class="pro-tooltip-parent-tag"
+                          :style="{ color: main.is_dark ? '#94A3B8' : '#64748B' }"
+                        >
+                          {{ item.title }}
+                        </span>
+                      </div>
+                      <span
+                        v-if="isRouteActive(child[2])"
+                        class="pro-subnav-tooltip-badge"
+                        :style="{
+                          color: getAccessibleThemeColor(getChildColor(child, item), main.is_dark),
+                          backgroundColor: hexToRgba(getChildColor(child, item), main.is_dark ? 0.25 : 0.12),
+                          borderColor: hexToRgba(getChildColor(child, item), 0.35)
+                        }"
+                      >
+                        {{ t('active') }}
+                      </span>
                     </div>
                   </v-tooltip>
                 </div>
               </div>
+
+              <!-- Sub-items List (Smooth 60fps CSS Grid Accordion for Expanded Mode) -->
+              <div
+                class="pro-subnav-accordion"
+                :class="{ 'accordion-expanded': isGroupExpanded(item.id) && !main.sidebar_mini }"
+              >
+                <div class="pro-subnav-inner">
+                  <div
+                    v-for="(child, cIdx) in item.children"
+                    :key="'sub-' + cIdx"
+                    class="pro-subnav-row cursor-pointer"
+                    :class="{ 'is-active': isRouteActive(child[2]) }"
+                    :style="getChildAccentStyle(child, item)"
+                    @click.stop="navigateTo(child[2])"
+                  >
+                    <div class="pro-subnav-tree-line"></div>
+                    <div
+                      class="pro-subnav-icon-pill"
+                      :style="{ backgroundColor: hexToRgba(getChildColor(child, item), 0.12) }"
+                    >
+                      <v-icon size="13" :color="getChildColor(child, item)">
+                        {{ child[0] || 'mdi-circle-small' }}
+                      </v-icon>
+                    </div>
+                    <span
+                      class="pro-subnav-title"
+                      :style="{ color: main.is_dark ? (isRouteActive(child[2]) ? getChildColor(child, item) : '#CBD5E1') : (isRouteActive(child[2]) ? getChildColor(child, item) : '#334155') }"
+                    >
+                      {{ child[1] }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
-        </template>
-      </template>
+        </div>
+      </div>
     </div>
 
     <!-- ============================================================
-         4. FOOTER: USER INFORMATION, PROFILE & SERVER STATUS
-         - When Opened: User info, logout button, edit profile icon button
-         - When Collapsed: User icon + status (online or server connection cut)
+         4. USER PROFILE & FOOTER AREA
          ============================================================ -->
-    <template v-slot:append>
-      <div class="cyber-footer-divider mx-3.5 mb-2"></div>
-      <div class="cyber-nav-footer" :class="{ 'footer-is-rail': main.sidebar_mini }">
-        <!-- 4A. RAIL FOOTER: User Icon with Online/Cut Status + Popover -->
-        <div v-if="main.sidebar_mini" class="rail-footer-wrap">
-          <v-menu
-            v-model="userMenuOpen"
-            location="end bottom"
-            offset="14"
-            open-on-hover
-            :open-delay="80"
-            :close-delay="200"
-            transition="slide-x-transition"
-            :theme="main.is_dark ? 'dark' : 'light'"
-            :close-on-content-click="false"
-          >
-            <template v-slot:activator="{ props: railUserProps }">
-              <div
-                v-bind="railUserProps"
-                class="rail-user-avatar-btn cursor-pointer"
-                id="rail-user-avatar-btn"
-                @click.stop="main.sidebar_mini = false"
-              >
-                <div class="rail-user-avatar-inner">
-                  <v-avatar size="40" class="rail-avatar-orb">
-                    <v-icon size="20" color="white">mdi-account</v-icon>
-                  </v-avatar>
-                  <span
-                    class="rail-status-badge-dot"
-                    :class="isServerConnected ? 'status-green' : 'status-cut'"
-                    :title="isServerConnected ? t('server_connected') : t('connection_cut')"
-                  ></span>
-                </div>
-              </div>
-            </template>
+    <div class="pro-footer-area">
+      <div class="pro-nav-divider mx-3 mb-2"></div>
+      <div class="pro-user-row cursor-pointer" @click.stop="handleProfileClick">
+        <v-avatar size="34" class="pro-user-avatar">
+          <span class="pro-avatar-initials">{{ userInitials }}</span>
+        </v-avatar>
 
-            <!-- Luxury User Popover Card in Rail Mode -->
-            <div
-              class="cyber-rail-popover user-popover-card"
-              :class="main.is_dark ? 'popover-dark' : 'popover-light'"
-              @click.stop=""
-            >
-              <!-- Top Banner with Live Status Pill -->
-              <div class="user-popover-banner">
-                <div class="user-status-pill" :class="isServerConnected ? 'pill-connected' : 'pill-severed'">
-                  <span class="user-status-orb"></span>
-                  <span>{{ isServerConnected ? t('server_connected') : t('connection_cut') }}</span>
-                </div>
-              </div>
-
-              <!-- User Identity Section with generous margins -->
-              <div class="user-popover-identity pa-3.5">
-                <div class="d-flex align-center ga-3 mb-3">
-                  <v-avatar size="44" class="popover-avatar">
-                    <v-icon size="22" color="white">mdi-account</v-icon>
-                  </v-avatar>
-                  <div class="user-identity-text">
-                    <div class="user-name-text font-weight-bold" :title="auth.user?.name">
-                      {{ auth.user?.name }}
-                    </div>
-                    <div class="user-email-text text-caption" :title="auth.user?.email">
-                      <v-icon size="11" class="mr-1">mdi-email-outline</v-icon>
-                      {{ auth.user?.email }}
-                    </div>
-                  </div>
-                </div>
-
-                <div class="user-role-badge-row mb-3">
-                  <div class="user-role-chip">
-                    <v-icon size="13" color="#42A5F5" class="mr-1">mdi-shield-check</v-icon>
-                    <span>{{ auth.user?.role?.name || t('administrator') }}</span>
-                  </div>
-                </div>
-
-                <v-divider class="mb-3"></v-divider>
-
-                <!-- Quick Action Buttons inside Popover with clear margins between elements -->
-                <div class="user-popover-actions">
-                  <button
-                    type="button"
-                    class="user-popover-action-row cursor-pointer"
-                    @click.stop="navigateTo('profile_settings')"
-                  >
-                    <div class="user-action-icon-box action-profile mr-2.5">
-                      <v-icon size="16" color="#42A5F5">mdi-account-cog-outline</v-icon>
-                    </div>
-                    <span>{{ t('my_profile') }}</span>
-                    <v-icon size="14" class="ml-auto text-medium-emphasis action-arrow">mdi-chevron-right</v-icon>
-                  </button>
-
-                  <button
-                    v-if="auth.isAdmin"
-                    type="button"
-                    class="user-popover-action-row cursor-pointer"
-                    @click.stop="navigateTo('admin_users')"
-                  >
-                    <div class="user-action-icon-box action-admin mr-2.5">
-                      <v-icon size="16" color="#5C6BC0">mdi-shield-account</v-icon>
-                    </div>
-                    <span>{{ t('user_management') || 'User Management' }}</span>
-                    <v-icon size="14" class="ml-auto text-medium-emphasis action-arrow">mdi-chevron-right</v-icon>
-                  </button>
-
-                  <button
-                    type="button"
-                    class="user-popover-action-row logout-row cursor-pointer"
-                    @click.stop="logout()"
-                  >
-                    <div class="user-action-icon-box action-logout mr-2.5">
-                      <v-icon size="16" color="#EF5350">mdi-power</v-icon>
-                    </div>
-                    <span class="text-error font-weight-semibold">{{ $t('logout') || 'Logout' }}</span>
-                    <v-icon size="14" color="#EF5350" class="ml-auto action-arrow">mdi-chevron-right</v-icon>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </v-menu>
+        <div class="pro-user-info-wrap">
+          <span class="pro-user-name">{{ userName }}</span>
+          <span class="pro-user-role">{{ userRole }}</span>
         </div>
 
-        <!-- 4B. EXPANDED FOOTER: Full User Info, Status, Edit Profile & Logout Buttons -->
-        <div v-else class="expanded-footer-card pa-3">
-          <div class="d-flex align-center justify-space-between ga-2">
-            <!-- Left: Avatar + Identity -->
-            <div class="d-flex align-center ga-2.5 overflow-hidden">
-              <div class="footer-avatar-wrap mr-2">
-                <v-avatar size="40" class="footer-avatar-orb">
-                  <v-icon size="20" color="white">mdi-account</v-icon>
-                </v-avatar>
-                <span
-                  class="footer-status-dot"
-                  :class="isServerConnected ? 'status-green' : 'status-cut'"
-                  :title="isServerConnected ? t('server_connected') : t('connection_cut')"
-                ></span>
-              </div>
+        <div v-if="!main.sidebar_mini" class="pro-footer-actions ml-auto">
+          <button
+            type="button"
+            class="pro-footer-action-btn"
+            @click.stop="navigateTo('profile_settings')"
+            :title="t('my_profile')"
+          >
+            <v-icon size="16">mdi-cog-outline</v-icon>
+          </button>
+          <button
+            type="button"
+            class="pro-footer-action-btn logout-action-btn"
+            @click.stop="logout"
+            :title="$t('logout') || 'Logout'"
+          >
+            <v-icon size="16">mdi-power</v-icon>
+          </button>
+        </div>
 
-              <div class="footer-user-details overflow-hidden">
-                <div class="footer-user-name font-weight-bold text-truncate" :title="auth.user?.name">
-                  {{ auth.user?.name }}
-                </div>
-                <div class="footer-user-role-line d-flex align-center ga-1">
-                  <span class="footer-role-text text-truncate">
-                    {{ auth.user?.role?.name || 'Administrator' }}
-                  </span>
-                </div>
-              </div>
+        <!-- Rail Tooltip for Profile -->
+        <v-tooltip
+          v-if="main.sidebar_mini"
+          activator="parent"
+          location="top"
+          offset="14"
+          :open-delay="50"
+          :close-delay="100"
+          :theme="main.is_dark ? 'dark' : 'light'"
+          :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
+        >
+          <div class="pro-single-tooltip-card">
+            <div
+              class="pro-single-tooltip-icon-box"
+              :style="{
+                backgroundColor: hexToRgba('#42A5F5', main.is_dark ? 0.22 : 0.12),
+                borderColor: hexToRgba('#42A5F5', 0.35)
+              }"
+            >
+              <v-icon size="16" color="#42A5F5">mdi-account</v-icon>
             </div>
-
-            <!-- Right: Action Buttons (Edit Profile + Logout) -->
-            <div class="footer-actions-cluster d-flex align-center ga-1">
-              <!-- Edit Profile Icon Button -->
-              <v-btn
-                icon
-                size="32"
-                variant="tonal"
-                color="#42A5F5"
-                class="footer-btn edit-profile-btn"
-                id="footer-edit-profile-btn"
-                @click.stop="navigateTo('profile_settings')"
+            <div class="pro-tooltip-text-col">
+              <span
+                class="pro-tooltip-theme-title font-weight-bold"
+                :style="{ color: getAccessibleThemeColor('#42A5F5', main.is_dark) }"
               >
-                <v-icon size="17">mdi-account-cog-outline</v-icon>
-                <v-tooltip activator="parent" location="top">
-                  {{ t('my_profile') }}
-                </v-tooltip>
-              </v-btn>
-
-              <!-- Logout Icon Button -->
-              <v-btn
-                icon
-                size="32"
-                variant="tonal"
-                color="error"
-                class="footer-btn logout-btn"
-                id="footer-logout-btn"
-                @click.stop="logout()"
+                {{ userName }}
+              </span>
+              <span
+                class="pro-tooltip-parent-tag"
+                :style="{ color: main.is_dark ? '#94A3B8' : '#64748B' }"
               >
-                <v-icon size="17">mdi-power</v-icon>
-                <v-tooltip activator="parent" location="top">
-                  {{ $t('logout') || 'Logout' }}
-                </v-tooltip>
-              </v-btn>
+                {{ userRole }}
+              </span>
             </div>
           </div>
-        </div>
+        </v-tooltip>
       </div>
-    </template>
+    </div>
   </v-navigation-drawer>
 </template>
 
@@ -703,8 +699,6 @@ export default {
     return {
       persistedExpandedGroups: ['warehouses', 'workforce'],
       filterQuery: '',
-      userMenuOpen: false,
-      groupPopovers: {},
       adaptiveLogoUrl: null,
       avatarLoadFailed: false,
     };
@@ -716,9 +710,25 @@ export default {
     online() { return useOnlineUsers(); },
     lang() { return this.main.lang?.code || 'en'; },
 
-    /**
-     * Real-time server connection state
-     */
+    userName() {
+      return this.auth.user?.name || this.auth.user?.username || 'User';
+    },
+
+    userRole() {
+      if (this.auth.isAdmin) return this.t('administrator') || 'Admin';
+      return this.auth.user?.role || 'Staff';
+    },
+
+    userInitials() {
+      const name = this.userName;
+      if (!name) return 'U';
+      const parts = name.split(' ').filter(Boolean);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return name.slice(0, 2).toUpperCase();
+    },
+
     isServerConnected() {
       if (this.online && typeof this.online.isConnected !== 'undefined') {
         return !!this.online.isConnected;
@@ -726,16 +736,10 @@ export default {
       return typeof window !== 'undefined' && !!window.Echo;
     },
 
-    /**
-     * Display Avatar URL (prefers transparent canvas processed version)
-     */
     displayAvatarUrl() {
       return this.adaptiveLogoUrl || this.systemAvatarUrl;
     },
 
-    /**
-     * System Jupiter Avatar or DB uploaded company logo
-     */
     systemAvatarUrl() {
       if (this.avatarLoadFailed) {
         return '/images/jupiter-logo.png';
@@ -746,9 +750,6 @@ export default {
       return '/images/jupiter-logo.png';
     },
 
-    /**
-     * Navigation Sections definition respecting claude.md Module Colors
-     */
     rawSections() {
       const t = this.t;
 
@@ -804,7 +805,7 @@ export default {
               id: 'warehouses',
               icon: 'mdi-warehouse',
               title: this.$t('warehouses'),
-              color: '#a21ee5', // Warehouse module button color
+              color: '#a21ee5',
               children: [
                 ['mdi-view-dashboard-outline', this.$t('dashboard'), 'warehouses', 'warehouses.view', '#a21ee5'],
                 ['mdi-receipt-text-outline', this.$t('storage_invoices'), 'storage_invoices', 'warehouses.storage_invoices', '#9742f5'],
@@ -814,7 +815,7 @@ export default {
               id: 'inventory',
               icon: 'mdi-clipboard-text-clock-outline',
               title: this.$t('inventory'),
-              color: '#6D4C41', // Inventory module button color
+              color: '#6D4C41',
               perm: 'inventory.view',
               children: [
                 ['mdi-view-list-outline', this.$t('list_inventory'), 'list_inventory', null, '#6D4C41'],
@@ -825,7 +826,7 @@ export default {
               id: 'charges',
               icon: 'mdi-truck-cargo-container',
               title: this.$t('charges'),
-              color: '#42A5F5', // Charge module button color
+              color: '#42A5F5',
               perm: 'charges.view',
               children: [
                 ['mdi-view-list-outline', this.$t('list_charge'), 'list_charge', null, '#42A5F5'],
@@ -836,7 +837,7 @@ export default {
               id: 'production',
               icon: 'mdi-factory',
               title: this.$t('production'),
-              color: '#00897B', // Production module button color
+              color: '#00897B',
               children: [
                 ['mdi-format-list-bulleted', this.$t('production_list'), 'production_list', 'production.view', '#00897B'],
                 ['mdi-link-variant', this.$t('charge_production_management'), 'charge_production_management', 'production.charge_management', '#26A69A'],
@@ -846,7 +847,7 @@ export default {
               id: 'shippings',
               icon: 'mdi-package-variant-closed',
               title: this.$t('shippings'),
-              color: '#4643a0', // Shipping module button color
+              color: '#4643a0',
               perm: 'shippings.view',
               children: [
                 ['mdi-view-list-outline', this.$t('list_shipping'), 'list_shipping', null, '#4643a0'],
@@ -857,7 +858,7 @@ export default {
               id: 'transfers',
               icon: 'mdi-swap-horizontal',
               title: this.$t('warehouse_transfers'),
-              color: '#F9A825', // Warehouse Transfer button color
+              color: '#F9A825',
               perm: 'warehouse_transfers.view',
               children: [
                 ['mdi-view-list-outline', this.$t('list_warehouse_transfer'), 'list_warehouse_transfer', null, '#F9A825'],
@@ -873,7 +874,7 @@ export default {
               id: 'workforce_group',
               icon: 'mdi-account-hard-hat',
               title: this.$t('workforce'),
-              color: '#1565C0', // Workforce module button color
+              color: '#1565C0',
               children: [
                 ['mdi-account-multiple', this.$t('workforce_management'), 'workforce_management', 'workforce.view', '#1565C0'],
                 ['mdi-account-tie', this.$t('corporal_management'), 'corporal_management', 'workforce.corporals', '#1E88E5'],
@@ -894,7 +895,7 @@ export default {
               id: 'supplier_invoices',
               icon: 'mdi-file-document-check',
               title: this.$t('supplier_invoices'),
-              color: '#E65100', // Supplier Invoice button color
+              color: '#E65100',
               children: [
                 ['mdi-file-document-multiple', this.$t('list_supplier_invoice'), 'list_supplier_invoice', 'supplier_invoices.view', '#E65100'],
                 ['mdi-cash-register', this.$t('supplier_settlement'), 'supplier_settlement', 'supplier_invoices.settlement', '#F57C00'],
@@ -904,7 +905,7 @@ export default {
               id: 'client_invoices',
               icon: 'mdi-account-cash',
               title: this.$t('client_invoics'),
-              color: '#00838F', // Client Invoice button color
+              color: '#00838F',
               children: [
                 ['mdi-file-document-multiple', this.$t('list_client_invoice'), 'list_client_invoice', 'client_invoices.view', '#00838F'],
                 ['mdi-cash-register', this.$t('client_settlement'), 'client_settlement', 'client_invoices.settlement', '#00ACC1'],
@@ -945,6 +946,8 @@ export default {
                 ['mdi-chart-areaspline', this.$t('chart_management'), 'chart_management', 'settings.charts', '#8E24AA'],
                 ['mdi-cash-lock-open', this.$t('static_charge_management'), 'static_charge_management', 'settings.static_charges', '#42A5F5'],
                 ['mdi-calculator-variant-outline', this.$t('cost_configuration_management'), 'cost_configuration_management', 'settings.cost_configuration', '#D81B60'],
+                ['mdi-account-tie', this.$t('client_management'), 'client_management', 'settings.clients', '#00838F'],
+                ['mdi-truck-delivery', this.$t('supplier_management'), 'supplier_management', 'settings.suppliers', '#E65100'],
               ]
             },
             {
@@ -962,7 +965,6 @@ export default {
 
     visibleSections() {
       const auth = this.auth;
-
       return this.rawSections
         .map(section => {
           const filteredItems = section.items
@@ -1047,14 +1049,6 @@ export default {
       }
     }
   },
-  mounted() {
-    document.addEventListener('click', this.handleOutsideClick, true);
-    document.addEventListener('touchstart', this.handleOutsideClick, { passive: true, capture: true });
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleOutsideClick, true);
-    document.removeEventListener('touchstart', this.handleOutsideClick, { passive: true, capture: true });
-  },
   methods: {
     t(key) {
       const fallbacks = {
@@ -1065,6 +1059,7 @@ export default {
         system_administration: this.lang === 'es' ? 'Sistema y Ajustes' : this.lang === 'fr' ? 'Système et Paramètres' : 'System & Settings',
         filter_menu: this.lang === 'es' ? 'Filtrar navegación...' : this.lang === 'fr' ? 'Filtrer la navigation...' : 'Filter navigation...',
         expand_sidebar: this.lang === 'es' ? 'Expandir barra lateral' : this.lang === 'fr' ? 'Agrandir la barre latérale' : 'Expand sidebar',
+        collapse_sidebar: this.lang === 'es' ? 'Plegar barra lateral' : this.lang === 'fr' ? 'Réduire la barre latérale' : 'Collapse sidebar',
         home: this.lang === 'es' ? 'Inicio' : this.lang === 'fr' ? 'Accueil' : 'Home',
         my_profile: this.lang === 'es' ? 'Mi Perfil' : this.lang === 'fr' ? 'Mon Profil' : 'My Profile',
         administrator: this.lang === 'es' ? 'Administrador' : this.lang === 'fr' ? 'Administrateur' : 'Administrator',
@@ -1078,6 +1073,85 @@ export default {
         if (val && val !== key) return val;
       }
       return fallbacks[key] || this.$t(key);
+    },
+
+    toggleSidebar() {
+      this.main.sidebar_mini = !this.main.sidebar_mini;
+    },
+
+    handleBrandClick() {
+      if (this.main.sidebar_mini) {
+        this.main.sidebar_mini = false;
+      } else {
+        this.$router.push({ name: 'index' }).catch(() => {});
+      }
+    },
+
+    openSearchFromRail() {
+      this.main.sidebar_mini = false;
+      this.$nextTick(() => {
+        const input = this.$el?.querySelector('.pro-search-text-field input');
+        if (input) input.focus();
+      });
+    },
+
+    handleProfileClick() {
+      if (this.main.sidebar_mini) {
+        this.main.sidebar_mini = false;
+      } else {
+        this.navigateTo('profile_settings');
+      }
+    },
+
+    handleGroupClick(groupId) {
+      this.toggleGroup(groupId);
+    },
+
+    toggleGroup(groupId) {
+      if (!Array.isArray(this.persistedExpandedGroups)) {
+        this.persistedExpandedGroups = [];
+      }
+      const idx = this.persistedExpandedGroups.indexOf(groupId);
+      if (idx > -1) {
+        this.persistedExpandedGroups.splice(idx, 1);
+      } else {
+        this.persistedExpandedGroups.push(groupId);
+      }
+    },
+
+    isGroupExpanded(groupId) {
+      return Array.isArray(this.persistedExpandedGroups) && this.persistedExpandedGroups.includes(groupId);
+    },
+
+    isRouteActive(routeName) {
+      if (this.$route.name === routeName) {
+        if (routeName === 'list_charge' && this.$route.query.tab === 'add') return false;
+        if (routeName === 'list_shipping' && this.$route.query.tab === 'add') return false;
+        return true;
+      }
+      if (routeName === 'add_charge' && (this.$route.name === 'list_charge' && this.$route.query.tab === 'add')) return true;
+      if (routeName === 'add_shipping' && (this.$route.name === 'list_shipping' && this.$route.query.tab === 'add')) return true;
+      if (routeName === 'list_charge' && (this.$route.name === 'view_charge' || this.$route.name === 'edit_charge')) return true;
+      if (routeName === 'list_shipping' && (this.$route.name === 'view_shipping' || this.$route.name === 'edit_shipping')) return true;
+      return false;
+    },
+
+    isAnyChildActive(item) {
+      if (!item.children) return false;
+      return item.children.some(c => this.isRouteActive(c[2]));
+    },
+
+    findAndOpenActiveGroup() {
+      if (!this.visibleSections) return;
+      for (const section of this.visibleSections) {
+        for (const item of section.items) {
+          if (item.children && this.isAnyChildActive(item)) {
+            if (!this.persistedExpandedGroups.includes(item.id)) {
+              this.persistedExpandedGroups.push(item.id);
+            }
+          }
+        }
+      }
     },
 
     onAvatarError() {
@@ -1103,7 +1177,6 @@ export default {
         '--accent-color': c,
         '--accent-bg-active': this.hexToRgba(c, 0.14),
         '--accent-bg-hover': this.hexToRgba(c, 0.08),
-        '--accent-glow': this.hexToRgba(c, 0.35),
       };
     },
 
@@ -1120,73 +1193,72 @@ export default {
       };
     },
 
-    getGroupHeaderGradient(item) {
-      const c = item.color || '#42A5F5';
-      const gradients = {
-        '#a21ee5': 'linear-gradient(135deg, #c015b4 0%, #a21ee5 40%, #9742f5 100%)',
-        '#6D4C41': 'linear-gradient(135deg, #4E342E 0%, #6D4C41 40%, #8D6E63 100%)',
-        '#42A5F5': 'linear-gradient(135deg, #0D47A1 0%, #1565C0 40%, #42A5F5 100%)',
-        '#00897B': 'linear-gradient(135deg, rgb(0, 105, 92) 0%, rgb(0, 137, 123) 40%, rgb(38, 166, 154) 100%)',
-        '#4643a0': 'linear-gradient(135deg, #372e7d 0%, #4643a0 40%, #6c66bb 100%)',
-        '#F9A825': 'linear-gradient(135deg, #F57F17 0%, #F9A825 40%, #FDD835 100%)',
-        '#1565C0': 'linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%)',
-        '#E65100': 'linear-gradient(135deg, #E65100 0%, #F57C00 40%, #FFB74D 100%)',
-        '#00838F': 'linear-gradient(135deg, #006064 0%, #00838F 40%, #26C6DA 100%)',
-        '#546E7A': 'linear-gradient(135deg, #37474F 0%, #546E7A 40%, #78909C 100%)',
+    getAccessibleThemeColor(hexColor, isDark) {
+      if (!hexColor) return isDark ? '#FFFFFF' : '#0F172A';
+
+      const darkMap = {
+        '#4643a0': '#818CF8', // Shipping -> Luminous indigo
+        '#372e7d': '#818CF8',
+        '#6c66bb': '#9B98E8',
+        '#6d4c41': '#D7CCC8', // Inventory -> Light warm beige
+        '#8d6e63': '#D7CCC8',
+        '#4e342e': '#BCAAA4',
+        '#00897b': '#2DD4BF', // Production -> Luminous teal
+        '#00695c': '#2DD4BF',
+        '#26a69a': '#2DD4BF',
+        '#a21ee5': '#C084FC', // Warehouse -> Luminous purple
+        '#9742f5': '#C084FC',
+        '#c015b4': '#E879F9',
+        '#e65100': '#FB923C', // Invoices -> Vibrant orange
+        '#f57c00': '#FB923C',
+        '#00838f': '#22D3EE', // Client Invoices -> Vibrant cyan
+        '#006064': '#22D3EE',
+        '#f9a825': '#FDE047', // Transfer -> Vibrant yellow/amber
+        '#f57f17': '#FDE047',
+        '#388e3c': '#4ADE80', // Guano -> Vibrant emerald
+        '#2e7d32': '#4ADE80',
+        '#546e7a': '#94A3B8', // Package -> Slate
+        '#42a5f5': '#38BDF8', // Charge/Workforce -> Sky blue
+        '#1e88e5': '#60A5FA',
+        '#1565c0': '#60A5FA',
+        '#0288d1': '#38BDF8',
+        '#3949ab': '#818CF8',
       };
-      return gradients[c] || `linear-gradient(135deg, ${c} 0%, #1565C0 100%)`;
-    },
 
-    isRouteActive(routeName) {
-      if (this.$route.name === routeName) {
-        if (routeName === 'list_charge' && this.$route.query.tab === 'add') return false;
-        if (routeName === 'list_shipping' && this.$route.query.tab === 'add') return false;
-        return true;
-      }
-      if (routeName === 'add_charge' && (this.$route.name === 'list_charge' && this.$route.query.tab === 'add')) return true;
-      if (routeName === 'add_shipping' && (this.$route.name === 'list_shipping' && this.$route.query.tab === 'add')) return true;
-      if (routeName === 'list_charge' && (this.$route.name === 'view_charge' || this.$route.name === 'edit_charge')) return true;
-      if (routeName === 'list_shipping' && (this.$route.name === 'view_shipping' || this.$route.name === 'edit_shipping')) return true;
-      return false;
-    },
+      const lightMap = {
+        '#4643a0': '#372e7d',
+        '#6c66bb': '#372e7d',
+        '#6d4c41': '#4E342E',
+        '#8d6e63': '#4E342E',
+        '#00897b': '#00695C',
+        '#26a69a': '#00695C',
+        '#a21ee5': '#7E22CE',
+        '#9742f5': '#7E22CE',
+        '#c015b4': '#9333EA',
+        '#e65100': '#C2410C',
+        '#f57c00': '#C2410C',
+        '#00838f': '#0E7490',
+        '#006064': '#0E7490',
+        '#f9a825': '#B45309',
+        '#f57f17': '#B45309',
+        '#388e3c': '#15803D',
+        '#2e7d32': '#15803D',
+        '#546e7a': '#334155',
+        '#42a5f5': '#0284C7',
+        '#1e88e5': '#1D4ED8',
+        '#1565c0': '#1E40AF',
+        '#0288d1': '#0369A1',
+        '#3949ab': '#312E81',
+      };
 
-    isAnyChildActive(item) {
-      if (!item.children) return false;
-      return item.children.some(c => this.isRouteActive(c[2]));
-    },
-
-    toggleGroup(groupId) {
-      if (!Array.isArray(this.persistedExpandedGroups)) {
-        this.persistedExpandedGroups = [];
-      }
-      const idx = this.persistedExpandedGroups.indexOf(groupId);
-      if (idx > -1) {
-        this.persistedExpandedGroups.splice(idx, 1);
+      const lower = String(hexColor).toLowerCase();
+      if (isDark) {
+        return darkMap[lower] || hexColor;
       } else {
-        this.persistedExpandedGroups.push(groupId);
+        return lightMap[lower] || hexColor;
       }
     },
 
-    isGroupExpanded(groupId) {
-      return Array.isArray(this.persistedExpandedGroups) && this.persistedExpandedGroups.includes(groupId);
-    },
-
-    findAndOpenActiveGroup() {
-      if (!this.visibleSections) return;
-      for (const section of this.visibleSections) {
-        for (const item of section.items) {
-          if (item.children && this.isAnyChildActive(item)) {
-            if (!this.persistedExpandedGroups.includes(item.id)) {
-              this.persistedExpandedGroups.push(item.id);
-            }
-          }
-        }
-      }
-    },
-
-    /**
-     * Process logo for transparent background on any theme
-     */
     processLogoForTheme(url) {
       const src = url || this.systemAvatarUrl;
       if (!src) {
@@ -1212,16 +1284,11 @@ export default {
           const imgData = ctx.getImageData(0, 0, w, h);
           const d = imgData.data;
 
-          // Sample border pixels to detect solid white background
           const corners = [
             0,
             (w - 1) * 4,
             (h - 1) * w * 4,
             ((h - 1) * w + (w - 1)) * 4,
-            (Math.min(5, h - 1) * w + Math.min(5, w - 1)) * 4,
-            (Math.min(5, h - 1) * w + Math.max(0, w - 6)) * 4,
-            (Math.max(0, h - 6) * w + Math.min(5, w - 1)) * 4,
-            (Math.max(0, h - 6) * w + Math.max(0, w - 6)) * 4,
           ];
 
           let whiteCount = 0;
@@ -1235,7 +1302,7 @@ export default {
             }
           }
 
-          if (whiteCount >= 4) {
+          if (whiteCount >= 3) {
             for (let i = 0; i < d.length; i += 4) {
               const r = d[i];
               const g = d[i + 1];
@@ -1263,152 +1330,13 @@ export default {
       img.src = src;
     },
 
-    /**
-     * Document Click Outside: collapse when user clicks anywhere outside the drawer
-     * (and outside active popovers / menus)
-     */
-    handleOutsideClick(event) {
-      if (this.main.sidebar_mini) return;
-
-      const target = event.target;
-      const drawerEl = this.$refs.drawerRoot?.$el || this.$el || document.querySelector('.futuristic-nav-drawer');
-
-      // 1. Direct DOM containment check on drawer element
-      if (drawerEl && drawerEl instanceof Element && target && drawerEl.contains(target)) {
-        return;
-      }
-
-      // 2. Direct target closest selector check: covers any element within the drawer or toggle button
-      if (target && target instanceof Element) {
-        if (
-          target.closest('.futuristic-nav-drawer') ||
-          target.closest('.v-navigation-drawer') ||
-          target.closest('.nav-cyber-list') ||
-          target.closest('.cyber-brand-header') ||
-          target.closest('.cyber-nav-footer') ||
-          target.closest('.nav-cyber-item') ||
-          target.closest('.ai-glowing-nav-card') ||
-          target.closest('.cyber-group-block') ||
-          target.closest('.systembar-nav-toggle-btn')
-        ) {
-          return;
-        }
-      }
-
-      // 3. Composed path check: covers SVG icons, shadow trees, or elements detached during interaction
-      const path = event.composedPath ? event.composedPath() : [];
-      const isInsideDrawer = path.some(node => {
-        if (!node || !(node instanceof Element)) return false;
-        return (
-          node === drawerEl ||
-          node === this.$el ||
-          node.classList.contains('futuristic-nav-drawer') ||
-          node.classList.contains('v-navigation-drawer') ||
-          node.classList.contains('nav-cyber-list') ||
-          node.classList.contains('cyber-brand-header') ||
-          node.classList.contains('cyber-nav-footer') ||
-          node.classList.contains('nav-cyber-item') ||
-          node.classList.contains('ai-glowing-nav-card') ||
-          node.classList.contains('cyber-group-block') ||
-          node.classList.contains('cyber-section-header')
-        );
-      });
-      if (isInsideDrawer) return;
-
-      // 4. Check if click was inside any active popovers, dialogs, or menus
-      const isInsidePopover = path.some(node => {
-        if (!node || !(node instanceof Element)) return false;
-        return (
-          node.classList.contains('cyber-rail-popover') ||
-          node.classList.contains('group-popover-card') ||
-          node.classList.contains('user-popover-card') ||
-          node.classList.contains('leaf-popover-card') ||
-          node.classList.contains('ai-popover-card') ||
-          node.classList.contains('v-overlay') ||
-          node.classList.contains('v-menu') ||
-          node.classList.contains('v-overlay-container') ||
-          node.classList.contains('systembar-nav-toggle-btn')
-        );
-      });
-      if (isInsidePopover) return;
-
-      // Outside click confirmed: collapse the drawer into rail mode
-      // Notice: persistedExpandedGroups is NEVER reset or modified!
-      this.main.sidebar_mini = true;
-    },
-
-    handleBrandClick() {
-      if (this.main.sidebar_mini) {
-        this.main.sidebar_mini = false;
-      } else {
-        this.$router.push({ name: 'index' });
-      }
-    },
-
-    handleDrawerClick() {
-      if (this.main.sidebar_mini) {
-        this.main.sidebar_mini = false;
-      }
-    },
-
-    handleNavListClick() {
-      if (this.main.sidebar_mini) {
-        this.main.sidebar_mini = false;
-      }
-    },
-
-    handleRailGroupClick(groupId) {
-      if (this.main.sidebar_mini) {
-        this.main.sidebar_mini = false;
-        this.persistedExpandedGroups[groupId] = true;
-      } else {
-        this.toggleGroup(groupId);
-      }
-    },
-
-    handleRailLeafClick(url) {
-      if (this.main.sidebar_mini) {
-        this.main.sidebar_mini = false;
-      }
-      if (url) {
-        this.navigateTo(url);
-      }
-    },
-
-    handleRailAiClick(url) {
-      if (this.main.sidebar_mini) {
-        this.main.sidebar_mini = false;
-      }
-      if (url) {
-        this.navigateTo(url);
-      }
-    },
-
-    handleRailSubItemClick(url) {
-      if (this.main.sidebar_mini) {
-        this.main.sidebar_mini = false;
-      }
-      if (url) {
-        this.navigateTo(url);
-      }
-    },
-
     navigateTo(routeName) {
-      this.userMenuOpen = false;
       if (routeName) {
         this.$router.push({ name: routeName }).catch(() => {});
       }
     },
 
-    onPopoverChildClick(groupId, routeName) {
-      if (this.groupPopovers[groupId]) {
-        this.groupPopovers[groupId] = false;
-      }
-      this.navigateTo(routeName);
-    },
-
     async logout() {
-      this.userMenuOpen = false;
       this.auth.user = null;
       this.auth.token = null;
       localStorage.removeItem('token');
@@ -1420,1050 +1348,881 @@ export default {
 </script>
 
 <style scoped>
-/* ============================================================
-   FUTURISTIC NAVIGATION DRAWER - CYBER ARCHITECTURE
-   ============================================================ */
-
-.futuristic-nav-drawer {
-  border: none !important;
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+/* =========================================================================
+ * PRO NAVIGATION DRAWER (Engineered for Instant 60fps GPU Transitions)
+ * ========================================================================= */
+.pro-nav-drawer {
   user-select: none;
   z-index: 1001 !important;
+  will-change: width;
 }
 
-/* ============================================================
-   TINY Y-SCROLLBAR (PRACTICAL, OPACITY 0.5, ZERO FLECHES)
-   ============================================================ */
-
-/* 1. Standards for Firefox & modern engines */
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content),
-.futuristic-nav-drawer,
-.popover-children-scroll {
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(208, 211, 218, 0.29) transparent !important;
-}
-
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content):hover,
-.futuristic-nav-drawer:hover,
-.popover-children-scroll:hover {
-  scrollbar-color: rgba(208, 211, 218, 0.65) transparent !important;
-}
-
-/* 2. WebKit / Chromium (Chrome, Edge, Safari, Opera) */
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar,
-.futuristic-nav-drawer::-webkit-scrollbar,
-.popover-children-scroll::-webkit-scrollbar {
-  width: 4.5px !important;
-  height: 4.5px !important;
-}
-
-/* Remove top and bottom arrow buttons ("fleches") completely */
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar-button,
-.futuristic-nav-drawer::-webkit-scrollbar-button,
-.popover-children-scroll::-webkit-scrollbar-button {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* Fully transparent track */
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar-track,
-.futuristic-nav-drawer::-webkit-scrollbar-track,
-.popover-children-scroll::-webkit-scrollbar-track {
-  background: transparent !important;
-  margin: 4px 0 !important;
-}
-
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar-corner,
-.futuristic-nav-drawer::-webkit-scrollbar-corner,
-.popover-children-scroll::-webkit-scrollbar-corner {
-  background: transparent !important;
-}
-
-/* Scrollbar Thumb: Unactive = rgba(208, 211, 218, 0.29) */
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb,
-.futuristic-nav-drawer::-webkit-scrollbar-thumb,
-.popover-children-scroll::-webkit-scrollbar-thumb {
-  background: rgba(208, 211, 218, 0.29) !important;
-  border-radius: 999px !important;
-  transition: background 0.2s ease !important;
-}
-
-/* Scrollbar Thumb: Active = rgba(208, 211, 218, 0.65) */
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content):hover::-webkit-scrollbar-thumb,
-.futuristic-nav-drawer:hover::-webkit-scrollbar-thumb,
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb:hover,
-.futuristic-nav-drawer::-webkit-scrollbar-thumb:hover,
-.futuristic-nav-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb:active,
-.futuristic-nav-drawer::-webkit-scrollbar-thumb:active,
-.popover-children-scroll:hover::-webkit-scrollbar-thumb,
-.popover-children-scroll::-webkit-scrollbar-thumb:hover,
-.popover-children-scroll::-webkit-scrollbar-thumb:active {
-  background: rgba(208, 211, 218, 0.65) !important;
-}
-
-/* ── Dark Cyber Theme ── */
-.cyber-dark-theme {
-  background: rgba(13, 17, 23, 0.94) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+/* ── Dark Theme Surfaces ── */
+.drawer-theme-dark {
+  background: #0B0F19 !important;
   border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.45);
+  color: #F8FAFC !important;
 }
 
-/* ── Light Cyber Theme ── */
-.cyber-light-theme {
-  background: rgba(255, 255, 255, 0.92) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border-right: 1px solid rgba(0, 0, 0, 0.07) !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04);
+/* ── Light Theme Surfaces ── */
+.drawer-theme-light {
+  background: #FFFFFF !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0F172A !important;
 }
 
-/* ── 1. Brand Header ── */
-.cyber-brand-header {
-  padding: 16px 14px 12px 14px;
-  transition: all 0.25s ease;
+/* =========================================================================
+ * 1. HEADER & BRAND
+ * ========================================================================= */
+.pro-header-area {
+  padding: 14px 12px 10px;
+  position: relative;
 }
 
-.brand-rail {
-  padding: 14px 10px 10px 10px;
-  display: flex;
-  justify-content: center;
-}
-
-.brand-clickable-container {
+.pro-brand-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  cursor: pointer;
+  gap: 10px;
   padding: 4px;
-  border-radius: 14px;
-  transition: background 0.2s ease, transform 0.2s ease;
+  border-radius: 12px;
+  transition: background-color 0.15s ease;
+}
+.pro-brand-row:hover {
+  background-color: rgba(66, 165, 245, 0.06);
 }
 
-.brand-clickable-container:hover {
-  background: rgba(66, 165, 245, 0.08);
-}
-
-.brand-avatar-halo-wrap {
+.pro-brand-orb-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: rgba(66, 165, 245, 0.1);
+  border: 1px solid rgba(66, 165, 245, 0.22);
 }
 
-.brand-avatar-glow-ring {
+.pro-brand-logo-img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.pro-brand-status-dot {
   position: absolute;
-  inset: -2px;
+  bottom: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: conic-gradient(from 180deg at 50% 50%, rgba(0, 229, 255, 0.5), rgba(66, 165, 245, 0.5), rgba(124, 77, 255, 0.5), rgba(0, 229, 255, 0.5));
-  opacity: 0.35;
-  filter: blur(5px);
-  animation: cyber-spin 9s linear infinite;
-  pointer-events: none;
+  border: 1.5px solid #0B0F19;
 }
-
-@keyframes cyber-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.status-connected {
+  background: #00E676;
+  box-shadow: 0 0 6px rgba(0, 230, 118, 0.6);
 }
-
-.brand-avatar-orb,
-.brand-avatar-orb.v-avatar {
-  position: relative;
-  z-index: 2;
-  border: none !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-  overflow: visible !important;
-}
-
-.brand-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  filter: drop-shadow(0 2px 8px rgba(66, 165, 245, 0.45));
-  transition: transform 0.25s ease, filter 0.25s ease;
-  transform: scale(1.18);
-  display: block;
-}
-
-.brand-clickable-container:hover .brand-avatar-img {
-  transform: scale(1.26);
-  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.75));
-}
-
-.brand-online-orb-dot {
-  position: absolute;
-  bottom: 0;
-  right: -1px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: 1px solid #5cb379 !important;
-  z-index: 3;
-}
-
-.brand-online-orb-dot.status-green {
-  border: 1px solid #5cb379 !important;
-}
-
-.status-green {
-  background-color: #00E676;
-  box-shadow: 0 0 8px #00E676;
-}
-
 .status-cut {
-  background-color: #FF5252;
-  box-shadow: 0 0 8px #FF5252;
-  animation: pulse-red 1.4s infinite;
+  background: #FF5252;
 }
 
-@keyframes pulse-red {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.15); }
-}
-
-.brand-details-block {
+.pro-brand-text-block {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-width: 0;
+  white-space: nowrap;
+  transition: opacity 0.14s ease, transform 0.14s ease;
 }
 
-.brand-title-row {
+.pro-brand-name-line {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-
-.brand-name-glitch {
-  font-size: 1.15rem;
+.pro-brand-title {
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  background: linear-gradient(135deg, #42A5F5 0%, #00E5FF 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+}
+.drawer-theme-dark .pro-brand-title { color: #FFFFFF; }
+.drawer-theme-light .pro-brand-title { color: #0F172A; }
+
+.pro-brand-edition-chip {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 6px;
+  letter-spacing: 0.4px;
+  background: linear-gradient(135deg, #1565C0 0%, #42A5F5 100%);
+  color: #FFFFFF;
 }
 
-.cyber-badge-pill {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(66, 165, 245, 0.18);
-  color: #42A5F5;
-  border: 1px solid rgba(66, 165, 245, 0.35);
-  letter-spacing: 0.8px;
-}
-
-.brand-sub-row {
+.pro-brand-meta-line {
   display: flex;
   align-items: center;
   gap: 5px;
   margin-top: 1px;
 }
-
-.brand-live-pulse-dot {
-  width: 6px;
-  height: 6px;
+.pro-meta-pulse-dot {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
 }
+.pulse-live { background: #00E676; box-shadow: 0 0 4px #00E676; }
+.pulse-cut { background: #FF5252; }
 
-.pulse-live {
-  background-color: #00E676;
-  box-shadow: 0 0 6px #00E676;
-}
-
-.pulse-severed {
-  background-color: #FF5252;
-  box-shadow: 0 0 6px #FF5252;
-}
-
-.brand-live-caption {
-  font-size: 0.72rem;
-  opacity: 0.7;
+.pro-meta-label {
+  font-size: 11px;
+  opacity: 0.65;
   font-weight: 500;
-  letter-spacing: 0.2px;
 }
 
-/* ── 2. Search Field ── */
-.cyber-search-wrapper {
-  transition: all 0.2s ease;
-}
-
-.nav-cyber-search-field :deep(.v-field) {
-  border-radius: 12px !important;
-  font-size: 0.82rem;
-  background: rgba(66, 165, 245, 0.04) !important;
-  transition: all 0.2s ease;
-}
-
-.nav-cyber-search-field :deep(.v-field:hover) {
-  background: rgba(66, 165, 245, 0.08) !important;
-}
-
-.nav-cyber-search-field :deep(.v-field--focused) {
-  box-shadow: 0 0 12px rgba(66, 165, 245, 0.25) !important;
-}
-
-.cyber-header-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(66, 165, 245, 0.25), transparent);
-}
-
-/* ── 3. Navigation List ── */
-.nav-cyber-list {
-  padding: 4px 8px 16px 8px !important;
-  background: transparent !important;
-}
-
-.drawer-is-rail .nav-cyber-list {
-  padding: 4px 4px 16px 4px !important;
+.pro-collapse-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
   cursor: pointer;
-}
-
-.cyber-section-header {
-  padding: 8px 10px 4px 10px;
-}
-
-.cyber-section-title {
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.9px;
+  color: inherit;
   opacity: 0.55;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.pro-collapse-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.drawer-theme-light .pro-collapse-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06);
 }
 
-.section-rail {
-  padding: 4px 0;
+/* =========================================================================
+ * 2. SEARCH AREA
+ * ========================================================================= */
+.pro-search-area {
+  padding: 0 12px 6px;
+}
+.pro-search-input-wrap {
+  width: 100%;
+}
+.pro-search-text-field :deep(.v-field) {
+  border-radius: 10px !important;
+  font-size: 12.5px !important;
+}
+
+.pro-rail-search-box {
   display: flex;
   justify-content: center;
 }
-
-.rail-micro-divider {
-  width: 28px;
-  height: 1px;
-  margin: 6px auto;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-}
-
-/* ── Cyber Nav Items ── */
-.nav-cyber-item {
-  display: flex;
-  align-items: center;
-  border-radius: 12px !important;
-  min-height: 42px !important;
-  padding: 0 10px;
-  margin-bottom: 3px;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  border: 1px solid transparent !important;
-}
-
-.nav-cyber-item:hover {
-  background: var(--accent-bg-hover, rgba(66, 165, 245, 0.08)) !important;
-  border-color: rgba(66, 165, 245, 0.15) !important;
-  transform: translateX(2px);
-}
-
-.nav-cyber-item.route-active {
-  background: var(--accent-bg-active, rgba(66, 165, 245, 0.15)) !important;
-  border-color: var(--accent-color, #42A5F5) !important;
-  box-shadow: 0 2px 14px var(--accent-glow, rgba(66, 165, 245, 0.2)) !important;
-}
-
-.cyber-icon-pill {
-  width: 34px;
-  height: 34px;
+.pro-rail-search-btn {
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 10px;
-  transition: all 0.22s ease;
+  background: transparent;
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.75;
+  transition: all 0.15s ease;
+}
+.pro-rail-search-btn:hover {
+  opacity: 1;
+  background: rgba(66, 165, 245, 0.1);
+  border-color: #42A5F5;
+  color: #42A5F5;
+}
+
+/* Divider */
+.pro-nav-divider {
+  height: 1px;
+  background: rgba(var(--v-border-color), 0.08);
+}
+
+/* =========================================================================
+ * 3. NAVIGATION LIST (Scroll Area)
+ * ========================================================================= */
+.pro-nav-scroll-area {
+  padding: 4px 8px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100% - 150px);
+}
+.pro-nav-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+.pro-nav-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+.drawer-theme-light .pro-nav-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.pro-section-group {
+  margin-bottom: 8px;
+}
+
+.pro-section-header {
+  padding: 6px 8px 4px;
+  display: flex;
+  align-items: center;
+}
+.pro-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.55;
+  white-space: nowrap;
+  transition: opacity 0.12s ease;
+}
+.pro-rail-micro-separator {
+  display: none;
+  width: 24px;
+  height: 1px;
+  margin: 6px auto;
+  background: rgba(var(--v-border-color), 0.15);
+}
+
+.pro-section-items-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Nav Item Root (Used by Leaf & Group Header) */
+.pro-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 38px;
+  border-radius: 10px;
+  padding: 0 8px;
+  gap: 10px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  overflow: hidden;
+}
+
+.pro-item-active-bar {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: scaleY(0.4);
+}
+.pro-nav-item.is-active .pro-item-active-bar {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.pro-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.pro-nav-item:hover .pro-icon-box {
+  transform: scale(1.05);
+}
+
+.pro-item-label-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.pro-item-title {
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: 0.1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pro-group-count-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+
+.pro-group-chevron {
+  opacity: 0.45;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+}
+.chevron-rotated {
+  transform: rotate(180deg);
+  opacity: 0.85;
+}
+
+/* Hover & Active States (Dark Theme) */
+.drawer-theme-dark .pro-nav-item .pro-item-title {
+  color: #F1F5F9;
+}
+.drawer-theme-dark .pro-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.drawer-theme-dark .pro-nav-item:hover .pro-item-title {
+  color: #FFFFFF;
+}
+.drawer-theme-dark .pro-nav-item.is-active {
+  background-color: var(--accent-bg-active, rgba(66, 165, 245, 0.14));
+}
+.drawer-theme-dark .pro-nav-item.is-active .pro-item-title {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+/* Hover & Active States (Light Theme) */
+.drawer-theme-light .pro-nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+.drawer-theme-light .pro-nav-item:hover .pro-item-title {
+  color: #0F172A;
+}
+.drawer-theme-light .pro-nav-item.is-active {
+  background-color: var(--accent-bg-active, rgba(66, 165, 245, 0.12));
+}
+.drawer-theme-light .pro-nav-item.is-active .pro-item-title {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+/* ── 3A. AI Prompt Special Item ── */
+.pro-ai-card {
+  border: 1px solid rgba(66, 165, 245, 0.35);
+  background: linear-gradient(135deg, rgba(21, 101, 192, 0.15) 0%, rgba(66, 165, 245, 0.08) 100%);
+  margin: 2px 0 4px;
+}
+.drawer-theme-dark .pro-ai-card:hover {
+  border-color: rgba(66, 165, 245, 0.65);
+  box-shadow: 0 0 16px rgba(66, 165, 245, 0.2);
+}
+.drawer-theme-light .pro-ai-card {
+  background: linear-gradient(135deg, rgba(21, 101, 192, 0.08) 0%, rgba(66, 165, 245, 0.04) 100%);
+  border-color: rgba(66, 165, 245, 0.3);
+}
+.pro-ai-icon-box {
+  background: rgba(66, 165, 245, 0.2) !important;
+}
+.pro-ai-gradient-title {
+  font-weight: 700;
+  background: linear-gradient(135deg, #42A5F5 0%, #00E5FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.drawer-theme-light .pro-ai-gradient-title {
+  background: linear-gradient(135deg, #1565C0 0%, #0288D1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.pro-ai-sparkle-pill {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #00E5FF, #42A5F5);
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+/* ── 3C. Sub-items Accordion (Pure 60fps CSS Grid) ── */
+.pro-subnav-accordion {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+.pro-subnav-accordion.accordion-expanded {
+  grid-template-rows: 1fr;
+}
+.pro-subnav-inner {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0 4px 18px;
+}
+
+.pro-subnav-row {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border-radius: 8px;
+  padding: 0 8px;
+  gap: 8px;
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+.pro-subnav-tree-line {
+  position: absolute;
+  left: -8px;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: rgba(var(--v-border-color), 0.12);
+}
+.pro-subnav-icon-pill {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pro-subnav-title {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+.drawer-theme-dark .pro-subnav-row .pro-subnav-title {
+  color: #CBD5E1;
+}
+.drawer-theme-dark .pro-subnav-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.drawer-theme-dark .pro-subnav-row:hover .pro-subnav-title {
+  color: #FFFFFF;
+}
+.drawer-theme-dark .pro-subnav-row.is-active {
+  background-color: var(--child-bg-active, rgba(66, 165, 245, 0.12));
+}
+.drawer-theme-dark .pro-subnav-row.is-active .pro-subnav-title {
+  color: var(--child-color, #42A5F5);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.drawer-theme-light .pro-subnav-row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+.drawer-theme-light .pro-subnav-row.is-active {
+  background-color: var(--child-bg-active, rgba(66, 165, 245, 0.12));
+}
+.drawer-theme-light .pro-subnav-row.is-active .pro-subnav-title {
+  color: var(--child-color, #1565C0);
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* =========================================================================
+ * 4. USER PROFILE & FOOTER
+ * ========================================================================= */
+.pro-footer-area {
+  padding: 4px 8px 10px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.pro-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  transition: background-color 0.15s ease;
+}
+.pro-user-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.drawer-theme-light .pro-user-row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.pro-user-avatar {
+  background: linear-gradient(135deg, #1565C0 0%, #42A5F5 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800;
+  font-size: 11px;
   flex-shrink: 0;
 }
 
-.nav-item-label {
-  font-size: 0.85rem;
+.pro-user-info-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  white-space: nowrap;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.pro-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.pro-user-role {
+  font-size: 10px;
+  opacity: 0.6;
   font-weight: 600;
-  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
-.nav-cyber-parent {
-  cursor: pointer;
+.pro-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
-
-.group-count-chip {
-  font-size: 0.65rem;
-  height: 18px;
-  padding: 0 5px;
-}
-
-.group-chevron-icon {
-  margin-left: auto;
-  opacity: 0.7;
-  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.chevron-rotated {
-  transform: rotate(180deg);
-}
-
-.nav-group-children-wrap {
-  padding-left: 6px;
-}
-
-/* ── Sub-Nav Children in Expanded Mode ── */
-.nav-child-subitem {
-  padding-left: 14px !important;
-  min-height: 36px !important;
-}
-
-.cyber-child-icon-box {
+.pro-footer-action-btn {
   width: 28px;
   height: 28px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 8px;
-  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+.pro-footer-action-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.08);
+  transform: scale(1.08);
+}
+.drawer-theme-light .pro-footer-action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+.logout-action-btn:hover {
+  color: #EF5350 !important;
 }
 
-.nav-child-label {
-  font-size: 0.82rem;
-  font-weight: 500;
-  opacity: 0.9;
-}
-
-/* ── 3A. AI PROMPT GLOWING CARD ── */
-.ai-glowing-nav-card {
-  position: relative;
-  border-radius: 14px;
-  padding: 1.5px;
-  background: linear-gradient(135deg, #00E5FF, #42A5F5, #7C4DFF, #FF4081, #00E5FF);
-  background-size: 300% 300%;
-  animation: ai-border-glow 6s ease infinite;
-  box-shadow: 0 0 16px rgba(66, 165, 245, 0.35), 0 0 28px rgba(124, 77, 255, 0.2);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes ai-border-glow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.ai-item-inner {
-  background: rgba(15, 23, 42, 0.95) !important;
-  border-radius: 12.5px !important;
-  border: none !important;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.cyber-light-theme .ai-item-inner {
-  background: rgba(255, 255, 255, 0.96) !important;
-}
-
-.ai-gradient-text {
-  background: linear-gradient(135deg, #00E5FF 0%, #42A5F5 50%, #7C4DFF 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.ai-spark-chip {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(124, 77, 255, 0.25));
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.4);
-  display: flex;
-  align-items: center;
-}
-
-/* AI Rail Mode - Glowing color strictly in border around rail button */
-.ai-glowing-nav-card.ai-rail-mode {
-  width: 50px !important;
-  height: 44px !important;
-  margin: 0 auto 4px auto !important;
-  border-radius: 12px !important;
-  padding: 1.5px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-sizing: border-box !important;
-}
-
-.ai-glowing-nav-card.ai-rail-mode .ai-rail-activator {
-  position: relative !important;
-  width: 100% !important;
-  height: 100% !important;
+/* =========================================================================
+ * RAIL MODE RULES (Zero-Jank GPU Transforms)
+ * ========================================================================= */
+.drawer-is-rail .pro-brand-text-block,
+.drawer-is-rail .pro-collapse-btn,
+.drawer-is-rail .pro-item-label-wrap,
+.drawer-is-rail .pro-subnav-accordion,
+.drawer-is-rail .pro-user-info-wrap,
+.drawer-is-rail .pro-footer-actions,
+.drawer-is-rail .pro-section-title {
+  opacity: 0 !important;
+  transform: translateX(-6px) !important;
+  pointer-events: none !important;
+  max-width: 0 !important;
+  overflow: hidden !important;
   margin: 0 !important;
-  border-radius: 10.5px !important;
-  background: rgba(15, 23, 42, 0.95) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-sizing: border-box !important;
-  transition: background 0.2s ease, transform 0.2s ease;
+  padding: 0 !important;
 }
 
-.cyber-light-theme .ai-glowing-nav-card.ai-rail-mode .ai-rail-activator {
-  background: rgba(255, 255, 255, 0.96) !important;
-}
-
-.ai-glowing-nav-card.ai-rail-mode .ai-rail-activator:hover {
-  background: rgba(24, 38, 64, 0.96) !important;
-}
-
-.cyber-light-theme .ai-glowing-nav-card.ai-rail-mode .ai-rail-activator:hover {
-  background: rgba(243, 246, 251, 0.98) !important;
-}
-
-.ai-glowing-nav-card.ai-rail-mode:hover {
-  transform: scale(1.04);
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.45), 0 0 32px rgba(124, 77, 255, 0.3);
-}
-
-/* ── Rail Mode Items Architecture ── */
-.rail-icon-wrapper {
-  position: relative;
-  width: 50px;
-  height: 44px;
-  margin: 0 auto 4px auto;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
+.drawer-is-rail .pro-section-header {
   justify-content: center;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 4px 0;
+}
+.drawer-is-rail .pro-rail-micro-separator {
+  display: block !important;
 }
 
-.rail-icon-wrapper .cyber-icon-pill {
-  margin-right: 0 !important;
+.drawer-is-rail .pro-nav-item {
+  justify-content: center;
+  padding: 0;
+}
+.drawer-is-rail .pro-user-row {
+  justify-content: center;
+  padding: 6px 0;
+}
+.drawer-is-rail .pro-brand-row {
+  justify-content: center;
+  padding: 4px 0;
 }
 
-.rail-icon-wrapper:hover {
-  background: rgba(66, 165, 245, 0.12);
-  transform: scale(1.04);
-}
-
-.rail-icon-wrapper.route-active {
-  background: rgba(66, 165, 245, 0.18);
-  box-shadow: 0 0 16px rgba(66, 165, 245, 0.35);
-}
-
-.rail-active-glow-bar {
-  position: absolute;
-  left: 1px;
-  top: 10px;
-  bottom: 10px;
-  width: 3.5px;
-  border-radius: 999px;
-  box-shadow: 0 0 8px currentColor;
-}
-
-.rail-group-expanded-badge {
-  position: absolute;
-  top: 4px;
-  right: 5px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  box-shadow: 0 0 6px currentColor;
-}
-
-.ai-rail-spark-dot {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #00E5FF;
-  box-shadow: 0 0 8px #00E5FF;
-  animation: pulse-ai 1.5s infinite;
-}
-
-@keyframes pulse-ai {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.6; }
-}
-
-/* ── Rail Group Container with Mini Subnavs Column ── */
-.rail-group-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.rail-group-expanded {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 14px;
-  padding: 2px 0 6px 0;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.rail-mini-subnavs-col {
+/* ── Rail Subnavs Column (Mini icons under expanded group in rail mode) ── */
+.pro-rail-subnavs-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-top: 2px;
-}
-
-.rail-mini-sub-item {
-  width: 36px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.rail-mini-sub-icon-box {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.rail-mini-sub-item:hover .rail-mini-sub-icon-box {
-  transform: scale(1.12);
-}
-
-.mini-sub-active .rail-mini-sub-icon-box {
-  border-color: currentColor !important;
-  box-shadow: 0 0 10px rgba(66, 165, 245, 0.4);
-}
-
-/* ── Interactive Popovers in Rail Mode ── */
-.cyber-rail-popover {
-  border-radius: 16px !important;
-  overflow: hidden;
-  min-width: 250px;
-  max-width: 310px;
-  box-shadow: 0 16px 48px -6px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.popover-dark {
-  background: rgba(15, 23, 42, 0.95) !important;
-  backdrop-filter: blur(28px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
-  border: 1px solid rgba(66, 165, 245, 0.24) !important;
-  color: #F8FAFC !important;
-}
-
-.popover-light {
-  background: rgba(255, 255, 255, 0.96) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(0, 0, 0, 0.09) !important;
-  color: #0F172A !important;
-  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
-}
-
-.popover-hero-header {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  color: white;
-  position: relative;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-}
-
-.popover-hero-icon-box {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  backdrop-filter: blur(4px);
-}
-
-.popover-hero-title {
-  font-size: 0.88rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-
-.popover-count-chip {
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-}
-
-/* Sub-Nav Scroll List with Clean Margins Between Elements */
-.popover-children-scroll {
-  max-height: 320px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 8px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px; /* Clean gap/margin between element rows! */
-}
-
-.popover-child-row {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  margin: 1px 2px; /* Margin around each item */
-  border-radius: 10px;
-  gap: 11px;
-  border: 1px solid transparent;
+  padding: 6px 0;
+  margin: 4px 8px 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
+}
+.drawer-theme-light .pro-rail-subnavs-col {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
-.popover-child-row:hover {
-  background: rgba(66, 165, 245, 0.12) !important;
-  border-color: rgba(66, 165, 245, 0.28) !important;
-  transform: translateX(3px);
-}
-
-.popover-child-row.is-child-active {
-  background: rgba(66, 165, 245, 0.18) !important;
-  border-color: rgba(66, 165, 245, 0.45) !important;
-  font-weight: 700;
-  box-shadow: 0 2px 10px rgba(66, 165, 245, 0.25);
-}
-
-.popover-child-icon-box {
-  width: 28px;
-  height: 28px;
+.pro-rail-sub-item {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.popover-child-row:hover .popover-child-icon-box {
-  transform: scale(1.1);
-}
-
-.popover-child-text {
-  font-size: 0.82rem;
-  font-weight: 550;
-  letter-spacing: 0.2px;
-  line-height: 1.3;
-}
-
-.popover-arrow-icon {
-  opacity: 0.25;
-  transform: translateX(-3px);
-  transition: all 0.2s ease;
-}
-
-.popover-child-row:hover .popover-arrow-icon {
-  opacity: 0.9;
-  transform: translateX(1px);
-  color: #42A5F5;
-}
-
-/* ── 4. Footer Architecture ── */
-.cyber-footer-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(66, 165, 245, 0.2), transparent);
-}
-
-.cyber-nav-footer {
-  padding: 4px 6px 12px 6px;
-  transition: all 0.25s ease;
-}
-
-.footer-is-rail {
-  display: flex;
-  justify-content: center;
-}
-
-.expanded-footer-card {
-  border-radius: 14px;
-  background: rgba(66, 165, 245, 0.05);
-  border: 1px solid rgba(66, 165, 245, 0.15);
-  transition: all 0.2s ease;
-}
-
-.expanded-footer-card:hover {
-  background: rgba(66, 165, 245, 0.09);
-}
-
-.footer-avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.footer-avatar-orb {
-  background: linear-gradient(135deg, #1565C0, #42A5F5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.footer-status-dot {
-  position: absolute;
-  bottom: 0;
-  right: -1px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid #5cb379 !important;
-}
-
-.footer-user-name {
-  font-size: 0.84rem;
-  letter-spacing: 0.2px;
-}
-
-.dot-green {
-  background-color: #00E676;
-  box-shadow: 0 0 5px #00E676;
-}
-
-.dot-red {
-  background-color: #FF5252;
-  box-shadow: 0 0 5px #FF5252;
-}
-
-.footer-role-text {
-  font-size: 0.72rem;
-  opacity: 0.7;
-  font-weight: 500;
-}
-
-.footer-btn {
-  border-radius: 10px !important;
-}
-
-/* ── Rail User Avatar & Popover ── */
-.rail-footer-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 4px 0;
-}
-
-.rail-user-avatar-btn {
-  padding: 4px;
-  border-radius: 50%;
-  transition: transform 0.2s ease;
-}
-
-.rail-user-avatar-btn:hover {
-  transform: scale(1.08);
-}
-
-.rail-user-avatar-inner {
-  position: relative;
-}
-
-.rail-avatar-orb {
-  background: linear-gradient(135deg, #1565C0, #42A5F5) !important;
-}
-
-.rail-status-badge-dot {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: 1px solid #5cb379 !important;
-}
-
-.user-popover-banner {
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #0D47A1 0%, #1976D2 50%, #42A5F5 100%);
-  display: flex;
-  align-items: center;
-}
-
-.user-status-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  background: rgba(0, 0, 0, 0.28);
-  color: white;
-  backdrop-filter: blur(4px);
-}
-
-.user-status-orb {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #00E676;
-  box-shadow: 0 0 6px #00E676;
-}
-
-.pill-severed .user-status-orb {
-  background: #FF5252;
-  box-shadow: 0 0 6px #FF5252;
-}
-
-.user-popover-identity {
-  width: 260px;
-  padding: 14px 14px 12px 14px !important;
-}
-
-.popover-avatar {
-  background: linear-gradient(135deg, #1565C0, #42A5F5) !important;
-  box-shadow: 0 2px 10px rgba(66, 165, 245, 0.4);
-}
-
-.user-name-text {
-  font-size: 0.9rem;
-  letter-spacing: 0.2px;
-}
-
-.user-email-text {
-  opacity: 0.7;
-}
-
-.user-role-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  background: rgba(66, 165, 245, 0.14);
-  color: #42A5F5;
-  border: 1px solid rgba(66, 165, 245, 0.28);
-}
-
-.user-popover-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 5px; /* Clean margin between element action buttons! */
-  margin-top: 6px;
-}
-
-.user-popover-action-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 8px 12px;
-  margin: 1px 0; /* Clean vertical spacing */
-  border-radius: 10px;
-  background: transparent;
-  border: 1px solid transparent;
-  font-size: 0.82rem;
-  font-weight: 550;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  color: inherit;
   cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.pro-rail-sub-item:hover {
+  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.drawer-theme-light .pro-rail-sub-item:hover {
+  background-color: rgba(0, 0, 0, 0.06);
 }
 
-.user-popover-action-row:hover {
-  background: rgba(66, 165, 245, 0.12) !important;
-  border-color: rgba(66, 165, 245, 0.28) !important;
-  transform: translateX(3px);
-}
-
-.logout-row:hover {
-  background: rgba(239, 83, 80, 0.14) !important;
-  border-color: rgba(239, 83, 80, 0.35) !important;
-}
-
-.user-action-icon-box {
-  width: 26px;
-  height: 26px;
+.pro-rail-sub-icon-box {
+  width: 28px;
+  height: 28px;
   border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
 }
-
-.action-profile {
-  background: rgba(66, 165, 245, 0.15);
+.pro-rail-sub-item.is-active .pro-rail-sub-icon-box {
+  box-shadow: 0 0 10px rgba(66, 165, 245, 0.45);
 }
+</style>
 
-.action-admin {
-  background: rgba(92, 107, 192, 0.15);
-}
-
-.action-logout {
-  background: rgba(239, 83, 80, 0.15);
-}
-
-.action-arrow {
-  opacity: 0.35;
-  transition: all 0.2s ease;
-}
-
-.user-popover-action-row:hover .action-arrow {
-  opacity: 0.95;
-  transform: translateX(2px);
-}
-
-/* Leaf & AI Popover Details */
-.leaf-popover-card {
-  min-width: 200px !important;
-}
-
-.leaf-popover-card:hover .leaf-arrow {
-  transform: translateX(2px);
-  color: #42A5F5;
-}
-
-.ai-header-gradient {
-  background: linear-gradient(135deg, #1565C0 0%, #1E88E5 50%, #42A5F5 100%) !important;
-}
-
-.popover-ai-pill {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(4px);
-}
-
-/* ── Tooltips ── */
-:deep(.cyber-tooltip-dark) {
-  background: rgba(17, 24, 39, 0.95) !important;
+<style>
+/* =========================================================================
+ * GLOBAL UNSCOPED OVERLAY RULES (Teleported Tooltips & Flyouts)
+ * Sleek, high-contrast, theme-color aware tooltip design system
+ * ========================================================================= */
+.pro-nav-tooltip,
+.v-overlay__content.pro-nav-tooltip,
+.cyber-tooltip-dark,
+.v-overlay__content.cyber-tooltip-dark {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  pointer-events: auto !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #F8FAFC !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 14px 36px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
 }
 
-:deep(.cyber-tooltip-light) {
-  background: rgba(255, 255, 255, 0.96) !important;
-  color: #111827 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+.pro-nav-tooltip--light,
+.v-overlay__content.pro-nav-tooltip--light,
+.v-theme--light .pro-nav-tooltip,
+.pro-nav-tooltip.theme-light,
+.cyber-tooltip-light,
+.v-overlay__content.cyber-tooltip-light {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 14px 36px -4px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
 }
 
-/* ── Animations ── */
-.fade-slide-enter-active, .fade-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+/* ── Single Leaf & Sub-Nav Tooltip Card ── */
+.pro-single-tooltip-card,
+.pro-subnav-tooltip-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 14px !important;
+  min-height: 44px !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
 }
-.fade-slide-enter-from, .fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
+
+.pro-single-tooltip-icon-box {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.pro-tooltip-text-col {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+.pro-tooltip-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+.pro-tooltip-theme-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.15px !important;
+}
+
+.pro-tooltip-parent-tag {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  opacity: 0.9 !important;
+}
+
+.pro-subnav-tooltip-badge {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid transparent !important;
+  margin-left: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── Group Card (Parent Nav with Sub-Navs) ── */
+.pro-group-tooltip-card {
+  padding: 12px 14px !important;
+  min-width: 230px !important;
+  max-width: 300px !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+}
+
+.pro-group-tooltip-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-bottom: 9px !important;
+  border-bottom: 1px solid transparent !important;
+}
+
+.pro-group-tooltip-header-icon-box {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  border: 1px solid !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-title {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.15px !important;
+}
+
+.pro-group-tooltip-subtitle {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  margin-top: 1px !important;
+}
+
+.pro-group-tooltip-badge {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-divider {
+  width: 100% !important;
+  height: 1px !important;
+  border-top-width: 1px !important;
+  border-top-style: solid !important;
+  margin: 6px 0 8px 0 !important;
+}
+
+.pro-group-tooltip-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.pro-group-tooltip-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 7px 10px !important;
+  border-radius: 8px !important;
+  transition: background-color 0.14s ease, transform 0.14s ease !important;
+  text-decoration: none !important;
+}
+.pro-group-tooltip-item:hover {
+  background-color: var(--child-hover-bg, rgba(255, 255, 255, 0.08)) !important;
+  transform: translateX(3px) !important;
+}
+.pro-group-tooltip-item.is-active {
+  background-color: var(--child-active-bg, rgba(255, 255, 255, 0.14)) !important;
+}
+
+.pro-group-tooltip-child-icon {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-child-title {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.1px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex: 1 !important;
+}
+
+.pro-group-tooltip-active-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-arrow {
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
 }
 </style>

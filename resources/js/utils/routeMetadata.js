@@ -152,6 +152,8 @@ export const MODULE_DEFINITIONS = [
       { name: 'chart_management', titleKey: 'chart_management', fallbackTitle: 'Custom Charts', icon: 'mdi-chart-areaspline' },
       { name: 'static_charge_management', titleKey: 'static_charge_management', fallbackTitle: 'Static Charges', icon: 'mdi-cash-lock-open' },
       { name: 'cost_configuration_management', titleKey: 'cost_configuration_management', fallbackTitle: 'Cost Configuration', icon: 'mdi-calculator-variant-outline' },
+      { name: 'client_management', titleKey: 'client_management', fallbackTitle: 'Client Management', icon: 'mdi-account-tie' },
+      { name: 'supplier_management', titleKey: 'supplier_management', fallbackTitle: 'Supplier Management', icon: 'mdi-truck-delivery' },
     ]
   }
 ];

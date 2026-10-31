@@ -189,6 +189,8 @@ export default {
         { routeName: 'chart_management', title: t('chart_management'), category: t('system_administration'), icon: 'mdi-chart-areaspline', color: '#546E7A', perm: 'settings.charts' },
         { routeName: 'static_charge_management', title: t('static_charge_management'), category: t('system_administration'), icon: 'mdi-cash-lock-open', color: '#546E7A', perm: 'settings.static_charges' },
         { routeName: 'cost_configuration_management', title: t('cost_configuration_management'), category: t('system_administration'), icon: 'mdi-calculator-variant-outline', color: '#546E7A', perm: 'settings.charges' },
+        { routeName: 'client_management', title: t('client_management'), category: t('system_administration'), icon: 'mdi-account-tie', color: '#00838F', perm: 'settings.clients' },
+        { routeName: 'supplier_management', title: t('supplier_management'), category: t('system_administration'), icon: 'mdi-truck-delivery', color: '#E65100', perm: 'settings.suppliers' },
       ];
 
       return items.filter(item => {

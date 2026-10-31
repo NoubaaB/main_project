@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { gqlGetCharges } from '@/services/appGraphql.js';
 import { useMain } from '@/stores/Main';
 import { useChargeCategory } from '@/stores/ChargeCategory';
 import { useFishFamily } from '@/stores/FishFamily';
@@ -430,9 +431,16 @@ export default {
       this.loading = true;
       try {
         const ds = this.dateRange[0], de = this.dateRange[1] || this.dateRange[0];
-        const p = { date_start: this.fmtDate(ds), date_end: this.fmtDate(de) };
-        const r = await axios.get('/api/charges/get_charges', { params: p });
-        this.charges = (r.data.charges || []).map(c => this.mapCharge(c));
+        const date_start = this.fmtDate(ds), date_end = this.fmtDate(de);
+        let items = [];
+        try {
+          items = await gqlGetCharges({ date_start, date_end });
+        } catch (gqlErr) {
+          console.warn('[ListCharge] GraphQL fetch failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/charges/get_charges', { params: { date_start, date_end } });
+          items = r.data.charges || [];
+        }
+        this.charges = (items || []).map(c => this.mapCharge(c));
         this._cachedWorkerItems = JSON.parse(JSON.stringify(this.charges));
         this.dispatchWorkerFilter(0);
         // Fetch open issue counts and merge

@@ -440,6 +440,7 @@ export default {
     },
     canSubmit() {
       const c = this.chargeStore.charge;
+      if (this.chargeStore.plafondCheckResult?.is_blocked) return false;
       return !!(c?.date && c?.charge_category_id && c?.details?.length > 0);
     },
     descriptionLength() {

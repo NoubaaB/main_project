@@ -9,6 +9,7 @@ export const useCharge = defineStore("charge", {
         charges: [],
         input_tracking_number: null,
         showAdditionalInfo: false,
+        plafondCheckResult: null,
     }),
     actions: {
         add_charge(categoryId) {

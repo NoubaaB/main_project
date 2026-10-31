@@ -873,6 +873,7 @@
 
 <script>
 import axios from 'axios';
+import { gqlGetUserStatistics } from '@/services/appGraphql.js';
 import VueApexCharts from 'vue3-apexcharts';
 import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
@@ -1415,13 +1416,24 @@ export default {
     async fetchData(isManual = false) {
       this.loading = true;
       try {
-        const { data } = await axios.get('/api/user-statistics', {
-          params: {
+        let statsData = null;
+        try {
+          statsData = await gqlGetUserStatistics({
             date_start: this.dateStart,
             date_end: this.dateEnd,
-          },
-        });
-        this.stats = data;
+          });
+          if (!statsData) throw new Error('GraphQL returned null');
+        } catch (gqlErr) {
+          console.warn('[UserStatistics] GraphQL fetch failed, falling back to REST:', gqlErr);
+          const { data } = await axios.get('/api/user-statistics', {
+            params: {
+              date_start: this.dateStart,
+              date_end: this.dateEnd,
+            },
+          });
+          statsData = data;
+        }
+        this.stats = statsData;
 
         if (isManual) {
           this.triggerSummarySnackbar({

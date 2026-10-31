@@ -59,6 +59,8 @@ class MigrateVillamarToJupiterCommand extends Command
         $this->stepMigrateChargesAndReceptions();
         $this->stepMigrateProductions();
         $this->stepMigrateShippings();
+        $this->stepMigrateTransfers();
+        $this->stepMigrateInventories();
         $this->stepMigrateInvoicesAndSettlements();
         $this->stepSyncWarehouseBalances();
 
@@ -394,9 +396,46 @@ class MigrateVillamarToJupiterCommand extends Command
             $dsc['allow_warehouse'] = 1;
             $dsc['include_in_invoice'] = 1;
             $dsc['created_at'] = now();
-            $dsc['updated_at'] = now();
             DB::table('detail_shipping_categories')->insert($dsc);
         }
+
+        // 8. Warehouse Transfer Categories
+        DB::table('warehouse_transfer_categories')->insertOrIgnore([
+            'id' => 1,
+            'name_fr' => 'Transfert Poisson',
+            'name_en' => 'Fish Transfer',
+            'name_es' => 'Transferencia Pescado',
+            'description' => 'Transfert standard entre entrepôts',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'all',
+            'allow_weight' => 1,
+            'allow_package_type' => 1,
+            'allow_nbr_box' => 1,
+            'allow_warehouse' => 1,
+            'allow_trucks' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 9. Detail Inventory Categories
+        DB::table('detail_inventory_categories')->insertOrIgnore([
+            'id' => 1,
+            'name_fr' => 'Inventaire Poisson',
+            'name_en' => 'Fish Inventory',
+            'name_es' => 'Inventario Pescado',
+            'description' => 'Inventaire physique périodique',
+            'article_type' => 'FishType',
+            'fish_type_filter' => 'all',
+            'allow_weight' => 1,
+            'allow_unit_price' => 1,
+            'allow_price' => 1,
+            'allow_package_type' => 1,
+            'allow_nbr_box' => 1,
+            'allow_warehouse' => 1,
+            'warehouse_operation' => 'stock_in',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->info("Base system initialized.");
     }
@@ -653,6 +692,7 @@ class MigrateVillamarToJupiterCommand extends Command
         $ouvriers = DB::select("SELECT * FROM villamar.ouvriers");
         $seenMatricules = [];
         $teamWorkforceBatch = [];
+        $ouvrierCorporalMap = [];
 
         foreach ($ouvriers as $o) {
             $fullName = trim(($o->name ?? '') . ' ' . ($o->prenom ?? ''));
@@ -676,6 +716,7 @@ class MigrateVillamarToJupiterCommand extends Command
             ]);
 
             if (!empty($o->corporal_id) && $o->corporal_id > 0) {
+                $ouvrierCorporalMap[$o->id] = (int)$o->corporal_id;
                 $teamWorkforceBatch[] = [
                     'team_id' => $o->corporal_id,
                     'workforce_id' => $o->id,
@@ -716,6 +757,10 @@ class MigrateVillamarToJupiterCommand extends Command
                     $dayNum = (int)date('j', strtotime($workDate));
                     $fortnight = ($dayNum <= 15) ? 'Q1' : 'Q2';
                     $secId = !empty($d['section_id']) ? (int)$d['section_id'] : (!empty($p->section_id) ? (int)$p->section_id : null);
+                    $corpId = null;
+                    if (!$secId && isset($ouvrierCorporalMap[$p->ouvrier_id])) {
+                        $corpId = $ouvrierCorporalMap[$p->ouvrier_id];
+                    }
                     $price = isset($d['montant']) ? (float)$d['montant'] : 0.00;
 
                     $activityBatch[] = [
@@ -723,7 +768,7 @@ class MigrateVillamarToJupiterCommand extends Command
                         'date' => $workDate,
                         'fortnight_period' => $fortnight,
                         'section_id' => $secId,
-                        'corporal_id' => null,
+                        'corporal_id' => $corpId,
                         'price' => $price,
                         'is_fixed_price' => 0,
                         'created_at' => $p->created_at ?? now(),
@@ -822,6 +867,10 @@ class MigrateVillamarToJupiterCommand extends Command
                         'weight' => $w,
                         'unit_price' => $p,
                         'total_price' => $tot,
+                        'package_type_id' => null,
+                        'nbr_box' => 0,
+                        'warehouse_id' => 991,
+                        'warehouse_operation' => 'stock_in',
                         'supplier_id' => ($f->provider_id && $f->provider_id > 0 ? $f->provider_id : null),
                         'created_at' => $f->created_at ?? now(),
                         'updated_at' => $f->updated_at ?? now(),
@@ -839,6 +888,10 @@ class MigrateVillamarToJupiterCommand extends Command
                     'weight' => $w,
                     'unit_price' => $w > 0 ? round($p / $w, 2) : 0,
                     'total_price' => $p,
+                    'package_type_id' => null,
+                    'nbr_box' => 0,
+                    'warehouse_id' => 991,
+                    'warehouse_operation' => 'stock_in',
                     'supplier_id' => ($f->provider_id && $f->provider_id > 0 ? $f->provider_id : null),
                     'created_at' => $f->created_at ?? now(),
                     'updated_at' => $f->updated_at ?? now(),
@@ -913,6 +966,9 @@ class MigrateVillamarToJupiterCommand extends Command
                             'unit_price' => $u,
                             'total_price' => $tot,
                             'package_type_id' => $containerId,
+                            'nbr_box' => (float)($it['nbr'] ?? $w),
+                            'warehouse_id' => 993,
+                            'warehouse_operation' => 'stock_in',
                             'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
                             'created_at' => $r->created_at ?? now(),
                             'updated_at' => $r->updated_at ?? now(),
@@ -936,6 +992,10 @@ class MigrateVillamarToJupiterCommand extends Command
                     'weight' => $w,
                     'unit_price' => $u,
                     'total_price' => $tot,
+                    'package_type_id' => null,
+                    'nbr_box' => 0,
+                    'warehouse_id' => 992,
+                    'warehouse_operation' => 'stock_in',
                     'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
                     'created_at' => $r->created_at ?? now(),
                     'updated_at' => $r->updated_at ?? now(),
@@ -955,6 +1015,16 @@ class MigrateVillamarToJupiterCommand extends Command
                         $u = (float)($it['price'] ?? $it['pu'] ?? 0);
                         $tot = (float)($it['total_weight_price'] ?? $it['price'] ?? ($w * $u));
 
+                        $whId = null;
+                        $whOp = null;
+                        if (in_array($shortName, ['congelations', 'congeles'])) {
+                            $whId = !empty($it['chambre_id']) ? (int)$it['chambre_id'] : 13;
+                            $whOp = 'stock_in';
+                        } elseif ($shortName === 'achat_frais') {
+                            $whId = 991;
+                            $whOp = 'stock_in';
+                        }
+
                         $rowDetails[] = [
                             'charge_id' => $chargeId,
                             'detail_charge_category_id' => $detailCatId,
@@ -964,6 +1034,10 @@ class MigrateVillamarToJupiterCommand extends Command
                             'weight' => $w,
                             'unit_price' => $u,
                             'total_price' => $tot,
+                            'package_type_id' => $it['container_id'] ?? null,
+                            'nbr_box' => (float)($it['nbr'] ?? 0),
+                            'warehouse_id' => $whId,
+                            'warehouse_operation' => $whOp,
                             'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
                             'created_at' => $r->created_at ?? now(),
                             'updated_at' => $r->updated_at ?? now(),
@@ -990,6 +1064,22 @@ class MigrateVillamarToJupiterCommand extends Command
                     default => ucfirst($shortName),
                 };
 
+                $whId = null;
+                $whOp = null;
+                if (in_array($shortName, ['congelations', 'congeles'])) {
+                    $whId = 13;
+                    $whOp = 'stock_in';
+                } elseif ($shortName === 'achat_frais') {
+                    $whId = 991;
+                    $whOp = 'stock_in';
+                } elseif ($shortName === 'emballages') {
+                    $whId = 993;
+                    $whOp = 'stock_in';
+                } elseif ($shortName === 'guanos') {
+                    $whId = 992;
+                    $whOp = 'stock_in';
+                }
+
                 $u = $headerWeight > 0 ? round($headerPrice / $headerWeight, 2) : 0;
                 $rowDetails[] = [
                     'charge_id' => $chargeId,
@@ -1000,6 +1090,10 @@ class MigrateVillamarToJupiterCommand extends Command
                     'weight' => $headerWeight,
                     'unit_price' => $u,
                     'total_price' => $headerPrice,
+                    'package_type_id' => null,
+                    'nbr_box' => 0,
+                    'warehouse_id' => $whId,
+                    'warehouse_operation' => $whOp,
                     'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
                     'created_at' => $r->created_at ?? now(),
                     'updated_at' => $r->updated_at ?? now(),
@@ -1402,6 +1496,8 @@ class MigrateVillamarToJupiterCommand extends Command
                     'weight' => $w,
                     'unit_price' => $u,
                     'total_price' => $p,
+                    'package_type_id' => null,
+                    'nbr_box' => 0,
                     'warehouse_id' => 13,
                     'warehouse_operation' => 'stock_out',
                     'created_at' => $v->created_at ?? now(),
@@ -1552,6 +1648,196 @@ class MigrateVillamarToJupiterCommand extends Command
         if (!empty($detailEcBatch)) DB::table('detail_shippings')->insertOrIgnore($detailEcBatch);
 
         $this->info("Completed all shippings migration.");
+    }
+
+    protected function stepMigrateTransfers()
+    {
+        $this->warn("\n[8.1/9] Migrating Warehouse Transfers (stock_movement_logs)...");
+
+        $smlRows = DB::select("SELECT * FROM villamar.stock_movement_logs WHERE deleted_at IS NULL");
+        $transfersBatch = [];
+        $detailTransfersBatch = [];
+        $transferTruckBatch = [];
+
+        foreach ($smlRows as $sml) {
+            $trackingBons = [];
+            if (!empty($sml->num_bon_transfers)) {
+                $arr = json_decode($sml->num_bon_transfers, true);
+                if (is_array($arr)) {
+                    foreach ($arr as $b) {
+                        if (!empty($b)) $trackingBons[] = trim((string)$b);
+                    }
+                }
+            }
+
+            $plates = [];
+            if (!empty($sml->matricules)) {
+                $arr = json_decode($sml->matricules, true);
+                if (is_array($arr)) {
+                    foreach ($arr as $p) {
+                        if (!empty($p) && $p !== 'N/A' && $p !== 'null') $plates[] = trim((string)$p);
+                    }
+                }
+            }
+
+            $firstTruckId = null;
+            foreach ($plates as $pl) {
+                if (!isset($this->trucksMap[$pl])) {
+                    $newId = DB::table('trucks')->insertGetId([
+                        'registration_plate' => $pl,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $this->trucksMap[$pl] = $newId;
+                }
+                $tId = $this->trucksMap[$pl];
+                if (!$firstTruckId) $firstTruckId = $tId;
+                $transferTruckBatch[] = [
+                    'warehouse_transfer_id' => $sml->id,
+                    'truck_id' => $tId,
+                ];
+            }
+
+            $items = json_decode($sml->types_production ?? '[]', true) ?: [];
+            $totalW = 0;
+
+            foreach ($items as $it) {
+                $w = (float)($it['weight'] ?? 0);
+                $totalW += $w;
+                $tId = !empty($it['type_id']) ? (int)$it['type_id'] : null;
+                $cId = !empty($it['container_id']) ? (int)$it['container_id'] : null;
+                $nbr = (float)($it['nbr'] ?? 0);
+                $fromWh = !empty($sml->from_chambre_id) ? (int)$sml->from_chambre_id : 13;
+                $toWh = !empty($sml->to_chambre_id) ? (int)$sml->to_chambre_id : 14;
+
+                $detailTransfersBatch[] = [
+                    'warehouse_transfer_id' => $sml->id,
+                    'warehouse_transfer_category_id' => 1,
+                    'stockable_type' => 'App\\Models\\FishType',
+                    'stockable_id' => $tId,
+                    'weight' => $w,
+                    'source_warehouse_id' => $fromWh,
+                    'source_tracking_number' => $it['num_bon_reception'] ?? null,
+                    'destination_warehouse_id' => $toWh,
+                    'package_type_id' => $cId,
+                    'nbr_box' => $nbr,
+                    'truck_id' => $firstTruckId,
+                    'created_at' => $sml->created_at ?? now(),
+                    'updated_at' => $sml->updated_at ?? now(),
+                ];
+            }
+
+            $transfersBatch[] = [
+                'id' => $sml->id,
+                'date' => $sml->date ?? '2021-01-01',
+                'total_weight' => $totalW,
+                'transfer_tracking_number' => json_encode($trackingBons),
+                'description' => "Transfert de chambre {$sml->from_chambre_id} vers chambre {$sml->to_chambre_id}",
+                'created_at' => $sml->created_at ?? now(),
+                'updated_at' => $sml->updated_at ?? now(),
+            ];
+
+            if (count($transfersBatch) >= 1000) {
+                DB::table('warehouse_transfers')->insertOrIgnore($transfersBatch);
+                $transfersBatch = [];
+            }
+            if (count($detailTransfersBatch) >= 2000) {
+                DB::table('detail_warehouse_transfers')->insertOrIgnore($detailTransfersBatch);
+                $detailTransfersBatch = [];
+            }
+            if (count($transferTruckBatch) >= 2000) {
+                DB::table('warehouse_transfer_truck')->insertOrIgnore($transferTruckBatch);
+                $transferTruckBatch = [];
+            }
+        }
+
+        if (!empty($transfersBatch)) DB::table('warehouse_transfers')->insertOrIgnore($transfersBatch);
+        if (!empty($detailTransfersBatch)) DB::table('detail_warehouse_transfers')->insertOrIgnore($detailTransfersBatch);
+        if (!empty($transferTruckBatch)) DB::table('warehouse_transfer_truck')->insertOrIgnore($transferTruckBatch);
+
+        $this->info("Completed transfers migration (" . count($smlRows) . " transfers).");
+    }
+
+    protected function stepMigrateInventories()
+    {
+        $this->warn("\n[8.2/9] Migrating Physical Inventories (stock_logs)...");
+
+        $stockLogs = DB::select("SELECT * FROM villamar.stock_logs WHERE deleted_at IS NULL");
+        $groupedLogs = [];
+        foreach ($stockLogs as $sl) {
+            $d = $sl->date ?? '2021-01-01';
+            $wh = !empty($sl->chambre_id) ? (int)$sl->chambre_id : 13;
+            $key = "{$d}:{$wh}";
+            $groupedLogs[$key][] = $sl;
+        }
+
+        $invBatch = [];
+        $detailInvBatch = [];
+        $invId = 0;
+
+        foreach ($groupedLogs as $key => $logs) {
+            $invId++;
+            [$d, $wh] = explode(':', $key);
+            $totalW = 0;
+
+            foreach ($logs as $sl) {
+                $qNew = (float)($sl->qte_new ?? 0);
+                $qOld = (float)($sl->qte_old ?? 0);
+                $diff = $qNew - $qOld;
+                $w = abs($diff);
+                if ($w <= 0) $w = abs($qNew);
+                if ($w <= 0) continue;
+
+                $op = ($diff >= 0) ? 'stock_in' : 'stock_out';
+                $tId = is_numeric($sl->type_id) ? (int)$sl->type_id : null;
+                $cId = !empty($sl->container_id) ? (int)$sl->container_id : null;
+                $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : ($sl->type === 'Emballage' ? 'Emballage' : 'Poisson');
+
+                $totalW += $w;
+
+                $detailInvBatch[] = [
+                    'inventory_id' => $invId,
+                    'detail_inventory_category_id' => 1,
+                    'article_description' => $desc,
+                    'stockable_type' => ($sl->type === 'Emballage' ? 'App\\Models\\PackageType' : 'App\\Models\\FishType'),
+                    'stockable_id' => $tId,
+                    'weight' => $w,
+                    'unit_price' => 0,
+                    'total_price' => 0,
+                    'package_type_id' => $cId,
+                    'nbr_box' => 0,
+                    'warehouse_id' => $wh,
+                    'warehouse_operation' => $op,
+                    'created_at' => $sl->created_at ?? now(),
+                    'updated_at' => $sl->updated_at ?? now(),
+                ];
+            }
+
+            $invBatch[] = [
+                'id' => $invId,
+                'date' => $d,
+                'inventory_tracking_number' => json_encode(["INV-{$d}-WH{$wh}"]),
+                'description' => "Inventaire physique chambre {$wh} au {$d}",
+                'total_weight' => $totalW,
+                'total_price' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            if (count($invBatch) >= 1000) {
+                DB::table('inventories')->insertOrIgnore($invBatch);
+                $invBatch = [];
+            }
+            if (count($detailInvBatch) >= 2000) {
+                DB::table('detail_inventories')->insertOrIgnore($detailInvBatch);
+                $detailInvBatch = [];
+            }
+        }
+
+        if (!empty($invBatch)) DB::table('inventories')->insertOrIgnore($invBatch);
+        if (!empty($detailInvBatch)) DB::table('detail_inventories')->insertOrIgnore($detailInvBatch);
+
+        $this->info("Completed inventories migration (" . count($invBatch) . " inventories).");
     }
 
     protected function stepMigrateInvoicesAndSettlements()
@@ -1897,55 +2183,327 @@ class MigrateVillamarToJupiterCommand extends Command
 
     protected function stepSyncWarehouseBalances()
     {
-        $this->warn("\n[Optional Sync] Calculating warehouse balances from detail_productions and detail_shippings...");
+        $this->warn("\n[Final Step] Calculating Warehouse Balances and Balance Operations via FIFO...");
 
-        // Populate warehouse balances from detail productions (stock_in)
-        $detailProds = DB::select("
+        ini_set('memory_limit', '1024M');
+
+        // 1. Gather all Stock In
+        // A. detail_productions
+        $prodIns = DB::select("
             SELECT 
+                dp.id as source_id,
+                'DetailProduction' as source_type,
                 dp.warehouse_id,
                 dp.stockable_type,
                 dp.stockable_id,
                 dp.package_type_id,
                 dp.nbr_box as package_count,
-                dp.weight as total_weight,
+                dp.weight,
+                dp.unit_price,
+                dp.total_price,
                 p.date,
-                p.supplier_id,
-                s.name as supplier_name,
-                p.id as source_id
-            FROM main_project.detail_productions dp
-            JOIN main_project.productions p ON p.id = dp.production_id
-            LEFT JOIN main_project.suppliers s ON s.id = p.supplier_id
+                p.production_tracking_number as tracking_num,
+                COALESCE(s.name, c.name, 'Production') as entity_name
+            FROM detail_productions dp
+            JOIN productions p ON p.id = dp.production_id
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
+            LEFT JOIN clients c ON c.id = p.client_id
             WHERE dp.warehouse_operation = 'stock_in' AND dp.warehouse_id IS NOT NULL AND dp.weight > 0
         ");
 
+        // B. detail_charges
+        $chargeIns = DB::select("
+            SELECT 
+                dc.id as source_id,
+                'DetailCharge' as source_type,
+                dc.warehouse_id,
+                dc.stockable_type,
+                dc.stockable_id,
+                dc.package_type_id,
+                dc.nbr_box as package_count,
+                dc.weight,
+                dc.unit_price,
+                dc.total_price,
+                ch.date,
+                ch.reception_tracking_number as tracking_num,
+                COALESCE(s.name, 'Fournisseur') as entity_name
+            FROM detail_charges dc
+            JOIN charges ch ON ch.id = dc.charge_id
+            LEFT JOIN suppliers s ON s.id = ch.supplier_id
+            WHERE dc.warehouse_operation = 'stock_in' AND dc.warehouse_id IS NOT NULL AND dc.weight > 0
+        ");
+
+        // C. detail_warehouse_transfers (into destination warehouse)
+        $transferIns = DB::select("
+            SELECT 
+                dwt.id as source_id,
+                'DetailWarehouseTransfer' as source_type,
+                dwt.destination_warehouse_id as warehouse_id,
+                dwt.stockable_type,
+                dwt.stockable_id,
+                dwt.package_type_id,
+                dwt.nbr_box as package_count,
+                dwt.weight,
+                0 as unit_price,
+                0 as total_price,
+                wt.date,
+                dwt.source_tracking_number as tracking_num,
+                'Transfert Interne' as entity_name
+            FROM detail_warehouse_transfers dwt
+            JOIN warehouse_transfers wt ON wt.id = dwt.warehouse_transfer_id
+            WHERE dwt.destination_warehouse_id IS NOT NULL AND dwt.weight > 0
+        ");
+
+        // D. detail_inventories (stock_in)
+        $invIns = DB::select("
+            SELECT 
+                di.id as source_id,
+                'DetailInventory' as source_type,
+                di.warehouse_id,
+                di.stockable_type,
+                di.stockable_id,
+                di.package_type_id,
+                di.nbr_box as package_count,
+                di.weight,
+                di.unit_price,
+                di.total_price,
+                inv.date,
+                inv.inventory_tracking_number as tracking_num,
+                'Inventaire' as entity_name
+            FROM detail_inventories di
+            JOIN inventories inv ON inv.id = di.inventory_id
+            WHERE di.warehouse_operation = 'stock_in' AND di.warehouse_id IS NOT NULL AND di.weight > 0
+        ");
+
+        // 2. Gather all Stock Out
+        // A. detail_shippings
+        $shipOuts = DB::select("
+            SELECT 
+                ds.id as source_id,
+                'DetailShipping' as source_type,
+                ds.warehouse_id,
+                ds.stockable_type,
+                ds.stockable_id,
+                ds.package_type_id,
+                ds.nbr_box as package_count,
+                ds.weight,
+                ds.unit_price,
+                ds.total_price,
+                s.date,
+                COALESCE(c.name, 'Client') as entity_name
+            FROM detail_shippings ds
+            JOIN shippings s ON s.id = ds.shipping_id
+            LEFT JOIN clients c ON c.id = s.client_id
+            WHERE ds.warehouse_operation = 'stock_out' AND ds.warehouse_id IS NOT NULL AND ds.weight > 0
+        ");
+
+        // B. detail_warehouse_transfers (out of source warehouse)
+        $transferOuts = DB::select("
+            SELECT 
+                dwt.id as source_id,
+                'DetailWarehouseTransfer' as source_type,
+                dwt.source_warehouse_id as warehouse_id,
+                dwt.stockable_type,
+                dwt.stockable_id,
+                dwt.package_type_id,
+                dwt.nbr_box as package_count,
+                dwt.weight,
+                0 as unit_price,
+                0 as total_price,
+                wt.date,
+                'Transfert Interne' as entity_name
+            FROM detail_warehouse_transfers dwt
+            JOIN warehouse_transfers wt ON wt.id = dwt.warehouse_transfer_id
+            WHERE dwt.source_warehouse_id IS NOT NULL AND dwt.weight > 0
+        ");
+
+        // C. detail_inventories (stock_out)
+        $invOuts = DB::select("
+            SELECT 
+                di.id as source_id,
+                'DetailInventory' as source_type,
+                di.warehouse_id,
+                di.stockable_type,
+                di.stockable_id,
+                di.package_type_id,
+                di.nbr_box as package_count,
+                di.weight,
+                di.unit_price,
+                di.total_price,
+                inv.date,
+                'Ajustement Inventaire' as entity_name
+            FROM detail_inventories di
+            JOIN inventories inv ON inv.id = di.inventory_id
+            WHERE di.warehouse_operation = 'stock_out' AND di.warehouse_id IS NOT NULL AND di.weight > 0
+        ");
+
+        $this->info("Stock In entries: " . (count($prodIns) + count($chargeIns) + count($transferIns) + count($invIns)));
+        $this->info("Stock Out entries: " . (count($shipOuts) + count($transferOuts) + count($invOuts)));
+
+        $stockInItems = array_merge($prodIns, $chargeIns, $transferIns, $invIns);
+        usort($stockInItems, fn($a, $b) => strcmp($a->date, $b->date) ?: ($a->source_id <=> $b->source_id));
+
         $wbBatch = [];
-        foreach ($detailProds as $dp) {
-            $wbBatch[] = [
-                'warehouse_id' => $dp->warehouse_id,
-                'stockable_type' => $dp->stockable_type,
-                'stockable_id' => $dp->stockable_id ?? 1,
+        $balanceId = 0;
+        $activeBalanceMap = [];
+
+        foreach ($stockInItems as $item) {
+            $balanceId++;
+            $whId = (int)$item->warehouse_id;
+            $sType = $item->stockable_type;
+            $sId = !empty($item->stockable_id) ? (int)$item->stockable_id : 1;
+            $w = (float)$item->weight;
+            $pkgs = (float)($item->package_count ?? 0);
+            $key = "{$whId}:{$sType}:{$sId}";
+
+            $balRecord = [
+                'id' => $balanceId,
+                'warehouse_id' => $whId,
+                'stockable_type' => $sType,
+                'stockable_id' => $sId,
+                'reception_tracking_number' => is_string($item->tracking_num) ? $item->tracking_num : json_encode($item->tracking_num),
                 'warehouse_operation' => 'stock_in',
-                'date' => $dp->date,
-                'total_weight' => $dp->total_weight,
-                'remaining_weight' => $dp->total_weight,
-                'total_price' => 0,
-                'unit_price' => 0,
-                'package_count' => $dp->package_count ?? 0,
-                'package_type_id' => $dp->package_type_id,
-                'supplier_name' => $dp->supplier_name,
-                'source_type' => 'Production',
-                'source_id' => $dp->source_id,
+                'date' => $item->date,
+                'total_weight' => $w,
+                'remaining_weight' => $w,
+                'total_price' => (float)($item->total_price ?? 0),
+                'unit_price' => (float)($item->unit_price ?? 0),
+                'package_count' => $pkgs,
+                'package_type_id' => $item->package_type_id,
+                'supplier_name' => $item->entity_name ?? null,
+                'source_type' => $item->source_type,
+                'source_id' => $item->source_id,
                 'is_finished' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
 
-            if (count($wbBatch) >= 1500) {
-                DB::table('warehouse_balances')->insertOrIgnore($wbBatch);
-                $wbBatch = [];
+            $wbBatch[$balanceId] = $balRecord;
+
+            $activeBalanceMap[$key][] = [
+                'id' => $balanceId,
+                'date' => $item->date,
+                'total_weight' => $w,
+                'remaining_weight' => $w,
+                'package_count' => $pkgs,
+                'unit_price' => (float)($item->unit_price ?? 0),
+            ];
+        }
+
+        $stockOutItems = array_merge($shipOuts, $transferOuts, $invOuts);
+        usort($stockOutItems, fn($a, $b) => strcmp($a->date, $b->date) ?: ($a->source_id <=> $b->source_id));
+
+        $operationsBatch = [];
+        $totalOps = 0;
+
+        foreach ($stockOutItems as $out) {
+            $whId = (int)$out->warehouse_id;
+            $sType = $out->stockable_type;
+            $sId = !empty($out->stockable_id) ? (int)$out->stockable_id : 1;
+            $key = "{$whId}:{$sType}:{$sId}";
+            $remWeight = (float)$out->weight;
+            $remPkgs = (float)($out->package_count ?? 0);
+            $uPrice = (float)($out->unit_price ?? 0);
+
+            if (isset($activeBalanceMap[$key])) {
+                foreach ($activeBalanceMap[$key] as &$bal) {
+                    if ($bal['remaining_weight'] <= 0) continue;
+
+                    $takeW = min($remWeight, $bal['remaining_weight']);
+                    $takePkgs = ($bal['total_weight'] > 0) ? round(($takeW / $bal['total_weight']) * $bal['package_count'], 2) : 0;
+
+                    $bal['remaining_weight'] -= $takeW;
+                    $remWeight -= $takeW;
+                    $remPkgs = max(0, $remPkgs - $takePkgs);
+
+                    $wbBatch[$bal['id']]['remaining_weight'] = round($bal['remaining_weight'], 2);
+                    if ($wbBatch[$bal['id']]['remaining_weight'] <= 0) {
+                        $wbBatch[$bal['id']]['is_finished'] = 1;
+                    }
+
+                    $operationsBatch[] = [
+                        'warehouse_balance_id' => $bal['id'],
+                        'date' => $out->date,
+                        'weight' => $takeW,
+                        'unit_price' => $uPrice,
+                        'total_price' => round($takeW * $uPrice, 2),
+                        'package_count' => $takePkgs,
+                        'source_type' => $out->source_type,
+                        'source_id' => $out->source_id,
+                        'client_name' => $out->entity_name ?? null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    $totalOps++;
+                    if ($remWeight <= 0) break;
+                }
+                unset($bal);
+            }
+
+            if ($remWeight > 0) {
+                $balanceId++;
+                $initBal = [
+                    'id' => $balanceId,
+                    'warehouse_id' => $whId,
+                    'stockable_type' => $sType,
+                    'stockable_id' => $sId,
+                    'reception_tracking_number' => json_encode(['STOCK-INIT']),
+                    'warehouse_operation' => 'stock_in',
+                    'date' => $out->date,
+                    'total_weight' => $remWeight,
+                    'remaining_weight' => 0,
+                    'total_price' => 0,
+                    'unit_price' => $uPrice,
+                    'package_count' => $remPkgs,
+                    'package_type_id' => $out->package_type_id,
+                    'supplier_name' => 'Stock Initial / Antérieur',
+                    'source_type' => 'InitialStock',
+                    'source_id' => null,
+                    'is_finished' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                $wbBatch[$balanceId] = $initBal;
+
+                $operationsBatch[] = [
+                    'warehouse_balance_id' => $balanceId,
+                    'date' => $out->date,
+                    'weight' => $remWeight,
+                    'unit_price' => $uPrice,
+                    'total_price' => round($remWeight * $uPrice, 2),
+                    'package_count' => $remPkgs,
+                    'source_type' => $out->source_type,
+                    'source_id' => $out->source_id,
+                    'client_name' => $out->entity_name ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                $totalOps++;
             }
         }
-        if (!empty($wbBatch)) DB::table('warehouse_balances')->insertOrIgnore($wbBatch);
+
+        $this->info("Inserting " . count($wbBatch) . " warehouse balances...");
+        $chunk = [];
+        foreach ($wbBatch as $wb) {
+            $chunk[] = $wb;
+            if (count($chunk) >= 2000) {
+                DB::table('warehouse_balances')->insertOrIgnore($chunk);
+                $chunk = [];
+            }
+        }
+        if (!empty($chunk)) DB::table('warehouse_balances')->insertOrIgnore($chunk);
+
+        $this->info("Inserting {$totalOps} warehouse balance operations...");
+        $opChunk = [];
+        foreach ($operationsBatch as $op) {
+            $opChunk[] = $op;
+            if (count($opChunk) >= 2000) {
+                DB::table('warehouse_balance_operations')->insertOrIgnore($opChunk);
+                $opChunk = [];
+            }
+        }
+        if (!empty($opChunk)) DB::table('warehouse_balance_operations')->insertOrIgnore($opChunk);
 
         // Update total weights on warehouses
         DB::statement("
@@ -1953,11 +2511,14 @@ class MigrateVillamarToJupiterCommand extends Command
             LEFT JOIN (
                 SELECT warehouse_id, SUM(remaining_weight) as cur_weight 
                 FROM warehouse_balances 
+                WHERE is_finished = 0
                 GROUP BY warehouse_id
             ) as wb ON wb.warehouse_id = w.id
             SET w.total_weight = COALESCE(wb.cur_weight, 0)
         ");
 
-        $this->info("Warehouse balances synchronized and total weights updated.");
+        $totalRemainingStock = DB::table('warehouse_balances')->where('is_finished', 0)->sum('remaining_weight');
+        $formattedStock = number_format($totalRemainingStock, 2);
+        $this->info("Warehouse balances synchronized via FIFO! Total active warehouse stock: {$formattedStock} KG across warehouses.");
     }
 }

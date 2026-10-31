@@ -145,6 +145,16 @@ Route::middleware(["auth:sanctum"])->group(
         //  WAREHOUSE ROUTES
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         Route::get("warehouses/dashboard-data", [WarehouseController::class, "dashboardData"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/stock-par-lot", [WarehouseController::class, "stockParLot"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/lot-traceability/{lotNumber}", [WarehouseController::class, "lotTraceability"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/traceability-lots", [WarehouseController::class, "traceabilityLots"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/traceability/search-vouchers", [WarehouseController::class, "searchTraceabilityVouchers"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/traceability/voucher-articles", [WarehouseController::class, "traceabilityVoucherArticles"])->middleware('check.permission:warehouses.view');
+        Route::post("warehouses/traceability/pedigree-timeline", [WarehouseController::class, "traceabilityPedigreeTimeline"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/stock-movements-journal", [WarehouseController::class, "stockMovementsJournal"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/analytics", [WarehouseController::class, "analytics"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/chambers-overview", [WarehouseController::class, "chambersOverview"])->middleware('check.permission:warehouses.view');
+        Route::get("warehouses/species-overview", [WarehouseController::class, "speciesOverview"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/available-balances", [WarehouseController::class, "availableBalances"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/with-stock", [WarehouseController::class, "warehousesWithStock"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/articles", [WarehouseController::class, "warehouseArticles"])->middleware('check.permission:warehouses.view');
@@ -159,6 +169,9 @@ Route::middleware(["auth:sanctum"])->group(
         Route::post("warehouse-categories", [App\Http\Controllers\WarehouseCategoryController::class, "store"]);
         Route::put("warehouse-categories/{id}", [App\Http\Controllers\WarehouseCategoryController::class, "update"]);
         Route::delete("warehouse-categories/{id}", [App\Http\Controllers\WarehouseCategoryController::class, "destroy"]);
+
+        // GraphQL Endpoint (Warehouse & Unified Graph)
+        Route::match(['get', 'post'], "graphql", [App\Http\Controllers\GraphQLController::class, "handle"]);
 
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  INVENTORY ROUTES
@@ -331,8 +344,13 @@ Route::middleware(["auth:sanctum"])->group(
         // Ships
         Route::post("ships", [App\Http\Controllers\ShipController::class, "store"]);
 
-        // Clients
-        Route::post("clients", [App\Http\Controllers\ClientController::class, "store"]);
+        // Clients & Plafond
+        Route::get("clients/{client}/check-plafond", [App\Http\Controllers\ClientController::class, "checkPlafond"]);
+        Route::apiResource("clients", App\Http\Controllers\ClientController::class);
+
+        // Suppliers & Plafond
+        Route::get("suppliers/{supplier}/check-plafond", [SupplierController::class, "checkPlafond"]);
+        Route::apiResource("suppliers", SupplierController::class);
 
         // ═══════════════════════════════════════════
         //  WAREHOUSE TRANSFER ROUTES

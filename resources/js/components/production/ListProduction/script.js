@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { gqlGetProductions, gqlGetProductionAnalytics } from '@/services/appGraphql.js';
 import { useMain } from '@/stores/Main';
 import { useProductionCategory } from '@/stores/ProductionCategory';
 import { useFishFamily } from '@/stores/FishFamily';
@@ -608,8 +609,19 @@ export default {
       this.analyticsLoading = true;
       try {
         const ds = this.dateRange[0], de = this.dateRange[1] || this.dateRange[0];
-        const r = await axios.get('/api/productions/analytics', { params: { date_start: this.fmtDate(ds), date_end: this.fmtDate(de), mode: this.chartMode } });
-        this.analyticsData = r.data;
+        const date_start = this.fmtDate(ds), date_end = this.fmtDate(de);
+        try {
+          const analytics = await gqlGetProductionAnalytics({ date_start, date_end, mode: this.chartMode });
+          if (analytics) {
+            this.analyticsData = analytics;
+          } else {
+            throw new Error('GraphQL returned null');
+          }
+        } catch (gqlErr) {
+          console.warn('[ListProduction] GraphQL analytics failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/productions/analytics', { params: { date_start, date_end, mode: this.chartMode } });
+          this.analyticsData = r.data;
+        }
       } catch (e) { console.error(e); this.analyticsData = null }
       this.analyticsLoading = false;
     },
@@ -623,8 +635,16 @@ export default {
       this.loading = true;
       try {
         const ds = this.dateRange[0], de = this.dateRange[1] || this.dateRange[0];
-        const r = await axios.get('/api/productions', { params: { date_start: this.fmtDate(ds), date_end: this.fmtDate(de) } });
-        this.productions = (r.data.productions || []).map(c => this.mapProduction(c));
+        const date_start = this.fmtDate(ds), date_end = this.fmtDate(de);
+        let prods = [];
+        try {
+          prods = await gqlGetProductions({ date_start, date_end });
+        } catch (gqlErr) {
+          console.warn('[ListProduction] GraphQL fetch failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/productions', { params: { date_start, date_end } });
+          prods = r.data.productions || [];
+        }
+        this.productions = (prods || []).map(c => this.mapProduction(c));
         this._cachedWorkerItems = JSON.parse(JSON.stringify(this.productions));
         this.dispatchWorkerFilter(0);
         // Fetch open issue counts and merge

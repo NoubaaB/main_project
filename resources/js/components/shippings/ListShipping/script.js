@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { gqlGetShippings } from '@/services/appGraphql.js';
 import { useMain } from '@/stores/Main';
 import { useShippingCategory } from '@/stores/ShippingCategory';
 import { useFishFamily } from '@/stores/FishFamily';
@@ -358,8 +359,16 @@ export default {
       this.loading = true;
       try {
         const ds = this.dateRange[0], de = this.dateRange[1] || this.dateRange[0];
-        const r = await axios.get('/api/shippings/get_shippings', { params: { date_start: this.fmtDate(ds), date_end: this.fmtDate(de) } });
-        this.shippings = (r.data.shippings || r.data.sells || []).map(c => this.mapShipping(c));
+        const date_start = this.fmtDate(ds), date_end = this.fmtDate(de);
+        let items = [];
+        try {
+          items = await gqlGetShippings({ date_start, date_end });
+        } catch (gqlErr) {
+          console.warn('[ListShipping] GraphQL fetch failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/shippings/get_shippings', { params: { date_start, date_end } });
+          items = r.data.shippings || r.data.sells || [];
+        }
+        this.shippings = (items || []).map(c => this.mapShipping(c));
         this._cachedWorkerItems = JSON.parse(JSON.stringify(this.shippings));
         this.dispatchWorkerFilter(0);
         // Fetch open issue counts and merge

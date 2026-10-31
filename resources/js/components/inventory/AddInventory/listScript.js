@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { gqlGetInventories } from '@/services/appGraphql.js';
 import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
 import mitt from '@/plugins/mitt.js';
@@ -117,9 +118,16 @@ export default {
       this.loading=true;
       try{
         const ds=this.dateRange[0],de=this.dateRange[1]||this.dateRange[0];
-        const p={date_start:this.fmtDate(ds),date_end:this.fmtDate(de)};
-        const r=await axios.get('/api/inventories/get_inventories',{params:p});
-        this.inventories=(r.data.inventories||[]).map(c=>({...c,
+        const date_start=this.fmtDate(ds),date_end=this.fmtDate(de);
+        let items = [];
+        try {
+          items = await gqlGetInventories({ date_start, date_end });
+        } catch (gqlErr) {
+          console.warn('[ListInventory] GraphQL fetch failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/inventories/get_inventories', { params: { date_start, date_end } });
+          items = r.data.inventories || [];
+        }
+        this.inventories=(items||[]).map(c=>({...c,
           _tracking:(c.inventory_tracking_numbers||[]).join(', ')||'-',
           _details_count:(c.detail_inventories||[]).length,
         }));

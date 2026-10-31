@@ -35,7 +35,7 @@
             variant="tonal"
             color="white"
             class="font-weight-bold"
-            :loading="loading"
+            :loading="loading || workerProcessing"
             @click="loadStats"
             prepend-icon="mdi-refresh"
           >
@@ -51,7 +51,7 @@
             class="text-primary font-weight-bold"
             @click="exportToExcel"
             prepend-icon="mdi-file-excel"
-            :disabled="loading || !stats.grand_total"
+            :disabled="loading || workerProcessing || !stats.grand_total"
           >
             {{ $t('export_excel') }}
           </v-btn>
@@ -62,7 +62,7 @@
             icon
             variant="tonal"
             color="white"
-            @click="printPage"
+            @click="printPage('full_summary')"
             :title="$t('print_now')"
           >
             <v-icon size="18">mdi-printer</v-icon>
@@ -118,26 +118,54 @@
             </v-chip>
           </div>
 
-          <!-- Right: Year Selection -->
+          <!-- Right: Year Selection (Supplier Settlement Style) -->
           <div class="d-flex align-center ga-2">
-            <span class="text-caption text-medium-emphasis font-weight-bold">{{ $t('year') }}:</span>
-            <v-btn-toggle
-              v-model="selectedYear"
-              mandatory
-              density="compact"
-              color="#42A5F5"
-              class="wfs-year-toggle"
-            >
+            <span class="text-caption text-medium-emphasis font-weight-bold d-none d-sm-inline">{{ $t('year') }}:</span>
+            <div class="wfs-year-pill">
               <v-btn
-                v-for="y in yearOptions"
-                :key="y"
-                :value="y"
+                icon
+                variant="text"
                 size="x-small"
-                class="font-weight-bold px-3"
+                @click="changeYear(-1)"
+                class="wfs-year-btn"
+                :title="$t('previous_year')"
               >
-                {{ y }}
+                <v-icon size="20">mdi-chevron-left</v-icon>
               </v-btn>
-            </v-btn-toggle>
+              <v-menu v-model="yearMenuOpen" location="bottom center" transition="scale-transition">
+                <template #activator="{ props }">
+                  <span
+                    v-bind="props"
+                    class="wfs-year-text"
+                    :title="$t('select_year')"
+                  >
+                    {{ selectedYear }}
+                  </span>
+                </template>
+                <v-list density="compact" elevation="6" rounded="lg" class="py-1">
+                  <v-list-item
+                    v-for="y in yearOptions"
+                    :key="y"
+                    :value="y"
+                    :active="y === selectedYear"
+                    color="#E65100"
+                    @click="selectedYear = y; yearMenuOpen = false"
+                  >
+                    <v-list-item-title class="font-weight-bold text-caption text-center">{{ y }}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+              <v-btn
+                icon
+                variant="text"
+                size="x-small"
+                @click="changeYear(1)"
+                class="wfs-year-btn"
+                :title="$t('next_year')"
+              >
+                <v-icon size="20">mdi-chevron-right</v-icon>
+              </v-btn>
+            </div>
           </div>
         </div>
 
@@ -169,7 +197,7 @@
             <v-icon size="14" color="#42A5F5">mdi-information-outline</v-icon>
             <span>{{ formattedDateRangeText }}</span>
           </div>
-          <div v-if="loading" class="d-flex align-center ga-2">
+          <div v-if="loading || workerProcessing" class="d-flex align-center ga-2">
             <v-progress-circular indeterminate size="14" width="2" color="#42A5F5"></v-progress-circular>
             <span class="text-caption text-medium-emphasis">{{ $t('loading') }}...</span>
           </div>
@@ -439,38 +467,39 @@
 
         <div class="d-flex align-center ga-2 flex-wrap">
           <!-- Chart Type Toggle (Area vs Bar) -->
-          <v-btn-toggle
+          <SegmentedPillToggle
             v-model="chartType"
-            mandatory
-            density="compact"
-            color="#42A5F5"
-            class="wfs-chart-toggle"
-          >
-            <v-btn value="area" size="small" :title="$t('area_chart')">
-              <v-icon size="16">mdi-chart-areaspline</v-icon>
-            </v-btn>
-            <v-btn value="bar" size="small" :title="$t('bar_chart')">
-              <v-icon size="16">mdi-chart-bar</v-icon>
-            </v-btn>
-          </v-btn-toggle>
+            :items="chartTypeItems"
+            color="#1E88E5"
+            size="small"
+          />
 
           <!-- Period Toggle (Daily / Monthly / Yearly) -->
-          <v-btn-toggle
+          <SegmentedPillToggle
             v-model="chartPeriod"
-            mandatory
-            density="compact"
-            color="#42A5F5"
-            class="wfs-chart-toggle"
+            :items="chartPeriodItems"
+            color="#1E88E5"
+            size="small"
+          />
+
+          <!-- Quick Print Button -->
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="#1565C0"
+            rounded="lg"
+            prepend-icon="mdi-printer"
+            class="font-weight-bold"
+            @click="printPage('daily')"
+            :title="$t('print_now')"
           >
-            <v-btn value="daily" size="small" class="font-weight-medium">{{ $t('daily') }}</v-btn>
-            <v-btn value="monthly" size="small" class="font-weight-medium">{{ $t('monthly') }}</v-btn>
-            <v-btn value="yearly" size="small" class="font-weight-medium">{{ $t('yearly') }}</v-btn>
-          </v-btn-toggle>
+            {{ $t('print') }}
+          </v-btn>
         </div>
       </v-card-title>
 
       <v-card-text class="pa-4 pt-2">
-        <v-skeleton-loader v-if="loading" type="image" height="320" class="rounded-xl"></v-skeleton-loader>
+        <v-skeleton-loader v-if="loading || workerProcessing" type="image" height="320" class="rounded-xl"></v-skeleton-loader>
         <div v-else-if="mainChartSeries.length > 0 && mainChartSeries[0].data.length > 0">
           <apexchart
             :key="`${chartType}-${chartPeriod}-${main.is_dark}`"
@@ -500,25 +529,31 @@
                 {{ stats.sections ? stats.sections.length : 0 }}
               </v-chip>
             </div>
-            <!-- View Switcher -->
-            <v-btn-toggle
-              v-model="sectionViewMode"
-              mandatory
-              density="compact"
-              color="#E65100"
-              class="wfs-view-switcher wfs-view-switcher--orange"
-            >
-              <v-btn value="chart" size="small" class="wfs-view-btn" :title="$t('chart_view')">
-                <v-icon size="17">mdi-chart-bar</v-icon>
+            <div class="d-flex align-center ga-2">
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="#E65100"
+                rounded="lg"
+                prepend-icon="mdi-printer"
+                class="font-weight-bold"
+                @click="printPage('sections')"
+                :title="$t('print_now')"
+              >
+                {{ $t('print') }}
               </v-btn>
-              <v-btn value="list" size="small" class="wfs-view-btn" :title="$t('list_view')">
-                <v-icon size="17">mdi-format-list-bulleted</v-icon>
-              </v-btn>
-            </v-btn-toggle>
+              <!-- View Switcher -->
+              <SegmentedPillToggle
+                v-model="sectionViewMode"
+                :items="sectionViewItems"
+                color="#E65100"
+                size="small"
+              />
+            </div>
           </v-card-title>
 
           <v-card-text class="pa-4 pt-2">
-            <v-skeleton-loader v-if="loading" type="image" height="280" class="rounded-xl"></v-skeleton-loader>
+            <v-skeleton-loader v-if="loading || workerProcessing" type="image" height="280" class="rounded-xl"></v-skeleton-loader>
             <template v-else-if="stats.sections && stats.sections.length > 0">
               <!-- Chart View -->
               <div v-show="sectionViewMode === 'chart'">
@@ -577,25 +612,31 @@
                 {{ stats.corporals ? stats.corporals.length : 0 }}
               </v-chip>
             </div>
-            <!-- View Switcher -->
-            <v-btn-toggle
-              v-model="corporalViewMode"
-              mandatory
-              density="compact"
-              color="#7B1FA2"
-              class="wfs-view-switcher wfs-view-switcher--purple"
-            >
-              <v-btn value="chart" size="small" class="wfs-view-btn" :title="$t('chart_view')">
-                <v-icon size="17">mdi-chart-bar</v-icon>
+            <div class="d-flex align-center ga-2">
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="#7B1FA2"
+                rounded="lg"
+                prepend-icon="mdi-printer"
+                class="font-weight-bold"
+                @click="printPage('corporals')"
+                :title="$t('print_now')"
+              >
+                {{ $t('print') }}
               </v-btn>
-              <v-btn value="list" size="small" class="wfs-view-btn" :title="$t('list_view')">
-                <v-icon size="17">mdi-format-list-bulleted</v-icon>
-              </v-btn>
-            </v-btn-toggle>
+              <!-- View Switcher -->
+              <SegmentedPillToggle
+                v-model="corporalViewMode"
+                :items="corporalViewItems"
+                color="#7B1FA2"
+                size="small"
+              />
+            </div>
           </v-card-title>
 
           <v-card-text class="pa-4 pt-2">
-            <v-skeleton-loader v-if="loading" type="image" height="280" class="rounded-xl"></v-skeleton-loader>
+            <v-skeleton-loader v-if="loading || workerProcessing" type="image" height="280" class="rounded-xl"></v-skeleton-loader>
             <template v-else-if="stats.corporals && stats.corporals.length > 0">
               <!-- Chart View -->
               <div v-show="corporalViewMode === 'chart'">
@@ -658,8 +699,21 @@
           </div>
         </div>
 
-        <!-- Search & Limit -->
+        <!-- Search & Limit & Print -->
         <div class="d-flex align-center ga-3 flex-wrap">
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="#1565C0"
+            rounded="lg"
+            prepend-icon="mdi-printer"
+            class="font-weight-bold"
+            @click="printPage('workforces')"
+            :title="$t('print_now')"
+          >
+            {{ $t('print') }}
+          </v-btn>
+
           <v-text-field
             v-model="workforceSearch"
             density="compact"
@@ -674,22 +728,17 @@
             style="min-width: 200px; max-width: 280px;"
           ></v-text-field>
 
-          <v-btn-toggle
+          <SegmentedPillToggle
             v-model="workforceLimit"
-            mandatory
-            density="compact"
-            color="#42A5F5"
-            class="wfs-chart-toggle"
-          >
-            <v-btn :value="10" size="small">Top 10</v-btn>
-            <v-btn :value="25" size="small">Top 25</v-btn>
-            <v-btn :value="0" size="small">{{ $t('all_available') }}</v-btn>
-          </v-btn-toggle>
+            :items="workforceLimitItems"
+            color="#1E88E5"
+            size="small"
+          />
         </div>
       </v-card-title>
 
       <v-card-text class="pa-4 pt-2">
-        <v-skeleton-loader v-if="loading" type="table" class="rounded-xl"></v-skeleton-loader>
+        <v-skeleton-loader v-if="loading || workerProcessing" type="table" class="rounded-xl"></v-skeleton-loader>
         <div v-else-if="paginatedWorkforces.length > 0" class="wfs-table-wrap">
           <table class="wfs-table">
             <thead>
@@ -808,24 +857,27 @@
         <!-- Granularity Selector: Daily / Monthly / Yearly -->
         <div class="d-flex align-center ga-2 flex-wrap">
           <span class="text-caption text-medium-emphasis font-weight-bold">{{ $t('granularity') }}:</span>
-          <v-btn-toggle
+          <SegmentedPillToggle
             v-model="trackerGranularity"
-            mandatory
-            density="compact"
+            :items="trackerGranularityItems"
             color="#1565C0"
-            class="wfs-chart-toggle"
-            @update:model-value="loadMovementTracker"
+            size="small"
+            @change="loadMovementTracker"
+          />
+
+          <!-- Quick Print Button -->
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="#1565C0"
+            rounded="lg"
+            prepend-icon="mdi-printer"
+            class="font-weight-bold"
+            @click="printPage('tracker')"
+            :title="$t('print_now')"
           >
-            <v-btn value="daily" size="small" prepend-icon="mdi-calendar-today">
-              {{ $t('daily') }}
-            </v-btn>
-            <v-btn value="monthly" size="small" prepend-icon="mdi-calendar-month">
-              {{ $t('monthly') }}
-            </v-btn>
-            <v-btn value="yearly" size="small" prepend-icon="mdi-calendar">
-              {{ $t('yearly') }}
-            </v-btn>
-          </v-btn-toggle>
+            {{ $t('print') }}
+          </v-btn>
         </div>
       </v-card-title>
 
@@ -1120,6 +1172,22 @@
         <v-btn variant="text" size="small" icon="mdi-close" @click="summarySnackbar.show = false"></v-btn>
       </template>
     </v-snackbar>
+
+    <!-- ========================================================================= -->
+    <!-- WORKFORCE PRINT CUSTOMIZER MODAL & PRINTER AREA (Warehouses style)        -->
+    <!-- ========================================================================= -->
+    <WorkforceStatisticsPrintDialog
+      v-model="printModalOpen"
+      :initial-view="printModalTargetView"
+      :selected-year="selectedYear"
+      :selected-months="selectedMonths"
+      :month-names="monthNames"
+      :formatted-date-range-text="formattedDateRangeText"
+      :active-period-summary="activePeriodSummary"
+      :stats="stats"
+      :movement-stats="movementStore.statisticsData"
+      @view-change="v => printModalTargetView = v"
+    />
   </div>
 </template>
 
@@ -1127,21 +1195,332 @@
 import VueApexCharts from 'vue3-apexcharts';
 import * as XLSX from 'xlsx';
 import mitt from '@/plugins/mitt';
+import { useWebWorkerFn } from '@vueuse/core';
+import { toRaw } from 'vue';
 import { useMain } from '@/stores/Main';
 import { useWorkforce } from '@/stores/Workforce';
 import { useCorporal } from '@/stores/Corporal';
 import { useSection } from '@/stores/Section';
 import { useFortnightActivity } from '@/stores/FortnightActivity';
 import { useWorkforceMovement } from '@/stores/WorkforceMovement';
+import WorkforceStatisticsPrintDialog from './WorkforceStatisticsPrintDialog.vue';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
+
+/**
+ * High-performance pure worker function executed in a dedicated Web Worker thread
+ * via useWebWorkerFn. Ensures the Vue 3 main UI thread stays completely responsive
+ * (60fps) during multi-month statistics aggregation, sorting, rankings, chart datasets
+ * calculation, and real-time filtering without blocking the browser.
+ */
+function workerProcessWorkforceStats(payload) {
+  const {
+    action = 'aggregate',
+    results = [],
+    workforceSearch = '',
+    workforceLimit = 10,
+    trackerSearch = '',
+    trackerTimeline = [],
+    allWorkforces = [],
+  } = payload || {};
+
+  // 1. FILTER TRACKER TIMELINE ACTION
+  if (action === 'filter_tracker_timeline') {
+    const list = trackerTimeline || [];
+    const q = (trackerSearch || '').toLowerCase().trim();
+    if (!q) {
+      return { action: 'filter_tracker_timeline', filteredTrackerTimeline: list };
+    }
+    const filtered = [];
+    for (let i = 0; i < list.length; i++) {
+      const row = list[i];
+      if (!row) continue;
+      const wName = (row.workforce_name || '').toLowerCase();
+      const mat = String(row.matricule || '').toLowerCase();
+      const cName = (row.corporal_name || '').toLowerCase();
+      const sName = (row.section_name || '').toLowerCase();
+      const tLabel = (row.team_label || '').toLowerCase();
+      if (
+        wName.includes(q) ||
+        mat.includes(q) ||
+        cName.includes(q) ||
+        sName.includes(q) ||
+        tLabel.includes(q)
+      ) {
+        filtered.push(row);
+      }
+    }
+    return { action: 'filter_tracker_timeline', filteredTrackerTimeline: filtered };
+  }
+
+  // 2. FILTER WORKFORCES ACTION
+  if (action === 'filter_workforces') {
+    const list = allWorkforces || [];
+    const q = (workforceSearch || '').toLowerCase().trim();
+    let filtered = [];
+    if (!q) {
+      filtered = list;
+    } else {
+      for (let i = 0; i < list.length; i++) {
+        const w = list[i];
+        if (!w) continue;
+        const name = (w.name || '').toLowerCase();
+        const mat = String(w.matricule || '').toLowerCase();
+        const cin = String(w.cin || '').toLowerCase();
+        const sec = String(w.section || '').toLowerCase();
+        const corp = String(w.corporal || '').toLowerCase();
+        if (
+          name.includes(q) ||
+          mat.includes(q) ||
+          cin.includes(q) ||
+          sec.includes(q) ||
+          corp.includes(q)
+        ) {
+          filtered.push(w);
+        }
+      }
+    }
+    const paginated = (workforceLimit && workforceLimit > 0)
+      ? filtered.slice(0, workforceLimit)
+      : filtered;
+    return {
+      action: 'filter_workforces',
+      filteredWorkforces: filtered,
+      paginatedWorkforces: paginated,
+    };
+  }
+
+  // 3. AGGREGATE ACTION (Multi-month statistics aggregation + charts + filtering)
+  const merged = {
+    daily: [],
+    sections: [],
+    corporals: [],
+    workforces: [],
+    grand_total: 0,
+    total_activities: 0,
+  };
+
+  const dailyMap = {};
+  const sectionMap = {};
+  const corporalMap = {};
+  const workforceMap = {};
+
+  const resList = Array.isArray(results) ? results : [];
+  for (let r = 0; r < resList.length; r++) {
+    const res = resList[r];
+    if (!res) continue;
+
+    // Daily items
+    const dailyArr = res.daily || [];
+    for (let i = 0; i < dailyArr.length; i++) {
+      const d = dailyArr[i];
+      if (!d || !d.date) continue;
+      if (!dailyMap[d.date]) {
+        dailyMap[d.date] = { date: d.date, total: Number(d.total) || 0, count: Number(d.count) || 0 };
+      } else {
+        dailyMap[d.date].total += Number(d.total) || 0;
+        dailyMap[d.date].count += Number(d.count) || 0;
+      }
+    }
+
+    // Sections
+    const secArr = res.sections || [];
+    for (let i = 0; i < secArr.length; i++) {
+      const s = secArr[i];
+      if (!s) continue;
+      const sId = s.id != null ? String(s.id) : (s.name || String(i));
+      if (!sectionMap[sId]) {
+        sectionMap[sId] = {
+          id: s.id,
+          name: s.name || '',
+          total: Number(s.total) || 0,
+          count: Number(s.count) || 0,
+        };
+      } else {
+        sectionMap[sId].total += Number(s.total) || 0;
+        sectionMap[sId].count += Number(s.count) || 0;
+      }
+    }
+
+    // Corporals
+    const corpArr = res.corporals || [];
+    for (let i = 0; i < corpArr.length; i++) {
+      const c = corpArr[i];
+      if (!c) continue;
+      const cId = c.id != null ? String(c.id) : (c.name || String(i));
+      if (!corporalMap[cId]) {
+        corporalMap[cId] = {
+          id: c.id,
+          name: c.name || '',
+          total: Number(c.total) || 0,
+          count: Number(c.count) || 0,
+        };
+      } else {
+        corporalMap[cId].total += Number(c.total) || 0;
+        corporalMap[cId].count += Number(c.count) || 0;
+      }
+    }
+
+    // Workforces
+    const wfArr = res.workforces || [];
+    for (let i = 0; i < wfArr.length; i++) {
+      const w = wfArr[i];
+      if (!w) continue;
+      const wId = w.id != null ? String(w.id) : (w.name || String(i));
+      if (!workforceMap[wId]) {
+        workforceMap[wId] = {
+          id: w.id,
+          name: w.name || '',
+          matricule: w.matricule || '',
+          cin: w.cin || '',
+          section: w.section || '',
+          corporal: w.corporal || '',
+          total: Number(w.total) || 0,
+          count: Number(w.count) || 0,
+          work_days: Number(w.work_days) || 0,
+        };
+      } else {
+        workforceMap[wId].total += Number(w.total) || 0;
+        workforceMap[wId].count += Number(w.count) || 0;
+        workforceMap[wId].work_days += Number(w.work_days) || 0;
+      }
+    }
+
+    merged.grand_total += Number(res.grand_total) || 0;
+    merged.total_activities += Number(res.total_activities) || 0;
+  }
+
+  // Sort daily chronologically
+  const sortedDaily = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+  merged.daily = sortedDaily;
+
+  // Sort sections descending by total
+  const sortedSections = Object.values(sectionMap).sort((a, b) => b.total - a.total);
+  for (let i = 0; i < sortedSections.length; i++) {
+    sortedSections[i].rank = i + 1;
+    sortedSections[i].sharePct = merged.grand_total > 0
+      ? Math.round((sortedSections[i].total / merged.grand_total) * 100)
+      : 0;
+  }
+  merged.sections = sortedSections;
+
+  // Sort corporals descending by total
+  const sortedCorporals = Object.values(corporalMap).sort((a, b) => b.total - a.total);
+  for (let i = 0; i < sortedCorporals.length; i++) {
+    sortedCorporals[i].rank = i + 1;
+    sortedCorporals[i].sharePct = merged.grand_total > 0
+      ? Math.round((sortedCorporals[i].total / merged.grand_total) * 100)
+      : 0;
+  }
+  merged.corporals = sortedCorporals;
+
+  // Sort workforces descending by total
+  const sortedWorkforces = Object.values(workforceMap).sort((a, b) => b.total - a.total);
+  for (let i = 0; i < sortedWorkforces.length; i++) {
+    sortedWorkforces[i].rank = i + 1;
+    sortedWorkforces[i].sharePct = merged.grand_total > 0
+      ? Math.round((sortedWorkforces[i].total / merged.grand_total) * 100)
+      : 0;
+  }
+  merged.workforces = sortedWorkforces;
+
+  // Precompute chart datasets for daily, monthly, yearly
+  const chartDaily = sortedDaily.map(d => ({ label: d.date, total: d.total, count: d.count }));
+
+  const monthAggMap = {};
+  for (let i = 0; i < sortedDaily.length; i++) {
+    const d = sortedDaily[i];
+    const mKey = d.date.substring(0, 7);
+    if (!monthAggMap[mKey]) monthAggMap[mKey] = { label: mKey, total: 0, count: 0 };
+    monthAggMap[mKey].total += d.total;
+    monthAggMap[mKey].count += d.count;
+  }
+  const chartMonthly = Object.values(monthAggMap);
+
+  const yearAggMap = {};
+  for (let i = 0; i < sortedDaily.length; i++) {
+    const d = sortedDaily[i];
+    const yKey = d.date.substring(0, 4);
+    if (!yearAggMap[yKey]) yearAggMap[yKey] = { label: yKey, total: 0, count: 0 };
+    yearAggMap[yKey].total += d.total;
+    yearAggMap[yKey].count += d.count;
+  }
+  const chartYearly = Object.values(yearAggMap);
+
+  // Filter workforces by search query
+  const qWf = (workforceSearch || '').toLowerCase().trim();
+  let filteredWf = [];
+  if (!qWf) {
+    filteredWf = sortedWorkforces;
+  } else {
+    for (let i = 0; i < sortedWorkforces.length; i++) {
+      const w = sortedWorkforces[i];
+      const name = (w.name || '').toLowerCase();
+      const mat = String(w.matricule || '').toLowerCase();
+      const cin = String(w.cin || '').toLowerCase();
+      const sec = String(w.section || '').toLowerCase();
+      const corp = String(w.corporal || '').toLowerCase();
+      if (
+        name.includes(qWf) ||
+        mat.includes(qWf) ||
+        cin.includes(qWf) ||
+        sec.includes(qWf) ||
+        corp.includes(qWf)
+      ) {
+        filteredWf.push(w);
+      }
+    }
+  }
+
+  const paginatedWf = (workforceLimit && workforceLimit > 0)
+    ? filteredWf.slice(0, workforceLimit)
+    : filteredWf;
+
+  return {
+    action: 'aggregate',
+    stats: merged,
+    precomputedCharts: {
+      daily: chartDaily,
+      monthly: chartMonthly,
+      yearly: chartYearly,
+    },
+    filteredWorkforces: filteredWf,
+    paginatedWorkforces: paginatedWf,
+  };
+}
 
 export default {
   name: 'WorkforceStatistics',
-  components: { apexchart: VueApexCharts },
+  components: {
+    apexchart: VueApexCharts,
+    WorkforceStatisticsPrintDialog,
+    SegmentedPillToggle,
+  },
+  setup() {
+    let workerFn = null;
+    let workerStatus = null;
+    let workerTerminate = null;
+    try {
+      const workerTools = useWebWorkerFn(workerProcessWorkforceStats);
+      workerFn = workerTools.workerFn;
+      workerStatus = workerTools.workerStatus;
+      workerTerminate = workerTools.workerTerminate;
+    } catch (e) {
+      console.warn('[WorkforceStatistics] useWebWorkerFn initialization fallback:', e);
+    }
+    return {
+      workerFn,
+      workerStatus,
+      workerTerminate,
+    };
+  },
   data() {
     const now = new Date();
     return {
       selectedYear: now.getFullYear(),
       selectedMonths: [now.getMonth()],
+      yearMenuOpen: false,
+      printModalOpen: false,
+      printModalTargetView: 'full_summary',
       filterWorkforceIds: [],
       filterSectionIds: [],
       filterCorporalIds: [],
@@ -1163,6 +1542,15 @@ export default {
         workforces: [],
         grand_total: 0,
         total_activities: 0,
+      },
+      workerProcessing: false,
+      workerFilteredWorkforces: null,
+      workerPaginatedWorkforces: null,
+      workerFilteredTimeline: null,
+      precomputedCharts: {
+        daily: [],
+        monthly: [],
+        yearly: [],
       },
       monthNames: [
         this.$t('month_january') || 'Jan', this.$t('month_february') || 'Feb',
@@ -1193,6 +1581,9 @@ export default {
     sectionStore() { return useSection(); },
     activityStore() { return useFortnightActivity(); },
     filteredTrackerTimeline() {
+      if (this.workerFilteredTimeline !== null) {
+        return this.workerFilteredTimeline;
+      }
       const list = this.movementStore.statisticsData.timeline || [];
       if (!this.trackerSearch) return list;
       const q = this.trackerSearch.toLowerCase().trim();
@@ -1206,7 +1597,50 @@ export default {
     },
     yearOptions() {
       const y = new Date().getFullYear();
-      return [y - 2, y - 1, y];
+      const options = [];
+      for (let i = y - 5; i <= y + 1; i++) {
+        options.push(i);
+      }
+      return options;
+    },
+    chartTypeItems() {
+      return [
+        { value: 'area', label: this.$t('area_chart') || 'Area', icon: 'mdi-chart-areaspline' },
+        { value: 'bar', label: this.$t('bar_chart') || 'Bar', icon: 'mdi-chart-bar' },
+      ];
+    },
+    chartPeriodItems() {
+      return [
+        { value: 'daily', label: this.$t('daily') || 'Daily' },
+        { value: 'monthly', label: this.$t('monthly') || 'Monthly' },
+        { value: 'yearly', label: this.$t('yearly') || 'Yearly' },
+      ];
+    },
+    sectionViewItems() {
+      return [
+        { value: 'chart', label: this.$t('chart_view') || 'Chart', icon: 'mdi-chart-bar' },
+        { value: 'list', label: this.$t('list_view') || 'List', icon: 'mdi-format-list-bulleted' },
+      ];
+    },
+    corporalViewItems() {
+      return [
+        { value: 'chart', label: this.$t('chart_view') || 'Chart', icon: 'mdi-chart-bar' },
+        { value: 'list', label: this.$t('list_view') || 'List', icon: 'mdi-format-list-bulleted' },
+      ];
+    },
+    workforceLimitItems() {
+      return [
+        { value: 10, label: 'Top 10' },
+        { value: 25, label: 'Top 25' },
+        { value: 0, label: this.$t('all_available') || 'All' },
+      ];
+    },
+    trackerGranularityItems() {
+      return [
+        { value: 'daily', label: this.$t('daily') || 'Daily', icon: 'mdi-calendar-today' },
+        { value: 'monthly', label: this.$t('monthly') || 'Monthly', icon: 'mdi-calendar-month' },
+        { value: 'yearly', label: this.$t('yearly') || 'Yearly', icon: 'mdi-calendar' },
+      ];
     },
     currency() {
       return this.main.currency || 'DH';
@@ -1246,6 +1680,9 @@ export default {
       return `${this.$t('from') || 'From'} ${start} ${this.$t('to') || 'to'} ${end}`;
     },
     filteredWorkforces() {
+      if (this.workerFilteredWorkforces !== null) {
+        return this.workerFilteredWorkforces;
+      }
       const list = this.stats.workforces || [];
       if (!this.workforceSearch) return list;
       const q = this.workforceSearch.toLowerCase().trim();
@@ -1257,12 +1694,23 @@ export default {
       );
     },
     paginatedWorkforces() {
+      if (this.workerPaginatedWorkforces !== null) {
+        return this.workerPaginatedWorkforces;
+      }
       const list = this.filteredWorkforces;
       if (this.workforceLimit === 0) return list;
       return list.slice(0, this.workforceLimit);
     },
     // Main Trend Chart aggregation
     aggregatedChartData() {
+      if (
+        this.precomputedCharts &&
+        this.precomputedCharts[this.chartPeriod] &&
+        this.precomputedCharts[this.chartPeriod].length
+      ) {
+        return this.precomputedCharts[this.chartPeriod];
+      }
+
       const daily = this.stats.daily || [];
       if (!daily.length) return [];
 
@@ -1476,6 +1924,15 @@ export default {
     filterWorkforceIds() { this.loadStats(); },
     filterSectionIds() { this.loadStats(); },
     filterCorporalIds() { this.loadStats(); },
+    workforceSearch() {
+      this.scheduleWorkerFilterWorkforces();
+    },
+    workforceLimit() {
+      this.scheduleWorkerFilterWorkforces();
+    },
+    trackerSearch() {
+      this.scheduleWorkerFilterTimeline();
+    },
   },
   async mounted() {
     await Promise.all([
@@ -1490,10 +1947,20 @@ export default {
   },
   beforeUnmount() {
     clearTimeout(this._debounceTimer);
+    clearTimeout(this._wfSearchDebounce);
+    clearTimeout(this._trackerSearchDebounce);
     clearInterval(this.snackbarTimer);
+    if (this.workerTerminate) {
+      this.workerTerminate();
+    }
     mitt.off('model-changed', this.handleModelChanged);
   },
   methods: {
+    changeYear(delta) {
+      const next = this.selectedYear + delta;
+      if (next < 2020) return;
+      this.selectedYear = next;
+    },
     fmt(num) {
       if (this.main.formatDisplayNumber) return this.main.formatDisplayNumber(num);
       return Number(num || 0).toFixed(2);
@@ -1578,63 +2045,42 @@ export default {
         return this.activityStore.fetchStatistics({ ...baseParams, date_start: start, date_end: end });
       });
 
-      const results = await Promise.all(requests);
+      const rawResults = await Promise.all(requests);
 
-      const merged = { daily: [], sections: [], corporals: [], workforces: [], grand_total: 0, total_activities: 0 };
-      const sectionMap = {};
-      const corporalMap = {};
-      const workforceMap = {};
-      const dailyMap = {};
+      this.workerProcessing = true;
+      try {
+        const payload = {
+          action: 'aggregate',
+          results: JSON.parse(JSON.stringify(toRaw(rawResults))),
+          workforceSearch: this.workforceSearch,
+          workforceLimit: this.workforceLimit,
+        };
 
-      results.forEach(res => {
-        (res.daily || []).forEach(d => {
-          if (!dailyMap[d.date]) {
-            dailyMap[d.date] = { ...d };
-          } else {
-            dailyMap[d.date].total += d.total;
-            dailyMap[d.date].count += d.count;
+        let workerResult = null;
+        if (this.workerFn) {
+          try {
+            workerResult = await this.workerFn(payload);
+          } catch (workerErr) {
+            console.warn('[WorkforceStats] Worker error, falling back to sync:', workerErr);
+            workerResult = workerProcessWorkforceStats(payload);
           }
-        });
+        } else {
+          workerResult = workerProcessWorkforceStats(payload);
+        }
 
-        (res.sections || []).forEach(s => {
-          if (!sectionMap[s.id]) {
-            sectionMap[s.id] = { ...s };
-          } else {
-            sectionMap[s.id].total += s.total;
-            sectionMap[s.id].count += s.count;
-          }
-        });
+        if (workerResult && workerResult.stats) {
+          this.stats = workerResult.stats;
+          this.precomputedCharts = workerResult.precomputedCharts;
+          this.workerFilteredWorkforces = workerResult.filteredWorkforces;
+          this.workerPaginatedWorkforces = workerResult.paginatedWorkforces;
+        }
+      } catch (err) {
+        console.error('[WorkforceStats] Processing error:', err);
+      } finally {
+        this.workerProcessing = false;
+        this.loading = false;
+      }
 
-        (res.corporals || []).forEach(c => {
-          if (!corporalMap[c.id]) {
-            corporalMap[c.id] = { ...c };
-          } else {
-            corporalMap[c.id].total += c.total;
-            corporalMap[c.id].count += c.count;
-          }
-        });
-
-        (res.workforces || []).forEach(w => {
-          if (!workforceMap[w.id]) {
-            workforceMap[w.id] = { ...w };
-          } else {
-            workforceMap[w.id].total += w.total;
-            workforceMap[w.id].count += w.count;
-            workforceMap[w.id].work_days = (workforceMap[w.id].work_days || 0) + (w.work_days || 0);
-          }
-        });
-
-        merged.grand_total += res.grand_total || 0;
-        merged.total_activities += res.total_activities || 0;
-      });
-
-      merged.daily = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
-      merged.sections = Object.values(sectionMap).sort((a, b) => b.total - a.total);
-      merged.corporals = Object.values(corporalMap).sort((a, b) => b.total - a.total);
-      merged.workforces = Object.values(workforceMap).sort((a, b) => b.total - a.total);
-
-      this.stats = merged;
-      this.loading = false;
       this.loadMovementTracker();
     },
 
@@ -1665,11 +2111,81 @@ export default {
         }
 
         await this.movementStore.fetchStatisticsMovements(params);
+        this.scheduleWorkerFilterTimeline();
       } catch (e) {
         console.error('Failed to load movement tracker statistics:', e);
       } finally {
         this.trackerLoading = false;
       }
+    },
+
+    scheduleWorkerFilterWorkforces() {
+      clearTimeout(this._wfSearchDebounce);
+      this._wfSearchDebounce = setTimeout(async () => {
+        const all = this.stats.workforces || [];
+        if (!all.length) {
+          this.workerFilteredWorkforces = [];
+          this.workerPaginatedWorkforces = [];
+          return;
+        }
+        try {
+          const payload = {
+            action: 'filter_workforces',
+            allWorkforces: JSON.parse(JSON.stringify(toRaw(all))),
+            workforceSearch: this.workforceSearch,
+            workforceLimit: this.workforceLimit,
+          };
+          let res = null;
+          if (this.workerFn) {
+            try {
+              res = await this.workerFn(payload);
+            } catch (workerErr) {
+              res = workerProcessWorkforceStats(payload);
+            }
+          } else {
+            res = workerProcessWorkforceStats(payload);
+          }
+          if (res) {
+            this.workerFilteredWorkforces = res.filteredWorkforces;
+            this.workerPaginatedWorkforces = res.paginatedWorkforces;
+          }
+        } catch (err) {
+          console.warn('[WorkforceStats] Worker filter workforces error:', err);
+        }
+      }, 100);
+    },
+
+    scheduleWorkerFilterTimeline() {
+      clearTimeout(this._trackerSearchDebounce);
+      this._trackerSearchDebounce = setTimeout(async () => {
+        const list = this.movementStore.statisticsData?.timeline || [];
+        if (!list.length) {
+          this.workerFilteredTimeline = [];
+          return;
+        }
+        try {
+          const payload = {
+            action: 'filter_tracker_timeline',
+            trackerTimeline: JSON.parse(JSON.stringify(toRaw(list))),
+            trackerSearch: this.trackerSearch,
+          };
+          let res = null;
+          if (this.workerFn) {
+            try {
+              res = await this.workerFn(payload);
+            } catch (workerErr) {
+              res = workerProcessWorkforceStats(payload);
+            }
+          } else {
+            res = workerProcessWorkforceStats(payload);
+          }
+          if (res && res.filteredTrackerTimeline) {
+            this.workerFilteredTimeline = res.filteredTrackerTimeline;
+          }
+        } catch (err) {
+          console.warn('[WorkforceStats] Worker timeline filter error:', err);
+        }
+      }, 100);
     },
 
     /**
@@ -1786,8 +2302,9 @@ export default {
       }
     },
 
-    printPage() {
-      window.print();
+    printPage(view = null) {
+      this.printModalTargetView = view || 'full_summary';
+      this.printModalOpen = true;
     },
   },
 };
@@ -1928,8 +2445,60 @@ export default {
   border-top-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Year & Chart Toggles */
-.wfs-year-toggle,
+/* =========================================================
+   YEAR SWITCHER PILL (Supplier Settlement Style - 2nd Image)
+   ========================================================= */
+.wfs-year-pill {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #0056e6 0%, #009bf5 50%, #26afff 100%);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 9999px;
+  padding: 2px 6px;
+  box-shadow: 0 2px 10px rgba(230, 81, 0, 0.32);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.wfs-year-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(230, 81, 0, 0.45);
+}
+.wfs-year-btn {
+  color: #ffffff !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  border-radius: 50% !important;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.wfs-year-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  transform: scale(1.15);
+}
+.wfs-year-text {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffffff;
+  padding: 0 10px;
+  min-width: 50px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease;
+}
+.wfs-year-text:hover {
+  opacity: 0.92;
+}
+
+/* Dark mode adjustments */
+.wfs-dark .wfs-year-pill {
+  background: linear-gradient(135deg, #BF360C 0%, #E65100 50%, #F57C00 100%) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Chart Toggles */
 .wfs-chart-toggle {
   border-radius: 12px !important;
   border: 1px solid rgba(66, 165, 245, 0.3) !important;
@@ -1937,20 +2506,17 @@ export default {
   padding: 2px !important;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
 }
-.wfs-year-toggle .v-btn,
 .wfs-chart-toggle .v-btn {
   border-radius: 8px !important;
   border: none !important;
   text-transform: none !important;
   font-size: 11px !important;
 }
-.wfs-year-toggle .v-btn--active,
 .wfs-chart-toggle .v-btn--active {
   background: #1976D2 !important;
   color: #ffffff !important;
   box-shadow: 0 2px 6px rgba(25, 118, 210, 0.35) !important;
 }
-.wfs-dark .wfs-year-toggle,
 .wfs-dark .wfs-chart-toggle {
   background: #12151a !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
@@ -2217,8 +2783,9 @@ export default {
 @media print {
   .wfs-header,
   .wfs-month-grid,
-  .wfs-year-toggle,
+  .wfs-year-pill,
   .wfs-chart-toggle,
+  .segmented-pill-container,
   .v-btn,
   .wfs-search-field,
   .v-snackbar {

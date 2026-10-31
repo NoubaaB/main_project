@@ -16,6 +16,13 @@ class Supplier extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'enable_plafond' => 'boolean',
+        'block_on_plafond' => 'boolean',
+        'active_status' => 'boolean',
+        'plafond_amount' => 'float',
+    ];
+
     public function charges(): HasMany
     {
         return $this->hasMany(Charge::class);

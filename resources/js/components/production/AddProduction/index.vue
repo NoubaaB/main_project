@@ -472,6 +472,7 @@ export default {
     },
     canSubmit() {
       const p = this.prodStore.production;
+      if (this.prodStore.plafondCheckResult?.is_blocked) return false;
       return !!(p?.date && p?.production_category_id && p?.details?.length > 0);
     },
     descriptionLength() {

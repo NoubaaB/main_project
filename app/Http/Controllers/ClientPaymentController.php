@@ -150,12 +150,15 @@ class ClientPaymentController extends Controller
             $invoiceMap[$clientId][$month] = ($invoiceMap[$clientId][$month] ?? 0) + (float) $inv->total_price;
         }
 
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $monthExpr = $isSqlite ? "CAST(strftime('%m', date) AS INTEGER)" : "MONTH(date)";
+
         // Monthly payments per client
         $payments = DB::table('client_payments')
             ->whereYear('date', $year)
             ->whereNull('deleted_at')
-            ->select('client_id', DB::raw('MONTH(date) as month'), DB::raw('SUM(amount) as total'))
-            ->groupBy('client_id', DB::raw('MONTH(date)'))
+            ->select('client_id', DB::raw("{$monthExpr} as month"), DB::raw('SUM(amount) as total'))
+            ->groupBy('client_id', DB::raw($monthExpr))
             ->get();
 
         // Build balance matrix
@@ -236,7 +239,10 @@ class ClientPaymentController extends Controller
             ->merge($payments->keys())
             ->merge(array_keys($carryForward))
             ->unique();
-        $clients = DB::table('clients')->whereIn('id', $clientIds)->pluck('name', 'id');
+        $clientsData = DB::table('clients')->whereIn('id', $clientIds)
+            ->select('id', 'name', 'enable_plafond', 'plafond_amount', 'block_on_plafond', 'plafond_mode')
+            ->get()
+            ->keyBy('id');
 
         $summary = [];
         foreach ($clientIds as $cid) {
@@ -247,9 +253,14 @@ class ClientPaymentController extends Controller
             $payTotal = $payData ? (float) $payData->total_payments : 0;
             $payCount = $payData ? $payData->payment_count : 0;
             $cf = (float) ($carryForward[$cid] ?? 0);
+            $cData = $clientsData[$cid] ?? null;
             $summary[] = [
                 'client_id' => $cid,
-                'client_name' => $clients[$cid] ?? '—',
+                'client_name' => $cData->name ?? '—',
+                'enable_plafond' => (bool) ($cData->enable_plafond ?? false),
+                'plafond_amount' => $cData && $cData->plafond_amount !== null ? (float) $cData->plafond_amount : null,
+                'block_on_plafond' => (bool) ($cData->block_on_plafond ?? false),
+                'plafond_mode' => $cData->plafond_mode ?? 'monthly',
                 'carry_forward' => round($cf, 2),
                 'total_invoices' => round($invTotal, 2),
                 'total_payments' => round($payTotal, 2),

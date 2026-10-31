@@ -21,7 +21,7 @@
 
     <!-- Segment buttons -->
     <button
-      v-for="(item, idx) in items"
+      v-for="(item, idx) in resolvedItems"
       :key="item.value !== undefined ? item.value : idx"
       :ref="el => setButtonRef(el, item.value)"
       type="button"
@@ -41,7 +41,7 @@
       >
         {{ item.icon }}
       </v-icon>
-      <span class="segmented-pill-label">{{ item.label }}</span>
+      <span v-if="item.label" class="segmented-pill-label">{{ item.label }}</span>
       <span v-if="item.badge != null" class="segmented-pill-badge">{{ item.badge }}</span>
     </button>
   </div>
@@ -57,7 +57,10 @@ export default {
     },
     items: {
       type: Array,
-      required: true,
+      default: () => []
+    },
+    options: {
+      type: Array,
       default: () => []
     },
     color: {
@@ -84,14 +87,21 @@ export default {
     };
   },
   computed: {
+    resolvedItems() {
+      if (this.items && this.items.length) return this.items;
+      if (this.options && this.options.length) return this.options;
+      return [];
+    },
     containerStyle() {
       const c = this.color || '#1976D2';
+      const inactive = this.getInactiveColor(c);
       return {
         '--pill-accent': c,
         '--pill-container-bg': this.hexToRgba(c, 0.08),
         '--pill-container-border': this.hexToRgba(c, 0.28),
         '--pill-hover-bg': this.hexToRgba(c, 0.12),
-        '--pill-hover-color': c,
+        '--pill-hover-color': inactive,
+        '--pill-inactive-color': inactive,
       };
     }
   },
@@ -102,6 +112,14 @@ export default {
       });
     },
     items: {
+      deep: true,
+      handler() {
+        this.$nextTick(() => {
+          this.updateIndicator();
+        });
+      }
+    },
+    options: {
       deep: true,
       handler() {
         this.$nextTick(() => {
@@ -145,6 +163,35 @@ export default {
       const g = (num >> 8) & 255;
       const b = num & 255;
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    },
+    getInactiveColor(colorHex) {
+      if (!colorHex) return '#1565C0';
+      const clean = String(colorHex).toLowerCase();
+      // Match module theme colors to high-contrast, noticeable shades in light mode
+      const map = {
+        '#42a5f5': '#1565C0', // Workforce / Charge -> Rich royal cobalt blue matching description
+        '#1e88e5': '#0D47A1', // Workforce primary blue -> Deep navy blue
+        '#1976d2': '#0D47A1', // Primary blue -> Deep navy blue
+        '#1565c0': '#0D47A1',
+        '#0288d1': '#0369A1',
+        '#00897b': '#004D40', // Production teal -> Deep dark teal
+        '#26a69a': '#004D40',
+        '#4643a0': '#2E2A72', // Shipping -> Deep indigo
+        '#6c66bb': '#312E81',
+        '#7b1fa2': '#4A148C', // Corporal -> Deep rich royal purple
+        '#9c27b0': '#4A148C',
+        '#a21ee5': '#6B21A8', // Warehouse -> Deep royal purple
+        '#9742f5': '#581C87',
+        '#6d4c41': '#3E2723', // Inventory -> Deep rich espresso brown
+        '#8d6e63': '#4E342E',
+        '#f9a825': '#B45309', // Transfer -> Deep rich amber
+        '#f57f17': '#92400E',
+        '#e65100': '#9A3412', // Invoice -> Deep rich burnt orange
+        '#f57c00': '#C2410C',
+        '#388e3c': '#14532D', // Guano -> Deep forest green
+        '#546e7a': '#1E293B', // Package -> Deep slate
+      };
+      return map[clean] || '#1565C0';
     },
     setButtonRef(el, value) {
       if (el) {
@@ -212,6 +259,12 @@ export default {
   user-select: none;
   font-family: 'Inter', sans-serif;
   max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.segmented-pill-container::-webkit-scrollbar {
+  display: none;
 }
 
 .segmented-pill-container *,
@@ -253,6 +306,7 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   gap: 7px;
   background: transparent;
   border: none;
@@ -262,12 +316,16 @@ export default {
   font-family: inherit;
   font-weight: 600;
   font-size: 13px;
-  color: #475569;
+  color: var(--pill-inactive-color, #1565C0);
   padding: 0 16px;
   height: 32px;
   white-space: nowrap;
   letter-spacing: 0.15px;
   transition: color 0.22s ease, transform 0.15s ease;
+}
+
+.segmented-pill-btn:not(.is-active) {
+  color: var(--pill-inactive-color, #1565C0);
 }
 
 /* Fallback styling before indicator positions */
@@ -278,8 +336,8 @@ export default {
 }
 
 .segmented-pill-btn:hover:not(.is-active) {
-  color: var(--pill-hover-color, #1976D2);
-  background: var(--pill-hover-bg, rgba(66, 165, 245, 0.1));
+  color: var(--pill-hover-color, #0D47A1);
+  background: var(--pill-hover-bg, rgba(66, 165, 245, 0.12));
 }
 
 .segmented-pill-btn:active {
@@ -294,11 +352,11 @@ export default {
 .segmented-pill-icon {
   font-size: 16px;
   transition: transform 0.25s ease, color 0.25s ease;
-  color: #546E7A;
+  color: var(--pill-inactive-color, #1565C0);
 }
 
 .segmented-pill-btn:hover:not(.is-active) .segmented-pill-icon {
-  color: var(--pill-hover-color, #1976D2);
+  color: var(--pill-hover-color, #0D47A1);
 }
 
 .segmented-pill-btn.is-active .segmented-pill-icon {

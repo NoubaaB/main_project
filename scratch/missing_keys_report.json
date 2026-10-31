@@ -1,0 +1,231 @@
+{
+    "meta": [
+        "\\App.vue"
+    ],
+    "perm_group_": [
+        "\\components\\admin\\UserRoleManagement\\index.vue",
+        "\\components\\admin\\UserRoleManagement\\index.vue"
+    ],
+    "perm_": [
+        "\\components\\admin\\UserRoleManagement\\index.vue",
+        "\\components\\admin\\UserRoleManagement\\index.vue"
+    ],
+    ".ai-nav-btn": [
+        "\\components\\ai_prompt\\AiMessageBox.vue",
+        "\\components\\schema\\AiAssistant.vue"
+    ],
+    ".ai-confirm-btn": [
+        "\\components\\ai_prompt\\AiMessageBox.vue"
+    ],
+    "confirm-action": [
+        "\\components\\ai_prompt\\AiMessageBox.vue"
+    ],
+    ".ai-cancel-btn": [
+        "\\components\\ai_prompt\\AiMessageBox.vue"
+    ],
+    "cancel-action": [
+        "\\components\\ai_prompt\\AiMessageBox.vue"
+    ],
+    "xlsx": [
+        "\\components\\ai_prompt\\index.vue",
+        "\\components\\ai_prompt\\index.vue"
+    ],
+    "English": [
+        "\\components\\auth\\ProfileSettings\\index.vue"
+    ],
+    ".pa-3": [
+        "\\components\\charges\\AddCharge\\Charge.vue",
+        "\\components\\charges\\AddCharge\\Charge.vue"
+    ],
+    "update:modelValue": [
+        "\\components\\charges\\QualityControl\\QualityControlDialog.vue",
+        "\\components\\common\\SegmentedPillToggle.vue"
+    ],
+    "saved": [
+        "\\components\\charges\\QualityControl\\QualityControlDialog.vue",
+        "\\components\\OrderTransfer\\AddOrderTransfer.vue"
+    ],
+    "YYYY-MM-DD": [
+        "\\components\\ClientInvoice\\ViewClientInvoice\\ClientInvoiceController.vue",
+        "\\components\\ClientInvoice\\ViewClientInvoice\\ClientInvoiceController.vue"
+    ],
+    "YYYYMMDD_HHmmss": [
+        "\\components\\ClientInvoice\\ViewClientInvoice\\ClientInvoiceController.vue",
+        "\\components\\schema\\plugins\\DataTable.vue"
+    ],
+    "full": [
+        "\\components\\ClientPayment\\ClientSettlement\\index.vue",
+        "\\components\\SupplierPayment\\SupplierSettlement\\index.vue"
+    ],
+    "Q3": [
+        "\\components\\ClientPayment\\ClientSettlement\\index.vue",
+        "\\components\\SupplierPayment\\SupplierSettlement\\index.vue"
+    ],
+    "Q4": [
+        "\\components\\ClientPayment\\ClientSettlement\\index.vue",
+        "\\components\\SupplierPayment\\SupplierSettlement\\index.vue"
+    ],
+    "change": [
+        "\\components\\common\\SegmentedPillToggle.vue",
+        "\\components\\common\\TableColumnFilter.vue"
+    ],
+    "model-changed": [
+        "\\components\\inventory\\AddInventory\\InitWarehouseStock.vue",
+        "\\components\\inventory\\AddInventory\\InitWarehouseStock.vue"
+    ],
+    "edit-inventory": [
+        "\\components\\inventory\\AddInventory\\listScript.js"
+    ],
+    "update:periodicity": [
+        "\\components\\jupiter_dashboard\\JupiterDateRange.vue"
+    ],
+    "cancel-edit": [
+        "\\components\\OrderTransfer\\AddOrderTransfer.vue"
+    ],
+    "Radar": [
+        "\\components\\parameters\\ChartManagement\\ChartForm.vue"
+    ],
+    "fr-FR": [
+        "\\components\\parameters\\ClientManagement\\index.vue",
+        "\\components\\parameters\\SupplierManagement\\index.vue"
+    ],
+    "qc_grade_": [
+        "\\components\\production\\QualityControl\\QualityControlDialog.vue",
+        "\\components\\production\\QualityControl\\QualityControlDialog.vue"
+    ],
+    "qc_decision_": [
+        "\\components\\production\\QualityControl\\QualityControlDialog.vue",
+        "\\components\\production\\QualityControl\\QualityControlDialog.vue"
+    ],
+    "qc_": [
+        "\\components\\production\\QualityControl\\QualityControlDialog.vue",
+        "\\components\\production\\QualityControl\\QualityControlDialog.vue"
+    ],
+    "qc_approval_": [
+        "\\components\\production\\QualityControl\\QualityControlDialog.vue",
+        "\\components\\production\\ViewProduction\\index.vue"
+    ],
+    ".ai-msg-bubble": [
+        "\\components\\schema\\AiAssistant.vue"
+    ],
+    "canvas": [
+        "\\components\\schema\\NavigationDrawer.vue"
+    ],
+    "2d": [
+        "\\components\\schema\\NavigationDrawer.vue"
+    ],
+    "sync_items": [
+        "\\components\\schema\\plugins\\DataTable.vue"
+    ],
+    "__": [
+        "\\components\\schema\\plugins\\DataTable.vue"
+    ],
+    "sort": [
+        "\\components\\shared\\ColumnHeader.vue"
+    ],
+    "remove-sort": [
+        "\\components\\shared\\ColumnHeader.vue"
+    ],
+    "pin": [
+        "\\components\\shared\\ColumnHeader.vue"
+    ],
+    "issue_status_": [
+        "\\components\\shared\\RecordIssueDialog.vue"
+    ],
+    "issue-changed": [
+        "\\components\\shared\\RecordIssueDialog.vue",
+        "\\components\\shared\\RecordIssueDialog.vue"
+    ],
+    "2020-01-01": [
+        "\\components\\warehouses\\script.js",
+        "\\components\\warehouses\\script.js"
+    ],
+    "YYYYMMDD_HHmm": [
+        "\\components\\warehouses\\script.js"
+    ],
+    "textarea": [
+        "\\components\\warehouses\\script.js"
+    ],
+    "7J": [
+        "\\components\\warehouses\\script.js"
+    ],
+    "30J": [
+        "\\components\\warehouses\\script.js"
+    ],
+    "90J": [
+        "\\components\\warehouses\\script.js"
+    ],
+    "LT": [
+        "\\components\\warehouses\\WarehousePrintDialog.vue"
+    ],
+    "HH:mm": [
+        "\\components\\warehouses\\WarehousePrintDialog.vue"
+    ],
+    "data-loaded": [
+        "\\components\\warehouses\\WarehousePrintDialog.vue",
+        "\\components\\warehouses\\WarehousePrintDialog.vue"
+    ],
+    "view-change": [
+        "\\components\\warehouses\\WarehousePrintDialog.vue"
+    ],
+    "printed": [
+        "\\components\\warehouses\\WarehousePrintDialog.vue"
+    ],
+    "YYYY-MM-DD_HHmm": [
+        "\\components\\warehouses\\WarehousePrintDialog.vue"
+    ],
+    "transfer-deleted": [
+        "\\components\\warehouse_transfers\\AddWarehouseTransfer\\listScript.js"
+    ],
+    "click_to_view_day_activities": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "average_per_worker": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "add_new_activity_for_date": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "search_by_worker_or_section": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "try_adjusting_search": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "click_add_activity_to_start": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "delete_all_day_activities": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "iframe": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "activity_recorded": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "confirm_delete_all_day_activities": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "all_activities_deleted": [
+        "\\components\\workforce\\FortnightManagement\\index.vue"
+    ],
+    "div": [
+        "\\helpers\\dynamic-loader.js"
+    ],
+    "script": [
+        "\\helpers\\dynamic-loader.js"
+    ],
+    "DatePicker": [
+        "\\plugins\\create.js"
+    ],
+    "vue3-snackbar": [
+        "\\plugins\\create.js"
+    ],
+    "YYYY": [
+        "\\stores\\DashboardWaiter.js"
+    ],
+    "Page": [
+        "\\utils\\routeMetadata.js"
+    ]
+}

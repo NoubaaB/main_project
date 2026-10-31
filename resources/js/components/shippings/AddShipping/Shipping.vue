@@ -57,6 +57,7 @@
           prepend-inner-icon="mdi-account"
           density="compact" variant="outlined" rounded clearable
           color="#4643a0" class="text-shipping" hide-details
+          @update:modelValue="onClientChanged"
           @update:search="val => clientSearch = val"
           @keydown.enter.prevent="createClientIfNew"
         >
@@ -69,6 +70,33 @@
             </v-list-item>
           </template>
         </v-autocomplete>
+      </v-col>
+
+      <!-- Client Plafond Warning / Blocking Alert Banner -->
+      <v-col v-if="selectedCategory.enable_clients && shippingStore.plafondCheckResult?.is_reached" cols="12">
+        <v-alert
+          :color="shippingStore.plafondCheckResult.is_blocked ? 'error' : 'warning'"
+          variant="tonal"
+          rounded="lg"
+          density="comfortable"
+          :icon="shippingStore.plafondCheckResult.is_blocked ? 'mdi-cancel' : 'mdi-alert'"
+          class="font-weight-medium text-caption"
+        >
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+            <div>
+              <strong>{{ shippingStore.plafondCheckResult.is_blocked ? $t('credit_plafond_reached_blocked') : $t('credit_plafond_reached_warning') }}:</strong>
+              {{ shippingStore.plafondCheckResult.message }}
+            </div>
+            <v-chip
+              size="x-small"
+              :color="shippingStore.plafondCheckResult.is_blocked ? 'error' : 'warning'"
+              variant="flat"
+              class="font-weight-bold text-white"
+            >
+              {{ shippingStore.plafondCheckResult.is_blocked ? $t('creation_blocked') : $t('warning_only') }}
+            </v-chip>
+          </div>
+        </v-alert>
       </v-col>
 
       <!-- Origin -->
@@ -175,6 +203,7 @@ import { useShipping } from '@/stores/Shipping';
 import { useMain } from '@/stores/Main';
 import { useShippingCategory } from '@/stores/ShippingCategory';
 import { useAuth } from '@/stores/Auth';
+import { useClient } from '@/stores/Client';
 
 export default {
   name: 'ShippingForm',
@@ -325,6 +354,60 @@ export default {
         this.main.add_snackbar({ show: true, message: this.$t('truck_create_error'), color: 'error' });
       }
     },
+    async onClientChanged() {
+      await this.checkClientPlafond();
+    },
+    async checkClientPlafond() {
+      const clientId = this.shippingStore.shipping?.client_id;
+      if (!clientId) {
+        this.shippingStore.plafondCheckResult = null;
+        return;
+      }
+      const date = this.shippingStore.shipping?.date;
+      const amount = this.shippingStore.shipping?.total_price || 0;
+      try {
+        const res = await useClient().checkPlafond(clientId, date, amount);
+        this.shippingStore.plafondCheckResult = res;
+        if (res?.is_reached) {
+          if (res.is_blocked) {
+            this.main.add_snackbar({
+              show: true,
+              message: res.message || this.$t('client_credit_plafond_blocked_msg'),
+              color: 'error',
+            });
+          } else {
+            this.main.add_snackbar({
+              show: true,
+              message: res.message || this.$t('client_credit_plafond_warning_msg'),
+              color: 'warning',
+            });
+          }
+        }
+      } catch (e) {
+        console.error('[ShippingForm] Check client plafond failed:', e);
+      }
+    },
+  },
+  watch: {
+    'shippingStore.shipping.client_id'(newVal) {
+      if (newVal) this.checkClientPlafond();
+      else this.shippingStore.plafondCheckResult = null;
+    },
+    'shippingStore.shipping.total_price'(newVal, oldVal) {
+      if (newVal !== oldVal && this.shippingStore.shipping?.client_id) {
+        this.checkClientPlafond();
+      }
+    },
+    'shippingStore.shipping.date'(newVal, oldVal) {
+      if (newVal !== oldVal && this.shippingStore.shipping?.client_id) {
+        this.checkClientPlafond();
+      }
+    },
+  },
+  mounted() {
+    if (this.shippingStore.shipping?.client_id) {
+      this.checkClientPlafond();
+    }
   },
 };
 </script>

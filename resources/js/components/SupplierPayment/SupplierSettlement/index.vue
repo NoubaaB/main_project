@@ -562,7 +562,22 @@
             </thead>
             <tbody>
               <tr v-for="s in filteredYearSummary" :key="s.supplier_id" class="ss-row">
-                <td class="ss-td text-left font-weight-bold">{{ s.supplier_name }}</td>
+                <td class="ss-td text-left font-weight-bold">
+                  <div class="d-flex align-center ga-1">
+                    <span>{{ s.supplier_name }}</span>
+                    <v-chip
+                      v-if="s.enable_plafond"
+                      size="x-small"
+                      :color="s.balance >= s.plafond_amount ? 'error' : '#E65100'"
+                      variant="tonal"
+                      class="ml-1 font-weight-bold"
+                      :title="$t('debt_plafond')"
+                    >
+                      <v-icon start size="10">{{ s.balance >= s.plafond_amount ? 'mdi-alert' : 'mdi-shield-check' }}</v-icon>
+                      {{ main.formatDisplayNumber(s.plafond_amount) }}
+                    </v-chip>
+                  </div>
+                </td>
                 <td class="ss-td text-right font-monospace tabular-nums">{{ main.formatDisplayNumber(s.carry_forward) }}</td>
                 <td class="ss-td text-right text-deep-orange font-weight-medium font-monospace tabular-nums">{{ main.formatDisplayNumber(s.total_invoices) }}</td>
                 <td class="ss-td text-right text-teal font-weight-medium font-monospace tabular-nums">{{ main.formatDisplayNumber(s.total_payments) }}</td>

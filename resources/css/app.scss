@@ -21,19 +21,16 @@
 }
 
 .mdi-white-balance-sunny {
-    color: yellow !important;
+    color: #F59E0B !important;
 }
 
 .mdi-weather-night {
-    color: rgb(23, 167, 250) !important;
-}
-
-.v-icon--size-x-small {
-    font-size: large !important;
+    color: #60A5FA !important;
 }
 
 .v-text-field__prefix__text {
-    color: #2196F3 !important;
+    color: inherit;
+    opacity: 0.75;
 }
 
 // .swipe-modal-content>.panel {
@@ -62,29 +59,52 @@
 
 input[type="datetime-local"] {
     width: 200px;
-    /* Set the width */
-    padding: 8px;
-    /* Add padding */
-    border: 2px solid #22c1ff;
-    /* Add border */
-    border-radius: 20px;
-    /* Add border radius */
+    padding: 8px 12px;
+    border: 1.5px solid rgba(66, 165, 245, 0.4);
+    border-radius: 12px;
     box-sizing: border-box;
-    /* Ensure padding and border are included in width */
-    font-family: Arial, sans-serif;
-    /* Set font family */
-    font-size: 14px;
-    /* Set font size */
-    color: var(--inverse_theme);
-    /* Set text color */
-    background-color: var(--inverse_theme);
-    /* Set background color */
+    font-family: inherit;
+    font-size: 13px;
+    color: inherit;
+    background-color: transparent;
 }
 
 /* Optional: Style for placeholder text */
 input[type="datetime-local"]::placeholder {
     color: #999;
-    /* Set placeholder text color */
+}
+
+/* Global high-contrast theme typography & surface rules (vue-vuetify-design Section 10) */
+.theme-dark,
+.v-theme--dark {
+  color-scheme: dark;
+  --app-bg: #0B0F19;
+  --app-surface: #131B2E;
+  --app-surface-variant: #1E293B;
+  --app-text-primary: #F8FAFC;
+  --app-text-secondary: #94A3B8;
+  --app-text-muted: #64748B;
+  --app-border-color: rgba(255, 255, 255, 0.08);
+
+  // High-contrast text guards for dark surfaces
+  .text-slate-800,
+  .text-grey-darken-3,
+  .text-grey-darken-4,
+  .text-black {
+    color: #F8FAFC !important;
+  }
+}
+
+.theme-light,
+.v-theme--light {
+  color-scheme: light;
+  --app-bg: #F8FAFC;
+  --app-surface: #FFFFFF;
+  --app-surface-variant: #F1F5F9;
+  --app-text-primary: #0F172A;
+  --app-text-secondary: #475569;
+  --app-text-muted: #94A3B8;
+  --app-border-color: rgba(0, 0, 0, 0.08);
 }
 
 .fab_speed_dial {
@@ -294,4 +314,250 @@ input[type="number"],
   --vc-highlight-solid-content-color: #ffffff;
   --vc-dot-bg: #06b6d4;
   --vc-bar-bg: #06b6d4;
+}
+
+/* =========================================================================
+ * NAVIGATION DRAWER & GLOBAL OVERLAYS & TOOLTIPS (Theme & Contrast System)
+ * ========================================================================= */
+.pro-nav-tooltip,
+.v-overlay__content.pro-nav-tooltip,
+.cyber-tooltip-dark,
+.v-overlay__content.cyber-tooltip-dark {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  pointer-events: auto !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+.pro-nav-tooltip--light,
+.v-overlay__content.pro-nav-tooltip--light,
+.v-theme--light .pro-nav-tooltip,
+.pro-nav-tooltip.theme-light,
+.cyber-tooltip-light,
+.v-overlay__content.cyber-tooltip-light {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Base tooltip text defaults when not overridden by theme color */
+.pro-nav-tooltip .pro-tooltip-default-text {
+  color: #F8FAFC;
+}
+.pro-nav-tooltip--light .pro-tooltip-default-text,
+.v-theme--light .pro-nav-tooltip .pro-tooltip-default-text {
+  color: #0F172A;
+}
+
+/* ── Single Leaf & Sub-Nav Tooltip Card ── */
+.pro-single-tooltip-card,
+.pro-subnav-tooltip-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 14px !important;
+  min-height: 44px !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+}
+
+.pro-single-tooltip-icon-box {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.pro-tooltip-text-col {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+.pro-tooltip-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+.pro-tooltip-theme-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.15px !important;
+}
+
+.pro-tooltip-parent-tag {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  opacity: 0.9 !important;
+}
+
+.pro-subnav-tooltip-badge {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid transparent !important;
+  margin-left: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── Group Card (Parent Nav with Sub-Navs) ── */
+.pro-group-tooltip-card {
+  padding: 12px 14px !important;
+  min-width: 230px !important;
+  max-width: 300px !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+}
+
+.pro-group-tooltip-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-bottom: 9px !important;
+  border-bottom: 1px solid transparent !important;
+}
+
+.pro-group-tooltip-header-icon-box {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  border: 1px solid !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-title {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.15px !important;
+}
+
+.pro-group-tooltip-subtitle {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  margin-top: 1px !important;
+}
+
+.pro-group-tooltip-badge {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-divider {
+  width: 100% !important;
+  height: 1px !important;
+  border-top-width: 1px !important;
+  border-top-style: solid !important;
+  margin: 6px 0 8px 0 !important;
+}
+
+.pro-group-tooltip-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.pro-group-tooltip-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 7px 10px !important;
+  border-radius: 8px !important;
+  transition: background-color 0.14s ease, transform 0.14s ease !important;
+  text-decoration: none !important;
+}
+.pro-group-tooltip-item:hover {
+  background-color: var(--child-hover-bg, rgba(255, 255, 255, 0.08)) !important;
+  transform: translateX(3px) !important;
+}
+.pro-group-tooltip-item.is-active {
+  background-color: var(--child-active-bg, rgba(255, 255, 255, 0.14)) !important;
+}
+
+.pro-group-tooltip-child-icon {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-child-title {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.1px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex: 1 !important;
+}
+
+.pro-group-tooltip-active-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+.pro-group-tooltip-arrow {
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* Global Vuetify 3 generic tooltip content fallback */
+.v-theme--dark .v-tooltip > .v-overlay__content:not(.pro-nav-tooltip),
+.v-overlay.v-theme--dark .v-overlay__content.v-tooltip__content:not(.pro-nav-tooltip) {
+  color: #FFFFFF !important;
+  background: #0F172A !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+/* =========================================================================
+ * SEGMENTED PILL TOGGLE - LIGHT MODE NOTICEABLE INACTIVE BUTTONS
+ * Keeps font characteristics intact, applies visible theme matching color
+ * ========================================================================= */
+.v-theme--light .segmented-pill-container .segmented-pill-btn:not(.is-active),
+[data-theme="light"] .segmented-pill-container .segmented-pill-btn:not(.is-active),
+.theme-light .segmented-pill-container .segmented-pill-btn:not(.is-active) {
+  color: var(--pill-inactive-color, #1565C0);
+}
+
+.v-theme--light .segmented-pill-container .segmented-pill-btn:not(.is-active) .segmented-pill-icon,
+[data-theme="light"] .segmented-pill-container .segmented-pill-btn:not(.is-active) .segmented-pill-icon,
+.theme-light .segmented-pill-container .segmented-pill-btn:not(.is-active) .segmented-pill-icon {
+  color: var(--pill-inactive-color, #1565C0);
 }

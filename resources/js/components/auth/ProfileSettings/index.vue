@@ -108,7 +108,7 @@
                   prepend-icon="mdi-white-balance-sunny"
                   @click="setTheme(false)"
                 >
-                  Light
+                  {{ $t('light_mode') || 'Light' }}
                 </v-btn>
                 <v-btn
                   :variant="main.is_dark ? 'flat' : 'tonal'"
@@ -119,7 +119,7 @@
                   prepend-icon="mdi-weather-night"
                   @click="setTheme(true)"
                 >
-                  Dark
+                  {{ $t('dark_mode') || 'Dark' }}
                 </v-btn>
               </div>
             </div>

@@ -101,7 +101,15 @@
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
                 <template v-else-if="h.key==='_tracking_numbers'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_numbers||[])" :key="tn" size="x-small" color="#00838F" variant="tonal" class="fnm-currency-num">{{ tn }}</v-chip><span v-if="!(item.tracking_numbers||[]).length" class="text-grey">-</span></div></template>
                 <template v-else-if="h.key==='_type_invoice'"><v-chip size="x-small" :color="item._type_invoice==='export'?'warning':'info'" variant="tonal">{{ $t(item._type_invoice==='export'?'export_type':'local') }}</v-chip></template>
-                <template v-else-if="h.key==='_clients'">{{ item._clients }}</template>
+                <template v-else-if="h.key==='_clients'">
+                  <div class="d-flex align-center ga-1 justify-center">
+                    <span>{{ item._clients }}</span>
+                    <v-chip v-if="item.client?.enable_plafond" size="x-small" color="#00838F" variant="outlined" class="ml-1 font-weight-bold" :title="$t('credit_plafond')">
+                      <v-icon start size="10">mdi-shield-check</v-icon>
+                      {{ main.formatDisplayNumber(item.client.plafond_amount) }}
+                    </v-chip>
+                  </div>
+                </template>
                 <template v-else-if="h.key==='total_weight'"><span class="fnm-currency-num">{{ main.formatDisplayNumber(item.total_weight) }} Kg</span></template>
                 <template v-else-if="h.key==='total_price'"><span class="fnm-currency-num font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</span></template>
                 <template v-else-if="h.key==='print_counter'"><v-chip size="small" :color="item.print_counter>0?'success':'grey'" variant="tonal"><v-icon size="14" class="mr-1">mdi-printer</v-icon>{{ item.print_counter }}</v-chip></template>

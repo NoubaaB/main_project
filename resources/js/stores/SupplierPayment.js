@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+import { gqlGetSupplierPayments, gqlGetSupplierBalance, gqlGetSupplierYearSummary } from '@/services/appGraphql.js';
 
 export const useSupplierPayment = defineStore('supplierPayment', {
   state: () => ({
@@ -18,9 +19,15 @@ export const useSupplierPayment = defineStore('supplierPayment', {
   actions: {
     async fetchPayments(year) {
       this.loading = true;
+      const targetYear = year || this.currentYear;
       try {
-        const r = await axios.get('/api/supplier_payments', { params: { year: year || this.currentYear } });
-        this.payments = r.data.payments || [];
+        try {
+          this.payments = await gqlGetSupplierPayments(targetYear);
+        } catch (gqlErr) {
+          console.warn('[SupplierPaymentStore] GraphQL fetchPayments failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/supplier_payments', { params: { year: targetYear } });
+          this.payments = r.data.payments || [];
+        }
       } catch (e) { console.error(e) }
       this.loading = false;
     },
@@ -46,20 +53,37 @@ export const useSupplierPayment = defineStore('supplierPayment', {
     },
     async fetchBalance(year) {
       this.balanceLoading = true;
+      const targetYear = year || this.currentYear;
       try {
-        const r = await axios.get('/api/supplier_payments/balance', { params: { year: year || this.currentYear } });
-        this.balance = r.data.balance || [];
-        this.suppliers = r.data.suppliers || {};
-        this.carryForwardTotal = r.data.carry_forward_total || 0;
+        try {
+          const res = await gqlGetSupplierBalance(targetYear);
+          this.balance = res.balance || [];
+          this.suppliers = res.suppliers || {};
+          this.carryForwardTotal = res.carry_forward_total || 0;
+        } catch (gqlErr) {
+          console.warn('[SupplierPaymentStore] GraphQL fetchBalance failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/supplier_payments/balance', { params: { year: targetYear } });
+          this.balance = r.data.balance || [];
+          this.suppliers = r.data.suppliers || {};
+          this.carryForwardTotal = r.data.carry_forward_total || 0;
+        }
       } catch (e) { console.error(e) }
       this.balanceLoading = false;
     },
     async fetchYearSummary(year) {
       this.summaryLoading = true;
+      const targetYear = year || this.currentYear;
       try {
-        const r = await axios.get('/api/supplier_payments/year-summary', { params: { year: year || this.currentYear } });
-        this.yearSummary = r.data.summary || [];
-        this.currentClosing = r.data.closing || null;
+        try {
+          const res = await gqlGetSupplierYearSummary(targetYear);
+          this.yearSummary = res.summary || [];
+          this.currentClosing = res.closing || null;
+        } catch (gqlErr) {
+          console.warn('[SupplierPaymentStore] GraphQL fetchYearSummary failed, falling back to REST:', gqlErr);
+          const r = await axios.get('/api/supplier_payments/year-summary', { params: { year: targetYear } });
+          this.yearSummary = r.data.summary || [];
+          this.currentClosing = r.data.closing || null;
+        }
       } catch (e) { console.error(e) }
       this.summaryLoading = false;
     },
