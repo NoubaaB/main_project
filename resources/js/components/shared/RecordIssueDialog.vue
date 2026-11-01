@@ -61,6 +61,11 @@
           </div>
         </v-expand-transition>
 
+        <!-- Skeleton State -->
+        <div v-if="loading" class="pa-2">
+          <v-skeleton-loader type="list-item-avatar-three-line@3" class="app-skel-cell" />
+        </div>
+
         <!-- Open Issues Count Badge -->
         <div v-if="!loading && issues.length > 0" class="d-flex align-center mb-3">
           <v-chip size="small" :color="openCount > 0 ? 'error' : 'success'" variant="tonal" class="font-weight-bold mr-2">

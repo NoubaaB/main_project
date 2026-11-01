@@ -467,10 +467,19 @@
         </div>
       </v-card>
 
-      <!-- Table Loading State -->
-      <div v-if="lotsLoading" class="d-flex flex-column align-center justify-center pa-12 wh-table-card rounded-2xl border bg-surface">
-        <v-progress-circular indeterminate color="#a21ee5" size="52" width="4" />
-        <span class="text-caption text-medium-emphasis mt-3 font-weight-bold">{{ tLabel('loading', 'Chargement des numéros de suivi de réception...') }}</span>
+      <!-- Table Loading State: Realistic Skeleton Table -->
+      <div v-if="lotsLoading" class="wh-table-card rounded-2xl border bg-surface pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <v-skeleton-loader type="chip" width="160" class="app-skel-cell" />
+          <v-skeleton-loader type="button" width="100" class="app-skel-cell" />
+        </div>
+        <div v-for="sk in 6" :key="'lot-skel-' + sk" class="d-flex align-center ga-3 py-3 border-b">
+          <v-skeleton-loader type="avatar" width="24" height="24" class="app-skel-cell" />
+          <v-skeleton-loader type="chip" width="110" class="app-skel-cell" />
+          <v-skeleton-loader type="text" width="25%" class="app-skel-cell" />
+          <v-skeleton-loader type="text" width="20%" class="app-skel-cell" />
+          <v-skeleton-loader type="text" width="15%" class="app-skel-cell ml-auto" />
+        </div>
       </div>
 
       <!-- REDESIGNED PRACTICAL & SPACIOUS DATA TABLE -->
@@ -1647,10 +1656,22 @@
         </div>
       </v-card>
 
-      <!-- CONTINUOUS FULL TABLE WITH STICKY HEADER -->
-      <div v-if="journalLoading" class="d-flex flex-column align-center justify-center pa-12 wh-table-card rounded-2xl border bg-surface">
-        <v-progress-circular indeterminate color="#a21ee5" size="52" width="4" />
-        <span class="text-caption text-medium-emphasis mt-3 font-weight-bold">{{ tLabel('loading', 'Chargement des flux...') }}</span>
+      <!-- CONTINUOUS FULL TABLE SKELETON -->
+      <div v-if="journalLoading" class="wh-table-card rounded-2xl border bg-surface pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <v-skeleton-loader type="chip" width="180" class="app-skel-cell" />
+          <div class="d-flex ga-2">
+            <v-skeleton-loader type="button" width="90" class="app-skel-cell" />
+            <v-skeleton-loader type="button" width="90" class="app-skel-cell" />
+          </div>
+        </div>
+        <div v-for="sk in 6" :key="'jrn-skel-' + sk" class="d-flex align-center ga-3 py-3 border-b">
+          <v-skeleton-loader type="text" width="100" class="app-skel-cell" />
+          <v-skeleton-loader type="chip" width="90" class="app-skel-cell" />
+          <v-skeleton-loader type="text" width="30%" class="app-skel-cell" />
+          <v-skeleton-loader type="text" width="15%" class="app-skel-cell ml-auto" />
+          <v-skeleton-loader type="chip" width="80" class="app-skel-cell" />
+        </div>
       </div>
 
       <div v-else-if="filteredJournalList.length" class="wh-table-card wh-journal-scroll-container rounded-2xl border bg-surface">
@@ -2055,12 +2076,17 @@
         </v-expand-transition>
       </v-card>
 
-      <!-- Analytics Loading Spinner -->
-      <div v-if="analyticsLoading" class="d-flex flex-column align-center justify-center pa-12 wh-table-card rounded-2xl border bg-surface mb-4">
-        <v-progress-circular indeterminate color="#a21ee5" size="52" width="4" />
-        <span class="text-caption text-medium-emphasis mt-3 font-weight-bold">
-          {{ tLabel('loading_analytics', 'Calcul et agrégation des indicateurs analytiques en cours...') }}
-        </span>
+      <!-- Analytics Skeleton Cards & Charts -->
+      <div v-if="analyticsLoading" class="wh-table-card rounded-2xl border bg-surface pa-6 mb-4">
+        <v-row dense class="mb-4">
+          <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'an-kpi-skel-' + k">
+            <div class="pa-4 rounded-xl border bg-surface">
+              <v-skeleton-loader type="heading" class="app-skel-cell" />
+              <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-2" />
+            </div>
+          </v-col>
+        </v-row>
+        <v-skeleton-loader type="image" height="280" class="rounded-xl app-skel-transparent" />
       </div>
 
       <div v-else class="d-flex flex-column ga-4">
@@ -3060,11 +3086,10 @@
           </div>
         </v-card>
 
-        <!-- Loading State -->
-        <div v-if="traceabilityVouchersLoading" class="wh-panel-card pa-12 text-center rounded-2xl border bg-surface">
-          <v-progress-circular indeterminate color="#a21ee5" size="48" width="4" />
-          <div class="text-caption text-medium-emphasis mt-3 font-weight-bold">
-            {{ tLabel('loading_vouchers', 'Recherche des bons d\'entrée...') }}
+        <!-- Vouchers Loading State: Skeleton List -->
+        <div v-if="traceabilityVouchersLoading" class="wh-panel-card pa-4 rounded-2xl border bg-surface">
+          <div v-for="sk in 4" :key="'vouch-skel-' + sk" class="pa-3 mb-2 rounded-xl border">
+            <v-skeleton-loader type="list-item-avatar-two-line" class="app-skel-cell" />
           </div>
         </div>
 
@@ -3268,12 +3293,15 @@
           </div>
         </v-card>
 
-        <!-- Articles Loading State -->
-        <div v-if="traceabilityArticlesLoading" class="wh-panel-card pa-12 text-center rounded-2xl border bg-surface">
-          <v-progress-circular indeterminate color="#a21ee5" size="48" width="4" />
-          <div class="text-caption text-medium-emphasis mt-3 font-weight-bold">
-            {{ tLabel('loading_articles', 'Chargement des articles du bon...') }}
-          </div>
+        <!-- Articles Loading State: Skeleton Cards -->
+        <div v-if="traceabilityArticlesLoading" class="wh-panel-card pa-4 rounded-2xl border bg-surface">
+          <v-row dense>
+            <v-col cols="12" sm="6" md="4" v-for="sk in 6" :key="'tr-art-skel-' + sk">
+              <div class="pa-4 rounded-xl border bg-surface">
+                <v-skeleton-loader type="list-item-two-line" class="app-skel-cell" />
+              </div>
+            </v-col>
+          </v-row>
         </div>
 
         <!-- Articles Selection Cards Grid -->
@@ -3642,9 +3670,14 @@
       </div>
 
       <v-card-text class="pa-4 pa-md-5">
-        <div v-if="traceabilityLoading" class="d-flex flex-column align-center justify-center pa-12">
-          <v-progress-circular indeterminate color="#a21ee5" size="48" width="4" />
-          <span class="text-caption text-medium-emphasis mt-3 font-weight-bold">{{ tLabel('loading', 'Chargement de la traçabilité...') }}</span>
+        <div v-if="traceabilityLoading" class="pa-4">
+          <div v-for="sk in 4" :key="'tr-node-skel-' + sk" class="d-flex align-center ga-4 py-3 border-b">
+            <v-skeleton-loader type="avatar" width="40" height="40" class="app-skel-cell" />
+            <div class="flex-grow-1">
+              <v-skeleton-loader type="heading" width="35%" class="app-skel-cell" />
+              <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+            </div>
+          </div>
         </div>
 
         <div v-else-if="traceabilityData">

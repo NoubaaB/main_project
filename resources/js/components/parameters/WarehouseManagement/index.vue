@@ -45,6 +45,9 @@
             <v-btn color="#a21ee5" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openWarehouseDialog(null)">{{ $t('add_warehouse') }}</v-btn>
           </div>
           <v-data-table :headers="warehouseHeaders" :items="filteredWarehouses" :loading="loadingWarehouses ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            </template>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -87,6 +90,9 @@
             <v-btn color="#a21ee5" variant="flat" rounded="xl" height="38" prepend-icon="mdi-plus" class="param-add-btn text-white text-capitalize font-weight-bold px-4" @click="openCategoryDialog(null)">{{ $t('add_category') }}</v-btn>
           </div>
           <v-data-table :headers="categoryHeaders" :items="filteredCategories" :loading="loadingCategories ? '#a21ee5' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            </template>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="categoryColumnFilters[col.key]" :items="getCategoryColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
@@ -244,6 +250,9 @@
                 class="rounded-xl param-table mb-6"
                 hover
               >
+                <template v-slot:loading>
+                  <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+                </template>
                 <template v-slot:[`item.start_date`]="{ item }">
                   {{ main.formateDate(item.start_date) }}
                 </template>

@@ -18,9 +18,18 @@
       </div>
     </div>
 
-    <!-- Loading -->
-    <v-card-text v-if="loading" class="pa-10 text-center">
-      <v-progress-circular indeterminate color="#F9A825" size="48"></v-progress-circular>
+    <!-- Loading Skeleton -->
+    <v-card-text v-if="loading" class="pa-6">
+      <v-row>
+        <v-col cols="12" md="5" class="pa-4">
+          <v-skeleton-loader type="heading" class="app-skel-cell mb-4" />
+          <v-skeleton-loader type="text@4" class="app-skel-cell mb-4" />
+          <v-skeleton-loader type="button" class="app-skel-cell" />
+        </v-col>
+        <v-col cols="12" md="7" class="pa-4">
+          <v-skeleton-loader type="table-row@4" class="app-skel-cell" />
+        </v-col>
+      </v-row>
     </v-card-text>
 
     <!-- Edit Form -->

@@ -49,6 +49,9 @@
       </div>
 
       <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#388E3C' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+        <template v-slot:loading>
+          <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+        </template>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr><th v-for="col in columns" :key="col.key" class="param-th"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
           <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th"><v-autocomplete v-if="col.key !== 'actions'" v-model="columnFilters[col.key]" :items="getColumnOptions(col.key)" density="compact" variant="outlined" color="#388E3C" class="param-filter-input" style="color:#388E3C" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#388E3C" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>

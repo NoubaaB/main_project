@@ -15,7 +15,18 @@
     <!-- Record Issue Dialog -->
     <RecordIssueDialog v-model="issueDialog" record-type="Production" :record-id="Number($route.params.id)" module-color="#00897B" />
 
-    <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="#00897B"></v-progress-circular></v-card-text>
+    <v-card-text v-if="loading" class="pa-5">
+      <v-row class="mb-4">
+        <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'vp-skel-' + k">
+          <div class="info-card">
+            <v-skeleton-loader type="avatar" width="24" height="24" class="app-skel-cell mb-1" />
+            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mb-1" />
+            <v-skeleton-loader type="heading" width="80%" class="app-skel-cell" />
+          </div>
+        </v-col>
+      </v-row>
+      <v-skeleton-loader type="table-row@4" class="app-skel-cell" />
+    </v-card-text>
     <v-card-text v-else-if="production" class="pa-5">
       <v-row>
         <v-col cols="12" sm="6" md="3"><div class="info-card"><v-icon size="20" color="#00897B" class="mb-1">mdi-tag-outline</v-icon><div class="info-label">{{ $t('production_category') }}</div><div class="info-value">{{ production.production_category?.[`name_${lang}`] || production.production_category?.name || `#${production.production_category_id}` }}</div></div></v-col>

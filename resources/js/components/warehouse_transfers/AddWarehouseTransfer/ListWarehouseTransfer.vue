@@ -76,7 +76,18 @@
             </tr>
           </thead>
           <tbody>
-            <template v-for="item in colFilteredItems" :key="item.id">
+            <template v-if="loading">
+              <tr v-for="r in 6" :key="'wt-skel-' + r" class="lwt-row app-skeleton-table-row">
+                <td class="text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+                <td v-for="h in headers" :key="'wt-skel-' + h.key + '-' + r" class="text-center">
+                  <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === '_tracking' ? 'chip' : 'text'" class="app-skel-cell" />
+                </td>
+              </tr>
+            </template>
+            <template v-else-if="colFilteredItems.length === 0">
+              <tr><td :colspan="headers.length + 1" class="text-center pa-8 text-grey">{{ $t('no_data_available') }}</td></tr>
+            </template>
+            <template v-else v-for="item in colFilteredItems" :key="item.id">
               <tr class="lwt-row" :class="{selected:selected.includes(item.id)}">
                 <td class="text-center" :style="{position:'sticky',left:0,zIndex:1,background:main?.is_dark?'#1c1f28':'#F5F5F5'}"><v-checkbox-btn v-model="selected" :value="item.id" color="#F9A825" density="compact" hide-details></v-checkbox-btn></td>
                 <td v-for="h in headers" :key="h.key" class="text-center"

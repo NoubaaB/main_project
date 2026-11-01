@@ -131,8 +131,13 @@
 
       <!-- Content -->
       <v-card-text class="pa-4 audit-body-scroll" style="max-height: 560px; overflow-y: auto;">
+        <!-- Skeleton State -->
+        <div v-if="loading" class="pa-2">
+          <v-skeleton-loader type="list-item-avatar-three-line@4" class="app-skel-cell" />
+        </div>
+
         <!-- Empty state: No logs at all -->
-        <div v-if="!loading && logs.length === 0" class="d-flex flex-column align-center justify-center py-12" style="opacity: .6;">
+        <div v-else-if="logs.length === 0" class="d-flex flex-column align-center justify-center py-12" style="opacity: .6;">
           <div class="empty-icon-circle mb-3" :style="{ background: `${moduleColor}15` }">
             <v-icon size="48" :color="moduleColor">mdi-history</v-icon>
           </div>

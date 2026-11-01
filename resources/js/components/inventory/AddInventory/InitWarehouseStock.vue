@@ -188,14 +188,22 @@
             </div>
           </div>
 
-          <!-- Loading state -->
+          <!-- Loading state: Skeleton Preview Cards -->
           <div
             v-else-if="loadingPreview"
-            class="d-flex flex-column align-center justify-center flex-grow-1 pa-8"
+            class="flex-grow-1 d-flex flex-column pa-4"
           >
-            <v-progress-circular indeterminate color="#6D4C41" size="48" class="mb-3"></v-progress-circular>
-            <div class="text-caption font-weight-medium" style="color: #6D4C41">
-              {{ $t('calculating_cutoff_stock') || 'Calculating stock balances up to cutoff date...' }}
+            <v-row dense class="mb-3">
+              <v-col cols="4" v-for="k in 3" :key="'prv-kpi-skel-' + k">
+                <div class="pa-3 rounded-xl border bg-surface">
+                  <v-skeleton-loader type="heading" class="app-skel-cell" />
+                  <v-skeleton-loader type="text" width="50%" class="app-skel-cell mt-1" />
+                </div>
+              </v-col>
+            </v-row>
+            <div v-for="sk in 3" :key="'prv-wh-skel-' + sk" class="pa-4 mb-3 rounded-xl border bg-surface">
+              <v-skeleton-loader type="chip" width="140" class="app-skel-cell mb-2" />
+              <v-skeleton-loader type="table-row@3" class="app-skel-cell" />
             </div>
           </div>
 
@@ -332,7 +340,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="reset in stockResets" :key="'reset-' + reset.id">
+          <template v-if="loadingResets">
+            <tr v-for="sk in 3" :key="'rst-skel-' + sk">
+              <td v-for="c in 8" :key="'rst-c-' + c" class="pa-2">
+                <v-skeleton-loader type="text" class="app-skel-cell" />
+              </td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr v-for="reset in stockResets" :key="'reset-' + reset.id">
             <td class="font-weight-bold text-body-2">
               <v-icon size="16" color="#6D4C41" class="mr-1">mdi-calendar-check</v-icon>
               {{ formatDate(reset.reset_date) }}
@@ -380,6 +396,7 @@
               {{ $t('no_stock_resets_recorded') || 'No stock reset checkpoints recorded yet.' }}
             </td>
           </tr>
+          </template>
         </tbody>
       </v-table>
     </v-card>

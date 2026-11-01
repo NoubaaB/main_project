@@ -19,7 +19,21 @@
             </div>
           </div>
 
-          <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="#42A5F5"></v-progress-circular></v-card-text>
+          <v-card-text v-if="loading" class="pa-6">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-skeleton-loader type="text, text" class="app-skel-cell mb-4" />
+                <v-skeleton-loader type="heading" class="app-skel-cell" />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-skeleton-loader type="text, text" class="app-skel-cell mb-4" />
+                <v-skeleton-loader type="heading" class="app-skel-cell" />
+              </v-col>
+            </v-row>
+            <div class="mt-6">
+              <v-skeleton-loader type="table-heading, table-row@4" class="app-skel-cell" />
+            </div>
+          </v-card-text>
 
           <v-card-text v-else-if="chargeStore.charge">
             <!-- (1) Necessary Information -->

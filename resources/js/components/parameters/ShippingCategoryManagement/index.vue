@@ -58,6 +58,9 @@
         class="rounded-xl param-table"
         hover
       >
+        <template v-slot:loading>
+          <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+        </template>
         <!-- Custom headers with filter inputs -->
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>

@@ -23,7 +23,18 @@
     <!-- Record Issue Dialog -->
     <RecordIssueDialog v-model="issueDialog" record-type="Charge" :record-id="Number($route.params.id)" module-color="#42A5F5" />
 
-    <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="info"></v-progress-circular></v-card-text>
+    <v-card-text v-if="loading" class="pa-5">
+      <v-row class="mb-4">
+        <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'vc-skel-' + k">
+          <div class="info-card">
+            <v-skeleton-loader type="avatar" width="24" height="24" class="app-skel-cell mb-1" />
+            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mb-1" />
+            <v-skeleton-loader type="heading" width="80%" class="app-skel-cell" />
+          </div>
+        </v-col>
+      </v-row>
+      <v-skeleton-loader type="table-row@4" class="app-skel-cell" />
+    </v-card-text>
 
     <v-card-text v-else-if="charge" class="pa-5">
       <!-- Main info cards -->

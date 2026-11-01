@@ -162,10 +162,11 @@
       </v-card>
 
       <!-- Loading State -->
-      <div v-if="store.loading" class="d-flex flex-column align-center justify-center py-16">
-        <v-progress-circular indeterminate color="#0d9488" size="48" class="mb-3" />
-        <span class="text-caption text-medium-emphasis">{{ $t('loading') || 'Chargement des graphiques...' }}</span>
-      </div>
+      <v-row v-if="store.loading" class="mt-2">
+        <v-col v-for="i in 6" :key="'chart-skel-' + i" cols="12" md="6" lg="4">
+          <v-skeleton-loader type="image, article" class="app-skel-card rounded-xl" />
+        </v-col>
+      </v-row>
 
       <!-- Empty State -->
       <div v-else-if="!filteredCharts.length" class="empty-charts-card rounded-xl pa-12 text-center my-4">
@@ -363,6 +364,9 @@
           hover
           class="bg-transparent rounded-xl param-table"
         >
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+          </template>
           <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
             <tr>
               <th v-for="col in columns" :key="col.key" class="param-th">
@@ -586,9 +590,8 @@
         </div>
 
         <v-card-text class="param-dialog-body pa-4">
-          <div v-if="previewModal.loading" class="d-flex flex-column align-center justify-center py-12">
-            <v-progress-circular indeterminate color="#00BCD4" size="40" class="mb-3" />
-            <span class="text-caption text-medium-emphasis">{{ $t('loading') || 'Chargement des données...' }}</span>
+          <div v-if="previewModal.loading" class="pa-4">
+            <v-skeleton-loader type="image, article" class="app-skel-card rounded-xl" />
           </div>
           <template v-else>
             <ChartPreview

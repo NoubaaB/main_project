@@ -84,7 +84,14 @@
           </tr>
         </thead>
         <tbody>
-          <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="#00897B"></v-progress-circular></td></tr></template>
+          <template v-if="loading">
+            <tr v-for="r in 6" :key="'ot-skel-' + r" class="ot-row app-skeleton-table-row">
+              <td class="ot-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td v-for="h in headers" :key="'ot-skel-' + h.key + '-' + r" class="ot-td" :class="{'ot-col-pin': isPinned(h.key)}" :style="colPinStyle(h.key, 2)">
+                <v-skeleton-loader :type="h.key === 'transfer_number' ? 'chip' : 'text'" class="app-skel-cell" />
+              </td>
+            </tr>
+          </template>
           <template v-else v-for="item in colFilteredItems" :key="item.id">
             <tr class="ot-row">
               <td class="ot-td"><v-checkbox-btn :model-value="selectedIds.includes(item.id)" color="#00897B" density="compact" hide-details @update:model-value="toggleSelect(item.id)"></v-checkbox-btn></td>

@@ -4,11 +4,16 @@
       <!-- Invoice Document on Left -->
       <v-col class="invoice-content-col d-flex justify-center">
         <div id="invoice" class="invoice-width">
-          <SupplierInvoice
-            v-for="supplier_invoice in supplier_invoices"
-            :key="supplier_invoice.id"
-            :supplier_invoice_data="supplier_invoice"
-          />
+          <div v-if="loading" class="pa-8 bg-surface rounded-xl border">
+            <v-skeleton-loader type="article, table-heading, table-row@6, actions" class="app-skel-cell" />
+          </div>
+          <template v-else>
+            <SupplierInvoice
+              v-for="supplier_invoice in supplier_invoices"
+              :key="supplier_invoice.id"
+              :supplier_invoice_data="supplier_invoice"
+            />
+          </template>
         </div>
       </v-col>
 
@@ -28,7 +33,8 @@
     components: { SupplierInvoice, SupplierInvoiceContoller },
     data: function () {
       return {
-        supplier_invoices: []
+        supplier_invoices: [],
+        loading: false
       };
     },
     activated: function () {
@@ -42,16 +48,21 @@
     },
     methods: {
       get_supplier_invoices: async function () {
-        let ids = this.$route.query.ids;
-        if (typeof ids === 'string') {
-          try {
-            ids = JSON.parse(ids);
-          } catch (e) {
-            ids = ids.replace(/[\[\]]/g, '').split(',').map(s => Number(s.trim())).filter(Boolean);
+        this.loading = true;
+        try {
+          let ids = this.$route.query.ids;
+          if (typeof ids === 'string') {
+            try {
+              ids = JSON.parse(ids);
+            } catch (e) {
+              ids = ids.replace(/[\[\]]/g, '').split(',').map(s => Number(s.trim())).filter(Boolean);
+            }
           }
+          let data = await this.supplierInvoice.getSupplierInvoicesByIds(ids);
+          this.supplier_invoices = data;
+        } finally {
+          this.loading = false;
         }
-        let data = await this.supplierInvoice.getSupplierInvoicesByIds(ids);
-        this.supplier_invoices = data;
       },
     }
   }

@@ -89,7 +89,13 @@
           </th>
         </tr></thead>
         <tbody>
-          <template v-if="loading"><tr><td :colspan="headers.length" class="text-center pa-8"><v-progress-circular indeterminate color="#00897B"></v-progress-circular></td></tr></template>
+          <template v-if="loading">
+            <tr v-for="r in 6" :key="'cpm-skel-' + r" class="cpm-row app-skeleton-table-row">
+              <td v-for="h in headers" :key="'cpm-skel-' + h.key + '-' + r" class="cpm-td" :class="{'cpm-col-pin': isPinned(h.key)}" :style="colPinStyle(h.key, 2)">
+                <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
+              </td>
+            </tr>
+          </template>
           <template v-else v-for="item in colFilteredItems" :key="item.id">
             <tr class="cpm-row" :class="{'cpm-row-expanded':expanded[item.id]}">
               <td v-for="h in headers" :key="h.key" class="cpm-td" :class="{'cpm-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">

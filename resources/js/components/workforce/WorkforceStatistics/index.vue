@@ -391,11 +391,17 @@
               <v-icon color="#1976D2" size="22">mdi-cash-multiple</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val text-primary fnm-currency-num">{{ fmt(stats.grand_total) }} <span class="wfs-kpi-unit">{{ currency }}</span></div>
-          <div class="wfs-kpi-sub">
-            <v-icon size="13" color="#1976D2" class="mr-1">mdi-chart-line</v-icon>
-            <span>~ <span class="fnm-currency-num">{{ fmt(dailyAverage) }}</span> {{ currency }} {{ $t('avg_per_day') }}</span>
-          </div>
+          <template v-if="loading || workerProcessing">
+            <v-skeleton-loader type="heading" class="app-skel-cell" />
+            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+          </template>
+          <template v-else>
+            <div class="wfs-kpi-val text-primary fnm-currency-num">{{ fmt(stats.grand_total) }} <span class="wfs-kpi-unit">{{ currency }}</span></div>
+            <div class="wfs-kpi-sub">
+              <v-icon size="13" color="#1976D2" class="mr-1">mdi-chart-line</v-icon>
+              <span>~ <span class="fnm-currency-num">{{ fmt(dailyAverage) }}</span> {{ currency }} {{ $t('avg_per_day') }}</span>
+            </div>
+          </template>
         </div>
       </v-col>
 
@@ -409,11 +415,17 @@
               <v-icon color="#00897B" size="22">mdi-calendar-check-outline</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val fnm-currency-num" style="color: #00897B;">{{ stats.total_activities }}</div>
-          <div class="wfs-kpi-sub">
-            <v-icon size="13" color="#00897B" class="mr-1">mdi-calendar-range</v-icon>
-            <span><span class="fnm-currency-num">{{ stats.daily ? stats.daily.length : 0 }}</span> {{ $t('active_work_days') }}</span>
-          </div>
+          <template v-if="loading || workerProcessing">
+            <v-skeleton-loader type="heading" class="app-skel-cell" />
+            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+          </template>
+          <template v-else>
+            <div class="wfs-kpi-val fnm-currency-num" style="color: #00897B;">{{ stats.total_activities }}</div>
+            <div class="wfs-kpi-sub">
+              <v-icon size="13" color="#00897B" class="mr-1">mdi-calendar-range</v-icon>
+              <span><span class="fnm-currency-num">{{ stats.daily ? stats.daily.length : 0 }}</span> {{ $t('active_work_days') }}</span>
+            </div>
+          </template>
         </div>
       </v-col>
 
@@ -427,11 +439,17 @@
               <v-icon color="#E65100" size="22">mdi-sitemap-outline</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val fnm-currency-num" style="color: #E65100;">{{ stats.sections ? stats.sections.length : 0 }}</div>
-          <div class="wfs-kpi-sub" :title="topSectionInfo">
-            <v-icon size="13" color="#E65100" class="mr-1">mdi-trophy-outline</v-icon>
-            <span class="text-truncate">{{ topSectionInfo }}</span>
-          </div>
+          <template v-if="loading || workerProcessing">
+            <v-skeleton-loader type="heading" class="app-skel-cell" />
+            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+          </template>
+          <template v-else>
+            <div class="wfs-kpi-val fnm-currency-num" style="color: #E65100;">{{ stats.sections ? stats.sections.length : 0 }}</div>
+            <div class="wfs-kpi-sub" :title="topSectionInfo">
+              <v-icon size="13" color="#E65100" class="mr-1">mdi-trophy-outline</v-icon>
+              <span class="text-truncate">{{ topSectionInfo }}</span>
+            </div>
+          </template>
         </div>
       </v-col>
 
@@ -445,11 +463,17 @@
               <v-icon color="#7B1FA2" size="22">mdi-account-group-outline</v-icon>
             </div>
           </div>
-          <div class="wfs-kpi-val fnm-currency-num" style="color: #7B1FA2;">{{ stats.workforces ? stats.workforces.length : 0 }}</div>
-          <div class="wfs-kpi-sub">
-            <v-icon size="13" color="#7B1FA2" class="mr-1">mdi-account-tie</v-icon>
-            <span><span class="fnm-currency-num">{{ stats.corporals ? stats.corporals.length : 0 }}</span> {{ $t('corporals') }}</span>
-          </div>
+          <template v-if="loading || workerProcessing">
+            <v-skeleton-loader type="heading" class="app-skel-cell" />
+            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+          </template>
+          <template v-else>
+            <div class="wfs-kpi-val fnm-currency-num" style="color: #7B1FA2;">{{ stats.workforces ? stats.workforces.length : 0 }}</div>
+            <div class="wfs-kpi-sub">
+              <v-icon size="13" color="#7B1FA2" class="mr-1">mdi-account-tie</v-icon>
+              <span><span class="fnm-currency-num">{{ stats.corporals ? stats.corporals.length : 0 }}</span> {{ $t('corporals') }}</span>
+            </div>
+          </template>
         </div>
       </v-col>
     </v-row>

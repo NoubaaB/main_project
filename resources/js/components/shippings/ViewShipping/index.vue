@@ -15,7 +15,16 @@
     <!-- Record Issue Dialog -->
     <RecordIssueDialog v-model="issueDialog" record-type="Shipping" :record-id="Number($route.params.id)" module-color="#4643a0" />
 
-    <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="#4643a0"></v-progress-circular></v-card-text>
+    <v-card-text v-if="loading" class="pa-5">
+      <v-row>
+        <v-col v-for="i in 4" :key="i" cols="12" sm="6" md="3">
+          <v-skeleton-loader type="card" class="app-skel-card" />
+        </v-col>
+      </v-row>
+      <div class="mt-5">
+        <v-skeleton-loader type="table-heading, table-row@6" class="app-skel-cell" />
+      </div>
+    </v-card-text>
     <v-card-text v-else-if="shipping" class="pa-5">
       <v-row>
         <v-col cols="12" sm="6" md="3"><div class="info-card"><v-icon size="20" color="#4643a0" class="mb-1">mdi-tag-outline</v-icon><div class="info-label">{{ $t('shipping_category') }}</div><div class="info-value">{{ shipping.shipping_category?.[`name_${lang}`] || shipping.shipping_category?.name || '#' + shipping.shipping_category_id }}</div></div></v-col>

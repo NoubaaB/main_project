@@ -285,10 +285,9 @@
         </div>
       </div>
 
-      <!-- Section 4: Chart Display Canvas -->
-      <div v-if="loading && !categories.length" class="d-flex flex-column align-center justify-center py-16">
-        <v-progress-circular indeterminate color="#0891B2" size="44" width="4" />
-        <span class="text-caption text-medium-emphasis mt-3">{{ $t('loading') || 'Loading...' }}</span>
+      <!-- Section 4: Chart Skeleton Canvas -->
+      <div v-if="loading && !categories.length" class="pa-4">
+        <v-skeleton-loader type="image" height="340" class="rounded-2xl app-skel-transparent" />
       </div>
 
       <div v-else-if="!computedSeries.length" class="d-flex flex-column align-center justify-center py-16">

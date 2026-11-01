@@ -73,7 +73,8 @@
               <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
             </v-btn-toggle>
           </div>
-          <apexchart v-if="chartSeries[0].data.length" type="line" :height="260" :options="chartOptions" :series="chartSeries"></apexchart>
+          <v-skeleton-loader v-if="loading" type="image" height="260" class="rounded-xl app-skel-transparent" />
+          <apexchart v-else-if="chartSeries[0].data.length" type="line" :height="260" :options="chartOptions" :series="chartSeries"></apexchart>
           <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-line-variant</v-icon></div>
         </div>
       </v-col>
@@ -1018,7 +1019,14 @@
           </th>
         </tr></thead>
         <tbody>
-          <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="#42A5F5"></v-progress-circular></td></tr></template>
+          <template v-if="loading">
+            <tr v-for="r in 8" :key="'lc-skel-' + r" class="lc-row app-skeleton-table-row">
+              <td class="lc-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td v-for="h in headers" :key="'lc-skel-' + h.key + '-' + r" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed}" :style="colPinStyle(h.key, 2)">
+                <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
+              </td>
+            </tr>
+          </template>
           <template v-else-if="colFilteredItems.length === 0"><tr><td :colspan="headers.length+1" class="text-center pa-8 text-grey">{{ $t('no_data_available') }}</td></tr></template>
           <template v-else>
             <tr v-if="virtualTopHeight > 0" class="virtual-spacer-row" :style="{ height: virtualTopHeight + 'px' }">

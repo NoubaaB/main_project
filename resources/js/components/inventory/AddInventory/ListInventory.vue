@@ -88,7 +88,14 @@
           </th>
         </tr></thead>
         <tbody>
-          <template v-if="loading"><tr><td :colspan="headers.length+1" class="text-center pa-8"><v-progress-circular indeterminate color="#6D4C41"></v-progress-circular></td></tr></template>
+          <template v-if="loading">
+            <tr v-for="r in 6" :key="'inv-skel-' + r" class="li-row app-skeleton-table-row">
+              <td class="li-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td v-for="h in headers" :key="'inv-skel-' + h.key + '-' + r" class="li-td" :class="{'li-col-pin': isPinned(h.key)}" :style="colPinStyle(h.key, 2)">
+                <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'tracking_number' ? 'chip' : 'text'" class="app-skel-cell" />
+              </td>
+            </tr>
+          </template>
           <template v-else v-for="item in colFilteredItems" :key="item.id">
             <tr class="li-row" :class="{'li-row-expanded':expanded[item.id]}">
               <td class="li-td li-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="#6D4C41" density="compact" hide-details></v-checkbox-btn></td>

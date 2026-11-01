@@ -32,6 +32,9 @@
       </div>
 
       <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#a21ee5' : false" density="comfortable" class="rounded-xl param-table" hover>
+        <template v-slot:loading>
+          <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+        </template>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>
             <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">

@@ -46,6 +46,9 @@
           </div>
 
           <v-data-table :headers="familyHeaders" :items="filteredFamilies" :loading="loadingFamilies ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            </template>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>
                 <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
@@ -99,6 +102,9 @@
           </div>
 
           <v-data-table :headers="typeHeaders" :items="filteredTypes" :loading="loadingTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            </template>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>
                 <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
@@ -181,6 +187,9 @@
           </div>
 
           <v-data-table :headers="processHeaders" :items="filteredProcessTypes" :loading="loadingProcessTypes ? '#1565C0' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            </template>
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>
                 <th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}">
@@ -608,6 +617,9 @@
             class="rounded-xl param-table"
             hover
           >
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            </template>
             <template v-slot:[`item.warehouse`]="{ item }">
               <span class="font-weight-bold">{{ item.warehouse ? item.warehouse.name : '-' }}</span>
             </template>

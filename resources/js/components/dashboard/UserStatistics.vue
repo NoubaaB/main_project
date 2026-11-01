@@ -126,10 +126,24 @@
     </v-card-text>
   </v-card>
 
-  <!-- Loading State -->
-  <div v-if="loading && !stats" class="d-flex flex-column align-center justify-center py-16">
-    <v-progress-circular indeterminate color="#2563EB" size="52" width="4" />
-    <span class="text-body-2 text-medium-emphasis mt-3">{{ $t('loading') }}...</span>
+  <!-- Loading Skeleton State -->
+  <div v-if="loading && !stats" class="py-4">
+    <v-row dense class="mb-4">
+      <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'usr-skel-kpi-' + k">
+        <div class="pa-4 rounded-2xl border bg-surface">
+          <v-skeleton-loader type="heading" class="app-skel-cell" />
+          <v-skeleton-loader type="text" width="55%" class="app-skel-cell mt-2" />
+        </div>
+      </v-col>
+    </v-row>
+    <v-row dense>
+      <v-col cols="12" md="6" v-for="c in 2" :key="'usr-skel-c-' + c">
+        <div class="pa-4 rounded-2xl border bg-surface">
+          <v-skeleton-loader type="chip" width="120" class="app-skel-cell mb-3" />
+          <v-skeleton-loader type="image" height="260" class="rounded-xl app-skel-transparent" />
+        </div>
+      </v-col>
+    </v-row>
   </div>
 
   <template v-else-if="stats">

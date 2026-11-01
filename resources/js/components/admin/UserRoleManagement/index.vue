@@ -190,6 +190,9 @@
       class="rounded-lg border"
       hover
     >
+      <template v-slot:loading>
+        <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+      </template>
       <template v-slot:[`item.name`]="{ item }">
         <div class="d-flex align-center ga-2 py-1">
           <v-avatar size="32" color="rgba(173, 20, 87, 0.12)">
@@ -255,6 +258,9 @@
       class="rounded-lg border"
       hover
     >
+      <template v-slot:loading>
+        <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+      </template>
       <template v-slot:[`item.name`]="{ item }">
         <div class="d-flex align-center ga-2 py-1">
           <v-avatar size="32" :color="item.is_super_admin ? 'rgba(173, 20, 87, 0.15)' : 'rgba(21, 101, 192, 0.12)'">

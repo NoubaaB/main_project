@@ -130,6 +130,9 @@
             fixed-header
             :height="tableHeight"
           >
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            </template>
             <!-- Custom headers with integrated column filters -->
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
               <tr>

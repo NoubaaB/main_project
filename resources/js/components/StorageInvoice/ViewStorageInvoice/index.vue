@@ -16,7 +16,21 @@
     </div>
   </div>
 
-  <v-card-text v-if="loading" class="pa-10 text-center"><v-progress-circular indeterminate color="#a21ee5"></v-progress-circular></v-card-text>
+  <v-card-text v-if="loading" class="pa-5">
+    <v-row dense class="mb-4">
+      <v-col v-for="i in 4" :key="'top-' + i" cols="12" sm="6" md="3">
+        <v-skeleton-loader type="card" class="app-skel-card" />
+      </v-col>
+    </v-row>
+    <v-row dense class="mb-4">
+      <v-col v-for="i in 4" :key="'mid-' + i" cols="6" md="3">
+        <v-skeleton-loader type="card" class="app-skel-card" />
+      </v-col>
+    </v-row>
+    <div class="mt-4">
+      <v-skeleton-loader type="table-heading, table-row@6" class="app-skel-cell" />
+    </div>
+  </v-card-text>
 
   <v-card-text v-else-if="invoice" class="pa-5">
     <!-- Info Cards -->

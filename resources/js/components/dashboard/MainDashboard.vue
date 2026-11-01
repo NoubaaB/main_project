@@ -123,10 +123,28 @@
       </v-card-text>
     </v-card>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="d-flex flex-column align-center justify-center py-16">
-      <v-progress-circular indeterminate color="#00838F" size="48" width="4" />
-      <span class="text-caption text-medium-emphasis mt-3">{{ $t('loading') || 'Loading charts...' }}</span>
+    <!-- Loading State: Dashboard Skeleton Cards & Charts Grid -->
+    <div v-if="loading" class="py-4">
+      <v-row dense class="mb-2">
+        <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'mdb-stat-skel-' + k">
+          <div class="pa-4 rounded-2xl border bg-surface">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <v-skeleton-loader type="chip" width="100" class="app-skel-cell" />
+              <v-skeleton-loader type="avatar" width="32" height="32" class="app-skel-cell" />
+            </div>
+            <v-skeleton-loader type="heading" width="70%" class="app-skel-cell" />
+          </div>
+        </v-col>
+        <v-col cols="12" md="6" v-for="c in 2" :key="'mdb-chart-skel-' + c">
+          <div class="pa-4 rounded-2xl border bg-surface">
+            <div class="d-flex align-center justify-space-between mb-4">
+              <v-skeleton-loader type="chip" width="140" class="app-skel-cell" />
+              <v-skeleton-loader type="button" width="80" class="app-skel-cell" />
+            </div>
+            <v-skeleton-loader type="image" height="260" class="rounded-xl app-skel-transparent" />
+          </div>
+        </v-col>
+      </v-row>
     </div>
 
     <!-- No Charts State -->
@@ -215,9 +233,7 @@
             <v-divider class="my-2 border-dashed opacity-50" />
 
             <!-- Chart Body -->
-            <div v-if="!chartDataMap[chart.id]" class="d-flex justify-center align-center py-12">
-              <v-progress-circular indeterminate color="#00838F" size="36" width="3" />
-            </div>
+            <v-skeleton-loader v-if="!chartDataMap[chart.id]" type="image" height="320" class="rounded-xl app-skel-transparent pt-2" />
             <div v-else class="chart-preview-wrapper pt-2">
               <ChartPreview
                 :chart-config="chart"

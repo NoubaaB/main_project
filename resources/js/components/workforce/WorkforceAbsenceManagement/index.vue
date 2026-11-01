@@ -195,6 +195,9 @@
           hover
           class="wam-table"
         >
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+          </template>
           <!-- Headers Slot with Sorting and Column Multiselect Filter Row -->
           <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
             <tr class="wam-header-row">
@@ -1037,9 +1040,8 @@
         <v-divider></v-divider>
 
         <v-card-text class="pa-4">
-          <div v-if="movementStore.history.loading" class="text-center pa-6">
-            <v-progress-circular indeterminate color="#1565C0" size="32"></v-progress-circular>
-            <div class="mt-2 text-caption text-medium-emphasis">{{ $t('loading_history') }}...</div>
+          <div v-if="movementStore.history.loading" class="pa-2">
+            <v-skeleton-loader type="list-item-avatar-two-line@4" class="app-skel-cell" />
           </div>
 
           <div v-else-if="!movementStore.history.movements.length" class="text-center pa-8 text-grey">

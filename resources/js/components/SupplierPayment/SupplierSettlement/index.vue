@@ -198,8 +198,10 @@
         </v-btn>
       </div>
 
-      <div v-if="yearInvoicesLoading || store.loading" class="text-center pa-10">
-        <v-progress-circular indeterminate color="#E65100" size="44" width="3"></v-progress-circular>
+      <div v-if="yearInvoicesLoading || store.loading" class="d-flex flex-column ga-3 pa-4">
+        <div v-for="sk in 6" :key="'ss-month-skel-' + sk" class="ss-month-row pa-3 rounded-xl border">
+          <v-skeleton-loader type="list-item-avatar-two-line" class="app-skel-cell" />
+        </div>
       </div>
 
       <template v-else>

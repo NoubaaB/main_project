@@ -4,11 +4,16 @@
       <!-- Invoice Document on Left -->
       <v-col class="invoice-content-col d-flex justify-center">
         <div id="invoice" class="invoice-width">
-          <ClientInvoice
-            v-for="client_invoice in client_invoices"
-            :key="client_invoice.id"
-            :client_invoice_data="client_invoice"
-          />
+          <div v-if="loading" class="pa-8 bg-surface rounded-xl border">
+            <v-skeleton-loader type="article, table-heading, table-row@6, actions" class="app-skel-cell" />
+          </div>
+          <template v-else>
+            <ClientInvoice
+              v-for="client_invoice in client_invoices"
+              :key="client_invoice.id"
+              :client_invoice_data="client_invoice"
+            />
+          </template>
         </div>
       </v-col>
 
@@ -28,7 +33,8 @@
     components: { ClientInvoice, ClientInvoiceController },
     data: function () {
       return {
-        client_invoices: []
+        client_invoices: [],
+        loading: false
       };
     },
     activated: function () {
@@ -42,16 +48,21 @@
     },
     methods: {
       get_client_invoices: async function () {
-        let ids = this.$route.query.ids;
-        if (typeof ids === 'string') {
-          try {
-            ids = JSON.parse(ids);
-          } catch (e) {
-            ids = ids.replace(/[\[\]]/g, '').split(',').map(s => Number(s.trim())).filter(Boolean);
+        this.loading = true;
+        try {
+          let ids = this.$route.query.ids;
+          if (typeof ids === 'string') {
+            try {
+              ids = JSON.parse(ids);
+            } catch (e) {
+              ids = ids.replace(/[\[\]]/g, '').split(',').map(s => Number(s.trim())).filter(Boolean);
+            }
           }
+          let data = await this.clientInvoice.getClientInvoicesByIds(ids);
+          this.client_invoices = data;
+        } finally {
+          this.loading = false;
         }
-        let data = await this.clientInvoice.getClientInvoicesByIds(ids);
-        this.client_invoices = data;
       },
     }
   }

@@ -561,3 +561,30 @@ input[type="number"],
 .theme-light .segmented-pill-container .segmented-pill-btn:not(.is-active) .segmented-pill-icon {
   color: var(--pill-inactive-color, #1565C0);
 }
+
+/* =========================================================================
+ * GLOBAL SKELETON LOADER UTILITIES (Vuetify 3 v-skeleton-loader)
+ * Seamless Shimmer & Theme Support Across All Application Sections
+ * ========================================================================= */
+.app-skeleton-table-row {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+.app-skeleton-table-row td {
+  padding: 8px 12px !important;
+}
+.app-skel-cell {
+  background: transparent !important;
+}
+.app-skel-cell .v-skeleton-loader__text,
+.app-skel-cell .v-skeleton-loader__bone {
+  margin: 0 !important;
+}
+.app-skel-transparent {
+  background: transparent !important;
+}
+.app-skel-card {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
