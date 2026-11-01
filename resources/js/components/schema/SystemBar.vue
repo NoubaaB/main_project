@@ -393,7 +393,7 @@
 
         <!-- Fallback non-interactive breadcrumb if no siblings -->
         <div v-else-if="currentContext" class="systembar-context-pill d-none d-sm-flex" :style="contextStyle">
-          <v-icon size="17" class="mr-1.5" :style="{ color: currentContext.color }">{{ currentContext.icon }}</v-icon>
+          <v-icon size="17" class="mr-2" :style="{ color: currentContext.color }">{{ currentContext.icon }}</v-icon>
           <span class="context-section">{{ currentContext.section }}</span>
           <v-icon size="14" class="context-separator mx-1 text-medium-emphasis">mdi-chevron-right</v-icon>
           <span class="context-page">{{ currentContext.title }}</span>
