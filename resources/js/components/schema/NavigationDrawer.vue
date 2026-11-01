@@ -13,6 +13,8 @@
       main.is_dark ? 'drawer-theme-dark' : 'drawer-theme-light',
       main.sidebar_mini ? 'drawer-is-rail' : 'drawer-is-expanded'
     ]"
+    :title="main.sidebar_mini ? t('expand_sidebar') : undefined"
+    @click="handleDrawerClick"
   >
     <!-- ============================================================
          1. BRAND & SYSTEM HEADER
@@ -200,7 +202,7 @@
               class="pro-nav-item pro-ai-card cursor-pointer"
               :class="{ 'is-active': isRouteActive(item.url) }"
               :style="getItemAccentStyle(item)"
-              @click.stop="navigateTo(item.url)"
+              @click.stop="handleLeafNavClick(item)"
             >
               <div class="pro-item-active-bar" :style="{ backgroundColor: item.color }"></div>
               <div class="pro-icon-box pro-ai-icon-box">
@@ -274,7 +276,7 @@
               class="pro-nav-item cursor-pointer"
               :class="{ 'is-active': isRouteActive(item.url) }"
               :style="getItemAccentStyle(item)"
-              @click.stop="item.url && navigateTo(item.url)"
+              @click.stop="handleLeafNavClick(item)"
             >
               <div class="pro-item-active-bar" :style="{ backgroundColor: item.color }"></div>
               <div
@@ -444,7 +446,7 @@
                           '--child-hover-bg': hexToRgba(getChildColor(child, item), main.is_dark ? 0.18 : 0.1),
                           '--child-active-bg': hexToRgba(getChildColor(child, item), main.is_dark ? 0.25 : 0.15)
                         }"
-                        @click.stop="navigateTo(child[2])"
+                        @click.stop="handleTooltipChildClick(child[2])"
                       >
                         <!-- Child Icon in original theme color -->
                         <div
@@ -506,7 +508,7 @@
                   :key="'rail-sub-' + msIdx"
                   class="pro-rail-sub-item cursor-pointer"
                   :class="{ 'is-active': isRouteActive(child[2]) }"
-                  @click.stop="navigateTo(child[2])"
+                  @click.stop="handleRailSubItemClick(child[2])"
                 >
                   <div
                     class="pro-rail-sub-icon-box"
@@ -614,7 +616,6 @@
          4. USER PROFILE & FOOTER AREA
          ============================================================ -->
     <div class="pro-footer-area">
-      <div class="pro-nav-divider mx-3 mb-2"></div>
       <div class="pro-user-row cursor-pointer" @click.stop="handleProfileClick">
         <v-avatar size="34" class="pro-user-avatar">
           <span class="pro-avatar-initials">{{ userInitials }}</span>
@@ -1049,7 +1050,50 @@ export default {
       }
     }
   },
+  mounted() {
+    document.addEventListener('click', this.handleOutsideClick, true);
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleOutsideClick, true);
+  },
   methods: {
+    handleOutsideClick(event) {
+      // Only collapse if the drawer is currently open/expanded
+      if (this.main.sidebar_mini) return;
+
+      const target = event.target;
+      if (!target) return;
+
+      // 1. Direct ref or root element check
+      const drawerEl = this.$refs.drawerRoot?.$el || this.$el;
+      if (drawerEl && (drawerEl === target || drawerEl.contains(target))) {
+        return;
+      }
+
+      // 2. Composed path check (supports deep shadow DOM and portals)
+      if (typeof event.composedPath === 'function') {
+        const path = event.composedPath();
+        if (drawerEl && path.includes(drawerEl)) return;
+        if (path.some(el => el && el.classList && (
+          el.classList.contains('pro-nav-drawer') ||
+          el.classList.contains('systembar-nav-toggle-btn') ||
+          el.classList.contains('pro-nav-tooltip')
+        ))) {
+          return;
+        }
+      }
+
+      // 3. Class-based element ancestry fallback
+      if (target.closest) {
+        if (target.closest('.pro-nav-drawer')) return;
+        if (target.closest('.systembar-nav-toggle-btn')) return;
+        if (target.closest('.pro-nav-tooltip')) return;
+      }
+
+      // Outside click detected -> collapse/close navigation drawer
+      this.main.sidebar_mini = true;
+    },
+
     t(key) {
       const fallbacks = {
         core_analytics: this.lang === 'es' ? 'Analítica e IA' : this.lang === 'fr' ? 'Analytique et IA' : 'Analytics & AI',
@@ -1073,6 +1117,12 @@ export default {
         if (val && val !== key) return val;
       }
       return fallbacks[key] || this.$t(key);
+    },
+
+    handleDrawerClick() {
+      if (this.main.sidebar_mini) {
+        this.main.sidebar_mini = false;
+      }
     },
 
     toggleSidebar() {
@@ -1103,7 +1153,41 @@ export default {
       }
     },
 
+    handleLeafNavClick(item) {
+      if (this.main.sidebar_mini) {
+        this.main.sidebar_mini = false;
+      }
+      if (item && item.url) {
+        this.navigateTo(item.url);
+      }
+    },
+
+    handleRailSubItemClick(url) {
+      if (this.main.sidebar_mini) {
+        this.main.sidebar_mini = false;
+      }
+      if (url) {
+        this.navigateTo(url);
+      }
+    },
+
+    handleTooltipChildClick(url) {
+      if (this.main.sidebar_mini) {
+        this.main.sidebar_mini = false;
+      }
+      if (url) {
+        this.navigateTo(url);
+      }
+    },
+
     handleGroupClick(groupId) {
+      if (this.main.sidebar_mini) {
+        this.main.sidebar_mini = false;
+        if (!this.persistedExpandedGroups.includes(groupId)) {
+          this.persistedExpandedGroups.push(groupId);
+        }
+        return;
+      }
       this.toggleGroup(groupId);
     },
 
@@ -1550,7 +1634,7 @@ export default {
  * 3. NAVIGATION LIST (Scroll Area)
  * ========================================================================= */
 .pro-nav-scroll-area {
-  padding: 4px 8px 12px;
+  padding: 4px 8px 75px;
   overflow-y: auto;
   overflow-x: hidden;
   height: calc(100% - 150px);
@@ -1837,11 +1921,25 @@ export default {
  * 4. USER PROFILE & FOOTER
  * ========================================================================= */
 .pro-footer-area {
-  padding: 4px 8px 10px;
+  padding: 8px 8px 10px;
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
+  z-index: 10;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-theme-dark .pro-footer-area {
+  background-color: #0B0F19 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.drawer-theme-light .pro-footer-area {
+  background-color: #FFFFFF !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.04);
 }
 
 .pro-user-row {
@@ -1923,6 +2021,17 @@ export default {
 /* =========================================================================
  * RAIL MODE RULES (Zero-Jank GPU Transforms)
  * ========================================================================= */
+.drawer-is-rail {
+  cursor: pointer;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.drawer-is-rail:hover {
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+}
+.drawer-theme-dark.drawer-is-rail:hover {
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35);
+}
+
 .drawer-is-rail .pro-brand-text-block,
 .drawer-is-rail .pro-collapse-btn,
 .drawer-is-rail .pro-item-label-wrap,

@@ -1,32 +1,33 @@
 <?php
-require 'vendor/autoload.php';
-$app = require_once 'bootstrap/app.php';
-$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+require __DIR__ . '/../vendor/autoload.php';
+$app = require __DIR__ . '/../bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use Illuminate\Support\Facades\DB;
 
-$orphanClientBills = DB::select("
-    SELECT COUNT(DISTINCT bill_id) as cnt FROM (
-        SELECT bill_id FROM villamar.ventes WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bills)
-        UNION
-        SELECT bill_id FROM villamar.congelation_clients WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bills)
-        UNION
-        SELECT bill_id FROM villamar.guano_usines WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bills)
-    ) as orphans
-")[0]->cnt;
-echo "Client bill_ids with no row in villamar.bills: {$orphanClientBills}\n";
+$allBP = DB::select("SELECT id, types_sortie FROM villamar.bill_providers");
+$bpInFrais = DB::select("SELECT DISTINCT bill_id FROM villamar.frais WHERE is_facture = 1 AND bill_id IS NOT NULL");
+$bpInCong = DB::select("SELECT DISTINCT bill_id FROM villamar.congelations WHERE is_facture = 1 AND bill_id IS NOT NULL");
+$bpInCongeles = DB::select("SELECT DISTINCT bill_id FROM villamar.congeles WHERE is_facture = 1 AND bill_id IS NOT NULL");
+$bpInAF = DB::select("SELECT DISTINCT bill_id FROM villamar.achat_frais WHERE is_facture = 1 AND bill_id IS NOT NULL");
+$bpInGuanos = DB::select("SELECT DISTINCT bill_id FROM villamar.guanos WHERE is_facture = 1 AND bill_id IS NOT NULL");
+$bpInEmb = DB::select("SELECT DISTINCT bill_id FROM villamar.emballages WHERE is_facture = 1 AND bill_id IS NOT NULL");
 
-$orphanSupplierBills = DB::select("
-    SELECT COUNT(DISTINCT bill_id) as cnt FROM (
-        SELECT bill_id FROM villamar.frais WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bill_providers)
-        UNION
-        SELECT bill_id FROM villamar.congelations WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bill_providers)
-        UNION
-        SELECT bill_id FROM villamar.congeles WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bill_providers)
-        UNION
-        SELECT bill_id FROM villamar.achat_frais WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bill_providers)
-        UNION
-        SELECT bill_id FROM villamar.guanos WHERE is_facture = 1 AND bill_id > 0 AND bill_id NOT IN (SELECT id FROM villamar.bill_providers)
-    ) as orphans
-")[0]->cnt;
-echo "Supplier bill_ids with no row in villamar.bill_providers: {$orphanSupplierBills}\n";
+$set = array_flip(array_merge(
+    array_column($bpInFrais, 'bill_id'),
+    array_column($bpInCong, 'bill_id'),
+    array_column($bpInCongeles, 'bill_id'),
+    array_column($bpInAF, 'bill_id'),
+    array_column($bpInGuanos, 'bill_id'),
+    array_column($bpInEmb, 'bill_id')
+));
+
+$orphanBP = 0;
+foreach ($allBP as $b) {
+    if (!isset($set[$b->id])) {
+        $orphanBP++;
+    }
+}
+
+echo "Total bill_providers: " . count($allBP) . "\n";
+echo "Orphan bill_providers: $orphanBP\n";

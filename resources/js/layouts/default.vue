@@ -71,8 +71,7 @@
       },
       methods: {
         collapseSidebar() {
-          // Only auto-collapse when clicking content on mobile/tablet viewports (< 1024px)
-          if (window.innerWidth < 1024 && !this.main.sidebar_mini) {
+          if (!this.main.sidebar_mini) {
             this.main.sidebar_mini = true;
           }
         }

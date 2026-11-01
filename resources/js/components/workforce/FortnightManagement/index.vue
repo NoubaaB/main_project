@@ -396,7 +396,7 @@
         </v-col>
 
         <!-- ============= RIGHT PANEL - CALENDAR ============= -->
-        <v-col cols="12" md="9">
+        <v-col cols="12" md="9" class="fnm-cal-col">
           <v-card elevation="0" class="rounded-2xl border fnm-cal-card bg-surface">
             <!-- Calendar Header -->
             <div class="fnm-cal-header">
@@ -456,126 +456,134 @@
             </div>
 
             <!-- Calendar Grid -->
-            <div class="fnm-cal-grid">
-              <!-- Day of week headers -->
-              <div class="fnm-cal-dow" v-for="d in dayLabels" :key="d">{{ d }}</div>
+            <div class="fnm-cal-grid-wrapper">
+              <div class="fnm-cal-grid">
+                <!-- Day of week headers -->
+                <div class="fnm-cal-dow" v-for="d in dayLabels" :key="d">{{ d }}</div>
 
-              <!-- Calendar cells -->
-              <div
-                v-for="(cell, idx) in calendarCells"
-                :key="idx"
-                class="fnm-cal-cell"
-                :class="{
-                  'fnm-cal-cell--empty': !cell.day,
-                  'fnm-cal-cell--today': cell.isToday,
-                  'fnm-cal-cell--outside': cell.isOutside,
-                  'fnm-cal-cell--future': cell.isFuture,
-                  'fnm-cal-cell--multi': cell.activities && cell.activities.length >= 2,
-                  'fnm-cal-cell--active-half': cell.inActiveHalf,
-                  'fnm-cal-cell--summary': cell.isSummary,
-                  'fnm-cal-cell--ms-selected': multiSelectMode && selectedDates.includes(cell.dateStr)
-                }"
-                @click="cell.day && !cell.isOutside && !cell.isFuture ? handleCellClick(cell) : null"
-              >
-                <div v-if="cell.day" class="fnm-cal-day-header">
-                  <div class="fnm-cal-day-num" :class="{ 'fnm-cal-day-selected': isSelectedDate(cell) }">
-                    {{ cell.day }}
-                    <span v-if="cell.monthLabel" class="fnm-cal-month-label">{{ cell.monthLabel }}</span>
+                <!-- Calendar cells -->
+                <div
+                  v-for="(cell, idx) in calendarCells"
+                  :key="idx"
+                  class="fnm-cal-cell"
+                  :class="{
+                    'fnm-cal-cell--empty': !cell.day,
+                    'fnm-cal-cell--today': cell.isToday,
+                    'fnm-cal-cell--outside': cell.isOutside,
+                    'fnm-cal-cell--future': cell.isFuture,
+                    'fnm-cal-cell--multi': cell.activities && cell.activities.length >= 2,
+                    'fnm-cal-cell--active-half': cell.inActiveHalf,
+                    'fnm-cal-cell--summary': cell.isSummary,
+                    'fnm-cal-cell--ms-selected': multiSelectMode && selectedDates.includes(cell.dateStr)
+                  }"
+                  @click="cell.day && !cell.isOutside && !cell.isFuture ? handleCellClick(cell) : null"
+                >
+                  <div v-if="cell.day" class="fnm-cal-day-header">
+                    <div class="fnm-cal-day-num" :class="{ 'fnm-cal-day-selected': isSelectedDate(cell) }">
+                      {{ cell.day }}
+                      <span v-if="cell.monthLabel" class="fnm-cal-month-label">{{ cell.monthLabel }}</span>
+                    </div>
+                    <!-- Cell header actions: View Day Detail + Delete cell -->
+                    <div class="fnm-cell-header-actions" v-if="cell.activities && cell.activities.length && !cell.isOutside && !cell.isFuture">
+                      <v-btn
+                        icon
+                        size="18"
+                        variant="text"
+                        color="primary"
+                        class="fnm-cell-view-btn"
+                        @click.stop="openDayDetail(cell)"
+                      >
+                        <v-icon size="14">mdi-eye-outline</v-icon>
+                        <v-tooltip activator="parent" location="top">{{ $t('click_to_view_day_activities') || 'View day activities' }}</v-tooltip>
+                      </v-btn>
+
+                      <v-btn
+                        icon
+                        size="18"
+                        variant="text"
+                        color="error"
+                        class="fnm-cell-delete-btn"
+                        @click.stop="deleteCellActivities(cell)"
+                        :loading="deletingCell === cell.dateStr"
+                      >
+                        <v-icon size="14">mdi-delete-outline</v-icon>
+                        <v-tooltip activator="parent" location="top">{{ $t('delete_all_cell_activities') }}</v-tooltip>
+                      </v-btn>
+                    </div>
                   </div>
-                  <!-- Cell header actions: View Day Detail + Delete cell -->
-                  <div class="fnm-cell-header-actions" v-if="cell.activities && cell.activities.length && !cell.isOutside && !cell.isFuture">
-                    <v-btn
-                      icon
-                      size="18"
-                      variant="text"
-                      color="primary"
-                      class="fnm-cell-view-btn"
+
+                  <!-- Activities in cell (normal mode: workforce selected) -->
+                  <div v-if="cell.activities && cell.activities.length && !cell.isSummary" class="fnm-cal-activities">
+                    <div
+                      v-for="act in cell.activities.slice(0, 3)"
+                      :key="act.id"
+                      class="fnm-cal-activity-pill"
+                      :class="getActTypeClass(act)"
+                      @click.stop="openDayDetail(cell, act)"
+                    >
+                      <span class="fnm-pill-badge" :title="act.workforce ? act.workforce.full_name : ''">
+                        <v-icon v-if="act.is_fixed_price" size="10">mdi-cash-lock</v-icon>
+                        <v-icon v-else-if="act.section" size="10">mdi-sitemap-outline</v-icon>
+                        <v-icon v-else size="10">mdi-account-tie</v-icon>
+                      </span>
+                      <div class="fnm-pill-info">
+                        <span v-if="act.workforce" class="fnm-pill-worker">{{ getWorkforceInitials(act.workforce) }}</span>
+                        <span class="fnm-pill-price">{{ formatNumber(act.price) }} {{ main.currency || 'Dh' }}</span>
+                      </div>
+
+                      <!-- Quick Action Buttons on hover -->
+                      <div class="fnm-pill-actions">
+                        <v-btn
+                          icon
+                          size="14"
+                          variant="flat"
+                          color="primary"
+                          class="fnm-pill-act-btn"
+                          @click.stop="editActivity(act)"
+                          :title="$t('edit') || 'Edit'"
+                        >
+                          <v-icon size="9">mdi-pencil</v-icon>
+                        </v-btn>
+                        <v-btn
+                          icon
+                          size="14"
+                          variant="flat"
+                          color="error"
+                          class="fnm-pill-act-btn ml-0.5"
+                          @click.stop="deleteActivity(act)"
+                          :title="$t('delete') || 'Delete'"
+                        >
+                          <v-icon size="9">mdi-close</v-icon>
+                        </v-btn>
+                      </div>
+                    </div>
+
+                    <!-- "+X more" Pill -->
+                    <div
+                      v-if="cell.activities.length > 3"
+                      class="fnm-cal-more-pill"
                       @click.stop="openDayDetail(cell)"
                     >
-                      <v-icon size="14">mdi-eye-outline</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('click_to_view_day_activities') || 'View day activities' }}</v-tooltip>
-                    </v-btn>
-
-                    <v-btn
-                      icon
-                      size="18"
-                      variant="text"
-                      color="error"
-                      class="fnm-cell-delete-btn"
-                      @click.stop="deleteCellActivities(cell)"
-                      :loading="deletingCell === cell.dateStr"
-                    >
-                      <v-icon size="14">mdi-delete-outline</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('delete_all_cell_activities') }}</v-tooltip>
-                    </v-btn>
-                  </div>
-                </div>
-
-                <!-- Activities in cell (normal mode: workforce selected) -->
-                <div v-if="cell.activities && cell.activities.length && !cell.isSummary" class="fnm-cal-activities">
-                  <div
-                    v-for="act in cell.activities.slice(0, 3)"
-                    :key="act.id"
-                    class="fnm-cal-activity-pill"
-                    :class="getActTypeClass(act)"
-                    @click.stop="openDayDetail(cell, act)"
-                  >
-                    <span class="fnm-pill-badge" :title="act.workforce ? act.workforce.full_name : ''">
-                      <v-icon v-if="act.is_fixed_price" size="10">mdi-cash-lock</v-icon>
-                      <v-icon v-else-if="act.section" size="10">mdi-sitemap-outline</v-icon>
-                      <v-icon v-else size="10">mdi-account-tie</v-icon>
-                    </span>
-                    <div class="fnm-pill-info">
-                      <span v-if="act.workforce" class="fnm-pill-worker">{{ getWorkforceInitials(act.workforce) }}</span>
-                      <span class="fnm-pill-price">{{ formatNumber(act.price) }} Dh</span>
-                    </div>
-
-                    <!-- Quick Action Buttons on hover -->
-                    <div class="fnm-pill-actions">
-                      <v-btn
-                        icon
-                        size="14"
-                        variant="flat"
-                        color="primary"
-                        class="fnm-pill-act-btn"
-                        @click.stop="editActivity(act)"
-                        :title="$t('edit') || 'Edit'"
-                      >
-                        <v-icon size="9">mdi-pencil</v-icon>
-                      </v-btn>
-                      <v-btn
-                        icon
-                        size="14"
-                        variant="flat"
-                        color="error"
-                        class="fnm-pill-act-btn ml-0.5"
-                        @click.stop="deleteActivity(act)"
-                        :title="$t('delete') || 'Delete'"
-                      >
-                        <v-icon size="9">mdi-close</v-icon>
-                      </v-btn>
+                      +{{ cell.activities.length - 3 }} {{ $t('more') }}
                     </div>
                   </div>
 
-                  <!-- "+X more" Pill -->
-                  <div
-                    v-if="cell.activities.length > 3"
-                    class="fnm-cal-more-pill"
-                    @click.stop="openDayDetail(cell)"
-                  >
-                    +{{ cell.activities.length - 3 }} {{ $t('more') }}
-                  </div>
-                </div>
-
-                <!-- Summary mode: no workforce selected - show aggregated total -->
-                <div v-if="cell.isSummary && cell.summaryData" class="fnm-cal-activities">
-                  <div class="fnm-summary-chip" @click.stop="openDayDetail(cell)">
-                    <div class="fnm-summary-chip-left">
-                      <v-icon size="13" color="white">mdi-sigma</v-icon>
-                      <span class="fnm-summary-amount">{{ formatNumber(cell.summaryData.total_price) }} Dh</span>
-                      <span class="fnm-summary-count">({{ cell.summaryData.count }})</span>
+                  <!-- Summary mode: no workforce selected - show aggregated total -->
+                  <div v-if="cell.isSummary && cell.summaryData" class="fnm-cal-activities">
+                    <div class="fnm-summary-chip" @click.stop="openDayDetail(cell)">
+                      <div class="fnm-summary-chip-amount-row">
+                        <span class="fnm-summary-sigma">Σ</span>
+                        <span class="fnm-summary-amount">{{ formatNumber(cell.summaryData.total_price) }}</span>
+                        <span class="fnm-summary-currency">{{ main.currency || 'Dh' }}</span>
+                      </div>
+                      <div class="fnm-summary-chip-meta-row">
+                        <span class="fnm-summary-count-badge">
+                          <v-icon size="10" color="white" class="mr-0.5">mdi-account-multiple</v-icon>
+                          {{ cell.summaryData.count }}
+                        </span>
+                        <v-icon size="11" class="fnm-summary-arrow">mdi-chevron-right</v-icon>
+                      </div>
                     </div>
-                    <v-icon size="13" class="fnm-summary-arrow">mdi-chevron-right</v-icon>
                   </div>
                 </div>
               </div>
@@ -5702,9 +5710,10 @@ export default {
 .fnm-currency-num { font-family: 'JetBrains Mono', 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
 .text-workforce { color: #42A5F5 !important; }
 
-/* Calendar Header & Grid */
-.fnm-cal-card { border-color: rgba(var(--v-border-color), .12) !important; }
-.fnm-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid rgba(var(--v-border-color), .1); }
+/* Calendar Column, Header & Grid */
+.fnm-cal-col { min-width: 0; }
+.fnm-cal-card { border-color: rgba(var(--v-border-color), .12) !important; width: 100%; min-width: 0; overflow: hidden; }
+.fnm-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid rgba(var(--v-border-color), .1); min-width: 0; gap: 10px; flex-wrap: wrap; }
 .fnm-cal-title { font-size: 16px; font-weight: 700; }
 .fnm-segmented-toggle { border-color: rgba(66,165,245,.25) !important; }
 
@@ -5765,11 +5774,57 @@ export default {
 }
 
 /* Calendar Grid */
-.fnm-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
-.fnm-cal-dow { padding: 10px 4px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .6; border-bottom: 1px solid rgba(var(--v-border-color), .08); }
+.fnm-cal-grid-wrapper {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.fnm-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.fnm-cal-dow {
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  opacity: .6;
+  border-bottom: 1px solid rgba(var(--v-border-color), .08);
+  border-right: 1px solid rgba(var(--v-border-color), .04);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fnm-cal-dow:nth-child(7n) {
+  border-right: none;
+}
 
 /* Calendar Cells */
-.fnm-cal-cell { min-height: 94px; border: 1px solid rgba(var(--v-border-color), .06); padding: 5px; position: relative; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.fnm-cal-cell {
+  min-height: 94px;
+  border-right: 1px solid rgba(var(--v-border-color), .06);
+  border-bottom: 1px solid rgba(var(--v-border-color), .06);
+  padding: 5px 6px;
+  position: relative;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.fnm-cal-cell:nth-child(7n) {
+  border-right: none;
+}
 .fnm-cal-cell:hover { background: rgba(66,165,245,.04); }
 .fnm-cal-cell--empty { background: transparent; cursor: default; }
 .fnm-cal-cell--outside { opacity: .25; cursor: default; }
@@ -5779,14 +5834,39 @@ export default {
 .fnm-cal-cell--active-half { background-color: rgba(66,165,245,.015); border-color: rgba(66,165,245,.14); }
 
 /* Day header: number + delete button */
-.fnm-cal-day-header { display: flex; align-items: center; justify-content: space-between; }
-.fnm-cal-day-num { font-size: 12px; font-weight: 700; padding: 2px 7px; display: inline-block; border-radius: 8px; }
+.fnm-cal-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 3px;
+}
+.fnm-cal-day-num {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
 .fnm-cal-day-selected { background: #42A5F5 !important; color: #fff !important; box-shadow: 0 2px 6px rgba(66,165,245,.35); }
-.fnm-cal-month-label { font-size: 9px; font-weight: 700; text-transform: uppercase; opacity: .5; margin-left: 4px; }
+.fnm-cal-month-label { font-size: 8.5px; font-weight: 800; text-transform: uppercase; opacity: .55; margin-left: 3px; }
 
 /* Cell delete button - appears on hover */
 .fnm-cell-delete-btn { opacity: 0; transition: opacity .2s ease; }
 .fnm-cal-cell:hover .fnm-cell-delete-btn { opacity: 1; }
+
+.fnm-cal-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
 
 /* Summary mode cell */
 .fnm-cal-cell--summary { }
@@ -7247,41 +7327,80 @@ export default {
 /* Summary Mode Pill */
 .fnm-summary-chip {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px;
-  border-radius: 8px;
+  flex-direction: column;
+  gap: 2.5px;
+  padding: 4px 6px;
+  border-radius: 7px;
   background: linear-gradient(135deg, #0D47A1 0%, #1565C0 50%, #42A5F5 100%);
   color: #FFFFFF;
   box-shadow: 0 2px 6px rgba(13, 71, 161, 0.25);
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .fnm-summary-chip:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(13, 71, 161, 0.35);
   filter: brightness(1.08);
 }
-.fnm-summary-chip-left {
+.fnm-summary-chip-amount-row {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  gap: 3px;
+  width: 100%;
   min-width: 0;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+.fnm-summary-sigma {
+  font-size: 10.5px;
+  font-weight: 800;
+  opacity: 0.9;
+  line-height: 1;
+  flex-shrink: 0;
 }
 .fnm-summary-amount {
-  font-size: 11px;
+  font-size: clamp(9.5px, 0.95vw, 11px);
   font-weight: 800;
-  letter-spacing: 0.2px;
+  letter-spacing: -0.15px;
+  line-height: 1.15;
   white-space: nowrap;
+  flex-shrink: 1;
 }
-.fnm-summary-count {
-  font-size: 9.5px;
+.fnm-summary-currency {
+  font-size: 8.5px;
+  font-weight: 700;
   opacity: 0.85;
+  line-height: 1;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.fnm-summary-chip-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  line-height: 1;
+}
+.fnm-summary-count-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.92;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1.5px 5px;
+  border-radius: 4px;
   white-space: nowrap;
+  line-height: 1.2;
 }
 .fnm-summary-arrow {
-  opacity: 0.7;
+  opacity: 0.75;
   transition: transform 0.18s ease;
+  flex-shrink: 0;
 }
 .fnm-summary-chip:hover .fnm-summary-arrow {
   transform: translateX(2px);
@@ -7292,14 +7411,17 @@ export default {
 .fnm-cal-activity-pill {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 2.5px 6px;
+  gap: 4px;
+  padding: 2.5px 5px;
   border-radius: 6px;
-  font-size: 10.5px;
+  font-size: 10px;
   position: relative;
   cursor: pointer;
   transition: all 0.15s ease;
   border: 1px solid transparent;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .fnm-cal-activity-pill:hover {
   transform: translateY(-1px);
@@ -7326,8 +7448,8 @@ export default {
 }
 
 .fnm-pill-badge {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.22);
   display: flex;
@@ -7341,22 +7463,25 @@ export default {
 .fnm-pill-info {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex: 1;
   min-width: 0;
+  justify-content: space-between;
 }
 .fnm-pill-worker {
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .fnm-pill-price {
   font-weight: 800;
   font-size: 9.5px;
   white-space: nowrap;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.1px;
+  flex-shrink: 0;
 }
 .fnm-pill-actions {
   display: flex;
@@ -7735,5 +7860,20 @@ export default {
 .v-theme--dark .fnm-cal-more-pill:hover {
   background: rgba(66, 165, 245, 0.28) !important;
   color: #90CAF9 !important;
+}
+.v-theme--dark .fnm-summary-chip {
+  background: linear-gradient(135deg, #0A2E68 0%, #0D47A1 45%, #1976D2 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+.v-theme--dark .fnm-summary-count-badge {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #E2E8F0 !important;
+}
+.v-theme--dark .fnm-cal-cell--today {
+  background: rgba(66, 165, 245, 0.14) !important;
+  box-shadow: inset 0 0 0 1.5px #42A5F5 !important;
+}
+.v-theme--dark .fnm-cal-cell:hover {
+  background: rgba(66, 165, 245, 0.08) !important;
 }
 </style>
