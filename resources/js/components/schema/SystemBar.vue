@@ -400,7 +400,7 @@
         </div>
       </div>
 
-      <!-- Center: Quick Search / Command Launcher -->
+      <!-- Center: Quick Search/Command Launcher -->
       <div class="systembar-center">
         <button
           v-if="auth.is_auth"
