@@ -1050,7 +1050,7 @@
             v-for="h in headers"
             :key="h.key"
             class="lp-th"
-            :class="{'lp-th-pin': isPinned(h.key) || h.fixed, 'lp-th-dragover': dragOverCol === h.key}"
+            :class="{'lp-th-pin': isPinned(h.key) || h.fixed, 'lp-th-dragover': dragOverCol === h.key, 'lp-th-actions': h.key === 'actions'}"
             :style="colPinStyle(h.key, 3)"
             :draggable="!h.fixed"
             @dragstart="onDragStart(h.key)"
@@ -1149,7 +1149,7 @@
           <template v-if="loading">
             <tr v-for="r in 8" :key="'lp-skel-' + r" class="lp-row app-skeleton-table-row">
               <td class="lp-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
-              <td v-for="h in headers" :key="'lp-skel-' + h.key + '-' + r" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed}" :style="colPinStyle(h.key, 2)">
+              <td v-for="h in headers" :key="'lp-skel-' + h.key + '-' + r" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
                 <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
               </td>
             </tr>
@@ -1162,7 +1162,7 @@
             <template v-for="item in visibleItems" :key="item.id">
             <tr class="lp-row" :class="{'lp-row-expanded':expanded[item.id],'lp-row-invoiced':item._is_invoiced}">
               <td class="lp-td lp-th-pin" :style="colPinStyle('__checkbox', 2)"><v-checkbox-btn v-model="selected" :value="item.id" color="#00897B" density="compact" hide-details></v-checkbox-btn></td>
-              <td v-for="h in headers" :key="h.key" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed}" :style="colPinStyle(h.key, 2)">
+              <td v-for="h in headers" :key="h.key" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
                 <template v-else-if="h.key==='production_category_id'"><v-chip size="small" color="#00897B" variant="tonal">{{ catName(item.production_category_id) }}</v-chip></template>
@@ -1172,11 +1172,31 @@
                 <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
                 <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>
                 <template v-else-if="h.key==='actions'">
-                  <v-btn icon size="x-small" variant="tonal" color="#00897B" @click="$router.push({name:'view_production',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-eye</v-icon></v-btn>
-                  <v-btn v-if="auth.hasPermission('production.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_production',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-                  <v-btn v-if="auth.hasPermission('production.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1"><v-icon size="14">mdi-delete</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" :color="(item._open_issues||0) > 0 ? 'error' : '#00897B'" @click="openIssueDialog(item.id)" class="ml-1"><v-badge v-if="(item._open_issues||0) > 0" :content="item._open_issues" color="error" floating><v-icon size="14">mdi-flag-outline</v-icon></v-badge><v-icon v-else size="14">mdi-flag-outline</v-icon><v-tooltip activator="parent" location="top">{{ $t('record_issues') }}</v-tooltip></v-btn>
+                  <div class="lp-actions-wrapper">
+                    <v-btn icon size="x-small" variant="tonal" color="#00897B" @click="$router.push({name:'view_production',params:{id:item.id}})">
+                      <v-icon size="14">mdi-eye</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('view') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn v-if="auth.hasPermission('production.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_production',params:{id:item.id}})">
+                      <v-icon size="14">mdi-pencil</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn v-if="auth.hasPermission('production.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)">
+                      <v-icon size="14">mdi-delete</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)">
+                      <v-icon size="14">mdi-history</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn icon size="x-small" variant="tonal" :color="(item._open_issues||0) > 0 ? 'error' : '#00897B'" @click="openIssueDialog(item.id)">
+                      <v-badge v-if="(item._open_issues||0) > 0" :content="item._open_issues" color="error" floating>
+                        <v-icon size="14">mdi-flag-outline</v-icon>
+                      </v-badge>
+                      <v-icon v-else size="14">mdi-flag-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('record_issues') }}</v-tooltip>
+                    </v-btn>
+                  </div>
                 </template>
                 <template v-else-if="h.key==='_invoice_state'">
                   <v-chip v-if="item._is_invoiced && item._invoice_type === 'supplier'" size="x-small" color="orange-darken-4" variant="tonal" prepend-icon="mdi-truck-delivery">{{ item._invoice_state }}</v-chip>
@@ -1393,7 +1413,10 @@ export default {
 .lp-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
 .lp-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .lp-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
+.lp-th-actions{text-align:center!important;overflow:visible!important}
 .lp-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+.lp-td-actions{overflow:visible!important;text-overflow:clip!important;padding:6px 6px!important;white-space:nowrap!important}
+.lp-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
 .lp-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
 .lp-col-resizer:hover,.lp-col-resizer-active{background:#00897B!important;width:3px!important}
 .lp-th-pin-btn{opacity:.65;transition:opacity .15s}.lp-th-pin-btn:hover{opacity:1}

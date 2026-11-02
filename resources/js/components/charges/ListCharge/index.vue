@@ -923,7 +923,7 @@
             v-for="h in headers"
             :key="h.key"
             class="lc-th"
-            :class="{'lc-th-pin': isPinned(h.key) || h.fixed, 'lc-th-dragover': dragOverCol === h.key}"
+            :class="{'lc-th-pin': isPinned(h.key) || h.fixed, 'lc-th-dragover': dragOverCol === h.key, 'lc-th-actions': h.key === 'actions'}"
             :style="colPinStyle(h.key, 3)"
             :draggable="!h.fixed"
             @dragstart="onDragStart(h.key)"
@@ -1022,7 +1022,7 @@
           <template v-if="loading">
             <tr v-for="r in 8" :key="'lc-skel-' + r" class="lc-row app-skeleton-table-row">
               <td class="lc-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
-              <td v-for="h in headers" :key="'lc-skel-' + h.key + '-' + r" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed}" :style="colPinStyle(h.key, 2)">
+              <td v-for="h in headers" :key="'lc-skel-' + h.key + '-' + r" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
                 <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
               </td>
             </tr>
@@ -1035,7 +1035,7 @@
             <template v-for="item in visibleItems" :key="item.id">
             <tr class="lc-row" :class="{'lc-row-expanded':expanded[item.id],'lc-row-invoiced':item._is_invoiced}">
               <td class="lc-td lc-th-pin" :style="colPinStyle('__checkbox', 2)"><v-checkbox-btn v-model="selected" :value="item.id" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></td>
-              <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed}" :style="colPinStyle(h.key, 2)">
+              <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
                 <!-- expand -->
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <!-- date -->
@@ -1067,12 +1067,41 @@
                 </template>
                 <!-- actions -->
                 <template v-else-if="h.key==='actions'">
-                  <v-btn icon size="x-small" variant="tonal" color="info" @click="$router.push({name:'view_charge',params:{id:item.id}})" class="mr-1"><v-icon size="14">mdi-eye</v-icon></v-btn>
-                  <v-btn v-if="auth.hasPermission('charges.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_charge',params:{id:item.id}})" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-                  <v-btn v-if="auth.hasPermission('charges.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" class="mr-1" :disabled="item._is_invoiced"><v-icon size="14">mdi-delete</v-icon></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)" class="mr-1"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
-                  <v-btn icon size="x-small" variant="tonal" :color="(item._open_issues||0) > 0 ? 'error' : '#42A5F5'" @click="openIssueDialog(item.id)" class="mr-1"><v-badge v-if="(item._open_issues||0) > 0" :content="item._open_issues" color="error" floating><v-icon size="14">mdi-flag-outline</v-icon></v-badge><v-icon v-else size="14">mdi-flag-outline</v-icon><v-tooltip activator="parent" location="top">{{ $t('record_issues') }}</v-tooltip></v-btn>
-                  <template v-if="catHasProduction(item)"><v-btn v-if="!item.production" icon size="x-small" variant="tonal" color="purple" @click="$router.push({name:'add_production',query:{charge_id:item.id}})"><v-icon size="14">mdi-factory</v-icon></v-btn><v-btn v-else icon size="x-small" variant="flat" color="purple" @click="$router.push({name:'view_production',params:{id:item.production.id}})"><v-icon size="14">mdi-pencil</v-icon></v-btn></template>
+                  <div class="lc-actions-wrapper">
+                    <v-btn icon size="x-small" variant="tonal" color="info" @click="$router.push({name:'view_charge',params:{id:item.id}})">
+                      <v-icon size="14">mdi-eye</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('view') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn v-if="auth.hasPermission('charges.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_charge',params:{id:item.id}})" :disabled="item._is_invoiced">
+                      <v-icon size="14">mdi-pencil</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn v-if="auth.hasPermission('charges.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" :disabled="item._is_invoiced">
+                      <v-icon size="14">mdi-delete</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)">
+                      <v-icon size="14">mdi-history</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn icon size="x-small" variant="tonal" :color="(item._open_issues||0) > 0 ? 'error' : '#42A5F5'" @click="openIssueDialog(item.id)">
+                      <v-badge v-if="(item._open_issues||0) > 0" :content="item._open_issues" color="error" floating>
+                        <v-icon size="14">mdi-flag-outline</v-icon>
+                      </v-badge>
+                      <v-icon v-else size="14">mdi-flag-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">{{ $t('record_issues') }}</v-tooltip>
+                    </v-btn>
+                    <template v-if="catHasProduction(item)">
+                      <v-btn v-if="!item.production" icon size="x-small" variant="tonal" color="purple" @click="$router.push({name:'add_production',query:{charge_id:item.id}})">
+                        <v-icon size="14">mdi-factory</v-icon>
+                        <v-tooltip activator="parent" location="top">{{ $t('add_production') }}</v-tooltip>
+                      </v-btn>
+                      <v-btn v-else icon size="x-small" variant="flat" color="purple" @click="$router.push({name:'view_production',params:{id:item.production.id}})">
+                        <v-icon size="14">mdi-pencil</v-icon>
+                        <v-tooltip activator="parent" location="top">{{ $t('view_production') }}</v-tooltip>
+                      </v-btn>
+                    </template>
+                  </div>
                 </template>
                 <!-- fishery -->
                 <template v-else-if="h.key==='_fishery'"><v-chip v-if="item._fishery && item._fishery!=='-'" size="x-small" color="cyan" variant="tonal" prepend-icon="mdi-fish">{{ item._fishery }}</v-chip><span v-else class="text-grey">-</span></template>
@@ -1189,7 +1218,10 @@ export default {
 .lc-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
 .lc-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .lc-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
+.lc-th-actions{text-align:center!important;overflow:visible!important}
 .lc-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:6px 6px!important;white-space:nowrap!important}
+.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
 .lc-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
 .lc-col-resizer:hover,.lc-col-resizer-active{background:#42A5F5!important;width:3px!important}
 .lc-th-pin-btn{opacity:.65;transition:opacity .15s}.lc-th-pin-btn:hover{opacity:1}

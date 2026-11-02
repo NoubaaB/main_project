@@ -75,11 +75,13 @@ export default {
   },
   methods: {
     getActionsColWidth() {
-      if (this.tableModuleKey === 'production') return 145;
-      if (this.tableModuleKey === 'shipping') return 165;
-      return 170; // charge
+      if (this.tableModuleKey === 'charge') return 240;
+      if (this.tableModuleKey === 'production') return 210;
+      if (this.tableModuleKey === 'shipping') return 210;
+      return 240;
     },
     getDefaultColWidth(key) {
+      if (key === 'actions') return this.getActionsColWidth();
       return this.defaultColWidths[key] || 135;
     },
     getColWidth(key) {
@@ -370,7 +372,10 @@ export default {
       try {
         const config = {
           columnOrder: this.columnOrder,
-          colWidths: this.colWidths,
+          colWidths: {
+            ...this.colWidths,
+            actions: this.getActionsColWidth(),
+          },
           pinState: this.pinState,
           colSorts: this.colSorts,
         };
@@ -387,7 +392,9 @@ export default {
             this.columnOrder = this.allHeaders.filter(h => !h.fixed).map(h => h.key);
           }
           if (!this.colWidths || !Object.keys(this.colWidths).length) {
-            this.colWidths = { ...this.defaultColWidths };
+            this.colWidths = { ...this.defaultColWidths, actions: this.getActionsColWidth() };
+          } else {
+            this.colWidths.actions = this.getActionsColWidth();
           }
           return;
         }
@@ -405,9 +412,16 @@ export default {
         }
 
         if (config.colWidths && typeof config.colWidths === 'object') {
-          this.colWidths = { ...this.defaultColWidths, ...config.colWidths };
+          this.colWidths = {
+            ...this.defaultColWidths,
+            ...config.colWidths,
+            actions: this.getActionsColWidth(),
+          };
         } else {
-          this.colWidths = { ...this.defaultColWidths };
+          this.colWidths = {
+            ...this.defaultColWidths,
+            actions: this.getActionsColWidth(),
+          };
         }
 
         if (config.pinState && typeof config.pinState === 'object') {
@@ -425,7 +439,7 @@ export default {
       try {
         localStorage.removeItem(this.storageConfigKey);
         this.columnOrder = this.allHeaders.filter(h => !h.fixed).map(h => h.key);
-        this.colWidths = { ...this.defaultColWidths };
+        this.colWidths = { ...this.defaultColWidths, actions: this.getActionsColWidth() };
         this.pinState = {};
         this.colSorts = [];
         this.saveTableConfig();
