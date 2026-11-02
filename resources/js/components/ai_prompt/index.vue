@@ -12,8 +12,8 @@
             <div class="aiq-hero-title d-flex align-center flex-wrap ga-2">
               <span>{{ $t('app_name_ai') }}</span>
               <div class="aiq-creator-pill" :title="$t('ai_creator_title')">
-                <v-icon size="13" color="#FFD700" class="me-1">mdi-crown</v-icon>
-                <span>ELBACHIR NOUBAA</span>
+                <v-icon size="13" color="#42A5F5" class="me-1">mdi-shield-check</v-icon>
+                <span>{{ $t('ai_creator_badge') }}</span>
                 <v-icon size="12" color="#42A5F5" class="ms-1">mdi-check-decagram</v-icon>
               </div>
             </div>
@@ -497,12 +497,12 @@ export default {
           bg: 'rgba(0, 137, 123, 0.12)',
         },
         {
-          title: this.$t('quick_prompt_creator_title') || 'Creator & Supervisor',
-          desc: this.$t('quick_prompt_creator_desc') || 'Meet ELBACHIR NOUBAA, creator, owner and lead supervisor of this AI Agent',
-          query: this.$t('quick_prompt_creator_query') || 'Who is the creator and supervisor of this AI agent?',
-          icon: 'mdi-crown',
-          color: '#FFA000',
-          bg: 'rgba(255, 160, 0, 0.12)',
+          title: this.$t('quick_prompt_creator_title') || 'System Architecture & AI Core',
+          desc: this.$t('quick_prompt_creator_desc') || 'Explore the enterprise system design, data pipeline, and AI intelligence suite',
+          query: this.$t('quick_prompt_creator_query') || 'Tell me about the system architecture and AI capabilities',
+          icon: 'mdi-shield-check',
+          color: '#42A5F5',
+          bg: 'rgba(66, 165, 245, 0.12)',
         },
       ];
     },

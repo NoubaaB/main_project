@@ -49,8 +49,8 @@
               <div class="d-flex align-center flex-wrap ga-2">
                 <div class="ai-header-title">{{ $t('ai_assistant') }}</div>
                 <span class="ai-header-creator-tag" :title="$t('ai_creator_title')">
-                  <v-icon size="10" color="#FFD700" class="me-1">mdi-crown</v-icon>
-                  ELBACHIR NOUBAA
+                  <v-icon size="10" color="#42A5F5" class="me-1">mdi-shield-check</v-icon>
+                  {{ $t('ai_creator_badge') }}
                 </span>
               </div>
               <div class="ai-header-status">
@@ -184,7 +184,7 @@
               </div>
               <div class="ai-empty-title">{{ $t('app_name_ai') }}</div>
               <div class="ai-empty-subtitle">
-                Supervised & Engineered by <strong style="color: #42A5F5;">ELBACHIR NOUBAA</strong>
+                {{ $t('ai_creator_title') }}
               </div>
               <div class="ai-empty-chips-grid">
                 <button class="ai-empty-pill" @click="sendQuickMessage('Donne moi le résumé exécutif et les KPIs globaux avec graphiques')">

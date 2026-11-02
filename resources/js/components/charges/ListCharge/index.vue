@@ -1143,7 +1143,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="lc-tfoot"><tr><td class="lc-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="lc-td text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        <tfoot class="lc-tfoot"><tr><td class="lc-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="lc-td text-center font-weight-bold" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
   </v-card-text>
@@ -1215,13 +1215,14 @@ export default {
 .adv-panel{border:1.5px solid rgba(25,118,210,.15);background:rgba(25,118,210,.03)}
 .inv-panel{border:1.5px solid rgba(0,150,136,.15);background:rgba(0,150,136,.03)}
 .lc-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
-.lc-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.lc-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .lc-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .lc-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
-.lc-th-actions{text-align:center!important;overflow:visible!important}
+.lc-th-actions{text-align:center!important;overflow:visible!important;width:280px!important;min-width:280px!important}
 .lc-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
-.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:6px 6px!important;white-space:nowrap!important}
-.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 6px!important;white-space:nowrap!important;width:280px!important;min-width:280px!important}
+.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;flex-wrap:nowrap}
+.lc-actions-wrapper .v-btn{flex-shrink:0!important;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important}
 .lc-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
 .lc-col-resizer:hover,.lc-col-resizer-active{background:#42A5F5!important;width:3px!important}
 .lc-th-pin-btn{opacity:.65;transition:opacity .15s}.lc-th-pin-btn:hover{opacity:1}

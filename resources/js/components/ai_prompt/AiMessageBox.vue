@@ -16,8 +16,8 @@
           <v-icon size="14" class="ms-1 aimb-verified-badge">mdi-check-decagram</v-icon>
           <span class="aimb-role-badge">{{ $t('assistant') }}</span>
           <span class="aimb-creator-tag" :title="$t('ai_creator_title')">
-            <v-icon size="12" color="#FFD700" class="me-1">mdi-crown</v-icon>
-            ELBACHIR NOUBAA
+            <v-icon size="12" color="#42A5F5" class="me-1">mdi-shield-check</v-icon>
+            {{ $t('ai_creator_badge') }}
           </span>
         </div>
         <span class="aimb-time">{{ formatTime }}</span>

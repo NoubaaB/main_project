@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class AIAnalyticsService
 {
     private string $appName;
-    private string $creatorName = "ELBACHIR NOUBAA";
+    private string $creatorName = "Jupiter Core Architecture";
 
     public function __construct()
     {
@@ -146,48 +146,48 @@ class AIAnalyticsService
     {
         $titles = [
             'fr' => [
-                'role' => 'Créateur & Superviseur Visionnaire',
-                'name' => 'ELBACHIR NOUBAA',
-                'badge' => 'Propriétaire & Concepteur en Chef',
-                'bio' => 'L\'agent intelligent AI et l\'ensemble de l\'ERP Jupiter sont créés, conçus et entièrement supervisés par <strong>ELBACHIR NOUBAA</strong>. Expert en architecture logicielle industrielle et gestion halieutique, M. NOUBAA a conçu ce système pour assurer une traçabilité intégrale, un contrôle financier rigoureux et une intelligence analytique de pointe.',
-                'highlights_title' => 'Piliers d\'Excellence sous sa supervision',
+                'role' => 'Moteur d\'Intelligence & Architecture Logicielle',
+                'name' => 'Jupiter Core Architecture',
+                'badge' => 'Moteur IA Entreprise',
+                'bio' => 'L\'agent intelligent IA et l\'ensemble de l\'ERP Jupiter sont propulsés par une architecture industrielle de pointe. Conçu pour assurer une traçabilité intégrale, un contrôle financier rigoureux et une intelligence analytique connectée aux données réelles de l\'entreprise.',
+                'highlights_title' => 'Piliers d\'Excellence du Système',
                 'pillar1' => 'Traçabilité Halieutique & Temps Réel (Achats, Usine, Stocks, Expéditions)',
                 'pillar2' => 'Intelligence Artificielle Connectée & Modélisation Financière Avancée',
                 'pillar3' => 'Pilotage de la Performance & Optimisation du Rendement Industriel',
-                'footer' => 'Système certifié et piloté sous l\'autorité d\'ELBACHIR NOUBAA'
+                'footer' => 'Système certifié et piloté par le Moteur d\'Intelligence Jupiter'
             ],
             'es' => [
-                'role' => 'Creador y Supervisor Visionario',
-                'name' => 'ELBACHIR NOUBAA',
-                'badge' => 'Propietario y Diseñador Principal',
-                'bio' => 'El agente inteligente de IA y todo el ERP Jupiter fueron creados, diseñados y están completamente supervisados por <strong>ELBACHIR NOUBAA</strong>. Como líder y arquitecto de soluciones industriales y pesqueras, el Sr. NOUBAA diseñó este sistema para garantizar trazabilidad total, análisis financiero exacto e inteligencia predictiva.',
-                'highlights_title' => 'Pilares de Excelencia bajo su supervisión',
+                'role' => 'Arquitectura del Sistema y Motor IA',
+                'name' => 'Jupiter Core Architecture',
+                'badge' => 'Motor IA Empresarial',
+                'bio' => 'El agente inteligente de IA y todo el ERP Jupiter están impulsados por una arquitectura de datos industriales avanzada. Diseñado para garantizar trazabilidad total, análisis financiero exacto e inteligencia operativa en tiempo real.',
+                'highlights_title' => 'Pilares de Excelencia del Sistema',
                 'pillar1' => 'Trazabilidad Pesquera en Tiempo Real (Compras, Planta, Stock, Envíos)',
                 'pillar2' => 'Inteligencia Artificial Integrada y Control Financiero Dinámico',
                 'pillar3' => 'Gestión Industrial de Alto Rendimiento y Seguridad de Datos',
-                'footer' => 'Sistema certificado y dirigido bajo la autoridad de ELBACHIR NOUBAA'
+                'footer' => 'Sistema certificado y dirigido por el Motor de Inteligencia Jupiter'
             ],
             'ar' => [
-                'role' => 'المبتكر والمشرف العام',
-                'name' => 'البشير النوباع (ELBACHIR NOUBAA)',
-                'badge' => 'المالك والمصمم الرئيسي',
-                'bio' => 'تم إنشاء وتصميم هذا المساعد الذكي ونظام جوبيتر (Jupiter ERP) بالكامل تحت إشراف وقيادة <strong>البشير النوباع (ELBACHIR NOUBAA)</strong>، المبتكر والمشرف المباشر على هذا النظام الرقمي المتطور لإدارة وتتبع منتجات الصيد البحري والتحليل المالي الدقيق.',
-                'highlights_title' => 'ركائز التميز تحت إشرافه',
+                'role' => 'محرك الذكاء الاصطناعي وهندسة البيانات',
+                'name' => 'Jupiter Core Architecture',
+                'badge' => 'نظام المؤسسة الذكي',
+                'bio' => 'يعمل هذا المساعد الذكي ونظام جوبيتر (Jupiter ERP) بالكامل استناداً إلى بنية تحتية رقمية وهندسة بيانات متقدمة لإدارة وتتبع منتجات الصيد البحري والتحليل المالي الدقيق والربط الفوري لقواعد البيانات.',
+                'highlights_title' => 'ركائز التميز في النظام',
                 'pillar1' => 'تتبع شامل في الوقت الفعلي (المشتريات، الإنتاج، المخازن، الشحن)',
                 'pillar2' => 'ذكاء اصطناعي متصل بقواعد البيانات وتحليلات بيانية فورية',
                 'pillar3' => 'تحسين المردودية الصناعية والمراقبة المالية الصارمة',
-                'footer' => 'نظام معتمد ومطور برؤية وتوجيه البشير النوباع'
+                'footer' => 'نظام معتمد ومطور بواسطة هندسة جوبيتر المتقدمة'
             ],
             'en' => [
-                'role' => 'Creator & Lead Supervisor',
-                'name' => 'ELBACHIR NOUBAA',
-                'badge' => 'Owner & Chief Architect',
-                'bio' => 'This AI Agent and the entire Jupiter ERP ecosystem are created, engineered, and supervised by <strong>ELBACHIR NOUBAA</strong>. As the visionary architect of this industrial fishery intelligence platform, Mr. NOUBAA designed every facet to deliver absolute traceability, financial precision, and real-time operational intelligence.',
-                'highlights_title' => 'Pillars of Excellence under his Supervision',
+                'role' => 'Enterprise System Architecture & AI Core',
+                'name' => 'Jupiter Core Architecture',
+                'badge' => 'Enterprise AI Suite',
+                'bio' => 'This AI Agent and the entire Jupiter ERP ecosystem are powered by advanced industrial data architecture. Designed to deliver absolute traceability, financial precision, and real-time operational intelligence.',
+                'highlights_title' => 'System Pillars of Excellence',
                 'pillar1' => 'Full Fishery Traceability & Real-Time Sync (Charges, Plant, Cold Stores, Shipping)',
                 'pillar2' => 'Direct Database Intelligence & High-Performance Visual Analytics',
                 'pillar3' => 'Industrial Yield Maximization & Enterprise Financial Integrity',
-                'footer' => 'System engineered and supervised under the authority of ELBACHIR NOUBAA'
+                'footer' => 'System engineered and verified by Jupiter Core Architecture'
             ]
         ];
 
@@ -402,7 +402,7 @@ HTML;
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">{$t['title']}</div>
           <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">
-            Supervised & Designed by <strong style="color: #42A5F5;">ELBACHIR NOUBAA</strong>
+            Powered by <strong style="color: #42A5F5;">Jupiter Intelligence Core</strong>
           </div>
         </div>
       </div>
@@ -712,7 +712,7 @@ ROW;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">{$t['title']}</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Supervised by <strong style="color: #42A5F5;">ELBACHIR NOUBAA</strong></div>
+          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
         </div>
       </div>
       <span style="background: rgba(66, 165, 245, 0.12); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.3); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -887,7 +887,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #6c66bb;">Analyse des Ventes & Expéditions (Shippings)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Supervised by <strong style="color: #6c66bb;">ELBACHIR NOUBAA</strong></div>
+          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #6c66bb;">Jupiter Sales Intelligence</strong></div>
         </div>
       </div>
       <span style="background: rgba(108, 102, 187, 0.15); color: #6c66bb; border: 1px solid rgba(108, 102, 187, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1028,7 +1028,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #00897B;">Rendement & Transformation Usine (Production)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Supervised by <strong style="color: #00897B;">ELBACHIR NOUBAA</strong></div>
+          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #00897B;">Jupiter Industrial Processing Core</strong></div>
         </div>
       </div>
       <span style="background: rgba(0, 137, 123, 0.15); color: #00897B; border: 1px solid rgba(0, 137, 123, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1153,7 +1153,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #a21ee5;">Stocks & Chambres Froides (Warehouses)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Supervised by <strong style="color: #a21ee5;">ELBACHIR NOUBAA</strong></div>
+          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #a21ee5;">Jupiter Cold Storage Intelligence</strong></div>
         </div>
       </div>
       <span style="background: rgba(162, 30, 229, 0.15); color: #a21ee5; border: 1px solid rgba(162, 30, 229, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1296,7 +1296,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">Main d'Œuvre & Activités Quinzaine (Workforce)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Supervised by <strong style="color: #42A5F5;">ELBACHIR NOUBAA</strong></div>
+          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
         </div>
       </div>
       <span style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1438,7 +1438,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #E65100;">Finances & Facturation (Invoices)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Supervised by <strong style="color: #E65100;">ELBACHIR NOUBAA</strong></div>
+          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #E65100;">Jupiter Financial Intelligence</strong></div>
         </div>
       </div>
       <span style="background: rgba(230, 81, 0, 0.15); color: #E65100; border: 1px solid rgba(230, 81, 0, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1566,7 +1566,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #4CAF50;">Analyse Fichier Excel Importé: {$firstFileName}</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Supervised by <strong style="color: #4CAF50;">ELBACHIR NOUBAA</strong></div>
+          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #4CAF50;">Jupiter Data Engine</strong></div>
         </div>
       </div>
       <span style="background: rgba(76, 175, 80, 0.15); color: #4CAF50; border: 1px solid rgba(76, 175, 80, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">

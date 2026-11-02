@@ -1170,7 +1170,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="ls-tfoot"><tr><td :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        <tfoot class="ls-tfoot"><tr><td class="ls-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="ls-td text-center font-weight-bold" :class="{'ls-col-pin': isPinned(h.key) || h.fixed, 'ls-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
   </v-card-text>
@@ -1236,13 +1236,14 @@ export default {
 .adv-panel{border:1.5px solid rgba(70,67,160,.15);background:rgba(70,67,160,.03)}
 .inv-panel{border:1.5px solid rgba(0,150,136,.15);background:rgba(0,150,136,.03)}
 .ls-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
-.ls-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.ls-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .ls-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .ls-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
-.ls-th-actions{text-align:center!important;overflow:visible!important}
+.ls-th-actions{text-align:center!important;overflow:visible!important;width:240px!important;min-width:240px!important}
 .ls-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
-.ls-td-actions{overflow:visible!important;text-overflow:clip!important;padding:6px 6px!important;white-space:nowrap!important}
-.ls-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+.ls-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 6px!important;white-space:nowrap!important;width:240px!important;min-width:240px!important}
+.ls-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;flex-wrap:nowrap}
+.ls-actions-wrapper .v-btn{flex-shrink:0!important;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important}
 .ls-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
 .ls-col-resizer:hover,.ls-col-resizer-active{background:#4643a0!important;width:3px!important}
 .ls-th-pin-btn{opacity:.65;transition:opacity .15s}.ls-th-pin-btn:hover{opacity:1}

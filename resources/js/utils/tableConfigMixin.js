@@ -75,10 +75,10 @@ export default {
   },
   methods: {
     getActionsColWidth() {
-      if (this.tableModuleKey === 'charge') return 240;
-      if (this.tableModuleKey === 'production') return 210;
-      if (this.tableModuleKey === 'shipping') return 210;
-      return 240;
+      if (this.tableModuleKey === 'charge') return 280;
+      if (this.tableModuleKey === 'production') return 240;
+      if (this.tableModuleKey === 'shipping') return 240;
+      return 280;
     },
     getDefaultColWidth(key) {
       if (key === 'actions') return this.getActionsColWidth();
@@ -165,8 +165,7 @@ export default {
           background: currentBg,
           width: actionsW + 'px',
           minWidth: actionsW + 'px',
-          maxWidth: actionsW + 'px',
-          boxShadow: isFirstRight ? '-3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          boxShadow: isFirstRight ? `-3px 0 8px -2px rgba(0, 0, 0, ${isDark ? '0.45' : '0.12'})` : 'none',
         };
       }
 
