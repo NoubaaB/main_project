@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\AiQueryMessage;
 use App\Services\CustomService;
+use App\Services\AIAnalyticsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Model;
@@ -48,6 +49,23 @@ class AIQueryController extends Controller
         $thinkingLevel = $request->input('thinking_level', 'high');
 
         $this->ai->setThinkingLevel($thinkingLevel);
+        $analytics = new AIAnalyticsService();
+
+        // 1. Direct handling if asking about Creator/Supervisor ELBACHIR NOUBAA
+        $lowerQuestion = mb_strtolower($question, 'UTF-8');
+        if (preg_match('/(creator|created|owner|supervisor|superviseur|elbachir|noubaa|bachir|développeur|qui t\'a|qui a créé|qui est ton|de qui es-tu|quien te creo|من صنعك|البشير|النوباع)/ui', $lowerQuestion)) {
+            $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
+            $this->persistQueryMessage($request, $question, $answer);
+            return response()->json(['answer' => $answer], 200);
+        }
+
+        // 2. Direct handling if standard analytical prompt (Charges, Shippings, Production, Stock, Workforce, Overview)
+        // or when Excel files are provided
+        if (!empty($excelFiles)) {
+            $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
+            $this->persistQueryMessage($request, $question, $answer);
+            return response()->json(['answer' => $answer], 200);
+        }
 
         // "" Step 1: Get schema ""
         $schema = $this->getSchemaString();
@@ -139,17 +157,10 @@ class AIQueryController extends Controller
         $answer = $this->ai->generateAnswer($answerPrompt);
 
         if (!$answer) {
-            $answer = $this->buildFallbackAnswer($question, $id, $theme, $messages);
+            $answer = $this->buildFallbackAnswer($question, $id, $theme, $messages, $excelFiles);
         }
 
-        // "" Step 5: Save to ai_query_messages ""
-        $user = $request->user();
-        if ($user) {
-            AiQueryMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
-            if ($answer) {
-                AiQueryMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
-            }
-        }
+        $this->persistQueryMessage($request, $question, $answer);
 
         return response()->json(['answer' => $answer], 200);
     }
@@ -244,30 +255,23 @@ class AIQueryController extends Controller
     }
 
     /**
-     * Fallback for when SQL fails or no data.
+     * Fallback for when SQL fails or no data: runs intelligent AIAnalyticsService.
      */
-    private function buildFallbackAnswer(string $question, int $id, string $theme, string $messages): string
+    private function buildFallbackAnswer(string $question, int $id, string $theme, string $messages, array $excelFiles = []): string
     {
-        $prompt = <<<PROMPT
-        You are "$this->app_name AI" assistant for a fish management ERP.
-        The user asked: "{$question}"
-        Previous conversation: {$messages}
+        $analytics = new AIAnalyticsService();
+        return $analytics->processQuestion($question, $id, $theme, $excelFiles);
+    }
 
-        The database query failed or returned no results.
-        Generate a helpful Vue 3 + Vuetify 3 response explaining this.
-
-        Use this structure:
-        <div id="ai_{$id}"><v-container class="rounded-xl"><v-card class="rounded-xl" variant="flat"><v-card-text><!-- message --></v-card-text></v-card></v-container></div>
-        <script>
-        const {{ createApp }} = Vue;
-        createApp({{}}).use(vuetify).mount('#ai_{$id}');
-        </script>
-
-        Use {$theme} theme. Be helpful and suggest the user rephrase.
-        Give ONLY HTML+script. No markdown.
-        PROMPT;
-
-        return $this->ai->generateAnswer($prompt) ?? '<div>No data available. Please try rephrasing your question.</div>';
+    private function persistQueryMessage(Request $request, string $question, string $answer): void
+    {
+        $user = $request->user();
+        if ($user) {
+            AiQueryMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
+            if ($answer) {
+                AiQueryMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+            }
+        }
     }
 
     // """""""""""""""""""""""""""""""""""""""""
@@ -276,17 +280,18 @@ class AIQueryController extends Controller
     private function getBusinessContext(): string
     {
         return <<<CTX
-        APP: $this->app_name " Frozen Fish (Morocco)
+        APP: $this->app_name - Frozen Fish (Morocco)
+        CREATOR & SUPERVISOR: ELBACHIR NOUBAA
         CURRENCY: MAD | WEIGHT: KG
-        - CHARGES = fish purchases from suppliers
-        - SELLS = fish sales to clients
-        - WAREHOUSES = storage with categories and operations
-        - warehouse_stockable_tracking_number_operations = polymorphic ops (sourceable_type = Charge or Sell)
-        - non_warehouse_stockable_operations = direct costs not through warehouse
+        - CHARGES = fish purchases from suppliers (charges and detail_charges tables)
+        - SHIPPINGS = fish sales / shipments to clients (shippings and detail_shippings tables)
+        - PRODUCTIONS = factory processing into fresh, frozen, and guano/fishmeal (productions and detail_productions tables)
+        - WAREHOUSES = cold storage with categories and balances (warehouses and warehouse_balances tables)
+        - SUPPLIER INVOICES = supplier billing (supplier_invoices and supplier_payments tables)
+        - CLIENT INVOICES = client billing (client_invoices and client_payments tables)
+        - WORKFORCE = workers and fortnight activities (workforces, fortnight_activities, sections, corporals tables)
         - SUPPLIERS, CLIENTS, TRUCKS, SHIPS, FISHERIES, ORIGINS = reference data
-        - FISH TYPES → FISH FAMILIES (species grouping)
-        - CHARGE CATEGORIES (is_production=true means production processing)
-        - SUPPLIER INVOICES = consolidated billing
+        - FISH TYPES, FISH FAMILIES (species grouping), PACKAGE TYPES = taxonomy data
         CTX;
     }
 

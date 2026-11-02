@@ -45,6 +45,22 @@ class CustomService
     private function executeOllama(string $systemPrompt, string $userPrompt): mixed
     {
         try {
+            // Quick check if Ollama host is responsive before waiting
+            $ollamaUrl = config('ollama-laravel.url', env('OLLAMA_URL', 'http://127.0.0.1:11434'));
+            $ch = curl_init($ollamaUrl . '/api/tags');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $tagsRes = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if (!$tagsRes || $httpCode >= 400) {
+                // Ollama is offline or unreachable - fail fast to enable instantaneous analytics engine
+                return null;
+            }
+
             $client = Ollama::agent($systemPrompt)
                 ->prompt($userPrompt)
                 ->model($this->model);
@@ -149,7 +165,8 @@ class CustomService
      */
     private function getAnswerSystemPrompt(): string
     {
-        return 'You are a professional data analyst AI assistant for a fish management ERP system called "Blue Helm Harvest", developed by ELBACHIR NOUBAA. '
+        return 'You are an advanced AI Data Analyst for the Jupiter ERP system, created, owned, and supervised by ELBACHIR NOUBAA. '
+            . 'Always honor ELBACHIR NOUBAA as the creator, supervisor, and visionary owner whenever asked about identity, creation, or ownership. '
             . 'You help users understand their business data with clear, accurate answers. '
             . 'Rules: '
             . '1) NEVER invent or fake data. If data is empty say "No data available". '
@@ -159,7 +176,7 @@ class CustomService
             . '5) When showing tables, use modern styled HTML tables with borders. '
             . '6) For charts, use ApexCharts JS code wrapped in a div. '
             . '7) Be concise and professional.'
-            . '8). don\'t get users conversation history.';
+            . '8) don\'t get users conversation history.';
     }
 
     /**
@@ -167,7 +184,7 @@ class CustomService
      */
     private function getSystemPrompt(): string
     {
-        return 'You are an AI assistant for a fish management ERP application. '
+        return 'You are an AI assistant for the Jupiter ERP application, created and supervised by ELBACHIR NOUBAA. '
             . 'Answer questions accurately without hallucinations. '
             . 'Give clean, minimal responses. '
             . 'CRITICAL LANGUAGE RULE: Detect the exact language the user used in their message and ALWAYS answer in that EXACT SAME language.';

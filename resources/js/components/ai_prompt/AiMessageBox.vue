@@ -15,6 +15,10 @@
           <span class="aimb-name">{{ $t('app_name_ai') }}</span>
           <v-icon size="14" class="ms-1 aimb-verified-badge">mdi-check-decagram</v-icon>
           <span class="aimb-role-badge">{{ $t('assistant') }}</span>
+          <span class="aimb-creator-tag" :title="$t('ai_creator_title')">
+            <v-icon size="12" color="#FFD700" class="me-1">mdi-crown</v-icon>
+            ELBACHIR NOUBAA
+          </span>
         </div>
         <span class="aimb-time">{{ formatTime }}</span>
       </div>
@@ -37,9 +41,13 @@
       ref="contentBox"
     ></div>
 
-    <!-- Export Excel button (shown when message contains table data) -->
-    <div v-if="!isLoading && hasTable" class="aimb-export-bar">
-      <button class="aimb-export-btn" @click="exportToExcel" :title="$t('export_excel')">
+    <!-- Action bar (Copy + Export Excel) -->
+    <div v-if="!isLoading" class="aimb-export-bar">
+      <button class="aimb-export-btn" @click="copyResponse" :title="$t('copy_response')">
+        <v-icon size="14" class="me-1">{{ copied ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
+        {{ copied ? ($t('copied') || 'Copied') : ($t('copy') || 'Copy') }}
+      </button>
+      <button v-if="hasTable" class="aimb-export-btn" @click="exportToExcel" :title="$t('export_excel')">
         <v-icon size="14" class="me-1">mdi-file-excel-outline</v-icon>
         {{ $t('export_excel') }}
       </button>
@@ -58,6 +66,7 @@ export default {
     return {
       isLoading: true,
       hasTable: false,
+      copied: false,
     };
   },
   computed: {
@@ -93,6 +102,26 @@ export default {
     }
   },
   methods: {
+    async copyResponse() {
+      const container = this.$refs.contentBox;
+      if (!container) return;
+      const text = container.innerText || container.textContent || '';
+      try {
+        await navigator.clipboard.writeText(text.trim());
+        this.copied = true;
+        setTimeout(() => { this.copied = false; }, 2000);
+      } catch (e) {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text.trim();
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.copied = true;
+        setTimeout(() => { this.copied = false; }, 2000);
+      }
+    },
     exportToExcel() {
       const container = this.$refs.contentBox;
       if (!container) return;
@@ -392,6 +421,22 @@ export default {
   background: rgba(33, 150, 243, 0.08);
   color: #2196F3;
   border: 1.2px solid rgba(33, 150, 243, 0.2);
+  display: inline-flex;
+  align-items: center;
+  height: fit-content;
+  line-height: 1;
+}
+
+.aimb-creator-tag {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.12), rgba(66, 165, 245, 0.15));
+  color: #42A5F5;
+  border: 1px solid rgba(255, 193, 7, 0.35);
   display: inline-flex;
   align-items: center;
   height: fit-content;

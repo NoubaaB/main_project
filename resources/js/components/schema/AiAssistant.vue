@@ -46,10 +46,20 @@
               </div>
             </div>
             <div class="ai-header-info">
-              <div class="ai-header-title">{{ $t('ai_assistant') }}</div>
+              <div class="d-flex align-center flex-wrap ga-2">
+                <div class="ai-header-title">{{ $t('ai_assistant') }}</div>
+                <span class="ai-header-creator-tag" :title="$t('ai_creator_title')">
+                  <v-icon size="10" color="#FFD700" class="me-1">mdi-crown</v-icon>
+                  ELBACHIR NOUBAA
+                </span>
+              </div>
               <div class="ai-header-status">
                 <span class="ai-status-dot"></span>
-                {{ $t('online') }}
+                <span>{{ $t('online') }}</span>
+                <span class="mx-1 opacity-50">•</span>
+                <span class="text-caption font-weight-medium" style="font-size: 10px; color: rgba(255,255,255,0.85);">
+                  {{ $t('ai_creator_badge') }}
+                </span>
               </div>
             </div>
           </div>
@@ -166,6 +176,40 @@
                 Load older messages
               </button>
             </div>
+
+            <!-- Empty state greeting -->
+            <div v-if="messages.length === 0" class="ai-empty-welcome">
+              <div class="ai-empty-avatar-wrap">
+                <v-icon size="30" color="white">mdi-robot-happy-outline</v-icon>
+              </div>
+              <div class="ai-empty-title">{{ $t('app_name_ai') }}</div>
+              <div class="ai-empty-subtitle">
+                Supervised & Engineered by <strong style="color: #42A5F5;">ELBACHIR NOUBAA</strong>
+              </div>
+              <div class="ai-empty-chips-grid">
+                <button class="ai-empty-pill" @click="sendQuickMessage('Donne moi le résumé exécutif et les KPIs globaux avec graphiques')">
+                  <v-icon size="13" color="#42A5F5" class="me-1">mdi-view-dashboard</v-icon>
+                  <span>{{ $t('ai_filter_all_kpis') }}</span>
+                </button>
+                <button class="ai-empty-pill" @click="sendQuickMessage('Analyse détaillée des charges et réceptions')">
+                  <v-icon size="13" color="#42A5F5" class="me-1">mdi-truck-delivery</v-icon>
+                  <span>{{ $t('ai_filter_charges') }}</span>
+                </button>
+                <button class="ai-empty-pill" @click="sendQuickMessage('Analyse des ventes et expéditions clients')">
+                  <v-icon size="13" color="#6c66bb" class="me-1">mdi-ship-wheel</v-icon>
+                  <span>{{ $t('ai_filter_shippings') }}</span>
+                </button>
+                <button class="ai-empty-pill" @click="sendQuickMessage('Situation des stocks et entrepôts')">
+                  <v-icon size="13" color="#a21ee5" class="me-1">mdi-warehouse</v-icon>
+                  <span>{{ $t('ai_filter_warehouses') }}</span>
+                </button>
+                <button class="ai-empty-pill ai-empty-pill-creator" @click="sendQuickMessage('Qui est le créateur et superviseur de cet agent IA ?')">
+                  <v-icon size="13" color="#FFD700" class="me-1">mdi-crown</v-icon>
+                  <span>{{ $t('ai_filter_creator') }}</span>
+                </button>
+              </div>
+            </div>
+
             <div
               v-for="(m, i) in messages"
               :key="m.id || i"
@@ -549,6 +593,9 @@ export default {
     },
   },
   methods: {
+    sendQuickMessage(query) {
+      this.sendSuggestion(query);
+    },
     sendSuggestion(query) {
       if (this.loading) return;
       this.input = query;
@@ -1580,6 +1627,93 @@ export default {
   font-size: 15px;
   color: var(--ai-title-color);
   letter-spacing: 0.2px;
+}
+
+.ai-header-creator-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  display: inline-flex;
+  align-items: center;
+  height: fit-content;
+  line-height: 1;
+}
+
+.ai-empty-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px;
+  text-align: center;
+}
+
+.ai-empty-avatar-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #1565C0, #42A5F5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(21, 101, 192, 0.4);
+  margin-bottom: 12px;
+}
+
+.ai-empty-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ai-title-color);
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+
+.ai-empty-subtitle {
+  font-size: 11.5px;
+  color: var(--ai-status-color);
+  margin-bottom: 18px;
+}
+
+.ai-empty-chips-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.ai-empty-pill {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(var(--v-theme-surface), 0.7);
+  border: 1px solid rgba(66, 165, 245, 0.2);
+  color: var(--ai-title-color);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+.ai-empty-pill:hover {
+  background: rgba(66, 165, 245, 0.12);
+  border-color: #42A5F5;
+  transform: translateY(-1px);
+}
+.ai-empty-pill-creator {
+  border-color: rgba(255, 215, 0, 0.4);
+  background: rgba(255, 215, 0, 0.08);
+}
+.ai-empty-pill-creator:hover {
+  background: rgba(255, 215, 0, 0.18);
+  border-color: #FFD700;
 }
 
 .ai-header-status {

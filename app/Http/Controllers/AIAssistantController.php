@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\ChatMessage;
 use App\Services\CustomService;
+use App\Services\AIAnalyticsService;
 use App\Events\ModelChanged;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -56,6 +57,15 @@ class AIAssistantController extends Controller
         $thinkingLevel = $request->input('thinking_level', 'high');
 
         $this->ai->setThinkingLevel($thinkingLevel);
+        $analytics = new AIAnalyticsService();
+
+        // Check if asking about creator/supervisor ELBACHIR NOUBAA
+        $lowerQuestion = mb_strtolower($question, 'UTF-8');
+        if (preg_match('/(creator|created|owner|supervisor|superviseur|elbachir|noubaa|bachir|développeur|qui t\'a|qui a créé|qui est ton|de qui es-tu|quien te creo|من صنعك|البشير|النوباع)/ui', $lowerQuestion)) {
+            $answer = $analytics->processQuestion($question, 'asst_' . time(), 'dark');
+            $this->persistMessages($request, $question, $answer);
+            return response()->json(['answer' => $answer], 200);
+        }
 
         // "" Step 1: Build context ""
         $schema = $this->getSchemaString();
@@ -110,7 +120,7 @@ class AIAssistantController extends Controller
         $answer = $this->ai->generateAnswer($answerPrompt);
 
         if (!$answer) {
-            $answer = 'Sorry, I could not generate an answer. Please try rephrasing your question.';
+            $answer = $analytics->processQuestion($question, 'asst_' . time(), 'dark');
         }
 
         $this->persistMessages($request, $question, $answer);
@@ -1933,16 +1943,20 @@ class AIAssistantController extends Controller
             return self::$cachedBusinessContext;
 
         self::$cachedBusinessContext = <<<CTX
-        APPLICATION: $this->app_name  Frozen Fish System
-        DEVELOPER: ELBACHIR NOUBAA
+        APPLICATION: $this->app_name - Frozen Fish System
+        CREATOR, OWNER & SUPERVISOR: ELBACHIR NOUBAA
         DOMAIN: Fish buying, processing, storage, and selling in Morocco.
         CURRENCY: MAD (Moroccan Dirham)
         WEIGHT UNIT: KG (Kilograms)
 
         KEY BUSINESS ENTITIES:
-        - CHARGES (purchases): When the company buys fish from suppliers. Each charge has a date, supplier(s), ship, origin, fishery, tracking numbers, and line items.
-        - SELLS (sales): When the company sells fish to clients. Similar structure with clients instead of suppliers.
-        - WAREHOUSES: Storage locations with categories. Fish is tracked via warehouse_stockable_tracking_numbers.
+        - CHARGES (purchases): When the company buys fish from suppliers (charges, detail_charges). Each charge has a date, supplier, ship, origin, fishery, tracking numbers, total_weight, total_price.
+        - SHIPPINGS (sales): When the company sells / exports fish to clients (shippings, detail_shippings). Has date, client, ship, origin, total_weight, total_price.
+        - PRODUCTIONS: Fish processing in factory (productions, detail_productions). Has fresh_reception_weight, frozen_production_weight, guano_production_weight, equilibrium.
+        - WAREHOUSES: Storage locations with categories and balances (warehouses, warehouse_balances).
+        - WORKFORCE: Factory workers and fortnight shifts (workforces, fortnight_activities, sections, corporals).
+        - SUPPLIER INVOICES: Invoices for suppliers (supplier_invoices, supplier_payments).
+        - CLIENT INVOICES: Invoices for clients (client_invoices, client_payments).
         - SUPPLIERS: Fish suppliers the company buys from.
         - CLIENTS: Buyers the company sells to.
         - TRUCKS: Transport vehicles used for moving fish.
@@ -1951,10 +1965,8 @@ class AIAssistantController extends Controller
         - ORIGINS: Geographic origin of the fish.
         - FISH TYPES: Specific fish species (sardine, mackerel, etc.)
         - FISH FAMILIES: Groups of fish types.
-        - CHARGE CATEGORIES: Types of charges (some are "production" type  where is_production=true).
+        - CHARGE CATEGORIES: Types of charges.
         - FORMULAS: Pricing/calculation formulas.
-        - SUPPLIER INVOICES: Consolidated invoices grouping multiple charges for a supplier.
-        - WAREHOUSE CATEGORY OPERATIONS: Types of warehouse operations (IN/OUT). Some have is_production=true meaning production processing.
 
         DATA FLOW:
         1. Fish arrives → recorded as a CHARGE (purchase)

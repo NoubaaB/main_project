@@ -9,12 +9,23 @@
             <v-icon size="26" color="white">mdi-robot-happy-outline</v-icon>
           </div>
           <div>
-            <div class="aiq-hero-title">{{ $t('app_name_ai') }}</div>
+            <div class="aiq-hero-title d-flex align-center flex-wrap ga-2">
+              <span>{{ $t('app_name_ai') }}</span>
+              <div class="aiq-creator-pill" :title="$t('ai_creator_title')">
+                <v-icon size="13" color="#FFD700" class="me-1">mdi-crown</v-icon>
+                <span>ELBACHIR NOUBAA</span>
+                <v-icon size="12" color="#42A5F5" class="ms-1">mdi-check-decagram</v-icon>
+              </div>
+            </div>
             <div class="aiq-hero-subtitle">
               <span class="aiq-status-dot"></span>
               <span>{{ $t('online') }}</span>
               <span class="aiq-subtitle-divider">•</span>
               <span class="aiq-model-pill">{{ $t('ai_model_label') }}</span>
+              <span class="aiq-subtitle-divider">•</span>
+              <span class="text-caption font-weight-medium" style="color: rgba(255,255,255,0.9);">
+                {{ $t('ai_creator_badge') }}
+              </span>
             </div>
           </div>
         </div>
@@ -98,6 +109,42 @@
             {{ $t('clear_messages') }}
           </v-btn>
         </div>
+      </div>
+
+      <!-- Domain Quick Filters Bar -->
+      <div class="aiq-domain-chips-bar">
+        <button class="aiq-domain-pill" @click="askQuestion($t('quick_prompt_overview_query') || 'Donne moi le résumé exécutif et les KPIs globaux avec graphiques')">
+          <v-icon size="13" color="#42A5F5" class="me-1">mdi-view-dashboard</v-icon>
+          <span>{{ $t('ai_filter_all_kpis') }}</span>
+        </button>
+        <button class="aiq-domain-pill" @click="askQuestion($t('quick_prompt_charges_query') || 'Analyse détaillée des charges et réceptions')">
+          <v-icon size="13" color="#90CAF9" class="me-1">mdi-truck-delivery</v-icon>
+          <span>{{ $t('ai_filter_charges') }}</span>
+        </button>
+        <button class="aiq-domain-pill" @click="askQuestion($t('quick_prompt_shipping_query') || 'Analyse des ventes et expéditions clients')">
+          <v-icon size="13" color="#b39ddb" class="me-1">mdi-ship-wheel</v-icon>
+          <span>{{ $t('ai_filter_shippings') }}</span>
+        </button>
+        <button class="aiq-domain-pill" @click="askQuestion('Analyse du rendement et production usine')">
+          <v-icon size="13" color="#80cbc4" class="me-1">mdi-factory</v-icon>
+          <span>{{ $t('ai_filter_productions') }}</span>
+        </button>
+        <button class="aiq-domain-pill" @click="askQuestion($t('quick_prompt_stock_query') || 'Situation des stocks et entrepôts')">
+          <v-icon size="13" color="#ce93d8" class="me-1">mdi-warehouse</v-icon>
+          <span>{{ $t('ai_filter_warehouses') }}</span>
+        </button>
+        <button class="aiq-domain-pill" @click="askQuestion('Situation de la facturation et finances')">
+          <v-icon size="13" color="#ffcc80" class="me-1">mdi-file-document-outline</v-icon>
+          <span>{{ $t('ai_filter_finances') }}</span>
+        </button>
+        <button class="aiq-domain-pill" @click="askQuestion($t('quick_prompt_workforce_query') || 'Analyse de la main d\'oeuvre et quinzaine')">
+          <v-icon size="13" color="#a7ffeb" class="me-1">mdi-account-group</v-icon>
+          <span>{{ $t('ai_filter_workforce') }}</span>
+        </button>
+        <button class="aiq-domain-pill aiq-domain-pill-creator" @click="askQuestion($t('quick_prompt_creator_query') || 'Qui est le créateur et superviseur de cet agent IA ?')">
+          <v-icon size="13" color="#FFD700" class="me-1">mdi-crown</v-icon>
+          <span>{{ $t('ai_filter_creator') }}</span>
+        </button>
       </div>
     </div>
 
@@ -358,6 +405,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Summary Snackbar (Rule 5) -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="3500"
+      rounded="pill"
+      location="bottom end"
+    >
+      <div class="d-flex align-center ga-2">
+        <v-icon size="18">{{ snackbar.icon }}</v-icon>
+        <span class="font-weight-medium">{{ snackbar.text }}</span>
+      </div>
+    </v-snackbar>
   </div>
 </template>
 
@@ -376,6 +437,12 @@ export default {
       excelParsedData: [],
       hoveredMsgId: null,
       isAtBottom: true,
+      snackbar: {
+        show: false,
+        text: '',
+        color: '#42A5F5',
+        icon: 'mdi-information-outline'
+      },
       quickQuestions: [
         { text: "Total charges this month?", icon: "mdi-cash-multiple" },
         { text: "Top 5 suppliers by weight?", icon: "mdi-podium-gold" },
@@ -390,36 +457,52 @@ export default {
     promptCards() {
       return [
         {
-          title: this.$t('quick_prompt_charges_title'),
-          desc: this.$t('quick_prompt_charges_desc'),
-          query: this.$t('quick_prompt_charges_query'),
-          icon: 'mdi-cash-multiple',
+          title: this.$t('quick_prompt_overview_title') || 'Executive KPI Summary',
+          desc: this.$t('quick_prompt_overview_desc') || 'Comprehensive business KPIs across purchases, production, stock, and sales',
+          query: this.$t('quick_prompt_overview_query') || 'Give me the executive overview and global KPIs with charts',
+          icon: 'mdi-chart-line',
           color: '#42A5F5',
           bg: 'rgba(66, 165, 245, 0.12)',
         },
         {
-          title: this.$t('quick_prompt_workforce_title'),
-          desc: this.$t('quick_prompt_workforce_desc'),
-          query: this.$t('quick_prompt_workforce_query'),
-          icon: 'mdi-account-group',
-          color: '#26A69A',
-          bg: 'rgba(38, 166, 154, 0.12)',
+          title: this.$t('quick_prompt_charges_title'),
+          desc: this.$t('quick_prompt_charges_desc'),
+          query: this.$t('quick_prompt_charges_query'),
+          icon: 'mdi-truck-delivery-outline',
+          color: '#1565C0',
+          bg: 'rgba(21, 101, 192, 0.12)',
+        },
+        {
+          title: this.$t('quick_prompt_shipping_title'),
+          desc: this.$t('quick_prompt_shipping_desc'),
+          query: this.$t('quick_prompt_shipping_query'),
+          icon: 'mdi-ship-wheel',
+          color: '#6c66bb',
+          bg: 'rgba(108, 102, 187, 0.12)',
         },
         {
           title: this.$t('quick_prompt_stock_title'),
           desc: this.$t('quick_prompt_stock_desc'),
           query: this.$t('quick_prompt_stock_query'),
           icon: 'mdi-warehouse',
-          color: '#AB47BC',
-          bg: 'rgba(171, 71, 188, 0.12)',
+          color: '#a21ee5',
+          bg: 'rgba(162, 30, 229, 0.12)',
         },
         {
-          title: this.$t('quick_prompt_shipping_title'),
-          desc: this.$t('quick_prompt_shipping_desc'),
-          query: this.$t('quick_prompt_shipping_query'),
-          icon: 'mdi-truck-fast-outline',
-          color: '#FFA726',
-          bg: 'rgba(255, 167, 38, 0.12)',
+          title: this.$t('quick_prompt_workforce_title'),
+          desc: this.$t('quick_prompt_workforce_desc'),
+          query: this.$t('quick_prompt_workforce_query'),
+          icon: 'mdi-account-group',
+          color: '#00897B',
+          bg: 'rgba(0, 137, 123, 0.12)',
+        },
+        {
+          title: this.$t('quick_prompt_creator_title') || 'Creator & Supervisor',
+          desc: this.$t('quick_prompt_creator_desc') || 'Meet ELBACHIR NOUBAA, creator, owner and lead supervisor of this AI Agent',
+          query: this.$t('quick_prompt_creator_query') || 'Who is the creator and supervisor of this AI agent?',
+          icon: 'mdi-crown',
+          color: '#FFA000',
+          bg: 'rgba(255, 160, 0, 0.12)',
         },
       ];
     },
@@ -662,6 +745,64 @@ export default {
   font-weight: 800;
   letter-spacing: 0.3px;
   line-height: 1.2;
+}
+
+.aiq-creator-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+}
+
+.aiq-domain-chips-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 24px 12px 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.aiq-domain-chips-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.aiq-domain-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.aiq-domain-pill:hover {
+  background: rgba(255, 255, 255, 0.26);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.aiq-domain-pill-creator {
+  background: rgba(255, 215, 0, 0.18);
+  border-color: rgba(255, 215, 0, 0.45);
+}
+.aiq-domain-pill-creator:hover {
+  background: rgba(255, 215, 0, 0.3);
 }
 
 .aiq-hero-subtitle {

@@ -29,7 +29,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
     },
     actions: {
         sendMessage: async function (message) {
-            let messages = JSON.stringify(this.assistant_messages.filter(e => e.sender != 'AI').map(e => {
+            let messages = JSON.stringify((this.messages || []).filter(e => e.sender != 'AI').map(e => {
                 return {
                     role: e.sender,
                     text: e.text
