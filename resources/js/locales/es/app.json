@@ -3541,5 +3541,14 @@
     "badge_scan_prompt": "Pase la tarjeta RFID por el lector o ingrese el token",
     "employee_badge_id": "ID de tarjeta / Token de empleado",
     "scan_badge_button": "Escanear y Autenticar",
-    "simulate_badge_tap": "Simular pase de tarjeta"
+    "simulate_badge_tap": "Simular pase de tarjeta",
+    "about_jupiter": "Acerca de Jupiter ERP",
+    "check_for_updates": "Buscar actualizaciones",
+    "app_is_up_to_date": "La aplicación está actualizada",
+    "new_version_available": "Nueva versión disponible",
+    "last_updated": "Última actualización",
+    "git_commit": "Commit de Git",
+    "environment": "Entorno",
+    "build": "Compilación",
+    "click_for_system_info": "Haga clic para ver la información del sistema"
 }

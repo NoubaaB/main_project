@@ -14,10 +14,16 @@ import { useTruck } from "./Truck";
 import { useShippingCategory } from "./ShippingCategory";
 import { useClient } from "./Client";
 import i18n from '@/plugins/i18n';
+import versionJson from "../version.json";
 
 export const useMain = defineStore("main", {
     state: () => {
         return {
+            app_version: (typeof window !== 'undefined' && window.__APP_VERSION_INFO__?.version) || versionJson.version || '1.0.2',
+            app_build: (typeof window !== 'undefined' && window.__APP_VERSION_INFO__?.build) || versionJson.build || 1,
+            app_build_time: (typeof window !== 'undefined' && window.__APP_VERSION_INFO__?.build_time) || versionJson.build_time || '',
+            app_commit: (typeof window !== 'undefined' && window.__APP_VERSION_INFO__?.commit) || versionJson.commit || '',
+            app_env: (typeof window !== 'undefined' && window.__APP_VERSION_INFO__?.env) || versionJson.env || 'production',
             menu_drawer: false,
             sidebar_mini: false,
             command_drawer: false,
@@ -110,6 +116,21 @@ export const useMain = defineStore("main", {
             }
             annyang.setLanguage(lang.annyang);
             this.lang = lang;
+            this.fetchAppVersion();
+        },
+        fetchAppVersion: async function () {
+            try {
+                const res = await axios.get('/api/version');
+                if (res.data && res.data.success) {
+                    this.app_version = res.data.version || this.app_version;
+                    this.app_build = res.data.build || this.app_build;
+                    this.app_build_time = res.data.build_time || this.app_build_time;
+                    this.app_commit = res.data.commit || this.app_commit;
+                    this.app_env = res.data.environment || this.app_env;
+                }
+            } catch (e) {
+                // Keep locally cached/injected version
+            }
         },
         fetchData: async function (date_start, date_end, api_url, api_url_prop) {
             try {

@@ -250,15 +250,26 @@
         <span style="font-size: 0.72rem;">{{ $t('secure_enterprise_access') }}</span>
       </div>
 
-      <v-chip
-        size="x-small"
-        color="info"
-        variant="tonal"
-        class="pulse-powered-by-ai font-weight-medium"
-      >
-        <v-icon start size="12">mdi-robot-outline</v-icon>
-        {{ $t('powered_by_ai') }}
-      </v-chip>
+      <div class="d-flex align-center ga-1">
+        <v-chip
+          size="x-small"
+          color="#1565C0"
+          variant="tonal"
+          class="font-weight-bold"
+        >
+          v{{ main.app_version }}
+        </v-chip>
+
+        <v-chip
+          size="x-small"
+          color="info"
+          variant="tonal"
+          class="pulse-powered-by-ai font-weight-medium"
+        >
+          <v-icon start size="12">mdi-robot-outline</v-icon>
+          {{ $t('powered_by_ai') }}
+        </v-chip>
+      </div>
     </div>
 
     <!-- Error Snackbar -->

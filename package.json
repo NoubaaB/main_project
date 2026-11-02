@@ -1,8 +1,13 @@
 {
     "private": true,
     "type": "module",
+    "version": "1.0.5",
     "scripts": {
-        "build": "vite build",
+        "version:bump": "node scripts/bump-version.js",
+        "version:patch": "node scripts/bump-version.js --patch",
+        "version:minor": "node scripts/bump-version.js --minor",
+        "version:major": "node scripts/bump-version.js --major",
+        "build": "node scripts/bump-version.js && vite build",
         "dev": "vite"
     },
     "devDependencies": {

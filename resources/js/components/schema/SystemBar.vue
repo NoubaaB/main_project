@@ -776,6 +776,23 @@
             </v-tooltip>
           </v-btn>
 
+          <!-- App Version Pill Button -->
+          <v-btn
+            variant="text"
+            size="small"
+            class="dock-btn version-dock-btn px-2 d-none d-sm-inline-flex"
+            @click="aboutDialogOpen = true"
+            id="systembar-version-btn"
+          >
+            <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold cursor-pointer">
+              v{{ main.app_version }}
+            </v-chip>
+            <v-tooltip activator="parent" location="bottom">
+              <div class="font-weight-bold">Jupiter ERP v{{ main.app_version }} (Build {{ main.app_build }})</div>
+              <div class="text-caption" style="opacity: 0.8">{{ $t('click_for_system_info') }}</div>
+            </v-tooltip>
+          </v-btn>
+
           <!-- User Profile Menu -->
           <v-menu
             v-if="auth.is_auth"
@@ -831,6 +848,18 @@
                   :title="$t('user_management')"
                   :to="{ name: 'admin_users' }"
                 ></v-list-item>
+                <v-list-item
+                  rounded="lg"
+                  prepend-icon="mdi-information-outline"
+                  :title="$t('about_jupiter')"
+                  @click="aboutDialogOpen = true"
+                >
+                  <template #append>
+                    <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                      v{{ main.app_version }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
                 <v-divider class="my-1"></v-divider>
                 <v-list-item
                   rounded="lg"
@@ -848,6 +877,9 @@
 
     <!-- Command Palette Dialog -->
     <CommandPalette v-model="commandPaletteOpen" />
+
+    <!-- About Application Dialog -->
+    <AboutAppDialog v-model="aboutDialogOpen" />
   </v-app-bar>
 </template>
 
@@ -864,14 +896,17 @@ import { useWebPush } from '@/stores/WebPush';
 import { getRouteMetadata } from '@/utils/routeMetadata';
 import annyang from 'annyang';
 import CommandPalette from '@/components/schema/CommandPalette.vue';
+import AboutAppDialog from '@/components/schema/AboutAppDialog.vue';
 
 export default {
   name: 'SystemBar',
   components: {
-    CommandPalette
+    CommandPalette,
+    AboutAppDialog
   },
   data() {
     return {
+      aboutDialogOpen: false,
       notifMenuOpen: false,
       commandPaletteOpen: false,
       historyTab: 'recents',

@@ -27,8 +27,11 @@
                 <v-img src="/images/white-jupiter-logo.png" alt="Jupiter Logo" contain></v-img>
               </v-avatar>
               <div>
-                <div class="text-subtitle-1 font-weight-black text-white text-uppercase" style="letter-spacing: 0.1em; line-height: 1.2;">
-                  JUPITER
+                <div class="text-subtitle-1 font-weight-black text-white text-uppercase d-flex align-center ga-2" style="letter-spacing: 0.1em; line-height: 1.2;">
+                  <span>JUPITER</span>
+                  <v-chip size="x-small" variant="tonal" color="white" class="font-weight-bold" style="font-size: 10px; height: 18px;">
+                    v{{ main.app_version }}
+                  </v-chip>
                 </div>
                 <div class="text-caption text-white opacity-80" style="letter-spacing: 0.03em;">
                   {{ $t('operational_management_suite') }}
@@ -137,11 +140,17 @@
 
 <script>
 import LoginForm from "./Form.vue";
+import { useMain } from "@/stores/Main";
 
 export default {
   name: "LoginLayout",
   components: {
     LoginForm,
+  },
+  computed: {
+    main() {
+      return useMain();
+    },
   },
 };
 </script>

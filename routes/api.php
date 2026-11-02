@@ -27,6 +27,29 @@ Route::controller(AuthController::class)->group(function () {
 
 // Public company logos endpoint (no auth required – used by login page)
 Route::get("public/company-logos", [App\Http\Controllers\CompanySettingController::class, "publicLogos"]);
+
+// Public application version info endpoint
+Route::get("version", function () {
+    $versionFile = base_path('version.json');
+    $versionData = file_exists($versionFile) ? json_decode(file_get_contents($versionFile), true) : [
+        'name' => 'Jupiter',
+        'version' => '1.0.1',
+        'build' => 1,
+        'build_time' => date('Y-m-d H:i:s'),
+        'commit' => 'local'
+    ];
+    return response()->json([
+        'success' => true,
+        'app_name' => config('app.name', 'Jupiter'),
+        'version' => $versionData['version'] ?? '1.0.1',
+        'build' => $versionData['build'] ?? 1,
+        'build_time' => $versionData['build_time'] ?? null,
+        'commit' => $versionData['commit'] ?? null,
+        'laravel_version' => app()->version(),
+        'php_version' => PHP_VERSION,
+        'environment' => config('app.env', 'production')
+    ]);
+});
 #endregion 
 
 

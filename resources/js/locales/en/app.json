@@ -3541,5 +3541,14 @@
     "badge_scan_prompt": "Tap employee RFID badge on workstation reader or enter token",
     "employee_badge_id": "Employee Badge ID / Token",
     "scan_badge_button": "Scan & Authenticate",
-    "simulate_badge_tap": "Simulate Badge Tap"
+    "simulate_badge_tap": "Simulate Badge Tap",
+    "about_jupiter": "About Jupiter ERP",
+    "check_for_updates": "Check for Updates",
+    "app_is_up_to_date": "Application is up to date",
+    "new_version_available": "New version available",
+    "last_updated": "Last Updated",
+    "git_commit": "Git Commit",
+    "environment": "Environment",
+    "build": "Build",
+    "click_for_system_info": "Click for system information"
 }

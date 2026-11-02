@@ -31,6 +31,7 @@
                 document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
             } catch(e) {}
         })();
+        window.__APP_VERSION_INFO__ = {!! json_encode(file_exists(base_path('version.json')) ? json_decode(file_get_contents(base_path('version.json')), true) : ['name' => 'Jupiter', 'version' => '1.0.2', 'build' => 1]) !!};
     </script>
 
     <meta name="viewport"

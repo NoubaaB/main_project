@@ -3541,5 +3541,14 @@
     "badge_scan_prompt": "Passez le badge RFID sur le lecteur ou saisissez le jeton",
     "employee_badge_id": "Identifiant / Jeton du badge",
     "scan_badge_button": "Scanner & Authentifier",
-    "simulate_badge_tap": "Simuler passage de badge"
+    "simulate_badge_tap": "Simuler passage de badge",
+    "about_jupiter": "À propos de Jupiter ERP",
+    "check_for_updates": "Vérifier les mises à jour",
+    "app_is_up_to_date": "L'application est à jour",
+    "new_version_available": "Nouvelle version disponible",
+    "last_updated": "Dernière mise à jour",
+    "git_commit": "Commit Git",
+    "environment": "Environnement",
+    "build": "Build",
+    "click_for_system_info": "Cliquez pour les informations système"
 }

@@ -15,6 +15,15 @@ return [
 
     'name' => env('APP_NAME', 'Jupiter'),
 
+    'version' => env('APP_VERSION', (function () {
+        $file = base_path('version.json');
+        if (file_exists($file)) {
+            $data = json_decode(file_get_contents($file), true);
+            return $data['version'] ?? '1.0.1';
+        }
+        return '1.0.1';
+    })()),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

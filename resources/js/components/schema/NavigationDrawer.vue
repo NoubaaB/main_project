@@ -45,6 +45,7 @@
           <div class="pro-brand-name-line">
             <span class="pro-brand-title">Jupiter</span>
             <span class="pro-brand-edition-chip">ERP</span>
+            <span class="pro-brand-version-chip">v{{ main.app_version }}</span>
           </div>
           <div class="pro-brand-meta-line">
             <span
@@ -95,7 +96,7 @@
               class="pro-tooltip-theme-title font-weight-bold"
               :style="{ color: getAccessibleThemeColor('#42A5F5', main.is_dark) }"
             >
-              Jupiter ERP
+              Jupiter ERP v{{ main.app_version }}
             </span>
             <span
               class="pro-tooltip-parent-tag"
@@ -623,7 +624,7 @@
 
         <div class="pro-user-info-wrap">
           <span class="pro-user-name">{{ userName }}</span>
-          <span class="pro-user-role">{{ userRole }}</span>
+          <span class="pro-user-role">{{ userRole }} • <strong class="pro-footer-version">v{{ main.app_version }}</strong></span>
         </div>
 
         <div v-if="!main.sidebar_mini" class="pro-footer-actions ml-auto">
@@ -1541,6 +1542,22 @@ export default {
   letter-spacing: 0.4px;
   background: linear-gradient(135deg, #1565C0 0%, #42A5F5 100%);
   color: #FFFFFF;
+}
+
+.pro-brand-version-chip {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+  background: rgba(66, 165, 245, 0.15);
+  color: #42A5F5;
+  border: 1px solid rgba(66, 165, 245, 0.3);
+}
+
+.pro-footer-version {
+  color: #42A5F5;
+  font-weight: 600;
 }
 
 .pro-brand-meta-line {
