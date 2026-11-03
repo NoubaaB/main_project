@@ -55,9 +55,17 @@ export function loadExternalContent(htmlString, containerId, retries = 0) {
           document.body.appendChild(newScript);
         } catch (e) {
           console.warn('Script execution error:', e);
+        } finally {
+          if (idx === scripts.length - 1) {
+            window.dispatchEvent(new CustomEvent('ai:content-rendered', { detail: { containerId } }));
+          }
         }
       }, delay * (idx + 1));
     });
+
+    if (scripts.length === 0) {
+      window.dispatchEvent(new CustomEvent('ai:content-rendered', { detail: { containerId } }));
+    }
   } catch (error) {
     console.error('loadExternalContent error:', error);
     const ai_prompt = useAIPrompt();

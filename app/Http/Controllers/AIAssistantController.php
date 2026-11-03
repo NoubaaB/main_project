@@ -50,11 +50,13 @@ class AIAssistantController extends Controller
         $data = $request->validate([
             'message' => 'required|string',
             'messages' => 'required|string',
+            'theme' => 'nullable|string',
         ]);
 
         $question = $data['message'];
         $messages = $data['messages'];
         $thinkingLevel = $request->input('thinking_level', 'high');
+        $theme = in_array(strtolower((string) $request->input('theme', 'dark')), ['dark', 'light']) ? strtolower((string) $request->input('theme', 'dark')) : 'dark';
 
         $this->ai->setThinkingLevel($thinkingLevel);
         $analytics = new AIAnalyticsService();
@@ -62,7 +64,7 @@ class AIAssistantController extends Controller
         // Check if asking about creator/supervisor ELBACHIR NOUBAA
         $lowerQuestion = mb_strtolower($question, 'UTF-8');
         if (preg_match('/(creator|created|owner|supervisor|superviseur|elbachir|noubaa|bachir|développeur|qui t\'a|qui a créé|qui est ton|de qui es-tu|quien te creo|من صنعك|البشير|النوباع)/ui', $lowerQuestion)) {
-            $answer = $analytics->processQuestion($question, 'asst_' . time(), 'dark');
+            $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme);
             $this->persistMessages($request, $question, $answer);
             return response()->json(['answer' => $answer], 200);
         }
@@ -84,15 +86,15 @@ class AIAssistantController extends Controller
 
         // "" Handle WRITE/UPDATE/DELETE intents ""
         if (in_array($intent, ['create', 'update', 'delete'])) {
-            return $this->handleWriteIntent($request, $question, $messages, $intentData, $schema, $tableComments, $businessCtx);
+            return $this->handleWriteIntent($request, $question, $messages, $intentData, $schema, $tableComments, $businessCtx, $theme);
         }
 
         if ($intent === 'confirm') {
-            return $this->handleConfirmIntent($request, $question, $messages, $schema, $tableComments, $businessCtx);
+            return $this->handleConfirmIntent($request, $question, $messages, $schema, $tableComments, $businessCtx, $theme);
         }
 
         if ($intent === 'cancel') {
-            $answer = $this->buildCancelHtml();
+            $answer = $this->buildCancelHtml($theme);
             $this->persistMessages($request, $question, $answer);
             return response()->json(['answer' => $answer], 200);
         }
@@ -116,11 +118,11 @@ class AIAssistantController extends Controller
 
         // Check for previously uploaded Excel files the user might be referencing
         $excelContext = $this->getExcelContextFromHistory($request);
-        $answerPrompt = $this->buildAnswerPrompt($question, $messages, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes, $excelContext);
+        $answerPrompt = $this->buildAnswerPrompt($question, $messages, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes, $excelContext, $theme);
         $answer = $this->ai->generateAnswer($answerPrompt);
 
         if (!$answer) {
-            $answer = $analytics->processQuestion($question, 'asst_' . time(), 'dark');
+            $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme);
         }
 
         $this->persistMessages($request, $question, $answer);
@@ -139,7 +141,7 @@ class AIAssistantController extends Controller
     /**
      * Handle create/delete intents: validate, build confirmation, return to user.
      */
-    private function handleWriteIntent(Request $request, string $question, string $messages, array $intentData, string $schema, string $tableComments, string $businessCtx)
+    private function handleWriteIntent(Request $request, string $question, string $messages, array $intentData, string $schema, string $tableComments, string $businessCtx, string $theme = 'dark')
     {
         $intent = $intentData['intent'];
         $actions = $intentData['actions'] ?? [];
@@ -310,7 +312,7 @@ class AIAssistantController extends Controller
             'errors' => $errors,
         ];
 
-        $confirmHtml = $this->buildConfirmationHtml($pendingAction);
+        $confirmHtml = $this->buildConfirmationHtml($pendingAction, $theme);
 
         // Store pending action as a special hidden tag in the answer
         // Use base64_encode to avoid any HTML quote escaping issues with complex SQL queries
@@ -324,7 +326,7 @@ class AIAssistantController extends Controller
     /**
      * Handle user confirmation  find the pending action and execute it.
      */
-    private function handleConfirmIntent(Request $request, string $question, string $messages, string $schema, string $tableComments, string $businessCtx)
+    private function handleConfirmIntent(Request $request, string $question, string $messages, string $schema, string $tableComments, string $businessCtx, string $theme = 'dark')
     {
         // Find pending action in conversation history
         $pendingAction = $this->extractPendingAction($messages);
@@ -336,7 +338,7 @@ class AIAssistantController extends Controller
         }
 
         // Execute the action plan
-        $result = $this->executeActionPlan($pendingAction);
+        $result = $this->executeActionPlan($pendingAction, $theme);
         $answer = $result['html'];
 
         $this->persistMessages($request, $question, $answer);
@@ -351,9 +353,11 @@ class AIAssistantController extends Controller
         $data = $request->validate([
             'action_plan' => 'required|array',
             'message' => 'nullable|string',
+            'theme' => 'nullable|string',
         ]);
 
         $actionPlan = $data['action_plan'];
+        $theme = in_array(strtolower((string) $request->input('theme', 'dark')), ['dark', 'light']) ? strtolower((string) $request->input('theme', 'dark')) : 'dark';
         $user = $request->user();
         $intent = $actionPlan['intent'] ?? 'create';
 
@@ -373,7 +377,7 @@ class AIAssistantController extends Controller
             }
         }
 
-        $result = $this->executeActionPlan($actionPlan);
+        $result = $this->executeActionPlan($actionPlan, $theme);
 
         if ($user) {
             ChatMessage::withoutEvents(function () use ($user, $data, $result) {
@@ -395,8 +399,11 @@ class AIAssistantController extends Controller
         $request->validate([
             'message' => 'required|string|max:2000',
             'excel_data' => 'required|string', // JSON string from FormData
+            'theme' => 'nullable|string',
             'file' => 'nullable|file|max:10240|mimes:xlsx,xls,csv',
         ]);
+
+        $theme = in_array(strtolower((string) $request->input('theme', 'dark')), ['dark', 'light']) ? strtolower((string) $request->input('theme', 'dark')) : 'dark';
 
         // Parse excel_data from JSON string (FormData sends as string)
         $excelData = json_decode($request->input('excel_data'), true);
@@ -1003,7 +1010,7 @@ class AIAssistantController extends Controller
     /**
      * Execute a validated action plan (create or delete records).
      */
-    private function executeActionPlan(array $plan): array
+    private function executeActionPlan(array $plan, string $theme = 'dark'): array
     {
         $modelMap = $this->getModelMap();
         $results = [];
@@ -1152,9 +1159,13 @@ class AIAssistantController extends Controller
 
             \Illuminate\Support\Facades\Log::info("AI Assistant: Broadcasted model changes for: " . implode(', ', $broadcastedModels));
 
-            $html = '<div style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:12px;padding:16px;border-left:4px solid #4CAF50;">';
-            $html .= '<div style="font-weight:700;color:#2E7D32;margin-bottom:8px;">✅ Action completed successfully</div>';
-            $html .= '<ul style="margin:0;padding-left:20px;color:#333;">';
+            $isDark = ($theme === 'dark');
+            $successBg = $isDark ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.18), rgba(27, 94, 32, 0.18))' : 'linear-gradient(135deg,#E8F5E9,#C8E6C9)';
+            $successText = $isDark ? '#81C784' : '#2E7D32';
+            $successItemColor = $isDark ? '#E2E8F0' : '#333333';
+            $html = "<div class='ai-action-success-card' style='background:{$successBg};border-radius:12px;padding:16px;border-left:4px solid #4CAF50;'>";
+            $html .= "<div style='font-weight:700;color:{$successText};margin-bottom:8px;'>✅ Action completed successfully</div>";
+            $html .= "<ul style='margin:0;padding-left:20px;color:{$successItemColor};'>";
             foreach ($results as $r) {
                 $html .= "<li style='margin:4px 0;'>{$r}</li>";
             }
@@ -1163,8 +1174,11 @@ class AIAssistantController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $html = '<div style="background:#FFEBEE;border-radius:12px;padding:16px;border-left:4px solid #D32F2F;">'
-                . '<strong style="color:#D32F2F;">❌ Error:</strong> ' . htmlspecialchars($e->getMessage())
+            $isDark = ($theme === 'dark');
+            $errBg = $isDark ? 'linear-gradient(135deg, rgba(239, 83, 80, 0.18), rgba(183, 28, 28, 0.18))' : '#FFEBEE';
+            $textColor = $isDark ? '#e2e8f0' : '#333333';
+            $html = "<div class='ai-action-error-card' style='background:{$errBg};border-radius:12px;padding:16px;border-left:4px solid #D32F2F;'>"
+                . "<strong style='color:#EF5350;'>❌ Error:</strong> <span style='color:{$textColor};'>" . htmlspecialchars($e->getMessage()) . "</span>"
                 . '</div>';
             return ['html' => $html, 'affected_models' => []];
         }
@@ -1503,36 +1517,40 @@ class AIAssistantController extends Controller
     /**
      * Build styled HTML confirmation card for the user.
      */
-    private function buildConfirmationHtml(array $plan): string
+    private function buildConfirmationHtml(array $plan, string $theme = 'dark'): string
     {
         $intent = $plan['intent'] ?? 'create';
         $isDelete = $intent === 'delete';
         $isUpdate = $intent === 'update';
+        $isDark = ($theme === 'dark');
 
         if ($isDelete) {
-            $color = '#D32F2F';
-            $bgGradient = 'linear-gradient(135deg,#FFEBEE,#FFCDD2)';
+            $color = '#EF5350';
+            $bgGradient = $isDark ? 'linear-gradient(135deg, rgba(239, 83, 80, 0.18), rgba(183, 28, 28, 0.18))' : 'linear-gradient(135deg,#FFEBEE,#FFCDD2)';
             $icon = '🗑️';
             $title = 'Delete Confirmation';
         } elseif ($isUpdate) {
-            $color = '#F57C00';
-            $bgGradient = 'linear-gradient(135deg,#FFF3E0,#FFE0B2)';
+            $color = '#FFA726';
+            $bgGradient = $isDark ? 'linear-gradient(135deg, rgba(255, 167, 38, 0.18), rgba(230, 81, 0, 0.18))' : 'linear-gradient(135deg,#FFF3E0,#FFE0B2)';
             $icon = '✏️';
             $title = 'Update Confirmation';
         } else {
-            $color = '#1976D2';
-            $bgGradient = 'linear-gradient(135deg,#E3F2FD,#BBDEFB)';
+            $color = '#42A5F5';
+            $bgGradient = $isDark ? 'linear-gradient(135deg, rgba(66, 165, 245, 0.18), rgba(21, 101, 192, 0.18))' : 'linear-gradient(135deg,#E3F2FD,#BBDEFB)';
             $icon = '📝';
             $title = 'Create Confirmation';
         }
 
-        $html = "<div style='background:{$bgGradient};border-radius:12px;padding:16px;border-left:4px solid {$color};'>";
+        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
+        $subColor = $isDark ? '#94a3b8' : '#555555';
+
+        $html = "<div class='ai-confirm-card' style='background:var(--ai-inner-bg, {$bgGradient});border-radius:12px;padding:16px;border-left:4px solid {$color};color:var(--ai-text-color, {$textColor});'>";
         $html .= "<div style='font-weight:700;color:{$color};margin-bottom:10px;font-size:14px;'>{$icon} {$title}</div>";
 
         // Show pre-create items
         if (!empty($plan['pre_create'])) {
-            $html .= "<div style='margin-bottom:8px;color:#555;font-size:13px;'><strong>Dependencies to create first:</strong></div>";
-            $html .= "<ul style='margin:0 0 8px 0;padding-left:20px;font-size:13px;'>";
+            $html .= "<div style='margin-bottom:8px;color:var(--ai-sub-color, {$subColor});font-size:13px;'><strong>Dependencies to create first:</strong></div>";
+            $html .= "<ul style='margin:0 0 8px 0;padding-left:20px;font-size:13px;color:var(--ai-text-color, {$textColor});'>";
             foreach ($plan['pre_create'] as $pc) {
                 $fields = json_encode($pc['fields'] ?? [], JSON_UNESCAPED_UNICODE);
                 $html .= "<li><strong>{$pc['model']}</strong>: {$fields}</li>";
@@ -1541,8 +1559,8 @@ class AIAssistantController extends Controller
         }
 
         // Show main actions
-        $html .= "<div style='margin-bottom:8px;color:#555;font-size:13px;'><strong>Actions:</strong></div>";
-        $html .= "<ul style='margin:0 0 12px 0;padding-left:20px;font-size:13px;'>";
+        $html .= "<div style='margin-bottom:8px;color:var(--ai-sub-color, {$subColor});font-size:13px;'><strong>Actions:</strong></div>";
+        $html .= "<ul style='margin:0 0 12px 0;padding-left:20px;font-size:13px;color:var(--ai-text-color, {$textColor});'>";
         $grandTotal = 0;
         foreach ($plan['actions'] as $action) {
             $model = $action['model'] ?? '?';
@@ -1562,7 +1580,7 @@ class AIAssistantController extends Controller
             } else {
                 $count = count($action['ids'] ?? []);
                 $grandTotal += $count;
-                $softLabel = ($action['soft_delete'] ?? false) ? '(soft-delete, recoverable)' : '<span style="color:#D32F2F;font-weight:700;">(⚠️ permanent!)</span>';
+                $softLabel = ($action['soft_delete'] ?? false) ? '(soft-delete, recoverable)' : '<span style="color:#EF5350;font-weight:700;">(⚠️ permanent!)</span>';
                 $desc = $action['description'] ?? '';
                 $html .= "<li>Delete <strong>{$count}</strong> {$model} record(s) {$softLabel}" . ($desc ? "  {$desc}" : '') . "</li>";
             }
@@ -1577,10 +1595,10 @@ class AIAssistantController extends Controller
 
         // Show errors
         if (!empty($plan['errors'])) {
-            $html .= "<div style='color:#EF6C00;font-size:12px;margin-bottom:8px;'>⚠️ Warnings: " . implode(', ', $plan['errors']) . "</div>";
+            $html .= "<div style='color:#FFA726;font-size:12px;margin-bottom:8px;'>⚠️ Warnings: " . implode(', ', $plan['errors']) . "</div>";
         }
 
-        $html .= "<div style='font-size:13px;color:#333;'>Reply <strong>\"yes\"</strong> to confirm or <strong>\"no\"</strong> to cancel.</div>";
+        $html .= "<div style='font-size:13px;color:var(--ai-text-color, {$textColor});'>Reply <strong>\"yes\"</strong> to confirm or <strong>\"no\"</strong> to cancel.</div>";
         $html .= "</div>";
 
         return $html;
@@ -1589,10 +1607,13 @@ class AIAssistantController extends Controller
     /**
      * Build cancel confirmation HTML.
      */
-    private function buildCancelHtml(): string
+    private function buildCancelHtml(string $theme = 'dark'): string
     {
-        return '<div style="background:#ECEFF1;border-radius:12px;padding:14px;border-left:4px solid #607D8B;">'
-            . '<strong style="color:#455A64;">🚫 Action cancelled.</strong> No changes were made.'
+        $isDark = ($theme === 'dark');
+        $bg = $isDark ? '#1e2634' : '#ECEFF1';
+        $textColor = $isDark ? '#e2e8f0' : '#455A64';
+        return "<div class=\"ai-cancel-card\" style=\"background:var(--ai-inner-bg, {$bg});border-radius:12px;padding:14px;border-left:4px solid #607D8B;\">"
+            . "<strong style=\"color:#78909C;\">🚫 Action cancelled.</strong> <span style=\"color:var(--ai-text-color, {$textColor});\">No changes were made.</span>"
             . '</div>';
     }
 
@@ -1600,13 +1621,20 @@ class AIAssistantController extends Controller
      * Build a styled HTML table displaying ALL Excel data without truncation.
      * This is used when the user asks to "display" or "show" data — bypasses AI to avoid truncation.
      */
-    private function buildExcelDisplayHtml(array $headers, array $rows, string $filename, int $totalRows): string
+    private function buildExcelDisplayHtml(array $headers, array $rows, string $filename, int $totalRows, string $theme = 'dark'): string
     {
-        $html = '<div style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB);border-radius:12px;padding:16px;border-left:4px solid #1976D2;margin-bottom:8px;">';
-        $html .= '<div style="font-weight:700;color:#1565C0;margin-bottom:8px;font-size:14px;">📊 ' . htmlspecialchars($filename) . '</div>';
-        $html .= '<div style="color:#555;font-size:13px;margin-bottom:12px;">Total rows: <strong>' . $totalRows . '</strong></div>';
+        $isDark = ($theme === 'dark');
+        $cardBg = $isDark ? '#1e2634' : 'linear-gradient(135deg,#E3F2FD,#BBDEFB)';
+        $tableBg = $isDark ? '#141c28' : '#ffffff';
+        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
+        $subColor = $isDark ? '#94a3b8' : '#555555';
+        $borderColor = $isDark ? 'rgba(255, 255, 255, 0.08)' : '#E0E0E0';
+
+        $html = "<div class='ai-excel-display-card' style='background:var(--ai-inner-bg, {$cardBg});border-radius:12px;padding:16px;border-left:4px solid #1976D2;margin-bottom:8px;'>";
+        $html .= '<div style="font-weight:700;color:#42A5F5;margin-bottom:8px;font-size:14px;">📊 ' . htmlspecialchars($filename) . '</div>';
+        $html .= "<div style='color:var(--ai-sub-color, {$subColor});font-size:13px;margin-bottom:12px;'>Total rows: <strong style='color:var(--ai-text-color, {$textColor});'>" . $totalRows . '</strong></div>';
         $html .= '<div style="overflow-x:auto;max-height:600px;overflow-y:auto;">';
-        $html .= '<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:8px;overflow:hidden;">';
+        $html .= "<table class='ai-analytics-table' style='width:100%;border-collapse:collapse;font-size:12px;background:{$tableBg};border-radius:8px;overflow:hidden;'>";
 
         // Header row
         $html .= '<thead><tr>';
@@ -1619,15 +1647,15 @@ class AIAssistantController extends Controller
         // Data rows — ALL of them, no truncation
         $html .= '<tbody>';
         foreach ($rows as $i => $row) {
-            $bgColor = ($i % 2 === 0) ? '#fff' : '#F5F5F5';
-            $html .= '<tr style="background:' . $bgColor . ';">';
-            $html .= '<td style="padding:6px 10px;border:1px solid #E0E0E0;text-align:center;color:#757575;font-weight:500;">' . ($i + 1) . '</td>';
+            $bgColor = ($i % 2 === 0) ? ($isDark ? '#141c28' : '#fff') : ($isDark ? 'rgba(255, 255, 255, 0.03)' : '#F5F5F5');
+            $html .= "<tr style='background:{$bgColor};'>";
+            $html .= "<td style='padding:6px 10px;border:1px solid {$borderColor};text-align:center;color:var(--ai-sub-color, {$subColor});font-weight:500;'>" . ($i + 1) . '</td>';
             foreach ($headers as $colIdx => $header) {
                 $value = $row[$colIdx] ?? '';
                 $displayValue = is_null($value) ? '' : htmlspecialchars((string) $value);
                 // Right-align if numeric
                 $align = is_numeric($value) ? 'text-align:right;' : 'text-align:left;';
-                $html .= '<td style="padding:6px 10px;border:1px solid #E0E0E0;' . $align . '">' . $displayValue . '</td>';
+                $html .= "<td style='padding:6px 10px;border:1px solid {$borderColor};{$align}color:var(--ai-text-color, {$textColor});'>" . $displayValue . '</td>';
             }
             $html .= '</tr>';
         }
@@ -1830,7 +1858,7 @@ class AIAssistantController extends Controller
     /**
      * Build the answer/analysis prompt from the retrieved data.
      */
-    private function buildAnswerPrompt(string $question, string $messages, string $schema, string $comments, ?string $result, ?string $sqlError, string $businessCtx, string $routes, ?string $excelContext = null): string
+    private function buildAnswerPrompt(string $question, string $messages, string $schema, string $comments, ?string $result, ?string $sqlError, string $businessCtx, string $routes, ?string $excelContext = null, string $theme = 'dark'): string
     {
         $id = uniqid('ai_');
         $dataSection = '';
@@ -1887,27 +1915,31 @@ class AIAssistantController extends Controller
         === RESPONSE RULES ===
         1. NEVER invent data. Only use the data provided above.
         2. CRITICAL LANGUAGE RULE: Detect the exact language the user used in their question (e.g., French, Spanish, English, Arabic) and ALWAYS respond in that EXACT SAME language. Do not mix languages or default to English.
-        3. Format numbers with spaces as thousands separator. CRITICAL FORMATTING RULES:
+        3. CRITICAL THEME & RESPONSIVE DESIGN RULES:
+           - The active system theme is: "{$theme}".
+           - Ensure full responsiveness with dark and light modes. Use CSS variables (--ai-card-bg, --ai-inner-bg, --ai-text-color, --ai-sub-color) or Vuetify theme classes rather than hardcoded solid hex backgrounds.
+           - For ApexCharts: set options.theme = { mode: "{$theme}" }, set options.chart.id = "aichart_{$id}", and register window.__ai_charts = window.__ai_charts || {}; window.__ai_charts["aichart_{$id}"] = chart.
+        4. Format numbers with spaces as thousands separator. CRITICAL FORMATTING RULES:
            - COUNTS (quantities, number of records, IDs, number of items, package count): display as INTEGERS with NO decimals. Example: 1 250 records, 35 items, ID #12.
            - PRICES (amounts, costs, unit_price, total_price, totals in MAD): display with exactly 2 decimals. Example: 12 500.00 MAD, 3 200.50 MAD.
            - WEIGHTS (total_weight, kg values): display with exactly 2 decimals. Example: 1 500.00 KG, 850.75 KG.
            - PERCENTAGES: display with 1 decimal. Example: 85.3%, 12.0%.
-        4. For simple answers: use clean, plain text with key metrics highlighted in <strong> tags.
-        5. For complex/tabular data: use a styled HTML <table> with:
+        5. For simple answers: use clean, plain text with key metrics highlighted in <strong> tags.
+        6. For complex/tabular data: use a styled HTML <table class="ai-analytics-table"> with:
            - Clean borders, padding, proper headers
            - Alternating row colors for readability
            - Right-aligned numbers
-        6. For chart-worthy data (trends, comparisons): use ApexCharts with `new ApexCharts(document.querySelector('#aichart_{$id}'), options).render()`.
+        7. For chart-worthy data (trends, comparisons): use ApexCharts with `new ApexCharts(document.querySelector('#aichart_{$id}'), options).render()`.
            - For chart div, use: <div id="aichart_{$id}"></div>
            - Initialize in the mounted() hook of the Vue app.
            - Set explicit chart height (e.g. height: 300) to avoid NaN errors.
-        7. Keep answers concise but complete. No unnecessary preamble.
-        8. If the user asks a general question about the app (not data), answer based on your knowledge of the system.
-        9. Always be helpful, professional, and friendly.
-        10. NEVER instantiate Vue or Vuetify again (no createVuetify). NEVER use fetch, axios, or any HTTP calls.
-        11. NEVER use <body>, <html>, <head> tags. Give ONLY the HTML+script code. No markdown wrappers.
-        12. don't get users conversation history.
-        11. IMPORTANT NAV BUTTONS: Use the APPLICATION ROUTES map above to provide navigation buttons.
+        8. Keep answers concise but complete. No unnecessary preamble.
+        9. If the user asks a general question about the app (not data), answer based on your knowledge of the system.
+        10. Always be helpful, professional, and friendly.
+        11. NEVER instantiate Vue or Vuetify again (no createVuetify). NEVER use fetch, axios, or any HTTP calls.
+        12. NEVER use <body>, <html>, <head> tags. Give ONLY the HTML+script code. No markdown wrappers.
+        13. don't get users conversation history.
+        14. IMPORTANT NAV BUTTONS: Use the APPLICATION ROUTES map above to provide navigation buttons.
             - When discussing specific records (Charge, Sell, Invoice, etc.) or when the user asks "where can I...", "how do I go to...", "take me to...", ALWAYS provide a clickable button.
             - MUST use the class "ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small bg-primary text-white ml-2 rounded-pill px-4 py-1".
             - MUST include a "data-route" attribute with the exact path from the route map.

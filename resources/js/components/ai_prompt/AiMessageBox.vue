@@ -58,6 +58,7 @@
 <script>
 import { loadExternalContent } from '@/helpers/dynamic-loader';
 import { useAIPrompt } from "@/stores/AIPrompt";
+import { useMain } from "@/stores/Main";
 import * as XLSX from 'xlsx';
 
 export default {
@@ -70,6 +71,9 @@ export default {
     };
   },
   computed: {
+    main() {
+      return useMain();
+    },
     ai_prompt() {
       return useAIPrompt();
     },
@@ -78,7 +82,15 @@ export default {
       return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     },
   },
+  watch: {
+    'main.is_dark': {
+      handler(isDark) {
+        this.updateChartsTheme(isDark);
+      }
+    }
+  },
   mounted() {
+    window.addEventListener('ai:content-rendered', this.onContentRendered);
     this.$nextTick(() => {
       this.isLoading = false;
       this.$nextTick(() => {
@@ -90,18 +102,60 @@ export default {
           container.addEventListener('click', this.handleContentClick);
           this.$nextTick(() => {
             this.hasTable = container.querySelector('table') !== null;
+            this.updateChartsTheme(this.main.is_dark);
           });
         }
       });
     });
   },
   beforeUnmount() {
+    window.removeEventListener('ai:content-rendered', this.onContentRendered);
     const container = this.$refs.contentBox;
     if (container) {
       container.removeEventListener('click', this.handleContentClick);
     }
   },
   methods: {
+    onContentRendered(e) {
+      if (e.detail?.containerId === `_ai_message_${this.index}`) {
+        this.updateChartsTheme(this.main.is_dark);
+      }
+    },
+    updateChartsTheme(isDark) {
+      this.$nextTick(() => {
+        const container = this.$refs.contentBox;
+        if (!container) return;
+        const mode = isDark ? 'dark' : 'light';
+        const axisColor = isDark ? '#94a3b8' : '#64748b';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+        const chartElements = container.querySelectorAll('[id^="aichart_"]');
+        chartElements.forEach(el => {
+          const id = el.id;
+          if (window.__ai_charts && window.__ai_charts[id] && typeof window.__ai_charts[id].updateOptions === 'function') {
+            try {
+              window.__ai_charts[id].updateOptions({
+                theme: { mode: mode },
+                grid: { borderColor: gridColor },
+                xaxis: { labels: { style: { colors: axisColor } } },
+                yaxis: { labels: { style: { colors: axisColor } } },
+                tooltip: { theme: mode },
+              });
+            } catch (err) {}
+          } else if (window.ApexCharts) {
+            try {
+              window.ApexCharts.exec(id, 'updateOptions', {
+                theme: { mode: mode },
+                grid: { borderColor: gridColor },
+                xaxis: { labels: { style: { colors: axisColor } } },
+                yaxis: { labels: { style: { colors: axisColor } } },
+                tooltip: { theme: mode },
+              });
+            } catch (err) {}
+          }
+        });
+      });
+    },
     async copyResponse() {
       const container = this.$refs.contentBox;
       if (!container) return;
@@ -501,7 +555,72 @@ export default {
   padding: 0;
 }
 
-/* Beautiful Data Tables */
+/* Beautiful Data Tables & Theme-Responsive Analytics */
+.aimb-wrapper {
+  --ai-card-bg: rgba(var(--v-theme-surface), 0.95);
+  --ai-card-border: rgba(var(--v-theme-on-surface), 0.1);
+  --ai-inner-bg: rgba(var(--v-theme-on-surface), 0.04);
+  --ai-inner-border: rgba(var(--v-theme-on-surface), 0.08);
+  --ai-text-color: rgba(var(--v-theme-on-surface), 0.92);
+  --ai-sub-color: rgba(var(--v-theme-on-surface), 0.6);
+  --ai-table-header-bg: rgba(var(--v-theme-on-surface), 0.06);
+  --ai-table-border: rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.aimb-content :deep(.ai-analytics-card) {
+  background: var(--ai-card-bg) !important;
+  color: var(--ai-text-color) !important;
+  border-color: var(--ai-card-border) !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.aimb-content :deep(.ai-analytics-inner) {
+  background: var(--ai-inner-bg) !important;
+  color: var(--ai-text-color) !important;
+  border-color: var(--ai-inner-border) !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.aimb-content :deep(.ai-analytics-text) {
+  color: var(--ai-text-color) !important;
+}
+
+.aimb-content :deep(.ai-analytics-subtext) {
+  color: var(--ai-sub-color) !important;
+}
+
+.aimb-content :deep(.ai-analytics-table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: transparent !important;
+  border: 1px solid var(--ai-table-border) !important;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.aimb-content :deep(.ai-analytics-table th) {
+  background: var(--ai-table-header-bg) !important;
+  color: var(--ai-sub-color) !important;
+  border-bottom: 2px solid var(--ai-table-border) !important;
+}
+
+.aimb-content :deep(.ai-analytics-table td) {
+  color: var(--ai-text-color) !important;
+  border-bottom: 1px solid var(--ai-table-border) !important;
+}
+
+.aimb-content :deep(.ai-analytics-table tr:hover td) {
+  background: rgba(var(--v-theme-on-surface), 0.03) !important;
+}
+
+.aimb-content :deep(.ai-confirm-card),
+.aimb-content :deep(.ai-cancel-card),
+.aimb-content :deep(.ai-excel-display-card),
+.aimb-content :deep(.ai-action-success-card),
+.aimb-content :deep(.ai-action-error-card) {
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 .aimb-content :deep(table) {
   width: 100%;
   border-collapse: separate;

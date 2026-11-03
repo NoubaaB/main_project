@@ -33,7 +33,7 @@ class AIQueryController extends Controller
         $data = $request->validate([
             'message' => 'required|string',
             'id' => 'required|numeric',
-            'theme' => 'required|string',
+            'theme' => 'nullable|string',
             'messages' => 'required|string',
             'excel_files' => 'nullable|array',
             'excel_files.*.name' => 'string',
@@ -43,7 +43,7 @@ class AIQueryController extends Controller
 
         $question = $data['message'];
         $id = $data['id'];
-        $theme = $data['theme'];
+        $theme = in_array(strtolower((string) ($data['theme'] ?? 'dark')), ['dark', 'light']) ? strtolower((string) ($data['theme'] ?? 'dark')) : 'dark';
         $messages = $data['messages'];
         $excelFiles = $data['excel_files'] ?? [];
         $thinkingLevel = $request->input('thinking_level', 'high');

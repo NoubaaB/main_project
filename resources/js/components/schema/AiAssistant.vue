@@ -592,7 +592,49 @@ export default {
       ];
     },
   },
+  watch: {
+    isDark: {
+      handler(newVal) {
+        this.updateAllChartsTheme(newVal);
+      }
+    }
+  },
   methods: {
+    updateAllChartsTheme(isDark) {
+      this.$nextTick(() => {
+        const container = this.$refs.messagesContainer;
+        if (!container) return;
+        const mode = isDark ? 'dark' : 'light';
+        const axisColor = isDark ? '#94a3b8' : '#64748b';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+        const chartElements = container.querySelectorAll('[id^="aichart_"]');
+        chartElements.forEach(el => {
+          const id = el.id;
+          if (window.__ai_charts && window.__ai_charts[id] && typeof window.__ai_charts[id].updateOptions === 'function') {
+            try {
+              window.__ai_charts[id].updateOptions({
+                theme: { mode: mode },
+                grid: { borderColor: gridColor },
+                xaxis: { labels: { style: { colors: axisColor } } },
+                yaxis: { labels: { style: { colors: axisColor } } },
+                tooltip: { theme: mode },
+              });
+            } catch (err) {}
+          } else if (window.ApexCharts) {
+            try {
+              window.ApexCharts.exec(id, 'updateOptions', {
+                theme: { mode: mode },
+                grid: { borderColor: gridColor },
+                xaxis: { labels: { style: { colors: axisColor } } },
+                yaxis: { labels: { style: { colors: axisColor } } },
+                tooltip: { theme: mode },
+              });
+            } catch (err) {}
+          }
+        });
+      });
+    },
     sendQuickMessage(query) {
       this.sendSuggestion(query);
     },
@@ -885,6 +927,7 @@ export default {
         }
         this._renderedIds.add(key);
       }
+      this.updateAllChartsTheme(this.isDark);
     },
     exportBubbleExcel(event, m) {
       // Find the bubble element that contains the text
@@ -1284,8 +1327,12 @@ export default {
         this.scrollToBottom(true);
       });
     },
+    onContentRendered() {
+      this.updateAllChartsTheme(this.isDark);
+    },
   },
   mounted() {
+    window.addEventListener('ai:content-rendered', this.onContentRendered);
     // Initialize FAB at bottom-right corner
     this.$nextTick(() => {
       const margin = 24;
@@ -1311,6 +1358,7 @@ export default {
     }
   },
   beforeUnmount() {
+    window.removeEventListener('ai:content-rendered', this.onContentRendered);
     window.removeEventListener('resize', this._onResize);
     document.removeEventListener('pointermove', this._onFabPointerMove);
     document.removeEventListener('pointerup', this._onFabPointerUp);
@@ -1366,6 +1414,14 @@ export default {
   --ai-avatar-bg: linear-gradient(135deg, #1565C0, #42A5F5);
   --ai-typing-bg: #1c212c;
   --ai-typing-border: rgba(255, 255, 255, 0.08);
+  --ai-card-bg: #1c212c;
+  --ai-card-border: rgba(66, 165, 245, 0.25);
+  --ai-inner-bg: rgba(255, 255, 255, 0.04);
+  --ai-inner-border: rgba(255, 255, 255, 0.08);
+  --ai-text-color: #e2e8f0;
+  --ai-sub-color: #94a3b8;
+  --ai-table-header-bg: rgba(255, 255, 255, 0.06);
+  --ai-table-border: rgba(255, 255, 255, 0.08);
 }
 
 /* ---------- Theme Tokens - Light ---------- */
@@ -1408,6 +1464,14 @@ export default {
   --ai-avatar-bg: linear-gradient(135deg, #1565C0, #42A5F5);
   --ai-typing-bg: #ffffff;
   --ai-typing-border: rgba(0, 0, 0, 0.08);
+  --ai-card-bg: #ffffff;
+  --ai-card-border: rgba(0, 0, 0, 0.08);
+  --ai-inner-bg: #f8fafc;
+  --ai-inner-border: rgba(0, 0, 0, 0.06);
+  --ai-text-color: #1e293b;
+  --ai-sub-color: #64748b;
+  --ai-table-header-bg: #f1f5f9;
+  --ai-table-border: #e2e8f0;
 }
 
 /* ---------- FAB Button ---------- */
@@ -2101,6 +2165,62 @@ export default {
 }
 .ai-theme-light .ai-chart-content :deep(.v-data-table) {
   background-color: #ffffff !important;
+}
+
+/* Theme-Responsive Analytics & HTML in Bubbles */
+.ai-msg-bubble :deep(.ai-analytics-card) {
+  background: var(--ai-card-bg) !important;
+  color: var(--ai-text-color) !important;
+  border-color: var(--ai-card-border) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.ai-msg-bubble :deep(.ai-analytics-inner) {
+  background: var(--ai-inner-bg) !important;
+  color: var(--ai-text-color) !important;
+  border-color: var(--ai-inner-border) !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.ai-msg-bubble :deep(.ai-analytics-text) {
+  color: var(--ai-text-color) !important;
+}
+
+.ai-msg-bubble :deep(.ai-analytics-subtext) {
+  color: var(--ai-sub-color) !important;
+}
+
+.ai-msg-bubble :deep(.ai-analytics-table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: transparent !important;
+  border: 1px solid var(--ai-table-border) !important;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ai-msg-bubble :deep(.ai-analytics-table th) {
+  background: var(--ai-table-header-bg) !important;
+  color: var(--ai-sub-color) !important;
+  border-bottom: 2px solid var(--ai-table-border) !important;
+}
+
+.ai-msg-bubble :deep(.ai-analytics-table td) {
+  color: var(--ai-text-color) !important;
+  border-bottom: 1px solid var(--ai-table-border) !important;
+}
+
+.ai-msg-bubble :deep(.ai-analytics-table tr:hover td) {
+  background: rgba(var(--v-theme-on-surface), 0.03) !important;
+}
+
+.ai-msg-bubble :deep(.ai-confirm-card),
+.ai-msg-bubble :deep(.ai-cancel-card),
+.ai-msg-bubble :deep(.ai-excel-display-card),
+.ai-msg-bubble :deep(.ai-action-success-card),
+.ai-msg-bubble :deep(.ai-action-error-card) {
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* ---------- Message Text ---------- */

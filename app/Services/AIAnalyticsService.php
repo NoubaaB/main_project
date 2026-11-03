@@ -196,10 +196,13 @@ class AIAnalyticsService
         $cardBg = $isDark ? '#1a2332' : '#ffffff';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 24px; border: 1px solid rgba(66, 165, 245, 0.3); box-shadow: 0 10px 30px rgba(21, 101, 192, 0.15); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 24px; border: 1px solid rgba(66, 165, 245, 0.3); box-shadow: 0 10px 30px rgba(21, 101, 192, 0.15); margin-bottom: 8px;">
     <!-- Creator Badge Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(66, 165, 245, 0.2); padding-bottom: 16px;">
       <div style="display: flex; align-items: center; gap: 14px;">
@@ -208,7 +211,7 @@ class AIAnalyticsService
         </div>
         <div>
           <div style="font-size: 20px; font-weight: 800; color: #42A5F5; letter-spacing: 0.5px;">{$t['name']}</div>
-          <div style="font-size: 13px; font-weight: 600; color: {$subColor}; display: flex; align-items: center; gap: 6px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--ai-sub-color, {$subColor}); display: flex; align-items: center; gap: 6px;">
             <i class="v-icon notranslate mdi mdi-shield-check text-blue" style="font-size: 16px; color: #42A5F5 !important;"></i>
             <span>{$t['role']}</span>
           </div>
@@ -220,7 +223,7 @@ class AIAnalyticsService
     </div>
 
     <!-- Creator Description -->
-    <div style="font-size: 14.5px; line-height: 1.8; color: {$textColor}; margin-bottom: 20px;">
+    <div style="font-size: 14.5px; line-height: 1.8; color: var(--ai-text-color, {$textColor}); margin-bottom: 20px;">
       {$t['bio']}
     </div>
 
@@ -230,7 +233,7 @@ class AIAnalyticsService
         <i class="v-icon notranslate mdi mdi-star-circle text-blue" style="font-size: 14px; margin-right: 6px;"></i>
         {$t['highlights_title']}
       </div>
-      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: {$textColor};">
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ai-text-color, {$textColor});">
         <div style="display: flex; align-items: center; gap: 8px;">
           <i class="v-icon notranslate mdi mdi-check-circle" style="font-size: 15px; color: #00E676;"></i>
           <span>{$t['pillar1']}</span>
@@ -247,7 +250,7 @@ class AIAnalyticsService
     </div>
 
     <!-- Action / Verification Pill -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: {$subColor}; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px;">
       <div style="display: flex; align-items: center; gap: 6px;">
         <i class="v-icon notranslate mdi mdi-check-decagram" style="font-size: 16px; color: #42A5F5;"></i>
         <span>{$t['footer']}</span>
@@ -370,6 +373,9 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         // Prepare chart data in Tons
         $cSeries = [
@@ -392,7 +398,7 @@ HTML;
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(66, 165, 245, 0.15); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -401,7 +407,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">{$t['title']}</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">
             Powered by <strong style="color: #42A5F5;">Jupiter Intelligence Core</strong>
           </div>
         </div>
@@ -414,82 +420,82 @@ HTML;
     <!-- 4 Key Stat Cards Grid -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
       <!-- Purchases Stat -->
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(21, 101, 192, 0.2);">
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(21, 101, 192, 0.2);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
           <span style="font-size: 12px; font-weight: 700; color: #42A5F5;">{$t['p_purchases']}</span>
           <i class="v-icon notranslate mdi mdi-truck-delivery" style="font-size: 18px; color: #42A5F5;"></i>
         </div>
-        <div style="font-size: 18px; font-weight: 800; color: {$textColor}; margin-bottom: 2px;">
-          {$this->formatNumber($chargesWeight, 2)} <span style="font-size: 12px; color: {$subColor};">KG</span>
+        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
+          {$this->formatNumber($chargesWeight, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG</span>
         </div>
         <div style="font-size: 12px; font-weight: 700; color: #00E676;">
           {$this->formatNumber($chargesPrice, 2)} MAD
         </div>
-        <div style="font-size: 11px; color: {$subColor}; margin-top: 4px;">
+        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
           {$chargesCount} réceptions enregistrées
         </div>
       </div>
 
       <!-- Sales Stat -->
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(108, 102, 187, 0.2);">
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(108, 102, 187, 0.2);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
           <span style="font-size: 12px; font-weight: 700; color: #6c66bb;">{$t['p_sales']}</span>
           <i class="v-icon notranslate mdi mdi-ship-wheel" style="font-size: 18px; color: #6c66bb;"></i>
         </div>
-        <div style="font-size: 18px; font-weight: 800; color: {$textColor}; margin-bottom: 2px;">
-          {$this->formatNumber($shippingsWeight, 2)} <span style="font-size: 12px; color: {$subColor};">KG</span>
+        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
+          {$this->formatNumber($shippingsWeight, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG</span>
         </div>
         <div style="font-size: 12px; font-weight: 700; color: #00E676;">
           {$this->formatNumber($shippingsPrice, 2)} MAD
         </div>
-        <div style="font-size: 11px; color: {$subColor}; margin-top: 4px;">
+        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
           {$shippingsCount} expéditions clients
         </div>
       </div>
 
       <!-- Stock Stat -->
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(162, 30, 229, 0.2);">
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(162, 30, 229, 0.2);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
           <span style="font-size: 12px; font-weight: 700; color: #a21ee5;">{$t['p_stock']}</span>
           <i class="v-icon notranslate mdi mdi-warehouse" style="font-size: 18px; color: #a21ee5;"></i>
         </div>
-        <div style="font-size: 18px; font-weight: 800; color: {$textColor}; margin-bottom: 2px;">
-          {$this->formatNumber($totalStockKg, 2)} <span style="font-size: 12px; color: {$subColor};">KG</span>
+        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
+          {$this->formatNumber($totalStockKg, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG</span>
         </div>
         <div style="font-size: 12px; font-weight: 700; color: #42A5F5;">
           {$warehousesCount} Magasins actifs
         </div>
-        <div style="font-size: 11px; color: {$subColor}; margin-top: 4px;">
+        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
           Sous surveillance thermique
         </div>
       </div>
 
       <!-- Production Stat -->
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 137, 123, 0.2);">
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 137, 123, 0.2);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
           <span style="font-size: 12px; font-weight: 700; color: #00897B;">{$t['p_prod']}</span>
           <i class="v-icon notranslate mdi mdi-factory" style="font-size: 18px; color: #00897B;"></i>
         </div>
-        <div style="font-size: 18px; font-weight: 800; color: {$textColor}; margin-bottom: 2px;">
-          {$this->formatNumber($prodFrozenWeight, 2)} <span style="font-size: 12px; color: {$subColor};">KG Congelé</span>
+        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
+          {$this->formatNumber($prodFrozenWeight, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG Congelé</span>
         </div>
         <div style="font-size: 12px; font-weight: 700; color: #FFA000;">
           {$this->formatNumber($prodGuanoWeight, 2)} KG Guano
         </div>
-        <div style="font-size: 11px; color: {$subColor}; margin-top: 4px;">
+        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
           {$prodCount} sessions d'usine
         </div>
       </div>
     </div>
 
     <!-- Chart Container -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.06);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
         <span style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; letter-spacing: 0.5px;">
           <i class="v-icon notranslate mdi mdi-chart-bar" style="font-size: 16px; margin-right: 6px;"></i>
           {$t['p_chart']}
         </span>
-        <span style="font-size: 11px; color: {$subColor};">Unité: Tonnes métriques</span>
+        <span style="font-size: 11px; color: var(--ai-sub-color, {$subColor});">Unité: Tonnes métriques</span>
       </div>
       <div id="{$chartId}" style="min-height: 280px; width: 100%;"></div>
     </div>
@@ -500,7 +506,7 @@ HTML;
         <i class="v-icon notranslate mdi mdi-lightbulb-on" style="font-size: 15px; margin-right: 6px;"></i>
         {$t['insight_title']}
       </div>
-      <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.7; color: {$textColor};">
+      <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--ai-text-color, {$textColor});">
         <li>{$t['insight1']}</li>
         <li>{$t['insight2']}</li>
         <li>{$t['insight3']}</li>
@@ -543,8 +549,7 @@ HTML;
         name: "Volume (T)",
         data: {$seriesJson}
       }],
-      chart: {
-        type: "bar",
+      chart: { id: "{$chartId}", type: "bar",
         height: 270,
         toolbar: { show: false },
         animations: { enabled: true, easing: "easeinout", speed: 600 }
@@ -577,7 +582,7 @@ HTML;
         }
       },
       grid: {
-        borderColor: "rgba(255, 255, 255, 0.08)",
+        borderColor: "{$gridBorder}",
         strokeDashArray: 4
       },
       legend: { show: false },
@@ -588,6 +593,8 @@ HTML;
     };
     var chart = new ApexCharts(el, options);
     chart.render();
+    window.__ai_charts = window.__ai_charts || {};
+    window.__ai_charts["{$chartId}"] = chart;
   }
   setTimeout(initChart, 60);
 })();
@@ -679,6 +686,9 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         // Build recent rows HTML
         $recentRows = '';
@@ -687,10 +697,10 @@ HTML;
             $recentRows .= <<<ROW
 <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
   <td style="padding: 10px; font-weight: 700; color: #42A5F5;">{$tracking}</td>
-  <td style="padding: 10px; color: {$textColor};">{$c->date}</td>
-  <td style="padding: 10px; color: {$textColor};">{$c->supplier_name}</td>
-  <td style="padding: 10px; color: {$subColor};">{$c->ship_name}</td>
-  <td style="padding: 10px; font-weight: 700; color: {$textColor}; text-align: right;">{$this->formatNumber((float)$c->total_weight, 2)} KG</td>
+  <td style="padding: 10px; color: var(--ai-text-color, {$textColor});">{$c->date}</td>
+  <td style="padding: 10px; color: var(--ai-text-color, {$textColor});">{$c->supplier_name}</td>
+  <td style="padding: 10px; color: var(--ai-sub-color, {$subColor});">{$c->ship_name}</td>
+  <td style="padding: 10px; font-weight: 700; color: var(--ai-text-color, {$textColor}); text-align: right;">{$this->formatNumber((float)$c->total_weight, 2)} KG</td>
   <td style="padding: 10px; font-weight: 700; color: #00E676; text-align: right;">{$this->formatNumber((float)$c->total_price, 2)} MAD</td>
   <td style="padding: 10px; text-align: center;">
     <button class="ai-nav-btn v-btn v-btn--variant-tonal v-btn--size-x-small rounded-pill px-3 py-1" style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.3); font-weight: 700; cursor: pointer;" data-route="/charges/view_charge/{$c->id}">
@@ -703,7 +713,7 @@ ROW;
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(66, 165, 245, 0.15); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -712,7 +722,7 @@ ROW;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">{$t['title']}</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
         </div>
       </div>
       <span style="background: rgba(66, 165, 245, 0.12); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.3); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -722,26 +732,26 @@ ROW;
 
     <!-- 4 KPI Metrics -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">{$t['stat1']}</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat1']}</div>
         <div style="font-size: 18px; font-weight: 800; color: #42A5F5;">{$this->formatNumber($totalWeight, 2)} <span style="font-size: 12px;">KG</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">{$t['stat2']}</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat2']}</div>
         <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$this->formatNumber($totalPrice, 2)} <span style="font-size: 12px;">MAD</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">{$t['stat3']}</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat3']}</div>
         <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($avgPriceKg, 2)} <span style="font-size: 12px;">MAD/KG</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(171, 71, 188, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">{$t['stat4']}</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(171, 71, 188, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat4']}</div>
         <div style="font-size: 18px; font-weight: 800; color: #AB47BC;">{$this->formatNumber($chargesCount, 0)} <span style="font-size: 12px;">Lots</span></div>
       </div>
     </div>
 
     <!-- Chart -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; margin-bottom: 12px;">
         <i class="v-icon notranslate mdi mdi-podium-gold" style="font-size: 16px; margin-right: 6px;"></i>
         {$t['chart_title']}
@@ -750,14 +760,14 @@ ROW;
     </div>
 
     <!-- Recent Charges Table -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 16px; margin-bottom: 18px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 18px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; margin-bottom: 12px;">
         <i class="v-icon notranslate mdi mdi-history" style="font-size: 16px; margin-right: 6px;"></i>
         {$t['recent_title']}
       </div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+      <table class="ai-analytics-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
         <thead>
-          <tr style="border-bottom: 2px solid rgba(66, 165, 245, 0.2); color: {$subColor}; font-size: 11.5px; text-transform: uppercase;">
+          <tr style="border-bottom: 2px solid rgba(66, 165, 245, 0.2); color: var(--ai-sub-color, {$subColor}); font-size: 11.5px; text-transform: uppercase;">
             <th style="padding: 8px 10px; text-align: left;">{$t['col_id']}</th>
             <th style="padding: 8px 10px; text-align: left;">{$t['col_date']}</th>
             <th style="padding: 8px 10px; text-align: left;">{$t['col_supp']}</th>
@@ -801,8 +811,7 @@ ROW;
         name: "Volume (T)",
         data: {$sWeightsJson}
       }],
-      chart: {
-        type: "bar",
+      chart: { id: "{$chartId}", type: "bar",
         height: 250,
         toolbar: { show: false }
       },
@@ -827,12 +836,14 @@ ROW;
       yaxis: {
         labels: { style: { colors: "#94a3b8", fontSize: "11px", fontWeight: "600" } }
       },
-      grid: { borderColor: "rgba(255, 255, 255, 0.08)" },
+      grid: { borderColor: "{$gridBorder}" },
       legend: { show: false },
       tooltip: { theme: "{$theme}" }
     };
     var chart = new ApexCharts(el, options);
     chart.render();
+    window.__ai_charts = window.__ai_charts || {};
+    window.__ai_charts["{$chartId}"] = chart;
   }
   setTimeout(initChart, 60);
 })();
@@ -875,10 +886,13 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(108, 102, 187, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(108, 102, 187, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(108, 102, 187, 0.2); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -887,7 +901,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #6c66bb;">Analyse des Ventes & Expéditions (Shippings)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #6c66bb;">Jupiter Sales Intelligence</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #6c66bb;">Jupiter Sales Intelligence</strong></div>
         </div>
       </div>
       <span style="background: rgba(108, 102, 187, 0.15); color: #6c66bb; border: 1px solid rgba(108, 102, 187, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -897,26 +911,26 @@ HTML;
 
     <!-- 4 Stat Cards -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(108, 102, 187, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Poids Total Expédié</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(108, 102, 187, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Poids Total Expédié</div>
         <div style="font-size: 18px; font-weight: 800; color: #6c66bb;">{$this->formatNumber($totalWeight, 2)} <span style="font-size: 12px;">KG</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Chiffre d'Affaires Global</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Chiffre d'Affaires Global</div>
         <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$this->formatNumber($totalPrice, 2)} <span style="font-size: 12px;">MAD</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Prix Moyen de Vente</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Prix Moyen de Vente</div>
         <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($avgPriceKg, 2)} <span style="font-size: 12px;">MAD/KG</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Total Expéditions</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Total Expéditions</div>
         <div style="font-size: 18px; font-weight: 800; color: #42A5F5;">{$this->formatNumber($shippingsCount, 0)} <span style="font-size: 12px;">Lots</span></div>
       </div>
     </div>
 
     <!-- Chart -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 13px; font-weight: 800; color: #6c66bb; text-transform: uppercase; margin-bottom: 12px;">
         <i class="v-icon notranslate mdi mdi-podium" style="font-size: 16px; margin-right: 6px;"></i>
         Top 5 Clients par Volume d'Expédition (Tonnes)
@@ -952,8 +966,7 @@ HTML;
         name: "Volume (T)",
         data: {$cWeightsJson}
       }],
-      chart: {
-        type: "bar",
+      chart: { id: "{$chartId}", type: "bar",
         height: 250,
         toolbar: { show: false }
       },
@@ -978,12 +991,14 @@ HTML;
       yaxis: {
         labels: { style: { colors: "#94a3b8", fontSize: "11px", fontWeight: "600" } }
       },
-      grid: { borderColor: "rgba(255, 255, 255, 0.08)" },
+      grid: { borderColor: "{$gridBorder}" },
       legend: { show: false },
       tooltip: { theme: "{$theme}" }
     };
     var chart = new ApexCharts(el, options);
     chart.render();
+    window.__ai_charts = window.__ai_charts || {};
+    window.__ai_charts["{$chartId}"] = chart;
   }
   setTimeout(initChart, 60);
 })();
@@ -1016,10 +1031,13 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(0, 137, 123, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(0, 137, 123, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(0, 137, 123, 0.2); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -1028,7 +1046,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #00897B;">Rendement & Transformation Usine (Production)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #00897B;">Jupiter Industrial Processing Core</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #00897B;">Jupiter Industrial Processing Core</strong></div>
         </div>
       </div>
       <span style="background: rgba(0, 137, 123, 0.15); color: #00897B; border: 1px solid rgba(0, 137, 123, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1038,26 +1056,26 @@ HTML;
 
     <!-- 4 KPI Metrics -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 137, 123, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Réception Frais</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 137, 123, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Réception Frais</div>
         <div style="font-size: 18px; font-weight: 800; color: #00897B;">{$this->formatNumber($freshWeight, 2)} <span style="font-size: 12px;">KG</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(38, 166, 154, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Sortie Congélation</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(38, 166, 154, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Sortie Congélation</div>
         <div style="font-size: 18px; font-weight: 800; color: #26A69A;">{$this->formatNumber($frozenWeight, 2)} <span style="font-size: 12px;">KG</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Guano & Farine</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Guano & Farine</div>
         <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($guanoWeight, 2)} <span style="font-size: 12px;">KG</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Taux de Rendement</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Taux de Rendement</div>
         <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$yieldRatio}%</div>
       </div>
     </div>
 
     <!-- Chart -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 13px; font-weight: 800; color: #00897B; text-transform: uppercase; margin-bottom: 12px;">
         <i class="v-icon notranslate mdi mdi-chart-donut" style="font-size: 16px; margin-right: 6px;"></i>
         Répartition de la Production Finie (Tonnes)
@@ -1090,8 +1108,7 @@ HTML;
     el.innerHTML = "";
     var options = {
       series: {$seriesJson},
-      chart: {
-        type: "donut",
+      chart: { id: "{$chartId}", type: "donut",
         height: 260
       },
       labels: {$labelsJson},
@@ -1104,6 +1121,8 @@ HTML;
     };
     var chart = new ApexCharts(el, options);
     chart.render();
+    window.__ai_charts = window.__ai_charts || {};
+    window.__ai_charts["{$chartId}"] = chart;
   }
   setTimeout(initChart, 60);
 })();
@@ -1141,10 +1160,13 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(162, 30, 229, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(162, 30, 229, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(162, 30, 229, 0.2); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -1153,7 +1175,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #a21ee5;">Stocks & Chambres Froides (Warehouses)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #a21ee5;">Jupiter Cold Storage Intelligence</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #a21ee5;">Jupiter Cold Storage Intelligence</strong></div>
         </div>
       </div>
       <span style="background: rgba(162, 30, 229, 0.15); color: #a21ee5; border: 1px solid rgba(162, 30, 229, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1163,18 +1185,18 @@ HTML;
 
     <!-- 2 Main Stat Cards -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(162, 30, 229, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Stock Global Actuel</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(162, 30, 229, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Stock Global Actuel</div>
         <div style="font-size: 20px; font-weight: 800; color: #a21ee5;">{$this->formatNumber($totalStockKg, 2)} <span style="font-size: 13px;">KG ({$this->formatNumber($totalStockKg/1000, 2)} T)</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Nombre d'Entrepôts / Chambres</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Nombre d'Entrepôts / Chambres</div>
         <div style="font-size: 20px; font-weight: 800; color: #42A5F5;">{$warehousesCount} <span style="font-size: 13px;">Chambres Actives</span></div>
       </div>
     </div>
 
     <!-- Chart -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 13px; font-weight: 800; color: #a21ee5; text-transform: uppercase; margin-bottom: 12px;">
         <i class="v-icon notranslate mdi mdi-podium" style="font-size: 16px; margin-right: 6px;"></i>
         Top 5 Entrepôts par Charge de Stock (Tonnes)
@@ -1210,8 +1232,7 @@ HTML;
         name: "Stock (T)",
         data: {$wWeightsJson}
       }],
-      chart: {
-        type: "bar",
+      chart: { id: "{$chartId}", type: "bar",
         height: 250,
         toolbar: { show: false }
       },
@@ -1236,12 +1257,14 @@ HTML;
       yaxis: {
         labels: { style: { colors: "#94a3b8", fontSize: "11px", fontWeight: "600" } }
       },
-      grid: { borderColor: "rgba(255, 255, 255, 0.08)" },
+      grid: { borderColor: "{$gridBorder}" },
       legend: { show: false },
       tooltip: { theme: "{$theme}" }
     };
     var chart = new ApexCharts(el, options);
     chart.render();
+    window.__ai_charts = window.__ai_charts || {};
+    window.__ai_charts["{$chartId}"] = chart;
   }
   setTimeout(initChart, 60);
 })();
@@ -1284,10 +1307,13 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(66, 165, 245, 0.2); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -1296,7 +1322,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">Main d'Œuvre & Activités Quinzaine (Workforce)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
         </div>
       </div>
       <span style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1306,26 +1332,26 @@ HTML;
 
     <!-- 4 KPI Metrics -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Effectif Ouvriers</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Effectif Ouvriers</div>
         <div style="font-size: 18px; font-weight: 800; color: #42A5F5;">{$this->formatNumber($workforceCount, 0)} <span style="font-size: 12px;">Employés</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Masse Salariale Fortnight</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Masse Salariale Fortnight</div>
         <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$this->formatNumber($totalPayroll, 2)} <span style="font-size: 12px;">MAD</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Total Postes / Activités</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Total Postes / Activités</div>
         <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($activitiesCount, 0)} <span style="font-size: 12px;">Jours</span></div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(171, 71, 188, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Tarif Journalier Moyen</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(171, 71, 188, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Tarif Journalier Moyen</div>
         <div style="font-size: 18px; font-weight: 800; color: #AB47BC;">{$this->formatNumber($avgDailyRate, 2)} <span style="font-size: 12px;">MAD/J</span></div>
       </div>
     </div>
 
     <!-- Chart -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; margin-bottom: 12px;">
         <i class="v-icon notranslate mdi mdi-view-week" style="font-size: 16px; margin-right: 6px;"></i>
         Répartition des Activités par Section Industrielle
@@ -1361,8 +1387,7 @@ HTML;
         name: "Activités",
         data: {$sCountsJson}
       }],
-      chart: {
-        type: "bar",
+      chart: { id: "{$chartId}", type: "bar",
         height: 250,
         toolbar: { show: false }
       },
@@ -1389,12 +1414,14 @@ HTML;
       yaxis: {
         labels: { style: { colors: "#94a3b8", fontSize: "11px" } }
       },
-      grid: { borderColor: "rgba(255, 255, 255, 0.08)" },
+      grid: { borderColor: "{$gridBorder}" },
       legend: { show: false },
       tooltip: { theme: "{$theme}" }
     };
     var chart = new ApexCharts(el, options);
     chart.render();
+    window.__ai_charts = window.__ai_charts || {};
+    window.__ai_charts["{$chartId}"] = chart;
   }
   setTimeout(initChart, 60);
 })();
@@ -1426,10 +1453,13 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(230, 81, 0, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(230, 81, 0, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(230, 81, 0, 0.2); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -1438,7 +1468,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #E65100;">Finances & Facturation (Invoices)</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #E65100;">Jupiter Financial Intelligence</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #E65100;">Jupiter Financial Intelligence</strong></div>
         </div>
       </div>
       <span style="background: rgba(230, 81, 0, 0.15); color: #E65100; border: 1px solid rgba(230, 81, 0, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1448,20 +1478,20 @@ HTML;
 
     <!-- 2 Stat Cards -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(230, 81, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Facturation Fournisseurs</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(230, 81, 0, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Facturation Fournisseurs</div>
         <div style="font-size: 20px; font-weight: 800; color: #E65100;">{$this->formatNumber($suppInvPrice, 2)} <span style="font-size: 13px;">MAD</span></div>
-        <div style="font-size: 11.5px; color: {$subColor}; margin-top: 4px;">{$suppInvCount} Factures Fournisseurs</div>
+        <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">{$suppInvCount} Factures Fournisseurs</div>
       </div>
-      <div style="background: {$innerBg}; border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 131, 143, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: {$subColor}; margin-bottom: 4px;">Facturation Clients</div>
+      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 131, 143, 0.2);">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Facturation Clients</div>
         <div style="font-size: 20px; font-weight: 800; color: #00838F;">{$this->formatNumber($clientInvPrice, 2)} <span style="font-size: 13px;">MAD</span></div>
-        <div style="font-size: 11.5px; color: {$subColor}; margin-top: 4px;">{$clientInvCount} Factures Clients</div>
+        <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">{$clientInvCount} Factures Clients</div>
       </div>
     </div>
 
     <!-- Chart -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 13px; font-weight: 800; color: #E65100; text-transform: uppercase; margin-bottom: 12px;">
         <i class="v-icon notranslate mdi mdi-scale-balance" style="font-size: 16px; margin-right: 6px;"></i>
         Équilibre Financier (Fournisseurs vs Clients)
@@ -1494,8 +1524,7 @@ HTML;
     el.innerHTML = "";
     var options = {
       series: {$seriesJson},
-      chart: {
-        type: "donut",
+      chart: { id: "{$chartId}", type: "donut",
         height: 250
       },
       labels: {$labelsJson},
@@ -1508,6 +1537,8 @@ HTML;
     };
     var chart = new ApexCharts(el, options);
     chart.render();
+    window.__ai_charts = window.__ai_charts || {};
+    window.__ai_charts["{$chartId}"] = chart;
   }
   setTimeout(initChart, 60);
 })();
@@ -1539,6 +1570,9 @@ HTML;
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
+        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         $thHtml = '';
         foreach (array_slice($headers, 0, 5) as $h) {
@@ -1550,14 +1584,14 @@ HTML;
             $trHtml .= "<tr style=\"border-bottom: 1px solid rgba(255,255,255,0.06);\">";
             foreach (array_slice($headers, 0, 5) as $h) {
                 $val = is_scalar($r[$h] ?? null) ? $r[$h] : '';
-                $trHtml .= "<td style=\"padding: 8px 10px; color: {$textColor};\">{$val}</td>";
+                $trHtml .= "<td style=\"padding: 8px 10px; color: var(--ai-text-color, {$textColor});\">{$val}</td>";
             }
             $trHtml .= "</tr>";
         }
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid rgba(76, 175, 80, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(76, 175, 80, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
     <!-- Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(76, 175, 80, 0.2); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
@@ -1566,7 +1600,7 @@ HTML;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: #4CAF50;">Analyse Fichier Excel Importé: {$firstFileName}</div>
-          <div style="font-size: 11.5px; color: {$subColor}; font-weight: 600;">Powered by <strong style="color: #4CAF50;">Jupiter Data Engine</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #4CAF50;">Jupiter Data Engine</strong></div>
         </div>
       </div>
       <span style="background: rgba(76, 175, 80, 0.15); color: #4CAF50; border: 1px solid rgba(76, 175, 80, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1575,14 +1609,14 @@ HTML;
     </div>
 
     <!-- Table Preview -->
-    <div style="background: {$innerBg}; border-radius: 16px; padding: 16px; margin-bottom: 16px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.06);">
+    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 16px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 12.5px; font-weight: 800; color: #4CAF50; text-transform: uppercase; margin-bottom: 10px;">
         <i class="v-icon notranslate mdi mdi-table" style="font-size: 16px; margin-right: 6px;"></i>
         Aperçu des Données du Fichier
       </div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+      <table class="ai-analytics-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
         <thead>
-          <tr style="border-bottom: 2px solid rgba(76, 175, 80, 0.2); color: {$subColor}; font-size: 11.5px; text-transform: uppercase;">
+          <tr style="border-bottom: 2px solid rgba(76, 175, 80, 0.2); color: var(--ai-sub-color, {$subColor}); font-size: 11.5px; text-transform: uppercase;">
             {$thHtml}
           </tr>
         </thead>
@@ -1592,7 +1626,7 @@ HTML;
       </table>
     </div>
 
-    <div style="font-size: 13.5px; color: {$textColor}; line-height: 1.7; background: rgba(76, 175, 80, 0.08); padding: 14px; border-radius: 12px; border-left: 4px solid #4CAF50;">
+    <div style="font-size: 13.5px; color: var(--ai-text-color, {$textColor}); line-height: 1.7; background: rgba(76, 175, 80, 0.08); padding: 14px; border-radius: 12px; border-left: 4px solid #4CAF50;">
       Les données Excel ont été chargées et indexées avec succès. Vous pouvez poser des questions spécifiques sur ces colonnes (ex: totaux, moyennes, classements, filtres) ou comparer avec la base de données.
     </div>
   </div>

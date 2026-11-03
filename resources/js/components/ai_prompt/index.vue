@@ -690,6 +690,14 @@ export default {
   --aiq-text-muted: rgba(255, 255, 255, 0.52);
   --aiq-dock-bg: rgba(30, 30, 30, 0.88);
   --aiq-dock-border: rgba(66, 165, 245, 0.22);
+  --ai-card-bg: #1a2332;
+  --ai-card-border: rgba(66, 165, 245, 0.25);
+  --ai-inner-bg: rgba(255, 255, 255, 0.04);
+  --ai-inner-border: rgba(255, 255, 255, 0.08);
+  --ai-text-color: #e2e8f0;
+  --ai-sub-color: #94a3b8;
+  --ai-table-header-bg: rgba(255, 255, 255, 0.06);
+  --ai-table-border: rgba(255, 255, 255, 0.08);
 }
 
 .aiq-light {
@@ -701,6 +709,14 @@ export default {
   --aiq-text-muted: rgba(0, 0, 0, 0.5);
   --aiq-dock-bg: rgba(255, 255, 255, 0.9);
   --aiq-dock-border: rgba(66, 165, 245, 0.28);
+  --ai-card-bg: #ffffff;
+  --ai-card-border: rgba(0, 0, 0, 0.08);
+  --ai-inner-bg: #f8fafc;
+  --ai-inner-border: rgba(0, 0, 0, 0.06);
+  --ai-text-color: #1e293b;
+  --ai-sub-color: #64748b;
+  --ai-table-header-bg: #f1f5f9;
+  --ai-table-border: #e2e8f0;
 }
 
 /* -- Hero Header -- */

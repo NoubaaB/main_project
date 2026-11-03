@@ -40,7 +40,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 sender: this.auth.user.name
             });
             let id = this.messages.length;
-            let theme = localStorage.getItem("theme");
+            let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
             return await axios.post(`/api/ask-db`, {
                 message,
                 id,
@@ -64,7 +64,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 sender: this.auth.user.name
             });
             let id = this.messages.length;
-            let theme = localStorage.getItem("theme");
+            let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
             let messages = JSON.stringify(this.messages.filter(e => e.sender != 'AI').map(e => ({
                 role: e.sender,
                 text: e.text
@@ -193,9 +193,11 @@ export const useAIPrompt = defineStore("ai_prompt", {
                 }
             }));
             let id = this.assistant_messages.length + 1;
+            let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
             return await axios.post(`/api/ai-assistant`, {
                 message,
                 messages,
+                theme,
                 thinking_level: this.thinking_level
             }).then(response => {
                 const reply = {
@@ -229,9 +231,11 @@ export const useAIPrompt = defineStore("ai_prompt", {
             });
         },
         executeAction: async function (actionPlan, message) {
+            let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
             return await axios.post(`/api/ai-assistant/execute`, {
                 action_plan: actionPlan,
                 message: message || 'Confirmed action',
+                theme,
             }).then(response => {
                 const reply = {
                     id: Date.now() + Math.random(),
@@ -259,9 +263,11 @@ export const useAIPrompt = defineStore("ai_prompt", {
             });
         },
         askWithExcel: async function (message, excelData, file) {
+            let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
             const formData = new FormData();
             formData.append('message', message);
             formData.append('excel_data', JSON.stringify(excelData));
+            formData.append('theme', theme);
             formData.append('thinking_level', this.thinking_level);
             if (file) {
                 formData.append('file', file);
