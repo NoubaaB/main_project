@@ -218,7 +218,10 @@ class AIQueryController extends Controller
         RULES:
         1. NEVER fake data. Only use the data provided above.
         2. Detect user's language and respond in that language.
-        3. Use {$theme} theme colors (dark = dark backgrounds, light = light backgrounds).
+        3. CRITICAL THEME & RESPONSIVE DESIGN RULES:
+           - The active system theme is: "{$theme}".
+           - Ensure full responsiveness with dark and light modes. Use CSS variables (--ai-card-bg, --ai-inner-bg, --ai-text-color, --ai-sub-color) or Vuetify theme classes rather than hardcoded solid hex backgrounds.
+           - For ApexCharts: set options.theme = { mode: "{$theme}" }, set options.chart.id = "aichart_{$id}", and register window.__ai_charts = window.__ai_charts || {}; window.__ai_charts["aichart_{$id}"] = chart.
         4. Format numbers with spaces as thousands separator. CRITICAL FORMATTING RULES:
            - COUNTS (quantities, number of records, IDs, number of items): display as INTEGERS with NO decimals. Example: 1 250 records, 35 items, ID #12.
            - PRICES (amounts, costs, totals in MAD): display with exactly 2 decimals. Example: 12 500.00 MAD, 3 200.50 MAD.

@@ -1163,9 +1163,9 @@ class AIAssistantController extends Controller
             $successBg = $isDark ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.18), rgba(27, 94, 32, 0.18))' : 'linear-gradient(135deg,#E8F5E9,#C8E6C9)';
             $successText = $isDark ? '#81C784' : '#2E7D32';
             $successItemColor = $isDark ? '#E2E8F0' : '#333333';
-            $html = "<div class='ai-action-success-card' style='background:{$successBg};border-radius:12px;padding:16px;border-left:4px solid #4CAF50;'>";
+            $html = "<div class='ai-action-success-card' style='background:var(--ai-inner-bg, {$successBg});border-radius:12px;padding:16px;border-left:4px solid #4CAF50;'>";
             $html .= "<div style='font-weight:700;color:{$successText};margin-bottom:8px;'>✅ Action completed successfully</div>";
-            $html .= "<ul style='margin:0;padding-left:20px;color:{$successItemColor};'>";
+            $html .= "<ul style='margin:0;padding-left:20px;color:var(--ai-text-color, {$successItemColor});'>";
             foreach ($results as $r) {
                 $html .= "<li style='margin:4px 0;'>{$r}</li>";
             }
@@ -1177,8 +1177,8 @@ class AIAssistantController extends Controller
             $isDark = ($theme === 'dark');
             $errBg = $isDark ? 'linear-gradient(135deg, rgba(239, 83, 80, 0.18), rgba(183, 28, 28, 0.18))' : '#FFEBEE';
             $textColor = $isDark ? '#e2e8f0' : '#333333';
-            $html = "<div class='ai-action-error-card' style='background:{$errBg};border-radius:12px;padding:16px;border-left:4px solid #D32F2F;'>"
-                . "<strong style='color:#EF5350;'>❌ Error:</strong> <span style='color:{$textColor};'>" . htmlspecialchars($e->getMessage()) . "</span>"
+            $html = "<div class='ai-action-error-card' style='background:var(--ai-inner-bg, {$errBg});border-radius:12px;padding:16px;border-left:4px solid #D32F2F;'>"
+                . "<strong style='color:#EF5350;'>❌ Error:</strong> <span style='color:var(--ai-text-color, {$textColor});'>" . htmlspecialchars($e->getMessage()) . "</span>"
                 . '</div>';
             return ['html' => $html, 'affected_models' => []];
         }

@@ -2223,6 +2223,178 @@ export default {
   transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
+/* Dark theme overrides for message bubbles */
+.ai-theme-dark .ai-msg-bubble {
+  --ai-card-bg: #1c212c;
+  --ai-inner-bg: rgba(255, 255, 255, 0.04);
+  --ai-text-color: #e2e8f0;
+  --ai-sub-color: #94a3b8;
+  --ai-table-header-bg: rgba(255, 255, 255, 0.06);
+  --ai-table-border: rgba(255, 255, 255, 0.08);
+}
+
+.ai-theme-dark .ai-msg-bubble :deep(strong) {
+  color: #ffffff !important;
+}
+
+.ai-theme-dark .ai-msg-bubble :deep(.v-card) {
+  background: #1c212c !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.ai-theme-dark .ai-msg-bubble :deep(.v-container) {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+.ai-theme-dark .ai-msg-bubble :deep(.v-table),
+.ai-theme-dark .ai-msg-bubble :deep(.v-data-table) {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+.ai-theme-dark .ai-msg-bubble :deep(table) {
+  background: rgba(20, 24, 33, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.ai-theme-dark .ai-msg-bubble :deep(th) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+}
+.ai-theme-dark .ai-msg-bubble :deep(td) {
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background: #ffffff"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background:#ffffff"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background: #fff"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background:#fff"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background: white"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background: #f8fafc"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background:#f8fafc"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background: #f1f5f9"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background:#f1f5f9"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background: rgb(255, 255, 255)"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background:#ECEFF1"]),
+.ai-theme-dark .ai-msg-bubble :deep(div[style*="background: #ECEFF1"]) {
+  background: #1c212c !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ai-theme-dark .ai-msg-bubble :deep([style*="color: #1e293b"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color:#1e293b"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color: #333"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color:#333"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color: #455A64"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color:#455A64"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color: #555"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color:#555"]) {
+  color: #e2e8f0 !important;
+}
+
+.ai-theme-dark .ai-msg-bubble :deep([style*="color: #64748b"]),
+.ai-theme-dark .ai-msg-bubble :deep([style*="color:#64748b"]) {
+  color: #94a3b8 !important;
+}
+
+.ai-theme-dark .ai-msg-bubble :deep(.ai-confirm-card),
+.ai-theme-dark .ai-msg-bubble :deep(.ai-cancel-card),
+.ai-theme-dark .ai-msg-bubble :deep(.ai-excel-display-card),
+.ai-theme-dark .ai-msg-bubble :deep(.ai-action-success-card),
+.ai-theme-dark .ai-msg-bubble :deep(.ai-action-error-card) {
+  background: #1c212c !important;
+  color: #e2e8f0 !important;
+}
+
+/* Light theme overrides for message bubbles */
+.ai-theme-light .ai-msg-bubble {
+  --ai-card-bg: #ffffff;
+  --ai-inner-bg: #f8fafc;
+  --ai-text-color: #1e293b;
+  --ai-sub-color: #64748b;
+  --ai-table-header-bg: #f1f5f9;
+  --ai-table-border: #e2e8f0;
+}
+
+.ai-theme-light .ai-msg-bubble :deep(strong) {
+  color: #0f172a !important;
+}
+
+.ai-theme-light .ai-msg-bubble :deep(.v-card) {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+.ai-theme-light .ai-msg-bubble :deep(.v-container) {
+  background: transparent !important;
+  color: #1e293b !important;
+}
+.ai-theme-light .ai-msg-bubble :deep(.v-table),
+.ai-theme-light .ai-msg-bubble :deep(.v-data-table) {
+  background: #ffffff !important;
+  color: #1e293b !important;
+}
+
+.ai-theme-light .ai-msg-bubble :deep(table) {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.ai-theme-light .ai-msg-bubble :deep(th) {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+.ai-theme-light .ai-msg-bubble :deep(td) {
+  color: #1e293b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background: #1a2332"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background:#1a2332"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background: #1e2634"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background:#1e2634"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background: #141c28"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background:#141c28"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background: #1c212c"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background:#1c212c"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background: #1e1e1e"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background:#1e1e1e"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background: #14171f"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background:#14171f"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background: #121212"]),
+.ai-theme-light .ai-msg-bubble :deep(div[style*="background:#121212"]) {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.ai-theme-light .ai-msg-bubble :deep([style*="color: #e2e8f0"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color:#e2e8f0"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color: #ffffff"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color:#ffffff"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color: #fff"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color:#fff"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color: rgba(255, 255, 255"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color: #E2E8F0"]) {
+  color: #1e293b !important;
+}
+
+.ai-theme-light .ai-msg-bubble :deep([style*="color: #94a3b8"]),
+.ai-theme-light .ai-msg-bubble :deep([style*="color:#94a3b8"]) {
+  color: #64748b !important;
+}
+
+.ai-theme-light .ai-msg-bubble :deep(.ai-confirm-card),
+.ai-theme-light .ai-msg-bubble :deep(.ai-cancel-card),
+.ai-theme-light .ai-msg-bubble :deep(.ai-excel-display-card),
+.ai-theme-light .ai-msg-bubble :deep(.ai-action-success-card),
+.ai-theme-light .ai-msg-bubble :deep(.ai-action-error-card) {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+}
+
 /* ---------- Message Text ---------- */
 .ai-msg-text {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;

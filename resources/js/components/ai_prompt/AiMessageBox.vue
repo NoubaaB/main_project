@@ -1,5 +1,5 @@
 <template>
-  <div class="aimb-wrapper" :class="{ 'is-loading': isLoading }">
+  <div class="aimb-wrapper" :class="[main.is_dark ? 'aimb-dark' : 'aimb-light', { 'is-loading': isLoading }]">
     <!-- AI avatar + header -->
     <div class="aimb-header">
       <div class="aimb-avatar-container">
@@ -253,7 +253,6 @@ export default {
 .aimb-wrapper {
   position: relative;
   display: inline-block;
-  background: rgba(var(--v-theme-surface), 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 24px;
@@ -263,12 +262,44 @@ export default {
   max-width: 100%;
   min-width: 260px;
   width: fit-content;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  z-index: 1;
+}
+
+.aimb-wrapper.aimb-dark {
+  background: rgba(22, 27, 38, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 10px 30px -10px rgba(0, 0, 0, 0.55), 
+    0 4px 12px -5px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  --ai-card-bg: #1c212c;
+  --ai-card-border: rgba(66, 165, 245, 0.25);
+  --ai-inner-bg: rgba(255, 255, 255, 0.04);
+  --ai-inner-border: rgba(255, 255, 255, 0.08);
+  --ai-text-color: #e2e8f0;
+  --ai-sub-color: #94a3b8;
+  --ai-table-header-bg: rgba(255, 255, 255, 0.06);
+  --ai-table-border: rgba(255, 255, 255, 0.08);
+  --ai-code-bg: rgba(255, 255, 255, 0.06);
+}
+
+.aimb-wrapper.aimb-light {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 
     0 10px 30px -10px rgba(0, 0, 0, 0.08), 
     0 4px 12px -5px rgba(0, 0, 0, 0.04),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  z-index: 1;
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
+  --ai-card-bg: #ffffff;
+  --ai-card-border: rgba(0, 0, 0, 0.08);
+  --ai-inner-bg: #f8fafc;
+  --ai-inner-border: rgba(0, 0, 0, 0.06);
+  --ai-text-color: #1e293b;
+  --ai-sub-color: #64748b;
+  --ai-table-header-bg: #f1f5f9;
+  --ai-table-border: #e2e8f0;
+  --ai-code-bg: rgba(0, 0, 0, 0.04);
 }
 
 /* Subtle Holographic Animated Border */
@@ -302,8 +333,12 @@ export default {
     inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
-.aimb-wrapper.is-loading {
-  background: linear-gradient(145deg, rgba(var(--v-theme-surface), 0.7), rgba(var(--v-theme-surface), 0.4));
+.aimb-wrapper.aimb-dark.is-loading {
+  background: linear-gradient(145deg, rgba(30, 35, 48, 0.8), rgba(20, 24, 34, 0.6));
+}
+
+.aimb-wrapper.aimb-light.is-loading {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(245, 247, 250, 0.7));
 }
 
 /* Header & Avatar */
@@ -555,118 +590,299 @@ export default {
   padding: 0;
 }
 
-/* Beautiful Data Tables & Theme-Responsive Analytics */
-.aimb-wrapper {
-  --ai-card-bg: rgba(var(--v-theme-surface), 0.95);
-  --ai-card-border: rgba(var(--v-theme-on-surface), 0.1);
-  --ai-inner-bg: rgba(var(--v-theme-on-surface), 0.04);
-  --ai-inner-border: rgba(var(--v-theme-on-surface), 0.08);
-  --ai-text-color: rgba(var(--v-theme-on-surface), 0.92);
-  --ai-sub-color: rgba(var(--v-theme-on-surface), 0.6);
-  --ai-table-header-bg: rgba(var(--v-theme-on-surface), 0.06);
-  --ai-table-border: rgba(var(--v-theme-on-surface), 0.08);
+/* ============================================================
+   Ultra-Responsive Theme Synchronization for AI Responses
+   Instantly adapts on dark/light switch without page reload
+   ============================================================ */
+
+/* Content Typography */
+.aimb-dark .aimb-content {
+  color: #e2e8f0;
+}
+.aimb-light .aimb-content {
+  color: #1e293b;
 }
 
-.aimb-content :deep(.ai-analytics-card) {
-  background: var(--ai-card-bg) !important;
-  color: var(--ai-text-color) !important;
-  border-color: var(--ai-card-border) !important;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+.aimb-dark .aimb-content :deep(p),
+.aimb-dark .aimb-content :deep(li),
+.aimb-dark .aimb-content :deep(span:not([class*="badge"]):not([class*="pill"]):not([class*="tag"])) {
+  color: #e2e8f0;
+}
+.aimb-dark .aimb-content :deep(strong) {
+  color: #ffffff !important;
 }
 
-.aimb-content :deep(.ai-analytics-inner) {
-  background: var(--ai-inner-bg) !important;
-  color: var(--ai-text-color) !important;
-  border-color: var(--ai-inner-border) !important;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+.aimb-light .aimb-content :deep(p),
+.aimb-light .aimb-content :deep(li),
+.aimb-light .aimb-content :deep(span:not([class*="badge"]):not([class*="pill"]):not([class*="tag"])) {
+  color: #1e293b;
+}
+.aimb-light .aimb-content :deep(strong) {
+  color: #0f172a !important;
 }
 
-.aimb-content :deep(.ai-analytics-text) {
-  color: var(--ai-text-color) !important;
+/* Headings */
+.aimb-dark .aimb-content :deep(h1),
+.aimb-dark .aimb-content :deep(h2),
+.aimb-dark .aimb-content :deep(h3),
+.aimb-dark .aimb-content :deep(h4) {
+  color: #f1f5f9 !important;
+}
+.aimb-light .aimb-content :deep(h1),
+.aimb-light .aimb-content :deep(h2),
+.aimb-light .aimb-content :deep(h3),
+.aimb-light .aimb-content :deep(h4) {
+  color: #0f172a !important;
 }
 
-.aimb-content :deep(.ai-analytics-subtext) {
-  color: var(--ai-sub-color) !important;
+/* Vuetify components mounted inside message */
+.aimb-dark .aimb-content :deep(.v-card) {
+  background: #1c212c !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
-
-.aimb-content :deep(.ai-analytics-table) {
-  width: 100% !important;
-  border-collapse: collapse !important;
+.aimb-dark .aimb-content :deep(.v-container) {
   background: transparent !important;
-  border: 1px solid var(--ai-table-border) !important;
-  border-radius: 12px;
-  overflow: hidden;
+  color: #e2e8f0 !important;
+}
+.aimb-dark .aimb-content :deep(.v-table),
+.aimb-dark .aimb-content :deep(.v-data-table) {
+  background: transparent !important;
+  color: #e2e8f0 !important;
 }
 
-.aimb-content :deep(.ai-analytics-table th) {
-  background: var(--ai-table-header-bg) !important;
-  color: var(--ai-sub-color) !important;
-  border-bottom: 2px solid var(--ai-table-border) !important;
+.aimb-light .aimb-content :deep(.v-card) {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+.aimb-light .aimb-content :deep(.v-container) {
+  background: transparent !important;
+  color: #1e293b !important;
+}
+.aimb-light .aimb-content :deep(.v-table),
+.aimb-light .aimb-content :deep(.v-data-table) {
+  background: #ffffff !important;
+  color: #1e293b !important;
 }
 
-.aimb-content :deep(.ai-analytics-table td) {
-  color: var(--ai-text-color) !important;
-  border-bottom: 1px solid var(--ai-table-border) !important;
-}
-
-.aimb-content :deep(.ai-analytics-table tr:hover td) {
-  background: rgba(var(--v-theme-on-surface), 0.03) !important;
-}
-
-.aimb-content :deep(.ai-confirm-card),
-.aimb-content :deep(.ai-cancel-card),
-.aimb-content :deep(.ai-excel-display-card),
-.aimb-content :deep(.ai-action-success-card),
-.aimb-content :deep(.ai-action-error-card) {
+/* Analytics Cards */
+.aimb-dark .aimb-content :deep(.ai-analytics-card) {
+  background: #1c212c !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(66, 165, 245, 0.25) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
   transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
+.aimb-dark .aimb-content :deep(.ai-analytics-inner) {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.aimb-dark .aimb-content :deep(.ai-analytics-text) {
+  color: #e2e8f0 !important;
+}
+.aimb-dark .aimb-content :deep(.ai-analytics-subtext) {
+  color: #94a3b8 !important;
+}
 
-.aimb-content :deep(table) {
-  width: 100%;
-  border-collapse: separate;
+.aimb-light .aimb-content :deep(.ai-analytics-card) {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.aimb-light .aimb-content :deep(.ai-analytics-inner) {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.aimb-light .aimb-content :deep(.ai-analytics-text) {
+  color: #1e293b !important;
+}
+.aimb-light .aimb-content :deep(.ai-analytics-subtext) {
+  color: #64748b !important;
+}
+
+/* Tables in Dark & Light */
+.aimb-dark .aimb-content :deep(.ai-analytics-table),
+.aimb-dark .aimb-content :deep(table) {
+  width: 100% !important;
+  border-collapse: separate !important;
   border-spacing: 0;
   border-radius: 12px;
   overflow: hidden;
-  font-size: 13.5px;
-  margin: 16px 0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgba(var(--v-theme-surface), 0.4);
+  background: rgba(20, 24, 33, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
 }
-
-.aimb-content :deep(th) {
-  padding: 14px 18px;
+.aimb-dark .aimb-content :deep(.ai-analytics-table th),
+.aimb-dark .aimb-content :deep(th) {
+  padding: 12px 16px;
   text-align: left;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11.5px;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  color: rgba(var(--v-theme-on-surface), 0.8);
-  border-bottom: 2px solid rgba(var(--v-theme-on-surface), 0.1);
+  letter-spacing: 0.8px;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+}
+.aimb-dark .aimb-content :deep(.ai-analytics-table td),
+.aimb-dark .aimb-content :deep(td) {
+  padding: 11px 16px;
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+.aimb-dark .aimb-content :deep(.ai-analytics-table tr:hover td),
+.aimb-dark .aimb-content :deep(tr:hover td) {
+  background: rgba(255, 255, 255, 0.04) !important;
 }
 
-.aimb-content :deep(td) {
-  padding: 12px 18px;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.04);
-  transition: background 0.2s;
+.aimb-light .aimb-content :deep(.ai-analytics-table),
+.aimb-light .aimb-content :deep(table) {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+}
+.aimb-light .aimb-content :deep(.ai-analytics-table th),
+.aimb-light .aimb-content :deep(th) {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+.aimb-light .aimb-content :deep(.ai-analytics-table td),
+.aimb-light .aimb-content :deep(td) {
+  padding: 11px 16px;
+  color: #1e293b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+.aimb-light .aimb-content :deep(.ai-analytics-table tr:hover td),
+.aimb-light .aimb-content :deep(tr:hover td) {
+  background: #f8fafc !important;
 }
 
-.aimb-content :deep(tr:last-child td) {
-  border-bottom: none;
+/* Action & Confirmation Cards */
+.aimb-dark .aimb-content :deep(.ai-confirm-card),
+.aimb-dark .aimb-content :deep(.ai-cancel-card),
+.aimb-dark .aimb-content :deep(.ai-excel-display-card),
+.aimb-dark .aimb-content :deep(.ai-action-success-card),
+.aimb-dark .aimb-content :deep(.ai-action-error-card) {
+  background: #1c212c !important;
+  color: #e2e8f0 !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-.aimb-content :deep(tr:hover td) {
-  background: rgba(var(--v-theme-on-surface), 0.02);
+.aimb-light .aimb-content :deep(.ai-confirm-card),
+.aimb-light .aimb-content :deep(.ai-cancel-card),
+.aimb-light .aimb-content :deep(.ai-excel-display-card),
+.aimb-light .aimb-content :deep(.ai-action-success-card),
+.aimb-light .aimb-content :deep(.ai-action-error-card) {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Legacy & hardcoded inline styles overrides in dark mode */
+.aimb-dark .aimb-content :deep(div[style*="background: #ffffff"]),
+.aimb-dark .aimb-content :deep(div[style*="background:#ffffff"]),
+.aimb-dark .aimb-content :deep(div[style*="background: #fff"]),
+.aimb-dark .aimb-content :deep(div[style*="background:#fff"]),
+.aimb-dark .aimb-content :deep(div[style*="background: white"]),
+.aimb-dark .aimb-content :deep(div[style*="background: #f8fafc"]),
+.aimb-dark .aimb-content :deep(div[style*="background:#f8fafc"]),
+.aimb-dark .aimb-content :deep(div[style*="background: #f1f5f9"]),
+.aimb-dark .aimb-content :deep(div[style*="background:#f1f5f9"]),
+.aimb-dark .aimb-content :deep(div[style*="background: rgb(255, 255, 255)"]),
+.aimb-dark .aimb-content :deep(div[style*="background:#ECEFF1"]),
+.aimb-dark .aimb-content :deep(div[style*="background: #ECEFF1"]) {
+  background: #1c212c !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.aimb-dark .aimb-content :deep([style*="color: #1e293b"]),
+.aimb-dark .aimb-content :deep([style*="color:#1e293b"]),
+.aimb-dark .aimb-content :deep([style*="color: #333"]),
+.aimb-dark .aimb-content :deep([style*="color:#333"]),
+.aimb-dark .aimb-content :deep([style*="color: #455A64"]),
+.aimb-dark .aimb-content :deep([style*="color:#455A64"]),
+.aimb-dark .aimb-content :deep([style*="color: #555"]),
+.aimb-dark .aimb-content :deep([style*="color:#555"]) {
+  color: #e2e8f0 !important;
+}
+
+.aimb-dark .aimb-content :deep([style*="color: #64748b"]),
+.aimb-dark .aimb-content :deep([style*="color:#64748b"]) {
+  color: #94a3b8 !important;
+}
+
+/* Legacy & hardcoded inline styles overrides in light mode */
+.aimb-light .aimb-content :deep(div[style*="background: #1a2332"]),
+.aimb-light .aimb-content :deep(div[style*="background:#1a2332"]),
+.aimb-light .aimb-content :deep(div[style*="background: #1e2634"]),
+.aimb-light .aimb-content :deep(div[style*="background:#1e2634"]),
+.aimb-light .aimb-content :deep(div[style*="background: #141c28"]),
+.aimb-light .aimb-content :deep(div[style*="background:#141c28"]),
+.aimb-light .aimb-content :deep(div[style*="background: #1c212c"]),
+.aimb-light .aimb-content :deep(div[style*="background:#1c212c"]),
+.aimb-light .aimb-content :deep(div[style*="background: #1e1e1e"]),
+.aimb-light .aimb-content :deep(div[style*="background:#1e1e1e"]),
+.aimb-light .aimb-content :deep(div[style*="background: #14171f"]),
+.aimb-light .aimb-content :deep(div[style*="background:#14171f"]),
+.aimb-light .aimb-content :deep(div[style*="background: #121212"]),
+.aimb-light .aimb-content :deep(div[style*="background:#121212"]) {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.aimb-light .aimb-content :deep([style*="color: #e2e8f0"]),
+.aimb-light .aimb-content :deep([style*="color:#e2e8f0"]),
+.aimb-light .aimb-content :deep([style*="color: #ffffff"]),
+.aimb-light .aimb-content :deep([style*="color:#ffffff"]),
+.aimb-light .aimb-content :deep([style*="color: #fff"]),
+.aimb-light .aimb-content :deep([style*="color:#fff"]),
+.aimb-light .aimb-content :deep([style*="color: rgba(255, 255, 255"]),
+.aimb-light .aimb-content :deep([style*="color: #E2E8F0"]) {
+  color: #1e293b !important;
+}
+
+.aimb-light .aimb-content :deep([style*="color: #94a3b8"]),
+.aimb-light .aimb-content :deep([style*="color:#94a3b8"]) {
+  color: #64748b !important;
 }
 
 /* ApexCharts container adjustments */
-.aimb-content :deep(.apexcharts-canvas) {
+.aimb-dark .aimb-content :deep(.apexcharts-canvas) {
   margin: 16px auto;
   border-radius: 16px;
   padding: 8px;
-  background: rgba(var(--v-theme-surface), 0.5);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  background: rgba(28, 33, 44, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.2));
+}
+
+.aimb-light .aimb-content :deep(.apexcharts-canvas) {
+  margin: 16px auto;
+  border-radius: 16px;
+  padding: 8px;
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.06));
 }
 
