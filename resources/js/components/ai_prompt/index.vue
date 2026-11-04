@@ -1,5 +1,5 @@
 <template>
-  <div :class="['aiq-page', main.is_dark ? 'aiq-dark' : 'aiq-light']">
+  <div :class="['aiq-page', main.is_dark ? 'aiq-dark' : 'aiq-light', { 'aiq-expanded': isExpanded, 'aiq-fullscreen': isFullscreen }]">
     <!-- Hero Header -->
     <div class="aiq-hero">
       <div class="aiq-hero-bg"></div>
@@ -80,6 +80,36 @@
               </v-list-item>
             </v-list>
           </v-menu>
+
+          <!-- Expand / Wide View Button -->
+          <v-btn
+            variant="tonal"
+            color="white"
+            size="small"
+            rounded="lg"
+            @click="toggleExpand"
+            class="aiq-hero-btn"
+            :class="{ 'aiq-hero-btn-active': isExpanded }"
+            :title="isExpanded ? $t('collapse_view') : $t('expand_view')"
+          >
+            <v-icon start size="16">{{ isExpanded ? 'mdi-arrow-collapse-horizontal' : 'mdi-arrow-expand-horizontal' }}</v-icon>
+            {{ isExpanded ? $t('normal_width') : $t('wide_view') }}
+          </v-btn>
+
+          <!-- Fullscreen Workspace Button -->
+          <v-btn
+            variant="tonal"
+            color="white"
+            size="small"
+            rounded="lg"
+            @click="toggleFullscreen"
+            class="aiq-hero-btn"
+            :class="{ 'aiq-hero-btn-active': isFullscreen }"
+            :title="isFullscreen ? $t('exit_fullscreen') : $t('fullscreen_view')"
+          >
+            <v-icon start size="16">{{ isFullscreen ? 'mdi-fullscreen-exit' : 'mdi-fullscreen' }}</v-icon>
+            {{ isFullscreen ? $t('exit_fullscreen') : $t('fullscreen_view') }}
+          </v-btn>
 
           <!-- Export Chat Button -->
           <v-btn
@@ -193,6 +223,7 @@
         <div
           v-for="(msg, index) in ai_prompt.messages"
           :key="msg.id || index"
+          :id="'aiq-msg-' + index"
           :class="['aiq-msg-row', msg.sender !== 'AI' ? 'aiq-msg-user' : 'aiq-msg-ai']"
         >
           <!-- User message -->
@@ -222,46 +253,58 @@
 
           <!-- AI message -->
           <template v-else>
-            <AiMessageBox :msg="msg" :index="index" />
-            <!-- AI message footer with reactions + delete -->
             <div
-              class="aiq-ai-footer"
+              class="aiq-ai-msg-block"
               @mouseenter="hoveredMsgId = msg.id"
               @mouseleave="hoveredMsgId = null"
             >
-              <span class="aiq-ai-time">{{ formatMsgTime(msg.ts) }}</span>
-              <button
-                v-if="hoveredMsgId === msg.id || msg.reaction === 'like'"
-                class="aiq-action-btn"
-                :class="{ 'aiq-action-active': msg.reaction === 'like' }"
-                @click.stop="reactMessage(msg.id, 'like')"
-                :title="$t('helpful')"
-              >
-                <v-icon size="13">{{ msg.reaction === 'like' ? 'mdi-thumb-up' : 'mdi-thumb-up-outline' }}</v-icon>
-              </button>
-              <button
-                v-if="hoveredMsgId === msg.id || msg.reaction === 'dislike'"
-                class="aiq-action-btn"
-                :class="{ 'aiq-action-active aiq-action-dislike': msg.reaction === 'dislike' }"
-                @click.stop="reactMessage(msg.id, 'dislike')"
-                :title="$t('not_helpful')"
-              >
-                <v-icon size="13">{{ msg.reaction === 'dislike' ? 'mdi-thumb-down' : 'mdi-thumb-down-outline' }}</v-icon>
-              </button>
-              <button
-                v-if="hoveredMsgId === msg.id"
-                class="aiq-action-btn aiq-action-delete-ai"
-                @click.stop="deleteMessage(msg.id)"
-                :title="$t('delete')"
-              >
-                <v-icon size="13">mdi-delete-outline</v-icon>
-              </button>
+              <AiMessageBox
+                :msg="msg"
+                :index="index"
+                :is-expanded-mode="isExpanded"
+              />
+              <!-- AI message footer placed cleanly BELLOW the message -->
+              <div class="aiq-ai-footer">
+                <span class="aiq-ai-time">{{ formatMsgTime(msg.ts) }}</span>
+                <div class="aiq-ai-footer-actions">
+                  <button
+                    class="aiq-action-btn"
+                    :class="{ 'aiq-action-active': msg.reaction === 'like' }"
+                    @click.stop="reactMessage(msg.id, 'like')"
+                    :title="$t('helpful') || 'Helpful'"
+                  >
+                    <v-icon size="13">{{ msg.reaction === 'like' ? 'mdi-thumb-up' : 'mdi-thumb-up-outline' }}</v-icon>
+                  </button>
+                  <button
+                    class="aiq-action-btn"
+                    :class="{ 'aiq-action-active aiq-action-dislike': msg.reaction === 'dislike' }"
+                    @click.stop="reactMessage(msg.id, 'dislike')"
+                    :title="$t('not_helpful') || 'Not Helpful'"
+                  >
+                    <v-icon size="13">{{ msg.reaction === 'dislike' ? 'mdi-thumb-down' : 'mdi-thumb-down-outline' }}</v-icon>
+                  </button>
+                  <button
+                    class="aiq-action-btn"
+                    @click.stop="copyAiText(msg, index)"
+                    :title="$t('copy') || 'Copy'"
+                  >
+                    <v-icon size="13">{{ copiedMsgId === msg.id ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
+                  </button>
+                  <button
+                    class="aiq-action-btn aiq-action-delete-ai"
+                    @click.stop="deleteMessage(msg.id)"
+                    :title="$t('delete') || 'Delete'"
+                  >
+                    <v-icon size="13">mdi-delete-outline</v-icon>
+                  </button>
+                </div>
+              </div>
             </div>
           </template>
         </div>
 
         <!-- Typing indicator -->
-        <div v-if="loading" class="aiq-msg-row aiq-msg-ai">
+        <div v-if="loading" id="aiq-typing-row" class="aiq-msg-row aiq-msg-ai">
           <div class="aiq-typing-card">
             <div class="aiq-typing-header">
               <div class="aiq-typing-avatar">
@@ -311,7 +354,7 @@
             v-model="newMessage"
             :placeholder="excelFiles.length ? $t('describe_what_to_do_with_excel') : $t('ask_anything_placeholder')"
             class="aiq-input"
-            @keyup.enter="sendMessage"
+            @keydown.enter.prevent="sendMessage"
             :disabled="loading"
           />
           <input
@@ -437,6 +480,9 @@ export default {
       excelParsedData: [],
       hoveredMsgId: null,
       isAtBottom: true,
+      isExpanded: localStorage.getItem('aiq_is_expanded') === 'true',
+      isFullscreen: false,
+      copiedMsgId: null,
       snackbar: {
         show: false,
         text: '',
@@ -507,12 +553,116 @@ export default {
       ];
     },
   },
+  watch: {
+    'ai_prompt.messages.length': {
+      handler(newLen, oldLen) {
+        if (newLen > (oldLen || 0)) {
+          this.scrollToLatestMessage(true);
+          setTimeout(() => this.scrollToLatestMessage(true), 50);
+          setTimeout(() => this.scrollToLatestMessage(true), 150);
+        }
+      }
+    },
+    loading(val) {
+      if (val) {
+        this.scrollToLatestMessage(true);
+        setTimeout(() => this.scrollToLatestMessage(true), 60);
+      }
+    }
+  },
   mounted() {
+    document.addEventListener('keydown', this.handleGlobalKeydown);
+    window.addEventListener('ai:content-rendered', this.onContentRendered);
+    if (this.isExpanded) {
+      this.main.sidebar_mini = true;
+    }
     this.ai_prompt.loadQueryHistory().then(() => {
-      this.$nextTick(() => this.scrollToBottom());
+      this.$nextTick(() => this.scrollToLatestMessage(false));
+      setTimeout(() => this.scrollToLatestMessage(false), 150);
     });
   },
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.handleGlobalKeydown);
+    window.removeEventListener('ai:content-rendered', this.onContentRendered);
+  },
   methods: {
+    toggleExpand() {
+      this.isExpanded = !this.isExpanded;
+      localStorage.setItem('aiq_is_expanded', this.isExpanded);
+      if (this.isExpanded) {
+        this.main.sidebar_mini = true;
+      }
+      this.showFeedback(
+        this.isExpanded
+          ? (this.$t('wide_view_enabled') || 'Wide visualization mode enabled')
+          : (this.$t('normal_view_enabled') || 'Standard view restored'),
+        '#42A5F5',
+        this.isExpanded ? 'mdi-arrow-expand-horizontal' : 'mdi-arrow-collapse-horizontal'
+      );
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    },
+    toggleFullscreen() {
+      this.isFullscreen = !this.isFullscreen;
+      if (this.isFullscreen) {
+        this.main.sidebar_mini = true;
+      }
+      this.showFeedback(
+        this.isFullscreen
+          ? (this.$t('fullscreen_enabled') || 'Fullscreen visualization mode enabled')
+          : (this.$t('fullscreen_disabled') || 'Fullscreen mode exited'),
+        '#42A5F5',
+        this.isFullscreen ? 'mdi-fullscreen-exit' : 'mdi-fullscreen'
+      );
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    },
+    handleGlobalKeydown(e) {
+      if (e.key === 'Escape' && this.isFullscreen) {
+        this.toggleFullscreen();
+      }
+    },
+    showFeedback(text, color = '#42A5F5', icon = 'mdi-information-outline') {
+      this.snackbar = {
+        show: true,
+        text,
+        color,
+        icon
+      };
+    },
+    copyAiText(msg, index) {
+      const container = document.getElementById(`_ai_message_${index}`);
+      const text = container ? (container.innerText || container.textContent) : msg.text;
+      if (!text) return;
+
+      const onCopied = () => {
+        this.copiedMsgId = msg.id;
+        this.showFeedback(this.$t('copied') || 'Copied to clipboard', '#42A5F5', 'mdi-check-circle-outline');
+        setTimeout(() => { this.copiedMsgId = null; }, 2000);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text.trim()).then(onCopied).catch(() => {
+          this.fallbackCopy(text.trim());
+          onCopied();
+        });
+      } else {
+        this.fallbackCopy(text.trim());
+        onCopied();
+      }
+    },
+    fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    },
     formatTime() {
       const d = new Date();
       return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -569,15 +719,21 @@ export default {
     },
     async sendMessage() {
       if (!this.newMessage.trim() && !this.excelParsedData.length) return;
-      this.loading = true;
-      let message = this.newMessage || 'Analyze the attached Excel file(s)';
+      const message = this.newMessage || 'Analyze the attached Excel file(s)';
+      const excelData = [...this.excelParsedData];
       this.newMessage = "";
+      this.excelFiles = [];
+      this.excelParsedData = [];
+      this.loading = true;
+
+      // Instantly scroll down when user submits the message
+      this.scrollToLatestMessage(true);
+      setTimeout(() => this.scrollToLatestMessage(true), 50);
+      setTimeout(() => this.scrollToLatestMessage(true), 150);
 
       try {
-        if (this.excelParsedData.length) {
-          await this.ai_prompt.sendMessageWithExcel(message, this.excelParsedData);
-          this.excelFiles = [];
-          this.excelParsedData = [];
+        if (excelData.length) {
+          await this.ai_prompt.sendMessageWithExcel(message, excelData);
         } else {
           const res = await this.ai_prompt.sendMessage(message);
           if (!res?.answer) {
@@ -589,9 +745,11 @@ export default {
       } finally {
         this.loading = false;
         this.$nextTick(() => {
-          this.scrollToBottom(true);
+          this.scrollToLatestMessage(true);
           this.$refs.messageInput?.focus();
         });
+        setTimeout(() => this.scrollToLatestMessage(true), 100);
+        setTimeout(() => this.scrollToLatestMessage(true), 300);
       }
     },
     deleteMessage(msgId) {
@@ -601,13 +759,41 @@ export default {
     reactMessage(msgId, reaction) {
       this.ai_prompt.reactQueryMessage(msgId, reaction);
     },
-    scrollToBottom(force) {
-      const el = this.$refs.chatBody;
-      if (el && (force || this.isAtBottom)) {
-        this.$nextTick(() => {
+    scrollToLatestMessage(smooth = true) {
+      this.isAtBottom = true;
+      this.$nextTick(() => {
+        const el = this.$refs.chatBody;
+        if (!el) return;
+
+        try {
+          el.scrollTo({
+            top: el.scrollHeight + 1000,
+            behavior: smooth ? 'smooth' : 'auto'
+          });
+        } catch (e) {
           el.scrollTop = el.scrollHeight;
-          this.isAtBottom = true;
-        });
+        }
+
+        const typingEl = document.getElementById('aiq-typing-row');
+        const rows = el.querySelectorAll('.aiq-msg-row');
+        const target = typingEl || (rows.length ? rows[rows.length - 1] : null);
+        if (target && typeof target.scrollIntoView === 'function') {
+          try {
+            target.scrollIntoView({
+              behavior: smooth ? 'smooth' : 'auto',
+              block: 'end',
+              inline: 'nearest'
+            });
+          } catch (e) {}
+        }
+      });
+    },
+    scrollToBottom(force) {
+      this.scrollToLatestMessage(true);
+    },
+    onContentRendered() {
+      if (this.isAtBottom) {
+        this.scrollToLatestMessage(false);
       }
     },
     checkIsAtBottom() {
@@ -669,7 +855,7 @@ export default {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 110px);
+  height: calc(100vh - 84px);
   max-width: 100%;
   border-radius: 20px;
   overflow: hidden;
@@ -677,7 +863,26 @@ export default {
   width: 100%;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--aiq-border);
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fullscreen Immersive Mode */
+.aiq-page.aiq-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  z-index: 999999 !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* -- Theme Tokens -- */
@@ -892,6 +1097,12 @@ export default {
   background: rgba(255, 255, 255, 0.26) !important;
 }
 
+.aiq-hero-btn-active {
+  background: rgba(255, 255, 255, 0.32) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.35) !important;
+}
+
 /* -- Chat Body & Container -- */
 .aiq-chat-body {
   flex: 1 1 0;
@@ -902,6 +1113,7 @@ export default {
   display: flex;
   flex-direction: column;
   scroll-behavior: smooth;
+  transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .aiq-chat-body::-webkit-scrollbar {
@@ -915,12 +1127,24 @@ export default {
 
 .aiq-chat-container {
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-height: 100%;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aiq-page.aiq-expanded .aiq-chat-container,
+.aiq-page.aiq-fullscreen .aiq-chat-container {
+  max-width: min(1820px, 98%);
+  width: 100%;
+}
+
+.aiq-page.aiq-expanded .aiq-chat-body,
+.aiq-page.aiq-fullscreen .aiq-chat-body {
+  padding: 24px 32px;
 }
 
 /* -- Welcome / Empty State -- */
@@ -1076,7 +1300,18 @@ export default {
 }
 
 .aiq-msg-ai {
-  justify-content: flex-start;
+  display: flex;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: 100%;
+}
+
+.aiq-ai-msg-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  position: relative;
 }
 
 /* -- User Bubble -- */
@@ -1121,24 +1356,34 @@ export default {
   box-shadow: 0 2px 8px rgba(21, 101, 192, 0.3);
 }
 
-/* -- AI Footer -- */
+/* -- AI Footer (Cleanly placed BELLOW the message) -- */
 .aiq-ai-footer {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 0 0 54px;
-  opacity: 0.7;
-  transition: opacity 0.2s;
+  gap: 12px;
+  padding: 4px 12px 10px 16px;
+  margin-top: 2px;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+  width: fit-content;
 }
 
-.aiq-ai-footer:hover {
+.aiq-ai-footer:hover,
+.aiq-ai-msg-block:hover .aiq-ai-footer {
   opacity: 1;
 }
 
+.aiq-ai-footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .aiq-ai-time {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--aiq-text-muted);
   font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
 /* -- Action Buttons -- */
@@ -1284,10 +1529,17 @@ export default {
 
 .aiq-input-dock-container {
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aiq-page.aiq-expanded .aiq-input-dock-container,
+.aiq-page.aiq-fullscreen .aiq-input-dock-container {
+  max-width: min(1820px, 98%);
+  width: 100%;
 }
 
 .aiq-input-wrapper {

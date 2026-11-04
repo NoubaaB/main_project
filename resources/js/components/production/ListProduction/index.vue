@@ -50,8 +50,40 @@
     <v-row dense class="mb-3">
       <v-col cols="12" md="3" lg="3">
         <div class="lp-panel-card">
-          <div class="lp-panel-header mb-2 pa-1"><v-icon size="16" color="#00897B" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
+          <div class="lp-panel-header mb-2 pa-1 d-flex align-center justify-space-between">
+            <div class="d-flex align-center">
+              <v-icon size="16" color="#00897B" class="mr-1">mdi-calendar-range</v-icon>
+              <span>{{ $t('date_range') }}</span>
+            </div>
+            <v-chip v-if="datePreset" size="x-small" color="#00897B" variant="tonal" class="font-weight-bold">
+              {{ $t(datePreset) }}
+            </v-chip>
+          </div>
+          <!-- Auto-select Date Range Segmented Pill Toggle -->
+          <div class="mb-2 d-flex justify-center lp-date-presets-wrapper">
+            <SegmentedPillToggle
+              v-model="datePreset"
+              :items="datePresetOptions"
+              color="#00897B"
+              size="x-small"
+              block
+              @update:model-value="onDatePresetChange"
+            />
+          </div>
           <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="teal" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
+
+          <!-- Selected Date Range Display Below VCalendar -->
+          <div class="lp-selected-range mt-2 pt-2 border-t d-flex align-center justify-center ga-2 flex-nowrap">
+            <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold" :title="$t('start_date')">
+              <v-icon start size="12">mdi-calendar-start</v-icon>
+              {{ main.formateDate(dateRange[0]) }}
+            </v-chip>
+            <v-icon size="12" color="grey">mdi-arrow-right</v-icon>
+            <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold" :title="$t('end_date')">
+              <v-icon start size="12">mdi-calendar-end</v-icon>
+              {{ main.formateDate(dateRange[1] || dateRange[0]) }}
+            </v-chip>
+          </div>
         </div>
       </v-col>
       <v-col cols="12" md="6" lg="6">
@@ -1522,6 +1554,7 @@ export default {
   background: rgba(208, 211, 218, 0.65) !important;
 }
 .lp-stat-item{padding:8px 10px;border-radius:10px;background:rgba(0,137,123,.03);border:1px solid rgba(0,137,123,.06)}
+.lp-date-presets-wrapper{width:100%;overflow-x:auto;scrollbar-width:none}
 :deep(.mdi-pallet:before),.mdi-pallet:before{content:"\F184E"}
 :deep(.v-theme--dark) .text-blue-grey-darken-3,
 .v-theme--dark .text-blue-grey-darken-3 {

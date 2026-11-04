@@ -14,7 +14,15 @@
 
     <!-- main start -->
     <v-main @click="collapseSidebar">
-      <v-container fluid :class="[!auth.is_auth ? 'pa-0 fill-height auth-page-container' : 'mt-15']" style="position: relative; max-width: 100%;">
+      <v-container
+        fluid
+        :class="[
+          !auth.is_auth
+            ? 'pa-0 fill-height auth-page-container'
+            : ($route.name === 'ai_prompt' ? 'pa-2 pa-sm-3 mt-14' : 'mt-15')
+        ]"
+        style="position: relative; max-width: 100%;"
+      >
         <router-view v-slot="{ Component, route }">
           <keep-alive :include="['ListCharge', 'ListShipping', 'ListProduction', 'WarehouseDashboard', 'ListSupplierInvoice', 'ListClientInvoice', 'SupplierSettlement', 'ClientSettlement']">
             <component :is="Component" :key="keepAliveNames.includes(Component?.type?.name) ? Component?.type?.name : route.fullPath"/>

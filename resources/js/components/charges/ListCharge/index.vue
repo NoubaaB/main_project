@@ -58,8 +58,40 @@
       <!-- Calendar (left) -->
       <v-col cols="12" md="3">
         <div class="lc-panel-card">
-          <div class="lc-panel-header"><v-icon size="16" color="#42A5F5" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
+          <div class="lc-panel-header d-flex align-center justify-space-between mb-2">
+            <div class="d-flex align-center">
+              <v-icon size="16" color="#42A5F5" class="mr-1">mdi-calendar-range</v-icon>
+              <span>{{ $t('date_range') }}</span>
+            </div>
+            <v-chip v-if="datePreset" size="x-small" color="#42A5F5" variant="tonal" class="font-weight-bold">
+              {{ $t(datePreset) }}
+            </v-chip>
+          </div>
+          <!-- Auto-select Date Range Segmented Pill Toggle -->
+          <div class="mb-2 d-flex justify-center lc-date-presets-wrapper">
+            <SegmentedPillToggle
+              v-model="datePreset"
+              :items="datePresetOptions"
+              color="#42A5F5"
+              size="x-small"
+              block
+              @update:model-value="onDatePresetChange"
+            />
+          </div>
           <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="blue" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
+
+          <!-- Selected Date Range Display Below VCalendar -->
+          <div class="lc-selected-range mt-2 pt-2 border-t d-flex align-center justify-center ga-2 flex-nowrap">
+            <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-bold" :title="$t('start_date')">
+              <v-icon start size="12">mdi-calendar-start</v-icon>
+              {{ main.formateDate(dateRange[0]) }}
+            </v-chip>
+            <v-icon size="12" color="grey">mdi-arrow-right</v-icon>
+            <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-bold" :title="$t('end_date')">
+              <v-icon start size="12">mdi-calendar-end</v-icon>
+              {{ main.formateDate(dateRange[1] || dateRange[0]) }}
+            </v-chip>
+          </div>
         </div>
       </v-col>
       <!-- Chart (center) -->
@@ -1261,4 +1293,5 @@ export default {
 .lc-panel-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center}
 .lc-stats-panel{max-height:400px}
 .lc-stat-item{padding:8px 10px;border-radius:10px;background:rgba(25,118,210,.03);border:1px solid rgba(25,118,210,.06)}
+.lc-date-presets-wrapper{width:100%;overflow-x:auto;scrollbar-width:none}
 </style>

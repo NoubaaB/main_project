@@ -52,6 +52,12 @@
               <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>
               <tr class="param-filter-row"><th v-for="col in columns" :key="col.key + '-f'" class="param-filter-th" :style="col.width ? { width: col.width } : {}"><v-autocomplete v-if="col.key !== 'actions'" v-model="warehouseColumnFilters[col.key]" :items="getWarehouseColumnOptions(col.key)" density="compact" variant="outlined" color="#a21ee5" class="param-filter-input" hide-details clearable multiple chips closable-chips :placeholder="$t('filter')"><template #chip="{ item, props }"><v-chip v-bind="props" size="x-small" color="#a21ee5" variant="tonal" closable>{{ item.title }}</v-chip></template></v-autocomplete></th></tr>
             </template>
+            <template v-slot:[`item.stock_type`]="{ item }">
+              <v-chip :color="item.stock_type === 'third_party' ? 'orange-darken-1' : '#a21ee5'" size="small" variant="tonal" class="font-weight-bold">
+                <v-icon start size="14">{{ item.stock_type === 'third_party' ? 'mdi-handshake-outline' : 'mdi-domain' }}</v-icon>
+                {{ item.stock_type === 'third_party' ? $t('stock_type_third_party_short') : $t('stock_type_company_short') }}
+              </v-chip>
+            </template>
             <template v-slot:[`item.has_sejour`]="{ item }"><v-chip :color="item.has_sejour ? 'warning' : 'grey'" size="small" variant="tonal">{{ item.has_sejour ? $t('yes') : $t('no') }}</v-chip></template>
             <template v-slot:[`item.allow_production_effect`]="{ item }"><v-chip :color="item.allow_production_effect ? '#a21ee5' : 'grey'" size="small" variant="tonal">{{ item.allow_production_effect ? $t('yes') : $t('no') }}</v-chip></template>
             <template v-slot:[`item.operation_service_fee`]="{ item }"><span class="fnm-currency-num">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '-' }}</span></template>
@@ -322,6 +328,24 @@
               <v-select v-model="warehouseForm.warehouse_category_id" :items="categories" item-title="name" item-value="id" :label="$t('category')" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" clearable></v-select>
             </v-col>
             <v-col cols="12" sm="6">
+              <v-select
+                v-model="warehouseForm.stock_type"
+                :items="[
+                  { value: 'company', label: $t('stock_type_company') },
+                  { value: 'third_party', label: $t('stock_type_third_party') }
+                ]"
+                item-title="label"
+                item-value="value"
+                :label="$t('stock_type')"
+                prepend-inner-icon="mdi-domain"
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+                color="#a21ee5"
+                hide-details="auto"
+              ></v-select>
+            </v-col>
+            <v-col cols="12" sm="6">
               <v-select v-model="warehouseForm.warehouse_type" :items="['FishType','GuanoType','PackageType']" :label="$t('warehouse_type')" prepend-inner-icon="mdi-shape" variant="outlined" density="compact" rounded="lg" color="#a21ee5" hide-details="auto" clearable></v-select>
             </v-col>
             <v-col cols="12">
@@ -432,7 +456,7 @@ export default {
       loadingWarehouses: false,
       warehouseDialog: false,
       editingWarehouse: null,
-      warehouseForm: { name: '', description: '', warehouse_type: null, warehouse_category_id: null, has_sejour: false, operation_service_fee: 0, allow_production_effect: false },
+      warehouseForm: { name: '', description: '', warehouse_type: null, warehouse_category_id: null, stock_type: 'company', has_sejour: false, operation_service_fee: 0, allow_production_effect: false },
       warehouseColumnFilters: {},
       categories: [],
       loadingCategories: false,
@@ -465,6 +489,7 @@ export default {
     warehouseHeaders() {
       return [
         { title: this.$t('name'), key: 'name', align: 'center' },
+        { title: this.$t('stock_type'), key: 'stock_type', align: 'center' },
         { title: this.$t('description'), key: 'description', align: 'center' },
         { title: this.$t('category'), key: 'category', align: 'center' },
         { title: this.$t('warehouse_type'), key: 'warehouse_type', align: 'center' },
@@ -498,7 +523,10 @@ export default {
     filteredWarehouses() {
       return this.warehouses.filter(item => Object.entries(this.warehouseColumnFilters).every(([key, sel]) => {
         if (!sel || !sel.length) return true;
-        const val = key === 'category' ? (item.category?.name ?? '') : key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
+        const val = key === 'category' ? (item.category?.name ?? '')
+          : key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no'))
+          : key === 'stock_type' ? (item.stock_type === 'third_party' ? this.$t('stock_type_third_party_short') : this.$t('stock_type_company_short'))
+          : String(item[key] ?? '');
         return sel.includes(val);
       }));
     },
@@ -540,7 +568,10 @@ export default {
     getWarehouseColumnOptions(key) {
       const set = new Set();
       this.warehouses.forEach(item => {
-        const val = key === 'category' ? (item.category?.name ?? '') : key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no')) : String(item[key] ?? '');
+        const val = key === 'category' ? (item.category?.name ?? '')
+          : key === 'has_sejour' ? (item[key] ? this.$t('yes') : this.$t('no'))
+          : key === 'stock_type' ? (item.stock_type === 'third_party' ? this.$t('stock_type_third_party_short') : this.$t('stock_type_company_short'))
+          : String(item[key] ?? '');
         set.add(val);
       });
       return [...set].sort();
@@ -575,8 +606,8 @@ export default {
     openWarehouseDialog(item) {
       this.editingWarehouse = item;
       this.warehouseForm = item
-        ? { name: item.name, description: item.description, warehouse_type: item.warehouse_type, warehouse_category_id: item.warehouse_category_id, has_sejour: item.has_sejour || false, operation_service_fee: item.operation_service_fee || 0, allow_production_effect: item.allow_production_effect || false }
-        : { name: '', description: '', warehouse_type: null, warehouse_category_id: null, has_sejour: false, operation_service_fee: 0, allow_production_effect: false };
+        ? { name: item.name, description: item.description, warehouse_type: item.warehouse_type, warehouse_category_id: item.warehouse_category_id, stock_type: item.stock_type || 'company', has_sejour: item.has_sejour || false, operation_service_fee: item.operation_service_fee || 0, allow_production_effect: item.allow_production_effect || false }
+        : { name: '', description: '', warehouse_type: null, warehouse_category_id: null, stock_type: 'company', has_sejour: false, operation_service_fee: 0, allow_production_effect: false };
       this.warehouseDialog = true;
     },
     async saveWarehouse() {

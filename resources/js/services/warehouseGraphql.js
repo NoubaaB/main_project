@@ -42,6 +42,7 @@ export async function gqlGetChambersOverview() {
         name
         category_name
         warehouse_type
+        stock_type
         allow_production_effect
         has_sejour
         active_lots
@@ -625,6 +626,7 @@ export async function gqlGetWarehouses() {
         id
         name
         capacity
+        stock_type
         warehouse_category_id
         category {
           id

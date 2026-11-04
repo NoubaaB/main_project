@@ -12,7 +12,7 @@ class Warehouse extends Model
 
     protected $fillable = [
         'name', 'description', 'warehouse_category_id',
-        'warehouse_type', 'has_sejour', 'operation_service_fee',
+        'warehouse_type', 'stock_type', 'has_sejour', 'operation_service_fee',
         'is_allow_price', 'allow_production_effect',
         'total_weight',
     ];
@@ -24,6 +24,26 @@ class Warehouse extends Model
         'operation_service_fee' => 'decimal:2',
         'total_weight' => 'decimal:2',
     ];
+
+    public function isCompanyStock(): bool
+    {
+        return ($this->stock_type ?? 'company') === 'company';
+    }
+
+    public function isThirdPartyStock(): bool
+    {
+        return ($this->stock_type ?? 'company') === 'third_party';
+    }
+
+    public function scopeCompany($query)
+    {
+        return $query->where('stock_type', 'company');
+    }
+
+    public function scopeThirdParty($query)
+    {
+        return $query->where('stock_type', 'third_party');
+    }
 
     public function category()
     {

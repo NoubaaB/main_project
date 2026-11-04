@@ -39,9 +39,13 @@ class WarehouseController extends Controller
         return "DATEDIFF(NOW(), {$dateCol})";
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $warehouses = Warehouse::with('category')->get();
+        $query = Warehouse::with('category');
+        if ($request->filled('stock_type')) {
+            $query->where('stock_type', $request->stock_type);
+        }
+        $warehouses = $query->get();
         return response()->json(['warehouses' => $warehouses]);
     }
 
@@ -52,11 +56,15 @@ class WarehouseController extends Controller
             'description' => 'nullable|string',
             'warehouse_category_id' => 'nullable|exists:warehouse_categories,id',
             'warehouse_type' => 'nullable|string|in:FishType,GuanoType,PackageType',
+            'stock_type' => 'nullable|string|in:company,third_party',
             'has_sejour' => 'boolean',
             'operation_service_fee' => 'nullable|numeric|min:0',
             'is_allow_price' => 'nullable|boolean',
             'allow_production_effect' => 'nullable|boolean',
         ]);
+        if (!isset($data['stock_type'])) {
+            $data['stock_type'] = 'company';
+        }
         $warehouse = Warehouse::create($data);
         $this->broadcastChange('Warehouse', 'created', $warehouse->id, $warehouse->toArray());
         return response()->json(['warehouse' => $warehouse], 201);
@@ -69,6 +77,7 @@ class WarehouseController extends Controller
             'description' => 'nullable|string',
             'warehouse_category_id' => 'nullable|exists:warehouse_categories,id',
             'warehouse_type' => 'nullable|string|in:FishType,GuanoType,PackageType',
+            'stock_type' => 'nullable|string|in:company,third_party',
             'has_sejour' => 'boolean',
             'operation_service_fee' => 'nullable|numeric|min:0',
             'is_allow_price' => 'nullable|boolean',
@@ -2059,6 +2068,7 @@ class WarehouseController extends Controller
                 'name' => $ch->name,
                 'category_name' => $ch->category->name ?? null,
                 'warehouse_type' => $ch->warehouse_type,
+                'stock_type' => $ch->stock_type ?? 'company',
                 'allow_production_effect' => (bool) $ch->allow_production_effect,
                 'has_sejour' => (bool) $ch->has_sejour,
                 'active_lots' => (int) ($stat->active_lots ?? 0),
@@ -2163,5 +2173,218 @@ class WarehouseController extends Controller
         })->values();
 
         return response()->json(['species' => $result]);
+    }
+
+    /**
+     * Return list of inventory sessions for baseline recalculation selection.
+     */
+    public function inventoryDays()
+    {
+        $inventories = DB::table('inventories')
+            ->select('id', 'date', 'inventory_tracking_number', 'total_weight')
+            ->orderBy('date', 'desc')
+            ->get();
+
+        $days = [];
+        foreach ($inventories as $inv) {
+            $tracking = $inv->inventory_tracking_number;
+            if (is_string($tracking) && str_starts_with($tracking, '[')) {
+                $arr = json_decode($tracking, true);
+                $tracking = !empty($arr) ? implode(', ', $arr) : "INV-{$inv->id}";
+            }
+
+            $details = DB::table('detail_inventories')
+                ->where('inventory_id', $inv->id)
+                ->get();
+
+            $whIds = $details->pluck('warehouse_id')->filter()->unique();
+            $whList = DB::table('warehouses')
+                ->whereIn('id', $whIds)
+                ->select('id', 'name')
+                ->get();
+
+            $days[] = [
+                'id' => $inv->id,
+                'date' => (string) $inv->date,
+                'tracking_number' => $tracking ?: "INV-{$inv->id}",
+                'items_count' => $details->count(),
+                'total_weight' => (float) $inv->total_weight,
+                'warehouses' => $whList,
+            ];
+        }
+
+        return response()->json(['inventory_days' => $days]);
+    }
+
+    /**
+     * Preview recalculation without persisting changes.
+     */
+    public function previewRecalculation(Request $request)
+    {
+        return response()->json($this->performStockRecalculation($request, false));
+    }
+
+    /**
+     * Execute recalculation and persist changes in database.
+     */
+    public function executeRecalculation(Request $request)
+    {
+        return response()->json($this->performStockRecalculation($request, true));
+    }
+
+    /**
+     * Core calculation engine for simulation (preview) and execution.
+     */
+    protected function performStockRecalculation(Request $request, bool $isExecute): array
+    {
+        $startTime = microtime(true);
+
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to') ?: Carbon::now()->toDateString();
+        $warehouseIds = $request->input('warehouse_ids', []);
+        if (is_string($warehouseIds)) {
+            $warehouseIds = array_filter(explode(',', $warehouseIds));
+        }
+
+        $whQuery = Warehouse::query();
+        if (!empty($warehouseIds)) {
+            $whQuery->whereIn('id', $warehouseIds);
+        }
+        $warehouses = $whQuery->get();
+
+        $whLookup = [];
+        $whStats = [];
+        foreach ($warehouses as $w) {
+            $whLookup[$w->id] = $w->name;
+            $curBalQuery = WarehouseBalance::where('warehouse_id', $w->id)
+                ->where('warehouse_operation', 'stock_in')
+                ->where('is_finished', 0);
+
+            $wBefore = (float) $curBalQuery->sum('remaining_weight');
+            $boxesBefore = (float) $curBalQuery->sum('package_count');
+            $valBefore = (float) $curBalQuery->select(DB::raw('SUM(remaining_weight * unit_price) as val'))->value('val');
+
+            $whStats[$w->id] = [
+                'warehouse_id' => $w->id,
+                'warehouse_name' => $w->name,
+                'weight_before' => $wBefore,
+                'weight_after' => $wBefore,
+                'weight_diff' => 0.0,
+                'boxes_before' => $boxesBefore,
+                'boxes_after' => $boxesBefore,
+                'valuation_before' => $valBefore,
+                'valuation_after' => $valBefore,
+                'status' => 'synced',
+            ];
+        }
+
+        // Scan balances in scope
+        $balQuery = WarehouseBalance::where('warehouse_operation', 'stock_in');
+        if (!empty($warehouseIds)) {
+            $balQuery->whereIn('warehouse_id', $warehouseIds);
+        }
+        if ($dateFrom) {
+            $balQuery->where('date', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $balQuery->where('date', '<=', $dateTo);
+        }
+
+        $allBalances = $balQuery->with(['operations'])->get();
+        $balancesScanned = $allBalances->count();
+        $operationsScanned = 0;
+        $balancesUpdated = 0;
+        $discrepancies = [];
+
+        foreach ($allBalances as $bal) {
+            $ops = $bal->operations;
+            $operationsScanned += $ops->count();
+            $totalOut = (float) $ops->sum('weight');
+            $expectedRemaining = max(0, round((float) $bal->total_weight - $totalOut, 2));
+            $currentRemaining = round((float) $bal->remaining_weight, 2);
+            $diff = round($expectedRemaining - $currentRemaining, 2);
+
+            if (abs($diff) > 0.01) {
+                $balancesUpdated++;
+                $discrepancies[] = [
+                    'id' => $bal->id,
+                    'warehouse_name' => $whLookup[$bal->warehouse_id] ?? ('Chambre ' . $bal->warehouse_id),
+                    'lot_number' => self::cleanLotNumber($bal->reception_tracking_number),
+                    'article_name' => $bal->stockable_id ? "Article #{$bal->stockable_id}" : 'Poisson',
+                    'issue_type' => ($diff > 0 ? 'Sur-sortie détectée' : 'Sous-sortie détectée'),
+                    'diff_weight' => $diff,
+                    'current_weight' => $currentRemaining,
+                    'expected_weight' => $expectedRemaining,
+                    'severity' => (abs($diff) > 100 ? 'high' : 'medium'),
+                ];
+
+                if (isset($whStats[$bal->warehouse_id])) {
+                    $whStats[$bal->warehouse_id]['weight_after'] += $diff;
+                    $whStats[$bal->warehouse_id]['weight_diff'] += $diff;
+                    $whStats[$bal->warehouse_id]['valuation_after'] += ($diff * (float) $bal->unit_price);
+                    $whStats[$bal->warehouse_id]['status'] = 'updated';
+                    $whStats[$bal->warehouse_id]['balances_affected'] = ($whStats[$bal->warehouse_id]['balances_affected'] ?? 0) + 1;
+                }
+
+                if ($isExecute) {
+                    $bal->remaining_weight = $expectedRemaining;
+                    $bal->is_finished = ($expectedRemaining <= 0) ? 1 : 0;
+                    $bal->saveQuietly();
+                }
+            }
+        }
+
+        // If executing, recalculate total_weight on affected warehouses
+        if ($isExecute) {
+            foreach ($warehouses as $w) {
+                $w->recalculateTotalWeight();
+                $this->broadcastChange('Warehouse', 'updated', $w->id, $w->toArray());
+            }
+        }
+
+        foreach ($whStats as $k => $st) {
+            $whStats[$k]['current_weight'] = round($st['weight_before'], 2);
+            $whStats[$k]['recalculated_weight'] = round($st['weight_after'], 2);
+            $whStats[$k]['current_valuation'] = round($st['valuation_before'], 2);
+            $whStats[$k]['recalculated_valuation'] = round($st['valuation_after'], 2);
+            $whStats[$k]['valuation_diff'] = round($st['valuation_after'] - $st['valuation_before'], 2);
+            $whStats[$k]['balances_affected'] = $st['balances_affected'] ?? 0;
+        }
+
+        $totWeightBefore = array_sum(array_column($whStats, 'weight_before'));
+        $totWeightAfter = array_sum(array_column($whStats, 'weight_after'));
+        $totValBefore = array_sum(array_column($whStats, 'valuation_before'));
+        $totValAfter = array_sum(array_column($whStats, 'valuation_after'));
+
+        $duration = round(microtime(true) - $startTime, 2);
+
+        return [
+            'success' => true,
+            'mode' => $isExecute ? 'execute' : 'preview',
+            'duration_seconds' => $duration,
+            'periods' => [
+                [
+                    'date_from' => $dateFrom ?: '2021-01-01',
+                    'date_to' => $dateTo,
+                    'description' => "Recalcul du {$dateFrom} au {$dateTo}",
+                    'balances_count' => $balancesScanned,
+                    'operations_count' => $operationsScanned,
+                ]
+            ],
+            'warehouses' => array_values($whStats),
+            'summary' => [
+                'balances_scanned' => $balancesScanned,
+                'balances_updated' => $balancesUpdated,
+                'operations_scanned' => $operationsScanned,
+                'weight_before' => round($totWeightBefore, 2),
+                'weight_after' => round($totWeightAfter, 2),
+                'weight_diff' => round($totWeightAfter - $totWeightBefore, 2),
+                'valuation_before' => round($totValBefore, 2),
+                'valuation_after' => round($totValAfter, 2),
+                'valuation_diff' => round($totValAfter - $totValBefore, 2),
+                'discrepancies_count' => count($discrepancies),
+            ],
+            'discrepancies' => $discrepancies,
+        ];
     }
 }

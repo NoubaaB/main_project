@@ -1192,10 +1192,20 @@
     <!-- VIEW 2: PAR CHAMBRE FRIGORIFIQUE (Cold Storage Room Grid)                 -->
     <!-- ========================================================================= -->
     <div v-else-if="activeViewMode === 'chambers'" class="wh-view-container">
-      <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-3">
-        <span class="text-subtitle-2 font-weight-bold text-medium-emphasis">
-          {{ filteredChambers.length }} {{ tLabel('warehouses', 'Chambres Frigorifiques') }} • {{ occupiedChambersCount }} {{ tLabel('occupied_chambers', 'Occupées') }}
-        </span>
+      <!-- Stock Type Categorization Toggle (Company vs Third-Party) -->
+      <div class="wh-toolbar-card pa-2 rounded-xl border d-flex flex-wrap align-center justify-space-between ga-3 mb-3 bg-surface">
+        <div class="d-flex flex-wrap align-center ga-3">
+          <SegmentedPillToggle
+            v-model="chamberStockTypeFilter"
+            :items="[
+              { value: 'all', label: tLabel('all_warehouses', 'Toutes les Chambres'), icon: 'mdi-warehouse', badge: chambersList.length },
+              { value: 'company', label: tLabel('stock_type_company', 'Stock Société (Propre)'), icon: 'mdi-domain', badge: companyChambersCount },
+              { value: 'third_party', label: tLabel('stock_type_third_party', 'Stock Tiers (Sous-Traitance)'), icon: 'mdi-handshake-outline', badge: thirdPartyChambersCount }
+            ]"
+            color="#a21ee5"
+            size="small"
+          />
+        </div>
         <div class="d-flex align-center ga-2 flex-wrap">
           <v-text-field
             v-model="chamberSearch"
@@ -1223,6 +1233,12 @@
         </div>
       </div>
 
+      <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-3">
+        <span class="text-subtitle-2 font-weight-bold text-medium-emphasis">
+          {{ filteredChambers.length }} {{ tLabel('warehouses', 'Chambres Frigorifiques') }} • {{ occupiedChambersCount }} {{ tLabel('occupied_chambers', 'Occupées') }}
+        </span>
+      </div>
+
       <v-row dense>
         <v-col v-for="c in filteredChambers" :key="c.id" cols="12" sm="6" md="4" lg="3">
           <v-card
@@ -1234,13 +1250,26 @@
               <div class="wh-chamber-identity d-flex align-center min-w-0 mr-1 flex-grow-1 overflow-hidden">
                 <div
                   class="wh-chamber-icon flex-shrink-0 mr-3"
-                  :style="{ background: c.is_empty ? 'rgba(158, 158, 158, 0.15)' : 'rgba(162, 30, 229, 0.15)' }"
+                  :style="{ background: c.is_empty ? 'rgba(158, 158, 158, 0.15)' : (c.stock_type === 'third_party' ? 'rgba(245, 124, 0, 0.15)' : 'rgba(162, 30, 229, 0.15)') }"
                 >
-                  <v-icon :color="c.is_empty ? 'grey' : '#a21ee5'" size="22">mdi-snowflake</v-icon>
+                  <v-icon :color="c.is_empty ? 'grey' : (c.stock_type === 'third_party' ? 'orange-darken-1' : '#a21ee5')" size="22">
+                    {{ c.stock_type === 'third_party' ? 'mdi-handshake-outline' : 'mdi-snowflake' }}
+                  </v-icon>
                 </div>
                 <div class="wh-chamber-info min-w-0 flex-grow-1 overflow-hidden">
                   <div class="wh-chamber-name text-truncate" :title="c.name">{{ c.name }}</div>
                   <div class="wh-chamber-sub text-truncate">{{ c.category_name || c.warehouse_type || 'Chambre Froide' }}</div>
+                  <div class="mt-1">
+                    <v-chip
+                      size="x-small"
+                      :color="c.stock_type === 'third_party' ? 'orange-darken-1' : '#a21ee5'"
+                      variant="tonal"
+                      class="font-weight-bold px-2"
+                    >
+                      <v-icon start size="11">{{ c.stock_type === 'third_party' ? 'mdi-handshake-outline' : 'mdi-domain' }}</v-icon>
+                      {{ c.stock_type === 'third_party' ? tLabel('stock_type_third_party_short', 'Tiers / Sous-Traitance') : tLabel('stock_type_company_short', 'Société (Propre)') }}
+                    </v-chip>
+                  </div>
                 </div>
               </div>
               <v-chip

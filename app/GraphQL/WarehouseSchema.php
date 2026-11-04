@@ -64,6 +64,7 @@ type Warehouse {
     name: String
     capacity: Float
     warehouse_category_id: Int
+    stock_type: String
     category: WarehouseCategory
     created_at: String
     updated_at: String
@@ -80,6 +81,7 @@ type ChamberOverview {
     name: String
     category_name: String
     warehouse_type: String
+    stock_type: String
     allow_production_effect: Boolean
     has_sejour: Boolean
     active_lots: Int

@@ -88,9 +88,11 @@ class MigrateVillamarToJupiterCommand extends Command
 
     protected function resolveShipId($nameShip): ?int
     {
-        if (empty($nameShip) || !is_string($nameShip)) return null;
+        if (empty($nameShip) || !is_string($nameShip))
+            return null;
         $name = trim($nameShip);
-        if ($name === '' || $name === '********' || $name === 'null' || $name === '-----') return null;
+        if ($name === '' || $name === '********' || $name === 'null' || $name === '-----')
+            return null;
         return $this->shipsMap[$name] ?? null;
     }
 
@@ -254,29 +256,86 @@ class MigrateVillamarToJupiterCommand extends Command
         $this->warn("\n[1/9] Clearing all existing Jupiter database data...");
 
         $tablesToTruncate = [
-            'detail_charges', 'charges', 'charge_truck',
-            'detail_productions', 'productions',
-            'detail_shippings', 'shippings', 'shipping_truck',
-            'detail_warehouse_transfers', 'warehouse_transfers', 'warehouse_transfer_truck',
-            'detail_inventories', 'inventories',
-            'warehouse_balances', 'warehouse_balance_operations', 'warehouse_stock_resets',
-            'client_payments', 'client_invoices', 'client_fiscal_year_closing_lines', 'client_fiscal_year_closings',
-            'supplier_payments', 'supplier_invoices', 'fiscal_year_closing_lines', 'fiscal_year_closings',
-            'storage_invoice_lines', 'storage_invoices',
-            'fortnight_activities', 'workforce_fortnight_payments', 'workforce_movements', 'team_workforce', 'teams', 'workforces', 'section_corporals', 'sections', 'corporals',
-            'fish_type_waps', 'fish_types', 'fish_process_types', 'fish_families',
-            'package_type_stocks', 'package_type_components', 'package_secondary_configs', 'package_types',
-            'guano_types', 'fisheries', 'origins', 'ships', 'trucks', 'suppliers', 'clients',
-            'warehouses', 'warehouse_categories', 'warehouse_transfer_categories', 'detail_inventory_categories',
-            'charge_categories', 'detail_charge_categories',
-            'production_categories', 'detail_production_categories',
-            'shipping_categories', 'detail_shipping_categories',
-            'quality_control_items', 'quality_controls', 'record_issues',
-            'order_transfer_beneficiaries', 'order_transfers', 'bank_names', 'cost_configurations',
-            'custom_chart_series', 'custom_charts', 'profit_and_loss_accounts', 'push_subscriptions',
-            'sejour_rates', 'static_charges',
-            'notifications', 'audit_logs', 'chat_messages', 'ai_query_messages',
-            'formulas', 'users', 'roles'
+            'detail_charges',
+            'charges',
+            'charge_truck',
+            'detail_productions',
+            'productions',
+            'detail_shippings',
+            'shippings',
+            'shipping_truck',
+            'detail_warehouse_transfers',
+            'warehouse_transfers',
+            'warehouse_transfer_truck',
+            'detail_inventories',
+            'inventories',
+            'warehouse_balances',
+            'warehouse_balance_operations',
+            'warehouse_stock_resets',
+            'client_payments',
+            'client_invoices',
+            'client_fiscal_year_closing_lines',
+            'client_fiscal_year_closings',
+            'supplier_payments',
+            'supplier_invoices',
+            'fiscal_year_closing_lines',
+            'fiscal_year_closings',
+            'storage_invoice_lines',
+            'storage_invoices',
+            'fortnight_activities',
+            'workforce_fortnight_payments',
+            'workforce_movements',
+            'team_workforce',
+            'teams',
+            'workforces',
+            'section_corporals',
+            'sections',
+            'corporals',
+            'fish_type_waps',
+            'fish_types',
+            'fish_process_types',
+            'fish_families',
+            'package_type_stocks',
+            'package_type_components',
+            'package_secondary_configs',
+            'package_types',
+            'guano_types',
+            'fisheries',
+            'origins',
+            'ships',
+            'trucks',
+            'suppliers',
+            'clients',
+            'warehouses',
+            'warehouse_categories',
+            'warehouse_transfer_categories',
+            'detail_inventory_categories',
+            'charge_categories',
+            'detail_charge_categories',
+            'production_categories',
+            'detail_production_categories',
+            'shipping_categories',
+            'detail_shipping_categories',
+            'quality_control_items',
+            'quality_controls',
+            'record_issues',
+            'order_transfer_beneficiaries',
+            'order_transfers',
+            'bank_names',
+            'cost_configurations',
+            'custom_chart_series',
+            'custom_charts',
+            'profit_and_loss_accounts',
+            'push_subscriptions',
+            'sejour_rates',
+            'static_charges',
+            'notifications',
+            'audit_logs',
+            'chat_messages',
+            'ai_query_messages',
+            'formulas',
+            'users',
+            'roles'
         ];
 
         foreach ($tablesToTruncate as $tbl) {
@@ -378,6 +437,7 @@ class MigrateVillamarToJupiterCommand extends Command
             ['id' => 8, 'name' => 'Transport', 'name_fr' => 'Transport', 'name_en' => 'Transport', 'name_es' => 'Transport', 'is_production' => 0],
             ['id' => 9, 'name' => 'Maintenance', 'name_fr' => 'Maintenance', 'name_en' => 'Maintenance', 'name_es' => 'Maintenance', 'is_production' => 0],
             ['id' => 10, 'name' => 'Autres Charges', 'name_fr' => 'Autres Charges', 'name_en' => 'Other Charges', 'name_es' => 'Autres Charges', 'is_production' => 0],
+            ['id' => 11, 'name' => 'Charges Fixes', 'name_fr' => 'Charges Fixes', 'name_en' => 'Fixed Charges', 'name_es' => 'Cargos Fijos', 'is_production' => 0],
         ];
         foreach ($chargeCats as $cc) {
             $cc['enable_reception_tracking_number'] = 1;
@@ -404,6 +464,7 @@ class MigrateVillamarToJupiterCommand extends Command
             ['id' => 8, 'charge_category_id' => 8, 'name_fr' => 'Transport', 'name_en' => 'Transport', 'name_es' => 'Transport', 'article_type' => 'FishType', 'fish_type_filter' => 'all'],
             ['id' => 9, 'charge_category_id' => 9, 'name_fr' => 'Maintenance', 'name_en' => 'Maintenance', 'name_es' => 'Maintenance', 'article_type' => 'FishType', 'fish_type_filter' => 'all'],
             ['id' => 10, 'charge_category_id' => 10, 'name_fr' => 'Autres Charges', 'name_en' => 'Other Charges', 'name_es' => 'Autres Charges', 'article_type' => 'FishType', 'fish_type_filter' => 'all'],
+            ['id' => 11, 'charge_category_id' => 11, 'name_fr' => 'Charges Fixes', 'name_en' => 'Fixed Charges', 'name_es' => 'Cargos Fijos', 'article_type' => 'text', 'fish_type_filter' => 'all'],
         ];
         foreach ($detailChargeCats as $dcc) {
             $dcc['allow_weight'] = 1;
@@ -466,6 +527,7 @@ class MigrateVillamarToJupiterCommand extends Command
             ['id' => 4, 'name' => 'Vente Emballage', 'name_fr' => 'Vente Emballage', 'name_en' => 'Packaging Sale', 'name_es' => 'Venta Embalaje', 'direction' => 'local'],
             ['id' => 5, 'name' => 'Vente Transport', 'name_fr' => 'Vente Transport', 'name_en' => 'Transport Sale', 'name_es' => 'Venta Transporte', 'direction' => 'local'],
             ['id' => 6, 'name' => 'Vente Glace', 'name_fr' => 'Vente Glace', 'name_en' => 'Ice Sale', 'name_es' => 'Venta Hielo', 'direction' => 'local'],
+            ['id' => 7, 'name' => 'Vente Guano Usine', 'name_fr' => 'Vente Guano Usine', 'name_en' => 'Factory Guano Sale', 'name_es' => 'Venta Guano Fábrica', 'direction' => 'local'],
         ];
         foreach ($shipCats as $sc) {
             $direction = $sc['direction'];
@@ -491,6 +553,9 @@ class MigrateVillamarToJupiterCommand extends Command
             ['id' => 4, 'shipping_category_id' => 2, 'name_fr' => 'Poisson Congelé Export', 'name_en' => 'Frozen Fish Export', 'name_es' => 'Pescado Congelado Export', 'article_type' => 'FishType', 'warehouse_operation' => 'stock_out'],
             ['id' => 5, 'shipping_category_id' => 3, 'name_fr' => 'Sortie Sous-Traitance', 'name_en' => 'Subcontracting Exit', 'name_es' => 'Salida Subcontratación', 'article_type' => 'FishType', 'warehouse_operation' => 'stock_out'],
             ['id' => 6, 'shipping_category_id' => 4, 'name_fr' => 'Emballage Client', 'name_en' => 'Client Packaging', 'name_es' => 'Embalaje Cliente', 'article_type' => 'PackageType', 'warehouse_operation' => 'stock_out'],
+            ['id' => 7, 'shipping_category_id' => 7, 'name_fr' => 'Guano Usine', 'name_en' => 'Factory Guano', 'name_es' => 'Guano Fábrica', 'article_type' => 'GuanoType', 'warehouse_operation' => 'stock_out'],
+            ['id' => 8, 'shipping_category_id' => 5, 'name_fr' => 'Transport Client', 'name_en' => 'Client Transport', 'name_es' => 'Transporte Cliente', 'article_type' => 'text', 'warehouse_operation' => null],
+            ['id' => 9, 'shipping_category_id' => 6, 'name_fr' => 'Glace Client', 'name_en' => 'Client Ice', 'name_es' => 'Hielo Cliente', 'article_type' => 'text', 'warehouse_operation' => null],
         ];
         foreach ($detailShipCats as $dsc) {
             $dsc['allow_weight'] = 1;
@@ -540,6 +605,60 @@ class MigrateVillamarToJupiterCommand extends Command
             'warehouse_operation' => 'stock_in',
             'created_at' => now(),
             'updated_at' => now(),
+        ]);
+
+        // 10. Default Invoice Layout Settings
+        DB::table('invoice_layout_settings')->insertOrIgnore([
+            [
+                'invoice_type' => 'client',
+                'header_divided_height' => '3cm',
+                'header_strick_height' => '0.3cm',
+                'header_primary_color' => '#006064',
+                'header_secondary_color' => '#4DD0E1',
+                'header_text_color' => '#006064',
+                'header_bg_color' => '#FFFFFF',
+                'header_style' => 'curved',
+                'header_logo_width' => '6cm',
+                'header_title_size' => 'xxx-large',
+                'footer_divided_height' => '3cm',
+                'footer_strick_height' => '0.3cm',
+                'footer_primary_color' => '#006064',
+                'footer_secondary_color' => '#4DD0E1',
+                'footer_text_color' => '#006064',
+                'footer_bg_color' => '#FFFFFF',
+                'footer_style' => 'curved',
+                'footer_director_title' => 'Directeur Général',
+                'footer_director_size' => 'x-large',
+                'footer_line_style' => 'dashed',
+                'footer_show_director' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'invoice_type' => 'supplier',
+                'header_divided_height' => '3cm',
+                'header_strick_height' => '0.3cm',
+                'header_primary_color' => '#E65100',
+                'header_secondary_color' => '#FFB74D',
+                'header_text_color' => '#E65100',
+                'header_bg_color' => '#FFFFFF',
+                'header_style' => 'curved',
+                'header_logo_width' => '6cm',
+                'header_title_size' => 'xxx-large',
+                'footer_divided_height' => '3cm',
+                'footer_strick_height' => '0.3cm',
+                'footer_primary_color' => '#E65100',
+                'footer_secondary_color' => '#FFB74D',
+                'footer_text_color' => '#E65100',
+                'footer_bg_color' => '#FFFFFF',
+                'footer_style' => 'curved',
+                'footer_director_title' => 'Direction Achats & Approvisionnements',
+                'footer_director_size' => 'x-large',
+                'footer_line_style' => 'dashed',
+                'footer_show_director' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
 
         $this->info("Base system initialized.");
@@ -713,9 +832,9 @@ class MigrateVillamarToJupiterCommand extends Command
 
         // Insert default primary warehouses for Fresh, Guano, and Emballage
         DB::table('warehouses')->insertOrIgnore([
-            ['id' => 991, 'name' => 'Entrepôt Frais Principal', 'description' => 'Main fresh warehouse', 'warehouse_category_id' => 1, 'warehouse_type' => 'FishType', 'has_sejour' => 1, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 992, 'name' => 'Entrepôt Guano', 'description' => 'Main guano warehouse', 'warehouse_category_id' => 3, 'warehouse_type' => 'GuanoType', 'has_sejour' => 0, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 993, 'name' => 'Entrepôt Emballage', 'description' => 'Main packaging warehouse', 'warehouse_category_id' => 4, 'warehouse_type' => 'PackageType', 'has_sejour' => 0, 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 991, 'name' => 'Entrepôt Frais Principal', 'description' => 'Main fresh warehouse', 'warehouse_category_id' => 1, 'warehouse_type' => 'FishType', 'stock_type' => 'company', 'has_sejour' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 992, 'name' => 'Entrepôt Guano', 'description' => 'Main guano warehouse', 'warehouse_category_id' => 3, 'warehouse_type' => 'GuanoType', 'stock_type' => 'company', 'has_sejour' => 0, 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 993, 'name' => 'Entrepôt Emballage', 'description' => 'Main packaging warehouse', 'warehouse_category_id' => 4, 'warehouse_type' => 'PackageType', 'stock_type' => 'company', 'has_sejour' => 0, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $chambres = DB::select("SELECT * FROM villamar.chambres");
@@ -724,18 +843,23 @@ class MigrateVillamarToJupiterCommand extends Command
             $desc = trim($ch->description ?? '');
             $fullName = $desc ? "{$name} - {$desc}" : $name;
 
+            // Distinguish company goods vs other company goods (subcontracting/third-party):
+            // In villamar, stock_id = 1 is Villamar (Company), stock_id = 2 is Sous Traitance (Third-party).
+            $stockType = ($ch->stock_id == 2 || $ch->is_tier == 1) ? 'third_party' : 'company';
+
             DB::table('warehouses')->insertOrIgnore([
                 'id' => $ch->id,
                 'name' => $fullName,
                 'description' => $desc ?: $name,
                 'warehouse_category_id' => 2, // Frozen
                 'warehouse_type' => 'FishType',
+                'stock_type' => $stockType,
                 'has_sejour' => 1,
                 'created_at' => $ch->created_at ?? now(),
                 'updated_at' => $ch->updated_at ?? now(),
             ]);
         }
-        $this->info("Migrated " . count($chambres) . " warehouses from chambres.");
+        $this->info("Migrated " . count($chambres) . " warehouses from chambres (categorized into company & third-party stock).");
     }
 
     protected function stepMigrateWorkforce()
@@ -917,6 +1041,87 @@ class MigrateVillamarToJupiterCommand extends Command
         $this->migrateSimpleReceptionTable('villamar.transports', 8, 8, 'FishType');
         $this->migrateSimpleReceptionTable('villamar.maintenances', 9, 9, 'FishType');
         $this->migrateSimpleReceptionTable('villamar.others', 10, 10, 'FishType');
+        $this->migrateCompanyAndFixedCharges();
+        $this->migrateFortnightCharges();
+    }
+
+    protected function migrateCompanyAndFixedCharges()
+    {
+        $this->info("Processing company settings & fixed charges (companies)...");
+        $companies = DB::select("SELECT * FROM villamar.companies");
+        foreach ($companies as $c) {
+            $settings = [
+                'company_name' => $c->company_name ?? 'Congelation Villamar',
+                'name' => $c->name ?? 'Villamar',
+                'tel' => $c->tel ?? null,
+                'fax' => $c->fax ?? null,
+                'email' => $c->email ?? 'support@congelationvillamar.com',
+                'ice' => $c->ice ?? null,
+                'itp' => $c->itp ?? null,
+                'rc' => $c->rc ?? null,
+                'cnss' => $c->cnss ?? null,
+                'tva' => $c->tva ?? null,
+                'name_bank' => $c->name_bank ?? null,
+                'adress' => $c->adress ?? null,
+                'num_compte' => $c->num_compte ?? null,
+                'capital' => $c->capital ?? null,
+                'cout_electricity' => $c->cout_electricity ?? '[]',
+                'p_carton' => $c->p_carton ?? '[]',
+                'p_plastique' => $c->p_plastique ?? '[]',
+                'p_strapex' => $c->p_strapex ?? '[]',
+                'p_cellophane' => $c->p_cellophane ?? '[]',
+                'p_palette' => $c->p_palette ?? '[]',
+                'p_feuillard' => $c->p_feuillard ?? '[]',
+            ];
+            foreach ($settings as $k => $v) {
+                DB::table('company_settings')->updateOrInsert(
+                    ['key' => $k],
+                    ['value' => is_scalar($v) ? (string) $v : json_encode($v), 'created_at' => now(), 'updated_at' => now()]
+                );
+            }
+
+            // Static charges
+            $chargeFixArr = json_decode($c->charge_fix ?? '[]', true) ?: [];
+            foreach ($chargeFixArr as $cf) {
+                $val = (float) ($cf['value'] ?? 0);
+                if ($val > 0) {
+                    DB::table('static_charges')->insertOrIgnore([
+                        'name_fr' => $cf['name'] ?? 'Charges fixes par jour',
+                        'name_en' => 'Daily Fixed Charges',
+                        'name_es' => 'Cargos fijos por día',
+                        'amount' => $val,
+                        'date_range_type' => 'ongoing',
+                        'description' => 'Charges fixes quotidiennes société',
+                        'is_active' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        }
+    }
+
+    protected function migrateFortnightCharges()
+    {
+        $oldFortnights = DB::select("SELECT * FROM villamar.fortnights");
+        if (!empty($oldFortnights)) {
+            $this->info("Processing " . count($oldFortnights) . " records from fortnights table...");
+            $maxChargeId = DB::table('charges')->max('id') ?? 0;
+            foreach ($oldFortnights as $fn) {
+                $cId = ++$maxChargeId;
+                DB::table('charges')->insertOrIgnore([
+                    'id' => $cId,
+                    'charge_category_id' => 11, // Charges Fixes / Quinzaines
+                    'date' => $fn->date ?? '2021-01-01',
+                    'total_weight' => 0,
+                    'total_price' => $fn->total_price ?? $fn->price ?? 0,
+                    'supplier_id' => null,
+                    'allow_invoice' => 0,
+                    'created_at' => $fn->created_at ?? now(),
+                    'updated_at' => $fn->updated_at ?? now(),
+                ]);
+            }
+        }
     }
 
     protected function migrateFraisCharges()
@@ -1001,8 +1206,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 $detailChargesBatch[] = $rd;
             }
 
-            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($f->total_weight_reception ?? 0);
-            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float)($f->total_price_reception ?? 0);
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float) ($f->total_weight_reception ?? 0);
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float) ($f->total_price_reception ?? 0);
 
             $chargesBatch[] = [
                 'id' => $f->id,
@@ -1081,9 +1286,9 @@ class MigrateVillamarToJupiterCommand extends Command
                     foreach ($items as $it) {
                         $containerId = $it['container_id'] ?? $it['type_id'] ?? 1;
                         $desc = $this->packageTypesMap[$containerId] ?? 'Emballage';
-                        $w = (float)($it['qte'] ?? $it['weight'] ?? 0);
-                        $u = (float)($it['price'] ?? 0);
-                        $tot = (float)($it['qte_price'] ?? $it['total_weight_price'] ?? round($w * $u, 2));
+                        $w = (float) ($it['qte'] ?? $it['weight'] ?? 0);
+                        $u = (float) ($it['price'] ?? 0);
+                        $tot = (float) ($it['qte_price'] ?? $it['total_weight_price'] ?? round($w * $u, 2));
 
                         $rowDetails[] = [
                             'charge_id' => $chargeId,
@@ -1109,9 +1314,9 @@ class MigrateVillamarToJupiterCommand extends Command
                 $guanoType = $r->type_guano ?? 'Entier';
                 $guanoId = ($guanoType === 'HGT' ? 2 : 1);
                 $desc = $this->guanoTypesMap[$guanoId] ?? 'Guano';
-                $w = (float)($r->total_weight_reception_guano ?? 0);
-                $u = (float)($r->pu ?? 0);
-                $tot = (float)($r->total_price_reception_guano ?? round($w * $u, 2));
+                $w = (float) ($r->total_weight_reception_guano ?? 0);
+                $u = (float) ($r->pu ?? 0);
+                $tot = (float) ($r->total_price_reception_guano ?? round($w * $u, 2));
 
                 $rowDetails[] = [
                     'charge_id' => $chargeId,
@@ -1142,20 +1347,22 @@ class MigrateVillamarToJupiterCommand extends Command
                     foreach ($items as $it) {
                         $tId = $it['type_id'] ?? null;
                         $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : ($shortName === 'achat_frais' ? 'Poisson Frais' : 'Poisson Congelé');
-                        $w = (float)($it['weight'] ?? $it['total_weight_container'] ?? 0);
-                        
-                        if (isset($it['total_weight_price']) && (float)$it['total_weight_price'] > 0) {
-                            $tot = (float)$it['total_weight_price'];
-                            $u = (float)($it['price'] ?? ($w > 0 ? round($tot / $w, 2) : 0));
-                        } elseif (isset($it['pu']) && (float)$it['pu'] > 0) {
-                            $u = (float)$it['pu'];
-                            $tot = (float)($it['price'] ?? round($w * $u, 2));
+                        $w = (float) ($it['weight'] ?? $it['total_weight_container'] ?? 0);
+
+                        if (isset($it['total_weight_price']) && (float) $it['total_weight_price'] > 0) {
+                            $tot = (float) $it['total_weight_price'];
+                            $u = (float) ($it['price'] ?? ($w > 0 ? round($tot / $w, 2) : 0));
+                        } elseif (isset($it['pu']) && (float) $it['pu'] > 0) {
+                            $u = (float) $it['pu'];
+                            $tot = (float) ($it['price'] ?? round($w * $u, 2));
                         } else {
-                            $tot = (float)($it['price'] ?? 0);
+                            $tot = (float) ($it['price'] ?? 0);
                             $u = ($w > 0 && $tot > 0) ? round($tot / $w, 2) : 0;
                         }
-                        if ($tot == 0 && $w > 0 && $u > 0) $tot = round($w * $u, 2);
-                        if ($u == 0 && $w > 0 && $tot > 0) $u = round($tot / $w, 2);
+                        if ($tot == 0 && $w > 0 && $u > 0)
+                            $tot = round($w * $u, 2);
+                        if ($u == 0 && $w > 0 && $tot > 0)
+                            $u = round($tot / $w, 2);
 
                         $whId = null;
                         $whOp = null;
@@ -1318,11 +1525,13 @@ class MigrateVillamarToJupiterCommand extends Command
             foreach ($typesProd as $tp) {
                 $tId = $tp['type_id'] ?? null;
                 $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Congelé';
-                $w = (float)($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
-                $u = (float)($tp['pu'] ?? 0);
-                $p = (float)($tp['price'] ?? round($w * $u, 2));
-                if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
-                if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+                $w = (float) ($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
+                $u = (float) ($tp['pu'] ?? 0);
+                $p = (float) ($tp['price'] ?? round($w * $u, 2));
+                if ($u == 0 && $w > 0 && $p > 0)
+                    $u = round($p / $w, 2);
+                if ($p == 0 && $w > 0 && $u > 0)
+                    $p = round($w * $u, 2);
 
                 $computedWeight += $w;
                 $computedPrice += $p;
@@ -1345,8 +1554,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 ];
             }
 
-            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($f->total_weight_production ?? 0);
-            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float)($f->total_price_reception ?? 0);
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float) ($f->total_weight_production ?? 0);
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float) ($f->total_price_reception ?? 0);
 
             $prodBatch[] = [
                 'id' => $f->id,
@@ -1354,7 +1563,7 @@ class MigrateVillamarToJupiterCommand extends Command
                 'date' => $f->date_production ?? $f->date_reception ?? '2021-01-01',
                 'charge_id' => $f->id,
                 'total_weight' => $finalWeight,
-                'fresh_reception_weight' => (float)($f->total_weight_reception ?? $finalWeight),
+                'fresh_reception_weight' => (float) ($f->total_weight_reception ?? $finalWeight),
                 'frozen_production_weight' => $finalWeight,
                 'total_price' => $finalPrice,
                 'supplier_id' => ($f->provider_id && $f->provider_id > 0 ? $f->provider_id : null),
@@ -1406,11 +1615,13 @@ class MigrateVillamarToJupiterCommand extends Command
                 foreach ($typesProd as $tp) {
                     $tId = $tp['type_id'] ?? null;
                     $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Congelé';
-                    $w = (float)($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
-                    $u = (float)($tp['pu'] ?? 0);
-                    $p = (float)($tp['price'] ?? round($w * $u, 2));
-                    if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
-                    if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+                    $w = (float) ($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
+                    $u = (float) ($tp['pu'] ?? 0);
+                    $p = (float) ($tp['price'] ?? round($w * $u, 2));
+                    if ($u == 0 && $w > 0 && $p > 0)
+                        $u = round($p / $w, 2);
+                    if ($p == 0 && $w > 0 && $u > 0)
+                        $p = round($w * $u, 2);
 
                     $computedWeight += $w;
                     $computedPrice += $p;
@@ -1425,16 +1636,16 @@ class MigrateVillamarToJupiterCommand extends Command
                         'unit_price' => $u,
                         'total_price' => $p,
                         'package_type_id' => $tp['container_id'] ?? 1,
-                        'nbr_box' => (float)($tp['nbr'] ?? 0),
-                        'warehouse_id' => (!empty($tp['chambre_id']) && $tp['chambre_id'] > 0 ? (int)$tp['chambre_id'] : 13),
+                        'nbr_box' => (float) ($tp['nbr'] ?? 0),
+                        'warehouse_id' => (!empty($tp['chambre_id']) && $tp['chambre_id'] > 0 ? (int) $tp['chambre_id'] : 13),
                         'warehouse_operation' => 'stock_in',
                         'created_at' => $c->created_at ?? now(),
                         'updated_at' => $c->updated_at ?? now(),
                     ];
                 }
             } else if ($c->total_weight_production > 0) {
-                $w = (float)$c->total_weight_production;
-                $p = (float)($c->total_price_production ?? 0);
+                $w = (float) $c->total_weight_production;
+                $p = (float) ($c->total_price_production ?? 0);
                 $u = $w > 0 ? round($p / $w, 2) : 0;
                 $computedWeight = $w;
                 $computedPrice = $p;
@@ -1457,8 +1668,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 ];
             }
 
-            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($c->total_weight_production ?? 0);
-            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float)($c->total_price_production ?? 0);
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float) ($c->total_weight_production ?? 0);
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float) ($c->total_price_production ?? 0);
 
             $congelBatch[] = [
                 'id' => $prodId,
@@ -1492,8 +1703,10 @@ class MigrateVillamarToJupiterCommand extends Command
                 $detailCongelBatch = [];
             }
         }
-        if (!empty($congelBatch)) DB::table('productions')->insertOrIgnore($congelBatch);
-        if (!empty($detailCongelBatch)) DB::table('detail_productions')->insertOrIgnore($detailCongelBatch);
+        if (!empty($congelBatch))
+            DB::table('productions')->insertOrIgnore($congelBatch);
+        if (!empty($detailCongelBatch))
+            DB::table('detail_productions')->insertOrIgnore($detailCongelBatch);
 
         // 3. RSW Freezing Production (Category 1: Production Congélation)
         $this->info("Processing freezing productions from rsws...");
@@ -1516,11 +1729,13 @@ class MigrateVillamarToJupiterCommand extends Command
                 foreach ($typesProd as $tp) {
                     $tId = $tp['type_id'] ?? null;
                     $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Congelé';
-                    $w = (float)($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
-                    $u = (float)($tp['pu'] ?? 0);
-                    $p = (float)($tp['price'] ?? round($w * $u, 2));
-                    if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
-                    if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+                    $w = (float) ($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
+                    $u = (float) ($tp['pu'] ?? 0);
+                    $p = (float) ($tp['price'] ?? round($w * $u, 2));
+                    if ($u == 0 && $w > 0 && $p > 0)
+                        $u = round($p / $w, 2);
+                    if ($p == 0 && $w > 0 && $u > 0)
+                        $p = round($w * $u, 2);
 
                     $computedWeight += $w;
                     $computedPrice += $p;
@@ -1535,15 +1750,15 @@ class MigrateVillamarToJupiterCommand extends Command
                         'unit_price' => $u,
                         'total_price' => $p,
                         'package_type_id' => $tp['container_id'] ?? 1,
-                        'nbr_box' => (float)($tp['nbr'] ?? 0),
-                        'warehouse_id' => (!empty($tp['chambre_id']) && $tp['chambre_id'] > 0 ? (int)$tp['chambre_id'] : 13),
+                        'nbr_box' => (float) ($tp['nbr'] ?? 0),
+                        'warehouse_id' => (!empty($tp['chambre_id']) && $tp['chambre_id'] > 0 ? (int) $tp['chambre_id'] : 13),
                         'warehouse_operation' => 'stock_in',
                         'created_at' => $r->created_at ?? now(),
                         'updated_at' => $r->updated_at ?? now(),
                     ];
                 }
             } else if ($r->total_weight_production > 0) {
-                $w = (float)$r->total_weight_production;
+                $w = (float) $r->total_weight_production;
                 $p = 0;
                 $computedWeight = $w;
 
@@ -1565,7 +1780,7 @@ class MigrateVillamarToJupiterCommand extends Command
                 ];
             }
 
-            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($r->total_weight_production ?? 0);
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float) ($r->total_weight_production ?? 0);
             $finalPrice = ($computedPrice > 0) ? $computedPrice : 0;
 
             $rswBatch[] = [
@@ -1574,7 +1789,7 @@ class MigrateVillamarToJupiterCommand extends Command
                 'date' => $r->date_production ?? $r->date_reception ?? '2021-01-01',
                 'charge_id' => $this->sourceChargeMap['rsws'][$r->id] ?? null,
                 'total_weight' => $finalWeight,
-                'fresh_reception_weight' => (float)($r->total_weight_reception ?? $finalWeight),
+                'fresh_reception_weight' => (float) ($r->total_weight_reception ?? $finalWeight),
                 'frozen_production_weight' => $finalWeight,
                 'total_price' => $finalPrice,
                 'supplier_id' => ($r->provider_id && $r->provider_id > 0 ? $r->provider_id : null),
@@ -1600,8 +1815,10 @@ class MigrateVillamarToJupiterCommand extends Command
                 $detailRswBatch = [];
             }
         }
-        if (!empty($rswBatch)) DB::table('productions')->insertOrIgnore($rswBatch);
-        if (!empty($detailRswBatch)) DB::table('detail_productions')->insertOrIgnore($detailRswBatch);
+        if (!empty($rswBatch))
+            DB::table('productions')->insertOrIgnore($rswBatch);
+        if (!empty($detailRswBatch))
+            DB::table('detail_productions')->insertOrIgnore($detailRswBatch);
 
         // 4. Congelation Clients -> Productions (Category 2: Production Sous-Traitance)
         $this->info("Processing congelation_clients into subcontracting productions...");
@@ -1623,11 +1840,13 @@ class MigrateVillamarToJupiterCommand extends Command
             foreach ($typesProd as $tp) {
                 $tId = $tp['type_id'] ?? null;
                 $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Sous-Traitance';
-                $w = (float)($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
-                $u = (float)($tp['pu'] ?? 0);
-                $p = (float)($tp['price'] ?? round($w * $u, 2));
-                if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
-                if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+                $w = (float) ($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
+                $u = (float) ($tp['pu'] ?? 0);
+                $p = (float) ($tp['price'] ?? round($w * $u, 2));
+                if ($u == 0 && $w > 0 && $p > 0)
+                    $u = round($p / $w, 2);
+                if ($p == 0 && $w > 0 && $u > 0)
+                    $p = round($w * $u, 2);
 
                 $computedWeight += $w;
                 $computedPrice += $p;
@@ -1650,8 +1869,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 ];
             }
 
-            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($cc->total_weight_production ?? 0);
-            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float)($cc->total_price_production ?? 0);
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float) ($cc->total_weight_production ?? 0);
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float) ($cc->total_price_production ?? 0);
 
             $ccBatch[] = [
                 'id' => $prodId,
@@ -1669,7 +1888,7 @@ class MigrateVillamarToJupiterCommand extends Command
                 'tracking_onp_numbers' => json_encode($onpNumbers),
                 'production_type' => 'sous_traitance',
                 'allow_invoice' => $cc->is_facture ? 1 : 0,
-                'client_invoice_id' => ($cc->is_facture && $cc->bill_id ? $cc->bill_id : null),
+                'client_invoice_id' => null, // Invoice link is tracked on shippings
                 'created_at' => $cc->created_at ?? now(),
                 'updated_at' => $cc->updated_at ?? now(),
             ];
@@ -1783,7 +2002,7 @@ class MigrateVillamarToJupiterCommand extends Command
                 'production_tracking_number' => json_encode($bonList),
                 'production_type' => 'guano',
                 'allow_invoice' => $gu->is_facture ? 1 : 0,
-                'client_invoice_id' => ($gu->is_facture && $gu->bill_id ? $gu->bill_id : null),
+                'client_invoice_id' => null, // Invoice link is tracked on shippings
                 'created_at' => $gu->created_at ?? now(),
                 'updated_at' => $gu->updated_at ?? now(),
             ];
@@ -1835,11 +2054,13 @@ class MigrateVillamarToJupiterCommand extends Command
                 foreach ($typesSortie as $ts) {
                     $isGuano = ($v->type === 'guano');
                     $detailCatId = $isExport ? 4 : ($isGuano ? 3 : 1);
-                    $w = (float)($ts['weight'] ?? 0);
-                    $u = (float)($ts['pu'] ?? 0);
-                    $p = (float)($ts['price'] ?? round($w * $u, 2));
-                    if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
-                    if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+                    $w = (float) ($ts['weight'] ?? 0);
+                    $u = (float) ($ts['pu'] ?? 0);
+                    $p = (float) ($ts['price'] ?? round($w * $u, 2));
+                    if ($u == 0 && $w > 0 && $p > 0)
+                        $u = round($p / $w, 2);
+                    if ($p == 0 && $w > 0 && $u > 0)
+                        $p = round($w * $u, 2);
 
                     if ($isGuano) {
                         $rawType = $ts['type_id'] ?? 'Entier';
@@ -1907,8 +2128,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 $detailShippingsBatch[] = $rd;
             }
 
-            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($v->total_weight_sortie ?? 0);
-            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float)($v->total_price_sortie ?? 0);
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float) ($v->total_weight_sortie ?? 0);
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float) ($v->total_price_sortie ?? 0);
 
             $shippingsBatch[] = [
                 'id' => $v->id,
@@ -2074,6 +2295,297 @@ class MigrateVillamarToJupiterCommand extends Command
             DB::table('shippings')->insertOrIgnore($ecBatch);
         if (!empty($detailEcBatch))
             DB::table('detail_shippings')->insertOrIgnore($detailEcBatch);
+
+        // 4. Congelation Clients -> Shippings (Category 3: Sortie Sous-Traitance)
+        $this->info("Processing congelation_clients into sous-traitance shippings...");
+        $congelClients = DB::select("SELECT * FROM villamar.congelation_clients");
+        $ccBatch = [];
+        $detailCcBatch = [];
+        $ccTruckBatch = [];
+
+        foreach ($congelClients as $cc) {
+            $shippingId = 100000 + $cc->id;
+            $bonList = $this->parseTrackingBons($cc->num_bon_production ?? $cc->num_bon_reception ?? null, $cc->num_bon_productions ?? $cc->num_bon_receptions ?? null);
+
+            // Link trucks
+            $truckIds = $this->resolveTruckIds($cc->matricules ?? $cc->matricule ?? null);
+            $firstTruckId = !empty($truckIds) ? $truckIds[0] : null;
+            foreach ($truckIds as $tId) {
+                $ccTruckBatch[] = ['shipping_id' => $shippingId, 'truck_id' => $tId];
+            }
+
+            $typesProd = json_decode($cc->types_production ?? '[]', true) ?: [];
+            $computedWeight = 0;
+            $computedPrice = 0;
+
+            if (!empty($typesProd)) {
+                foreach ($typesProd as $tp) {
+                    $tId = $tp['type_id'] ?? null;
+                    $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Sous-Traitance';
+                    $w = (float)($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
+                    $u = (float)($tp['pu'] ?? 0);
+                    $p = (float)($tp['price'] ?? round($w * $u, 2));
+                    if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
+                    if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+
+                    $computedWeight += $w;
+                    $computedPrice += $p;
+
+                    $detailCcBatch[] = [
+                        'shipping_id' => $shippingId,
+                        'detail_shipping_category_id' => 5, // Sortie Sous-Traitance
+                        'article_description' => $desc,
+                        'stockable_type' => 'App\\Models\\FishType',
+                        'stockable_id' => $tId,
+                        'weight' => $w,
+                        'unit_price' => $u,
+                        'total_price' => $p,
+                        'package_type_id' => $tp['container_id'] ?? 1,
+                        'nbr_box' => (float) ($tp['nbr'] ?? 0),
+                        'warehouse_id' => (!empty($tp['chambre_id']) && $tp['chambre_id'] > 0 ? (int) $tp['chambre_id'] : 15),
+                        'warehouse_operation' => 'stock_out',
+                        'truck_id' => $firstTruckId,
+                        'created_at' => $cc->created_at ?? now(),
+                        'updated_at' => $cc->updated_at ?? now(),
+                    ];
+                }
+            } else if ($cc->total_weight_production > 0 || $cc->total_price_production > 0) {
+                $w = (float) ($cc->total_weight_production ?? 0);
+                $p = (float) ($cc->total_price_production ?? 0);
+                $u = $w > 0 ? round($p / $w, 2) : 0;
+                $computedWeight = $w;
+                $computedPrice = $p;
+
+                $detailCcBatch[] = [
+                    'shipping_id' => $shippingId,
+                    'detail_shipping_category_id' => 5,
+                    'article_description' => 'Poisson Sous-Traitance',
+                    'stockable_type' => 'App\\Models\\FishType',
+                    'stockable_id' => null,
+                    'weight' => $w,
+                    'unit_price' => $u,
+                    'total_price' => $p,
+                    'package_type_id' => 1,
+                    'nbr_box' => 0,
+                    'warehouse_id' => 15,
+                    'warehouse_operation' => 'stock_out',
+                    'truck_id' => $firstTruckId,
+                    'created_at' => $cc->created_at ?? now(),
+                    'updated_at' => $cc->updated_at ?? now(),
+                ];
+            }
+
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($cc->total_weight_production ?? 0);
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float)($cc->total_price_production ?? 0);
+
+            $ccBatch[] = [
+                'id' => $shippingId,
+                'shipping_category_id' => 3, // Sortie Sous-Traitance
+                'date' => $cc->date_production ?? $cc->date_reception ?? '2021-01-01',
+                'total_weight' => $finalWeight,
+                'total_price' => $finalPrice,
+                'client_id' => ($cc->provider_id && $cc->provider_id > 0 ? $cc->provider_id : null),
+                'direction' => 'local',
+                'shipping_tracking_number' => json_encode($bonList),
+                'allow_invoice' => (isset($cc->is_facture) && $cc->is_facture) ? 1 : 0,
+                'invoice_id' => (isset($cc->is_facture) && $cc->is_facture && !empty($cc->bill_id)) ? $cc->bill_id : null,
+                'created_at' => $cc->created_at ?? now(),
+                'updated_at' => $cc->updated_at ?? now(),
+            ];
+
+            if (count($ccBatch) >= 1000) {
+                DB::table('shippings')->insertOrIgnore($ccBatch);
+                $ccBatch = [];
+            }
+            if (count($detailCcBatch) >= 2000) {
+                DB::table('detail_shippings')->insertOrIgnore($detailCcBatch);
+                $detailCcBatch = [];
+            }
+            if (count($ccTruckBatch) >= 2000) {
+                DB::table('shipping_truck')->insertOrIgnore($ccTruckBatch);
+                $ccTruckBatch = [];
+            }
+        }
+        if (!empty($ccBatch))
+            DB::table('shippings')->insertOrIgnore($ccBatch);
+        if (!empty($detailCcBatch))
+            DB::table('detail_shippings')->insertOrIgnore($detailCcBatch);
+        if (!empty($ccTruckBatch))
+            DB::table('shipping_truck')->insertOrIgnore($ccTruckBatch);
+
+        // 5. Guano Usines -> Shippings (Category 7: Vente Guano Usine)
+        $this->info("Processing guano_usines into factory guano sales shippings...");
+        $guanoUsines = DB::select("SELECT * FROM villamar.guano_usines");
+        $guBatch = [];
+        $detailGuBatch = [];
+        $guTruckBatch = [];
+
+        foreach ($guanoUsines as $gu) {
+            $shippingId = 200000 + $gu->id;
+            $bonList = $this->parseTrackingBons($gu->num_bon_sortie ?? null, null);
+
+            // Link trucks
+            $truckIds = $this->resolveTruckIds($gu->matricules ?? $gu->matricule ?? null);
+            $firstTruckId = !empty($truckIds) ? $truckIds[0] : null;
+            foreach ($truckIds as $tId) {
+                $guTruckBatch[] = ['shipping_id' => $shippingId, 'truck_id' => $tId];
+            }
+
+            $guanoSubItems = [];
+            $typesSortie = json_decode($gu->types_sortie ?? '[]', true) ?: [];
+
+            if (!empty($typesSortie)) {
+                foreach ($typesSortie as $ts) {
+                    $rawType = $ts['type_id'] ?? 'Entier';
+                    $gid = match (strtoupper(trim((string) $rawType))) {
+                        'HGT', '2' => 2,
+                        'HG', '3' => 3,
+                        'FILET', '4' => 4,
+                        default => 1,
+                    };
+                    $desc = $this->guanoTypesMap[$gid] ?? 'Guano Entier';
+                    $w = (float) ($ts['weight'] ?? $ts['weight_bill'] ?? 0);
+                    $u = (float) ($ts['pu'] ?? 0);
+                    $p = (float) ($ts['price'] ?? round($w * $u, 2));
+                    if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
+                    if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+
+                    $guanoSubItems[] = [
+                        'gid' => $gid,
+                        'desc' => $desc,
+                        'weight' => $w,
+                        'unit_price' => $u,
+                        'total_price' => $p,
+                    ];
+                }
+            } else {
+                $columnsToCheck = [
+                    1 => ['w' => 'total_weight_sortie_guano_entier', 'p' => 'total_price_sortie_guano_entier', 'u' => 'pu_entier', 'desc' => 'Guano Entier'],
+                    2 => ['w' => 'total_weight_sortie_guano_hgt', 'p' => 'total_price_sortie_guano_hgt', 'u' => 'pu_hgt', 'desc' => 'Guano HGT'],
+                    3 => ['w' => 'total_weight_sortie_guano_hg', 'p' => 'total_price_sortie_guano_hg', 'u' => 'pu_hg', 'desc' => 'Guano HG'],
+                    4 => ['w' => 'total_weight_sortie_guano_filet', 'p' => 'total_price_sortie_guano_filet', 'u' => 'pu_filet', 'desc' => 'Guano Filet'],
+                ];
+                foreach ($columnsToCheck as $gid => $cDef) {
+                    $w = (float) ($gu->{$cDef['w']} ?? 0);
+                    $p = (float) ($gu->{$cDef['p']} ?? 0);
+                    $u = (float) ($gu->{$cDef['u']} ?? ($w > 0 ? round($p / $w, 2) : 0));
+                    if ($w > 0 || $p > 0) {
+                        $guanoSubItems[] = [
+                            'gid' => $gid,
+                            'desc' => $cDef['desc'],
+                            'weight' => $w,
+                            'unit_price' => $u,
+                            'total_price' => $p,
+                        ];
+                    }
+                }
+            }
+
+            $totW = 0;
+            $totP = 0;
+            foreach ($guanoSubItems as $gsi) {
+                $totW += $gsi['weight'];
+                $totP += $gsi['total_price'];
+
+                $detailGuBatch[] = [
+                    'shipping_id' => $shippingId,
+                    'detail_shipping_category_id' => 7, // Guano Usine
+                    'article_description' => $gsi['desc'],
+                    'stockable_type' => 'App\\Models\\GuanoType',
+                    'stockable_id' => $gsi['gid'],
+                    'weight' => $gsi['weight'],
+                    'unit_price' => $gsi['unit_price'],
+                    'total_price' => $gsi['total_price'],
+                    'package_type_id' => null,
+                    'nbr_box' => 0,
+                    'warehouse_id' => 992, // Guano warehouse
+                    'warehouse_operation' => 'stock_out',
+                    'truck_id' => $firstTruckId,
+                    'created_at' => $gu->created_at ?? now(),
+                    'updated_at' => $gu->updated_at ?? now(),
+                ];
+            }
+
+            $guBatch[] = [
+                'id' => $shippingId,
+                'shipping_category_id' => 7, // Vente Guano Usine
+                'date' => $gu->date_sortie ?? '2021-01-01',
+                'total_weight' => $totW,
+                'total_price' => $totP,
+                'client_id' => ($gu->provider_id && $gu->provider_id > 0 ? $gu->provider_id : null),
+                'direction' => 'local',
+                'shipping_tracking_number' => json_encode($bonList),
+                'allow_invoice' => (isset($gu->is_facture) && $gu->is_facture) ? 1 : 0,
+                'invoice_id' => (isset($gu->is_facture) && $gu->is_facture && !empty($gu->bill_id)) ? $gu->bill_id : null,
+                'created_at' => $gu->created_at ?? now(),
+                'updated_at' => $gu->updated_at ?? now(),
+            ];
+
+            if (count($guBatch) >= 1000) {
+                DB::table('shippings')->insertOrIgnore($guBatch);
+                $guBatch = [];
+            }
+            if (count($detailGuBatch) >= 2000) {
+                DB::table('detail_shippings')->insertOrIgnore($detailGuBatch);
+                $detailGuBatch = [];
+            }
+            if (count($guTruckBatch) >= 2000) {
+                DB::table('shipping_truck')->insertOrIgnore($guTruckBatch);
+                $guTruckBatch = [];
+            }
+        }
+        if (!empty($guBatch))
+            DB::table('shippings')->insertOrIgnore($guBatch);
+        if (!empty($detailGuBatch))
+            DB::table('detail_shippings')->insertOrIgnore($detailGuBatch);
+        if (!empty($guTruckBatch))
+            DB::table('shipping_truck')->insertOrIgnore($guTruckBatch);
+
+        // 6. Vente Transports -> Shippings (Category 5: Vente Transport)
+        $venteTransports = DB::select("SELECT * FROM villamar.vente_transports");
+        if (!empty($venteTransports)) {
+            $this->info("Processing " . count($venteTransports) . " records from vente_transports...");
+            foreach ($venteTransports as $vt) {
+                $shippingId = 500000 + $vt->id;
+                DB::table('shippings')->insertOrIgnore([
+                    'id' => $shippingId,
+                    'shipping_category_id' => 5,
+                    'date' => $vt->date ?? '2021-01-01',
+                    'total_weight' => $vt->weight ?? 0,
+                    'total_price' => $vt->price ?? 0,
+                    'client_id' => $vt->provider_id ?? null,
+                    'direction' => 'local',
+                    'shipping_tracking_number' => json_encode([]),
+                    'allow_invoice' => (isset($vt->is_facture) && $vt->is_facture) ? 1 : 0,
+                    'invoice_id' => (isset($vt->is_facture) && $vt->is_facture && !empty($vt->bill_id)) ? $vt->bill_id : null,
+                    'created_at' => $vt->created_at ?? now(),
+                    'updated_at' => $vt->updated_at ?? now(),
+                ]);
+            }
+        }
+
+        // 7. Glace Clients -> Shippings (Category 6: Vente Glace)
+        $glaceClients = DB::select("SELECT * FROM villamar.glace_clients");
+        if (!empty($glaceClients)) {
+            $this->info("Processing " . count($glaceClients) . " records from glace_clients...");
+            foreach ($glaceClients as $gc) {
+                $shippingId = 600000 + $gc->id;
+                DB::table('shippings')->insertOrIgnore([
+                    'id' => $shippingId,
+                    'shipping_category_id' => 6,
+                    'date' => $gc->date ?? '2021-01-01',
+                    'total_weight' => $gc->weight ?? 0,
+                    'total_price' => $gc->price ?? 0,
+                    'client_id' => $gc->provider_id ?? null,
+                    'direction' => 'local',
+                    'shipping_tracking_number' => json_encode([]),
+                    'allow_invoice' => (isset($gc->is_facture) && $gc->is_facture) ? 1 : 0,
+                    'invoice_id' => (isset($gc->is_facture) && $gc->is_facture && !empty($gc->bill_id)) ? $gc->bill_id : null,
+                    'created_at' => $gc->created_at ?? now(),
+                    'updated_at' => $gc->updated_at ?? now(),
+                ]);
+            }
+        }
 
         $this->info("Completed all shippings migration.");
     }

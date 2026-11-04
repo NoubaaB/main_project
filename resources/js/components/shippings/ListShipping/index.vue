@@ -48,13 +48,45 @@
   <v-card-text v-if="activeTab === 0" class="pa-4">
     <!-- Analytics Row: Calendar | Chart | Statistics -->
     <v-row dense class="mb-3">
-      <v-col cols="3">
+      <v-col cols="12" md="3" lg="3">
         <div class="ls-panel-card">
-          <div class="ls-panel-header"><v-icon size="16" color="#4643a0" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
+          <div class="ls-panel-header d-flex align-center justify-space-between mb-2">
+            <div class="d-flex align-center">
+              <v-icon size="16" color="#4643a0" class="mr-1">mdi-calendar-range</v-icon>
+              <span>{{ $t('date_range') }}</span>
+            </div>
+            <v-chip v-if="datePreset" size="x-small" color="#4643a0" variant="tonal" class="font-weight-bold">
+              {{ $t(datePreset) }}
+            </v-chip>
+          </div>
+          <!-- Auto-select Date Range Segmented Pill Toggle -->
+          <div class="mb-2 d-flex justify-center ls-date-presets-wrapper">
+            <SegmentedPillToggle
+              v-model="datePreset"
+              :items="datePresetOptions"
+              color="#4643a0"
+              size="x-small"
+              block
+              @update:model-value="onDatePresetChange"
+            />
+          </div>
           <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="purple" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
+
+          <!-- Selected Date Range Display Below VCalendar -->
+          <div class="ls-selected-range mt-2 pt-2 border-t d-flex align-center justify-center ga-2 flex-nowrap">
+            <v-chip size="x-small" color="#4643a0" variant="tonal" class="font-weight-bold" :title="$t('start_date')">
+              <v-icon start size="12">mdi-calendar-start</v-icon>
+              {{ main.formateDate(dateRange[0]) }}
+            </v-chip>
+            <v-icon size="12" color="grey">mdi-arrow-right</v-icon>
+            <v-chip size="x-small" color="#4643a0" variant="tonal" class="font-weight-bold" :title="$t('end_date')">
+              <v-icon start size="12">mdi-calendar-end</v-icon>
+              {{ main.formateDate(dateRange[1] || dateRange[0]) }}
+            </v-chip>
+          </div>
         </div>
       </v-col>
-      <v-col cols="6">
+      <v-col cols="12" md="6">
         <div class="ls-panel-card" style="height:100%">
           <div class="ls-panel-header d-flex align-center justify-space-between">
             <div class="d-flex align-center"><v-icon size="16" color="#4643a0" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div>
@@ -1287,6 +1319,7 @@ export default {
 .export-detail-table td{padding:4px 8px;text-align:center;border-bottom:1px solid rgba(70,67,160,.06)}
 .export-detail-table tbody tr:hover{background:rgba(70,67,160,.04)}
 .export-input .v-field__input{font-size:12px;min-height:28px!important;padding:2px 6px!important}
+.ls-date-presets-wrapper{width:100%;overflow-x:auto;scrollbar-width:none}
 </style>
 
 

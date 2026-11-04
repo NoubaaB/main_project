@@ -11,16 +11,20 @@ import { useFishProcessType } from '@/stores/FishProcessType';
 import mitt from '@/plugins/mitt.js';
 import * as XLSX from 'xlsx';
 import { createListWorker, extractAdvFilterOptions } from '@/utils/listDataWorker.js';
+import { getDatePresetRange, detectMatchingPreset, getDatePresetOptions } from '@/utils/datePresets.js';
 export default {
   name: 'ListProduction',
   data() {
-    const n = new Date(), sm = new Date(n.getFullYear(), n.getMonth(), 1);
+    const range = getDatePresetRange('this_week');
+    const start = range ? range.start : new Date();
+    const end = range ? range.end : new Date();
     return {
       productions: [], loading: false, selected: [],
       tableModuleKey: 'production',
       moduleColor: '#00897B',
       searchQuery: '',
-      dateRange: [sm, n], dateMenu: false,
+      dateRange: [start, end], dateMenu: false,
+      datePreset: 'this_week',
       colFilters: {}, colSorts: [], pinState: {},
       expanded: {},
       showAdvanced: false, showInvoice: false,
@@ -71,6 +75,7 @@ export default {
     warehouses() { return useWarehouse().list },
     fishProcessTypes() { return useFishProcessType().list },
     today() { return new Date().toISOString().slice(0, 10) },
+    datePresetOptions() { return getDatePresetOptions(this.$t); },
     dateRangeVC: { get() { return { start: this.dateRange[0], end: this.dateRange[1] || this.dateRange[0] } }, set(v) { if (v && v.start && v.end) this.dateRange = [v.start, v.end] } },
     catName() { return (id) => { const l = this.main.lang?.code || 'en'; const c = this.cats.find(x => x.id === id); return c ? (c[`name_${l}`] || c.name || `#${id}`) : `#${id}` } },
     activeFilterCount() {
@@ -604,7 +609,23 @@ export default {
         _is_invoiced: !!c.supplier_invoice_id || !!c.client_invoice_id,
       };
     },
-    onDateRangeChange(val) { if (val && val.start && val.end) { this.dateRange = [val.start, val.end]; this.fetchProductions(); this.fetchAnalytics() } },
+    onDateRangeChange(val) {
+      if (val && val.start && val.end) {
+        this.dateRange = [val.start, val.end];
+        this.datePreset = detectMatchingPreset(val.start, val.end);
+        this.fetchProductions();
+        this.fetchAnalytics();
+      }
+    },
+    onDatePresetChange(val) {
+      if (!val) return;
+      this.datePreset = val;
+      const range = getDatePresetRange(val);
+      if (!range) return;
+      this.dateRange = [range.start, range.end];
+      this.fetchProductions();
+      this.fetchAnalytics();
+    },
     async fetchAnalytics() {
       this.analyticsLoading = true;
       try {

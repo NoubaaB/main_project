@@ -37,7 +37,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
             }));
             this.messages.push({
                 text: message,
-                sender: this.auth.user.name
+                sender: this.auth.user.name,
+                ts: Date.now()
             });
             let id = this.messages.length;
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
@@ -50,7 +51,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
             }).then(response => {
                 this.messages.push({
                     text: response.data.answer,
-                    sender: "AI"
+                    sender: "AI",
+                    ts: Date.now()
                 });
                 return {
                     answer: response.data.answer,
@@ -61,7 +63,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
         sendMessageWithExcel: async function (message, excelFiles) {
             this.messages.push({
                 text: message,
-                sender: this.auth.user.name
+                sender: this.auth.user.name,
+                ts: Date.now()
             });
             let id = this.messages.length;
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
@@ -79,7 +82,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
             }).then(response => {
                 this.messages.push({
                     text: response.data.answer,
-                    sender: "AI"
+                    sender: "AI",
+                    ts: Date.now()
                 });
                 return {
                     answer: response.data.answer,

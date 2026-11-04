@@ -1,5 +1,11 @@
 <template>
-  <div class="aimb-wrapper" :class="[main.is_dark ? 'aimb-dark' : 'aimb-light', { 'is-loading': isLoading }]">
+  <div
+    class="aimb-wrapper"
+    :class="[
+      main.is_dark ? 'aimb-dark' : 'aimb-light',
+      { 'is-loading': isLoading, 'aimb-expanded': isCardExpanded }
+    ]"
+  >
     <!-- AI avatar + header -->
     <div class="aimb-header">
       <div class="aimb-avatar-container">
@@ -41,15 +47,23 @@
       ref="contentBox"
     ></div>
 
-    <!-- Action bar (Copy + Export Excel) -->
+    <!-- Action bar (Copy + Export Excel + Expand Visualization) -->
     <div v-if="!isLoading" class="aimb-export-bar">
-      <button class="aimb-export-btn" @click="copyResponse" :title="$t('copy_response')">
+      <button class="aimb-export-btn" @click="copyResponse" :title="$t('copy_response') || $t('copy')">
         <v-icon size="14" class="me-1">{{ copied ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
         {{ copied ? ($t('copied') || 'Copied') : ($t('copy') || 'Copy') }}
       </button>
       <button v-if="hasTable" class="aimb-export-btn" @click="exportToExcel" :title="$t('export_excel')">
         <v-icon size="14" class="me-1">mdi-file-excel-outline</v-icon>
         {{ $t('export_excel') }}
+      </button>
+      <button
+        class="aimb-export-btn aimb-expand-btn"
+        @click="toggleCardExpand"
+        :title="isCardExpanded ? ($t('collapse_message') || 'Collapse') : ($t('expand_message') || 'Expand')"
+      >
+        <v-icon size="14" class="me-1">{{ isCardExpanded ? 'mdi-arrow-collapse-horizontal' : 'mdi-arrow-expand-horizontal' }}</v-icon>
+        {{ isCardExpanded ? ($t('collapse') || 'Collapse') : ($t('expand_view') || 'Expand') }}
       </button>
     </div>
   </div>
@@ -62,12 +76,14 @@ import { useMain } from "@/stores/Main";
 import * as XLSX from 'xlsx';
 
 export default {
-  props: ['msg', 'index'],
+  props: ['msg', 'index', 'isExpandedMode'],
   data() {
     return {
       isLoading: true,
       hasTable: false,
+      hasVisualization: false,
       copied: false,
+      localExpanded: false,
     };
   },
   computed: {
@@ -76,6 +92,9 @@ export default {
     },
     ai_prompt() {
       return useAIPrompt();
+    },
+    isCardExpanded() {
+      return this.localExpanded || Boolean(this.isExpandedMode);
     },
     formatTime() {
       const d = new Date();
@@ -87,6 +106,13 @@ export default {
       handler(isDark) {
         this.updateChartsTheme(isDark);
       }
+    },
+    isExpandedMode: {
+      handler() {
+        this.$nextTick(() => {
+          this.updateChartsTheme(this.main.is_dark);
+        });
+      }
     }
   },
   mounted() {
@@ -96,12 +122,13 @@ export default {
       this.$nextTick(() => {
         loadExternalContent(this.msg.text, `_ai_message_${this.index}`);
 
-        // Check if rendered content contains a table
+        // Check if rendered content contains a table or visualization
         const container = this.$refs.contentBox;
         if (container) {
           container.addEventListener('click', this.handleContentClick);
           this.$nextTick(() => {
             this.hasTable = container.querySelector('table') !== null;
+            this.hasVisualization = container.querySelector('.apexcharts-canvas, svg, canvas, .ai-analytics-card') !== null;
             this.updateChartsTheme(this.main.is_dark);
           });
         }
@@ -116,6 +143,13 @@ export default {
     }
   },
   methods: {
+    toggleCardExpand() {
+      this.localExpanded = !this.localExpanded;
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+        this.updateChartsTheme(this.main.is_dark);
+      });
+    },
     onContentRendered(e) {
       if (e.detail?.containerId === `_ai_message_${this.index}`) {
         this.updateChartsTheme(this.main.is_dark);
@@ -252,18 +286,23 @@ export default {
 /* Main Wrapper - Ultra Premium Look */
 .aimb-wrapper {
   position: relative;
-  display: inline-block;
+  display: block;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 24px;
   border-top-left-radius: 6px;
   padding: 20px 24px;
-  margin: 8px 0;
+  margin: 6px 0;
   max-width: 100%;
   min-width: 260px;
-  width: fit-content;
-  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, padding 0.3s ease;
   z-index: 1;
+}
+
+.aimb-wrapper.aimb-expanded {
+  padding: 24px 30px;
 }
 
 .aimb-wrapper.aimb-dark {
@@ -930,13 +969,15 @@ export default {
 
 /* aimb-spin keyframe retired */
 
-/* Export Excel Bar */
+/* Export Excel & Expand Bar */
 .aimb-export-bar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 14px;
   padding-top: 10px;
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .aimb-export-btn {
@@ -960,5 +1001,36 @@ export default {
   border-color: rgba(76, 175, 80, 0.5);
   box-shadow: 0 2px 10px rgba(76, 175, 80, 0.2);
   transform: translateY(-1px);
+}
+
+.aimb-expand-btn {
+  border: 1px solid rgba(66, 165, 245, 0.35) !important;
+  background: rgba(66, 165, 245, 0.08) !important;
+  color: #42A5F5 !important;
+}
+
+.aimb-expand-btn:hover {
+  background: rgba(66, 165, 245, 0.18) !important;
+  border-color: rgba(66, 165, 245, 0.6) !important;
+  box-shadow: 0 2px 10px rgba(66, 165, 245, 0.25) !important;
+  color: #1E88E5 !important;
+}
+
+/* Visualization responsiveness */
+.aimb-content :deep(.apexcharts-canvas) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.aimb-content :deep(.apexcharts-canvas svg) {
+  width: 100% !important;
+}
+
+.aimb-content :deep(table) {
+  width: 100% !important;
+}
+
+.aimb-content :deep(.ai-analytics-card) {
+  width: 100% !important;
 }
 </style>

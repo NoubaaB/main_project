@@ -152,6 +152,7 @@ export default {
       chambersList: [],
       chambersLoading: false,
       chamberSearch: '',
+      chamberStockTypeFilter: 'all',
 
       // View 3: Species Overview state
       speciesList: [],
@@ -583,13 +584,25 @@ export default {
     },
 
     occupiedChambersCount() {
-      return this.chambersList.filter(c => c.total_weight > 0).length;
+      return (this.filteredChambers || []).filter(c => c.total_weight > 0).length;
+    },
+
+    companyChambersCount() {
+      return (this.chambersList || []).filter(c => (c.stock_type || 'company') === 'company').length;
+    },
+
+    thirdPartyChambersCount() {
+      return (this.chambersList || []).filter(c => c.stock_type === 'third_party').length;
     },
 
     filteredChambers() {
-      if (!this.chamberSearch) return this.chambersList;
+      let list = this.chambersList || [];
+      if (this.chamberStockTypeFilter && this.chamberStockTypeFilter !== 'all') {
+        list = list.filter(c => (c.stock_type || 'company') === this.chamberStockTypeFilter);
+      }
+      if (!this.chamberSearch) return list;
       const q = this.chamberSearch.toLowerCase();
-      return this.chambersList.filter(c => (
+      return list.filter(c => (
         (c.name && c.name.toLowerCase().includes(q)) ||
         (c.category_name && c.category_name.toLowerCase().includes(q))
       ));

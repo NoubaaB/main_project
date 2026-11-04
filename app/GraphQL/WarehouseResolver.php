@@ -40,6 +40,7 @@ class WarehouseResolver
                 'id' => $w->id,
                 'name' => $w->name,
                 'capacity' => (float) $w->capacity,
+                'stock_type' => $w->stock_type ?? 'company',
                 'warehouse_category_id' => $w->warehouse_category_id,
                 'category' => $w->category ? [
                     'id' => $w->category->id,
@@ -60,6 +61,7 @@ class WarehouseResolver
             'id' => $w->id,
             'name' => $w->name,
             'capacity' => (float) $w->capacity,
+            'stock_type' => $w->stock_type ?? 'company',
             'warehouse_category_id' => $w->warehouse_category_id,
             'category' => $w->category ? [
                 'id' => $w->category->id,
