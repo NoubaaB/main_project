@@ -6,6 +6,7 @@ use ReflectionClass;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\AiQueryMessage;
+use App\Events\ModelChanged;
 use App\Services\CustomService;
 use App\Services\AIAnalyticsService;
 use Illuminate\Support\Facades\DB;
@@ -121,14 +122,16 @@ class AIQueryController extends Controller
 
         if (!$sqlQuery) {
             if (!empty($excelFiles)) {
-                // No SQL but we have Excel data " go straight to answer generation
+                // No SQL but we have Excel data — go straight to answer generation
                 $sqlQuery = 'EXCEL_ONLY';
             } else {
-                return response()->json(['answer' => $this->buildFallbackAnswer($question, $id, $theme, $messages)], 200);
+                $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
+                $this->persistQueryMessage($request, $question, $answer);
+                return response()->json(['answer' => $answer], 200);
             }
         }
 
-        // "" Step 3: Execute SQL safely (skip if Excel-only) ""
+        // ── Step 3: Execute SQL safely (skip if Excel-only) ──
         $result = null;
         $isExcelOnly = strtoupper(trim($sqlQuery)) === 'EXCEL_ONLY';
 
@@ -140,7 +143,9 @@ class AIQueryController extends Controller
                     if (!empty($excelFiles)) {
                         $isExcelOnly = true;
                     } else {
-                        return response()->json(['answer' => $this->buildFallbackAnswer($question, $id, $theme, $messages)], 200);
+                        $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
+                        $this->persistQueryMessage($request, $question, $answer);
+                        return response()->json(['answer' => $answer], 200);
                     }
                 } else {
                     $result = DB::select($sqlQuery);
@@ -270,9 +275,12 @@ class AIQueryController extends Controller
     {
         $user = $request->user();
         if ($user) {
-            AiQueryMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
+            $userMsg = AiQueryMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
             if ($answer) {
-                AiQueryMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+                $agentMsg = AiQueryMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+                try {
+                    broadcast(new ModelChanged('AiQueryMessage', 'created', $agentMsg->id, $user->name ?? 'AI', ['id' => $agentMsg->id, 'role' => 'agent'], $user->id))->toOthers();
+                } catch (\Throwable $e) {}
             }
         }
     }

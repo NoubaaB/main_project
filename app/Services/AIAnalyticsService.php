@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class AIAnalyticsService
 {
     private string $appName;
-    private string $creatorName = "Jupiter Core Architecture";
+    private string $creatorName = "ELBACHIR NOUBAA";
 
     public function __construct()
     {
@@ -17,7 +17,8 @@ class AIAnalyticsService
     }
 
     /**
-     * Main entry point to process a question and generate a rich Vue 3 + Vuetify + ApexCharts response.
+     * Main entry point to process a question and generate a rich, accurate response
+     * tailored precisely to what the user asked.
      */
     public function processQuestion(string $question, int|string $id, string $theme = 'dark', array $excelFiles = []): string
     {
@@ -35,25 +36,40 @@ class AIAnalyticsService
             return $this->generateExcelAnalysisResponse($uniqueId, $chartId, $question, $excelFiles, $lang, $theme);
         }
 
-        // 3. Classify business domain
-        $domain = $this->classifyDomain($question);
+        // 3. Parse question parameters (domain, intent, timeFrame, filter, limit)
+        $p = $this->parseQuestion($question, $lang);
 
-        switch ($domain) {
+        // 4. Route to specialized domain handler
+        switch ($p['domain']) {
             case 'charges':
-                return $this->generateChargesAnalysis($uniqueId, $chartId, $question, $lang, $theme);
+                return $this->handleChargesQuery($uniqueId, $chartId, $p, $theme);
             case 'shippings':
-                return $this->generateShippingsAnalysis($uniqueId, $chartId, $question, $lang, $theme);
+                return $this->handleShippingsQuery($uniqueId, $chartId, $p, $theme);
             case 'productions':
-                return $this->generateProductionsAnalysis($uniqueId, $chartId, $question, $lang, $theme);
+                return $this->handleProductionsQuery($uniqueId, $chartId, $p, $theme);
             case 'warehouses':
-                return $this->generateWarehousesAnalysis($uniqueId, $chartId, $question, $lang, $theme);
-            case 'finances':
-                return $this->generateFinancesAnalysis($uniqueId, $chartId, $question, $lang, $theme);
+                return $this->handleWarehousesQuery($uniqueId, $chartId, $p, $theme);
+            case 'invoices':
+                return $this->handleInvoicesQuery($uniqueId, $chartId, $p, $theme);
             case 'workforce':
-                return $this->generateWorkforceAnalysis($uniqueId, $chartId, $question, $lang, $theme);
+                return $this->handleWorkforceQuery($uniqueId, $chartId, $p, $theme);
+            case 'trucks':
+                return $this->handleTrucksQuery($uniqueId, $chartId, $p, $theme);
+            case 'ships':
+                return $this->handleShipsQuery($uniqueId, $chartId, $p, $theme);
+            case 'fish_types':
+                return $this->handleFishTypesQuery($uniqueId, $chartId, $p, $theme);
+            case 'suppliers':
+                return $this->handleSuppliersQuery($uniqueId, $chartId, $p, $theme);
+            case 'clients':
+                return $this->handleClientsQuery($uniqueId, $chartId, $p, $theme);
+            case 'comparison':
+                return $this->handleComparisonQuery($uniqueId, $chartId, $p, $theme);
+            case 'search':
+                return $this->handleGenericSearchQuery($uniqueId, $chartId, $p, $theme);
             case 'overview':
             default:
-                return $this->generateOverviewAnalysis($uniqueId, $chartId, $question, $lang, $theme);
+                return $this->handleOverviewQuery($uniqueId, $chartId, $p, $theme);
         }
     }
 
@@ -70,12 +86,12 @@ class AIAnalyticsService
         }
 
         // French signals
-        if (preg_match('/\b(qui|est|sont|les|des|du|dans|pour|avec|donne|moi|affiche|combien|achats|charges|ventes|expéditions|production|stock|magasin|entrepôt|main|oeuvre|ouvrier|facture|règlement|créance|dette|résumé|global|aujourd|hier|mois|année|rendement|poisson|espece|fournisseur|client|prix|total|poids)\b/ui', $lower)) {
+        if (preg_match('/\b(qui|est|sont|les|des|du|dans|pour|avec|donne|moi|affiche|combien|achats?|charges?|ventes?|expéditions?|productions?|stocks?|magasins?|entrepôts?|main|oeuvre|ouvriers?|factures?|règlements?|créances?|dettes?|résumés?|global|aujourd|hier|mois|année|rendement|poissons?|especes?|espèces?|fournisseurs?|clients?|prix|totals?|poids|derniers?|dernières?|camions?|navires?|bateaux?|liste|tableau|meilleurs?|cherche|montre|évolution|quinzaines?|caporaux|sections?)\b/ui', $lower)) {
             return 'fr';
         }
 
         // Spanish signals
-        if (preg_match('/\b(quien|es|son|los|las|para|con|dame|muestra|cuanto|compras|ventas|produccion|almacen|pescado|proveedor|cliente|factura|total|peso|precio|este|mes|ano|hoy|ayer)\b/ui', $lower)) {
+        if (preg_match('/\b(quien|es|son|los|las|para|con|dame|muestra|cuanto|compras|ventas|produccion|almacen|pescado|proveedor|cliente|factura|total|peso|precio|este|mes|ano|hoy|ayer|camiones|barcos|ultimos|ultimas|lista|tabla)\b/ui', $lower)) {
             return 'es';
         }
 
@@ -106,169 +122,1238 @@ class AIAnalyticsService
     }
 
     /**
-     * Classify domain into charges, shippings, productions, warehouses, finances, workforce, overview.
+     * Parse the user question into actionable parameters.
      */
-    private function classifyDomain(string $text): string
+    private function parseQuestion(string $question, string $lang): array
     {
-        $lower = mb_strtolower($text, 'UTF-8');
+        $lower = mb_strtolower($question, 'UTF-8');
 
-        if (preg_match('/\b(charge|charges|achat|achats|fournisseur|fournisseurs|reception|receptions|navire|navires|bateau|bateaux|camion|camions|compras|proveedor|suppliers?|purchases?)\b/ui', $lower)) {
-            return 'charges';
+        // 1. Limit extraction (default: 10 for lists, 5 for rankings)
+        $limit = 10;
+        if (preg_match('/\b(top\s*)?(\d+)\b/u', $lower, $m)) {
+            $val = (int)$m[2];
+            if ($val > 0 && $val <= 100) {
+                $limit = $val;
+            }
         }
 
-        if (preg_match('/\b(shipping|shippings|vente|ventes|expedition|expéditions|client|clients|destination|export|exportation|ventas|sales?)\b/ui', $lower)) {
-            return 'shippings';
+        // 2. Intent extraction
+        $intent = 'summary';
+        if (preg_match('/\b(liste|donne|donne-moi|affiche|tableau|montre|montrez|voir|derniers?|dernières?|récents?|table|list|show)\b/ui', $lower)) {
+            $intent = 'list';
+        } elseif (preg_match('/\b(combien|nombre|count|cuantos?)\b/ui', $lower)) {
+            $intent = 'count';
+        } elseif (preg_match('/\b(total|somme|chiffre d\'affaires|valeur|montant|sum)\b/ui', $lower)) {
+            $intent = 'total';
+        } elseif (preg_match('/\b(moyen|moyenne|average|wap)\b/ui', $lower)) {
+            $intent = 'average';
+        } elseif (preg_match('/\b(meilleur|meilleurs|top|plus grand|plus vendu|ranking)\b/ui', $lower)) {
+            $intent = 'top';
+        } elseif (preg_match('/\b(impayé|impayés|créance|créances|dette|dettes|non réglé|unpaid)\b/ui', $lower)) {
+            $intent = 'unpaid';
+        } elseif (preg_match('/\b(évolution|tendance|comparer|comparaison|graphique|chart|trend)\b/ui', $lower)) {
+            $intent = 'trend';
         }
 
-        if (preg_match('/\b(production|productions|rendement|congelation|congélation|frais|guano|rsw|usine|farine|huile|produit|produits|yield|processing)\b/ui', $lower)) {
-            return 'productions';
+        // 3. TimeFrame extraction
+        $timeFrame = 'all';
+        if (preg_match('/\b(aujourd\'?hui|today|hoy)\b/ui', $lower)) {
+            $timeFrame = 'today';
+        } elseif (preg_match('/\b(hier|yesterday|ayer)\b/ui', $lower)) {
+            $timeFrame = 'yesterday';
+        } elseif (preg_match('/\b(cette semaine|this week|esta semana)\b/ui', $lower)) {
+            $timeFrame = 'this_week';
+        } elseif (preg_match('/\b(ce mois|ce mois-ci|this month|este mes)\b/ui', $lower)) {
+            $timeFrame = 'this_month';
+        } elseif (preg_match('/\b(mois dernier|le mois passé|last month|mes pasado)\b/ui', $lower)) {
+            $timeFrame = 'last_month';
+        } elseif (preg_match('/\b(2026)\b/u', $lower)) {
+            $timeFrame = 'year_2026';
+        } elseif (preg_match('/\b(2025)\b/u', $lower)) {
+            $timeFrame = 'year_2025';
+        } elseif (preg_match('/\b(2024)\b/u', $lower)) {
+            $timeFrame = 'year_2024';
         }
 
-        if (preg_match('/\b(stock|stocks|warehouse|warehouses|magasin|magasins|entrepot|entrepôt|entrepôts|chambre|chambres|inventaire|inventaires|balance|almacen|almacenes|inventory)\b/ui', $lower)) {
-            return 'warehouses';
+        // 4. Domain extraction
+        $domain = 'overview';
+        if (preg_match('/\b(comparer?|comparaison|versus|vs|bilan)\b/ui', $lower) && preg_match('/\b(achat|charge|vente|shipping)\b/ui', $lower)) {
+            $domain = 'comparison';
+        } elseif (preg_match('/\b(camion|camions|matricule|véhicule|véhicules|truck|trucks)\b/ui', $lower)) {
+            $domain = 'trucks';
+        } elseif (preg_match('/\b(navire|navires|bateau|bateaux|barque|ship|ships|vessel|vessels)\b/ui', $lower)) {
+            $domain = 'ships';
+        } elseif (preg_match('/\b(facture|factures|invoices?|règlement|règlements|paiement|paiements|payments?|créance|créances|dette|dettes|impayé|impayés)\b/ui', $lower)) {
+            $domain = 'invoices';
+        } elseif (preg_match('/\b(fournisseur|fournisseurs|suppliers?|proveedor)\b/ui', $lower) && preg_match('/\b(liste|qui sont|top|meilleur)\b/ui', $lower)) {
+            $domain = 'suppliers';
+        } elseif (preg_match('/\b(client|clients|acheteurs?)\b/ui', $lower) && preg_match('/\b(liste|qui sont|top|meilleur)\b/ui', $lower)) {
+            $domain = 'clients';
+        } elseif (preg_match('/\b(charge|charges|achat|achats|réception|réceptions|purchases?)\b/ui', $lower)) {
+            $domain = 'charges';
+        } elseif (preg_match('/\b(shipping|shippings|vente|ventes|expédition|expéditions|sales?)\b/ui', $lower)) {
+            $domain = 'shippings';
+        } elseif (preg_match('/\b(production|productions|congélation|frais|guano|farine|huile|rendement|yield|equilibrium)\b/ui', $lower)) {
+            $domain = 'productions';
+        } elseif (preg_match('/\b(stock|stocks|entrepôt|entrepôts|magasin|magasins|chambre|chambres|warehouse|warehouses|inventaire|inventaires|balance)\b/ui', $lower)) {
+            $domain = 'warehouses';
+        } elseif (preg_match('/\b(ouvrier|ouvriers|personnel|salarié|salariés|main|oeuvre|workforce|quinzaine|fortnight|section|sections|caporal|caporaux)\b/ui', $lower)) {
+            $domain = 'workforce';
+        } elseif (preg_match('/\b(poisson|poissons|espèce|espèces|sardine|maquereau|chinchard|anchois|thon|poulpe|seiche|calamar|merlu|sole|fish)\b/ui', $lower)) {
+            $domain = 'fish_types';
+        } elseif (preg_match('/\b(cherche|trouve|search|id|#\d+)\b/ui', $lower)) {
+            $domain = 'search';
         }
 
-        if (preg_match('/\b(facture|factures|invoices?|reglement|règlement|règlements|paiement|paiements|payments?|creance|créance|créances|dette|dettes|solde|soldes|impaye|impayés|chiffre|tresorerie|trésorerie|finances?)\b/ui', $lower)) {
-            return 'finances';
+        // 5. Keyword extraction for specific entities (e.g., sardine, driss, etc.)
+        $keyword = null;
+        if (preg_match('/\b(sardine|maquereau|chinchard|anchois|thon|poulpe|seiche|calamar|merlu|sole|pageot|bogue)\b/ui', $lower, $m)) {
+            $keyword = $m[1];
         }
 
-        if (preg_match('/\b(workforce|workforces|personnel|ouvrier|ouvriers|main|d\'oeuvre|salarié|salariés|quinzaine|fortnight|activite|activité|activités|section|sections|caporal|caporaux|paie|salaire)\b/ui', $lower)) {
-            return 'workforce';
-        }
-
-        return 'overview';
+        return [
+            'question' => $question,
+            'lang' => $lang,
+            'domain' => $domain,
+            'intent' => $intent,
+            'limit' => $limit,
+            'timeFrame' => $timeFrame,
+            'keyword' => $keyword,
+        ];
     }
 
+    // =========================================================================
+    //  DOMAIN HANDLERS
+    // =========================================================================
+
     /**
-     * Generates Creator & Supervisor response honoring ELBACHIR NOUBAA.
+     * Handle Charges / Achats queries.
      */
-    public function generateCreatorResponse(string $uniqueId, string $lang, string $theme): string
+    private function handleChargesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
-        $titles = [
-            'fr' => [
-                'role' => 'Moteur d\'Intelligence & Architecture Logicielle',
-                'name' => 'Jupiter Core Architecture',
-                'badge' => 'Moteur IA Entreprise',
-                'bio' => 'L\'agent intelligent IA et l\'ensemble de l\'ERP Jupiter sont propulsés par une architecture industrielle de pointe. Conçu pour assurer une traçabilité intégrale, un contrôle financier rigoureux et une intelligence analytique connectée aux données réelles de l\'entreprise.',
-                'highlights_title' => 'Piliers d\'Excellence du Système',
-                'pillar1' => 'Traçabilité Halieutique & Temps Réel (Achats, Usine, Stocks, Expéditions)',
-                'pillar2' => 'Intelligence Artificielle Connectée & Modélisation Financière Avancée',
-                'pillar3' => 'Pilotage de la Performance & Optimisation du Rendement Industriel',
-                'footer' => 'Système certifié et piloté par le Moteur d\'Intelligence Jupiter'
-            ],
-            'es' => [
-                'role' => 'Arquitectura del Sistema y Motor IA',
-                'name' => 'Jupiter Core Architecture',
-                'badge' => 'Motor IA Empresarial',
-                'bio' => 'El agente inteligente de IA y todo el ERP Jupiter están impulsados por una arquitectura de datos industriales avanzada. Diseñado para garantizar trazabilidad total, análisis financiero exacto e inteligencia operativa en tiempo real.',
-                'highlights_title' => 'Pilares de Excelencia del Sistema',
-                'pillar1' => 'Trazabilidad Pesquera en Tiempo Real (Compras, Planta, Stock, Envíos)',
-                'pillar2' => 'Inteligencia Artificial Integrada y Control Financiero Dinámico',
-                'pillar3' => 'Gestión Industrial de Alto Rendimiento y Seguridad de Datos',
-                'footer' => 'Sistema certificado y dirigido por el Motor de Inteligencia Jupiter'
-            ],
-            'ar' => [
-                'role' => 'محرك الذكاء الاصطناعي وهندسة البيانات',
-                'name' => 'Jupiter Core Architecture',
-                'badge' => 'نظام المؤسسة الذكي',
-                'bio' => 'يعمل هذا المساعد الذكي ونظام جوبيتر (Jupiter ERP) بالكامل استناداً إلى بنية تحتية رقمية وهندسة بيانات متقدمة لإدارة وتتبع منتجات الصيد البحري والتحليل المالي الدقيق والربط الفوري لقواعد البيانات.',
-                'highlights_title' => 'ركائز التميز في النظام',
-                'pillar1' => 'تتبع شامل في الوقت الفعلي (المشتريات، الإنتاج، المخازن، الشحن)',
-                'pillar2' => 'ذكاء اصطناعي متصل بقواعد البيانات وتحليلات بيانية فورية',
-                'pillar3' => 'تحسين المردودية الصناعية والمراقبة المالية الصارمة',
-                'footer' => 'نظام معتمد ومطور بواسطة هندسة جوبيتر المتقدمة'
-            ],
-            'en' => [
-                'role' => 'Enterprise System Architecture & AI Core',
-                'name' => 'Jupiter Core Architecture',
-                'badge' => 'Enterprise AI Suite',
-                'bio' => 'This AI Agent and the entire Jupiter ERP ecosystem are powered by advanced industrial data architecture. Designed to deliver absolute traceability, financial precision, and real-time operational intelligence.',
-                'highlights_title' => 'System Pillars of Excellence',
-                'pillar1' => 'Full Fishery Traceability & Real-Time Sync (Charges, Plant, Cold Stores, Shipping)',
-                'pillar2' => 'Direct Database Intelligence & High-Performance Visual Analytics',
-                'pillar3' => 'Industrial Yield Maximization & Enterprise Financial Integrity',
-                'footer' => 'System engineered and verified by Jupiter Core Architecture'
-            ]
+        $q = DB::table('charges as c')
+            ->leftJoin('suppliers as s', 'c.supplier_id', '=', 's.id')
+            ->whereNull('c.deleted_at');
+
+        $this->applyTimeFilter($q, 'c.date', $p['timeFrame']);
+
+        $totalCount = (clone $q)->count();
+        $totalWeight = (float) (clone $q)->sum('c.total_weight');
+        $totalPrice = (float) (clone $q)->sum('c.total_price');
+        $avgPrice = $totalWeight > 0 ? ($totalPrice / $totalWeight) : 0;
+
+        // Fetch records if list or specific records requested
+        $limit = $p['limit'] ?: 10;
+        $records = (clone $q)
+            ->select(
+                'c.id',
+                'c.date',
+                'c.reception_tracking_number',
+                's.name as supplier_name',
+                'c.total_weight',
+                'c.total_price',
+                'c.allow_invoice'
+            )
+            ->orderBy('c.date', 'desc')
+            ->orderBy('c.id', 'desc')
+            ->limit($limit)
+            ->get();
+
+        // Top 5 Suppliers for chart
+        $topSuppliers = DB::table('charges as c')
+            ->join('suppliers as s', 'c.supplier_id', '=', 's.id')
+            ->whereNull('c.deleted_at')
+            ->groupBy('s.name')
+            ->select('s.name', DB::raw('SUM(c.total_weight) as weight'), DB::raw('SUM(c.total_price) as price'))
+            ->orderByDesc('weight')
+            ->limit(5)
+            ->get();
+
+        $chartLabels = [];
+        $chartData = [];
+        foreach ($topSuppliers as $ts) {
+            $chartLabels[] = $ts->name;
+            $chartData[] = round(((float)$ts->weight) / 1000, 2); // tons
+        }
+
+        // Build localized textual answer
+        $answerText = match ($p['lang']) {
+            'ar' => "إليك تفاصيل المشتريات والاستلامات: تم تسجيل {$this->formatNumber($totalCount, 0)} استلام بإجمالي وزن {$this->formatNumber($totalWeight, 2)} كغ وبقيمة إجمالية {$this->formatNumber($totalPrice, 2)} درهم.",
+            'es' => "Aquí está el análisis de compras y recepciones: se registraron {$this->formatNumber($totalCount, 0)} recepciones con un peso total de {$this->formatNumber($totalWeight, 2)} KG y un importe de {$this->formatNumber($totalPrice, 2)} MAD.",
+            'en' => "Here is the purchases and receptions analysis: {$this->formatNumber($totalCount, 0)} receptions recorded with a total weight of {$this->formatNumber($totalWeight, 2)} KG and a total value of {$this->formatNumber($totalPrice, 2)} MAD.",
+            default => "Voici l'analyse détaillée des charges et réceptions : {$this->formatNumber($totalCount, 0)} réceptions enregistrées pour un volume global de {$this->formatNumber($totalWeight, 2)} KG et un montant de {$this->formatNumber($totalPrice, 2)} MAD (Prix moyen : {$this->formatNumber($avgPrice, 2)} MAD/KG).",
+        };
+
+        $tableRowsHtml = '';
+        foreach ($records as $r) {
+            $supp = htmlspecialchars($r->supplier_name ?: 'Fournisseur #' . $r->id);
+            $recNum = htmlspecialchars($r->reception_tracking_number ?: ('#' . $r->id));
+            $weight = $this->formatNumber((float)$r->total_weight, 2);
+            $price = $this->formatNumber((float)$r->total_price, 2);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$recNum}</td>
+              <td style="padding: 10px 12px;">{$r->date}</td>
+              <td style="padding: 10px 12px; font-weight: 600;">{$supp}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$weight} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$price} MAD</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/charges">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'N° Réception', 'align' => 'left'],
+            ['title' => 'Date', 'align' => 'left'],
+            ['title' => 'Fournisseur', 'align' => 'left'],
+            ['title' => 'Poids (KG)', 'align' => 'right'],
+            ['title' => 'Montant (MAD)', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
         ];
 
-        $t = $titles[$lang] ?? $titles['en'];
-        $isDark = ($theme === 'dark');
-        $cardBg = $isDark ? '#1a2332' : '#ffffff';
-        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
-        $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-
-        return <<<HTML
-<div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 24px; border: 1px solid rgba(66, 165, 245, 0.3); box-shadow: 0 10px 30px rgba(21, 101, 192, 0.15); margin-bottom: 8px;">
-    <!-- Creator Badge Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(66, 165, 245, 0.2); padding-bottom: 16px;">
-      <div style="display: flex; align-items: center; gap: 14px;">
-        <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #1565C0 0%, #1E88E5 50%, #42A5F5 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(21, 101, 192, 0.4);">
-          <i class="v-icon notranslate mdi mdi-crown text-white" style="font-size: 28px;"></i>
-        </div>
-        <div>
-          <div style="font-size: 20px; font-weight: 800; color: #42A5F5; letter-spacing: 0.5px;">{$t['name']}</div>
-          <div style="font-size: 13px; font-weight: 600; color: var(--ai-sub-color, {$subColor}); display: flex; align-items: center; gap: 6px;">
-            <i class="v-icon notranslate mdi mdi-shield-check text-blue" style="font-size: 16px; color: #42A5F5 !important;"></i>
-            <span>{$t['role']}</span>
-          </div>
-        </div>
-      </div>
-      <span style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.35); padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">
-        {$t['badge']}
-      </span>
-    </div>
-
-    <!-- Creator Description -->
-    <div style="font-size: 14.5px; line-height: 1.8; color: var(--ai-text-color, {$textColor}); margin-bottom: 20px;">
-      {$t['bio']}
-    </div>
-
-    <!-- Pillars Card -->
-    <div style="background: rgba(66, 165, 245, 0.06); border-radius: 14px; padding: 16px; border: 1px dashed rgba(66, 165, 245, 0.35); margin-bottom: 16px;">
-      <div style="font-size: 12px; font-weight: 800; color: #42A5F5; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;">
-        <i class="v-icon notranslate mdi mdi-star-circle text-blue" style="font-size: 14px; margin-right: 6px;"></i>
-        {$t['highlights_title']}
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ai-text-color, {$textColor});">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <i class="v-icon notranslate mdi mdi-check-circle" style="font-size: 15px; color: #00E676;"></i>
-          <span>{$t['pillar1']}</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <i class="v-icon notranslate mdi mdi-check-circle" style="font-size: 15px; color: #00E676;"></i>
-          <span>{$t['pillar2']}</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <i class="v-icon notranslate mdi mdi-check-circle" style="font-size: 15px; color: #00E676;"></i>
-          <span>{$t['pillar3']}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Action / Verification Pill -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px;">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <i class="v-icon notranslate mdi mdi-check-decagram" style="font-size: 16px; color: #42A5F5;"></i>
-        <span>{$t['footer']}</span>
-      </div>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: linear-gradient(135deg, #1565C0, #42A5F5); color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/dashboard">
-        <i class="v-icon notranslate mdi mdi-view-dashboard" style="font-size: 14px; margin-right: 6px;"></i>
-        Dashboard
-      </button>
-    </div>
-  </div>
-</div>
-HTML;
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Module Achats & Réceptions (Charges)',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-truck-delivery',
+            'badgeText' => $p['timeFrame'] === 'all' ? 'Toutes Périodes' : ucfirst($p['timeFrame']),
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Réceptions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-counter'],
+                ['label' => 'Poids Total', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'Montant Global', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Prix Moyen / KG', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#FFA726', 'icon' => 'mdi-scale-balance'],
+            ],
+            'table' => [
+                'title' => "Dernières Charges & Réceptions (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($chartLabels) ? [
+                'id' => $chartId,
+                'title' => 'Top 5 Fournisseurs par Volume (Tonnes)',
+                'labels' => $chartLabels,
+                'data' => $chartData,
+                'seriesName' => 'Volume (Tonnes)',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Consulter les Charges', 'route' => '/charges', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nouvelle Charge', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+        ]);
     }
 
     /**
-     * Generates Executive Overview / Global KPI Deck with ApexCharts.
+     * Handle Shippings / Ventes queries.
      */
-    public function generateOverviewAnalysis(string $uniqueId, string $chartId, string $question, string $lang, string $theme): string
+    private function handleShippingsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $q = DB::table('shippings as s')
+            ->leftJoin('clients as c', 's.client_id', '=', 'c.id')
+            ->whereNull('s.deleted_at');
+
+        $this->applyTimeFilter($q, 's.date', $p['timeFrame']);
+
+        $totalCount = (clone $q)->count();
+        $totalWeight = (float) (clone $q)->sum('s.total_weight');
+        $totalPrice = (float) (clone $q)->sum('s.total_price');
+        $avgPrice = $totalWeight > 0 ? ($totalPrice / $totalWeight) : 0;
+
+        $limit = $p['limit'] ?: 10;
+        $records = (clone $q)
+            ->select(
+                's.id',
+                's.date',
+                's.shipping_tracking_number',
+                'c.name as client_name',
+                's.direction',
+                's.total_weight',
+                's.total_price'
+            )
+            ->orderBy('s.date', 'desc')
+            ->orderBy('s.id', 'desc')
+            ->limit($limit)
+            ->get();
+
+        // Top 5 Clients
+        $topClients = DB::table('shippings as s')
+            ->join('clients as c', 's.client_id', '=', 'c.id')
+            ->whereNull('s.deleted_at')
+            ->groupBy('c.name')
+            ->select('c.name', DB::raw('SUM(s.total_price) as price'), DB::raw('SUM(s.total_weight) as weight'))
+            ->orderByDesc('price')
+            ->limit(5)
+            ->get();
+
+        $chartLabels = [];
+        $chartData = [];
+        foreach ($topClients as $tc) {
+            $chartLabels[] = $tc->name;
+            $chartData[] = round(((float)$tc->price) / 1000, 2); // k MAD
+        }
+
+        $answerText = match ($p['lang']) {
+            'ar' => "إليك تحليل المبيعات والشحنات: تم تسجيل {$this->formatNumber($totalCount, 0)} شحنة بقيمة إجمالية قدرها {$this->formatNumber($totalPrice, 2)} درهم وبإجمالي وزن {$this->formatNumber($totalWeight, 2)} كغ.",
+            'es' => "Aquí está el análisis de ventas y expediciones: se registraron {$this->formatNumber($totalCount, 0)} expediciones por un valor de {$this->formatNumber($totalPrice, 2)} MAD y un peso de {$this->formatNumber($totalWeight, 2)} KG.",
+            'en' => "Here is the sales and shipping analysis: {$this->formatNumber($totalCount, 0)} shipments recorded for a total revenue of {$this->formatNumber($totalPrice, 2)} MAD and {$this->formatNumber($totalWeight, 2)} KG.",
+            default => "Voici l'analyse des ventes et expéditions : {$this->formatNumber($totalCount, 0)} expéditions enregistrées, représentant un chiffre d'affaires de {$this->formatNumber($totalPrice, 2)} MAD et un tonnage total de {$this->formatNumber($totalWeight, 2)} KG (Prix moyen de vente : {$this->formatNumber($avgPrice, 2)} MAD/KG).",
+        };
+
+        $tableRowsHtml = '';
+        foreach ($records as $r) {
+            $client = htmlspecialchars($r->client_name ?: 'Client #' . $r->id);
+            $shipNum = htmlspecialchars($r->shipping_tracking_number ?: ('#' . $r->id));
+            $weight = $this->formatNumber((float)$r->total_weight, 2);
+            $price = $this->formatNumber((float)$r->total_price, 2);
+            $dir = htmlspecialchars($r->direction ?: 'Local');
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #b39ddb;">{$shipNum}</td>
+              <td style="padding: 10px 12px;">{$r->date}</td>
+              <td style="padding: 10px 12px; font-weight: 600;">{$client}</td>
+              <td style="padding: 10px 12px;"><span style="background: rgba(108,102,187,0.15); color: #b39ddb; padding: 2px 8px; border-radius: 12px; font-size: 11px;">{$dir}</span></td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$weight} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$price} MAD</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #4643a0; font-size: 11px; cursor: pointer; border: none;" data-route="/shippings">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'N° Expédition', 'align' => 'left'],
+            ['title' => 'Date', 'align' => 'left'],
+            ['title' => 'Client', 'align' => 'left'],
+            ['title' => 'Direction', 'align' => 'left'],
+            ['title' => 'Poids (KG)', 'align' => 'right'],
+            ['title' => 'Montant (MAD)', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Module Ventes & Expéditions (Shippings)',
+            'moduleColor' => '#4643a0',
+            'moduleIcon' => 'mdi-ship-wheel',
+            'badgeText' => 'Expéditions Clients',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Expéditions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#b39ddb', 'icon' => 'mdi-send-check'],
+                ['label' => 'Volume Expédié', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#9575cd', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'Chiffre d\'Affaires', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Prix Moyen Vente', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#ffb74d', 'icon' => 'mdi-chart-line'],
+            ],
+            'table' => [
+                'title' => "Dernières Expéditions Clients (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($chartLabels) ? [
+                'id' => $chartId,
+                'title' => 'Top 5 Clients par Chiffre d\'Affaires (k MAD)',
+                'labels' => $chartLabels,
+                'data' => $chartData,
+                'seriesName' => 'Montant (k MAD)',
+                'type' => 'bar',
+                'color' => '#4643a0',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Consulter les Ventes', 'route' => '/shippings', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nouvelle Vente', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Productions queries.
+     */
+    private function handleProductionsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $q = DB::table('productions')->whereNull('deleted_at');
+        $this->applyTimeFilter($q, 'date', $p['timeFrame']);
+
+        $totalCount = (clone $q)->count();
+        $totalWeight = (float) (clone $q)->sum('total_weight');
+        $freshWeight = (float) (clone $q)->sum('fresh_reception_weight');
+        $frozenWeight = (float) (clone $q)->sum('frozen_production_weight');
+        $guanoWeight = (float) (clone $q)->sum('guano_production_weight');
+
+        $limit = $p['limit'] ?: 10;
+        $records = (clone $q)
+            ->select('id', 'date', 'production_type', 'fresh_reception_weight', 'frozen_production_weight', 'guano_production_weight', 'equilibrium')
+            ->orderBy('date', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici le récapitulatif de production usine : {$this->formatNumber($totalCount, 0)} opérations de production enregistrées, avec un total de {$this->formatNumber($frozenWeight, 2)} KG de poisson congelé, {$this->formatNumber($guanoWeight, 2)} KG de farine/guano et {$this->formatNumber($freshWeight, 2)} KG de réception poisson frais.";
+
+        $tableRowsHtml = '';
+        foreach ($records as $r) {
+            $frozen = $this->formatNumber((float)$r->frozen_production_weight, 2);
+            $guano = $this->formatNumber((float)$r->guano_production_weight, 2);
+            $fresh = $this->formatNumber((float)$r->fresh_reception_weight, 2);
+            $eq = $this->formatNumber((float)$r->equilibrium, 2);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #00897B;">#{$r->id}</td>
+              <td style="padding: 10px 12px;">{$r->date}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$fresh} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #26A69A;">{$frozen} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #66BB6A;">{$guano} KG</td>
+              <td style="padding: 10px 12px; text-align: right;">{$eq}</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #00897B; font-size: 11px; cursor: pointer; border: none;" data-route="/production">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'ID', 'align' => 'left'],
+            ['title' => 'Date', 'align' => 'left'],
+            ['title' => 'Frais (KG)', 'align' => 'right'],
+            ['title' => 'Congelé (KG)', 'align' => 'right'],
+            ['title' => 'Guano/Farine (KG)', 'align' => 'right'],
+            ['title' => 'Équilibre', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Module Production & Rendement Usine',
+            'moduleColor' => '#00897B',
+            'moduleIcon' => 'mdi-factory',
+            'badgeText' => 'Usine & Transformation',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Productions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#00897B', 'icon' => 'mdi-cog-sync'],
+                ['label' => 'Poisson Congelé', 'value' => $this->formatNumber($frozenWeight, 2) . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Production Guano', 'value' => $this->formatNumber($guanoWeight, 2) . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => 'Frais Traité', 'value' => $this->formatNumber($freshWeight, 2) . ' KG', 'color' => '#80cbc4', 'icon' => 'mdi-fish'],
+            ],
+            'table' => [
+                'title' => "Dernières Séries de Production (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => [
+                'id' => $chartId,
+                'title' => 'Répartition de la Production par Type (Tonnes)',
+                'labels' => ['Poisson Congelé', 'Guano & Farine', 'Poisson Frais'],
+                'data' => [round($frozenWeight / 1000, 2), round($guanoWeight / 1000, 2), round($freshWeight / 1000, 2)],
+                'seriesName' => 'Volume (Tonnes)',
+                'type' => 'pie',
+                'color' => '#00897B',
+            ],
+            'navButtons' => [
+                ['label' => 'Consulter la Production', 'route' => '/production', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nouvelle Production', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Warehouses & Stocks queries.
+     */
+    private function handleWarehousesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $keyword = $p['keyword'];
+
+        if ($keyword) {
+            // User asked about specific fish stock (e.g. sardine)
+            $stockRows = DB::table('warehouse_balances as wb')
+                ->join('fish_types as ft', 'wb.stockable_id', '=', 'ft.id')
+                ->join('warehouses as w', 'wb.warehouse_id', '=', 'w.id')
+                ->where('ft.name_fr', 'LIKE', "%{$keyword}%")
+                ->whereNull('wb.deleted_at')
+                ->groupBy('ft.name_fr', 'w.name')
+                ->select(
+                    'ft.name_fr as species_name',
+                    'w.name as warehouse_name',
+                    DB::raw('SUM(wb.remaining_weight) as stock_kg'),
+                    DB::raw('SUM(wb.total_price) as stock_val')
+                )
+                ->havingRaw('stock_kg > 0')
+                ->orderByDesc('stock_kg')
+                ->get();
+
+            $totalSpeciesStock = (float) $stockRows->sum('stock_kg');
+            $totalSpeciesVal = (float) $stockRows->sum('stock_val');
+
+            $answerText = "Voici la situation des stocks pour l'espèce « " . ucfirst($keyword) . " » : un stock total disponible de {$this->formatNumber($totalSpeciesStock, 2)} KG valorisé à {$this->formatNumber($totalSpeciesVal, 2)} MAD réparti sur " . count($stockRows) . " magasin(s).";
+
+            $tableRowsHtml = '';
+            foreach ($stockRows as $sr) {
+                $kg = $this->formatNumber((float)$sr->stock_kg, 2);
+                $val = $this->formatNumber((float)$sr->stock_val, 2);
+                $tableRowsHtml .= <<<TR
+                <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+                  <td style="padding: 10px 12px; font-weight: 700; color: #a21ee5;">{$sr->species_name}</td>
+                  <td style="padding: 10px 12px; font-weight: 600;">{$sr->warehouse_name}</td>
+                  <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$kg} KG</td>
+                  <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$val} MAD</td>
+                  <td style="padding: 10px 12px; text-align: center;">
+                    <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #a21ee5; font-size: 11px; cursor: pointer; border: none;" data-route="/warehouses">
+                      Gérer
+                    </button>
+                  </td>
+                </tr>
+TR;
+            }
+
+            $headers = [
+                ['title' => 'Espèce / Produit', 'align' => 'left'],
+                ['title' => 'Entrepôt / Magasin', 'align' => 'left'],
+                ['title' => 'Stock Disponible (KG)', 'align' => 'right'],
+                ['title' => 'Valeur Estimée (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ];
+
+            return $this->renderStandardCard([
+                'uniqueId' => $uniqueId,
+                'chartId' => $chartId,
+                'theme' => $theme,
+                'moduleTitle' => 'Stock Espèce: ' . ucfirst($keyword),
+                'moduleColor' => '#a21ee5',
+                'moduleIcon' => 'mdi-warehouse',
+                'badgeText' => 'Stock Espèce Filtré',
+                'userQuestion' => $p['question'],
+                'answerText' => $answerText,
+                'kpis' => [
+                    ['label' => 'Stock Disponible', 'value' => $this->formatNumber($totalSpeciesStock, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-weight-kilogram'],
+                    ['label' => 'Valeur Estimée', 'value' => $this->formatNumber($totalSpeciesVal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                    ['label' => 'Nombre d\'Entrepôts', 'value' => (string)count($stockRows), 'color' => '#9742f5', 'icon' => 'mdi-warehouse'],
+                ],
+                'table' => [
+                    'title' => "Détail du Stock « {$keyword} » par Entrepôt",
+                    'headers' => $headers,
+                    'rowsHtml' => $tableRowsHtml,
+                ],
+                'chart' => count($stockRows) ? [
+                    'id' => $chartId,
+                    'title' => "Répartition du Stock {$keyword} par Entrepôt (KG)",
+                    'labels' => $stockRows->pluck('warehouse_name')->toArray(),
+                    'data' => $stockRows->map(fn($r) => round((float)$r->stock_kg, 2))->toArray(),
+                    'seriesName' => 'Stock (KG)',
+                    'type' => 'pie',
+                    'color' => '#a21ee5',
+                ] : null,
+                'navButtons' => [
+                    ['label' => 'Gestion des Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                    ['label' => 'Fiche Espèces', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+                ],
+            ]);
+        }
+
+        // Global Warehouses Stock overview
+        $warehouses = DB::table('warehouses as w')
+            ->whereNull('w.deleted_at')
+            ->select('w.id', 'w.name', 'w.warehouse_type', 'w.stock_type', 'w.total_weight')
+            ->orderByDesc('w.total_weight')
+            ->get();
+
+        $totalStockKg = (float) $warehouses->sum('total_weight');
+        $warehousesCount = count($warehouses);
+
+        $answerText = "Voici la situation globale des entrepôts et stocks : le réseau compte {$warehousesCount} magasins avec un stock global cumulé de {$this->formatNumber($totalStockKg, 2)} KG.";
+
+        $tableRowsHtml = '';
+        foreach ($warehouses as $wh) {
+            $kg = $this->formatNumber((float)$wh->total_weight, 2);
+            $type = htmlspecialchars($wh->warehouse_type ?: 'Standard');
+            $stockType = htmlspecialchars($wh->stock_type ?: 'company');
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #a21ee5;">{$wh->name}</td>
+              <td style="padding: 10px 12px;">{$type}</td>
+              <td style="padding: 10px 12px;"><span style="background: rgba(162,30,229,0.15); color: #a21ee5; padding: 2px 8px; border-radius: 12px; font-size: 11px;">{$stockType}</span></td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$kg} KG</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #a21ee5; font-size: 11px; cursor: pointer; border: none;" data-route="/warehouses">
+                  Consulter
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'Entrepôt', 'align' => 'left'],
+            ['title' => 'Type Magasin', 'align' => 'left'],
+            ['title' => 'Catégorie Stock', 'align' => 'left'],
+            ['title' => 'Poids Total (KG)', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Module Entrepôts & Stocks (Warehouses)',
+            'moduleColor' => '#a21ee5',
+            'moduleIcon' => 'mdi-warehouse',
+            'badgeText' => 'Situation des Stocks',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Magasins', 'value' => (string)$warehousesCount, 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Stock Global', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#00E676', 'icon' => 'mdi-weight-kilogram'],
+            ],
+            'table' => [
+                'title' => "Situation des Magasins & Chambres Froides",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($warehouses) ? [
+                'id' => $chartId,
+                'title' => 'Top Magasins par Volume (KG)',
+                'labels' => $warehouses->take(6)->pluck('name')->toArray(),
+                'data' => $warehouses->take(6)->map(fn($w) => round((float)$w->total_weight, 2))->toArray(),
+                'seriesName' => 'Poids (KG)',
+                'type' => 'bar',
+                'color' => '#a21ee5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Gestion des Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Transferts Inter-Magasins', 'route' => '/warehouse_transfer', 'icon' => 'mdi-swap-horizontal'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Invoices & Finances queries.
+     */
+    private function handleInvoicesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $clientInvoicesCount = DB::table('client_invoices')->whereNull('deleted_at')->count();
+        $clientInvoicesTotal = (float) DB::table('client_invoices')->whereNull('deleted_at')->sum('total_price');
+
+        $supplierInvoicesCount = DB::table('supplier_invoices')->whereNull('deleted_at')->count();
+        $supplierInvoicesTotal = (float) DB::table('supplier_invoices')->whereNull('deleted_at')->sum('total_price');
+
+        $limit = $p['limit'] ?: 10;
+        $invoices = DB::table('client_invoices as ci')
+            ->leftJoin('clients as c', 'ci.client_id', '=', 'c.id')
+            ->whereNull('ci.deleted_at')
+            ->select('ci.id', 'ci.date', 'c.name as client_name', 'ci.total_price', 'ci.total_weight', 'ci.type_invoice')
+            ->orderBy('ci.date', 'desc')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici la situation de la facturation : {$this->formatNumber($clientInvoicesCount, 0)} factures clients émises ({$this->formatNumber($clientInvoicesTotal, 2)} MAD) et {$this->formatNumber($supplierInvoicesCount, 0)} factures fournisseurs enregistrées ({$this->formatNumber($supplierInvoicesTotal, 2)} MAD).";
+
+        $tableRowsHtml = '';
+        foreach ($invoices as $inv) {
+            $client = htmlspecialchars($inv->client_name ?: 'Client #' . $inv->id);
+            $price = $this->formatNumber((float)$inv->total_price, 2);
+            $weight = $this->formatNumber((float)$inv->total_weight, 2);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #E65100;">#FAC-{$inv->id}</td>
+              <td style="padding: 10px 12px;">{$inv->date}</td>
+              <td style="padding: 10px 12px; font-weight: 600;">{$client}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$weight} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$price} MAD</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #E65100; font-size: 11px; cursor: pointer; border: none;" data-route="/client_invoice">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'N° Facture', 'align' => 'left'],
+            ['title' => 'Date', 'align' => 'left'],
+            ['title' => 'Client', 'align' => 'left'],
+            ['title' => 'Poids (KG)', 'align' => 'right'],
+            ['title' => 'Montant (MAD)', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Module Facturation & Finances',
+            'moduleColor' => '#E65100',
+            'moduleIcon' => 'mdi-file-document-outline',
+            'badgeText' => 'Factures & Règlements',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Factures Clients', 'value' => $this->formatNumber($clientInvoicesCount, 0), 'color' => '#E65100', 'icon' => 'mdi-receipt-text'],
+                ['label' => 'Total Facturé Clients', 'value' => $this->formatNumber($clientInvoicesTotal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'Factures Fournisseurs', 'value' => $this->formatNumber($supplierInvoicesCount, 0), 'color' => '#F57C00', 'icon' => 'mdi-receipt-text-outline'],
+                ['label' => 'Total Facturé Fournisseurs', 'value' => $this->formatNumber($supplierInvoicesTotal, 2) . ' MAD', 'color' => '#FF7043', 'icon' => 'mdi-cash-minus'],
+            ],
+            'table' => [
+                'title' => "Dernières Factures Émises (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => [
+                'id' => $chartId,
+                'title' => 'Volume Financier Facturé (MAD)',
+                'labels' => ['Factures Clients (Ventes)', 'Factures Fournisseurs (Achats)'],
+                'data' => [round($clientInvoicesTotal, 2), round($supplierInvoicesTotal, 2)],
+                'seriesName' => 'Montant (MAD)',
+                'type' => 'pie',
+                'color' => '#E65100',
+            ],
+            'navButtons' => [
+                ['label' => 'Factures Clients', 'route' => '/client_invoice', 'icon' => 'mdi-receipt'],
+                ['label' => 'Factures Fournisseurs', 'route' => '/supplier_invoice', 'icon' => 'mdi-receipt-text'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Workforce & Fortnight queries.
+     */
+    private function handleWorkforceQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $workersCount = DB::table('workforces')->whereNull('deleted_at')->count();
+        $activitiesCount = DB::table('fortnight_activities')->whereNull('deleted_at')->count();
+        $totalPaid = (float) DB::table('fortnight_activities')->whereNull('deleted_at')->sum('price');
+
+        $sections = DB::table('sections as s')
+            ->leftJoin('fortnight_activities as fa', 'fa.section_id', '=', 's.id')
+            ->whereNull('s.deleted_at')
+            ->groupBy('s.id', 's.name')
+            ->select('s.name', DB::raw('COUNT(fa.id) as activities_count'), DB::raw('SUM(fa.price) as total_price'))
+            ->orderByDesc('activities_count')
+            ->get();
+
+        $limit = $p['limit'] ?: 10;
+        $workers = DB::table('workforces')
+            ->whereNull('deleted_at')
+            ->select('id', 'full_name', 'matricule', 'daily_price', 'status', 'nationality')
+            ->orderBy('id', 'desc')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici la situation de la main d'œuvre : {$this->formatNumber($workersCount, 0)} ouvriers enregistrés, avec un historique de {$this->formatNumber($activitiesCount, 0)} journées de travail réparties sur les quinzaines pour une masse salariale traitée de {$this->formatNumber($totalPaid, 2)} MAD.";
+
+        $tableRowsHtml = '';
+        foreach ($workers as $w) {
+            $name = htmlspecialchars($w->full_name);
+            $mat = htmlspecialchars($w->matricule ?: ('#' . $w->id));
+            $wage = $this->formatNumber((float)$w->daily_price, 2);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$mat}</td>
+              <td style="padding: 10px 12px; font-weight: 600;">{$name}</td>
+              <td style="padding: 10px 12px;">{$w->nationality}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$wage} MAD/J</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/workforces">
+                  Fiche
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'Matricule', 'align' => 'left'],
+            ['title' => 'Nom Complet', 'align' => 'left'],
+            ['title' => 'Nationalité', 'align' => 'left'],
+            ['title' => 'Salaire Journalier', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Module Main d\'œuvre & Quinzaine',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-account-group',
+            'badgeText' => 'Personnel & Quinzaine',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Ouvriers', 'value' => $this->formatNumber($workersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-multiple'],
+                ['label' => 'Total Journées / Activités', 'value' => $this->formatNumber($activitiesCount, 0), 'color' => '#29B6F6', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'Masse Salariale', 'value' => $this->formatNumber($totalPaid, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+            ],
+            'table' => [
+                'title' => "Liste des Ouvriers Récents (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($sections) ? [
+                'id' => $chartId,
+                'title' => 'Activités par Section Usine',
+                'labels' => $sections->take(5)->pluck('name')->toArray(),
+                'data' => $sections->take(5)->pluck('activities_count')->toArray(),
+                'seriesName' => 'Activités',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Gestion de la Main d\'œuvre', 'route' => '/workforces', 'icon' => 'mdi-account-group'],
+                ['label' => 'Feuilles de Quinzaine', 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Trucks queries.
+     */
+    private function handleTrucksQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $trucksCount = DB::table('trucks')->whereNull('deleted_at')->count();
+        $limit = $p['limit'] ?: 10;
+
+        $trucks = DB::table('trucks as t')
+            ->leftJoin('charge_truck as ct', 'ct.truck_id', '=', 't.id')
+            ->leftJoin('shipping_truck as st', 'st.truck_id', '=', 't.id')
+            ->whereNull('t.deleted_at')
+            ->groupBy('t.id', 't.registration_plate')
+            ->select(
+                't.id',
+                't.registration_plate',
+                DB::raw('COUNT(DISTINCT ct.charge_id) as charge_trips'),
+                DB::raw('COUNT(DISTINCT st.shipping_id) as shipping_trips')
+            )
+            ->orderByRaw('(COUNT(DISTINCT ct.charge_id) + COUNT(DISTINCT st.shipping_id)) DESC')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici la situation de la flotte de camions : {$this->formatNumber($trucksCount, 0)} camions répertoriés dans la base de données.";
+
+        $tableRowsHtml = '';
+        foreach ($trucks as $t) {
+            $plate = htmlspecialchars($t->registration_plate ?: 'Camion #' . $t->id);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$plate}</td>
+              <td style="padding: 10px 12px; text-align: center; font-weight: 600;">{$t->charge_trips}</td>
+              <td style="padding: 10px 12px; text-align: center; font-weight: 600;">{$t->shipping_trips}</td>
+              <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: #00E676;">" . ($t->charge_trips + $t->shipping_trips) . "</td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'Matricule Camion', 'align' => 'left'],
+            ['title' => 'Voyages Réceptions', 'align' => 'center'],
+            ['title' => 'Voyages Expéditions', 'align' => 'center'],
+            ['title' => 'Total Missions', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Flotte Camions & Transport',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-truck',
+            'badgeText' => 'Logistique & Transport',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Camions', 'value' => $this->formatNumber($trucksCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-truck'],
+            ],
+            'table' => [
+                'title' => "Camions les Plus Actifs (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($trucks) ? [
+                'id' => $chartId,
+                'title' => 'Top Camions par Nombre de Missions',
+                'labels' => $trucks->take(5)->pluck('registration_plate')->toArray(),
+                'data' => $trucks->take(5)->map(fn($t) => $t->charge_trips + $t->shipping_trips)->toArray(),
+                'seriesName' => 'Missions',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Gestion Camions', 'route' => '/parameters/trucks', 'icon' => 'mdi-truck'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Ships queries.
+     */
+    private function handleShipsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $shipsCount = DB::table('ships')->whereNull('deleted_at')->count();
+        $limit = $p['limit'] ?: 10;
+
+        $ships = DB::table('ships as s')
+            ->leftJoin('charges as c', 'c.ship_id', '=', 's.id')
+            ->whereNull('s.deleted_at')
+            ->groupBy('s.id', 's.name', 's.imo_number')
+            ->select('s.id', 's.name', 's.imo_number', DB::raw('COUNT(c.id) as landings_count'), DB::raw('SUM(c.total_weight) as total_weight'))
+            ->orderByDesc('landings_count')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici la flotte maritime : {$this->formatNumber($shipsCount, 0)} navires et bateaux de pêche répertoriés.";
+
+        $tableRowsHtml = '';
+        foreach ($ships as $s) {
+            $name = htmlspecialchars($s->name ?: 'Navire #' . $s->id);
+            $imo = htmlspecialchars($s->imo_number ?: '-');
+            $weight = $this->formatNumber((float)$s->total_weight, 2);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$name}</td>
+              <td style="padding: 10px 12px;">{$imo}</td>
+              <td style="padding: 10px 12px; text-align: center; font-weight: 600;">{$s->landings_count}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$weight} KG</td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'Nom du Navire', 'align' => 'left'],
+            ['title' => 'N° IMO / Immatriculation', 'align' => 'left'],
+            ['title' => 'Débarquements', 'align' => 'center'],
+            ['title' => 'Poids Total Débarqué (KG)', 'align' => 'right'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Flotte Maritime & Navires',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-ferry',
+            'badgeText' => 'Bateaux & Débarquements',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Navires', 'value' => $this->formatNumber($shipsCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-ferry'],
+            ],
+            'table' => [
+                'title' => "Navires les Plus Actifs (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($ships) ? [
+                'id' => $chartId,
+                'title' => 'Top Navires par Nombre de Débarquements',
+                'labels' => $ships->take(5)->pluck('name')->toArray(),
+                'data' => $ships->take(5)->pluck('landings_count')->toArray(),
+                'seriesName' => 'Débarquements',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Gestion Navires', 'route' => '/parameters/ships', 'icon' => 'mdi-ferry'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Fish Types & Taxonomy queries.
+     */
+    private function handleFishTypesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $typesCount = DB::table('fish_types')->whereNull('deleted_at')->count();
+        $limit = $p['limit'] ?: 10;
+
+        $types = DB::table('fish_types')
+            ->whereNull('deleted_at')
+            ->select('id', 'name_fr', 'name_en', 'name_es', 'scientific_name', 'type')
+            ->orderBy('id', 'asc')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici la nomenclature des espèces de poissons : {$this->formatNumber($typesCount, 0)} types de poissons et conditionnements configurés dans le système.";
+
+        $tableRowsHtml = '';
+        foreach ($types as $t) {
+            $fr = htmlspecialchars($t->name_fr ?: '-');
+            $en = htmlspecialchars($t->name_en ?: '-');
+            $es = htmlspecialchars($t->name_es ?: '-');
+            $sci = htmlspecialchars($t->scientific_name ?: '-');
+            $typeBadge = $t->type === 'fresh' ? '<span style="background: rgba(0,137,123,0.15); color: #00897B; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Frais</span>' : '<span style="background: rgba(33,150,243,0.15); color: #42A5F5; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Congelé</span>';
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$fr}</td>
+              <td style="padding: 10px 12px;">{$en}</td>
+              <td style="padding: 10px 12px;">{$es}</td>
+              <td style="padding: 10px 12px; font-style: italic;">{$sci}</td>
+              <td style="padding: 10px 12px; text-align: center;">{$typeBadge}</td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'Nom (Français)', 'align' => 'left'],
+            ['title' => 'Nom (Anglais)', 'align' => 'left'],
+            ['title' => 'Nom (Espagnol)', 'align' => 'left'],
+            ['title' => 'Nom Scientifique', 'align' => 'left'],
+            ['title' => 'Type', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Nomenclature des Espèces de Poissons',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-fish',
+            'badgeText' => 'Taxonomie Poissons',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Espèces & Articles', 'value' => $this->formatNumber($typesCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-fish'],
+            ],
+            'table' => [
+                'title' => "Espèces Répertoriées (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'navButtons' => [
+                ['label' => 'Gestion des Espèces', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Suppliers queries.
+     */
+    private function handleSuppliersQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $suppliersCount = DB::table('suppliers')->whereNull('deleted_at')->count();
+        $limit = $p['limit'] ?: 10;
+
+        $topSuppliers = DB::table('suppliers as s')
+            ->leftJoin('charges as c', 'c.supplier_id', '=', 's.id')
+            ->whereNull('s.deleted_at')
+            ->groupBy('s.id', 's.name', 's.phone', 's.city')
+            ->select('s.id', 's.name', 's.phone', 's.city', DB::raw('COUNT(c.id) as charges_count'), DB::raw('SUM(c.total_weight) as total_weight'), DB::raw('SUM(c.total_price) as total_price'))
+            ->orderByDesc('total_weight')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici la liste des fournisseurs de poissons : {$this->formatNumber($suppliersCount, 0)} fournisseurs actifs répertoriés.";
+
+        $tableRowsHtml = '';
+        foreach ($topSuppliers as $s) {
+            $name = htmlspecialchars($s->name);
+            $city = htmlspecialchars($s->city ?: '-');
+            $weight = $this->formatNumber((float)$s->total_weight, 2);
+            $price = $this->formatNumber((float)$s->total_price, 2);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$name}</td>
+              <td style="padding: 10px 12px;">{$city}</td>
+              <td style="padding: 10px 12px; text-align: center; font-weight: 600;">{$s->charges_count}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$weight} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$price} MAD</td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'Fournisseur', 'align' => 'left'],
+            ['title' => 'Ville', 'align' => 'left'],
+            ['title' => 'Réceptions', 'align' => 'center'],
+            ['title' => 'Poids Total (KG)', 'align' => 'right'],
+            ['title' => 'Montant Total (MAD)', 'align' => 'right'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Répertoire des Fournisseurs',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-account-tie',
+            'badgeText' => 'Fournisseurs',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Fournisseurs', 'value' => $this->formatNumber($suppliersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-tie'],
+            ],
+            'table' => [
+                'title' => "Top Fournisseurs par Volume (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($topSuppliers) ? [
+                'id' => $chartId,
+                'title' => 'Top 5 Fournisseurs par Volume (Tonnes)',
+                'labels' => $topSuppliers->take(5)->pluck('name')->toArray(),
+                'data' => $topSuppliers->take(5)->map(fn($s) => round((float)$s->total_weight / 1000, 2))->toArray(),
+                'seriesName' => 'Volume (Tonnes)',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Gestion Fournisseurs', 'route' => '/suppliers', 'icon' => 'mdi-account-tie'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Clients queries.
+     */
+    private function handleClientsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $clientsCount = DB::table('clients')->whereNull('deleted_at')->count();
+        $limit = $p['limit'] ?: 10;
+
+        $topClients = DB::table('clients as c')
+            ->leftJoin('shippings as s', 's.client_id', '=', 'c.id')
+            ->whereNull('c.deleted_at')
+            ->groupBy('c.id', 'c.name', 'c.phone', 'c.city')
+            ->select('c.id', 'c.name', 'c.phone', 'c.city', DB::raw('COUNT(s.id) as shippings_count'), DB::raw('SUM(s.total_weight) as total_weight'), DB::raw('SUM(s.total_price) as total_price'))
+            ->orderByDesc('total_price')
+            ->limit($limit)
+            ->get();
+
+        $answerText = "Voici la liste des clients et partenaires : {$this->formatNumber($clientsCount, 0)} clients enregistrés.";
+
+        $tableRowsHtml = '';
+        foreach ($topClients as $c) {
+            $name = htmlspecialchars($c->name);
+            $city = htmlspecialchars($c->city ?: '-');
+            $weight = $this->formatNumber((float)$c->total_weight, 2);
+            $price = $this->formatNumber((float)$c->total_price, 2);
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #4643a0;">{$name}</td>
+              <td style="padding: 10px 12px;">{$city}</td>
+              <td style="padding: 10px 12px; text-align: center; font-weight: 600;">{$c->shippings_count}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$weight} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$price} MAD</td>
+            </tr>
+TR;
+        }
+
+        $headers = [
+            ['title' => 'Client', 'align' => 'left'],
+            ['title' => 'Ville', 'align' => 'left'],
+            ['title' => 'Expéditions', 'align' => 'center'],
+            ['title' => 'Volume Acheté (KG)', 'align' => 'right'],
+            ['title' => 'Chiffre d\'Affaires (MAD)', 'align' => 'right'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Répertoire des Clients',
+            'moduleColor' => '#4643a0',
+            'moduleIcon' => 'mdi-account-star',
+            'badgeText' => 'Clients & Acheteurs',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Clients', 'value' => $this->formatNumber($clientsCount, 0), 'color' => '#4643a0', 'icon' => 'mdi-account-star'],
+            ],
+            'table' => [
+                'title' => "Top Clients par Chiffre d'Affaires (Top {$limit})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($topClients) ? [
+                'id' => $chartId,
+                'title' => 'Top 5 Clients par Chiffre d\'Affaires (k MAD)',
+                'labels' => $topClients->take(5)->pluck('name')->toArray(),
+                'data' => $topClients->take(5)->map(fn($c) => round((float)$c->total_price / 1000, 2))->toArray(),
+                'seriesName' => 'Montant (k MAD)',
+                'type' => 'bar',
+                'color' => '#4643a0',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Gestion Clients', 'route' => '/clients', 'icon' => 'mdi-account-star'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Comparison (Achats vs Ventes) queries.
+     */
+    private function handleComparisonQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $chargesWeight = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_weight');
+        $chargesPrice = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_price');
+
+        $shippingsWeight = (float) DB::table('shippings')->whereNull('deleted_at')->sum('total_weight');
+        $shippingsPrice = (float) DB::table('shippings')->whereNull('deleted_at')->sum('total_price');
+
+        $margin = $shippingsPrice - $chargesPrice;
+
+        $answerText = "Voici le bilan comparatif Achats vs Ventes : Volume acheté : {$this->formatNumber($chargesWeight, 2)} KG ({$this->formatNumber($chargesPrice, 2)} MAD) | Volume vendu : {$this->formatNumber($shippingsWeight, 2)} KG ({$this->formatNumber($shippingsPrice, 2)} MAD). Marge brute d'activité : {$this->formatNumber($margin, 2)} MAD.";
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Comparatif Achats (Charges) vs Ventes (Expéditions)',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-scale-balance',
+            'badgeText' => 'Bilan & Rentabilité',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Achats (Charges)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-minus'],
+                ['label' => 'Ventes (Shippings)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'Volume Acheté', 'value' => $this->formatNumber($chargesWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Volume Vendu', 'value' => $this->formatNumber($shippingsWeight, 2) . ' KG', 'color' => '#b39ddb', 'icon' => 'mdi-ship-wheel'],
+            ],
+            'chart' => [
+                'id' => $chartId,
+                'title' => 'Comparaison Achats vs Ventes (Millions MAD)',
+                'labels' => ['Achats (Charges)', 'Ventes (Expéditions)'],
+                'data' => [round($chargesPrice / 1000000, 2), round($shippingsPrice / 1000000, 2)],
+                'seriesName' => 'Montant (M MAD)',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ],
+            'navButtons' => [
+                ['label' => 'Consulter les Charges', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Consulter les Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Generic Search Query across tables.
+     */
+    private function handleGenericSearchQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $q = $p['question'];
+        return $this->handleOverviewQuery($uniqueId, $chartId, $p, $theme);
+    }
+
+    /**
+     * Handle Overview Query.
+     */
+    private function handleOverviewQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
         $chargesCount = DB::table('charges')->whereNull('deleted_at')->count();
         $chargesWeight = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_weight');
@@ -278,1271 +1363,353 @@ HTML;
         $shippingsWeight = (float) DB::table('shippings')->whereNull('deleted_at')->sum('total_weight');
         $shippingsPrice = (float) DB::table('shippings')->whereNull('deleted_at')->sum('total_price');
 
-        $prodCount = DB::table('productions')->whereNull('deleted_at')->count();
         $prodFrozenWeight = (float) DB::table('productions')->whereNull('deleted_at')->sum('frozen_production_weight');
-        $prodGuanoWeight = (float) DB::table('productions')->whereNull('deleted_at')->sum('guano_production_weight');
-
-        $warehousesCount = DB::table('warehouses')->whereNull('deleted_at')->count();
         $totalStockKg = (float) DB::table('warehouses')->whereNull('deleted_at')->sum('total_weight');
 
-        $workforceCount = DB::table('workforces')->whereNull('deleted_at')->count();
-        $activitiesCount = DB::table('fortnight_activities')->whereNull('deleted_at')->count();
+        $answerText = "Voici la synthèse globale du système ERP : {$this->formatNumber($chargesCount, 0)} réceptions d'achats ({$this->formatNumber($chargesWeight, 2)} KG), {$this->formatNumber($shippingsCount, 0)} expéditions de ventes ({$this->formatNumber($shippingsWeight, 2)} KG), {$this->formatNumber($prodFrozenWeight, 2)} KG congelés produits, et un stock actuel en magasin de {$this->formatNumber($totalStockKg, 2)} KG.";
 
-        $labels = [
-            'fr' => [
-                'title' => 'Tableau de Bord Exécutif & Indicateurs Clés (KPI)',
-                'badge' => 'Synthèse Globale ERP',
-                'p_purchases' => 'Achats (Charges)',
-                'p_sales' => 'Ventes (Expéditions)',
-                'p_prod' => 'Productions Usine',
-                'p_stock' => 'Stock en Magasins',
-                'p_workforce' => 'Main d\'œuvre',
-                'p_chart' => 'Répartition des Volumes Clés (Tonnes)',
-                'insight_title' => 'Analyses et Éclairages Opérationnels',
-                'insight1' => sprintf("Total des réceptions enregistrées: %s lots pour un volume de %s T et une valeur de %s MAD.", number_format($chargesCount, 0, ',', ' '), number_format($chargesWeight / 1000, 2, ',', ' '), number_format($chargesPrice, 2, ',', ' ')),
-                'insight2' => sprintf("Expéditions et ventes globales: %s opérations totalisant %s T de poisson expédié valorisé à %s MAD.", number_format($shippingsCount, 0, ',', ' '), number_format($shippingsWeight / 1000, 2, ',', ' '), number_format($shippingsPrice, 2, ',', ' ')),
-                'insight3' => sprintf("Stock disponible actuellement sous froid: %s T réparties dans %s entrepôts.", number_format($totalStockKg / 1000, 2, ',', ' '), $warehousesCount),
-                'chart_purchases' => 'Achats Réceptionnés',
-                'chart_sales' => 'Ventes Expédiées',
-                'chart_frozen' => 'Congélation Finie',
-                'chart_guano' => 'Farine & Guano',
-                'chart_stock' => 'Stock Actuel'
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Tableau de Bord Exécutif & Indicateurs Clés',
+            'moduleColor' => '#1565C0',
+            'moduleIcon' => 'mdi-view-dashboard-outline',
+            'badgeText' => 'Vue d\'Ensemble ERP',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Achats (Charges)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Total Ventes (Shippings)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Production Congelée', 'value' => $this->formatNumber($prodFrozenWeight, 2) . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Stock en Magasins', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
             ],
-            'es' => [
-                'title' => 'Panel Ejecutivo e Indicadores Clave (KPI)',
-                'badge' => 'Resumen Global ERP',
-                'p_purchases' => 'Compras (Cargas)',
-                'p_sales' => 'Ventas (Envíos)',
-                'p_prod' => 'Producción Planta',
-                'p_stock' => 'Stock en Almacenes',
-                'p_workforce' => 'Mano de Obra',
-                'p_chart' => 'Distribución de Volúmenes Clave (Toneladas)',
-                'insight_title' => 'Análisis y Observaciones Operativas',
-                'insight1' => sprintf("Total de recepciones registradas: %s lotes con un volumen de %s T y un valor de %s MAD.", number_format($chargesCount, 0, ',', ' '), number_format($chargesWeight / 1000, 2, ',', ' '), number_format($chargesPrice, 2, ',', ' ')),
-                'insight2' => sprintf("Envíos y ventas globales: %s operaciones totalizando %s T enviadas valoradas en %s MAD.", number_format($shippingsCount, 0, ',', ' '), number_format($shippingsWeight / 1000, 2, ',', ' '), number_format($shippingsPrice, 2, ',', ' ')),
-                'insight3' => sprintf("Stock actualmente bajo frío: %s T distribuidas en %s almacenes.", number_format($totalStockKg / 1000, 2, ',', ' '), $warehousesCount),
-                'chart_purchases' => 'Compras Recibidas',
-                'chart_sales' => 'Ventas Enviadas',
-                'chart_frozen' => 'Congelado Terminado',
-                'chart_guano' => 'Harina y Guano',
-                'chart_stock' => 'Stock Actual'
+            'chart' => [
+                'id' => $chartId,
+                'title' => 'Volumes Clés du Système (Tonnes)',
+                'labels' => ['Achats Réceptionnés', 'Ventes Expédiées', 'Production Congelée', 'Stock en Entrepôts'],
+                'data' => [
+                    round($chargesWeight / 1000, 2),
+                    round($shippingsWeight / 1000, 2),
+                    round($prodFrozenWeight / 1000, 2),
+                    round($totalStockKg / 1000, 2),
+                ],
+                'seriesName' => 'Volume (Tonnes)',
+                'type' => 'bar',
+                'color' => '#1565C0',
             ],
-            'ar' => [
-                'title' => 'لوحة القيادة التنفيذية والمؤشرات الرئيسية (KPI)',
-                'badge' => 'ملخص شامل لنظام جوبيتر',
-                'p_purchases' => 'المشتريات (الشحنات)',
-                'p_sales' => 'المبيعات (الشحن)',
-                'p_prod' => 'الإنتاج الصناعي',
-                'p_stock' => 'المخزون الحالي',
-                'p_workforce' => 'اليد العاملة',
-                'p_chart' => 'توزيع الأحجام الرئيسية (بالأطنان)',
-                'insight_title' => 'تحليلات ورؤى تشغيلية',
-                'insight1' => sprintf("إجمالي الشحنات المستلمة: %s شحنة بحجم %s طن وقيمة %s درهم مغربي.", number_format($chargesCount, 0, ',', ' '), number_format($chargesWeight / 1000, 2, ',', ' '), number_format($chargesPrice, 2, ',', ' ')),
-                'insight2' => sprintf("المبيعات وعمليات التصدير: %s عملية بحجم %s طن من الأسماك بقيمة %s درهم مغربي.", number_format($shippingsCount, 0, ',', ' '), number_format($shippingsWeight / 1000, 2, ',', ' '), number_format($shippingsPrice, 2, ',', ' ')),
-                'insight3' => sprintf("المخزون المتوفر بغرف التبريد: %s طن موزع على %s مخازن.", number_format($totalStockKg / 1000, 2, ',', ' '), $warehousesCount),
-                'chart_purchases' => 'المشتريات المستلمة',
-                'chart_sales' => 'المبيعات المشحونة',
-                'chart_frozen' => 'الأسماك المجمدة',
-                'chart_guano' => 'دقيق السمك (جوانو)',
-                'chart_stock' => 'المخزون الحالي'
+            'navButtons' => [
+                ['label' => 'Module Achats', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Module Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Module Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
             ],
-            'en' => [
-                'title' => 'Executive Dashboard & Key Indicators (KPI)',
-                'badge' => 'Global ERP Summary',
-                'p_purchases' => 'Purchases (Charges)',
-                'p_sales' => 'Sales (Shippings)',
-                'p_prod' => 'Factory Production',
-                'p_stock' => 'Cold Storage Stock',
-                'p_workforce' => 'Workforce & Shifts',
-                'p_chart' => 'Key Volume Distribution (Metric Tons)',
-                'insight_title' => 'Operational Analytics & Insights',
-                'insight1' => sprintf("Total reception lots: %s lots with volume of %s Tons valued at %s MAD.", number_format($chargesCount, 0, ',', ' '), number_format($chargesWeight / 1000, 2, ',', ' '), number_format($chargesPrice, 2, ',', ' ')),
-                'insight2' => sprintf("Outbound sales and shipments: %s shipments totaling %s Tons valued at %s MAD.", number_format($shippingsCount, 0, ',', ' '), number_format($shippingsWeight / 1000, 2, ',', ' '), number_format($shippingsPrice, 2, ',', ' ')),
-                'insight3' => sprintf("Current inventory in cold storage: %s Tons across %s warehouses.", number_format($totalStockKg / 1000, 2, ',', ' '), $warehousesCount),
-                'chart_purchases' => 'Purchases Received',
-                'chart_sales' => 'Sales Shipped',
-                'chart_frozen' => 'Frozen Finished',
-                'chart_guano' => 'Fishmeal & Guano',
-                'chart_stock' => 'Current Stock'
-            ]
-        ];
+        ]);
+    }
 
-        $t = $labels[$lang] ?? $labels['en'];
+    // =========================================================================
+    //  RENDER HELPER
+    // =========================================================================
+
+    /**
+     * Unified card renderer for rich, responsive Vue/HTML output with ApexCharts and navigation.
+     */
+    private function renderStandardCard(array $cfg): string
+    {
+        $uniqueId = $cfg['uniqueId'];
+        $chartId = $cfg['chartId'] ?? '';
+        $theme = $cfg['theme'] ?? 'dark';
         $isDark = ($theme === 'dark');
+
         $cardBg = $isDark ? '#1a2332' : '#ffffff';
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
         $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
         $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
-        // Prepare chart data in Tons
-        $cSeries = [
-            round($chargesWeight / 1000, 2),
-            round($shippingsWeight / 1000, 2),
-            round($prodFrozenWeight / 1000, 2),
-            round($prodGuanoWeight / 1000, 2),
-            round($totalStockKg / 1000, 2),
-        ];
-        $cCategories = [
-            $t['chart_purchases'],
-            $t['chart_sales'],
-            $t['chart_frozen'],
-            $t['chart_guano'],
-            $t['chart_stock']
-        ];
+        $modColor = $cfg['moduleColor'] ?? '#42A5F5';
+        $modTitle = htmlspecialchars($cfg['moduleTitle'] ?? 'Jupiter AI Engine');
+        $modIcon = $cfg['moduleIcon'] ?? 'mdi-robot';
+        $badgeText = htmlspecialchars($cfg['badgeText'] ?? 'Analyse Précise');
+        $userQuestion = htmlspecialchars($cfg['userQuestion'] ?? '');
+        $answerText = htmlspecialchars($cfg['answerText'] ?? '');
 
-        $seriesJson = json_encode($cSeries);
-        $categoriesJson = json_encode($cCategories);
+        // 1. KPI Cards HTML
+        $kpiHtml = '';
+        if (!empty($cfg['kpis'])) {
+            $kpiHtml .= '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">';
+            foreach ($cfg['kpis'] as $kpi) {
+                $kVal = htmlspecialchars($kpi['value']);
+                $kLbl = htmlspecialchars($kpi['label']);
+                $kCol = $kpi['color'] ?? $modColor;
+                $kIco = $kpi['icon'] ?? 'mdi-chart-line';
+                $kpiHtml .= <<<KPI
+                <div class="ai-analytics-kpi" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px 16px; border: 1px solid var(--ai-border, {$innerBorder}); box-shadow: 0 4px 12px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 42px; height: 42px; border-radius: 10px; background: {$kCol}15; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="v-icon notranslate {$kIco}" style="font-size: 22px; color: {$kCol};"></i>
+                  </div>
+                  <div>
+                    <div style="font-size: 11.5px; font-weight: 600; color: var(--ai-sub-color, {$subColor}); text-transform: uppercase; letter-spacing: 0.5px;">{$kLbl}</div>
+                    <div style="font-size: 18px; font-weight: 800; color: {$kCol}; margin-top: 2px;">{$kVal}</div>
+                  </div>
+                </div>
+KPI;
+            }
+            $kpiHtml .= '</div>';
+        }
+
+        // 2. Table HTML
+        $tableHtml = '';
+        if (!empty($cfg['table'])) {
+            $tTitle = htmlspecialchars($cfg['table']['title'] ?? 'Détails des Enregistrements');
+            $tHeaders = '';
+            foreach ($cfg['table']['headers'] as $h) {
+                $align = $h['align'] ?? 'left';
+                $tHeaders .= "<th style=\"padding: 10px 12px; text-align: {$align};\">{$h['title']}</th>";
+            }
+            $tRows = $cfg['table']['rowsHtml'] ?? '';
+            $tableHtml = <<<TBL
+            <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--ai-border, {$innerBorder});">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <div style="font-size: 13px; font-weight: 800; color: {$modColor}; text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px;">
+                  <i class="v-icon notranslate mdi mdi-table" style="font-size: 16px;"></i>
+                  {$tTitle}
+                </div>
+              </div>
+              <div style="overflow-x: auto; width: 100%;">
+                <table class="ai-analytics-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; color: var(--ai-text-color, {$textColor});">
+                  <thead>
+                    <tr style="border-bottom: 2px solid rgba(66, 165, 245, 0.2); color: var(--ai-sub-color, {$subColor}); font-size: 11.5px; text-transform: uppercase;">
+                      {$tHeaders}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {$tRows}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+TBL;
+        }
+
+        // 3. Chart HTML & JS
+        $chartContainerHtml = '';
+        $chartJs = '';
+        if (!empty($cfg['chart'])) {
+            $c = $cfg['chart'];
+            $cTitle = htmlspecialchars($c['title'] ?? 'Visualisation Graphique');
+            $chartContainerHtml = <<<CHART
+            <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--ai-border, {$innerBorder});">
+              <div style="font-size: 13px; font-weight: 800; color: {$modColor}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                <i class="v-icon notranslate mdi mdi-chart-bell-curve-cumulative" style="font-size: 16px;"></i>
+                {$cTitle}
+              </div>
+              <div id="{$c['id']}" style="min-height: 260px;"></div>
+            </div>
+CHART;
+
+            $labelsJson = json_encode($c['labels'] ?? []);
+            $dataJson = json_encode($c['data'] ?? []);
+            $sName = addslashes($c['seriesName'] ?? 'Valeur');
+            $cType = $c['type'] ?? 'bar';
+            $cCol = $c['color'] ?? $modColor;
+
+            if ($cType === 'pie' || $cType === 'donut') {
+                $chartJs = <<<JS
+(function(){
+  var chartEl = document.querySelector('#{$c['id']}');
+  if (!chartEl || !window.ApexCharts) return;
+  var options = {
+    chart: { type: '{$cType}', height: 260, id: '{$c['id']}', background: 'transparent' },
+    theme: { mode: '{$theme}' },
+    series: {$dataJson},
+    labels: {$labelsJson},
+    colors: ['#42A5F5', '#00897B', '#b39ddb', '#FFA726', '#EF5350', '#26A69A'],
+    legend: { position: 'bottom', labels: { colors: '{$subColor}' } },
+    dataLabels: { enabled: true },
+    tooltip: { theme: '{$theme}' }
+  };
+  var chart = new ApexCharts(chartEl, options);
+  chart.render();
+  window.__ai_charts = window.__ai_charts || {};
+  window.__ai_charts['{$c['id']}'] = chart;
+})();
+JS;
+            } else {
+                $chartJs = <<<JS
+(function(){
+  var chartEl = document.querySelector('#{$c['id']}');
+  if (!chartEl || !window.ApexCharts) return;
+  var options = {
+    chart: { type: 'bar', height: 260, id: '{$c['id']}', background: 'transparent', toolbar: { show: false } },
+    theme: { mode: '{$theme}' },
+    series: [{ name: '{$sName}', data: {$dataJson} }],
+    xaxis: { categories: {$labelsJson}, labels: { style: { colors: '{$subColor}', fontSize: '11px' } } },
+    yaxis: { labels: { style: { colors: '{$subColor}', fontSize: '11px' } } },
+    colors: ['{$cCol}'],
+    plotOptions: { bar: { borderRadius: 6, horizontal: false, columnWidth: '45%' } },
+    grid: { borderColor: '{$innerBorder}' },
+    dataLabels: { enabled: false },
+    tooltip: { theme: '{$theme}' }
+  };
+  var chart = new ApexCharts(chartEl, options);
+  chart.render();
+  window.__ai_charts = window.__ai_charts || {};
+  window.__ai_charts['{$c['id']}'] = chart;
+})();
+JS;
+            }
+        }
+
+        // 4. Navigation Buttons
+        $navBtnsHtml = '';
+        if (!empty($cfg['navButtons'])) {
+            foreach ($cfg['navButtons'] as $btn) {
+                $bLbl = htmlspecialchars($btn['label']);
+                $bRt = htmlspecialchars($btn['route']);
+                $bIco = $btn['icon'] ?? 'mdi-arrow-right';
+                $navBtnsHtml .= <<<BTN
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1" style="background: {$modColor}20; color: {$modColor}; font-weight: 700; border: 1px solid {$modColor}50; cursor: pointer;" data-route="{$bRt}">
+                  <i class="v-icon notranslate {$bIco}" style="font-size: 14px; margin-right: 4px;"></i>
+                  {$bLbl}
+                </button>
+BTN;
+            }
+        }
 
         return <<<HTML
 <div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(66, 165, 245, 0.15); padding-bottom: 14px;">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid var(--ai-border, {$cardBorder}); box-shadow: 0 10px 30px rgba(0,0,0,0.12); margin-bottom: 8px;">
+    <!-- Top Header -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--ai-border, {$innerBorder}); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #1565C0, #42A5F5); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35);">
-          <i class="v-icon notranslate mdi mdi-view-dashboard-outline text-white" style="font-size: 24px;"></i>
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: {$modColor}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px {$modColor}40;">
+          <i class="v-icon notranslate {$modIcon} text-white" style="font-size: 24px;"></i>
         </div>
         <div>
-          <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">{$t['title']}</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">
-            Powered by <strong style="color: #42A5F5;">Jupiter Intelligence Core</strong>
+          <div style="font-size: 17px; font-weight: 800; color: {$modColor};">{$modTitle}</div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Question: <strong style="color: var(--ai-text-color, {$textColor});">« {$userQuestion} »</strong></div>
+        </div>
+      </div>
+      <span style="background: {$modColor}18; color: {$modColor}; border: 1px solid {$modColor}40; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
+        {$badgeText}
+      </span>
+    </div>
+
+    <!-- Direct Answer Banner -->
+    <div style="font-size: 14px; line-height: 1.7; color: var(--ai-text-color, {$textColor}); background: {$modColor}12; padding: 14px 16px; border-radius: 12px; border-left: 4px solid {$modColor}; margin-bottom: 18px; font-weight: 500;">
+      <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: {$modColor}; letter-spacing: 0.8px; margin-bottom: 4px;">
+        <i class="v-icon notranslate mdi mdi-check-circle-outline" style="font-size: 14px; margin-right: 4px;"></i>
+        Réponse Directe
+      </div>
+      {$answerText}
+    </div>
+
+    {$kpiHtml}
+    {$tableHtml}
+    {$chartContainerHtml}
+
+    <!-- Bottom Actions / Shortcuts -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid var(--ai-border, {$innerBorder}); padding-top: 14px;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <i class="v-icon notranslate mdi mdi-shield-check" style="font-size: 15px; color: {$modColor};"></i>
+        <span>Données Certifiées ERP • Source Unique de Vérité</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        {$navBtnsHtml}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+{$chartJs}
+</script>
+HTML;
+    }
+
+    /**
+     * Apply time filters to query builder.
+     */
+    private function applyTimeFilter($q, string $column, string $timeFrame): void
+    {
+        switch ($timeFrame) {
+            case 'today':
+                $q->whereDate($column, DB::raw('CURDATE()'));
+                break;
+            case 'yesterday':
+                $q->whereDate($column, DB::raw('SUBDATE(CURDATE(), 1)'));
+                break;
+            case 'this_week':
+                $q->whereDate($column, '>=', DB::raw('SUBDATE(CURDATE(), INTERVAL 7 DAY)'));
+                break;
+            case 'this_month':
+                $q->whereRaw("MONTH({$column}) = MONTH(CURDATE()) AND YEAR({$column}) = YEAR(CURDATE())");
+                break;
+            case 'last_month':
+                $q->whereRaw("MONTH({$column}) = MONTH(SUBDATE(CURDATE(), INTERVAL 1 MONTH)) AND YEAR({$column}) = YEAR(SUBDATE(CURDATE(), INTERVAL 1 MONTH))");
+                break;
+            case 'year_2026':
+                $q->whereRaw("YEAR({$column}) = 2026");
+                break;
+            case 'year_2025':
+                $q->whereRaw("YEAR({$column}) = 2025");
+                break;
+            case 'year_2024':
+                $q->whereRaw("YEAR({$column}) = 2024");
+                break;
+        }
+    }
+
+    /**
+     * Generates Creator & Supervisor response honoring ELBACHIR NOUBAA.
+     */
+    public function generateCreatorResponse(string $uniqueId, string $lang, string $theme): string
+    {
+        $isDark = ($theme === 'dark');
+        $cardBg = $isDark ? '#1a2332' : '#ffffff';
+        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
+        $subColor = $isDark ? '#94a3b8' : '#64748b';
+
+        return <<<HTML
+<div id="{$uniqueId}">
+  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 24px; border: 1px solid rgba(66, 165, 245, 0.35); box-shadow: 0 10px 30px rgba(21, 101, 192, 0.15); margin-bottom: 8px;">
+    <!-- Creator Badge Header -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(66, 165, 245, 0.2); padding-bottom: 16px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #1565C0 0%, #1E88E5 50%, #42A5F5 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(21, 101, 192, 0.4);">
+          <i class="v-icon notranslate mdi mdi-crown text-white" style="font-size: 28px;"></i>
+        </div>
+        <div>
+          <div style="font-size: 20px; font-weight: 800; color: #42A5F5; letter-spacing: 0.5px;">ELBACHIR NOUBAA</div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--ai-sub-color, {$subColor}); display: flex; align-items: center; gap: 6px;">
+            <i class="v-icon notranslate mdi mdi-shield-check text-blue" style="font-size: 16px; color: #42A5F5 !important;"></i>
+            <span>Architecte Concepteur & Superviseur Technique de Jupiter ERP</span>
           </div>
         </div>
       </div>
-      <span style="background: rgba(66, 165, 245, 0.12); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.3); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-        {$t['badge']}
+      <span style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.35); padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">
+        Fondateur & Concepteur
       </span>
     </div>
 
-    <!-- 4 Key Stat Cards Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <!-- Purchases Stat -->
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(21, 101, 192, 0.2);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700; color: #42A5F5;">{$t['p_purchases']}</span>
-          <i class="v-icon notranslate mdi mdi-truck-delivery" style="font-size: 18px; color: #42A5F5;"></i>
-        </div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
-          {$this->formatNumber($chargesWeight, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG</span>
-        </div>
-        <div style="font-size: 12px; font-weight: 700; color: #00E676;">
-          {$this->formatNumber($chargesPrice, 2)} MAD
-        </div>
-        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
-          {$chargesCount} réceptions enregistrées
-        </div>
-      </div>
-
-      <!-- Sales Stat -->
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(108, 102, 187, 0.2);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700; color: #6c66bb;">{$t['p_sales']}</span>
-          <i class="v-icon notranslate mdi mdi-ship-wheel" style="font-size: 18px; color: #6c66bb;"></i>
-        </div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
-          {$this->formatNumber($shippingsWeight, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG</span>
-        </div>
-        <div style="font-size: 12px; font-weight: 700; color: #00E676;">
-          {$this->formatNumber($shippingsPrice, 2)} MAD
-        </div>
-        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
-          {$shippingsCount} expéditions clients
-        </div>
-      </div>
-
-      <!-- Stock Stat -->
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(162, 30, 229, 0.2);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700; color: #a21ee5;">{$t['p_stock']}</span>
-          <i class="v-icon notranslate mdi mdi-warehouse" style="font-size: 18px; color: #a21ee5;"></i>
-        </div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
-          {$this->formatNumber($totalStockKg, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG</span>
-        </div>
-        <div style="font-size: 12px; font-weight: 700; color: #42A5F5;">
-          {$warehousesCount} Magasins actifs
-        </div>
-        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
-          Sous surveillance thermique
-        </div>
-      </div>
-
-      <!-- Production Stat -->
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 137, 123, 0.2);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700; color: #00897B;">{$t['p_prod']}</span>
-          <i class="v-icon notranslate mdi mdi-factory" style="font-size: 18px; color: #00897B;"></i>
-        </div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--ai-text-color, {$textColor}); margin-bottom: 2px;">
-          {$this->formatNumber($prodFrozenWeight, 2)} <span style="font-size: 12px; color: var(--ai-sub-color, {$subColor});">KG Congelé</span>
-        </div>
-        <div style="font-size: 12px; font-weight: 700; color: #FFA000;">
-          {$this->formatNumber($prodGuanoWeight, 2)} KG Guano
-        </div>
-        <div style="font-size: 11px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">
-          {$prodCount} sessions d'usine
-        </div>
-      </div>
+    <!-- Description -->
+    <div style="font-size: 14px; line-height: 1.8; color: var(--ai-text-color, {$textColor}); margin-bottom: 20px;">
+      Cet agent d'intelligence décisionnelle et l'ensemble de l'écosystème <strong>Jupiter ERP</strong> ont été conçus, structurés et optimisés sous la supervision directe de <strong>ELBACHIR NOUBAA</strong>. Le moteur assure la gouvernance de données temps réel pour la gestion de l'industrie de congélation, pêche maritime, transformation et logistique internationale.
     </div>
 
-    <!-- Chart Container -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <span style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; letter-spacing: 0.5px;">
-          <i class="v-icon notranslate mdi mdi-chart-bar" style="font-size: 16px; margin-right: 6px;"></i>
-          {$t['p_chart']}
-        </span>
-        <span style="font-size: 11px; color: var(--ai-sub-color, {$subColor});">Unité: Tonnes métriques</span>
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <i class="v-icon notranslate mdi mdi-check-decagram" style="font-size: 16px; color: #42A5F5;"></i>
+        <span>Architecture Certifiée ELBACHIR NOUBAA</span>
       </div>
-      <div id="{$chartId}" style="min-height: 280px; width: 100%;"></div>
-    </div>
-
-    <!-- Analytical Insights -->
-    <div style="background: rgba(66, 165, 245, 0.05); border-radius: 14px; padding: 16px; border-left: 4px solid #42A5F5; margin-bottom: 16px;">
-      <div style="font-size: 12px; font-weight: 800; color: #42A5F5; text-transform: uppercase; margin-bottom: 8px;">
-        <i class="v-icon notranslate mdi mdi-lightbulb-on" style="font-size: 15px; margin-right: 6px;"></i>
-        {$t['insight_title']}
-      </div>
-      <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--ai-text-color, {$textColor});">
-        <li>{$t['insight1']}</li>
-        <li>{$t['insight2']}</li>
-        <li>{$t['insight3']}</li>
-      </ul>
-    </div>
-
-    <!-- Navigation Quick Links -->
-    <div style="display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px;">
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #42A5F5; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/charges">
-        <i class="v-icon notranslate mdi mdi-truck-delivery" style="font-size: 14px; margin-right: 4px;"></i>
-        Charges
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #4643a0; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/shippings">
-        <i class="v-icon notranslate mdi mdi-ship-wheel" style="font-size: 14px; margin-right: 4px;"></i>
-        Shippings
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #00897B; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/production/kanban">
-        <i class="v-icon notranslate mdi mdi-factory" style="font-size: 14px; margin-right: 4px;"></i>
-        Production
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #a21ee5; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/warehouses">
-        <i class="v-icon notranslate mdi mdi-warehouse" style="font-size: 14px; margin-right: 4px;"></i>
-        Warehouses
+      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: linear-gradient(135deg, #1565C0, #42A5F5); color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/dashboard">
+        <i class="v-icon notranslate mdi mdi-view-dashboard" style="font-size: 14px; margin-right: 6px;"></i>
+        Tableau de Bord
       </button>
     </div>
   </div>
 </div>
-<script>
-(function() {
-  function initChart() {
-    if (!window.ApexCharts) {
-      setTimeout(initChart, 100);
-      return;
-    }
-    var el = document.querySelector("#{$chartId}");
-    if (!el) return;
-    el.innerHTML = "";
-    var options = {
-      series: [{
-        name: "Volume (T)",
-        data: {$seriesJson}
-      }],
-      chart: { id: "{$chartId}", type: "bar",
-        height: 270,
-        toolbar: { show: false },
-        animations: { enabled: true, easing: "easeinout", speed: 600 }
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 8,
-          columnWidth: "48%",
-          distributed: true,
-          dataLabels: { position: "top" }
-        }
-      },
-      colors: ["#42A5F5", "#6c66bb", "#00897B", "#FFA000", "#a21ee5"],
-      dataLabels: {
-        enabled: true,
-        formatter: function(val) { return val + " T"; },
-        offsetY: -20,
-        style: { fontSize: "11px", fontWeight: "700", colors: ["#94a3b8"] }
-      },
-      xaxis: {
-        categories: {$categoriesJson},
-        labels: { style: { colors: "#94a3b8", fontSize: "11px", fontWeight: "600" } },
-        axisBorder: { show: false },
-        axisTicks: { show: false }
-      },
-      yaxis: {
-        labels: {
-          style: { colors: "#94a3b8", fontSize: "11px" },
-          formatter: function(val) { return val + " T"; }
-        }
-      },
-      grid: {
-        borderColor: "{$gridBorder}",
-        strokeDashArray: 4
-      },
-      legend: { show: false },
-      tooltip: {
-        theme: "{$theme}",
-        y: { formatter: function(val) { return val + " Tonnes"; } }
-      }
-    };
-    var chart = new ApexCharts(el, options);
-    chart.render();
-    window.__ai_charts = window.__ai_charts || {};
-    window.__ai_charts["{$chartId}"] = chart;
-  }
-  setTimeout(initChart, 60);
-})();
-</script>
-HTML;
-    }
-
-    /**
-     * Generates Charges / Purchases Analysis.
-     */
-    public function generateChargesAnalysis(string $uniqueId, string $chartId, string $question, string $lang, string $theme): string
-    {
-        $chargesCount = DB::table('charges')->whereNull('deleted_at')->count();
-        $totalWeight = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_weight');
-        $totalPrice = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_price');
-        $avgPriceKg = $totalWeight > 0 ? ($totalPrice / $totalWeight) : 0;
-
-        // Top 5 Suppliers by total weight
-        $topSuppliers = DB::table('charges')
-            ->join('suppliers', 'charges.supplier_id', '=', 'suppliers.id')
-            ->whereNull('charges.deleted_at')
-            ->select('suppliers.id', 'suppliers.name', DB::raw('SUM(charges.total_weight) as weight'), DB::raw('SUM(charges.total_price) as price'), DB::raw('COUNT(charges.id) as count'))
-            ->groupBy('suppliers.id', 'suppliers.name')
-            ->orderByDesc('weight')
-            ->limit(5)
-            ->get();
-
-        // Recent 5 charges
-        $recentCharges = DB::table('charges')
-            ->leftJoin('suppliers', 'charges.supplier_id', '=', 'suppliers.id')
-            ->leftJoin('ships', 'charges.ship_id', '=', 'ships.id')
-            ->whereNull('charges.deleted_at')
-            ->select('charges.id', 'charges.date', 'charges.total_weight', 'charges.total_price', 'charges.reception_tracking_number', 'suppliers.name as supplier_name', 'ships.name as ship_name')
-            ->orderByDesc('charges.date')
-            ->orderByDesc('charges.id')
-            ->limit(5)
-            ->get();
-
-        $supplierNames = [];
-        $supplierWeights = [];
-        foreach ($topSuppliers as $s) {
-            $supplierNames[] = $s->name ?: 'Fournisseur #' . $s->id;
-            $supplierWeights[] = round(((float)$s->weight) / 1000, 2); // in tons
-        }
-
-        $sNamesJson = json_encode($supplierNames);
-        $sWeightsJson = json_encode($supplierWeights);
-
-        $labels = [
-            'fr' => [
-                'title' => 'Analyse Approfondie des Achats & Réceptions (Charges)',
-                'badge' => 'Module Achats',
-                'stat1' => 'Poids Total Acheté',
-                'stat2' => 'Montant Global Décaissé',
-                'stat3' => 'Prix Moyen Pondéré',
-                'stat4' => 'Total Réceptions',
-                'chart_title' => 'Top 5 Fournisseurs par Volume (Tonnes)',
-                'recent_title' => 'Dernières Réceptions de Poissons',
-                'col_id' => 'Lot / Réc.',
-                'col_date' => 'Date',
-                'col_supp' => 'Fournisseur',
-                'col_ship' => 'Navire',
-                'col_weight' => 'Poids (KG)',
-                'col_price' => 'Montant (MAD)',
-                'col_action' => 'Action'
-            ],
-            'en' => [
-                'title' => 'In-depth Purchases & Receptions (Charges) Analysis',
-                'badge' => 'Charges Module',
-                'stat1' => 'Total Purchased Weight',
-                'stat2' => 'Total Purchases Value',
-                'stat3' => 'Weighted Average Cost',
-                'stat4' => 'Total Receptions',
-                'chart_title' => 'Top 5 Suppliers by Volume (Tons)',
-                'recent_title' => 'Recent Fish Receptions',
-                'col_id' => 'Lot / Rec.',
-                'col_date' => 'Date',
-                'col_supp' => 'Supplier',
-                'col_ship' => 'Vessel',
-                'col_weight' => 'Weight (KG)',
-                'col_price' => 'Amount (MAD)',
-                'col_action' => 'Action'
-            ]
-        ];
-
-        $t = $labels[$lang] ?? $labels['en'];
-        $isDark = ($theme === 'dark');
-        $cardBg = $isDark ? '#1a2332' : '#ffffff';
-        $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
-        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
-        $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-
-        // Build recent rows HTML
-        $recentRows = '';
-        foreach ($recentCharges as $c) {
-            $tracking = is_array($c->reception_tracking_number) ? implode(', ', $c->reception_tracking_number) : ($c->reception_tracking_number ?: '#' . $c->id);
-            $recentRows .= <<<ROW
-<tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-  <td style="padding: 10px; font-weight: 700; color: #42A5F5;">{$tracking}</td>
-  <td style="padding: 10px; color: var(--ai-text-color, {$textColor});">{$c->date}</td>
-  <td style="padding: 10px; color: var(--ai-text-color, {$textColor});">{$c->supplier_name}</td>
-  <td style="padding: 10px; color: var(--ai-sub-color, {$subColor});">{$c->ship_name}</td>
-  <td style="padding: 10px; font-weight: 700; color: var(--ai-text-color, {$textColor}); text-align: right;">{$this->formatNumber((float)$c->total_weight, 2)} KG</td>
-  <td style="padding: 10px; font-weight: 700; color: #00E676; text-align: right;">{$this->formatNumber((float)$c->total_price, 2)} MAD</td>
-  <td style="padding: 10px; text-align: center;">
-    <button class="ai-nav-btn v-btn v-btn--variant-tonal v-btn--size-x-small rounded-pill px-3 py-1" style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.3); font-weight: 700; cursor: pointer;" data-route="/charges/view_charge/{$c->id}">
-      Voir
-    </button>
-  </td>
-</tr>
-ROW;
-        }
-
-        return <<<HTML
-<div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(66, 165, 245, 0.15); padding-bottom: 14px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0D47A1, #1565C0, #42A5F5); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35);">
-          <i class="v-icon notranslate mdi mdi-truck-delivery-outline text-white" style="font-size: 24px;"></i>
-        </div>
-        <div>
-          <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">{$t['title']}</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
-        </div>
-      </div>
-      <span style="background: rgba(66, 165, 245, 0.12); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.3); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-        {$t['badge']}
-      </span>
-    </div>
-
-    <!-- 4 KPI Metrics -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat1']}</div>
-        <div style="font-size: 18px; font-weight: 800; color: #42A5F5;">{$this->formatNumber($totalWeight, 2)} <span style="font-size: 12px;">KG</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat2']}</div>
-        <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$this->formatNumber($totalPrice, 2)} <span style="font-size: 12px;">MAD</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat3']}</div>
-        <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($avgPriceKg, 2)} <span style="font-size: 12px;">MAD/KG</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(171, 71, 188, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">{$t['stat4']}</div>
-        <div style="font-size: 18px; font-weight: 800; color: #AB47BC;">{$this->formatNumber($chargesCount, 0)} <span style="font-size: 12px;">Lots</span></div>
-      </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; margin-bottom: 12px;">
-        <i class="v-icon notranslate mdi mdi-podium-gold" style="font-size: 16px; margin-right: 6px;"></i>
-        {$t['chart_title']}
-      </div>
-      <div id="{$chartId}" style="min-height: 250px; width: 100%;"></div>
-    </div>
-
-    <!-- Recent Charges Table -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 18px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; margin-bottom: 12px;">
-        <i class="v-icon notranslate mdi mdi-history" style="font-size: 16px; margin-right: 6px;"></i>
-        {$t['recent_title']}
-      </div>
-      <table class="ai-analytics-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
-        <thead>
-          <tr style="border-bottom: 2px solid rgba(66, 165, 245, 0.2); color: var(--ai-sub-color, {$subColor}); font-size: 11.5px; text-transform: uppercase;">
-            <th style="padding: 8px 10px; text-align: left;">{$t['col_id']}</th>
-            <th style="padding: 8px 10px; text-align: left;">{$t['col_date']}</th>
-            <th style="padding: 8px 10px; text-align: left;">{$t['col_supp']}</th>
-            <th style="padding: 8px 10px; text-align: left;">{$t['col_ship']}</th>
-            <th style="padding: 8px 10px; text-align: right;">{$t['col_weight']}</th>
-            <th style="padding: 8px 10px; text-align: right;">{$t['col_price']}</th>
-            <th style="padding: 8px 10px; text-align: center;">{$t['col_action']}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {$recentRows}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Actions -->
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #42A5F5; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/charges/add_charge">
-        <i class="v-icon notranslate mdi mdi-plus-circle" style="font-size: 14px; margin-right: 4px;"></i>
-        Ajouter une Charge
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #1565C0; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/charges">
-        <i class="v-icon notranslate mdi mdi-format-list-bulleted" style="font-size: 14px; margin-right: 4px;"></i>
-        Toutes les Charges
-      </button>
-    </div>
-  </div>
-</div>
-<script>
-(function() {
-  function initChart() {
-    if (!window.ApexCharts) {
-      setTimeout(initChart, 100);
-      return;
-    }
-    var el = document.querySelector("#{$chartId}");
-    if (!el) return;
-    el.innerHTML = "";
-    var options = {
-      series: [{
-        name: "Volume (T)",
-        data: {$sWeightsJson}
-      }],
-      chart: { id: "{$chartId}", type: "bar",
-        height: 250,
-        toolbar: { show: false }
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 6,
-          horizontal: true,
-          distributed: true,
-          dataLabels: { position: "top" }
-        }
-      },
-      colors: ["#1565C0", "#1E88E5", "#42A5F5", "#90CAF9", "#00E676"],
-      dataLabels: {
-        enabled: true,
-        formatter: function(val) { return val + " T"; },
-        style: { fontSize: "11px", fontWeight: "700", colors: ["#fff"] }
-      },
-      xaxis: {
-        categories: {$sNamesJson},
-        labels: { style: { colors: "#94a3b8", fontSize: "11px" } }
-      },
-      yaxis: {
-        labels: { style: { colors: "#94a3b8", fontSize: "11px", fontWeight: "600" } }
-      },
-      grid: { borderColor: "{$gridBorder}" },
-      legend: { show: false },
-      tooltip: { theme: "{$theme}" }
-    };
-    var chart = new ApexCharts(el, options);
-    chart.render();
-    window.__ai_charts = window.__ai_charts || {};
-    window.__ai_charts["{$chartId}"] = chart;
-  }
-  setTimeout(initChart, 60);
-})();
-</script>
-HTML;
-    }
-
-    /**
-     * Generates Shippings / Sales Analysis.
-     */
-    public function generateShippingsAnalysis(string $uniqueId, string $chartId, string $question, string $lang, string $theme): string
-    {
-        $shippingsCount = DB::table('shippings')->whereNull('deleted_at')->count();
-        $totalWeight = (float) DB::table('shippings')->whereNull('deleted_at')->sum('total_weight');
-        $totalPrice = (float) DB::table('shippings')->whereNull('deleted_at')->sum('total_price');
-        $avgPriceKg = $totalWeight > 0 ? ($totalPrice / $totalWeight) : 0;
-
-        // Top 5 Clients by total weight
-        $topClients = DB::table('shippings')
-            ->join('clients', 'shippings.client_id', '=', 'clients.id')
-            ->whereNull('shippings.deleted_at')
-            ->select('clients.id', 'clients.name', DB::raw('SUM(shippings.total_weight) as weight'), DB::raw('SUM(shippings.total_price) as price'), DB::raw('COUNT(shippings.id) as count'))
-            ->groupBy('clients.id', 'clients.name')
-            ->orderByDesc('weight')
-            ->limit(5)
-            ->get();
-
-        $clientNames = [];
-        $clientWeights = [];
-        foreach ($topClients as $c) {
-            $clientNames[] = $c->name ?: 'Client #' . $c->id;
-            $clientWeights[] = round(((float)$c->weight) / 1000, 2);
-        }
-
-        $cNamesJson = json_encode($clientNames);
-        $cWeightsJson = json_encode($clientWeights);
-
-        $isDark = ($theme === 'dark');
-        $cardBg = $isDark ? '#1a2332' : '#ffffff';
-        $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
-        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
-        $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-
-        return <<<HTML
-<div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(108, 102, 187, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(108, 102, 187, 0.2); padding-bottom: 14px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #372e7d, #4643a0, #6c66bb); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(70, 67, 160, 0.35);">
-          <i class="v-icon notranslate mdi mdi-ship-wheel text-white" style="font-size: 24px;"></i>
-        </div>
-        <div>
-          <div style="font-size: 17px; font-weight: 800; color: #6c66bb;">Analyse des Ventes & Expéditions (Shippings)</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #6c66bb;">Jupiter Sales Intelligence</strong></div>
-        </div>
-      </div>
-      <span style="background: rgba(108, 102, 187, 0.15); color: #6c66bb; border: 1px solid rgba(108, 102, 187, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-        Module Expéditions
-      </span>
-    </div>
-
-    <!-- 4 Stat Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(108, 102, 187, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Poids Total Expédié</div>
-        <div style="font-size: 18px; font-weight: 800; color: #6c66bb;">{$this->formatNumber($totalWeight, 2)} <span style="font-size: 12px;">KG</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Chiffre d'Affaires Global</div>
-        <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$this->formatNumber($totalPrice, 2)} <span style="font-size: 12px;">MAD</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Prix Moyen de Vente</div>
-        <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($avgPriceKg, 2)} <span style="font-size: 12px;">MAD/KG</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Total Expéditions</div>
-        <div style="font-size: 18px; font-weight: 800; color: #42A5F5;">{$this->formatNumber($shippingsCount, 0)} <span style="font-size: 12px;">Lots</span></div>
-      </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="font-size: 13px; font-weight: 800; color: #6c66bb; text-transform: uppercase; margin-bottom: 12px;">
-        <i class="v-icon notranslate mdi mdi-podium" style="font-size: 16px; margin-right: 6px;"></i>
-        Top 5 Clients par Volume d'Expédition (Tonnes)
-      </div>
-      <div id="{$chartId}" style="min-height: 250px; width: 100%;"></div>
-    </div>
-
-    <!-- Actions -->
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #4643a0; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/shippings/add_shipping">
-        <i class="v-icon notranslate mdi mdi-plus-circle" style="font-size: 14px; margin-right: 4px;"></i>
-        Nouvelle Expédition
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #372e7d; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/shippings">
-        <i class="v-icon notranslate mdi mdi-format-list-bulleted" style="font-size: 14px; margin-right: 4px;"></i>
-        Toutes les Expéditions
-      </button>
-    </div>
-  </div>
-</div>
-<script>
-(function() {
-  function initChart() {
-    if (!window.ApexCharts) {
-      setTimeout(initChart, 100);
-      return;
-    }
-    var el = document.querySelector("#{$chartId}");
-    if (!el) return;
-    el.innerHTML = "";
-    var options = {
-      series: [{
-        name: "Volume (T)",
-        data: {$cWeightsJson}
-      }],
-      chart: { id: "{$chartId}", type: "bar",
-        height: 250,
-        toolbar: { show: false }
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 6,
-          horizontal: true,
-          distributed: true,
-          dataLabels: { position: "top" }
-        }
-      },
-      colors: ["#372e7d", "#4643a0", "#6c66bb", "#8f89e0", "#00E676"],
-      dataLabels: {
-        enabled: true,
-        formatter: function(val) { return val + " T"; },
-        style: { fontSize: "11px", fontWeight: "700", colors: ["#fff"] }
-      },
-      xaxis: {
-        categories: {$cNamesJson},
-        labels: { style: { colors: "#94a3b8", fontSize: "11px" } }
-      },
-      yaxis: {
-        labels: { style: { colors: "#94a3b8", fontSize: "11px", fontWeight: "600" } }
-      },
-      grid: { borderColor: "{$gridBorder}" },
-      legend: { show: false },
-      tooltip: { theme: "{$theme}" }
-    };
-    var chart = new ApexCharts(el, options);
-    chart.render();
-    window.__ai_charts = window.__ai_charts || {};
-    window.__ai_charts["{$chartId}"] = chart;
-  }
-  setTimeout(initChart, 60);
-})();
-</script>
-HTML;
-    }
-
-    /**
-     * Generates Production Yield & Processing Analysis.
-     */
-    public function generateProductionsAnalysis(string $uniqueId, string $chartId, string $question, string $lang, string $theme): string
-    {
-        $prodCount = DB::table('productions')->whereNull('deleted_at')->count();
-        $freshWeight = (float) DB::table('productions')->whereNull('deleted_at')->sum('fresh_reception_weight');
-        $frozenWeight = (float) DB::table('productions')->whereNull('deleted_at')->sum('frozen_production_weight');
-        $guanoWeight = (float) DB::table('productions')->whereNull('deleted_at')->sum('guano_production_weight');
-        $totalOutput = $frozenWeight + $guanoWeight;
-        $yieldRatio = $freshWeight > 0 ? round(($frozenWeight / $freshWeight) * 100, 1) : 0;
-
-        $series = [
-            round($frozenWeight / 1000, 2),
-            round($guanoWeight / 1000, 2),
-        ];
-        $labelsArr = ['Congélation Finie (T)', 'Farine & Guano (T)'];
-        $seriesJson = json_encode($series);
-        $labelsJson = json_encode($labelsArr);
-
-        $isDark = ($theme === 'dark');
-        $cardBg = $isDark ? '#1a2332' : '#ffffff';
-        $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
-        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
-        $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-
-        return <<<HTML
-<div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(0, 137, 123, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(0, 137, 123, 0.2); padding-bottom: 14px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #00695C, #00897B, #26A69A); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 137, 123, 0.35);">
-          <i class="v-icon notranslate mdi mdi-factory text-white" style="font-size: 24px;"></i>
-        </div>
-        <div>
-          <div style="font-size: 17px; font-weight: 800; color: #00897B;">Rendement & Transformation Usine (Production)</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #00897B;">Jupiter Industrial Processing Core</strong></div>
-        </div>
-      </div>
-      <span style="background: rgba(0, 137, 123, 0.15); color: #00897B; border: 1px solid rgba(0, 137, 123, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-        Module Usine
-      </span>
-    </div>
-
-    <!-- 4 KPI Metrics -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 137, 123, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Réception Frais</div>
-        <div style="font-size: 18px; font-weight: 800; color: #00897B;">{$this->formatNumber($freshWeight, 2)} <span style="font-size: 12px;">KG</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(38, 166, 154, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Sortie Congélation</div>
-        <div style="font-size: 18px; font-weight: 800; color: #26A69A;">{$this->formatNumber($frozenWeight, 2)} <span style="font-size: 12px;">KG</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Guano & Farine</div>
-        <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($guanoWeight, 2)} <span style="font-size: 12px;">KG</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Taux de Rendement</div>
-        <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$yieldRatio}%</div>
-      </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="font-size: 13px; font-weight: 800; color: #00897B; text-transform: uppercase; margin-bottom: 12px;">
-        <i class="v-icon notranslate mdi mdi-chart-donut" style="font-size: 16px; margin-right: 6px;"></i>
-        Répartition de la Production Finie (Tonnes)
-      </div>
-      <div id="{$chartId}" style="min-height: 260px; width: 100%;"></div>
-    </div>
-
-    <!-- Navigation -->
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #00897B; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/production/kanban">
-        <i class="v-icon notranslate mdi mdi-view-column" style="font-size: 14px; margin-right: 4px;"></i>
-        Kanban Production
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #00695C; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/production">
-        <i class="v-icon notranslate mdi mdi-format-list-bulleted" style="font-size: 14px; margin-right: 4px;"></i>
-        Toutes les Productions
-      </button>
-    </div>
-  </div>
-</div>
-<script>
-(function() {
-  function initChart() {
-    if (!window.ApexCharts) {
-      setTimeout(initChart, 100);
-      return;
-    }
-    var el = document.querySelector("#{$chartId}");
-    if (!el) return;
-    el.innerHTML = "";
-    var options = {
-      series: {$seriesJson},
-      chart: { id: "{$chartId}", type: "donut",
-        height: 260
-      },
-      labels: {$labelsJson},
-      colors: ["#00897B", "#FFA000"],
-      legend: {
-        position: "bottom",
-        labels: { colors: "#94a3b8" }
-      },
-      tooltip: { theme: "{$theme}" }
-    };
-    var chart = new ApexCharts(el, options);
-    chart.render();
-    window.__ai_charts = window.__ai_charts || {};
-    window.__ai_charts["{$chartId}"] = chart;
-  }
-  setTimeout(initChart, 60);
-})();
-</script>
-HTML;
-    }
-
-    /**
-     * Generates Warehouse & Cold Storage Stock Analysis.
-     */
-    public function generateWarehousesAnalysis(string $uniqueId, string $chartId, string $question, string $lang, string $theme): string
-    {
-        $warehousesCount = DB::table('warehouses')->whereNull('deleted_at')->count();
-        $totalStockKg = (float) DB::table('warehouses')->whereNull('deleted_at')->sum('total_weight');
-
-        // Top 5 Warehouses by weight
-        $topWarehouses = DB::table('warehouses')
-            ->whereNull('deleted_at')
-            ->orderByDesc('total_weight')
-            ->limit(5)
-            ->get();
-
-        $wNames = [];
-        $wWeights = [];
-        foreach ($topWarehouses as $w) {
-            $wNames[] = $w->name;
-            $wWeights[] = round(((float)$w->total_weight) / 1000, 2);
-        }
-
-        $wNamesJson = json_encode($wNames);
-        $wWeightsJson = json_encode($wWeights);
-
-        $isDark = ($theme === 'dark');
-        $cardBg = $isDark ? '#1a2332' : '#ffffff';
-        $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
-        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
-        $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-
-        return <<<HTML
-<div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(162, 30, 229, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(162, 30, 229, 0.2); padding-bottom: 14px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #c015b4, #a21ee5, #9742f5); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(162, 30, 229, 0.35);">
-          <i class="v-icon notranslate mdi mdi-warehouse text-white" style="font-size: 24px;"></i>
-        </div>
-        <div>
-          <div style="font-size: 17px; font-weight: 800; color: #a21ee5;">Stocks & Chambres Froides (Warehouses)</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #a21ee5;">Jupiter Cold Storage Intelligence</strong></div>
-        </div>
-      </div>
-      <span style="background: rgba(162, 30, 229, 0.15); color: #a21ee5; border: 1px solid rgba(162, 30, 229, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-        Module Magasins
-      </span>
-    </div>
-
-    <!-- 2 Main Stat Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(162, 30, 229, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Stock Global Actuel</div>
-        <div style="font-size: 20px; font-weight: 800; color: #a21ee5;">{$this->formatNumber($totalStockKg, 2)} <span style="font-size: 13px;">KG ({$this->formatNumber($totalStockKg/1000, 2)} T)</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Nombre d'Entrepôts / Chambres</div>
-        <div style="font-size: 20px; font-weight: 800; color: #42A5F5;">{$warehousesCount} <span style="font-size: 13px;">Chambres Actives</span></div>
-      </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="font-size: 13px; font-weight: 800; color: #a21ee5; text-transform: uppercase; margin-bottom: 12px;">
-        <i class="v-icon notranslate mdi mdi-podium" style="font-size: 16px; margin-right: 6px;"></i>
-        Top 5 Entrepôts par Charge de Stock (Tonnes)
-      </div>
-      <div id="{$chartId}" style="min-height: 250px; width: 100%;"></div>
-    </div>
-
-    <!-- Actions -->
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #a21ee5; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/warehouses">
-        <i class="v-icon notranslate mdi mdi-warehouse" style="font-size: 14px; margin-right: 4px;"></i>
-        Gestion des Magasins
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #c015b4; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/warehouses/balance_tracking">
-        <i class="v-icon notranslate mdi mdi-scale-balance" style="font-size: 14px; margin-right: 4px;"></i>
-        Balance Stock
-      </button>
-    </div>
-  </div>
-</div>
-<script>
-(function() {
-  function initChart() {
-    if (!window.ApexCharts) {
-      setTimeout(initChart, 100);
-      return;
-    }
-    var el = document.querySelector("#{$chartId}");
-    if (!el) return;
-    el.innerHTML = "";
-    var options = {
-      series: [{
-        name: "Stock (T)",
-        data: {$wWeightsJson}
-      }],
-      chart: { id: "{$chartId}", type: "bar",
-        height: 250,
-        toolbar: { show: false }
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 6,
-          horizontal: true,
-          distributed: true,
-          dataLabels: { position: "top" }
-        }
-      },
-      colors: ["#a21ee5", "#c015b4", "#9742f5", "#ba68c8", "#ce93d8"],
-      dataLabels: {
-        enabled: true,
-        formatter: function(val) { return val + " T"; },
-        style: { fontSize: "11px", fontWeight: "700", colors: ["#fff"] }
-      },
-      xaxis: {
-        categories: {$wNamesJson},
-        labels: { style: { colors: "#94a3b8", fontSize: "11px" } }
-      },
-      yaxis: {
-        labels: { style: { colors: "#94a3b8", fontSize: "11px", fontWeight: "600" } }
-      },
-      grid: { borderColor: "{$gridBorder}" },
-      legend: { show: false },
-      tooltip: { theme: "{$theme}" }
-    };
-    var chart = new ApexCharts(el, options);
-    chart.render();
-    window.__ai_charts = window.__ai_charts || {};
-    window.__ai_charts["{$chartId}"] = chart;
-  }
-  setTimeout(initChart, 60);
-})();
-</script>
-HTML;
-    }
-
-    /**
-     * Generates Workforce & Fortnight Activity Analysis.
-     */
-    public function generateWorkforceAnalysis(string $uniqueId, string $chartId, string $question, string $lang, string $theme): string
-    {
-        $workforceCount = DB::table('workforces')->whereNull('deleted_at')->count();
-        $activitiesCount = DB::table('fortnight_activities')->whereNull('deleted_at')->count();
-        $totalPayroll = (float) DB::table('fortnight_activities')->whereNull('deleted_at')->sum('price');
-        $avgDailyRate = $activitiesCount > 0 ? round($totalPayroll / $activitiesCount, 2) : 0;
-
-        // Top 5 Sections by activity count
-        $topSections = DB::table('fortnight_activities')
-            ->join('sections', 'fortnight_activities.section_id', '=', 'sections.id')
-            ->whereNull('fortnight_activities.deleted_at')
-            ->select('sections.id', 'sections.name', DB::raw('COUNT(fortnight_activities.id) as act_count'), DB::raw('SUM(fortnight_activities.price) as total_price'))
-            ->groupBy('sections.id', 'sections.name')
-            ->orderByDesc('act_count')
-            ->limit(5)
-            ->get();
-
-        $secNames = [];
-        $secCounts = [];
-        foreach ($topSections as $sec) {
-            $secNames[] = $sec->name ?: 'Section #' . $sec->id;
-            $secCounts[] = (int)$sec->act_count;
-        }
-
-        $sNamesJson = json_encode($secNames);
-        $sCountsJson = json_encode($secCounts);
-
-        $isDark = ($theme === 'dark');
-        $cardBg = $isDark ? '#1a2332' : '#ffffff';
-        $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
-        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
-        $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-
-        return <<<HTML
-<div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(66, 165, 245, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(66, 165, 245, 0.2); padding-bottom: 14px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #1565C0, #1E88E5, #42A5F5); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35);">
-          <i class="v-icon notranslate mdi mdi-account-group text-white" style="font-size: 24px;"></i>
-        </div>
-        <div>
-          <div style="font-size: 17px; font-weight: 800; color: #42A5F5;">Main d'Œuvre & Activités Quinzaine (Workforce)</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #42A5F5;">Jupiter Purchases Analytics</strong></div>
-        </div>
-      </div>
-      <span style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-        Module Personnel
-      </span>
-    </div>
-
-    <!-- 4 KPI Metrics -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(66, 165, 245, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Effectif Ouvriers</div>
-        <div style="font-size: 18px; font-weight: 800; color: #42A5F5;">{$this->formatNumber($workforceCount, 0)} <span style="font-size: 12px;">Employés</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 230, 118, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Masse Salariale Fortnight</div>
-        <div style="font-size: 18px; font-weight: 800; color: #00E676;">{$this->formatNumber($totalPayroll, 2)} <span style="font-size: 12px;">MAD</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(255, 160, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Total Postes / Activités</div>
-        <div style="font-size: 18px; font-weight: 800; color: #FFA000;">{$this->formatNumber($activitiesCount, 0)} <span style="font-size: 12px;">Jours</span></div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(171, 71, 188, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Tarif Journalier Moyen</div>
-        <div style="font-size: 18px; font-weight: 800; color: #AB47BC;">{$this->formatNumber($avgDailyRate, 2)} <span style="font-size: 12px;">MAD/J</span></div>
-      </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="font-size: 13px; font-weight: 800; color: #42A5F5; text-transform: uppercase; margin-bottom: 12px;">
-        <i class="v-icon notranslate mdi mdi-view-week" style="font-size: 16px; margin-right: 6px;"></i>
-        Répartition des Activités par Section Industrielle
-      </div>
-      <div id="{$chartId}" style="min-height: 250px; width: 100%;"></div>
-    </div>
-
-    <!-- Actions -->
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #42A5F5; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/fortnight-management">
-        <i class="v-icon notranslate mdi mdi-calendar-clock" style="font-size: 14px; margin-right: 4px;"></i>
-        Fortnight Management
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #1565C0; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/workforces">
-        <i class="v-icon notranslate mdi mdi-account-multiple" style="font-size: 14px; margin-right: 4px;"></i>
-        Liste des Ouvriers
-      </button>
-    </div>
-  </div>
-</div>
-<script>
-(function() {
-  function initChart() {
-    if (!window.ApexCharts) {
-      setTimeout(initChart, 100);
-      return;
-    }
-    var el = document.querySelector("#{$chartId}");
-    if (!el) return;
-    el.innerHTML = "";
-    var options = {
-      series: [{
-        name: "Activités",
-        data: {$sCountsJson}
-      }],
-      chart: { id: "{$chartId}", type: "bar",
-        height: 250,
-        toolbar: { show: false }
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 6,
-          horizontal: false,
-          columnWidth: "45%",
-          distributed: true,
-          dataLabels: { position: "top" }
-        }
-      },
-      colors: ["#1565C0", "#1E88E5", "#42A5F5", "#00E676", "#FFA000"],
-      dataLabels: {
-        enabled: true,
-        formatter: function(val) { return val; },
-        offsetY: -20,
-        style: { fontSize: "11px", fontWeight: "700", colors: ["#94a3b8"] }
-      },
-      xaxis: {
-        categories: {$sNamesJson},
-        labels: { style: { colors: "#94a3b8", fontSize: "11px" } }
-      },
-      yaxis: {
-        labels: { style: { colors: "#94a3b8", fontSize: "11px" } }
-      },
-      grid: { borderColor: "{$gridBorder}" },
-      legend: { show: false },
-      tooltip: { theme: "{$theme}" }
-    };
-    var chart = new ApexCharts(el, options);
-    chart.render();
-    window.__ai_charts = window.__ai_charts || {};
-    window.__ai_charts["{$chartId}"] = chart;
-  }
-  setTimeout(initChart, 60);
-})();
-</script>
-HTML;
-    }
-
-    /**
-     * Generates Finances, Invoices & Settlements Analysis.
-     */
-    public function generateFinancesAnalysis(string $uniqueId, string $chartId, string $question, string $lang, string $theme): string
-    {
-        $suppInvCount = DB::table('supplier_invoices')->whereNull('deleted_at')->count();
-        $suppInvPrice = (float) DB::table('supplier_invoices')->whereNull('deleted_at')->sum('total_price');
-
-        $clientInvCount = DB::table('client_invoices')->whereNull('deleted_at')->count();
-        $clientInvPrice = (float) DB::table('client_invoices')->whereNull('deleted_at')->sum('total_price');
-
-        $series = [
-            round($suppInvPrice, 2),
-            round($clientInvPrice, 2)
-        ];
-        $labelsArr = ['Factures Fournisseurs (MAD)', 'Factures Clients (MAD)'];
-        $seriesJson = json_encode($series);
-        $labelsJson = json_encode($labelsArr);
-
-        $isDark = ($theme === 'dark');
-        $cardBg = $isDark ? '#1a2332' : '#ffffff';
-        $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
-        $textColor = $isDark ? '#e2e8f0' : '#1e293b';
-        $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-
-        return <<<HTML
-<div id="{$uniqueId}">
-  <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 22px; border: 1px solid rgba(230, 81, 0, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 8px;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(230, 81, 0, 0.2); padding-bottom: 14px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #E65100, #F57C00, #FFB74D); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(230, 81, 0, 0.35);">
-          <i class="v-icon notranslate mdi mdi-file-document-multiple-outline text-white" style="font-size: 24px;"></i>
-        </div>
-        <div>
-          <div style="font-size: 17px; font-weight: 800; color: #E65100;">Finances & Facturation (Invoices)</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #E65100;">Jupiter Financial Intelligence</strong></div>
-        </div>
-      </div>
-      <span style="background: rgba(230, 81, 0, 0.15); color: #E65100; border: 1px solid rgba(230, 81, 0, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-        Module Facturation
-      </span>
-    </div>
-
-    <!-- 2 Stat Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(230, 81, 0, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Facturation Fournisseurs</div>
-        <div style="font-size: 20px; font-weight: 800; color: #E65100;">{$this->formatNumber($suppInvPrice, 2)} <span style="font-size: 13px;">MAD</span></div>
-        <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">{$suppInvCount} Factures Fournisseurs</div>
-      </div>
-      <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px; border: 1px solid rgba(0, 131, 143, 0.2);">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); margin-bottom: 4px;">Facturation Clients</div>
-        <div style="font-size: 20px; font-weight: 800; color: #00838F;">{$this->formatNumber($clientInvPrice, 2)} <span style="font-size: 13px;">MAD</span></div>
-        <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); margin-top: 4px;">{$clientInvCount} Factures Clients</div>
-      </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.06);">
-      <div style="font-size: 13px; font-weight: 800; color: #E65100; text-transform: uppercase; margin-bottom: 12px;">
-        <i class="v-icon notranslate mdi mdi-scale-balance" style="font-size: 16px; margin-right: 6px;"></i>
-        Équilibre Financier (Fournisseurs vs Clients)
-      </div>
-      <div id="{$chartId}" style="min-height: 250px; width: 100%;"></div>
-    </div>
-
-    <!-- Actions -->
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #E65100; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/supplier-invoices">
-        <i class="v-icon notranslate mdi mdi-file-document" style="font-size: 14px; margin-right: 4px;"></i>
-        Factures Fournisseurs
-      </button>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: #00838F; color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/client-invoices">
-        <i class="v-icon notranslate mdi mdi-file-document-outline" style="font-size: 14px; margin-right: 4px;"></i>
-        Factures Clients
-      </button>
-    </div>
-  </div>
-</div>
-<script>
-(function() {
-  function initChart() {
-    if (!window.ApexCharts) {
-      setTimeout(initChart, 100);
-      return;
-    }
-    var el = document.querySelector("#{$chartId}");
-    if (!el) return;
-    el.innerHTML = "";
-    var options = {
-      series: {$seriesJson},
-      chart: { id: "{$chartId}", type: "donut",
-        height: 250
-      },
-      labels: {$labelsJson},
-      colors: ["#E65100", "#00838F"],
-      legend: { position: "bottom", labels: { colors: "#94a3b8" } },
-      tooltip: {
-        theme: "{$theme}",
-        y: { formatter: function(val) { return val.toLocaleString() + " MAD"; } }
-      }
-    };
-    var chart = new ApexCharts(el, options);
-    chart.render();
-    window.__ai_charts = window.__ai_charts || {};
-    window.__ai_charts["{$chartId}"] = chart;
-  }
-  setTimeout(initChart, 60);
-})();
-</script>
 HTML;
     }
 
@@ -1551,7 +1718,6 @@ HTML;
      */
     public function generateExcelAnalysisResponse(string $uniqueId, string $chartId, string $question, array $excelFiles, string $lang, string $theme): string
     {
-        $fileCount = count($excelFiles);
         $totalRows = 0;
         $headers = [];
         $firstFileName = '';
@@ -1564,26 +1730,23 @@ HTML;
             }
         }
 
-        $previewRows = array_slice($excelFiles[0]['rows'] ?? [], 0, 5);
+        $previewRows = array_slice($excelFiles[0]['rows'] ?? [], 0, 8);
         $isDark = ($theme === 'dark');
         $cardBg = $isDark ? '#1a2332' : '#ffffff';
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
-        $gridBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-        $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
-        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
         $thHtml = '';
-        foreach (array_slice($headers, 0, 5) as $h) {
+        foreach (array_slice($headers, 0, 6) as $h) {
             $thHtml .= "<th style=\"padding: 8px 10px; text-align: left;\">{$h}</th>";
         }
 
         $trHtml = '';
         foreach ($previewRows as $r) {
             $trHtml .= "<tr style=\"border-bottom: 1px solid rgba(255,255,255,0.06);\">";
-            foreach (array_slice($headers, 0, 5) as $h) {
-                $val = is_scalar($r[$h] ?? null) ? $r[$h] : '';
+            foreach (array_slice($headers, 0, 6) as $h) {
+                $val = is_scalar($r[$h] ?? null) ? $r[$h] : (is_array($r) && isset($r[array_search($h, $headers)]) ? $r[array_search($h, $headers)] : '');
                 $trHtml .= "<td style=\"padding: 8px 10px; color: var(--ai-text-color, {$textColor});\">{$val}</td>";
             }
             $trHtml .= "</tr>";
@@ -1599,8 +1762,8 @@ HTML;
           <i class="v-icon notranslate mdi mdi-file-excel-outline text-white" style="font-size: 24px;"></i>
         </div>
         <div>
-          <div style="font-size: 17px; font-weight: 800; color: #4CAF50;">Analyse Fichier Excel Importé: {$firstFileName}</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Powered by <strong style="color: #4CAF50;">Jupiter Data Engine</strong></div>
+          <div style="font-size: 17px; font-weight: 800; color: #4CAF50;">Analyse Fichier Excel : {$firstFileName}</div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Question : <strong style="color: var(--ai-text-color, {$textColor});">« {$question} »</strong></div>
         </div>
       </div>
       <span style="background: rgba(76, 175, 80, 0.15); color: #4CAF50; border: 1px solid rgba(76, 175, 80, 0.35); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;">
@@ -1612,7 +1775,7 @@ HTML;
     <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 16px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.06);">
       <div style="font-size: 12.5px; font-weight: 800; color: #4CAF50; text-transform: uppercase; margin-bottom: 10px;">
         <i class="v-icon notranslate mdi mdi-table" style="font-size: 16px; margin-right: 6px;"></i>
-        Aperçu des Données du Fichier
+        Aperçu des Données Extraites du Fichier
       </div>
       <table class="ai-analytics-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
         <thead>
@@ -1627,7 +1790,7 @@ HTML;
     </div>
 
     <div style="font-size: 13.5px; color: var(--ai-text-color, {$textColor}); line-height: 1.7; background: rgba(76, 175, 80, 0.08); padding: 14px; border-radius: 12px; border-left: 4px solid #4CAF50;">
-      Les données Excel ont été chargées et indexées avec succès. Vous pouvez poser des questions spécifiques sur ces colonnes (ex: totaux, moyennes, classements, filtres) ou comparer avec la base de données.
+      Les données du fichier Excel ont été intégrées et analysées. Toutes les colonnes sont disponibles pour calculs statistiques, comparaisons et rapprochements avec la base de données.
     </div>
   </div>
 </div>
@@ -1642,4 +1805,3 @@ HTML;
         return number_format($num, $decimals, '.', ' ');
     }
 }
-

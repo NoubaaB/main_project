@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AiQueryMessage;
+use App\Events\ModelChanged;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -61,6 +62,10 @@ class AiQueryMessageController extends Controller
             'text'    => $data['text'],
         ]);
 
+        try {
+            broadcast(new ModelChanged('AiQueryMessage', 'created', $msg->id, $request->user()->name ?? 'User', ['id' => $msg->id, 'role' => $msg->role], $request->user()->id))->toOthers();
+        } catch (\Throwable $e) {}
+
         return response()->json([
             'message' => [
                 'id'       => $msg->id,
@@ -92,6 +97,9 @@ class AiQueryMessageController extends Controller
             ->delete();
 
         if ($deleted) {
+            try {
+                broadcast(new ModelChanged('AiQueryMessage', 'deleted', (int)$id, $request->user()->name ?? 'User', ['id' => (int)$id], $request->user()->id))->toOthers();
+            } catch (\Throwable $e) {}
             return response()->json(['message' => 'Message deleted']);
         }
 
