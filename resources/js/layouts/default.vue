@@ -5,6 +5,9 @@
     <!-- snack-bar end -->
     <!-- notification toast -->
     <NotificationToast/>
+    <!-- unresolved issues snackbars & dialog -->
+    <UnresolvedIssuesSnackbar v-if="auth.is_auth"/>
+    <UnresolvedIssuesDialog v-if="auth.is_auth"/>
     <!-- navigation drawer start -->
     <NavigationDrawer v-if="auth.is_auth && !main.is_aiq_fullscreen"/>
     <!-- navigation drawer end -->
@@ -60,6 +63,8 @@
   import AiAssistant from "@/components/schema/AiAssistant.vue" ;
   import NavigationDrawer from "@/components/schema/NavigationDrawer.vue" ;
   import SystemBar from "@/components/schema/SystemBar.vue" ;
+  import UnresolvedIssuesSnackbar from "@/components/shared/UnresolvedIssuesSnackbar.vue";
+  import UnresolvedIssuesDialog from "@/components/shared/UnresolvedIssuesDialog.vue";
   import  { useAuth } from "@/stores/Auth";
   import {useMain} from "@/stores/Main";
   import pinia from "@/stores";
@@ -70,7 +75,9 @@
         NotificationToast,
         NavigationDrawer,
         SystemBar,
-        AiAssistant
+        AiAssistant,
+        UnresolvedIssuesSnackbar,
+        UnresolvedIssuesDialog
       },
       data() {
         return {

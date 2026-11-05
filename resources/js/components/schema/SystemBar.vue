@@ -521,6 +521,189 @@
             </v-card>
           </v-menu>
 
+          <!-- Unresolved Issues Menu Button (SystemBar) -->
+          <v-menu
+            transition="scale-transition"
+            :close-on-content-click="false"
+            :theme="main.is_dark ? 'dark' : 'light'"
+            v-if="auth.is_auth"
+            v-model="issuesMenuOpen"
+            offset="8"
+          >
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                icon
+                variant="text"
+                size="32"
+                :class="['dock-btn', recordIssues.unresolvedCount > 0 ? 'text-error' : 'text-medium-emphasis']"
+                id="systembar-issues-btn"
+              >
+                <v-badge
+                  v-if="recordIssues.unresolvedCount > 0"
+                  :content="recordIssues.unresolvedCount > 99 ? '99+' : recordIssues.unresolvedCount"
+                  color="error"
+                  location="bottom end"
+                  offset-x="2"
+                  offset-y="2"
+                >
+                  <v-icon size="18" :class="{ 'ri-alert-icon-shake': recordIssues.unresolvedCount > 0 }">mdi-alert-circle</v-icon>
+                </v-badge>
+                <v-icon v-else size="18">mdi-alert-circle-outline</v-icon>
+                <v-tooltip activator="parent" location="bottom">
+                  {{ recordIssues.unresolvedCount > 0
+                    ? $t('unresolved_issues_dock_tooltip', { count: recordIssues.unresolvedCount })
+                    : $t('no_unresolved_issues') }}
+                </v-tooltip>
+              </v-btn>
+            </template>
+
+            <v-card
+              class="dock-panel issues-panel"
+              :class="main.is_dark ? 'panel-dark' : 'panel-light'"
+              min-width="380"
+              max-width="440"
+              rounded="xl"
+              elevation="16"
+            >
+              <!-- Panel Header -->
+              <div class="dock-panel-header d-flex align-center justify-space-between pa-3 border-b">
+                <div class="d-flex align-center ga-2">
+                  <v-icon size="20" color="error">mdi-alert-circle-outline</v-icon>
+                  <span class="text-subtitle-2 font-weight-bold">{{ $t('unresolved_issues_title') }}</span>
+                  <v-chip v-if="recordIssues.unresolvedCount > 0" size="x-small" color="error" variant="flat" class="font-weight-bold">
+                    {{ recordIssues.unresolvedCount }}
+                  </v-chip>
+                </div>
+                <div class="d-flex align-center ga-1">
+                  <v-btn
+                    variant="text"
+                    size="x-small"
+                    color="primary"
+                    class="text-none font-weight-bold"
+                    @click="openFullIssuesDialog()"
+                  >
+                    <v-icon size="14" class="mr-1">mdi-open-in-new</v-icon>
+                    {{ $t('view_all') || 'Tout afficher' }}
+                  </v-btn>
+                </div>
+              </div>
+
+              <!-- Module Breakdown Strip -->
+              <div v-if="recordIssues.unresolvedCount > 0" class="px-3 py-2 d-flex align-center ga-1 border-b" style="background: rgba(128, 128, 128, 0.04);">
+                <v-chip
+                  v-if="recordIssues.byModule.Charge > 0"
+                  size="x-small"
+                  style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; font-weight: 700;"
+                  variant="flat"
+                >
+                  <v-icon start size="12">mdi-truck-delivery-outline</v-icon>
+                  {{ recordIssues.byModule.Charge }} {{ $t('charges') }}
+                </v-chip>
+                <v-chip
+                  v-if="recordIssues.byModule.Production > 0"
+                  size="x-small"
+                  style="background: rgba(0, 137, 123, 0.15); color: #00897B; font-weight: 700;"
+                  variant="flat"
+                >
+                  <v-icon start size="12">mdi-factory</v-icon>
+                  {{ recordIssues.byModule.Production }} {{ $t('productions') }}
+                </v-chip>
+                <v-chip
+                  v-if="recordIssues.byModule.Shipping > 0"
+                  size="x-small"
+                  style="background: rgba(70, 67, 160, 0.15); color: #6c66bb; font-weight: 700;"
+                  variant="flat"
+                >
+                  <v-icon start size="12">mdi-ship-wheel</v-icon>
+                  {{ recordIssues.byModule.Shipping }} {{ $t('shippings') }}
+                </v-chip>
+              </div>
+
+              <!-- Issues List (Scrollable) -->
+              <div class="issues-dropdown-list pa-2" style="max-height: 380px; overflow-y: auto;">
+                <div v-if="recordIssues.unresolvedIssues.length > 0">
+                  <div
+                    v-for="issue in recordIssues.unresolvedIssues.slice(0, 15)"
+                    :key="'sys-issue-' + issue.id"
+                    class="issues-dropdown-item pa-2.5 rounded-lg mb-2 border transition-swing"
+                    :style="{ borderLeft: `4px solid ${getIssueModuleColor(issue.record_type)} !important` }"
+                  >
+                    <div class="d-flex align-center justify-space-between mb-1">
+                      <div class="d-flex align-center ga-1.5">
+                        <span class="text-caption font-weight-bold text-high-emphasis">
+                          {{ issue.bon_reference || `${issue.record_type} #${issue.record_id}` }}
+                        </span>
+                      </div>
+                      <v-chip size="x-small" color="error" variant="tonal" class="font-weight-bold">
+                        {{ $t('issue_status_' + issue.status) }}
+                      </v-chip>
+                    </div>
+
+                    <div class="text-caption text-medium-emphasis mb-1">
+                      <v-icon size="12" class="mr-1">mdi-account-alert</v-icon>
+                      <span>{{ issue.reporter?.name || '-' }}</span>
+                      <span class="mx-1">•</span>
+                      <span>{{ formatIssueTime(issue.created_at) }}</span>
+                    </div>
+
+                    <div class="text-caption text-high-emphasis pa-2 rounded mb-2" style="background: rgba(128, 128, 128, 0.08); white-space: pre-wrap;">
+                      {{ issue.description }}
+                    </div>
+
+                    <div class="d-flex align-center justify-space-between pt-1">
+                      <v-btn
+                        size="x-small"
+                        variant="text"
+                        :color="getIssueModuleColor(issue.record_type)"
+                        class="text-none"
+                        @click="navigateToBonFromDropdown(issue)"
+                      >
+                        <v-icon size="13" class="mr-1">mdi-open-in-new</v-icon>
+                        {{ $t('view_bon_details') }}
+                      </v-btn>
+
+                      <v-btn
+                        size="x-small"
+                        variant="flat"
+                        color="success"
+                        rounded
+                        class="text-none font-weight-bold"
+                        prepend-icon="mdi-check-decagram"
+                        @click="resolveIssueFromDropdown(issue)"
+                      >
+                        {{ $t('resolve') }}
+                      </v-btn>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="text-center py-6 text-medium-emphasis">
+                  <v-icon size="36" color="success" class="mb-2">mdi-check-decagram-outline</v-icon>
+                  <div class="text-caption font-weight-bold">{{ $t('no_unresolved_issues') }}</div>
+                  <div class="text-caption text-disabled mt-0.5">{{ $t('no_unresolved_issues_desc') }}</div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="pa-2.5 border-t d-flex justify-center" style="background: rgba(128, 128, 128, 0.03);">
+                <v-btn
+                  block
+                  variant="tonal"
+                  color="primary"
+                  size="small"
+                  rounded="lg"
+                  prepend-icon="mdi-format-list-checks"
+                  class="text-none font-weight-bold"
+                  @click="openFullIssuesDialog()"
+                >
+                  {{ $t('view_all_issues') }} ({{ recordIssues.unresolvedCount }})
+                </v-btn>
+              </div>
+            </v-card>
+          </v-menu>
+
           <!-- Notification Bell Menu -->
           <v-menu
             transition="scale-transition"
@@ -893,6 +1076,7 @@ import { useCompanySettings } from '@/stores/CompanySettings';
 import { usePwa } from '@/stores/pwa';
 import { useNavigationHistory } from '@/stores/NavigationHistory';
 import { useWebPush } from '@/stores/WebPush';
+import { useRecordIssues } from '@/stores/RecordIssues';
 import { getRouteMetadata } from '@/utils/routeMetadata';
 import annyang from 'annyang';
 import CommandPalette from '@/components/schema/CommandPalette.vue';
@@ -908,6 +1092,7 @@ export default {
     return {
       aboutDialogOpen: false,
       notifMenuOpen: false,
+      issuesMenuOpen: false,
       commandPaletteOpen: false,
       historyTab: 'recents',
       historySearchQuery: '',
@@ -918,6 +1103,7 @@ export default {
     main() { return useMain(); },
     auth() { return useAuth(); },
     _online() { return useOnlineUsers(); },
+    recordIssues() { return useRecordIssues(); },
     notifCenter() { return useNotificationCenter(); },
     webPush() { return useWebPush(); },
     pwa() { return usePwa(); },
@@ -1080,6 +1266,46 @@ export default {
       if (!item) return false;
       const curPath = this.$route.fullPath || this.$route.path;
       return item.fullPath === curPath || item.name === this.$route.name;
+    },
+    getIssueModuleColor(type) {
+      switch (type) {
+        case 'Charge':
+          return '#42A5F5';
+        case 'Production':
+          return '#00897B';
+        case 'Shipping':
+          return '#4643a0';
+        default:
+          return '#1565C0';
+      }
+    },
+    formatIssueTime(dateStr) {
+      if (!dateStr) return '';
+      try {
+        return this.notifCenter.getRelativeTime(dateStr, this.$t);
+      } catch (e) {
+        return dateStr;
+      }
+    },
+    openFullIssuesDialog() {
+      this.issuesMenuOpen = false;
+      this.recordIssues.openIssuesDialog();
+    },
+    navigateToBonFromDropdown(issue) {
+      this.issuesMenuOpen = false;
+      const type = issue.record_type;
+      const id = issue.record_id;
+      if (type === 'Charge') {
+        this.$router.push({ name: 'view_charge', params: { id } });
+      } else if (type === 'Production') {
+        this.$router.push({ name: 'view_production', params: { id } });
+      } else if (type === 'Shipping') {
+        this.$router.push({ name: 'view_shipping', params: { id } });
+      }
+    },
+    resolveIssueFromDropdown(issue) {
+      this.issuesMenuOpen = false;
+      this.recordIssues.promptResolve(issue);
     }
   },
   mounted() {
@@ -1088,6 +1314,7 @@ export default {
       this._online.connect();
       this.notifCenter.init();
       this.webPush.init();
+      this.recordIssues.checkOnAppAccess();
     }
   },
   beforeUnmount() {
@@ -1912,5 +2139,25 @@ export default {
   0%   { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
   70%  { box-shadow: 0 0 0 8px rgba(255, 152, 0, 0); }
   100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+}
+
+.ri-alert-icon-shake {
+  animation: riShake 3.5s infinite ease-in-out;
+}
+@keyframes riShake {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-14deg); }
+  20% { transform: rotate(14deg); }
+  25% { transform: rotate(-10deg); }
+  30% { transform: rotate(10deg); }
+  35% { transform: rotate(0deg); }
+}
+
+.issues-dropdown-item {
+  background: rgba(128, 128, 128, 0.03);
+  transition: all 0.2s ease;
+}
+.issues-dropdown-item:hover {
+  background: rgba(128, 128, 128, 0.08);
 }
 </style>

@@ -497,6 +497,8 @@ Route::middleware(["auth:sanctum"])->group(
         // ═══════════════════════════════════════════
         Route::get("record-issues", [App\Http\Controllers\RecordIssueController::class, "index"]);
         Route::get("record-issues/open", [App\Http\Controllers\RecordIssueController::class, "openIssues"]);
+        Route::get("record-issues/unresolved-summary", [App\Http\Controllers\RecordIssueController::class, "unresolvedSummary"]);
+        Route::get("record-issues/unresolved", [App\Http\Controllers\RecordIssueController::class, "unresolved"]);
         Route::get("record-issues/counts", [App\Http\Controllers\RecordIssueController::class, "openCounts"]);
         Route::post("record-issues/batch-counts", [App\Http\Controllers\RecordIssueController::class, "batchCounts"]);
         Route::post("record-issues", [App\Http\Controllers\RecordIssueController::class, "store"]);

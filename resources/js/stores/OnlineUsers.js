@@ -35,6 +35,7 @@ import { useStaticCharge } from '@/stores/StaticCharge';
 import { useNotificationCenter } from '@/stores/NotificationCenter';
 import { useWorkforceMovement } from '@/stores/WorkforceMovement';
 import { useWebPush } from '@/stores/WebPush';
+import { useRecordIssues } from '@/stores/RecordIssues';
 
 export const useOnlineUsers = defineStore('OnlineUsers', {
     state: () => ({
@@ -151,6 +152,16 @@ export const useOnlineUsers = defineStore('OnlineUsers', {
 
             // Always update local store list for ALL users (keeps data in sync)
             this.updateLocalStore(data);
+
+            // RecordIssue real-time handling (notify User B / notify User A / update counts)
+            if (data.model === 'RecordIssue') {
+                try {
+                    const recordIssues = useRecordIssues();
+                    recordIssues.handleRealtimeEvent(data);
+                } catch (e) {
+                    console.warn('[RecordIssues] Failed to handle realtime event:', e);
+                }
+            }
 
             // Emit event for DataTable-based pages (Charge, Sell, etc.) to re-fetch
             mitt.emit('model-changed', data);

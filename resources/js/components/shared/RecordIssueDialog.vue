@@ -208,6 +208,7 @@
 import axios from 'axios';
 import { useAuth } from '@/stores/Auth';
 import { useMain } from '@/stores/Main';
+import { useRecordIssues } from '@/stores/RecordIssues';
 import mitt from '@/plugins/mitt';
 
 export default {
@@ -296,12 +297,24 @@ export default {
       if (!this.newIssue.description?.trim()) return;
       this.submitting = true;
       try {
-        await axios.post('/api/record-issues', {
+        const { data } = await axios.post('/api/record-issues', {
           record_type: this.recordType,
           record_id: this.recordId,
           description: this.newIssue.description.trim(),
         });
-        this.showSnack(this.$t('issue_reported_success'), 'success', 'mdi-check-circle');
+        const bonRef = data.issue?.bon_reference || `${this.recordType} #${this.recordId}`;
+        this.showSnack(this.$t('issue_reported_creator_notified'), 'success', 'mdi-check-circle');
+        try {
+          useRecordIssues().triggerSummarySnackbar({
+            type: 'success',
+            title: this.$t('issue_reported_creator_notified'),
+            bonReference: bonRef,
+            reporterName: this.auth.user?.name || '',
+            resolverName: '',
+            note: this.newIssue.description.trim(),
+            icon: 'mdi-check-circle',
+          });
+        } catch (_) {}
         this.showCreateForm = false;
         this.newIssue = { description: '' };
         this.fetchIssues();
@@ -329,10 +342,22 @@ export default {
       if (!this.resolvingIssue) return;
       this.resolving = true;
       try {
-        await axios.post(`/api/record-issues/${this.resolvingIssue.id}/resolve`, {
+        const { data } = await axios.post(`/api/record-issues/${this.resolvingIssue.id}/resolve`, {
           resolution_note: this.resolveForm.resolution_note || null,
         });
-        this.showSnack(this.$t('issue_resolved_success'), 'success', 'mdi-check-decagram');
+        const bonRef = this.resolvingIssue.bon_reference || `${this.recordType} #${this.recordId}`;
+        this.showSnack(this.$t('issue_resolved_reporter_notified'), 'success', 'mdi-check-decagram');
+        try {
+          useRecordIssues().triggerSummarySnackbar({
+            type: 'success',
+            title: this.$t('issue_resolved_reporter_notified'),
+            bonReference: bonRef,
+            reporterName: this.resolvingIssue.reporter?.name || '',
+            resolverName: this.auth.user?.name || '',
+            note: this.resolveForm.resolution_note || '',
+            icon: 'mdi-check-decagram',
+          });
+        } catch (_) {}
         this.resolveDialog = false;
         this.resolvingIssue = null;
         this.fetchIssues();
