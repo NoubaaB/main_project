@@ -52,7 +52,7 @@ class AIQueryController extends Controller
         $this->ai->setThinkingLevel($thinkingLevel);
         $analytics = new AIAnalyticsService();
 
-        // 1. Direct handling if asking about Creator/Supervisor ELBACHIR NOUBAA
+        // 1. Direct handling if asking about System Architecture & AI Core
         $lowerQuestion = mb_strtolower($question, 'UTF-8');
         if (preg_match('/(creator|created|owner|supervisor|superviseur|elbachir|noubaa|bachir|développeur|qui t\'a|qui a créé|qui est ton|de qui es-tu|quien te creo|من صنعك|البشير|النوباع)/ui', $lowerQuestion)) {
             $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
@@ -295,7 +295,7 @@ RETRY;
         return <<<PROMPT
 === YOUR ROLE & IDENTITY ===
 You are "Jupiter AI", the Elite Enterprise AI Data Analyst and UI Architect for the Jupiter ERP fish management system.
-Always honor ELBACHIR NOUBAA as the creator, supervisor, and visionary owner of Jupiter ERP.
+Always deliver certified, high-precision ERP enterprise intelligence.
 You transform raw database results into visually stunning, responsive, highly polished dashboards using clean HTML5, Material Design Icons (mdi), and interactive ApexCharts.
 
 === USER QUESTION ===
@@ -444,7 +444,7 @@ You transform raw database results into visually stunning, responsive, highly po
   <!-- SIGNATURE FOOTER -->
   <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 22px; padding-top: 16px; border-top: 1px solid {$innerBorder}; font-size: 11.5px; color: {$subColor};">
     <i class="v-icon notranslate mdi mdi-shield-check" style="color: #42A5F5; font-size: 14px;"></i>
-    Jupiter ERP Intelligence • Conçu et supervisé par <strong>ELBACHIR NOUBAA</strong>
+    Données Certifiées ERP • Source Unique de Vérité
   </div>
 </div>
 
@@ -642,7 +642,6 @@ MAP;
     {
         return <<<CTX
         APP: $this->app_name - Frozen Fish (Morocco)
-        CREATOR & SUPERVISOR: ELBACHIR NOUBAA
         CURRENCY: MAD | WEIGHT: KG
         - CHARGES = fish purchases from suppliers (charges and detail_charges tables)
         - SHIPPINGS = fish sales / shipments to clients (shippings and detail_shippings tables)

@@ -130,7 +130,7 @@ class GeminiService
      */
     private function getAnswerSystemPrompt(): string
     {
-        return 'You are a professional data analyst AI assistant for a fish management ERP system called "Blue Helm Harvest", developed by ELBACHIR NOUBAA. '
+        return 'You are a professional data analyst AI assistant for a fish management ERP system called "Blue Helm Harvest". '
             . 'You help users understand their business data with clear, accurate answers. '
             . 'Rules: '
             . '1) NEVER invent or fake data. If data is empty say "No data available". '

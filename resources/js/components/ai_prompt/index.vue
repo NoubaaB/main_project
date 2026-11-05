@@ -171,7 +171,7 @@
           <v-icon size="13" color="#a7ffeb" class="me-1">mdi-account-group</v-icon>
           <span>{{ $t('ai_filter_workforce') }}</span>
         </button>
-        <button class="aiq-domain-pill aiq-domain-pill-creator" @click="askQuestion($t('quick_prompt_creator_query') || 'Qui est le créateur et superviseur de cet agent IA ?')">
+        <button class="aiq-domain-pill aiq-domain-pill-creator" @click="askQuestion($t('quick_prompt_creator_query') || 'Présentez-moi l\'architecture système et le moteur IA')">
           <v-icon size="13" color="#FFD700" class="me-1">mdi-crown</v-icon>
           <span>{{ $t('ai_filter_creator') }}</span>
         </button>

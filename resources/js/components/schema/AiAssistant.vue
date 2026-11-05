@@ -203,7 +203,7 @@
                   <v-icon size="13" color="#a21ee5" class="me-1">mdi-warehouse</v-icon>
                   <span>{{ $t('ai_filter_warehouses') }}</span>
                 </button>
-                <button class="ai-empty-pill ai-empty-pill-creator" @click="sendQuickMessage('Qui est le créateur et superviseur de cet agent IA ?')">
+                <button class="ai-empty-pill ai-empty-pill-creator" @click="sendQuickMessage(this.$t('quick_prompt_creator_query') || 'Présentez-moi l\'architecture système et le moteur IA')">
                   <v-icon size="13" color="#FFD700" class="me-1">mdi-crown</v-icon>
                   <span>{{ $t('ai_filter_creator') }}</span>
                 </button>

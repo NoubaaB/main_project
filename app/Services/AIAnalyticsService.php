@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class AIAnalyticsService
 {
     private string $appName;
-    private string $creatorName = "ELBACHIR NOUBAA";
+    private string $creatorName = "Jupiter ERP Intelligence";
 
     public function __construct()
     {
@@ -3132,7 +3132,7 @@ BTN;
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid var(--ai-border, {$innerBorder}); padding-top: 16px; margin-top: 4px;">
       <div style="display: flex; align-items: center; gap: 6px;">
         <i class="mdi mdi-shield-check" style="font-size: 16px; color: {$modColor};"></i>
-        <span>Jupiter ERP Intelligence • Conçu et supervisé par <strong>ELBACHIR NOUBAA</strong></span>
+        <span>Données Certifiées ERP • Source Unique de Vérité</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         {$navBtnsHtml}
@@ -3188,7 +3188,7 @@ HTML;
     }
 
     /**
-     * Generates Creator & Supervisor response honoring ELBACHIR NOUBAA.
+     * Generates System Architecture & Intelligence Core response.
      */
     public function generateCreatorResponse(string $uniqueId, string $lang, string $theme): string
     {
@@ -3200,34 +3200,34 @@ HTML;
         return <<<HTML
 <div id="{$uniqueId}">
   <div class="ai-analytics-card" style="background: var(--ai-card-bg, {$cardBg}); border-radius: 20px; padding: 24px; border: 1px solid rgba(66, 165, 245, 0.35); box-shadow: 0 10px 30px rgba(21, 101, 192, 0.15); margin-bottom: 8px;">
-    <!-- Creator Badge Header -->
+    <!-- Architecture Badge Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(66, 165, 245, 0.2); padding-bottom: 16px;">
       <div style="display: flex; align-items: center; gap: 14px;">
         <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #1565C0 0%, #1E88E5 50%, #42A5F5 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(21, 101, 192, 0.4);">
-          <i class="v-icon notranslate mdi mdi-crown text-white" style="font-size: 28px;"></i>
+          <i class="v-icon notranslate mdi mdi-cpu-64-bit text-white" style="font-size: 28px;"></i>
         </div>
         <div>
-          <div style="font-size: 20px; font-weight: 800; color: #42A5F5; letter-spacing: 0.5px;">ELBACHIR NOUBAA</div>
+          <div style="font-size: 20px; font-weight: 800; color: #42A5F5; letter-spacing: 0.5px;">Jupiter ERP Intelligence Core</div>
           <div style="font-size: 13px; font-weight: 600; color: var(--ai-sub-color, {$subColor}); display: flex; align-items: center; gap: 6px;">
             <i class="v-icon notranslate mdi mdi-shield-check text-blue" style="font-size: 16px; color: #42A5F5 !important;"></i>
-            <span>Architecte Concepteur & Superviseur Technique de Jupiter ERP</span>
+            <span>Moteur Décisionnel Certifié de Jupiter ERP</span>
           </div>
         </div>
       </div>
       <span style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; border: 1px solid rgba(66, 165, 245, 0.35); padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">
-        Fondateur & Concepteur
+        Enterprise AI Core
       </span>
     </div>
 
     <!-- Description -->
     <div style="font-size: 14px; line-height: 1.8; color: var(--ai-text-color, {$textColor}); margin-bottom: 20px;">
-      Cet agent d'intelligence décisionnelle et l'ensemble de l'écosystème <strong>Jupiter ERP</strong> ont été conçus, structurés et optimisés sous la supervision directe de <strong>ELBACHIR NOUBAA</strong>. Le moteur assure la gouvernance de données temps réel pour la gestion de l'industrie de congélation, pêche maritime, transformation et logistique internationale.
+      Cet agent d'intelligence décisionnelle et l'ensemble de l'écosystème <strong>Jupiter ERP</strong> sont conçus et optimisés pour assurer la gouvernance de données en temps réel pour l'industrie de la pêche maritime, la congélation industrielle, la transformation de produits halieutiques et la logistique internationale.
     </div>
 
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px;">
       <div style="display: flex; align-items: center; gap: 6px;">
         <i class="v-icon notranslate mdi mdi-check-decagram" style="font-size: 16px; color: #42A5F5;"></i>
-        <span>Architecture Certifiée ELBACHIR NOUBAA</span>
+        <span>Données Certifiées ERP • Source Unique de Vérité</span>
       </div>
       <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: linear-gradient(135deg, #1565C0, #42A5F5); color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/dashboard">
         <i class="v-icon notranslate mdi mdi-view-dashboard" style="font-size: 14px; margin-right: 6px;"></i>
