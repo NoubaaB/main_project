@@ -68,6 +68,18 @@ class AIQueryController extends Controller
             return response()->json(['answer' => $answer], 200);
         }
 
+        // 3. Direct handling for structured ERP analytics breakdown and chart queries
+        // (Fortnight monthly, purchases monthly, sales monthly, production monthly, sections, corporals)
+        if (
+            (preg_match('/(fortnight|quinzaine|quincena|\bq1\b|\bq2\b)/ui', $lowerQuestion) && preg_match('/(month|mois|mes|monthly|mensuel|each month|by month|par mois|por mes|all month|chaque mois)/ui', $lowerQuestion)) ||
+            (preg_match('/(charge|achat|shipping|vente|expedition|production)/ui', $lowerQuestion) && preg_match('/(month|mois|mes|monthly|mensuel|each month|by month|par mois|por mes)/ui', $lowerQuestion)) ||
+            (preg_match('/(fortnight|quinzaine|workforce|ouvrier)/ui', $lowerQuestion) && preg_match('/(section|caporal|corporal)/ui', $lowerQuestion))
+        ) {
+            $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
+            $this->persistQueryMessage($request, $question, $answer);
+            return response()->json(['answer' => $answer], 200);
+        }
+
         // "" Step 1: Get schema ""
         $schema = $this->getSchemaString();
         $comments = $this->getTableCommentsString();

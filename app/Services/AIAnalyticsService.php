@@ -41,6 +41,18 @@ class AIAnalyticsService
 
         // 4. Route to specialized domain handler
         switch ($p['domain']) {
+            case 'fortnight_monthly':
+                return $this->handleFortnightMonthlyQuery($uniqueId, $chartId, $p, $theme);
+            case 'charges_monthly':
+                return $this->handleChargesMonthlyQuery($uniqueId, $chartId, $p, $theme);
+            case 'shippings_monthly':
+                return $this->handleShippingsMonthlyQuery($uniqueId, $chartId, $p, $theme);
+            case 'productions_monthly':
+                return $this->handleProductionsMonthlyQuery($uniqueId, $chartId, $p, $theme);
+            case 'workforce_sections':
+                return $this->handleWorkforceSectionsQuery($uniqueId, $chartId, $p, $theme);
+            case 'workforce_corporals':
+                return $this->handleWorkforceCorporalsQuery($uniqueId, $chartId, $p, $theme);
             case 'charges':
                 return $this->handleChargesQuery($uniqueId, $chartId, $p, $theme);
             case 'shippings':
@@ -128,7 +140,15 @@ class AIAnalyticsService
     {
         $lower = mb_strtolower($question, 'UTF-8');
 
-        // 1. Limit extraction (default: 10 for lists, 5 for rankings)
+        // 1. Year extraction (handles "inyear 2026", "inyear2026", "year 2026", "en 2026", "2026", etc.)
+        $year = null;
+        if (preg_match('/(?:inyear|year|en l\'année|année|año)?\s*\b(20[2-3][0-9])\b/ui', $lower, $ym)) {
+            $year = (int)$ym[1];
+        } elseif (preg_match('/20[2-3][0-9]/', $lower, $ym)) {
+            $year = (int)$ym[0];
+        }
+
+        // 2. Limit extraction (default: 10 for lists, 5 for rankings)
         $limit = 10;
         if (preg_match('/\b(top\s*)?(\d+)\b/u', $lower, $m)) {
             $val = (int)$m[2];
@@ -137,13 +157,13 @@ class AIAnalyticsService
             }
         }
 
-        // 2. Intent extraction
+        // 3. Intent extraction (handles typos like "totoal", "totale", etc.)
         $intent = 'summary';
         if (preg_match('/\b(liste|donne|donne-moi|affiche|tableau|montre|montrez|voir|derniers?|dernières?|récents?|table|list|show)\b/ui', $lower)) {
             $intent = 'list';
         } elseif (preg_match('/\b(combien|nombre|count|cuantos?)\b/ui', $lower)) {
             $intent = 'count';
-        } elseif (preg_match('/\b(total|somme|chiffre d\'affaires|valeur|montant|sum)\b/ui', $lower)) {
+        } elseif (preg_match('/\b(total|totoal|totale?|totaux|somme|chiffre d\'affaires|valeur|montant|sum)\b/ui', $lower)) {
             $intent = 'total';
         } elseif (preg_match('/\b(moyen|moyenne|average|wap)\b/ui', $lower)) {
             $intent = 'average';
@@ -151,13 +171,15 @@ class AIAnalyticsService
             $intent = 'top';
         } elseif (preg_match('/\b(impayé|impayés|créance|créances|dette|dettes|non réglé|unpaid)\b/ui', $lower)) {
             $intent = 'unpaid';
-        } elseif (preg_match('/\b(évolution|tendance|comparer|comparaison|graphique|chart|trend)\b/ui', $lower)) {
+        } elseif (preg_match('/\b(évolution|tendance|comparer|comparaison|graphique|chart|proper chart|trend)\b/ui', $lower)) {
             $intent = 'trend';
         }
 
-        // 3. TimeFrame extraction
+        // 4. TimeFrame extraction
         $timeFrame = 'all';
-        if (preg_match('/\b(aujourd\'?hui|today|hoy)\b/ui', $lower)) {
+        if ($year !== null) {
+            $timeFrame = 'year_' . $year;
+        } elseif (preg_match('/\b(aujourd\'?hui|today|hoy)\b/ui', $lower)) {
             $timeFrame = 'today';
         } elseif (preg_match('/\b(hier|yesterday|ayer)\b/ui', $lower)) {
             $timeFrame = 'yesterday';
@@ -167,17 +189,42 @@ class AIAnalyticsService
             $timeFrame = 'this_month';
         } elseif (preg_match('/\b(mois dernier|le mois passé|last month|mes pasado)\b/ui', $lower)) {
             $timeFrame = 'last_month';
-        } elseif (preg_match('/\b(2026)\b/u', $lower)) {
-            $timeFrame = 'year_2026';
-        } elseif (preg_match('/\b(2025)\b/u', $lower)) {
-            $timeFrame = 'year_2025';
-        } elseif (preg_match('/\b(2024)\b/u', $lower)) {
-            $timeFrame = 'year_2024';
         }
 
-        // 4. Domain extraction
+        // Monthly / period check (handles "in each month", "each month", "all month", "par mois", etc.)
+        $isMonthly = (bool) preg_match('/(month|months|mois|mes|meses|monthly|mensuel|mensuelle|mensuels|each month|by month|par mois|por mes|all month|chaque mois|tous les mois)/ui', $lower);
+
+        // Fortnight signals
+        $isFortnight = (bool) preg_match('/(fortnight|fortnights|quinzaine|quinzaines|quincena|quincenas|\bq1\b|\bq2\b)/ui', $lower);
+
+        // Section & Corporal signals
+        $isSection = (bool) preg_match('/(section|sections)/ui', $lower);
+        $isCorporal = (bool) preg_match('/(caporal|caporaux|corporal|corporals)/ui', $lower);
+
+        // Charges / Purchases signals
+        $isCharges = (bool) preg_match('/(charge|charges|achat|achats|réception|réceptions|purchases?)/ui', $lower);
+
+        // Shippings / Sales signals
+        $isShippings = (bool) preg_match('/(shipping|shippings|vente|ventes|expédition|expéditions|sales?)/ui', $lower);
+
+        // Productions signals
+        $isProductions = (bool) preg_match('/(production|productions|congélation|frais|guano|farine|huile|rendement|yield|equilibrium)/ui', $lower);
+
+        // 5. Domain extraction
         $domain = 'overview';
-        if (preg_match('/\b(comparer?|comparaison|versus|vs|bilan)\b/ui', $lower) && preg_match('/\b(achat|charge|vente|shipping)\b/ui', $lower)) {
+        if ($isFortnight && $isMonthly) {
+            $domain = 'fortnight_monthly';
+        } elseif ($isCharges && $isMonthly) {
+            $domain = 'charges_monthly';
+        } elseif ($isShippings && $isMonthly) {
+            $domain = 'shippings_monthly';
+        } elseif ($isProductions && $isMonthly) {
+            $domain = 'productions_monthly';
+        } elseif ($isFortnight && $isSection) {
+            $domain = 'workforce_sections';
+        } elseif ($isFortnight && $isCorporal) {
+            $domain = 'workforce_corporals';
+        } elseif (preg_match('/\b(comparer?|comparaison|versus|vs|bilan)\b/ui', $lower) && preg_match('/\b(achat|charge|vente|shipping)\b/ui', $lower)) {
             $domain = 'comparison';
         } elseif (preg_match('/\b(camion|camions|matricule|véhicule|véhicules|truck|trucks)\b/ui', $lower)) {
             $domain = 'trucks';
@@ -189,15 +236,19 @@ class AIAnalyticsService
             $domain = 'suppliers';
         } elseif (preg_match('/\b(client|clients|acheteurs?)\b/ui', $lower) && preg_match('/\b(liste|qui sont|top|meilleur)\b/ui', $lower)) {
             $domain = 'clients';
-        } elseif (preg_match('/\b(charge|charges|achat|achats|réception|réceptions|purchases?)\b/ui', $lower)) {
+        } elseif ($isCharges) {
             $domain = 'charges';
-        } elseif (preg_match('/\b(shipping|shippings|vente|ventes|expédition|expéditions|sales?)\b/ui', $lower)) {
+        } elseif ($isShippings) {
             $domain = 'shippings';
-        } elseif (preg_match('/\b(production|productions|congélation|frais|guano|farine|huile|rendement|yield|equilibrium)\b/ui', $lower)) {
+        } elseif ($isProductions) {
             $domain = 'productions';
         } elseif (preg_match('/\b(stock|stocks|entrepôt|entrepôts|magasin|magasins|chambre|chambres|warehouse|warehouses|inventaire|inventaires|balance)\b/ui', $lower)) {
             $domain = 'warehouses';
-        } elseif (preg_match('/\b(ouvrier|ouvriers|personnel|salarié|salariés|main|oeuvre|workforce|quinzaine|fortnight|section|sections|caporal|caporaux)\b/ui', $lower)) {
+        } elseif ($isSection) {
+            $domain = 'workforce_sections';
+        } elseif ($isCorporal) {
+            $domain = 'workforce_corporals';
+        } elseif (preg_match('/\b(ouvrier|ouvriers|personnel|salarié|salariés|main|oeuvre|workforce|quinzaine|fortnight)\b/ui', $lower)) {
             $domain = 'workforce';
         } elseif (preg_match('/\b(poisson|poissons|espèce|espèces|sardine|maquereau|chinchard|anchois|thon|poulpe|seiche|calamar|merlu|sole|fish)\b/ui', $lower)) {
             $domain = 'fish_types';
@@ -205,7 +256,7 @@ class AIAnalyticsService
             $domain = 'search';
         }
 
-        // 5. Keyword extraction for specific entities (e.g., sardine, driss, etc.)
+        // 6. Keyword extraction for specific entities (e.g., sardine, driss, etc.)
         $keyword = null;
         if (preg_match('/\b(sardine|maquereau|chinchard|anchois|thon|poulpe|seiche|calamar|merlu|sole|pageot|bogue)\b/ui', $lower, $m)) {
             $keyword = $m[1];
@@ -217,7 +268,9 @@ class AIAnalyticsService
             'domain' => $domain,
             'intent' => $intent,
             'limit' => $limit,
+            'year' => $year,
             'timeFrame' => $timeFrame,
+            'isMonthly' => $isMonthly,
             'keyword' => $keyword,
         ];
     }
@@ -225,6 +278,961 @@ class AIAnalyticsService
     // =========================================================================
     //  DOMAIN HANDLERS
     // =========================================================================
+
+    /**
+     * Handle Fortnight Monthly Breakdown queries (Q1 and Q2 totals for each month in a year).
+     */
+    private function handleFortnightMonthlyQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $year = $p['year'] ?: (int) (DB::table('fortnight_activities')->whereNull('deleted_at')->max(DB::raw('YEAR(date)')) ?: 2026);
+
+        $rows = DB::table('fortnight_activities')
+            ->whereYear('date', $year)
+            ->whereNull('deleted_at')
+            ->selectRaw("
+                MONTH(date) as month_num,
+                SUM(CASE WHEN fortnight_period = 'Q1' THEN price ELSE 0 END) as q1_price,
+                SUM(CASE WHEN fortnight_period = 'Q1' THEN 1 ELSE 0 END) as q1_days,
+                COUNT(DISTINCT CASE WHEN fortnight_period = 'Q1' THEN workforce_id ELSE NULL END) as q1_workers,
+                SUM(CASE WHEN fortnight_period = 'Q2' THEN price ELSE 0 END) as q2_price,
+                SUM(CASE WHEN fortnight_period = 'Q2' THEN 1 ELSE 0 END) as q2_days,
+                COUNT(DISTINCT CASE WHEN fortnight_period = 'Q2' THEN workforce_id ELSE NULL END) as q2_workers,
+                SUM(price) as month_total_price,
+                COUNT(*) as month_total_days,
+                COUNT(DISTINCT workforce_id) as month_workers
+            ")
+            ->groupBy('month_num')
+            ->orderBy('month_num')
+            ->get();
+
+        $monthNames = match ($lang) {
+            'en' => [1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'],
+            'es' => [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'],
+            'ar' => [1 => 'يناير', 2 => 'فبراير', 3 => 'مارس', 4 => 'أبريل', 5 => 'ماي', 6 => 'يونيو', 7 => 'يوليوز', 8 => 'غشت', 9 => 'شتنبر', 10 => 'أكتوبر', 11 => 'نونبر', 12 => 'دجنبر'],
+            default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
+        };
+
+        $chartLabels = [];
+        $q1SeriesData = [];
+        $q2SeriesData = [];
+        $totalQ1Price = 0;
+        $totalQ1Days = 0;
+        $totalQ2Price = 0;
+        $totalQ2Days = 0;
+        $grandTotalPrice = 0;
+        $grandTotalDays = 0;
+
+        $tableRowsHtml = '';
+        foreach ($rows as $r) {
+            $mNum = (int)$r->month_num;
+            $mName = $monthNames[$mNum] ?? "Month {$mNum}";
+            $chartLabels[] = $mName;
+
+            $q1P = (float)$r->q1_price;
+            $q1D = (int)$r->q1_days;
+            $q2P = (float)$r->q2_price;
+            $q2D = (int)$r->q2_days;
+            $mP = (float)$r->month_total_price;
+            $mD = (int)$r->month_total_days;
+
+            $q1SeriesData[] = round($q1P, 2);
+            $q2SeriesData[] = round($q2P, 2);
+
+            $totalQ1Price += $q1P;
+            $totalQ1Days += $q1D;
+            $totalQ2Price += $q2P;
+            $totalQ2Days += $q2D;
+            $grandTotalPrice += $mP;
+            $grandTotalDays += $mD;
+
+            $q1PriceFmt = $this->formatNumber($q1P, 2);
+            $q1DaysFmt = $this->formatNumber($q1D, 0);
+            $q2PriceFmt = $this->formatNumber($q2P, 2);
+            $q2DaysFmt = $this->formatNumber($q2D, 0);
+            $mPriceFmt = $this->formatNumber($mP, 2);
+            $mDaysFmt = $this->formatNumber($mD, 0);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">
+                <span style="display: inline-flex; align-items: center; gap: 6px;">
+                  <i class="v-icon notranslate mdi mdi-calendar-month text-blue" style="font-size: 15px;"></i>
+                  {$mName}
+                </span>
+              </td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #42A5F5;">{$q1PriceFmt} MAD</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$q1DaysFmt} j</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #FFB74D;">{$q2PriceFmt} MAD</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$q2DaysFmt} j</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$mPriceFmt} MAD</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$mDaysFmt} j</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+                  Consulter
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        // Add Grand Total Summary Row
+        $totQ1PriceFmt = $this->formatNumber($totalQ1Price, 2);
+        $totQ1DaysFmt = $this->formatNumber($totalQ1Days, 0);
+        $totQ2PriceFmt = $this->formatNumber($totalQ2Price, 2);
+        $totQ2DaysFmt = $this->formatNumber($totalQ2Days, 0);
+        $grandTotPriceFmt = $this->formatNumber($grandTotalPrice, 2);
+        $grandTotDaysFmt = $this->formatNumber($grandTotalDays, 0);
+
+        $totLabel = match ($lang) {
+            'en' => "TOTAL YEAR {$year}",
+            'es' => "TOTAL AÑO {$year}",
+            'ar' => "إجمالي سنة {$year}",
+            default => "TOTAL ANNUEL {$year}",
+        };
+
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(66, 165, 245, 0.12); font-weight: 800; border-top: 2px solid #42A5F5; border-bottom: 2px solid #42A5F5;">
+          <td style="padding: 12px; font-weight: 900; color: #42A5F5; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="v-icon notranslate mdi mdi-sigma text-blue" style="font-size: 18px; margin-right: 4px;"></i>
+            {$totLabel}
+          </td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #42A5F5; font-size: 13px;">{$totQ1PriceFmt} MAD</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800; font-size: 12.5px;">{$totQ1DaysFmt} j</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #FFB74D; font-size: 13px;">{$totQ2PriceFmt} MAD</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800; font-size: 12.5px;">{$totQ2DaysFmt} j</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$grandTotPriceFmt} MAD</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; font-size: 13px;">{$grandTotDaysFmt} j</td>
+          <td style="padding: 12px; text-align: center;">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+              Détails
+            </button>
+          </td>
+        </tr>
+TR;
+
+        // Build localized answer text
+        $answerText = match ($lang) {
+            'en' => "Here is the monthly breakdown of fortnights (Q1 & Q2) for the year {$year}: Total expenditure is {$grandTotPriceFmt} MAD across {$grandTotDaysFmt} working days ({$totQ1PriceFmt} MAD for Quinzaine 1 and {$totQ2PriceFmt} MAD for Quinzaine 2). Below is the comprehensive matrix table and comparative monthly chart.",
+            'es' => "Aquí está el desglose mensual de las quincenas (Q1 y Q2) para el año {$year}: Gasto total de {$grandTotPriceFmt} MAD en {$grandTotDaysFmt} jornadas de trabajo ({$totQ1PriceFmt} MAD para la Quincena 1 y {$totQ2PriceFmt} MAD para la Quincena 2). A continuación se muestra la tabla matricial y el gráfico comparativo.",
+            'ar' => "إليك التفصيل الشهري لنتائج وسجلات النصف-شهرية (Q1 و Q2) لسنة {$year}: إجمالي الأجور المصروفة بلغ {$grandTotPriceFmt} درهم عبر {$grandTotDaysFmt} يوم عمل (الشطر الأول Q1: {$totQ1PriceFmt} درهم والشطر الثاني Q2: {$totQ2PriceFmt} درهم). ستجد أسفله جدول المقارنة والرسم البياني المفصل.",
+            default => "Voici le récapitulatif mensuel détaillé des quinzaines (Q1 & Q2) pour l'année {$year} : Masse salariale globale de {$grandTotPriceFmt} MAD sur {$grandTotDaysFmt} journées de travail ({$totQ1PriceFmt} MAD pour la Quinzaine 1 et {$totQ2PriceFmt} MAD pour la Quinzaine 2). Retrouvez ci-dessous la matrice par mois et le graphique comparatif.",
+        };
+
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Month', 'align' => 'left'],
+                ['title' => 'Quinzaine 1 (Q1) - MAD', 'align' => 'right'],
+                ['title' => 'Q1 Days', 'align' => 'right'],
+                ['title' => 'Quinzaine 2 (Q2) - MAD', 'align' => 'right'],
+                ['title' => 'Q2 Days', 'align' => 'right'],
+                ['title' => 'Month Total (MAD)', 'align' => 'right'],
+                ['title' => 'Month Days', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Mes', 'align' => 'left'],
+                ['title' => 'Quincena 1 (Q1) - MAD', 'align' => 'right'],
+                ['title' => 'Días Q1', 'align' => 'right'],
+                ['title' => 'Quincena 2 (Q2) - MAD', 'align' => 'right'],
+                ['title' => 'Días Q2', 'align' => 'right'],
+                ['title' => 'Total Mes (MAD)', 'align' => 'right'],
+                ['title' => 'Total Días', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'الشهر', 'align' => 'left'],
+                ['title' => 'الشطر الأول (Q1) - درهم', 'align' => 'right'],
+                ['title' => 'أيام Q1', 'align' => 'right'],
+                ['title' => 'الشطر الثاني (Q2) - درهم', 'align' => 'right'],
+                ['title' => 'أيام Q2', 'align' => 'right'],
+                ['title' => 'مجموع الشهر (درهم)', 'align' => 'right'],
+                ['title' => 'إجمالي الأيام', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Mois', 'align' => 'left'],
+                ['title' => 'Quinzaine 1 (Q1) - MAD', 'align' => 'right'],
+                ['title' => 'Q1 Journées', 'align' => 'right'],
+                ['title' => 'Quinzaine 2 (Q2) - MAD', 'align' => 'right'],
+                ['title' => 'Q2 Journées', 'align' => 'right'],
+                ['title' => 'Total Mois (MAD)', 'align' => 'right'],
+                ['title' => 'Total Journées', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => "Monthly Fortnight Comparison (Q1 vs Q2) - Year {$year} (MAD)",
+            'es' => "Comparación Mensual de Quincenas (Q1 vs Q2) - Año {$year} (MAD)",
+            'ar' => "مقارنة أشطر النصف-شهرية (Q1 مقابل Q2) حسب الشهر - سنة {$year} (درهم)",
+            default => "Comparaison Mensuelle des Quinzaines (Q1 vs Q2) - Année {$year} (MAD)",
+        };
+
+        $seriesNameQ1 = match ($lang) {
+            'en' => "Quinzaine 1 (Q1)",
+            'es' => "Quincena 1 (Q1)",
+            'ar' => "الشطر 1 (Q1)",
+            default => "Quinzaine 1 (Q1)",
+        };
+
+        $seriesNameQ2 = match ($lang) {
+            'en' => "Quinzaine 2 (Q2)",
+            'es' => "Quincena 2 (Q2)",
+            'ar' => "الشطر 2 (Q2)",
+            default => "Quinzaine 2 (Q2)",
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => ($lang === 'en' ? "Fortnight & Workforce Module - Year {$year}" : "Module Quinzaine & Main d'œuvre - Année {$year}"),
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-calendar-clock',
+            'badgeText' => ($lang === 'en' ? "Monthly Fortnight Breakdown {$year}" : "Matrice Mensuelle Quinzaines {$year}"),
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => ($lang === 'en' ? "Total Year {$year}" : "Total Annuel {$year}"), 'value' => $grandTotPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => ($lang === 'en' ? 'Total Fortnight 1 (Q1)' : 'Total Quinzaine 1 (Q1)'), 'value' => $totQ1PriceFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-start'],
+                ['label' => ($lang === 'en' ? 'Total Fortnight 2 (Q2)' : 'Total Quinzaine 2 (Q2)'), 'value' => $totQ2PriceFmt . ' MAD', 'color' => '#FFB74D', 'icon' => 'mdi-calendar-end'],
+                ['label' => ($lang === 'en' ? 'Total Working Days' : 'Journées Travaillées'), 'value' => $grandTotDaysFmt . ' j', 'color' => '#26A69A', 'icon' => 'mdi-account-clock'],
+            ],
+            'table' => [
+                'title' => ($lang === 'en' ? "Fortnight Breakdown by Month - Year {$year}" : "Tableau Détaillé des Quinzaines par Mois - {$year}"),
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($rows) ? [
+                'id' => $chartId,
+                'title' => $chartTitle,
+                'labels' => $chartLabels,
+                'multi_series' => true,
+                'series' => [
+                    ['name' => $seriesNameQ1, 'data' => $q1SeriesData],
+                    ['name' => $seriesNameQ2, 'data' => $q2SeriesData],
+                ],
+                'colors' => ['#42A5F5', '#FFB74D'],
+                'type' => 'bar',
+                'yUnit' => 'MAD',
+                'height' => 320,
+            ] : null,
+            'navButtons' => [
+                ['label' => ($lang === 'en' ? 'Fortnight Sheets' : 'Feuilles de Quinzaine'), 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => ($lang === 'en' ? 'Workforce Directory' : 'Main d\'œuvre & Ouvriers'), 'route' => '/workforces', 'icon' => 'mdi-account-group'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Charges / Purchases Monthly Breakdown.
+     */
+    private function handleChargesMonthlyQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $year = $p['year'] ?: 2026;
+
+        $rows = DB::table('charges')
+            ->whereYear('date', $year)
+            ->whereNull('deleted_at')
+            ->selectRaw("
+                MONTH(date) as month_num,
+                COUNT(*) as count,
+                SUM(total_weight) as total_weight,
+                SUM(total_price) as total_price
+            ")
+            ->groupBy('month_num')
+            ->orderBy('month_num')
+            ->get();
+
+        $monthNames = match ($lang) {
+            'en' => [1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'],
+            'es' => [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'],
+            'ar' => [1 => 'يناير', 2 => 'فبراير', 3 => 'مارس', 4 => 'أبريل', 5 => 'ماي', 6 => 'يونيو', 7 => 'يوليوز', 8 => 'غشت', 9 => 'شتنبر', 10 => 'أكتوبر', 11 => 'نونبر', 12 => 'دجنبر'],
+            default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
+        };
+
+        $chartLabels = [];
+        $amountsData = [];
+        $totWeight = 0;
+        $totPrice = 0;
+        $totCount = 0;
+
+        $tableRowsHtml = '';
+        foreach ($rows as $r) {
+            $mNum = (int)$r->month_num;
+            $mName = $monthNames[$mNum] ?? "Month {$mNum}";
+            $chartLabels[] = $mName;
+
+            $w = (float)$r->total_weight;
+            $pVal = (float)$r->total_price;
+            $cnt = (int)$r->count;
+            $avg = $w > 0 ? ($pVal / $w) : 0;
+
+            $amountsData[] = round($pVal, 2);
+
+            $totWeight += $w;
+            $totPrice += $pVal;
+            $totCount += $cnt;
+
+            $wFmt = $this->formatNumber($w, 2);
+            $pFmt = $this->formatNumber($pVal, 2);
+            $avgFmt = $this->formatNumber($avg, 2);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">
+                <i class="v-icon notranslate mdi mdi-calendar-month text-blue" style="font-size: 15px; margin-right: 4px;"></i>
+                {$mName}
+              </td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$cnt}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$wFmt} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$pFmt} MAD</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$avgFmt} MAD/KG</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/charges">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        // Summary row
+        $totAvg = $totWeight > 0 ? ($totPrice / $totWeight) : 0;
+        $totWFmt = $this->formatNumber($totWeight, 2);
+        $totPFmt = $this->formatNumber($totPrice, 2);
+        $totAvgFmt = $this->formatNumber($totAvg, 2);
+
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(66, 165, 245, 0.12); font-weight: 800; border-top: 2px solid #42A5F5; border-bottom: 2px solid #42A5F5;">
+          <td style="padding: 12px; font-weight: 900; color: #42A5F5; font-size: 13px; text-transform: uppercase;">
+            <i class="v-icon notranslate mdi mdi-sigma text-blue" style="font-size: 18px; margin-right: 4px;"></i>
+            TOTAL {$year}
+          </td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">{$totCount}</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900;">{$totWFmt} KG</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPFmt} MAD</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">{$totAvgFmt} MAD/KG</td>
+          <td style="padding: 12px; text-align: center;">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/charges">
+              Achats
+            </button>
+          </td>
+        </tr>
+TR;
+
+        $headers = [
+            ['title' => 'Mois / Month', 'align' => 'left'],
+            ['title' => 'Réceptions', 'align' => 'right'],
+            ['title' => 'Volume Total (KG)', 'align' => 'right'],
+            ['title' => 'Montant Total (MAD)', 'align' => 'right'],
+            ['title' => 'Prix Moyen', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => "Achats & Charges - Récapitulatif Mensuel {$year}",
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-truck-delivery',
+            'badgeText' => "Achats Mensuels {$year}",
+            'userQuestion' => $p['question'],
+            'answerText' => "Voici le bilan mensuel des achats et charges pour l'année {$year} : {$totCount} réceptions enregistrées pour un volume global de {$totWFmt} KG et un montant total de {$totPFmt} MAD (Prix moyen global : {$totAvgFmt} MAD/KG).",
+            'kpis' => [
+                ['label' => "Total Achats {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-minus'],
+                ['label' => "Volume Total", 'value' => $totWFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "Prix Moyen", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#29B6F6', 'icon' => 'mdi-tag-outline'],
+                ['label' => "Total Réceptions", 'value' => (string)$totCount, 'color' => '#26A69A', 'icon' => 'mdi-truck-check'],
+            ],
+            'table' => [
+                'title' => "Bilan Mensuel des Achats - Année {$year}",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($rows) ? [
+                'id' => $chartId,
+                'title' => "Évolution Mensuelle des Achats - {$year} (MAD)",
+                'labels' => $chartLabels,
+                'data' => $amountsData,
+                'seriesName' => 'Montant (MAD)',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Consulter les Charges', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Nouvelle Réception', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Shippings / Ventes Monthly Breakdown.
+     */
+    private function handleShippingsMonthlyQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $year = $p['year'] ?: 2026;
+
+        $rows = DB::table('shippings')
+            ->whereYear('date', $year)
+            ->whereNull('deleted_at')
+            ->selectRaw("
+                MONTH(date) as month_num,
+                COUNT(*) as count,
+                SUM(total_weight) as total_weight,
+                SUM(total_price) as total_price
+            ")
+            ->groupBy('month_num')
+            ->orderBy('month_num')
+            ->get();
+
+        $monthNames = match ($lang) {
+            'en' => [1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'],
+            'es' => [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'],
+            'ar' => [1 => 'يناير', 2 => 'فبراير', 3 => 'مارس', 4 => 'أبريل', 5 => 'ماي', 6 => 'يونيو', 7 => 'يوليوز', 8 => 'غشت', 9 => 'شتنبر', 10 => 'أكتوبر', 11 => 'نونبر', 12 => 'دجنبر'],
+            default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
+        };
+
+        $chartLabels = [];
+        $amountsData = [];
+        $totWeight = 0;
+        $totPrice = 0;
+        $totCount = 0;
+
+        $tableRowsHtml = '';
+        foreach ($rows as $r) {
+            $mNum = (int)$r->month_num;
+            $mName = $monthNames[$mNum] ?? "Month {$mNum}";
+            $chartLabels[] = $mName;
+
+            $w = (float)$r->total_weight;
+            $pVal = (float)$r->total_price;
+            $cnt = (int)$r->count;
+            $avg = $w > 0 ? ($pVal / $w) : 0;
+
+            $amountsData[] = round($pVal, 2);
+
+            $totWeight += $w;
+            $totPrice += $pVal;
+            $totCount += $cnt;
+
+            $wFmt = $this->formatNumber($w, 2);
+            $pFmt = $this->formatNumber($pVal, 2);
+            $avgFmt = $this->formatNumber($avg, 2);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #4643a0;">
+                <i class="v-icon notranslate mdi mdi-calendar-month" style="font-size: 15px; margin-right: 4px; color: #4643a0;"></i>
+                {$mName}
+              </td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$cnt}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$wFmt} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$pFmt} MAD</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$avgFmt} MAD/KG</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #4643a0; font-size: 11px; cursor: pointer; border: none;" data-route="/shippings">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        // Summary row
+        $totAvg = $totWeight > 0 ? ($totPrice / $totWeight) : 0;
+        $totWFmt = $this->formatNumber($totWeight, 2);
+        $totPFmt = $this->formatNumber($totPrice, 2);
+        $totAvgFmt = $this->formatNumber($totAvg, 2);
+
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(70, 67, 160, 0.12); font-weight: 800; border-top: 2px solid #4643a0; border-bottom: 2px solid #4643a0;">
+          <td style="padding: 12px; font-weight: 900; color: #4643a0; font-size: 13px; text-transform: uppercase;">
+            <i class="v-icon notranslate mdi mdi-sigma" style="font-size: 18px; margin-right: 4px; color: #4643a0;"></i>
+            TOTAL {$year}
+          </td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">{$totCount}</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900;">{$totWFmt} KG</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPFmt} MAD</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">{$totAvgFmt} MAD/KG</td>
+          <td style="padding: 12px; text-align: center;">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #372e7d; font-size: 11px; cursor: pointer; border: none;" data-route="/shippings">
+              Ventes
+            </button>
+          </td>
+        </tr>
+TR;
+
+        $headers = [
+            ['title' => 'Mois / Month', 'align' => 'left'],
+            ['title' => 'Expéditions', 'align' => 'right'],
+            ['title' => 'Volume Total (KG)', 'align' => 'right'],
+            ['title' => 'Chiffre d\'Affaires (MAD)', 'align' => 'right'],
+            ['title' => 'Prix Moyen', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => "Ventes & Expéditions - Récapitulatif Mensuel {$year}",
+            'moduleColor' => '#4643a0',
+            'moduleIcon' => 'mdi-ship-wheel',
+            'badgeText' => "Ventes Mensuelles {$year}",
+            'userQuestion' => $p['question'],
+            'answerText' => "Voici le bilan mensuel des ventes et expéditions pour l'année {$year} : {$totCount} expéditions enregistrées pour un volume global vendu de {$totWFmt} KG et un chiffre d'affaires de {$totPFmt} MAD (Prix moyen global : {$totAvgFmt} MAD/KG).",
+            'kpis' => [
+                ['label' => "Total Ventes {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => "Volume Total Vendu", 'value' => $totWFmt . ' KG', 'color' => '#4643a0', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "Prix Moyen Vente", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#b39ddb', 'icon' => 'mdi-tag-outline'],
+                ['label' => "Total Expéditions", 'value' => (string)$totCount, 'color' => '#6c66bb', 'icon' => 'mdi-ferry'],
+            ],
+            'table' => [
+                'title' => "Bilan Mensuel des Ventes - Année {$year}",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($rows) ? [
+                'id' => $chartId,
+                'title' => "Évolution Mensuelle des Ventes - {$year} (MAD)",
+                'labels' => $chartLabels,
+                'data' => $amountsData,
+                'seriesName' => 'Chiffre d\'Affaires (MAD)',
+                'type' => 'bar',
+                'color' => '#4643a0',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Consulter les Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Nouvelle Expédition', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Productions Monthly Breakdown.
+     */
+    private function handleProductionsMonthlyQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $year = $p['year'] ?: 2026;
+
+        $rows = DB::table('productions')
+            ->whereYear('date', $year)
+            ->whereNull('deleted_at')
+            ->selectRaw("
+                MONTH(date) as month_num,
+                COUNT(*) as count,
+                SUM(frozen_production_weight) as frozen_weight,
+                SUM(guano_production_weight) as guano_weight,
+                SUM(fresh_reception_weight) as fresh_weight,
+                AVG(equilibrium) as avg_eq
+            ")
+            ->groupBy('month_num')
+            ->orderBy('month_num')
+            ->get();
+
+        $monthNames = match ($lang) {
+            'en' => [1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'],
+            'es' => [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'],
+            'ar' => [1 => 'يناير', 2 => 'فبراير', 3 => 'مارس', 4 => 'أبريل', 5 => 'ماي', 6 => 'يونيو', 7 => 'يوليوز', 8 => 'غشت', 9 => 'شتنبر', 10 => 'أكتوبر', 11 => 'نونبر', 12 => 'دجنبر'],
+            default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
+        };
+
+        $chartLabels = [];
+        $frozenData = [];
+        $guanoData = [];
+        $freshData = [];
+        $totFrozen = 0;
+        $totGuano = 0;
+        $totFresh = 0;
+        $totCount = 0;
+
+        $tableRowsHtml = '';
+        foreach ($rows as $r) {
+            $mNum = (int)$r->month_num;
+            $mName = $monthNames[$mNum] ?? "Month {$mNum}";
+            $chartLabels[] = $mName;
+
+            $fz = (float)$r->frozen_weight;
+            $gn = (float)$r->guano_weight;
+            $fr = (float)$r->fresh_weight;
+            $cnt = (int)$r->count;
+            $eq = (float)$r->avg_eq;
+
+            $frozenData[] = round($fz / 1000, 2); // Tons
+            $guanoData[] = round($gn / 1000, 2); // Tons
+            $freshData[] = round($fr / 1000, 2); // Tons
+
+            $totFrozen += $fz;
+            $totGuano += $gn;
+            $totFresh += $fr;
+            $totCount += $cnt;
+
+            $fzFmt = $this->formatNumber($fz, 2);
+            $gnFmt = $this->formatNumber($gn, 2);
+            $frFmt = $this->formatNumber($fr, 2);
+            $eqFmt = $this->formatNumber($eq, 2);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #00897B;">
+                <i class="v-icon notranslate mdi mdi-calendar-month" style="font-size: 15px; margin-right: 4px; color: #00897B;"></i>
+                {$mName}
+              </td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$cnt}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$frFmt} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #26A69A;">{$fzFmt} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #66BB6A;">{$gnFmt} KG</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$eqFmt}</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #00897B; font-size: 11px; cursor: pointer; border: none;" data-route="/production">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        // Summary row
+        $totFzFmt = $this->formatNumber($totFrozen, 2);
+        $totGnFmt = $this->formatNumber($totGuano, 2);
+        $totFrFmt = $this->formatNumber($totFresh, 2);
+
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(0, 137, 123, 0.12); font-weight: 800; border-top: 2px solid #00897B; border-bottom: 2px solid #00897B;">
+          <td style="padding: 12px; font-weight: 900; color: #00897B; font-size: 13px; text-transform: uppercase;">
+            <i class="v-icon notranslate mdi mdi-sigma" style="font-size: 18px; margin-right: 4px; color: #00897B;"></i>
+            TOTAL {$year}
+          </td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">{$totCount}</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">{$totFrFmt} KG</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #26A69A; font-size: 13.5px;">{$totFzFmt} KG</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #66BB6A; font-size: 13.5px;">{$totGnFmt} KG</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">-</td>
+          <td style="padding: 12px; text-align: center;">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #00695C; font-size: 11px; cursor: pointer; border: none;" data-route="/production">
+              Production
+            </button>
+          </td>
+        </tr>
+TR;
+
+        $headers = [
+            ['title' => 'Mois / Month', 'align' => 'left'],
+            ['title' => 'Séries', 'align' => 'right'],
+            ['title' => 'Frais Traité (KG)', 'align' => 'right'],
+            ['title' => 'Poisson Congelé (KG)', 'align' => 'right'],
+            ['title' => 'Guano & Farine (KG)', 'align' => 'right'],
+            ['title' => 'Équilibre Moyen', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => "Production & Rendement Usine - Récapitulatif Mensuel {$year}",
+            'moduleColor' => '#00897B',
+            'moduleIcon' => 'mdi-factory',
+            'badgeText' => "Production Mensuelle {$year}",
+            'userQuestion' => $p['question'],
+            'answerText' => "Voici le récapitulatif mensuel de production usine pour l'année {$year} : {$totCount} séries de production enregistrées, totalisant {$totFzFmt} KG de poisson congelé produit et {$totGnFmt} KG de farine/guano obtenus à partir de {$totFrFmt} KG de matière fraîche.",
+            'kpis' => [
+                ['label' => "Total Congelé {$year}", 'value' => $totFzFmt . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => "Total Farine/Guano", 'value' => $totGnFmt . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => "Frais Traité", 'value' => $totFrFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-fish'],
+                ['label' => "Séries Opérées", 'value' => (string)$totCount, 'color' => '#80cbc4', 'icon' => 'mdi-cog-sync'],
+            ],
+            'table' => [
+                'title' => "Bilan Mensuel de Production - Année {$year}",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($rows) ? [
+                'id' => $chartId,
+                'title' => "Production Mensuelle Congelé vs Farine - {$year} (Tonnes)",
+                'labels' => $chartLabels,
+                'multi_series' => true,
+                'series' => [
+                    ['name' => 'Poisson Congelé (T)', 'data' => $frozenData],
+                    ['name' => 'Farine / Guano (T)', 'data' => $guanoData],
+                ],
+                'colors' => ['#00897B', '#66BB6A'],
+                'type' => 'bar',
+                'yUnit' => 'Tonnes',
+                'height' => 320,
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Nouvelle Production', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Workforce Activities grouped by Factory Section.
+     */
+    private function handleWorkforceSectionsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $year = $p['year'] ?: 2026;
+
+        $sections = DB::table('sections as s')
+            ->leftJoin('fortnight_activities as fa', function($join) use ($year) {
+                $join->on('fa.section_id', '=', 's.id')
+                    ->whereYear('fa.date', '=', $year)
+                    ->whereNull('fa.deleted_at');
+            })
+            ->whereNull('s.deleted_at')
+            ->groupBy('s.id', 's.name')
+            ->select(
+                's.id',
+                's.name',
+                DB::raw('COUNT(fa.id) as activities_count'),
+                DB::raw('SUM(fa.price) as total_price'),
+                DB::raw('COUNT(DISTINCT fa.workforce_id) as workers_count')
+            )
+            ->havingRaw('activities_count > 0')
+            ->orderByDesc('total_price')
+            ->get();
+
+        $totPrice = 0;
+        $totActs = 0;
+        $chartLabels = [];
+        $chartData = [];
+
+        $tableRowsHtml = '';
+        foreach ($sections as $s) {
+            $name = htmlspecialchars($s->name);
+            $cnt = (int)$s->activities_count;
+            $price = (float)$s->total_price;
+            $workers = (int)$s->workers_count;
+
+            $totPrice += $price;
+            $totActs += $cnt;
+
+            $chartLabels[] = $name;
+            $chartData[] = round($price, 2);
+
+            $priceFmt = $this->formatNumber($price, 2);
+            $cntFmt = $this->formatNumber($cnt, 0);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">
+                <i class="v-icon notranslate mdi mdi-domain" style="font-size: 15px; margin-right: 4px; color: #42A5F5;"></i>
+                {$name}
+              </td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$workers}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$cntFmt} j</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$priceFmt} MAD</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+                  Activités
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $totPriceFmt = $this->formatNumber($totPrice, 2);
+        $totActsFmt = $this->formatNumber($totActs, 0);
+
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(66, 165, 245, 0.12); font-weight: 800; border-top: 2px solid #42A5F5; border-bottom: 2px solid #42A5F5;">
+          <td style="padding: 12px; font-weight: 900; color: #42A5F5; font-size: 13px; text-transform: uppercase;">
+            <i class="v-icon notranslate mdi mdi-sigma text-blue" style="font-size: 18px; margin-right: 4px;"></i>
+            TOTAL SECTIONS {$year}
+          </td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">-</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900;">{$totActsFmt} j</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPriceFmt} MAD</td>
+          <td style="padding: 12px; text-align: center;">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+              Feuilles
+            </button>
+          </td>
+        </tr>
+TR;
+
+        $headers = [
+            ['title' => 'Section Usine', 'align' => 'left'],
+            ['title' => 'Ouvriers Actifs', 'align' => 'right'],
+            ['title' => 'Journées Travaillées', 'align' => 'right'],
+            ['title' => 'Masse Salariale (MAD)', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => "Main d'œuvre par Section Usine - Année {$year}",
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-domain',
+            'badgeText' => "Sections Usine {$year}",
+            'userQuestion' => $p['question'],
+            'answerText' => "Voici la ventilation des activités et de la masse salariale par section usine pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($sections) . " sections actives.",
+            'kpis' => [
+                ['label' => "Masse Salariale Sections", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Journées Travaillées", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Nombre de Sections", 'value' => (string)count($sections), 'color' => '#26A69A', 'icon' => 'mdi-domain'],
+            ],
+            'table' => [
+                'title' => "Détail par Section Usine ({$year})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($sections) ? [
+                'id' => $chartId,
+                'title' => "Masse Salariale par Section Usine - {$year} (MAD)",
+                'labels' => array_slice($chartLabels, 0, 7),
+                'data' => array_slice($chartData, 0, 7),
+                'seriesName' => 'Montant (MAD)',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Feuilles de Quinzaine', 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Gestion des Ouvriers', 'route' => '/workforces', 'icon' => 'mdi-account-group'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Workforce Activities grouped by Corporal / Équipe.
+     */
+    private function handleWorkforceCorporalsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $year = $p['year'] ?: 2026;
+
+        $corporals = DB::table('corporals as c')
+            ->leftJoin('fortnight_activities as fa', function($join) use ($year) {
+                $join->on('fa.corporal_id', '=', 'c.id')
+                    ->whereYear('fa.date', '=', $year)
+                    ->whereNull('fa.deleted_at');
+            })
+            ->whereNull('c.deleted_at')
+            ->groupBy('c.id', 'c.full_name')
+            ->select(
+                'c.id',
+                'c.full_name as name',
+                DB::raw('COUNT(fa.id) as activities_count'),
+                DB::raw('SUM(fa.price) as total_price'),
+                DB::raw('COUNT(DISTINCT fa.workforce_id) as workers_count')
+            )
+            ->havingRaw('activities_count > 0')
+            ->orderByDesc('total_price')
+            ->get();
+
+        $totPrice = 0;
+        $totActs = 0;
+        $chartLabels = [];
+        $chartData = [];
+
+        $tableRowsHtml = '';
+        foreach ($corporals as $c) {
+            $name = htmlspecialchars($c->name);
+            $cnt = (int)$c->activities_count;
+            $price = (float)$c->total_price;
+            $workers = (int)$c->workers_count;
+
+            $totPrice += $price;
+            $totActs += $cnt;
+
+            $chartLabels[] = $name;
+            $chartData[] = round($price, 2);
+
+            $priceFmt = $this->formatNumber($price, 2);
+            $cntFmt = $this->formatNumber($cnt, 0);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">
+                <i class="v-icon notranslate mdi mdi-account-tie" style="font-size: 15px; margin-right: 4px; color: #42A5F5;"></i>
+                {$name}
+              </td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$workers}</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$cntFmt} j</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$priceFmt} MAD</td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+                  Équipe
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $totPriceFmt = $this->formatNumber($totPrice, 2);
+        $totActsFmt = $this->formatNumber($totActs, 0);
+
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(66, 165, 245, 0.12); font-weight: 800; border-top: 2px solid #42A5F5; border-bottom: 2px solid #42A5F5;">
+          <td style="padding: 12px; font-weight: 900; color: #42A5F5; font-size: 13px; text-transform: uppercase;">
+            <i class="v-icon notranslate mdi mdi-sigma text-blue" style="font-size: 18px; margin-right: 4px;"></i>
+            TOTAL CAPORAUX {$year}
+          </td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">-</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900;">{$totActsFmt} j</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPriceFmt} MAD</td>
+          <td style="padding: 12px; text-align: center;">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+              Feuilles
+            </button>
+          </td>
+        </tr>
+TR;
+
+        $headers = [
+            ['title' => 'Caporal / Équipe', 'align' => 'left'],
+            ['title' => 'Ouvriers Actifs', 'align' => 'right'],
+            ['title' => 'Journées Travaillées', 'align' => 'right'],
+            ['title' => 'Masse Salariale (MAD)', 'align' => 'right'],
+            ['title' => 'Action', 'align' => 'center'],
+        ];
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => "Main d'œuvre par Caporal - Année {$year}",
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-account-tie',
+            'badgeText' => "Caporaux & Équipes {$year}",
+            'userQuestion' => $p['question'],
+            'answerText' => "Voici la ventilation des activités et de la masse salariale par caporal pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($corporals) . " équipes actives.",
+            'kpis' => [
+                ['label' => "Masse Salariale Caporaux", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Journées Travaillées", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Nombre d'Équipes", 'value' => (string)count($corporals), 'color' => '#26A69A', 'icon' => 'mdi-account-tie'],
+            ],
+            'table' => [
+                'title' => "Détail par Caporal ({$year})",
+                'headers' => $headers,
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => count($corporals) ? [
+                'id' => $chartId,
+                'title' => "Masse Salariale par Caporal - {$year} (MAD)",
+                'labels' => array_slice($chartLabels, 0, 7),
+                'data' => array_slice($chartData, 0, 7),
+                'seriesName' => 'Montant (MAD)',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ] : null,
+            'navButtons' => [
+                ['label' => 'Feuilles de Quinzaine', 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Gestion des Ouvriers', 'route' => '/workforces', 'icon' => 'mdi-account-group'],
+            ],
+        ]);
+    }
 
     /**
      * Handle Charges / Achats queries.
@@ -1499,13 +2507,14 @@ TBL;
         if (!empty($cfg['chart'])) {
             $c = $cfg['chart'];
             $cTitle = htmlspecialchars($c['title'] ?? 'Visualisation Graphique');
+            $chartHeight = $c['height'] ?? 280;
             $chartContainerHtml = <<<CHART
             <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--ai-border, {$innerBorder});">
               <div style="font-size: 13px; font-weight: 800; color: {$modColor}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
                 <i class="v-icon notranslate mdi mdi-chart-bell-curve-cumulative" style="font-size: 16px;"></i>
                 {$cTitle}
               </div>
-              <div id="{$c['id']}" style="min-height: 260px;"></div>
+              <div id="{$c['id']}" style="min-height: {$chartHeight}px;"></div>
             </div>
 CHART;
 
@@ -1521,7 +2530,7 @@ CHART;
   var chartEl = document.querySelector('#{$c['id']}');
   if (!chartEl || !window.ApexCharts) return;
   var options = {
-    chart: { type: '{$cType}', height: 260, id: '{$c['id']}', background: 'transparent' },
+    chart: { type: '{$cType}', height: {$chartHeight}, id: '{$c['id']}', background: 'transparent' },
     theme: { mode: '{$theme}' },
     series: {$dataJson},
     labels: {$labelsJson},
@@ -1536,13 +2545,80 @@ CHART;
   window.__ai_charts['{$c['id']}'] = chart;
 })();
 JS;
+            } elseif (!empty($c['multi_series'])) {
+                $seriesJson = json_encode($c['series'] ?? []);
+                $colorsJson = json_encode($c['colors'] ?? ['#42A5F5', '#FFB74D', '#00E676', '#E65100']);
+                $yFormatterUnit = addslashes($c['yUnit'] ?? 'MAD');
+                $chartJs = <<<JS
+(function(){
+  var chartEl = document.querySelector('#{$c['id']}');
+  if (!chartEl || !window.ApexCharts) return;
+  var options = {
+    chart: { 
+      type: '{$cType}', 
+      height: {$chartHeight}, 
+      id: '{$c['id']}', 
+      background: 'transparent',
+      toolbar: { show: true, tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false } }
+    },
+    theme: { mode: '{$theme}' },
+    series: {$seriesJson},
+    xaxis: { 
+      categories: {$labelsJson}, 
+      labels: { style: { colors: '{$subColor}', fontSize: '11px', fontWeight: 600 } } 
+    },
+    yaxis: { 
+      labels: { 
+        style: { colors: '{$subColor}', fontSize: '11px' },
+        formatter: function(val) {
+          if (val >= 1000000) return (val / 1000000).toFixed(1) + ' M';
+          if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
+          return val;
+        }
+      } 
+    },
+    colors: {$colorsJson},
+    plotOptions: { 
+      bar: { 
+        borderRadius: 6, 
+        horizontal: false, 
+        columnWidth: '55%' 
+      } 
+    },
+    legend: { 
+      show: true, 
+      position: 'top', 
+      horizontalAlign: 'right', 
+      labels: { colors: '{$textColor}' },
+      markers: { radius: 12 }
+    },
+    grid: { 
+      borderColor: '{$innerBorder}',
+      strokeDashArray: 4
+    },
+    dataLabels: { enabled: false },
+    tooltip: { 
+      theme: '{$theme}',
+      y: {
+        formatter: function(val) {
+          return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' {$yFormatterUnit}';
+        }
+      }
+    }
+  };
+  var chart = new ApexCharts(chartEl, options);
+  chart.render();
+  window.__ai_charts = window.__ai_charts || {};
+  window.__ai_charts['{$c['id']}'] = chart;
+})();
+JS;
             } else {
                 $chartJs = <<<JS
 (function(){
   var chartEl = document.querySelector('#{$c['id']}');
   if (!chartEl || !window.ApexCharts) return;
   var options = {
-    chart: { type: 'bar', height: 260, id: '{$c['id']}', background: 'transparent', toolbar: { show: false } },
+    chart: { type: 'bar', height: {$chartHeight}, id: '{$c['id']}', background: 'transparent', toolbar: { show: false } },
     theme: { mode: '{$theme}' },
     series: [{ name: '{$sName}', data: {$dataJson} }],
     xaxis: { categories: {$labelsJson}, labels: { style: { colors: '{$subColor}', fontSize: '11px' } } },
@@ -1633,6 +2709,14 @@ HTML;
      */
     private function applyTimeFilter($q, string $column, string $timeFrame): void
     {
+        if (str_starts_with($timeFrame, 'year_')) {
+            $y = (int) substr($timeFrame, 5);
+            if ($y > 2000) {
+                $q->whereYear($column, $y);
+                return;
+            }
+        }
+
         switch ($timeFrame) {
             case 'today':
                 $q->whereDate($column, DB::raw('CURDATE()'));
