@@ -2436,9 +2436,21 @@ TR;
         $cardBorder = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
         $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
+        $normalizeIcon = function (?string $icon): string {
+            if (!$icon) return 'mdi mdi-circle-outline';
+            $trimmed = trim($icon);
+            if (str_starts_with($trimmed, 'mdi ') || str_contains($trimmed, ' mdi-') || str_contains($trimmed, 'mdi ')) {
+                return $trimmed;
+            }
+            if (str_starts_with($trimmed, 'mdi-')) {
+                return 'mdi ' . $trimmed;
+            }
+            return 'mdi mdi-' . $trimmed;
+        };
+
         $modColor = $cfg['moduleColor'] ?? '#42A5F5';
         $modTitle = htmlspecialchars($cfg['moduleTitle'] ?? 'Jupiter AI Engine');
-        $modIcon = $cfg['moduleIcon'] ?? 'mdi-robot';
+        $modIcon = $normalizeIcon($cfg['moduleIcon'] ?? 'mdi-robot');
         $badgeText = htmlspecialchars($cfg['badgeText'] ?? 'Analyse Précise');
         $userQuestion = htmlspecialchars($cfg['userQuestion'] ?? '');
         $answerText = htmlspecialchars($cfg['answerText'] ?? '');
@@ -2451,7 +2463,7 @@ TR;
                 $kVal = htmlspecialchars($kpi['value']);
                 $kLbl = htmlspecialchars($kpi['label']);
                 $kCol = $kpi['color'] ?? $modColor;
-                $kIco = $kpi['icon'] ?? 'mdi-chart-line';
+                $kIco = $normalizeIcon($kpi['icon'] ?? 'mdi-chart-line');
                 $kpiHtml .= <<<KPI
                 <div class="ai-analytics-kpi" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px 16px; border: 1px solid var(--ai-border, {$innerBorder}); box-shadow: 0 4px 12px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px;">
                   <div style="width: 42px; height: 42px; border-radius: 10px; background: {$kCol}15; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -2644,7 +2656,7 @@ JS;
             foreach ($cfg['navButtons'] as $btn) {
                 $bLbl = htmlspecialchars($btn['label']);
                 $bRt = htmlspecialchars($btn['route']);
-                $bIco = $btn['icon'] ?? 'mdi-arrow-right';
+                $bIco = $normalizeIcon($btn['icon'] ?? 'mdi-arrow-right');
                 $navBtnsHtml .= <<<BTN
                 <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1" style="background: {$modColor}20; color: {$modColor}; font-weight: 700; border: 1px solid {$modColor}50; cursor: pointer;" data-route="{$bRt}">
                   <i class="v-icon notranslate {$bIco}" style="font-size: 14px; margin-right: 4px;"></i>

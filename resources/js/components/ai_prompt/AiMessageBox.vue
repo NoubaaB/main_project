@@ -1033,4 +1033,18 @@ export default {
 .aimb-content :deep(.ai-analytics-card) {
   width: 100% !important;
 }
+
+/* Material Design Icons Guarantee inside dynamically rendered content */
+.aimb-content :deep(.mdi),
+.aimb-content :deep([class*="mdi-"]) {
+  font-family: "Material Design Icons" !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-variant: normal !important;
+  text-transform: none !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
 </style>
