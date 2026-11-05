@@ -1,7 +1,7 @@
 {
     "private": true,
     "type": "module",
-    "version": "1.0.22",
+    "version": "1.0.23",
     "scripts": {
         "version:bump": "node scripts/bump-version.js",
         "version:patch": "node scripts/bump-version.js --patch",
