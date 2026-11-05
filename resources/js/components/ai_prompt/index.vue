@@ -572,6 +572,15 @@ export default {
   },
   mounted() {
     this.main.is_aiq_fullscreen = false;
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+      if (document.body) document.body.scrollTop = 0;
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+    }
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('aiq-active-route');
+      document.documentElement.classList.add('aiq-active-route');
+    }
     document.addEventListener('keydown', this.handleGlobalKeydown);
     window.addEventListener('ai:content-rendered', this.onContentRendered);
     if (this.isExpanded) {
@@ -583,6 +592,10 @@ export default {
     });
   },
   beforeUnmount() {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('aiq-active-route');
+      document.documentElement.classList.remove('aiq-active-route');
+    }
     document.removeEventListener('keydown', this.handleGlobalKeydown);
     window.removeEventListener('ai:content-rendered', this.onContentRendered);
     if (this.isFullscreen) {
@@ -869,14 +882,18 @@ export default {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 84px);
+  flex: 1 1 0%;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0;
   max-width: 100%;
   border-radius: 20px;
-  overflow: hidden;
+  overflow: hidden !important;
   margin: 0;
   width: 100%;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--aiq-border);
+  background: var(--aiq-body-bg);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1119,24 +1136,41 @@ export default {
 
 /* -- Chat Body & Container -- */
 .aiq-chat-body {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 24px 20px;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 24px 20px 14px 20px;
   background: var(--aiq-body-bg);
   display: flex;
   flex-direction: column;
   scroll-behavior: smooth;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(66, 165, 245, 0.35) transparent !important;
   transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.aiq-chat-body:hover {
+  scrollbar-color: rgba(66, 165, 245, 0.7) transparent !important;
+}
+
 .aiq-chat-body::-webkit-scrollbar {
-  width: 5px;
+  width: 6px !important;
+}
+
+.aiq-chat-body::-webkit-scrollbar-track {
+  background: transparent !important;
+  margin: 6px 0 !important;
 }
 
 .aiq-chat-body::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.25);
-  border-radius: 10px;
+  background: rgba(66, 165, 245, 0.35) !important;
+  border-radius: 10px !important;
+  transition: background 0.2s ease;
+}
+
+.aiq-chat-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(66, 165, 245, 0.75) !important;
 }
 
 .aiq-chat-container {
@@ -1536,9 +1570,12 @@ export default {
 
 /* -- Input Area & Centered Dock -- */
 .aiq-input-area {
+  flex: 0 0 auto !important;
   flex-shrink: 0;
-  padding: 10px 20px 14px;
+  padding: 8px 16px 12px 16px !important;
   background: transparent;
+  box-sizing: border-box !important;
+  z-index: 10;
 }
 
 .aiq-input-dock-container {
@@ -1547,6 +1584,7 @@ export default {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1564,23 +1602,24 @@ export default {
   border: 1.5px solid var(--aiq-dock-border);
   border-radius: 28px;
   padding: 4px 6px 4px 16px;
+  box-sizing: border-box;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   transition: all 0.25s ease;
 }
 
 .aiq-input-wrapper:hover {
-  border-color: rgba(66, 165, 245, 0.45);
+  border-color: rgba(66, 165, 245, 0.55);
 }
 
 .aiq-input-wrapper:focus-within {
   border-color: #42A5F5;
-  box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.2), 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.2), 0 8px 24px rgba(66, 165, 245, 0.12);
 }
 
 .aiq-input-icon {
-  color: var(--aiq-text-muted) !important;
+  color: #42A5F5 !important;
 }
 
 .aiq-input {
@@ -1590,8 +1629,8 @@ export default {
   outline: none;
   color: var(--aiq-text);
   font-size: 13.5px;
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  padding: 10px 0;
+  font-family: inherit;
+  padding: 8px 0;
 }
 
 .aiq-input::placeholder {
@@ -1654,9 +1693,9 @@ export default {
 }
 
 .aiq-send-btn.aiq-send-active {
-  background: linear-gradient(135deg, #1565C0, #42A5F5);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(66, 165, 245, 0.4);
+  background: #42A5F5 !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(66, 165, 245, 0.45);
 }
 
 .aiq-send-btn.aiq-send-active:hover {

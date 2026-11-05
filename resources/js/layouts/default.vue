@@ -13,15 +13,19 @@
     <!-- system bar end -->
 
     <!-- main start -->
-    <v-main @click="collapseSidebar" :style="main.is_aiq_fullscreen ? 'padding: 0 !important;' : ''">
+    <v-main
+      @click="collapseSidebar"
+      :class="{ 'v-main--aiq': $route.name === 'ai_prompt' }"
+      :style="main.is_aiq_fullscreen ? 'padding: 0 !important;' : ''"
+    >
       <v-container
         fluid
         :class="[
           !auth.is_auth
             ? 'pa-0 fill-height auth-page-container'
-            : (main.is_aiq_fullscreen ? 'pa-0 ma-0' : ($route.name === 'ai_prompt' ? 'pa-2 pa-sm-3 mt-14' : 'mt-15'))
+            : (main.is_aiq_fullscreen ? 'pa-0 ma-0' : ($route.name === 'ai_prompt' ? 'aiq-root-container pa-0 ma-0' : 'mt-15'))
         ]"
-        :style="main.is_aiq_fullscreen ? 'padding: 0 !important; margin: 0 !important; max-width: 100vw !important;' : 'position: relative; max-width: 100%;'"
+        :style="main.is_aiq_fullscreen ? 'padding: 0 !important; margin: 0 !important; max-width: 100vw !important;' : ''"
       >
         <router-view v-slot="{ Component, route }">
           <keep-alive :include="['ListCharge', 'ListShipping', 'ListProduction', 'WarehouseDashboard', 'ListSupplierInvoice', 'ListClientInvoice', 'SupplierSettlement', 'ClientSettlement']">
@@ -88,6 +92,46 @@
 </script>
 
 <style>
+/* Global Layout Locking for Analytics & AI */
+body.aiq-active-route,
+html.aiq-active-route {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.aiq-active-route .v-application {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+body.aiq-active-route .v-main,
+.v-main--aiq {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+body.aiq-active-route .v-main > .v-container,
+.v-container.aiq-root-container {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 8px 14px 10px 14px !important;
+  box-sizing: border-box !important;
+}
+
 /* Global Fullscreen Overrides for Analytics & AI */
 body.aiq-body-fullscreen html,
 body.aiq-body-fullscreen {

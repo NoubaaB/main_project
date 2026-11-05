@@ -707,11 +707,13 @@ export default {
 
 /* Analytics Cards */
 .aimb-dark .aimb-content :deep(.ai-analytics-card) {
-  background: #1c212c !important;
+  background: transparent !important;
   color: #e2e8f0 !important;
-  border-color: rgba(66, 165, 245, 0.25) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: color 0.3s ease;
 }
 .aimb-dark .aimb-content :deep(.ai-analytics-inner) {
   background: rgba(255, 255, 255, 0.04) !important;
@@ -727,11 +729,13 @@ export default {
 }
 
 .aimb-light .aimb-content :deep(.ai-analytics-card) {
-  background: #ffffff !important;
+  background: transparent !important;
   color: #1e293b !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: color 0.3s ease;
 }
 .aimb-light .aimb-content :deep(.ai-analytics-inner) {
   background: #f8fafc !important;
@@ -1075,6 +1079,22 @@ export default {
   width: 100% !important;
 }
 
+/* Inner Horizontal Scrollbars for Tables & Wide Blocks */
+.aimb-content :deep(.ai-analytics-inner),
+.aimb-content :deep([style*="overflow-x: auto"]) {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(66, 165, 245, 0.35) transparent !important;
+}
+.aimb-content :deep(.ai-analytics-inner::-webkit-scrollbar),
+.aimb-content :deep([style*="overflow-x: auto"]::-webkit-scrollbar) {
+  height: 5px !important;
+}
+.aimb-content :deep(.ai-analytics-inner::-webkit-scrollbar-thumb),
+.aimb-content :deep([style*="overflow-x: auto"]::-webkit-scrollbar-thumb) {
+  background: rgba(66, 165, 245, 0.35) !important;
+  border-radius: 10px !important;
+}
+
 /* Material Design Icons Guarantee inside dynamically rendered content */
 .aimb-content :deep(.mdi),
 .aimb-content :deep([class*="mdi-"]) {
@@ -1085,6 +1105,18 @@ export default {
   text-transform: none !important;
   line-height: 1 !important;
   display: inline-block !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+.aimb-content :deep(.mdi)::before,
+.aimb-content :deep([class*="mdi-"])::before {
+  font-family: "Material Design Icons" !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  display: inline-block !important;
+  text-rendering: auto !important;
+  line-height: 1 !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
 }

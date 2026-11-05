@@ -26,6 +26,13 @@ export function loadExternalContent(htmlString, containerId, retries = 0) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = sanitized;
 
+    // Ensure all mdi icon elements have the core 'mdi' class so @mdi/font ::before applies properly
+    tempDiv.querySelectorAll('[class*="mdi-"]').forEach(el => {
+      if (!el.classList.contains('mdi')) {
+        el.classList.add('mdi');
+      }
+    });
+
     // Move everything except scripts
     const fragment = document.createDocumentFragment();
     Array.from(tempDiv.children).forEach(child => {

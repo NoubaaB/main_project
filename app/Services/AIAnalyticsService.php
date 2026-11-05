@@ -503,16 +503,16 @@ TR;
             'chartId' => $chartId,
             'theme' => $theme,
             'moduleTitle' => ($lang === 'en' ? "Fortnight & Workforce Module - Year {$year}" : "Module Quinzaine & Main d'œuvre - Année {$year}"),
-            'moduleColor' => '#42A5F5',
-            'moduleIcon' => 'mdi-calendar-clock',
+            'moduleColor' => '#1565C0',
+            'moduleIcon' => 'mdi-calendar-month',
             'badgeText' => ($lang === 'en' ? "Monthly Fortnight Breakdown {$year}" : "Matrice Mensuelle Quinzaines {$year}"),
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
             'kpis' => [
-                ['label' => ($lang === 'en' ? "Total Year {$year}" : "Total Annuel {$year}"), 'value' => $grandTotPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
-                ['label' => ($lang === 'en' ? 'Total Fortnight 1 (Q1)' : 'Total Quinzaine 1 (Q1)'), 'value' => $totQ1PriceFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-start'],
-                ['label' => ($lang === 'en' ? 'Total Fortnight 2 (Q2)' : 'Total Quinzaine 2 (Q2)'), 'value' => $totQ2PriceFmt . ' MAD', 'color' => '#FFB74D', 'icon' => 'mdi-calendar-end'],
-                ['label' => ($lang === 'en' ? 'Total Working Days' : 'Journées Travaillées'), 'value' => $grandTotDaysFmt . ' j', 'color' => '#26A69A', 'icon' => 'mdi-account-clock'],
+                ['label' => ($lang === 'en' ? "Total Year {$year}" : "Total Annuel {$year}"), 'value' => $grandTotPriceFmt . ' MAD', 'color' => '#00C853', 'icon' => 'mdi-cash'],
+                ['label' => ($lang === 'en' ? 'Total Fortnight 1 (Q1)' : 'Total Quinzaine 1 (Q1)'), 'value' => $totQ1PriceFmt . ' MAD', 'color' => '#1565C0', 'icon' => 'mdi-calendar-check'],
+                ['label' => ($lang === 'en' ? 'Total Fortnight 2 (Q2)' : 'Total Quinzaine 2 (Q2)'), 'value' => $totQ2PriceFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-clock'],
+                ['label' => ($lang === 'en' ? 'Total Working Days' : 'Journées Travaillées'), 'value' => $grandTotDaysFmt . ' j', 'color' => '#00897B', 'icon' => 'mdi-account-clock'],
             ],
             'table' => [
                 'title' => ($lang === 'en' ? "Fortnight Breakdown by Month - Year {$year}" : "Tableau Détaillé des Quinzaines par Mois - {$year}"),
@@ -528,7 +528,7 @@ TR;
                     ['name' => $seriesNameQ1, 'data' => $q1SeriesData],
                     ['name' => $seriesNameQ2, 'data' => $q2SeriesData],
                 ],
-                'colors' => ['#42A5F5', '#FFB74D'],
+                'colors' => ['#1565C0', '#42A5F5'],
                 'type' => 'bar',
                 'yUnit' => 'MAD',
                 'height' => 320,
@@ -2870,14 +2870,10 @@ TR;
 
         $normalizeIcon = function (?string $icon): string {
             if (!$icon) return 'mdi mdi-circle-outline';
-            $trimmed = trim($icon);
-            if (str_starts_with($trimmed, 'mdi ') || str_contains($trimmed, ' mdi-') || str_contains($trimmed, 'mdi ')) {
-                return $trimmed;
-            }
-            if (str_starts_with($trimmed, 'mdi-')) {
-                return 'mdi ' . $trimmed;
-            }
-            return 'mdi mdi-' . $trimmed;
+            $name = trim($icon);
+            $name = preg_replace('/^(?:v-icon\s+|notranslate\s+|mdi\s+)+/i', '', $name);
+            $name = preg_replace('/^mdi-/i', '', $name);
+            return 'mdi mdi-' . trim($name);
         };
 
         $modColor = $cfg['moduleColor'] ?? '#42A5F5';
@@ -2890,20 +2886,21 @@ TR;
         // 1. KPI Cards HTML
         $kpiHtml = '';
         if (!empty($cfg['kpis'])) {
-            $kpiHtml .= '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">';
+            $kpiHtml .= '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px;">';
             foreach ($cfg['kpis'] as $kpi) {
                 $kVal = htmlspecialchars($kpi['value']);
                 $kLbl = htmlspecialchars($kpi['label']);
                 $kCol = $kpi['color'] ?? $modColor;
                 $kIco = $normalizeIcon($kpi['icon'] ?? 'mdi-chart-line');
                 $kpiHtml .= <<<KPI
-                <div class="ai-analytics-kpi" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 14px 16px; border: 1px solid var(--ai-border, {$innerBorder}); box-shadow: 0 4px 12px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 42px; height: 42px; border-radius: 10px; background: {$kCol}15; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <i class="v-icon notranslate {$kIco}" style="font-size: 22px; color: {$kCol};"></i>
+                <div class="ai-analytics-kpi" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 14px; padding: 15px 18px; border: 1px solid var(--ai-border, {$innerBorder}); box-shadow: 0 4px 14px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden;">
+                  <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: {$kCol}; border-radius: 4px 0 0 4px;"></div>
+                  <div style="width: 44px; height: 44px; border-radius: 12px; background: {$kCol}18; border: 1px solid {$kCol}30; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="{$kIco}" style="font-size: 22px; color: {$kCol};"></i>
                   </div>
-                  <div>
-                    <div style="font-size: 11.5px; font-weight: 600; color: var(--ai-sub-color, {$subColor}); text-transform: uppercase; letter-spacing: 0.5px;">{$kLbl}</div>
-                    <div style="font-size: 18px; font-weight: 800; color: {$kCol}; margin-top: 2px;">{$kVal}</div>
+                  <div style="min-width: 0; flex: 1;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--ai-sub-color, {$subColor}); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{$kLbl}</div>
+                    <div style="font-size: 18.5px; font-weight: 800; color: {$kCol}; margin-top: 2px; font-variant-numeric: tabular-nums;">{$kVal}</div>
                   </div>
                 </div>
 KPI;
@@ -3104,23 +3101,24 @@ BTN;
     <!-- Top Header -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--ai-border, {$innerBorder}); padding-bottom: 14px;">
       <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: {$modColor}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px {$modColor}40;">
-          <i class="v-icon notranslate {$modIcon} text-white" style="font-size: 24px;"></i>
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: {$modColor}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px {$modColor}40; flex-shrink: 0;">
+          <i class="{$modIcon} text-white" style="font-size: 24px;"></i>
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: {$modColor};">{$modTitle}</div>
           <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Question: <strong style="color: var(--ai-text-color, {$textColor});">« {$userQuestion} »</strong></div>
         </div>
       </div>
-      <span style="background: {$modColor}18; color: {$modColor}; border: 1px solid {$modColor}40; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
+      <span style="background: {$modColor}18; color: {$modColor}; border: 1px solid {$modColor}40; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; display: inline-flex; align-items: center; gap: 5px;">
+        <i class="mdi mdi-check-decagram" style="font-size: 13px;"></i>
         {$badgeText}
       </span>
     </div>
 
     <!-- Direct Answer Banner -->
-    <div style="font-size: 14px; line-height: 1.7; color: var(--ai-text-color, {$textColor}); background: {$modColor}12; padding: 14px 16px; border-radius: 12px; border-left: 4px solid {$modColor}; margin-bottom: 18px; font-weight: 500;">
-      <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: {$modColor}; letter-spacing: 0.8px; margin-bottom: 4px;">
-        <i class="v-icon notranslate mdi mdi-check-circle-outline" style="font-size: 14px; margin-right: 4px;"></i>
+    <div style="font-size: 14px; line-height: 1.7; color: var(--ai-text-color, {$textColor}); background: {$modColor}12; padding: 14px 18px; border-radius: 12px; border-left: 4px solid {$modColor}; margin-bottom: 20px; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: {$modColor}; letter-spacing: 0.8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+        <i class="mdi mdi-checkbox-marked-circle-outline" style="font-size: 14px;"></i>
         Réponse Directe
       </div>
       {$answerText}
@@ -3131,9 +3129,9 @@ BTN;
     {$chartContainerHtml}
 
     <!-- Bottom Actions / Shortcuts -->
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid var(--ai-border, {$innerBorder}); padding-top: 14px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid var(--ai-border, {$innerBorder}); padding-top: 16px; margin-top: 4px;">
       <div style="display: flex; align-items: center; gap: 6px;">
-        <i class="v-icon notranslate mdi mdi-shield-check" style="font-size: 15px; color: {$modColor};"></i>
+        <i class="mdi mdi-shield-check" style="font-size: 16px; color: {$modColor};"></i>
         <span>Jupiter ERP Intelligence • Conçu et supervisé par <strong>ELBACHIR NOUBAA</strong></span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
