@@ -43,6 +43,12 @@ class AIAnalyticsService
         switch ($p['domain']) {
             case 'fortnight_monthly':
                 return $this->handleFortnightMonthlyQuery($uniqueId, $chartId, $p, $theme);
+            case 'charges_categories':
+                return $this->handleChargesCategoriesQuery($uniqueId, $chartId, $p, $theme);
+            case 'shippings_categories':
+                return $this->handleShippingsCategoriesQuery($uniqueId, $chartId, $p, $theme);
+            case 'productions_categories':
+                return $this->handleProductionsCategoriesQuery($uniqueId, $chartId, $p, $theme);
             case 'charges_monthly':
                 return $this->handleChargesMonthlyQuery($uniqueId, $chartId, $p, $theme);
             case 'shippings_monthly':
@@ -210,10 +216,19 @@ class AIAnalyticsService
         // Productions signals
         $isProductions = (bool) preg_match('/(production|productions|congélation|frais|guano|farine|huile|rendement|yield|equilibrium)/ui', $lower);
 
+        // Category breakdown signals
+        $isCategory = (bool) preg_match('/(catégorie|catégories|categorie|categories|category)/ui', $lower);
+
         // 5. Domain extraction
         $domain = 'overview';
         if ($isFortnight && $isMonthly) {
             $domain = 'fortnight_monthly';
+        } elseif ($isCharges && $isCategory) {
+            $domain = 'charges_categories';
+        } elseif ($isShippings && $isCategory) {
+            $domain = 'shippings_categories';
+        } elseif ($isProductions && $isCategory) {
+            $domain = 'productions_categories';
         } elseif ($isCharges && $isMonthly) {
             $domain = 'charges_monthly';
         } elseif ($isShippings && $isMonthly) {
@@ -521,6 +536,423 @@ TR;
             'navButtons' => [
                 ['label' => ($lang === 'en' ? 'Fortnight Sheets' : 'Feuilles de Quinzaine'), 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
                 ['label' => ($lang === 'en' ? 'Workforce Directory' : 'Main d\'œuvre & Ouvriers'), 'route' => '/workforces', 'icon' => 'mdi-account-group'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Charges / Achats Breakdown by Category.
+     */
+    private function handleChargesCategoriesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $categories = DB::table('charge_categories as cc')
+            ->leftJoin('charges as c', function ($join) {
+                $join->on('c.charge_category_id', '=', 'cc.id')
+                    ->whereNull('c.deleted_at');
+            })
+            ->whereNull('cc.deleted_at')
+            ->selectRaw('
+                cc.id,
+                cc.name,
+                COUNT(c.id) as count,
+                COALESCE(SUM(c.total_weight), 0) as total_weight,
+                COALESCE(SUM(c.total_price), 0) as total_price
+            ')
+            ->groupBy('cc.id', 'cc.name')
+            ->orderBy('total_price', 'desc')
+            ->get();
+
+        $totPrice = (float) $categories->sum('total_price');
+        $totWeight = (float) $categories->sum('total_weight');
+        $totCount = (int) $categories->sum('count');
+        $catCount = $categories->count();
+
+        $chartLabels = [];
+        $chartData = [];
+        $tableRowsHtml = '';
+
+        $topCatName = $categories->first()?->name ?? 'N/A';
+        $topCatPrice = (float) ($categories->first()?->total_price ?? 0);
+
+        foreach ($categories as $cat) {
+            $cName = $cat->name;
+            $cP = (float) $cat->total_price;
+            $cW = (float) $cat->total_weight;
+            $cC = (int) $cat->count;
+            $pct = $totPrice > 0 ? round(($cP / $totPrice) * 100, 1) : 0;
+
+            if ($cP > 0) {
+                $chartLabels[] = $cName;
+                $chartData[] = round($cP, 2);
+            }
+
+            $pFmt = $this->formatNumber($cP, 2);
+            $wFmt = $this->formatNumber($cW, 2);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 12px 14px; font-weight: 700; color: #42A5F5;">
+                <i class="v-icon notranslate mdi mdi-tag-outline text-blue" style="font-size: 15px; margin-right: 6px;"></i>
+                {$cName}
+              </td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 600;">{$cC}</td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 700;">{$wFmt} KG</td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 800; color: #42A5F5;">{$pFmt} MAD</td>
+              <td style="padding: 12px 14px; text-align: right;">
+                <span style="background: rgba(66, 165, 245, 0.15); color: #42A5F5; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 11px;">
+                  {$pct}%
+                </span>
+              </td>
+              <td style="padding: 12px 14px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/charges">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        // Total row
+        $totPFmt = $this->formatNumber($totPrice, 2);
+        $totWFmt = $this->formatNumber($totWeight, 2);
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(66, 165, 245, 0.08); font-weight: 800; border-top: 2px solid rgba(66, 165, 245, 0.3);">
+          <td style="padding: 12px 14px; color: #42A5F5;">TOTAL GÉNÉRAL</td>
+          <td style="padding: 12px 14px; text-align: right;">{$totCount}</td>
+          <td style="padding: 12px 14px; text-align: right;">{$totWFmt} KG</td>
+          <td style="padding: 12px 14px; text-align: right; color: #42A5F5; font-size: 14px;">{$totPFmt} MAD</td>
+          <td style="padding: 12px 14px; text-align: right;">100%</td>
+          <td></td>
+        </tr>
+TR;
+
+        $answerText = match ($lang) {
+            'en' => "Total purchases across all {$catCount} categories amount to {$totPFmt} MAD ({$totWFmt} KG). The highest category is « {$topCatName} » with " . $this->formatNumber($topCatPrice, 2) . " MAD.",
+            'es' => "El total de compras en las {$catCount} categorías asciende a {$totPFmt} MAD ({$totWFmt} KG). La categoría principal es « {$topCatName} » con " . $this->formatNumber($topCatPrice, 2) . " MAD.",
+            'ar' => "إجمالي المشتريات عبر جميع الفئات الـ {$catCount} يبلغ {$totPFmt} درهم ({$totWFmt} كغ). الفئة الأعلى هي « {$topCatName} » بمبلغ " . $this->formatNumber($topCatPrice, 2) . " درهم.",
+            default => "Le montant cumulé des charges s'élève à {$totPFmt} MAD ({$totWFmt} KG) réparties sur {$catCount} catégories. La catégorie dominante est « {$topCatName} » avec " . $this->formatNumber($topCatPrice, 2) . " MAD.",
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Charges & Achats — Répartition par Catégorie',
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-truck-delivery',
+            'badgeText' => 'Catégories d\'Achats',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Charges', 'value' => $totPFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Poids Réceptionné', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'Catégorie Dominante', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'Nombre de Catégories', 'value' => $catCount . ' catégories', 'color' => '#AB47BC', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'table' => [
+                'title' => 'Détails des Charges par Catégorie',
+                'headers' => [
+                    ['title' => 'Catégorie', 'align' => 'left'],
+                    ['title' => 'Réceptions', 'align' => 'right'],
+                    ['title' => 'Poids (KG)', 'align' => 'right'],
+                    ['title' => 'Total (MAD)', 'align' => 'right'],
+                    ['title' => 'Part (%)', 'align' => 'right'],
+                    ['title' => 'Action', 'align' => 'center'],
+                ],
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => [
+                'id' => $chartId,
+                'title' => 'Répartition Graphique des Charges par Catégorie (MAD)',
+                'labels' => $chartLabels,
+                'data' => $chartData,
+                'seriesName' => 'Montant (MAD)',
+                'type' => 'bar',
+                'color' => '#42A5F5',
+                'height' => 320,
+            ],
+            'navButtons' => [
+                ['label' => 'Module Achats', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Gestion Catégories', 'route' => '/charge_category', 'icon' => 'mdi-tag-multiple'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Shippings / Ventes Breakdown by Category.
+     */
+    private function handleShippingsCategoriesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $categories = DB::table('shipping_categories as sc')
+            ->leftJoin('shippings as s', function ($join) {
+                $join->on('s.shipping_category_id', '=', 'sc.id')
+                    ->whereNull('s.deleted_at');
+            })
+            ->whereNull('sc.deleted_at')
+            ->selectRaw('
+                sc.id,
+                sc.name,
+                COUNT(s.id) as count,
+                COALESCE(SUM(s.total_weight), 0) as total_weight,
+                COALESCE(SUM(s.total_price), 0) as total_price
+            ')
+            ->groupBy('sc.id', 'sc.name')
+            ->orderBy('total_price', 'desc')
+            ->get();
+
+        $totPrice = (float) $categories->sum('total_price');
+        $totWeight = (float) $categories->sum('total_weight');
+        $totCount = (int) $categories->sum('count');
+        $catCount = $categories->count();
+
+        $chartLabels = [];
+        $chartData = [];
+        $tableRowsHtml = '';
+
+        $topCatName = $categories->first()?->name ?? 'N/A';
+        $topCatPrice = (float) ($categories->first()?->total_price ?? 0);
+
+        foreach ($categories as $cat) {
+            $cName = $cat->name;
+            $cP = (float) $cat->total_price;
+            $cW = (float) $cat->total_weight;
+            $cC = (int) $cat->count;
+            $pct = $totPrice > 0 ? round(($cP / $totPrice) * 100, 1) : 0;
+
+            if ($cP > 0) {
+                $chartLabels[] = $cName;
+                $chartData[] = round($cP, 2);
+            }
+
+            $pFmt = $this->formatNumber($cP, 2);
+            $wFmt = $this->formatNumber($cW, 2);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 12px 14px; font-weight: 700; color: #4643a0;">
+                <i class="v-icon notranslate mdi mdi-tag-outline" style="font-size: 15px; margin-right: 6px; color: #4643a0;"></i>
+                {$cName}
+              </td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 600;">{$cC}</td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 700;">{$wFmt} KG</td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 800; color: #4643a0;">{$pFmt} MAD</td>
+              <td style="padding: 12px 14px; text-align: right;">
+                <span style="background: rgba(70, 67, 160, 0.15); color: #4643a0; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 11px;">
+                  {$pct}%
+                </span>
+              </td>
+              <td style="padding: 12px 14px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #4643a0; font-size: 11px; cursor: pointer; border: none;" data-route="/shippings">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $totPFmt = $this->formatNumber($totPrice, 2);
+        $totWFmt = $this->formatNumber($totWeight, 2);
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(70, 67, 160, 0.08); font-weight: 800; border-top: 2px solid rgba(70, 67, 160, 0.3);">
+          <td style="padding: 12px 14px; color: #4643a0;">TOTAL GÉNÉRAL</td>
+          <td style="padding: 12px 14px; text-align: right;">{$totCount}</td>
+          <td style="padding: 12px 14px; text-align: right;">{$totWFmt} KG</td>
+          <td style="padding: 12px 14px; text-align: right; color: #4643a0; font-size: 14px;">{$totPFmt} MAD</td>
+          <td style="padding: 12px 14px; text-align: right;">100%</td>
+          <td></td>
+        </tr>
+TR;
+
+        $answerText = match ($lang) {
+            'en' => "Total sales across all {$catCount} categories amount to {$totPFmt} MAD ({$totWFmt} KG). Top category is « {$topCatName} » with " . $this->formatNumber($topCatPrice, 2) . " MAD.",
+            'es' => "El total de ventas en las {$catCount} categorías asciende a {$totPFmt} MAD ({$totWFmt} KG). La categoría líder es « {$topCatName} » con " . $this->formatNumber($topCatPrice, 2) . " MAD.",
+            'ar' => "إجمالي المبيعات عبر جميع الفئات الـ {$catCount} يبلغ {$totPFmt} درهم ({$totWFmt} كغ). الفئة الرائدة هي « {$topCatName} » بمبلغ " . $this->formatNumber($topCatPrice, 2) . " درهم.",
+            default => "Le chiffre d'affaires cumulé des expéditions s'élève à {$totPFmt} MAD ({$totWFmt} KG) réparties sur {$catCount} catégories. La catégorie dominante est « {$topCatName} » avec " . $this->formatNumber($topCatPrice, 2) . " MAD.",
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Expéditions & Ventes — Répartition par Catégorie',
+            'moduleColor' => '#4643a0',
+            'moduleIcon' => 'mdi-ship-wheel',
+            'badgeText' => 'Catégories de Ventes',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Total Ventes', 'value' => $totPFmt . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Poids Expédié', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'Catégorie Leader', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'Nombre de Catégories', 'value' => $catCount . ' catégories', 'color' => '#b39ddb', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'table' => [
+                'title' => 'Détails des Ventes par Catégorie',
+                'headers' => [
+                    ['title' => 'Catégorie', 'align' => 'left'],
+                    ['title' => 'Expéditions', 'align' => 'right'],
+                    ['title' => 'Poids (KG)', 'align' => 'right'],
+                    ['title' => 'Total (MAD)', 'align' => 'right'],
+                    ['title' => 'Part (%)', 'align' => 'right'],
+                    ['title' => 'Action', 'align' => 'center'],
+                ],
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => [
+                'id' => $chartId,
+                'title' => 'Répartition Graphique des Ventes par Catégorie (MAD)',
+                'labels' => $chartLabels,
+                'data' => $chartData,
+                'seriesName' => 'Montant (MAD)',
+                'type' => 'bar',
+                'color' => '#4643a0',
+                'height' => 320,
+            ],
+            'navButtons' => [
+                ['label' => 'Module Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Gestion Catégories', 'route' => '/shipping_category', 'icon' => 'mdi-tag-multiple'],
+            ],
+        ]);
+    }
+
+    /**
+     * Handle Productions Breakdown by Category.
+     */
+    private function handleProductionsCategoriesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
+    {
+        $lang = $p['lang'];
+        $categories = DB::table('production_categories as pc')
+            ->leftJoin('productions as p', function ($join) {
+                $join->on('p.production_category_id', '=', 'pc.id')
+                    ->whereNull('p.deleted_at');
+            })
+            ->whereNull('pc.deleted_at')
+            ->selectRaw('
+                pc.id,
+                pc.name,
+                COUNT(p.id) as count,
+                COALESCE(SUM(p.fresh_fish_weight), 0) as fresh_weight,
+                COALESCE(SUM(p.frozen_production_weight), 0) as frozen_weight
+            ')
+            ->groupBy('pc.id', 'pc.name')
+            ->orderBy('frozen_weight', 'desc')
+            ->get();
+
+        $totFresh = (float) $categories->sum('fresh_weight');
+        $totFrozen = (float) $categories->sum('frozen_weight');
+        $totCount = (int) $categories->sum('count');
+        $catCount = $categories->count();
+
+        $chartLabels = [];
+        $chartData = [];
+        $tableRowsHtml = '';
+
+        $topCatName = $categories->first()?->name ?? 'N/A';
+        $topCatFrozen = (float) ($categories->first()?->frozen_weight ?? 0);
+
+        foreach ($categories as $cat) {
+            $cName = $cat->name;
+            $cFr = (float) $cat->fresh_weight;
+            $cFz = (float) $cat->frozen_weight;
+            $cC = (int) $cat->count;
+            $yield = $cFr > 0 ? round(($cFz / $cFr) * 100, 1) : 0;
+
+            if ($cFz > 0) {
+                $chartLabels[] = $cName;
+                $chartData[] = round($cFz, 2);
+            }
+
+            $frFmt = $this->formatNumber($cFr, 2);
+            $fzFmt = $this->formatNumber($cFz, 2);
+
+            $tableRowsHtml .= <<<TR
+            <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
+              <td style="padding: 12px 14px; font-weight: 700; color: #00897B;">
+                <i class="v-icon notranslate mdi mdi-snowflake" style="font-size: 15px; margin-right: 6px; color: #00897B;"></i>
+                {$cName}
+              </td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 600;">{$cC}</td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 700;">{$frFmt} KG</td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 800; color: #00897B;">{$fzFmt} KG</td>
+              <td style="padding: 12px 14px; text-align: right;">
+                <span style="background: rgba(0, 137, 123, 0.15); color: #00897B; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 11px;">
+                  {$yield}%
+                </span>
+              </td>
+              <td style="padding: 12px 14px; text-align: center;">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #00897B; font-size: 11px; cursor: pointer; border: none;" data-route="/production">
+                  Voir
+                </button>
+              </td>
+            </tr>
+TR;
+        }
+
+        $totFrFmt = $this->formatNumber($totFresh, 2);
+        $totFzFmt = $this->formatNumber($totFrozen, 2);
+        $globalYield = $totFresh > 0 ? round(($totFrozen / $totFresh) * 100, 1) : 0;
+
+        $tableRowsHtml .= <<<TR
+        <tr style="background: rgba(0, 137, 123, 0.08); font-weight: 800; border-top: 2px solid rgba(0, 137, 123, 0.3);">
+          <td style="padding: 12px 14px; color: #00897B;">TOTAL GÉNÉRAL</td>
+          <td style="padding: 12px 14px; text-align: right;">{$totCount}</td>
+          <td style="padding: 12px 14px; text-align: right;">{$totFrFmt} KG</td>
+          <td style="padding: 12px 14px; text-align: right; color: #00897B; font-size: 14px;">{$totFzFmt} KG</td>
+          <td style="padding: 12px 14px; text-align: right;">{$globalYield}%</td>
+          <td></td>
+        </tr>
+TR;
+
+        $answerText = match ($lang) {
+            'en' => "Total frozen production across all {$catCount} categories is {$totFzFmt} KG from {$totFrFmt} KG fresh fish (Global yield: {$globalYield}%). Top category: « {$topCatName} » with " . $this->formatNumber($topCatFrozen, 2) . " KG.",
+            'es' => "La producción congelada total en las {$catCount} categorías es de {$totFzFmt} KG a partir de {$totFrFmt} KG de pescado fresco (Rendimiento global: {$globalYield}%). Categoría líder: « {$topCatName} » con " . $this->formatNumber($topCatFrozen, 2) . " KG.",
+            'ar' => "إجمالي الإنتاج المجمد عبر جميع الفئات الـ {$catCount} يبلغ {$totFzFmt} كغ من أصل {$totFrFmt} كغ سمك طازج (المردود العام: {$globalYield}%). الفئة الرائدة: « {$topCatName} » بـ " . $this->formatNumber($topCatFrozen, 2) . " كغ.",
+            default => "La production congelée totale s'élève à {$totFzFmt} KG issue de {$totFrFmt} KG de poisson frais (Rendement global: {$globalYield}%). Catégorie dominante: « {$topCatName} » avec " . $this->formatNumber($topCatFrozen, 2) . " KG.",
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'moduleTitle' => 'Production & Usine — Répartition par Catégorie',
+            'moduleColor' => '#00897B',
+            'moduleIcon' => 'mdi-factory',
+            'badgeText' => 'Catégories de Production',
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => [
+                ['label' => 'Production Congelée', 'value' => $totFzFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Poisson Frais Traité', 'value' => $totFrFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-scale'],
+                ['label' => 'Rendement Moyen', 'value' => $globalYield . ' %', 'color' => '#FFA726', 'icon' => 'mdi-percent'],
+                ['label' => 'Nombre de Catégories', 'value' => $catCount . ' catégories', 'color' => '#26A69A', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'table' => [
+                'title' => 'Détails de Production par Catégorie',
+                'headers' => [
+                    ['title' => 'Catégorie', 'align' => 'left'],
+                    ['title' => 'Lots', 'align' => 'right'],
+                    ['title' => 'Frais (KG)', 'align' => 'right'],
+                    ['title' => 'Congelé (KG)', 'align' => 'right'],
+                    ['title' => 'Rendement', 'align' => 'right'],
+                    ['title' => 'Action', 'align' => 'center'],
+                ],
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => [
+                'id' => $chartId,
+                'title' => 'Production Congelée par Catégorie (KG)',
+                'labels' => $chartLabels,
+                'data' => $chartData,
+                'seriesName' => 'Poids Congelé (KG)',
+                'type' => 'bar',
+                'color' => '#00897B',
+                'height' => 320,
+            ],
+            'navButtons' => [
+                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Gestion Catégories', 'route' => '/production_category', 'icon' => 'mdi-tag-multiple'],
             ],
         ]);
     }
@@ -2702,7 +3134,7 @@ BTN;
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid var(--ai-border, {$innerBorder}); padding-top: 14px;">
       <div style="display: flex; align-items: center; gap: 6px;">
         <i class="v-icon notranslate mdi mdi-shield-check" style="font-size: 15px; color: {$modColor};"></i>
-        <span>Données Certifiées ERP • Source Unique de Vérité</span>
+        <span>Jupiter ERP Intelligence • Conçu et supervisé par <strong>ELBACHIR NOUBAA</strong></span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         {$navBtnsHtml}

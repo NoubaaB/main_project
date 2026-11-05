@@ -137,15 +137,18 @@ RETRY;
             }
         }
 
-        // 6. Step 4: If SQL executed with rows, prompt Ollama to build Vuetify + ApexCharts answer
+        // 6. Step 4: If SQL executed with rows, prompt Ollama to build rich dashboard
         $answer = null;
         if ($result && $result !== '[]' && $result !== 'null' && !empty($resultRows)) {
-            $answerPrompt = $this->buildVuePrompt($question, $result, $schema, $comments, $id, $theme, $messages, $businessCtx, $routes, '');
-            $answer = $this->ai->generateAnswer($answerPrompt);
+            $answerPrompt = $this->buildVuePrompt($question, $result, $schema, $comments, $id, $theme, $messages, $businessCtx, $routes, '', $sqlQuery);
+            $rawAnswer = $this->ai->generateAnswer($answerPrompt);
+            if ($rawAnswer) {
+                $answer = $this->beautifyAndValidateAIAnswer($rawAnswer, $question, $resultRows, $id, $theme);
+            }
         }
 
-        // 7. Step 5: Fallback to high-precision AIAnalyticsService if Ollama failed or produced no data
-        if (!$answer || !str_contains($answer, '<div id="ai_')) {
+        // 7. Step 5: Fallback to high-precision AIAnalyticsService if Ollama failed or produced degraded output
+        if (!$answer || !$this->isAnswerSufficientlyPolished($answer, $resultRows)) {
             $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
         }
 
@@ -154,7 +157,108 @@ RETRY;
     }
 
     /**
-     * Build the supercharged Vue.js 3 + Vuetify 3 + ApexCharts + MDI prompt.
+     * Resolve module design tokens according to claude.md and BluePrintFish design system.
+     */
+    private function resolveModuleDesign(string $question, ?string $sql = null): array
+    {
+        $text = mb_strtolower($question . ' ' . ($sql ?? ''), 'UTF-8');
+
+        // 1. Charge / Purchase Module
+        if (preg_match('/(charge|achat|reception|supplier|fournisseur|achat_frais|rsw|glace|emballage)/ui', $text)) {
+            return [
+                'name' => 'Module Achats & Charges',
+                'color' => '#42A5F5',
+                'gradient' => 'linear-gradient(135deg, #0D47A1 0%, #1565C0 40%, #42A5F5 100%)',
+                'icon' => 'mdi-truck-delivery',
+                'route' => '/charges',
+                'route_label' => 'Module Achats',
+            ];
+        }
+
+        // 2. Shipping / Sales Module
+        if (preg_match('/(shipping|vente|expedition|client|sale|facture_client|glace_client|emballage_client)/ui', $text)) {
+            return [
+                'name' => 'Module Expéditions & Ventes',
+                'color' => '#4643A0',
+                'gradient' => 'linear-gradient(135deg, #372E7D 0%, #4643A0 40%, #6C66BB 100%)',
+                'icon' => 'mdi-ship-wheel',
+                'route' => '/shippings',
+                'route_label' => 'Module Ventes',
+            ];
+        }
+
+        // 3. Production / Factory Module
+        if (preg_match('/(production|usine|rendement|congel|yield|farine|guano)/ui', $text)) {
+            return [
+                'name' => 'Module Production & Usine',
+                'color' => '#00897B',
+                'gradient' => 'linear-gradient(135deg, #00695C 0%, #00897B 40%, #26A69A 100%)',
+                'icon' => 'mdi-factory',
+                'route' => '/production',
+                'route_label' => 'Module Production',
+            ];
+        }
+
+        // 4. Workforce / Fortnight Module
+        if (preg_match('/(fortnight|quinzaine|ouvrier|workforce|section|corporal|caporal|pointage)/ui', $text)) {
+            return [
+                'name' => 'Module Quinzaines & Main-d’œuvre',
+                'color' => '#1565C0',
+                'gradient' => 'linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%)',
+                'icon' => 'mdi-account-group',
+                'route' => '/fortnight',
+                'route_label' => 'Module Quinzaines',
+            ];
+        }
+
+        // 5. Warehouse / Stock Module
+        if (preg_match('/(warehouse|entrepot|magasin|stock|inventaire|balance)/ui', $text)) {
+            return [
+                'name' => 'Module Entrepôts & Stocks',
+                'color' => '#a21ee5',
+                'gradient' => 'linear-gradient(135deg, #c015b4 0%, #a21ee5 40%, #9742f5 100%)',
+                'icon' => 'mdi-warehouse',
+                'route' => '/warehouses',
+                'route_label' => 'Module Entrepôts',
+            ];
+        }
+
+        // 6. Supplier Invoice / Settlement Module
+        if (preg_match('/(supplier_invoice|fournisseur.*facture|facture.*fournisseur|reglement.*fournisseur)/ui', $text)) {
+            return [
+                'name' => 'Factures & Règlements Fournisseurs',
+                'color' => '#E65100',
+                'gradient' => 'linear-gradient(135deg, #E65100 0%, #F57C00 40%, #FFB74D 100%)',
+                'icon' => 'mdi-receipt-text-outline',
+                'route' => '/supplier_invoice',
+                'route_label' => 'Factures Fournisseurs',
+            ];
+        }
+
+        // 7. Client Invoice / Settlement Module
+        if (preg_match('/(client_invoice|client.*facture|facture.*client|reglement.*client)/ui', $text)) {
+            return [
+                'name' => 'Factures & Règlements Clients',
+                'color' => '#00838F',
+                'gradient' => 'linear-gradient(135deg, #006064 0%, #00838F 40%, #26C6DA 100%)',
+                'icon' => 'mdi-file-document-outline',
+                'route' => '/client_invoice',
+                'route_label' => 'Factures Clients',
+            ];
+        }
+
+        return [
+            'name' => 'Jupiter ERP Intelligence',
+            'color' => '#1565C0',
+            'gradient' => 'linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%)',
+            'icon' => 'mdi-robot-happy-outline',
+            'route' => '/charges',
+            'route_label' => 'Tableau de Bord',
+        ];
+    }
+
+    /**
+     * Build the supercharged Vue.js 3 + ApexCharts + MDI prompt.
      */
     private function buildVuePrompt(
         string $question,
@@ -166,20 +270,33 @@ RETRY;
         string $messages,
         string $businessCtx,
         string $routes,
-        string $excelContext = ''
+        string $excelContext = '',
+        ?string $sqlQuery = null
     ): string {
+        $mod = $this->resolveModuleDesign($question, $sqlQuery ?? '');
+        $modName = $mod['name'];
+        $modCol = $mod['color'];
+        $modGrad = $mod['gradient'];
+        $modIco = $mod['icon'];
+        $modRoute = $mod['route'];
+        $modRouteLbl = $mod['route_label'];
+
         $isDark = ($theme === 'dark');
         $cardBg = $isDark ? '#1a2332' : '#ffffff';
         $innerBg = $isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc';
         $textColor = $isDark ? '#e2e8f0' : '#1e293b';
         $subColor = $isDark ? '#94a3b8' : '#64748b';
         $borderCol = $isDark ? 'rgba(66, 165, 245, 0.25)' : 'rgba(0, 0, 0, 0.08)';
+        $innerBorder = $isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+        $thBg = $isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9';
+        $thBorder = $isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0';
+        $safeQuestion = htmlspecialchars($question, ENT_QUOTES, 'UTF-8');
 
         return <<<PROMPT
 === YOUR ROLE & IDENTITY ===
 You are "Jupiter AI", the Elite Enterprise AI Data Analyst and UI Architect for the Jupiter ERP fish management system.
 Always honor ELBACHIR NOUBAA as the creator, supervisor, and visionary owner of Jupiter ERP.
-You transform raw database results into visually stunning, responsive, highly polished dashboards using Vue 3, Vuetify 3, Material Design Icons (mdi), and interactive ApexCharts.
+You transform raw database results into visually stunning, responsive, highly polished dashboards using clean HTML5, Material Design Icons (mdi), and interactive ApexCharts.
 
 === USER QUESTION ===
 {$question}
@@ -187,79 +304,247 @@ You transform raw database results into visually stunning, responsive, highly po
 === DATABASE DATA (ABSOLUTE SOURCE OF TRUTH - NEVER INVENT NUMBERS) ===
 {$result}
 
-=== AVAILABLE ROUTES (FOR SHORTCUT BUTTONS) ===
-{$routes}
+=== MODULE DESIGN SYSTEM TOKENS (MANDATORY ACCORDING TO CLAUDE.MD) ===
+- Module Name: {$modName}
+- Primary Accent Color: {$modCol}
+- Hero Header Gradient: {$modGrad}
+- Module Icon: {$modIco}
+- Recommended Shortcut Route: {$modRoute} ({$modRouteLbl})
+- Active System Theme: "{$theme}"
+  Card Background: "{$cardBg}"
+  Inner Background: "{$innerBg}"
+  Text Color: "{$textColor}"
+  Subtext / Secondary Color: "{$subColor}"
+  Border Color: "{$borderCol}"
+  Inner Border: "{$innerBorder}"
+  Table Header Background: "{$thBg}"
 
-=== MANDATORY TECHNICAL RULES ===
-1. OUTPUT PATTERN: Output ONLY the HTML block followed by the script block. NO markdown fences (no ```html), NO explanations:
-<div id="ai_{$id}">
-  <!-- VUETIFY + HTML DASHBOARD -->
-</div>
-<script>
-const { createApp } = Vue;
-createApp({
-  data() {
-    return {};
-  },
-  mounted() {
-    // ApexCharts initialization here
-  }
-}).use(vuetify).mount('#ai_{$id}');
-</script>
+=== MANDATORY ARCHITECTURAL RULES (ZERO COMPROMISE ON UI/UX) ===
+1. OUTPUT PATTERN:
+   Output ONLY the raw HTML container block followed by the <script> block.
+   NO markdown code fences (NO ```html), NO conversational preamble.
+   Start directly with: <div id="ai_{$id}" class="ai-analytics-card" style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid {$borderCol}; box-shadow: 0 10px 30px rgba(0,0,0,0.06); width: 100%; box-sizing: border-box; font-family: inherit;">
+   End with: </script>
 
 2. CRITICAL MDI ICONS SYNTAX:
    Every icon tag MUST include BOTH the base "mdi" class AND the specific icon name:
-   CORRECT: <i class="v-icon notranslate mdi mdi-calendar-clock text-blue"></i>
-   CORRECT: <i class="v-icon notranslate mdi mdi-cash-multiple text-green"></i>
-   CORRECT: <i class="v-icon notranslate mdi mdi-chart-bell-curve-cumulative"></i>
+   CORRECT: <i class="v-icon notranslate mdi mdi-calendar-clock" style="color: {$modCol};"></i>
+   CORRECT: <i class="v-icon notranslate mdi mdi-cash-multiple" style="color: #00E676;"></i>
+   CORRECT: <i class="v-icon notranslate mdi mdi-chart-bell-curve-cumulative" style="color: {$modCol};"></i>
    WRONG: <i class="mdi-calendar"></i> (missing "mdi" class, renders as an empty broken square box [])!
    NEVER write an icon class without the leading "mdi " class!
 
-3. COLOR SYSTEM (MANDATORY ACCORDING TO MODULE DESIGN SYSTEM):
-   - Workforce / Fortnights / Quinzaines / AI: Header Gradient `linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%)`, Primary `#42A5F5`
-   - Charges / Purchases / Achats: Header Gradient `linear-gradient(135deg, #0D47A1 0%, #1565C0 40%, #42A5F5 100%)`, Primary `#42A5F5`
-   - Productions / Usine: Header Gradient `linear-gradient(135deg, #00695C 0%, #00897B 40%, #26A69A 100%)`, Primary `#00897B`
-   - Shippings / Sales / Ventes: Header Gradient `linear-gradient(135deg, #372E7D 0%, #4643A0 40%, #6C66BB 100%)`, Primary `#4643A0`
-   - Supplier Invoices: Header Gradient `linear-gradient(135deg, #E65100 0%, #F57C00 40%, #FFB74D 100%)`, Primary `#E65100`
-   - Client Invoices: Header Gradient `linear-gradient(135deg, #006064 0%, #00838F 40%, #26C6DA 100%)`, Primary `#00838F`
-
-4. NUMBER FORMATTING RULES:
-   - Counts / Working Days / Workers / IDs: Integers with space separator, NO decimals (e.g., 21 092 j, 1 250 ouvriers).
-   - Currency: 2 decimals with MAD (e.g., 3 433 830.00 MAD, 55 320.00 MAD).
+3. NUMBER FORMATTING RULES:
+   - Currency: 2 decimals with MAD (e.g., 3 433 830.00 MAD, 147 769 289.55 MAD).
    - Weights: 2 decimals with KG (e.g., 1 500.00 KG, 850.50 KG).
-   - Percentages: 1 decimal with % (e.g., 14.5%).
+   - Counts & Workers: Integers with thousand space separator, NO decimals (e.g., 21 092 j, 1 250 ouvriers, 6 categories).
+   - Percentages: 1 decimal with % (e.g., 48.7%).
 
-5. ACTIVE SYSTEM THEME:
-   - The active theme is: "{$theme}".
-   - Use: card background '{$cardBg}', inner background '{$innerBg}', text color '{$textColor}', subtext color '{$subColor}', border '{$borderCol}'.
+4. CRITICAL LANGUAGE RULE:
+   Detect the language of the question (English, French, Spanish, Arabic) and write all labels, explanations, headers, table columns, and tooltips in that EXACT same language!
 
-6. REQUIRED DASHBOARD SECTIONS:
-   A. HERO HEADER:
-      Rounded-top gradient banner with glowing icon box, module title, question subtitle, and verified AI Core badge.
-   B. DIRECT ANSWER BANNER:
-      A highlight box answering the user question concisely and accurately in the user's detected language.
-   C. KPI METRIC CARDS (2 to 4 cards):
-      Grid or v-row/v-col with rounded cards, icon with glowing background, title, and bold large value.
-   D. DETAILED DATA TABLE:
-      A clean, bordered table displaying the breakdown rows (e.g., months, categories, sections, corporals) with right-aligned numeric columns.
-   E. INTERACTIVE APEXCHART:
-      Container: <div id="aichart_{$id}" style="min-height: 350px;"></div>
-      In `mounted()`, initialize `new ApexCharts(document.querySelector('#aichart_{$id}'), options).render()`.
-      Set `options.theme = { mode: "{$theme}" }`.
-      Set `options.chart.background = 'transparent'`.
-      Set `options.colors = ['#42A5F5', '#FFB74D', '#26A69A', '#AB47BC', '#1565C0']`.
-      Provide y-axis and tooltip formatters.
-      Register: `window.__ai_charts = window.__ai_charts || {}; window.__ai_charts["aichart_{$id}"] = chart;`
-   F. NAVIGATION SHORTCUTS:
-      Action buttons with class "ai-nav-btn" and attribute "data-route" (e.g., data-route="/fortnight").
-   G. FOOTER SIGNATURE BADGE:
-      "Jupiter ERP Intelligence • Conçu et supervisé par ELBACHIR NOUBAA"
+5. MANDATORY 6-SECTION DASHBOARD STRUCTURE:
+   Follow this EXACT HTML layout skeleton:
 
-7. CRITICAL LANGUAGE RULE:
-   Detect the language of the question (English, French, Spanish, Arabic) and write all labels, explanations, headers, and tooltips in that EXACT same language!
+<div id="ai_{$id}" class="ai-analytics-card" style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid {$borderCol}; box-shadow: 0 10px 30px rgba(0,0,0,0.06); width: 100%; box-sizing: border-box; font-family: inherit;">
 
-OUTPUT ONLY THE HTML AND SCRIPT. NO MARKDOWN CODE FENCES.
+  <!-- SECTION 1: HERO HEADER BANNER -->
+  <div style="background: {$modGrad}; border-radius: 16px; padding: 18px 22px; margin-bottom: 20px; color: white; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 6px 20px {$modCol}33; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); flex-shrink: 0;">
+        <i class="v-icon notranslate mdi {$modIco}" style="font-size: 26px; color: white;"></i>
+      </div>
+      <div>
+        <div style="font-size: 16px; font-weight: 800; letter-spacing: 0.3px;">{$modName}</div>
+        <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">{$safeQuestion}</div>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;">
+      <i class="v-icon notranslate mdi mdi-check-decagram" style="font-size: 13px;"></i>
+      Analyse Validée • IA Core
+    </div>
+  </div>
+
+  <!-- SECTION 2: DIRECT SYNTHESIS HIGHLIGHT BANNER -->
+  <div style="background: {$innerBg}; border-left: 4px solid {$modCol}; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; font-size: 13.5px; line-height: 1.6; color: {$textColor}; border: 1px solid {$innerBorder};">
+    <div style="display: flex; align-items: flex-start; gap: 10px;">
+      <i class="v-icon notranslate mdi mdi-information-outline" style="font-size: 18px; color: {$modCol}; margin-top: 2px; flex-shrink: 0;"></i>
+      <div>[Write a direct, crystal-clear 1-2 sentence executive answer to the user question using actual totals from the database data]</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: RESPONSIVE KPI METRIC CARDS (CSS Grid: 2 to 4 cards) -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+    <!-- Card 1 -->
+    <div class="ai-analytics-kpi" style="background: {$innerBg}; border-radius: 14px; padding: 16px 18px; border: 1px solid {$innerBorder}; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: {$modCol}18; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <i class="v-icon notranslate mdi mdi-cash-multiple" style="font-size: 22px; color: {$modCol};"></i>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; color: {$subColor}; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL MONTANT</div>
+        <div style="font-size: 20px; font-weight: 800; color: {$modCol}; margin-top: 2px;">[Formatted Value e.g. 147 769 289.55 MAD]</div>
+      </div>
+    </div>
+    <!-- Card 2 -->
+    <div class="ai-analytics-kpi" style="background: {$innerBg}; border-radius: 14px; padding: 16px 18px; border: 1px solid {$innerBorder}; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: #00897B18; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <i class="v-icon notranslate mdi mdi-scale" style="font-size: 22px; color: #00897B;"></i>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; color: {$subColor}; text-transform: uppercase; letter-spacing: 0.5px;">POIDS TOTAL ou ÉLÉMENT TOP</div>
+        <div style="font-size: 20px; font-weight: 800; color: #00897B; margin-top: 2px;">[Formatted Value]</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: DETAILED DATA TABLE (MANDATORY: MUST USE <table>, <thead>, <tbody>, <tr>, <th>, <td>) -->
+  <div class="ai-analytics-inner" style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid {$innerBorder};">
+    <div style="font-size: 13px; font-weight: 800; color: {$modCol}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+      <i class="v-icon notranslate mdi mdi-table" style="font-size: 18px;"></i>
+      DÉTAILS DES ENREGISTREMENTS
+    </div>
+    <div style="overflow-x: auto; width: 100%;">
+      <table class="ai-analytics-table" style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; border-radius: 12px; overflow: hidden; border: 1px solid {$innerBorder};">
+        <thead>
+          <tr style="background: {$thBg}; color: {$subColor}; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;">
+            <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid {$thBorder};">[Name / Category / Month]</th>
+            <th style="padding: 12px 16px; text-align: right; border-bottom: 2px solid {$thBorder};">[Weight KG / Count]</th>
+            <th style="padding: 12px 16px; text-align: right; border-bottom: 2px solid {$thBorder};">[Total MAD]</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- MANDATORY: Loop every row in the database data into a <tr>! NEVER mash rows into a plain text div! -->
+          <tr style="border-bottom: 1px solid {$innerBorder};">
+            <td style="padding: 12px 16px; text-align: left; font-weight: 600;">[Item Name]</td>
+            <td style="padding: 12px 16px; text-align: right;">[Weight or Count]</td>
+            <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: {$modCol};">[Price MAD]</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 5: INTERACTIVE APEXCHART (ALWAYS RENDER A CLEAN CHART) -->
+  <div class="ai-analytics-inner" style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid {$innerBorder};">
+    <div style="font-size: 13px; font-weight: 800; color: {$modCol}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+      <i class="v-icon notranslate mdi mdi-chart-bell-curve-cumulative" style="font-size: 18px;"></i>
+      Visualisation Graphique
+    </div>
+    <div id="aichart_{$id}" style="min-height: 320px; width: 100%;"></div>
+  </div>
+
+  <!-- SECTION 6: NAVIGATION SHORTCUTS -->
+  <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;">
+    <button class="ai-nav-btn" data-route="{$modRoute}" style="background: {$modCol}15; color: {$modCol}; border: 1px solid {$modCol}40; border-radius: 10px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+      <i class="v-icon notranslate mdi {$modIco}" style="font-size: 14px;"></i>
+      {$modRouteLbl}
+    </button>
+  </div>
+
+  <!-- SIGNATURE FOOTER -->
+  <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 22px; padding-top: 16px; border-top: 1px solid {$innerBorder}; font-size: 11.5px; color: {$subColor};">
+    <i class="v-icon notranslate mdi mdi-shield-check" style="color: #42A5F5; font-size: 14px;"></i>
+    Jupiter ERP Intelligence • Conçu et supervisé par <strong>ELBACHIR NOUBAA</strong>
+  </div>
+</div>
+
+<!-- SCRIPT BLOCK: SELF-EXECUTING VANILLA JAVASCRIPT APEXCHARTS (NEVER USE createApp OR Vue MOUNT) -->
+<script>
+(function(){
+  var chartEl = document.querySelector('#aichart_{$id}');
+  if (!chartEl || !window.ApexCharts) return;
+  var options = {
+    chart: { type: 'bar', height: 320, background: 'transparent', toolbar: { show: false } },
+    theme: { mode: '{$theme}' },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '55%', horizontal: false } },
+    series: [{ name: 'Total MAD', data: [/* EXTRACT NUMBERS e.g. 72029348.53, 40776416.95 */] }],
+    xaxis: { categories: [/* EXTRACT NAMES e.g. 'Congele', 'Du frais' */], labels: { style: { colors: '{$subColor}' } } },
+    yaxis: { labels: { style: { colors: '{$subColor}' }, formatter: function(val){ return Number(val).toLocaleString() + ' MAD'; } } },
+    colors: ['{$modCol}', '#00897B', '#FFA726', '#AB47BC', '#26A69A', '#EF5350'],
+    grid: { borderColor: '{$innerBorder}' },
+    tooltip: { theme: '{$theme}', y: { formatter: function(val){ return Number(val).toLocaleString(undefined, {minimumFractionDigits: 2}) + ' MAD'; } } }
+  };
+  var chart = new ApexCharts(chartEl, options);
+  chart.render();
+  window.__ai_charts = window.__ai_charts || {};
+  window.__ai_charts['aichart_{$id}'] = chart;
+})();
+</script>
 PROMPT;
+    }
+
+    /**
+     * Post-process and sanitize AI response to guarantee premium UI/UX.
+     */
+    private function beautifyAndValidateAIAnswer(string $answer, string $question, array $resultRows, int|string $id, string $theme): string
+    {
+        // 1. Strip markdown fences if present
+        $answer = preg_replace('/^```(?:html|vue|xml)?\s*/i', '', trim($answer));
+        $answer = preg_replace('/\s*```$/', '', $answer);
+
+        // 2. Fix broken MDI icon classes: <i class="mdi-xyz"> -> <i class="v-icon notranslate mdi mdi-xyz">
+        $answer = preg_replace_callback('/<i\s+class="([^"]*)"/i', function ($m) {
+            $cls = $m[1];
+            if (str_contains($cls, 'mdi-') && !str_contains($cls, 'mdi ')) {
+                $cls = 'v-icon notranslate mdi ' . $cls;
+            }
+            return '<i class="v-icon notranslate ' . trim($cls) . '"';
+        }, $answer);
+
+        // 3. Ensure any table has class="ai-analytics-table"
+        if (str_contains($answer, '<table') && !str_contains($answer, 'ai-analytics-table')) {
+            $answer = preg_replace('/<table(\s+class=")?/i', '<table class="ai-analytics-table ', $answer, 1);
+        }
+
+        // 4. Ensure table is wrapped in responsive scroll container
+        if (str_contains($answer, '<table') && !str_contains($answer, 'overflow-x: auto')) {
+            $answer = preg_replace('/(<table[\s\S]*?<\/table>)/i', '<div style="overflow-x: auto; width: 100%;">$1</div>', $answer);
+        }
+
+        // 5. Replace any Vue createApp script with safe Vanilla JS ApexCharts execution
+        if (str_contains($answer, 'createApp(') && str_contains($answer, 'ApexCharts')) {
+            $answer = preg_replace_callback('/<script>([\s\S]*?)<\/script>/i', function ($m) {
+                $js = $m[1];
+                if (str_contains($js, 'new ApexCharts')) {
+                    return "<script>\n(function(){\n  try {\n    " . $js . "\n  } catch(e) { console.warn('AI Chart fallback error:', e); }\n})();\n</script>";
+                }
+                return $m[0];
+            }, $answer);
+        }
+
+        return trim($answer);
+    }
+
+    /**
+     * Check if AI generated response satisfies enterprise design quality.
+     */
+    private function isAnswerSufficientlyPolished(?string $answer, array $resultRows = []): bool
+    {
+        if (!$answer || strlen(trim($answer)) < 80) {
+            return false;
+        }
+
+        if (!str_contains($answer, '<div id="ai_')) {
+            return false;
+        }
+
+        // If SQL query returned multiple data rows (e.g. breakdown by category, month, section):
+        if (count($resultRows) >= 2) {
+            $hasTable = str_contains($answer, '<table') && str_contains($answer, '<tr') && str_contains($answer, '<td');
+            $hasChart = str_contains($answer, 'aichart_');
+
+            // If it has NEITHER a valid table NOR a chart, it's degraded output
+            if (!$hasTable && !$hasChart) {
+                return false;
+            }
+
+            // Detect raw unformatted smashed text like "Catégorie Prix total (MAD) Du frais..." without table tags
+            if (preg_match('/(catégorie|category|mois|month).*(total|prix|weight)/ui', $answer) && !str_contains($answer, '<table')) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

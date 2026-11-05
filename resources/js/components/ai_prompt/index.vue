@@ -571,6 +571,7 @@ export default {
     }
   },
   mounted() {
+    this.main.is_aiq_fullscreen = false;
     document.addEventListener('keydown', this.handleGlobalKeydown);
     window.addEventListener('ai:content-rendered', this.onContentRendered);
     if (this.isExpanded) {
@@ -584,6 +585,14 @@ export default {
   beforeUnmount() {
     document.removeEventListener('keydown', this.handleGlobalKeydown);
     window.removeEventListener('ai:content-rendered', this.onContentRendered);
+    if (this.isFullscreen) {
+      this.isFullscreen = false;
+      this.main.is_aiq_fullscreen = false;
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('aiq-body-fullscreen');
+        document.documentElement.classList.remove('aiq-html-fullscreen');
+      }
+    }
   },
   methods: {
     toggleExpand() {
@@ -605,6 +614,11 @@ export default {
     },
     toggleFullscreen() {
       this.isFullscreen = !this.isFullscreen;
+      this.main.is_aiq_fullscreen = this.isFullscreen;
+      if (typeof document !== 'undefined') {
+        document.body.classList.toggle('aiq-body-fullscreen', this.isFullscreen);
+        document.documentElement.classList.toggle('aiq-html-fullscreen', this.isFullscreen);
+      }
       if (this.isFullscreen) {
         this.main.sidebar_mini = true;
       }

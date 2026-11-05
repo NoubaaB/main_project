@@ -2,7 +2,12 @@ import router from "@/router";
 import "@mdi/font/css/materialdesignicons.css" // Ensure you are using css-loader
 import "vuetify/styles";
 import { crerate, i18n } from './vuetify';
+import ApexCharts from "apexcharts";
 import VueApexCharts from "vue3-apexcharts";
+
+if (typeof window !== 'undefined') {
+    window.ApexCharts = ApexCharts;
+}
 import { SnackbarService, Vue3Snackbar } from "vue3-snackbar";
 import "vue3-snackbar/styles";
 

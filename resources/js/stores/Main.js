@@ -27,6 +27,7 @@ export const useMain = defineStore("main", {
             menu_drawer: false,
             sidebar_mini: false,
             command_drawer: false,
+            is_aiq_fullscreen: false,
             not_aviable_color: "grey",
             currency: "Dh",
             currency_unit: "Dirham",

@@ -892,18 +892,59 @@ export default {
 
 .aimb-light .aimb-content :deep([style*="color: #e2e8f0"]),
 .aimb-light .aimb-content :deep([style*="color:#e2e8f0"]),
-.aimb-light .aimb-content :deep([style*="color: #ffffff"]),
-.aimb-light .aimb-content :deep([style*="color:#ffffff"]),
-.aimb-light .aimb-content :deep([style*="color: #fff"]),
-.aimb-light .aimb-content :deep([style*="color:#fff"]),
-.aimb-light .aimb-content :deep([style*="color: rgba(255, 255, 255"]),
+.aimb-light .aimb-content :deep([style*="color: #ffffff"]:not([style*="linear-gradient"] *):not(button *)),
+.aimb-light .aimb-content :deep([style*="color:#ffffff"]:not([style*="linear-gradient"] *):not(button *)),
+.aimb-light .aimb-content :deep([style*="color: #fff"]:not([style*="linear-gradient"] *):not(button *)),
+.aimb-light .aimb-content :deep([style*="color:#fff"]:not([style*="linear-gradient"] *):not(button *)),
+.aimb-light .aimb-content :deep([style*="color: rgba(255, 255, 255"]:not([style*="linear-gradient"] *):not(button *)),
 .aimb-light .aimb-content :deep([style*="color: #E2E8F0"]) {
   color: #1e293b !important;
+}
+
+/* Ensure text inside gradient headers and colored buttons remains bright white in light mode */
+.aimb-light .aimb-content :deep([style*="linear-gradient"]),
+.aimb-light .aimb-content :deep([style*="linear-gradient"] *),
+.aimb-light .aimb-content :deep(.v-btn--variant-elevated *),
+.aimb-light .aimb-content :deep(button[style*="background: #"] *),
+.aimb-light .aimb-content :deep(button[style*="background:#"] *) {
+  color: #ffffff !important;
 }
 
 .aimb-light .aimb-content :deep([style*="color: #94a3b8"]),
 .aimb-light .aimb-content :deep([style*="color:#94a3b8"]) {
   color: #64748b !important;
+}
+
+/* Specific KPI Cards styling and micro-interactions */
+.aimb-content :deep(.ai-analytics-kpi) {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.aimb-content :deep(.ai-analytics-kpi:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Nav shortcut buttons */
+.aimb-content :deep(.ai-nav-btn) {
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.aimb-content :deep(.ai-nav-btn:hover) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(66, 165, 245, 0.2);
+}
+
+/* Table polishing */
+.aimb-content :deep(.ai-analytics-table) {
+  font-variant-numeric: tabular-nums;
+}
+.aimb-content :deep(.ai-analytics-table th) {
+  user-select: none;
+  white-space: nowrap;
+}
+.aimb-content :deep(.ai-analytics-table td) {
+  white-space: nowrap;
 }
 
 /* ApexCharts container adjustments */

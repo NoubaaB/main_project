@@ -6,22 +6,22 @@
     <!-- notification toast -->
     <NotificationToast/>
     <!-- navigation drawer start -->
-    <NavigationDrawer v-if="auth.is_auth"/>
+    <NavigationDrawer v-if="auth.is_auth && !main.is_aiq_fullscreen"/>
     <!-- navigation drawer end -->
     <!-- system bar start -->
-    <SystemBar/>
+    <SystemBar v-if="!main.is_aiq_fullscreen"/>
     <!-- system bar end -->
 
     <!-- main start -->
-    <v-main @click="collapseSidebar">
+    <v-main @click="collapseSidebar" :style="main.is_aiq_fullscreen ? 'padding: 0 !important;' : ''">
       <v-container
         fluid
         :class="[
           !auth.is_auth
             ? 'pa-0 fill-height auth-page-container'
-            : ($route.name === 'ai_prompt' ? 'pa-2 pa-sm-3 mt-14' : 'mt-15')
+            : (main.is_aiq_fullscreen ? 'pa-0 ma-0' : ($route.name === 'ai_prompt' ? 'pa-2 pa-sm-3 mt-14' : 'mt-15'))
         ]"
-        style="position: relative; max-width: 100%;"
+        :style="main.is_aiq_fullscreen ? 'padding: 0 !important; margin: 0 !important; max-width: 100vw !important;' : 'position: relative; max-width: 100%;'"
       >
         <router-view v-slot="{ Component, route }">
           <keep-alive :include="['ListCharge', 'ListShipping', 'ListProduction', 'WarehouseDashboard', 'ListSupplierInvoice', 'ListClientInvoice', 'SupplierSettlement', 'ClientSettlement']">
@@ -46,7 +46,7 @@
       </template>
     </v-snackbar>
     <!-- main end -->
-    <AiAssistant v-if="auth.is_auth"/>
+    <AiAssistant v-if="auth.is_auth && !main.is_aiq_fullscreen && $route.name !== 'ai_prompt'"/>
   </v-app>
 </template>
 
@@ -86,4 +86,40 @@
       }
   }
 </script>
+
+<style>
+/* Global Fullscreen Overrides for Analytics & AI */
+body.aiq-body-fullscreen html,
+body.aiq-body-fullscreen {
+  overflow: hidden !important;
+}
+
+body.aiq-body-fullscreen .pro-nav-drawer,
+body.aiq-body-fullscreen .v-navigation-drawer,
+body.aiq-body-fullscreen .pro-footer-area,
+body.aiq-body-fullscreen .systembar-premium,
+body.aiq-body-fullscreen .v-app-bar,
+body.aiq-body-fullscreen .v-system-bar,
+body.aiq-body-fullscreen .ai-assistant-fab,
+body.aiq-body-fullscreen .ai-chat-panel,
+body.aiq-body-fullscreen .pro-flyout-menu,
+body.aiq-body-fullscreen .pro-nav-tooltip {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  z-index: -9999 !important;
+}
+
+body.aiq-body-fullscreen .v-main {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+body.aiq-body-fullscreen .v-main > .v-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: 100vw !important;
+}
+</style>
 
