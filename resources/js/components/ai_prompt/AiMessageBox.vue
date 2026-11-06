@@ -414,6 +414,7 @@ export default {
   position: absolute;
   inset: -1px;
   border-radius: 50%;
+  aspect-ratio: 1 / 1;
   padding: 2px;
   background: linear-gradient(135deg, #1565C0, #42A5F5, #00C853, #9C27B0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -428,6 +429,11 @@ export default {
   position: relative;
   width: 38px;
   height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+  flex-shrink: 0;
   border-radius: 50%;
   background: linear-gradient(135deg, #0d47a1 0%, #1976D2 50%, #42A5F5 100%);
   box-shadow: 

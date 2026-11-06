@@ -22,10 +22,6 @@
               <span>{{ $t('online') }}</span>
               <span class="aiq-subtitle-divider">•</span>
               <span class="aiq-model-pill">{{ $t('ai_model_label') }}</span>
-              <span class="aiq-subtitle-divider">•</span>
-              <span class="text-caption font-weight-medium" style="color: rgba(255,255,255,0.9);">
-                {{ $t('ai_creator_badge') }}
-              </span>
             </div>
           </div>
         </div>

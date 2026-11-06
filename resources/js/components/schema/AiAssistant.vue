@@ -46,20 +46,10 @@
               </div>
             </div>
             <div class="ai-header-info">
-              <div class="d-flex align-center flex-wrap ga-2">
-                <div class="ai-header-title">{{ $t('ai_assistant') }}</div>
-                <span class="ai-header-creator-tag" :title="$t('ai_creator_title')">
-                  <v-icon size="10" color="#42A5F5" class="me-1">mdi-shield-check</v-icon>
-                  {{ $t('ai_creator_badge') }}
-                </span>
-              </div>
+              <div class="ai-header-title">{{ $t('ai_assistant') }}</div>
               <div class="ai-header-status">
                 <span class="ai-status-dot"></span>
                 <span>{{ $t('online') }}</span>
-                <span class="mx-1 opacity-50">•</span>
-                <span class="text-caption font-weight-medium" style="font-size: 10px; color: rgba(255,255,255,0.85);">
-                  {{ $t('ai_creator_badge') }}
-                </span>
               </div>
             </div>
           </div>
@@ -1658,32 +1648,56 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .ai-avatar-ring {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  padding: 2px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1));
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  flex: 0 0 38px !important;
+  flex-shrink: 0 !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  border-radius: 50% !important;
+  padding: 2px !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.15));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative;
+  overflow: hidden;
 }
 
 .ai-avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1));
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  flex-shrink: 0 !important;
 }
 
 .ai-header-info {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ai-header-title {
@@ -1691,22 +1705,19 @@ export default {
   font-size: 15px;
   color: var(--ai-title-color);
   letter-spacing: 0.2px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.ai-header-creator-tag {
-  font-size: 9.5px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 1px 7px;
-  border-radius: 6px;
-  background: rgba(255, 215, 0, 0.15);
-  color: #ffffff;
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  display: inline-flex;
+.ai-header-status {
+  display: flex;
   align-items: center;
-  height: fit-content;
-  line-height: 1;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ai-status-color);
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .ai-empty-welcome {
@@ -2034,15 +2045,20 @@ export default {
 }
 
 .ai-msg-avatar {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  border-radius: 50%;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  border-radius: 50% !important;
   background: var(--ai-avatar-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
   box-shadow: 0 0 8px rgba(33, 150, 243, 0.5), 0 0 16px rgba(33, 150, 243, 0.2);
   border: 1.5px solid rgba(100, 181, 246, 0.6);
   animation: ai-avatar-pulse 3s ease-in-out infinite;
