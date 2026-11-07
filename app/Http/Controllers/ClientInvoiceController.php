@@ -22,9 +22,12 @@ class ClientInvoiceController extends Controller
             ->with([
                 'client',
                 'shippings.client',
+                'shippings.trucks',
                 'shippings.shippingCategory',
+                'shippings.detailShippings.stockable',
                 'productions.client',
                 'productions.productionCategory',
+                'productions.detailProductions.stockable',
             ])
             ->orderBy('date', 'desc')
             ->get();

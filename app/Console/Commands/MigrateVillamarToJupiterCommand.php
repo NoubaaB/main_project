@@ -855,6 +855,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 'warehouse_type' => 'FishType',
                 'stock_type' => $stockType,
                 'has_sejour' => 1,
+                'operation_service_fee' => floatval($ch->manipulation ?? 0),
+                'is_allow_price' => !empty($ch->allow__display_price) ? 1 : 0,
                 'created_at' => $ch->created_at ?? now(),
                 'updated_at' => $ch->updated_at ?? now(),
             ]);
@@ -905,7 +907,9 @@ class MigrateVillamarToJupiterCommand extends Command
 
         // 2. Sections
         $sections = DB::select("SELECT * FROM villamar.sections");
+        $sectionDailyPriceMap = [];
         foreach ($sections as $s) {
+            $sectionDailyPriceMap[$s->id] = floatval($s->fixed ?? 0);
             DB::table('sections')->insertOrIgnore([
                 'id' => $s->id,
                 'name' => $s->nome_section ?? $s->name ?? ('Section ' . $s->id),
@@ -917,11 +921,24 @@ class MigrateVillamarToJupiterCommand extends Command
         }
         $this->info("Migrated " . count($sections) . " sections.");
 
+        // Build Corporal <-> Section mappings
+        $corporalSectionMap = [];
+        $sectionPrimaryCorporalMap = [];
+        foreach ($corporals as $c) {
+            if (!empty($c->section_id) && $c->section_id > 0) {
+                $corporalSectionMap[$c->id] = (int) $c->section_id;
+                if (!isset($sectionPrimaryCorporalMap[$c->section_id])) {
+                    $sectionPrimaryCorporalMap[$c->section_id] = (int) $c->id;
+                }
+            }
+        }
+
         // 3. Ouvriers -> Workforces & Team-Workforce membership
         $ouvriers = DB::select("SELECT * FROM villamar.ouvriers");
         $seenMatricules = [];
         $teamWorkforceBatch = [];
         $ouvrierCorporalMap = [];
+        $ouvrierSectionMap = [];
 
         foreach ($ouvriers as $o) {
             $fullName = trim(($o->name ?? '') . ' ' . ($o->prenom ?? ''));
@@ -930,6 +947,10 @@ class MigrateVillamarToJupiterCommand extends Command
                 $matricule = $matricule . '-' . $o->id;
             }
             $seenMatricules[$matricule] = true;
+
+            if (!empty($o->section_id) && $o->section_id > 0) {
+                $ouvrierSectionMap[$o->id] = (int) $o->section_id;
+            }
 
             DB::table('workforces')->insertOrIgnore([
                 'id' => $o->id,
@@ -987,12 +1008,24 @@ class MigrateVillamarToJupiterCommand extends Command
 
                     $dayNum = (int) date('j', strtotime($workDate));
                     $fortnight = ($dayNum <= 15) ? 'Q1' : 'Q2';
-                    $secId = !empty($d['section_id']) ? (int) $d['section_id'] : (!empty($p->section_id) ? (int) $p->section_id : null);
-                    $corpId = null;
-                    if (!$secId && isset($ouvrierCorporalMap[$p->ouvrier_id])) {
-                        $corpId = $ouvrierCorporalMap[$p->ouvrier_id];
+                    $secId = !empty($d['section_id']) ? (int) $d['section_id'] : (!empty($p->section_id) ? (int) $p->section_id : ($ouvrierSectionMap[$p->ouvrier_id] ?? null));
+                    $corpId = !empty($d['corporal_id']) ? (int) $d['corporal_id'] : ($ouvrierCorporalMap[$p->ouvrier_id] ?? null);
+
+                    if (!$corpId && $secId && isset($sectionPrimaryCorporalMap[$secId])) {
+                        $corpId = $sectionPrimaryCorporalMap[$secId];
                     }
-                    $price = isset($d['montant']) ? (float) $d['montant'] : 0.00;
+                    if (!$secId && $corpId && isset($corporalSectionMap[$corpId])) {
+                        $secId = $corporalSectionMap[$corpId];
+                    }
+                    if (!$secId) {
+                        $secId = 1;
+                    }
+                    if (!$corpId) {
+                        $corpId = $sectionPrimaryCorporalMap[$secId] ?? 2;
+                    }
+
+                    $rawPrice = isset($d['montant']) ? (float) $d['montant'] : 0.00;
+                    $price = ($rawPrice > 0) ? $rawPrice : (($secId && isset($sectionDailyPriceMap[$secId]) && $sectionDailyPriceMap[$secId] > 0) ? $sectionDailyPriceMap[$secId] : 80.00);
 
                     $activityBatch[] = [
                         'workforce_id' => $p->ouvrier_id,
@@ -2322,11 +2355,13 @@ class MigrateVillamarToJupiterCommand extends Command
                 foreach ($typesProd as $tp) {
                     $tId = $tp['type_id'] ?? null;
                     $desc = ($tId && isset($this->fishTypesMap[$tId])) ? $this->fishTypesMap[$tId] : 'Poisson Sous-Traitance';
-                    $w = (float)($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
-                    $u = (float)($tp['pu'] ?? 0);
-                    $p = (float)($tp['price'] ?? round($w * $u, 2));
-                    if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
-                    if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+                    $w = (float) ($tp['total_weight_container'] ?? $tp['weight'] ?? 0);
+                    $u = (float) ($tp['pu'] ?? 0);
+                    $p = (float) ($tp['price'] ?? round($w * $u, 2));
+                    if ($u == 0 && $w > 0 && $p > 0)
+                        $u = round($p / $w, 2);
+                    if ($p == 0 && $w > 0 && $u > 0)
+                        $p = round($w * $u, 2);
 
                     $computedWeight += $w;
                     $computedPrice += $p;
@@ -2375,8 +2410,8 @@ class MigrateVillamarToJupiterCommand extends Command
                 ];
             }
 
-            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float)($cc->total_weight_production ?? 0);
-            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float)($cc->total_price_production ?? 0);
+            $finalWeight = ($computedWeight > 0) ? $computedWeight : (float) ($cc->total_weight_production ?? 0);
+            $finalPrice = ($computedPrice > 0) ? $computedPrice : (float) ($cc->total_price_production ?? 0);
 
             $ccBatch[] = [
                 'id' => $shippingId,
@@ -2447,8 +2482,10 @@ class MigrateVillamarToJupiterCommand extends Command
                     $w = (float) ($ts['weight'] ?? $ts['weight_bill'] ?? 0);
                     $u = (float) ($ts['pu'] ?? 0);
                     $p = (float) ($ts['price'] ?? round($w * $u, 2));
-                    if ($u == 0 && $w > 0 && $p > 0) $u = round($p / $w, 2);
-                    if ($p == 0 && $w > 0 && $u > 0) $p = round($w * $u, 2);
+                    if ($u == 0 && $w > 0 && $p > 0)
+                        $u = round($p / $w, 2);
+                    if ($p == 0 && $w > 0 && $u > 0)
+                        $p = round($w * $u, 2);
 
                     $guanoSubItems[] = [
                         'gid' => $gid,

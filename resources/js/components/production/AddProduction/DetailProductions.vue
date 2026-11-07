@@ -580,7 +580,12 @@ export default {
       }).filter(Boolean);
     },
     warehouseOptions() {
-      return this.auth.warehouse.list.map(w => ({ title: w.name, value: w.id }));
+      return this.auth.warehouse.list.map(w => {
+        const typeTag = w.stock_type === 'third_party'
+          ? ` (${this.$t('stock_type_third_party_short')})`
+          : ` (${this.$t('stock_type_company_short')})`;
+        return { title: `${w.name}${typeTag}`, value: w.id };
+      });
     },
     truckOptions() {
       return this.auth.truck.list.map(t => ({ title: t.registration_plate, value: t.id }));

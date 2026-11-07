@@ -31,8 +31,10 @@ class SupplierInvoiceController extends Controller
                 'charges.fishery',
                 'charges.ship',
                 'charges.origin',
+                'charges.detailCharges.stockable',
                 'productions.productionCategory',
                 'productions.supplier',
+                'productions.detailProductions.stockable',
                 'supplier',
             ])
             ->orderBy('date', 'desc')

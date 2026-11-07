@@ -1,31 +1,15 @@
 <?php
-require 'vendor/autoload.php';
-$app = require_once 'bootstrap/app.php';
-$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+$pdo = new PDO('mysql:host=127.0.0.1;dbname=villamar', 'root', '');
+$stmt = $pdo->query('SELECT count(*) as total, 
+    sum(case when corporal_id is not null and corporal_id > 0 then 1 else 0 end) as has_corp,
+    sum(case when section_id is not null and section_id > 0 then 1 else 0 end) as has_sec
+    FROM ouvriers');
+print_r($stmt->fetch(PDO::FETCH_ASSOC));
 
-use Illuminate\Support\Facades\DB;
+$stmt2 = $pdo->query('SELECT count(*) as total, 
+    sum(case when section_id is not null and section_id > 0 then 1 else 0 end) as has_sec
+    FROM pointages');
+print_r($stmt2->fetch(PDO::FETCH_ASSOC));
 
-echo "--- SAMPLE POINTAGE DAYS ---\n";
-$sample = DB::select("SELECT id, ouvrier_id, section_id, date, days FROM villamar.pointages WHERE days IS NOT NULL AND JSON_LENGTH(days) > 0 LIMIT 3");
-foreach ($sample as $s) {
-    echo "ID: {$s->id}, ouvrier: {$s->ouvrier_id}, section: " . ($s->section_id ?? 'null') . ", date: {$s->date}\n";
-    $decoded = json_decode($s->days, true);
-    echo "Days count: " . (is_array($decoded) ? count($decoded) : 0) . "\n";
-    if (is_array($decoded) && count($decoded) > 0) {
-        echo "First day: " . json_encode($decoded[0]) . "\n";
-        echo "Last day: " . json_encode(end($decoded)) . "\n";
-    }
-    echo "\n";
-}
-
-echo "--- CORPORALS SCHEMA ---\n";
-$cols = DB::select('DESCRIBE villamar.corporals');
-foreach ($cols as $c) {
-    echo $c->Field . ' (' . $c->Type . ")\n";
-}
-
-echo "\n--- OUVRIERS SCHEMA ---\n";
-$cols = DB::select('DESCRIBE villamar.ouvriers');
-foreach ($cols as $c) {
-    echo $c->Field . ' (' . $c->Type . ")\n";
-}
+$stmt3 = $pdo->query('SELECT id, section_id FROM corporals WHERE section_id IS NOT NULL LIMIT 5');
+print_r($stmt3->fetchAll(PDO::FETCH_ASSOC));
