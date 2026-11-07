@@ -1153,29 +1153,90 @@
                 </template>
                 <template v-else-if="h.key==='actions'">
                   <div class="ls-actions-wrapper">
-                    <v-btn icon size="x-small" variant="tonal" color="#4643a0" @click="$router.push({name:'view_shipping',params:{id:item.id}})">
+                    <v-btn
+                      icon
+                      size="x-small"
+                      variant="tonal"
+                      color="#4643a0"
+                      class="ls-act-btn"
+                      @click="$router.push({ name: 'view_shipping', params: { id: item.id } })"
+                    >
                       <v-icon size="14">mdi-eye</v-icon>
                       <v-tooltip activator="parent" location="top">{{ $t('view') }}</v-tooltip>
                     </v-btn>
-                    <v-btn v-if="auth.hasPermission('shippings.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_shipping',params:{id:item.id}})">
+
+                    <v-btn
+                      v-if="auth.hasPermission('shippings.edit')"
+                      icon
+                      size="x-small"
+                      variant="tonal"
+                      color="warning"
+                      class="ls-act-btn"
+                      @click="$router.push({ name: 'edit_shipping', params: { id: item.id } })"
+                    >
                       <v-icon size="14">mdi-pencil</v-icon>
                       <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
                     </v-btn>
-                    <v-btn v-if="auth.hasPermission('shippings.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)">
-                      <v-icon size="14">mdi-delete</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
-                    </v-btn>
-                    <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)">
-                      <v-icon size="14">mdi-history</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip>
-                    </v-btn>
-                    <v-btn icon size="x-small" variant="tonal" :color="(item._open_issues||0) > 0 ? 'error' : '#4643a0'" @click="openIssueDialog(item.id)">
-                      <v-badge v-if="(item._open_issues||0) > 0" :content="item._open_issues" color="error" floating>
-                        <v-icon size="14">mdi-flag-outline</v-icon>
-                      </v-badge>
-                      <v-icon v-else size="14">mdi-flag-outline</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('record_issues') }}</v-tooltip>
-                    </v-btn>
+
+                    <v-menu location="bottom end" :close-on-content-click="true">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          icon
+                          size="x-small"
+                          variant="tonal"
+                          color="blue-grey"
+                          class="ls-act-btn"
+                        >
+                          <v-badge
+                            v-if="(item._open_issues || 0) > 0"
+                            :content="item._open_issues"
+                            color="error"
+                            floating
+                            dot
+                          >
+                            <v-icon size="15">mdi-dots-vertical</v-icon>
+                          </v-badge>
+                          <v-icon v-else size="15">mdi-dots-vertical</v-icon>
+                          <v-tooltip activator="parent" location="top">{{ $t('more_actions') }}</v-tooltip>
+                        </v-btn>
+                      </template>
+
+                      <v-list density="compact" rounded="lg" elevation="6" min-width="180" class="py-1">
+                        <v-list-item
+                          density="compact"
+                          prepend-icon="mdi-history"
+                          @click="openAuditLog(item.id)"
+                        >
+                          <v-list-item-title class="text-caption">{{ $t('audit_log') }}</v-list-item-title>
+                        </v-list-item>
+
+                        <v-list-item
+                          density="compact"
+                          prepend-icon="mdi-flag-outline"
+                          @click="openIssueDialog(item.id)"
+                        >
+                          <v-list-item-title class="text-caption d-flex align-center justify-space-between">
+                            <span>{{ $t('record_issues') }}</span>
+                            <v-chip v-if="(item._open_issues || 0) > 0" size="x-small" color="error" variant="flat" class="ms-2 font-weight-bold">
+                              {{ item._open_issues }}
+                            </v-chip>
+                          </v-list-item-title>
+                        </v-list-item>
+
+                        <template v-if="auth.hasPermission('shippings.delete')">
+                          <v-divider class="my-1 opacity-20"></v-divider>
+                          <v-list-item
+                            density="compact"
+                            prepend-icon="mdi-delete"
+                            class="text-error"
+                            @click="confirmDelete(item.id)"
+                          >
+                            <v-list-item-title class="text-caption font-weight-bold">{{ $t('delete') }}</v-list-item-title>
+                          </v-list-item>
+                        </template>
+                      </v-list>
+                    </v-menu>
                   </div>
                 </template>
                 <!-- origin -->
@@ -1271,11 +1332,11 @@ export default {
 .ls-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .ls-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .ls-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
-.ls-th-actions{text-align:center!important;overflow:visible!important;width:240px!important;min-width:240px!important}
+.ls-th-actions{text-align:center!important;overflow:visible!important;width:92px!important;min-width:92px!important}
 .ls-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
-.ls-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 6px!important;white-space:nowrap!important;width:240px!important;min-width:240px!important}
-.ls-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;flex-wrap:nowrap}
-.ls-actions-wrapper .v-btn{flex-shrink:0!important;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important}
+.ls-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 3px!important;white-space:nowrap!important;width:92px!important;min-width:92px!important}
+.ls-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;flex-wrap:nowrap}
+.ls-actions-wrapper .v-btn{flex-shrink:0!important;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important}
 .ls-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
 .ls-col-resizer:hover,.ls-col-resizer-active{background:#4643a0!important;width:3px!important}
 .ls-th-pin-btn{opacity:.65;transition:opacity .15s}.ls-th-pin-btn:hover{opacity:1}

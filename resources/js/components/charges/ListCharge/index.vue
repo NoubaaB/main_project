@@ -1100,39 +1100,114 @@
                 <!-- actions -->
                 <template v-else-if="h.key==='actions'">
                   <div class="lc-actions-wrapper">
-                    <v-btn icon size="x-small" variant="tonal" color="info" @click="$router.push({name:'view_charge',params:{id:item.id}})">
+                    <v-btn
+                      icon
+                      size="x-small"
+                      variant="tonal"
+                      color="#42A5F5"
+                      class="lc-act-btn"
+                      @click="$router.push({ name: 'view_charge', params: { id: item.id } })"
+                    >
                       <v-icon size="14">mdi-eye</v-icon>
                       <v-tooltip activator="parent" location="top">{{ $t('view') }}</v-tooltip>
                     </v-btn>
-                    <v-btn v-if="auth.hasPermission('charges.edit')" icon size="x-small" variant="tonal" color="warning" @click="$router.push({name:'edit_charge',params:{id:item.id}})" :disabled="item._is_invoiced">
+
+                    <v-btn
+                      v-if="auth.hasPermission('charges.edit')"
+                      icon
+                      size="x-small"
+                      variant="tonal"
+                      color="warning"
+                      class="lc-act-btn"
+                      :disabled="item._is_invoiced"
+                      @click="$router.push({ name: 'edit_charge', params: { id: item.id } })"
+                    >
                       <v-icon size="14">mdi-pencil</v-icon>
                       <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
                     </v-btn>
-                    <v-btn v-if="auth.hasPermission('charges.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)" :disabled="item._is_invoiced">
-                      <v-icon size="14">mdi-delete</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('delete') }}</v-tooltip>
-                    </v-btn>
-                    <v-btn icon size="x-small" variant="tonal" color="blue-grey" @click="openAuditLog(item.id)">
-                      <v-icon size="14">mdi-history</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip>
-                    </v-btn>
-                    <v-btn icon size="x-small" variant="tonal" :color="(item._open_issues||0) > 0 ? 'error' : '#42A5F5'" @click="openIssueDialog(item.id)">
-                      <v-badge v-if="(item._open_issues||0) > 0" :content="item._open_issues" color="error" floating>
-                        <v-icon size="14">mdi-flag-outline</v-icon>
-                      </v-badge>
-                      <v-icon v-else size="14">mdi-flag-outline</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('record_issues') }}</v-tooltip>
-                    </v-btn>
-                    <template v-if="catHasProduction(item)">
-                      <v-btn v-if="!item.production" icon size="x-small" variant="tonal" color="purple" @click="$router.push({name:'add_production',query:{charge_id:item.id}})">
-                        <v-icon size="14">mdi-factory</v-icon>
-                        <v-tooltip activator="parent" location="top">{{ $t('add_production') }}</v-tooltip>
-                      </v-btn>
-                      <v-btn v-else icon size="x-small" variant="flat" color="purple" @click="$router.push({name:'view_production',params:{id:item.production.id}})">
-                        <v-icon size="14">mdi-pencil</v-icon>
-                        <v-tooltip activator="parent" location="top">{{ $t('view_production') }}</v-tooltip>
-                      </v-btn>
-                    </template>
+
+                    <v-menu location="bottom end" :close-on-content-click="true">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          icon
+                          size="x-small"
+                          variant="tonal"
+                          color="blue-grey"
+                          class="lc-act-btn"
+                        >
+                          <v-badge
+                            v-if="(item._open_issues || 0) > 0"
+                            :content="item._open_issues"
+                            color="error"
+                            floating
+                            dot
+                          >
+                            <v-icon size="15">mdi-dots-vertical</v-icon>
+                          </v-badge>
+                          <v-icon v-else size="15">mdi-dots-vertical</v-icon>
+                          <v-tooltip activator="parent" location="top">{{ $t('more_actions') }}</v-tooltip>
+                        </v-btn>
+                      </template>
+
+                      <v-list density="compact" rounded="lg" elevation="6" min-width="190" class="py-1">
+                        <template v-if="catHasProduction(item)">
+                          <v-list-item
+                            v-if="!item.production"
+                            density="compact"
+                            prepend-icon="mdi-factory"
+                            class="text-purple"
+                            @click="$router.push({ name: 'add_production', query: { charge_id: item.id } })"
+                          >
+                            <v-list-item-title class="text-caption font-weight-bold">{{ $t('add_production') }}</v-list-item-title>
+                          </v-list-item>
+                          <v-list-item
+                            v-else
+                            density="compact"
+                            prepend-icon="mdi-pencil"
+                            class="text-purple"
+                            @click="$router.push({ name: 'view_production', params: { id: item.production.id } })"
+                          >
+                            <v-list-item-title class="text-caption font-weight-bold">{{ $t('view_production') }}</v-list-item-title>
+                          </v-list-item>
+                          <v-divider class="my-1 opacity-20"></v-divider>
+                        </template>
+
+                        <v-list-item
+                          density="compact"
+                          prepend-icon="mdi-history"
+                          @click="openAuditLog(item.id)"
+                        >
+                          <v-list-item-title class="text-caption">{{ $t('audit_log') }}</v-list-item-title>
+                        </v-list-item>
+
+                        <v-list-item
+                          density="compact"
+                          prepend-icon="mdi-flag-outline"
+                          @click="openIssueDialog(item.id)"
+                        >
+                          <v-list-item-title class="text-caption d-flex align-center justify-space-between">
+                            <span>{{ $t('record_issues') }}</span>
+                            <v-chip v-if="(item._open_issues || 0) > 0" size="x-small" color="error" variant="flat" class="ms-2 font-weight-bold">
+                              {{ item._open_issues }}
+                            </v-chip>
+                          </v-list-item-title>
+                        </v-list-item>
+
+                        <template v-if="auth.hasPermission('charges.delete')">
+                          <v-divider class="my-1 opacity-20"></v-divider>
+                          <v-list-item
+                            density="compact"
+                            prepend-icon="mdi-delete"
+                            class="text-error"
+                            :disabled="item._is_invoiced"
+                            @click="confirmDelete(item.id)"
+                          >
+                            <v-list-item-title class="text-caption font-weight-bold">{{ $t('delete') }}</v-list-item-title>
+                          </v-list-item>
+                        </template>
+                      </v-list>
+                    </v-menu>
                   </div>
                 </template>
                 <!-- fishery -->
@@ -1250,11 +1325,11 @@ export default {
 .lc-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .lc-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .lc-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
-.lc-th-actions{text-align:center!important;overflow:visible!important;width:280px!important;min-width:280px!important}
+.lc-th-actions{text-align:center!important;overflow:visible!important;width:92px!important;min-width:92px!important}
 .lc-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
-.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 6px!important;white-space:nowrap!important;width:280px!important;min-width:280px!important}
-.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;flex-wrap:nowrap}
-.lc-actions-wrapper .v-btn{flex-shrink:0!important;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important}
+.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 3px!important;white-space:nowrap!important;width:92px!important;min-width:92px!important}
+.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;flex-wrap:nowrap}
+.lc-actions-wrapper .v-btn{flex-shrink:0!important;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important}
 .lc-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
 .lc-col-resizer:hover,.lc-col-resizer-active{background:#42A5F5!important;width:3px!important}
 .lc-th-pin-btn{opacity:.65;transition:opacity .15s}.lc-th-pin-btn:hover{opacity:1}

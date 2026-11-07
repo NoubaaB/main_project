@@ -75,10 +75,8 @@ export default {
   },
   methods: {
     getActionsColWidth() {
-      if (this.tableModuleKey === 'charge') return 280;
-      if (this.tableModuleKey === 'production') return 240;
-      if (this.tableModuleKey === 'shipping') return 240;
-      return 280;
+      // Compact, practical actions column width (View, Edit, More menu)
+      return 92;
     },
     getDefaultColWidth(key) {
       if (key === 'actions') return this.getActionsColWidth();
