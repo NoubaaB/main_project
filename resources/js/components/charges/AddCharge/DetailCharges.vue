@@ -689,8 +689,19 @@ export default {
     addArticleToGroup(category) {
       const form = this.entryForms[category.id];
       if (!form) return;
-      if (category.allow_weight && category.allow_unit_price && !category.allow_price) {
-        form.total_price = (parseFloat(form.weight) || 0) * (parseFloat(form.unit_price) || 0);
+      const w = parseFloat(form.weight) || 0;
+      const up = parseFloat(form.unit_price) || 0;
+      const nbr = parseFloat(form.nbr_box) || 0;
+
+      if (!form.total_price || form.total_price === 0) {
+        if (w > 0 && up > 0) {
+          form.total_price = Math.round(w * up * 100) / 100;
+        } else if (nbr > 0 && up > 0) {
+          form.total_price = Math.round(nbr * up * 100) / 100;
+        }
+      }
+      if (form.weight_invoice === null || form.weight_invoice === undefined || form.weight_invoice === '') {
+        form.weight_invoice = form.weight != null ? form.weight : null;
       }
       this.chargeStore.add_detail(category.id);
       const lastDetail = this.chargeStore.charge.details[this.chargeStore.charge.details.length - 1];
@@ -841,7 +852,7 @@ export default {
 
       const nbrBox = parseFloat(f.nbr_box) || 0;
 
-      if (category.allow_price && category.allow_unit_price && up > 0) {
+      if (up > 0) {
         if (category.allow_weight && w > 0) {
           f.total_price = Math.round(w * up * 100) / 100;
         } else if (category.allow_nbr_box && nbrBox > 0) {
@@ -851,7 +862,9 @@ export default {
     },
     onWeightInput(category) {
       const f = this.entryForms[category.id];
-      if (f) f.weight_invoice = f.weight;
+      if (f && (f.weight_invoice === null || f.weight_invoice === undefined || f.weight_invoice === '')) {
+        f.weight_invoice = f.weight;
+      }
       this.recalcForm(category);
     },
     deleteSelected(catId) {

@@ -119,6 +119,9 @@ export async function gqlGetCharges({ date_start = null, date_end = null, per_pa
       charges(date_start: $date_start, date_end: $date_end, per_page: $per_page, page: $page, all: $all) {
         id
         date
+        total_price
+        total_weight
+        total_weight_invoice
         charge_category_id
         charge_category { id name name_fr name_en name_es is_production description }
         supplier_id
@@ -143,6 +146,7 @@ export async function gqlGetCharges({ date_start = null, date_end = null, per_pa
           charge_id
           detail_charge_category_id
           detail_charge_category { id name name_fr name_en name_es }
+          article_description
           stockable_id
           stockable_type
           stockable { id name name_fr name_en name_es name_in_invoice type }
@@ -150,7 +154,9 @@ export async function gqlGetCharges({ date_start = null, date_end = null, per_pa
           warehouse { id name }
           package_type_id
           package_type { id name weight }
+          nbr_box
           weight
+          weight_invoice
           package_count
           unit_price
           total_price

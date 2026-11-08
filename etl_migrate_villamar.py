@@ -632,7 +632,14 @@ def migrate_workforce(src_conn, tgt_conn):
             except:
                 day_num = 1
             f_period = 'Q1' if day_num <= 15 else 'Q2'
-            price = safe_float(day.get('montant') or default_p)
+            price = safe_float(day.get('montant'))
+            if price <= 0:
+                price = default_p
+            if price <= 0:
+                price = section_prices.get(sec_id, 0.0)
+            if price <= 0:
+                price = 150.0  # Guarantees no zero or null prices
+
             sec_id = day.get('section_id') if day.get('section_id') in valid_sections else pt_sec
             corp_id = day.get('corporal_id') or default_corp or sec_to_corp.get(sec_id) or 1
 
@@ -1432,6 +1439,69 @@ def migrate_shippings(src_conn, tgt_conn, cat_data, plate_to_id, valid_client_in
 
     tgt_conn.commit()
 
+    # 4. Outbound Stock Exits (stock_exits)
+    s_cur.execute("SELECT * FROM stock_exits")
+    exit_rows = s_cur.fetchall()
+    log(f"Processing {len(exit_rows)} stock_exits records...")
+
+    stock_exit_base = 500000
+    for row in exit_rows:
+        sid = stock_exit_base + row['id']
+        s_date = safe_date(row['date_sortie'])
+        tot_w = safe_float(row['total_weight_sortie'])
+        tot_p = safe_float(row['total_price_sortie'])
+        bons = safe_json(row.get('num_bon_sorties'))
+        if not bons and row.get('num_bon_sortie'):
+            bons = [str(row['num_bon_sortie']).strip()]
+        stn_json = json.dumps(bons) if bons else None
+
+        cli_id = row.get('provider_id') if row.get('provider_id') in valid_clients else None
+        is_guano = (row.get('type') == 'guano')
+        cat_id = 7 if is_guano else 1
+
+        t_cur.execute(
+            """INSERT INTO shippings 
+               (id, date, total_price, total_weight, shipping_category_id, shipping_tracking_number, 
+                direction, client_id, allow_invoice, invoice_id, created_at, updated_at, deleted_at)
+               VALUES (%s, %s, %s, %s, %s, %s, 'local', %s, 0, NULL, %s, %s, %s)""",
+            (sid, s_date, tot_p, tot_w, cat_id, stn_json, cli_id, row['created_at'], row['updated_at'], row.get('deleted_at'))
+        )
+
+        mats = safe_json(row.get('matricules')) or []
+        for m in mats:
+            cp = clean_plate(m)
+            if cp and cp in plate_to_id:
+                shipping_truck_batch.append((sid, plate_to_id[cp]))
+
+        items = safe_json(row.get('types_sortie')) or []
+        if not items and tot_w > 0:
+            art_name = "Guano" if is_guano else "Poisson Sortie"
+            stk_type = 'App\\Models\\GuanoType' if is_guano else 'App\\Models\\FishType'
+            ch_id = 992 if is_guano else 991
+            detail_shipping_batch.append((
+                sid, 1, art_name, stk_type, 1,
+                tot_w, 0.0, tot_p, None, None, ch_id, 'stock_out', None,
+                row['created_at'], row['updated_at']
+            ))
+        else:
+            for it in items:
+                t_id = it.get('type_id')
+                w = safe_float(it.get('weight'))
+                pu = safe_float(it.get('pu'))
+                p = safe_float(it.get('price')) or round(w * pu, 2)
+                raw_ch = it.get('chambre_id')
+                ch_id = raw_ch if raw_ch in valid_warehouses else (992 if is_guano else 991)
+                stk_type = 'App\\Models\\GuanoType' if is_guano else 'App\\Models\\FishType'
+                art_name = guano_type_names.get(t_id, 'Guano') if is_guano else fish_type_names.get(t_id, f"Poisson #{t_id}")
+
+                detail_shipping_batch.append((
+                    sid, 1, art_name, stk_type, t_id,
+                    w, pu, p, it.get('container_id'), it.get('nbr'), ch_id, 'stock_out', None,
+                    row['created_at'], row['updated_at']
+                ))
+
+    tgt_conn.commit()
+
     log(f"Inserting {len(detail_shipping_batch)} detail_shippings rows...")
     chunk_size = 5000
     for i in range(0, len(detail_shipping_batch), chunk_size):
@@ -1454,7 +1524,203 @@ def migrate_shippings(src_conn, tgt_conn, cat_data, plate_to_id, valid_client_in
     log("Completed shippings and detail_shippings migration.")
 
 # -------------------------------------------------------------
-# STAGE 8: Invoicing Grouping & Settlements (Client & Supplier)
+# STAGE 8: Migrating Stock Transfers (stock_movement_logs -> warehouse_transfers)
+# -------------------------------------------------------------
+def migrate_stock_transfers(src_conn, tgt_conn, cat_data, plate_to_id):
+    log("=== STAGE 8: Migrating Stock Transfers (stock_movement_logs -> warehouse_transfers) ===")
+    s_cur = src_conn.cursor()
+    t_cur = tgt_conn.cursor()
+
+    valid_warehouses = cat_data['valid_warehouses']
+    valid_packages = cat_data['valid_packages']
+    fish_type_names = cat_data['fish_type_names']
+
+    s_cur.execute("SELECT * FROM stock_movement_logs")
+    transfer_rows = s_cur.fetchall()
+    log(f"Processing {len(transfer_rows)} stock_movement_logs records...")
+
+    transfer_truck_batch = []
+    detail_transfer_batch = []
+
+    for row in transfer_rows:
+        tid = row['id']
+        t_date = safe_date(row['date'])
+        from_ch = row.get('from_chambre_id') if row.get('from_chambre_id') in valid_warehouses else 991
+        to_ch = row.get('to_chambre_id') if row.get('to_chambre_id') in valid_warehouses else 991
+
+        bons = safe_json(row.get('num_bon_transfers')) or []
+        stn_json = json.dumps(bons) if bons else json.dumps([str(tid)])
+
+        mats = safe_json(row.get('matricules')) or []
+        primary_truck_id = None
+        for m in mats:
+            cp = clean_plate(m)
+            if cp and cp in plate_to_id:
+                t_truck_id = plate_to_id[cp]
+                transfer_truck_batch.append((tid, t_truck_id))
+                if primary_truck_id is None:
+                    primary_truck_id = t_truck_id
+
+        items_ss = safe_json(row.get('types_ss')) or []
+        items_prod = safe_json(row.get('types_production')) or []
+        items_to_use = items_ss if len(items_ss) > 0 else items_prod
+
+        transfer_total_weight = 0.0
+
+        for idx, it in enumerate(items_to_use):
+            w = safe_float(it.get('weight'))
+            t_id = it.get('type_id')
+            raw_dest = it.get('chambre_id')
+            dest_wh = raw_dest if raw_dest in valid_warehouses else to_ch
+            src_wh = from_ch
+            pkg_id = it.get('container_id') if it.get('container_id') in valid_packages else None
+            nbr_box = safe_float(it.get('nbr'))
+            if nbr_box == 0.0 and idx < len(items_prod):
+                nbr_box = safe_float(items_prod[idx].get('nbr'))
+            src_track = it.get('num_bon_reception') or (items_prod[idx].get('num_bon_reception') if idx < len(items_prod) else None)
+
+            transfer_total_weight += w
+
+            detail_transfer_batch.append((
+                tid, 1, 'App\\Models\\FishType', t_id,
+                w, src_wh, src_track, dest_wh, pkg_id, nbr_box, primary_truck_id,
+                row['created_at'], row['updated_at']
+            ))
+
+        if transfer_total_weight == 0.0:
+            transfer_total_weight = safe_float(row.get('qte_transfer'))
+
+        t_cur.execute(
+            """INSERT INTO warehouse_transfers 
+               (id, date, total_weight, transfer_tracking_number, description, created_at, updated_at, deleted_at)
+               VALUES (%s, %s, %s, %s, 'Transfert inter-chambres', %s, %s, %s)""",
+            (tid, t_date, transfer_total_weight, stn_json, row['created_at'], row['updated_at'], row.get('deleted_at'))
+        )
+
+    tgt_conn.commit()
+
+    log(f"Inserting {len(detail_transfer_batch)} detail_warehouse_transfers rows...")
+    chunk_size = 5000
+    for i in range(0, len(detail_transfer_batch), chunk_size):
+        chunk = detail_transfer_batch[i:i+chunk_size]
+        t_cur.executemany(
+            """INSERT INTO detail_warehouse_transfers 
+               (warehouse_transfer_id, warehouse_transfer_category_id, stockable_type, stockable_id,
+                weight, source_warehouse_id, source_tracking_number, destination_warehouse_id,
+                package_type_id, nbr_box, truck_id, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            chunk
+        )
+
+    if transfer_truck_batch:
+        log(f"Inserting {len(transfer_truck_batch)} warehouse_transfer_truck links...")
+        for i in range(0, len(transfer_truck_batch), chunk_size):
+            t_cur.executemany(
+                """INSERT IGNORE INTO warehouse_transfer_truck (warehouse_transfer_id, truck_id) VALUES (%s, %s)""",
+                transfer_truck_batch[i:i+chunk_size]
+            )
+
+    tgt_conn.commit()
+    log("Completed stock transfers migration.")
+
+# -------------------------------------------------------------
+# STAGE 9: Migrating Fiscal Year Closings (client_management & provider_management)
+# -------------------------------------------------------------
+def migrate_fiscal_year_closings(src_conn, tgt_conn, cat_data):
+    log("=== STAGE 9: Migrating Fiscal Year Closings ===")
+    s_cur = src_conn.cursor()
+    t_cur = tgt_conn.cursor()
+
+    valid_clients = cat_data['valid_clients']
+    valid_suppliers = cat_data['valid_suppliers']
+
+    # 1. Client Management -> client_fiscal_year_closings & client_fiscal_year_closing_lines
+    s_cur.execute("SELECT * FROM client_management WHERE deleted_at IS NULL")
+    cli_rows = s_cur.fetchall()
+    by_year_cli = {}
+    for r in cli_rows:
+        yr = r['date'].year if r.get('date') else 2022
+        by_year_cli.setdefault(yr, []).append(r)
+
+    for yr, rows in sorted(by_year_cli.items()):
+        tot_deb = round(sum(safe_float(r.get('debits')) for r in rows), 2)
+        tot_cred = round(sum(safe_float(r.get('credits')) for r in rows), 2)
+        tot_solde = round(sum(safe_float(r.get('debiteurs')) for r in rows), 2)
+        closing_dt = f"{yr}-12-31"
+
+        t_cur.execute(
+            """INSERT INTO client_fiscal_year_closings 
+               (year, closing_date, total_invoices, total_payments, carried_forward, is_closed, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, 1, NOW(), NOW())""",
+            (yr, closing_dt, tot_deb, tot_cred, tot_solde)
+        )
+        closing_id = t_cur.lastrowid
+
+        line_batch = []
+        for r in rows:
+            cid = r.get('provider_id') if r.get('provider_id') in valid_clients else None
+            deb = round(safe_float(r.get('debits')), 2)
+            cred = round(safe_float(r.get('credits')), 2)
+            debiteur = round(safe_float(r.get('debiteurs')), 2)
+            crediteur = round(safe_float(r.get('crediteurs')), 2)
+            bal = round(debiteur - crediteur, 2)
+
+            line_batch.append((closing_id, cid, deb, cred, debiteur, bal, r['created_at'], r['updated_at']))
+
+        t_cur.executemany(
+            """INSERT INTO client_fiscal_year_closing_lines 
+               (client_fiscal_year_closing_id, client_id, total_invoices, total_payments, carry_forward, balance, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            line_batch
+        )
+
+    log(f"Migrated client fiscal year closings across {len(by_year_cli)} years.")
+
+    # 2. Provider Management -> fiscal_year_closings & fiscal_year_closing_lines
+    s_cur.execute("SELECT * FROM provider_management WHERE deleted_at IS NULL")
+    sup_rows = s_cur.fetchall()
+    by_year_sup = {}
+    for r in sup_rows:
+        yr = r['date'].year if r.get('date') else 2023
+        by_year_sup.setdefault(yr, []).append(r)
+
+    for yr, rows in sorted(by_year_sup.items()):
+        tot_deb = round(sum(safe_float(r.get('debits')) for r in rows), 2)
+        tot_cred = round(sum(safe_float(r.get('credits')) for r in rows), 2)
+        tot_solde = round(sum(safe_float(r.get('debiteurs')) for r in rows), 2)
+        closing_dt = f"{yr}-12-31"
+
+        t_cur.execute(
+            """INSERT INTO fiscal_year_closings 
+               (year, closing_date, total_invoices, total_payments, carried_forward, is_closed, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, 1, NOW(), NOW())""",
+            (yr, closing_dt, tot_deb, tot_cred, tot_solde)
+        )
+        closing_id = t_cur.lastrowid
+
+        line_batch = []
+        for r in rows:
+            sid = r.get('provider_id') if r.get('provider_id') in valid_suppliers else None
+            deb = round(safe_float(r.get('debits')), 2)
+            cred = round(safe_float(r.get('credits')), 2)
+            debiteur = round(safe_float(r.get('debiteurs')), 2)
+            crediteur = round(safe_float(r.get('crediteurs')), 2)
+            bal = round(debiteur - crediteur, 2)
+
+            line_batch.append((closing_id, sid, deb, cred, bal, r['created_at'], r['updated_at']))
+
+        t_cur.executemany(
+            """INSERT INTO fiscal_year_closing_lines 
+               (fiscal_year_closing_id, supplier_id, invoice_total, payment_total, balance, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            line_batch
+        )
+
+    tgt_conn.commit()
+    log(f"Migrated supplier fiscal year closings across {len(by_year_sup)} years.")
+
+# -------------------------------------------------------------
+# STAGE 10: Invoicing Grouping & Settlements (Client & Supplier)
 # -------------------------------------------------------------
 def reconcile_invoices_and_settlements(tgt_conn):
     log("=== STAGE 8: Reconciling Invoices Grouped Totals & Creating Settlements ===")
@@ -1673,15 +1939,67 @@ def calculate_and_build_warehouse_stock(tgt_conn):
     tgt_conn.commit()
     log("Loaded all charge stock-in balances.")
 
+    # Inbound transfers into destination warehouse
+    t_cur.execute(
+        """SELECT dwt.id as detail_id, dwt.warehouse_transfer_id, dwt.stockable_type, dwt.stockable_id,
+                  dwt.weight, dwt.destination_warehouse_id as warehouse_id,
+                  dwt.source_tracking_number, dwt.package_type_id, dwt.nbr_box,
+                  wt.date
+           FROM detail_warehouse_transfers dwt
+           JOIN warehouse_transfers wt ON dwt.warehouse_transfer_id = wt.id
+           WHERE dwt.weight > 0 AND dwt.destination_warehouse_id IS NOT NULL
+           ORDER BY wt.date ASC, dwt.id ASC"""
+    )
+    in_transfers = t_cur.fetchall()
+    log(f"Loading {len(in_transfers)} transfer stock-in balances...")
+
+    bal_batch = []
+    for tr in in_transfers:
+        rtn_str = clean_tracking_str(tr['source_tracking_number'])
+        bal_batch.append((
+            tr['warehouse_id'], tr['stockable_type'], tr['stockable_id'], rtn_str,
+            'stock_in', tr['date'], tr['weight'], tr['weight'], 0.0, 0.0,
+            tr['nbr_box'] or 0.0, tr['package_type_id'], 'WarehouseTransfer', tr['warehouse_transfer_id'], 0,
+            datetime.now(), datetime.now()
+        ))
+        if len(bal_batch) >= 5000:
+            t_cur.executemany(
+                """INSERT INTO warehouse_balances 
+                   (warehouse_id, stockable_type, stockable_id, reception_tracking_number,
+                    warehouse_operation, date, total_weight, remaining_weight, total_price, unit_price,
+                    package_count, package_type_id, source_type, source_id, is_finished, created_at, updated_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                bal_batch
+            )
+            bal_batch = []
+    if bal_batch:
+        t_cur.executemany(
+            """INSERT INTO warehouse_balances 
+               (warehouse_id, stockable_type, stockable_id, reception_tracking_number,
+                warehouse_operation, date, total_weight, remaining_weight, total_price, unit_price,
+                package_count, package_type_id, source_type, source_id, is_finished, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            bal_batch
+        )
+    tgt_conn.commit()
+    log("Loaded all transfer stock-in balances.")
+
     log("Processing outbound exits and linking warehouse balance operations...")
     t_cur.execute(
         """SELECT ds.id as detail_id, ds.warehouse_id, ds.stockable_type, ds.stockable_id,
                   ds.weight, ds.unit_price, ds.total_price, ds.nbr_box,
-                  s.id as ship_id, s.date, s.client_id
+                  s.id as ship_id, 'shipping' as source_type, s.date, s.client_id
            FROM detail_shippings ds
            JOIN shippings s ON ds.shipping_id = s.id
            WHERE ds.warehouse_operation = 'stock_out' AND ds.warehouse_id IS NOT NULL AND ds.weight > 0
-           ORDER BY s.date ASC, ds.id ASC"""
+           UNION ALL
+           SELECT dwt.id as detail_id, dwt.source_warehouse_id as warehouse_id, dwt.stockable_type, dwt.stockable_id,
+                  dwt.weight, 0.0 as unit_price, 0.0 as total_price, dwt.nbr_box,
+                  dwt.warehouse_transfer_id as ship_id, 'WarehouseTransfer' as source_type, wt.date, NULL as client_id
+           FROM detail_warehouse_transfers dwt
+           JOIN warehouse_transfers wt ON dwt.warehouse_transfer_id = wt.id
+           WHERE dwt.weight > 0 AND dwt.source_warehouse_id IS NOT NULL
+           ORDER BY date ASC, detail_id ASC"""
     )
     exits = t_cur.fetchall()
     log(f"Processing {len(exits)} outbound exits...")
@@ -1739,7 +2057,7 @@ def calculate_and_build_warehouse_stock(tgt_conn):
 
             ops_batch.append((
                 b_id, ex['date'], deduct, float(ex['unit_price']), deduct * float(ex['unit_price']),
-                float(ex['nbr_box'] or 0.0), 'shipping', ex['ship_id'], datetime.now(), datetime.now()
+                float(ex['nbr_box'] or 0.0), ex.get('source_type', 'shipping'), ex['ship_id'], datetime.now(), datetime.now()
             ))
 
             if len(ops_batch) >= 5000:
@@ -1827,6 +2145,10 @@ def main():
         migrate_production(src_conn, tgt_conn, cat_data, valid_client_invoices)
 
         migrate_shippings(src_conn, tgt_conn, cat_data, plate_to_id, valid_client_invoices)
+
+        migrate_stock_transfers(src_conn, tgt_conn, cat_data, plate_to_id)
+
+        migrate_fiscal_year_closings(src_conn, tgt_conn, cat_data)
 
         reconcile_invoices_and_settlements(tgt_conn)
 

@@ -14,6 +14,7 @@ class Charge extends Model
         'date',
         'total_price',
         'total_weight',
+        'total_weight_invoice',
         'charge_category_id',
         'reception_tracking_number',
         'tracking_onp_numbers',
@@ -30,6 +31,7 @@ class Charge extends Model
         'date' => 'date',
         'total_price' => 'decimal:2',
         'total_weight' => 'decimal:2',
+        'total_weight_invoice' => 'decimal:2',
         'reception_tracking_number' => 'array',
         'tracking_onp_numbers' => 'array',
         'allow_invoice' => 'boolean',
@@ -78,5 +80,38 @@ class Charge extends Model
     public function supplierInvoice()
     {
         return $this->belongsTo(SupplierInvoice::class, 'invoice_id');
+    }
+
+    /**
+     * Recalculate total_weight, total_weight_invoice and total_price based on active detail charges.
+     */
+    public function recalculateTotals(): bool
+    {
+        $activeDetails = $this->detailCharges()->whereNull('deleted_at')->get();
+        if ($activeDetails->isEmpty()) {
+            return false;
+        }
+
+        $sumWeight = round((float) $activeDetails->sum('weight'), 2);
+        $sumWeightInvoice = round((float) $activeDetails->sum(function ($dc) {
+            return $dc->weight_invoice !== null ? (float) $dc->weight_invoice : (float) $dc->weight;
+        }), 2);
+        $sumPrice = round((float) $activeDetails->sum('total_price'), 2);
+
+        $dirty = false;
+        if (abs((float) $this->total_weight - $sumWeight) > 0.009) {
+            $this->total_weight = $sumWeight;
+            $dirty = true;
+        }
+        if (abs((float) $this->total_weight_invoice - $sumWeightInvoice) > 0.009) {
+            $this->total_weight_invoice = $sumWeightInvoice;
+            $dirty = true;
+        }
+        if (abs((float) $this->total_price - $sumPrice) > 0.009) {
+            $this->total_price = $sumPrice;
+            $dirty = true;
+        }
+
+        return $dirty ? $this->save() : false;
     }
 }

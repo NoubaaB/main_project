@@ -409,8 +409,22 @@ export default {
     },
     mapCharge(c) {
       const lang = this.main.lang?.code || 'en';
+      const totWeight = Number(c.total_weight ?? 0) > 0
+        ? Number(c.total_weight)
+        : (c.detail_charges || []).reduce((s, dc) => s + Number(dc.weight || 0), 0);
+      const totPrice = Number(c.total_price ?? 0) > 0
+        ? Number(c.total_price)
+        : (c.detail_charges || []).reduce((s, dc) => s + Number(dc.total_price || (Number(dc.weight || dc.nbr_box || 0) * Number(dc.unit_price || 0)) || 0), 0);
+      const totWeightInvoice = Number(c.total_weight_invoice ?? 0) > 0
+        ? Number(c.total_weight_invoice)
+        : (c.detail_charges || []).reduce((s, dc) => s + Number(dc.weight_invoice ?? dc.weight ?? 0), 0);
+
       return {
         ...c,
+        total_weight: totWeight,
+        total_price: totPrice,
+        total_weight_invoice: totWeightInvoice,
+        _total_weight_invoice: totWeightInvoice,
         _suppliers: c.supplier?.name || '-',
         _tracking: (c.reception_tracking_number || []).join(', ') || '-',
         _onp_tracking: (c.tracking_onp_numbers || []).join(', ') || '-',
@@ -418,7 +432,6 @@ export default {
         _origin: c.origin ? (c.origin[`name_${lang}`] || c.origin.name || '-') : '-',
         _ship: c.ship ? (c.ship[`name_${lang}`] || c.ship.name || '-') : '-',
         _trucks: (c.trucks || []).map(t => t.name || t[`name_${lang}`]).join(', ') || '-',
-        _total_weight_invoice: (c.detail_charges || []).reduce((s, dc) => s + Number(dc.weight || 0), 0),
         _invoice_state: c.supplier_invoice ? (c.supplier_invoice.tracking_numbers || []).join(', ') : null,
         _is_invoiced: !!c.invoice_id,
         _qc_status: c.quality_control ? c.quality_control.status : null,

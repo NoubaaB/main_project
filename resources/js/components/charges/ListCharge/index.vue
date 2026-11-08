@@ -1080,7 +1080,7 @@
                 <template v-else-if="h.key==='_onp_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_onp_numbers||[])" :key="tn" size="x-small" color="deep-orange" variant="tonal">{{ tn }}</v-chip><span v-if="!(item.tracking_onp_numbers||[]).length" class="text-grey">-</span></div></template>
                 <!-- weight/price -->
                 <template v-else-if="h.key==='total_weight'">{{ main.formatDisplayNumber(item.total_weight) }} Kg</template>
-                <template v-else-if="h.key==='_total_weight_invoice'">{{ main.formatDisplayNumber(item._total_weight_invoice) }} Kg</template>
+                <template v-else-if="h.key==='_total_weight_invoice' || h.key==='total_weight_invoice'">{{ main.formatDisplayNumber(item._total_weight_invoice ?? item.total_weight_invoice ?? 0) }} Kg</template>
                 <template v-else-if="h.key==='total_price'">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</template>
                 <!-- invoice state -->
                 <template v-else-if="h.key==='_invoice_state'">
@@ -1250,7 +1250,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="lc-tfoot"><tr><td class="lc-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="lc-td text-center font-weight-bold" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        <tfoot class="lc-tfoot"><tr><td class="lc-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="lc-td text-center font-weight-bold" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice' || h.key==='total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
   </v-card-text>

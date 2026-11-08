@@ -3625,5 +3625,16 @@
     "you_are_here": "Vous êtes ici",
     "zebra_striping": "Alternance de lignes (Zébré)",
     "zero_depleted": "0 Kg (Épuisé)",
-    "zoom": "Zoom"
+    "zoom": "Zoom",
+    "recalculate_totals": "Recalculer les totaux",
+    "confirm_recalculate_totals_title": "Recalculer les totaux des charges",
+    "confirm_recalculate_totals_desc": "Cette action va calculer et synchroniser le poids total et le prix total de toutes les charges en fonction de leurs lignes de détail. Continuer ?",
+    "recalculate_totals_hint": "Les notifications WebSocket en temps réel mettront à jour les utilisateurs connectés et assureront l'intégrité totale des données.",
+    "recalculate_totals_success": "Totaux recalculés avec succès",
+    "recalculate_totals_failed": "Échec du recalcul des totaux",
+    "charges_recalculated_count": "Charges synchronisées",
+    "charges_total_weight_updated": "Ajustement du poids total",
+    "charges_total_price_updated": "Ajustement du prix total",
+    "no_charges_needed_recalculation": "Toutes les charges sont déjà parfaitement synchronisées avec leurs lignes de détail",
+    "duration": "Durée"
 }

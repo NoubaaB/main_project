@@ -3625,5 +3625,16 @@
     "you_are_here": "You are here",
     "zebra_striping": "Zebra Striping",
     "zero_depleted": "0 Kg (Depleted)",
-    "zoom": "Zoom"
+    "zoom": "Zoom",
+    "recalculate_totals": "Recalculate Totals",
+    "confirm_recalculate_totals_title": "Recalculate Charge Totals",
+    "confirm_recalculate_totals_desc": "This will calculate and synchronize the total weight and total price of all charges based on their detail line items. Continue?",
+    "recalculate_totals_hint": "Real-time WebSocket notifications will update connected users and ensure complete data integrity.",
+    "recalculate_totals_success": "Totals recalculated successfully",
+    "recalculate_totals_failed": "Failed to recalculate totals",
+    "charges_recalculated_count": "Charges Synchronized",
+    "charges_total_weight_updated": "Total Weight Adjustment",
+    "charges_total_price_updated": "Total Price Adjustment",
+    "no_charges_needed_recalculation": "All charges are already in sync with detail lines",
+    "duration": "Duration"
 }

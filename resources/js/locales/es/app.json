@@ -3625,5 +3625,16 @@
     "you_are_here": "Estás aquí",
     "zebra_striping": "Filas alternadas (Cebra)",
     "zero_depleted": "0 Kg (Agotado)",
-    "zoom": "Zoom"
+    "zoom": "Zoom",
+    "recalculate_totals": "Recalcular totales",
+    "confirm_recalculate_totals_title": "Recalcular totales de los cargos",
+    "confirm_recalculate_totals_desc": "Esto calculará y sincronizará el peso total y el precio total de todos los cargos en función de sus líneas de detalle. ¿Continuar?",
+    "recalculate_totals_hint": "Las notificaciones WebSocket en tiempo real actualizarán a los usuarios conectados y garantizarán la integridad total de los datos.",
+    "recalculate_totals_success": "Totales recalculados con éxito",
+    "recalculate_totals_failed": "Error al recalcular los totales",
+    "charges_recalculated_count": "Cargos sincronizados",
+    "charges_total_weight_updated": "Ajuste del peso total",
+    "charges_total_price_updated": "Ajuste del precio total",
+    "no_charges_needed_recalculation": "Todos los cargos ya están perfectamente sincronizados con las líneas de detalle",
+    "duration": "Duración"
 }

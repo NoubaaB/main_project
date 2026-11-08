@@ -25,6 +25,9 @@ extend type Query {
 type Charge {
     id: ID!
     date: String
+    total_price: Float
+    total_weight: Float
+    total_weight_invoice: Float
     charge_category_id: Int
     charge_category: ChargeCategory
     supplier_id: Int
@@ -64,6 +67,7 @@ type DetailCharge {
     charge_id: Int
     detail_charge_category_id: Int
     detail_charge_category: DetailChargeCategory
+    article_description: String
     stockable_id: Int
     stockable_type: String
     stockable: StockableItem
@@ -71,7 +75,9 @@ type DetailCharge {
     warehouse: Warehouse
     package_type_id: Int
     package_type: PackageType
+    nbr_box: Float
     weight: Float
+    weight_invoice: Float
     package_count: Float
     unit_price: Float
     total_price: Float

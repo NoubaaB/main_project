@@ -62,6 +62,13 @@
         </v-col>
         <v-col cols="12" sm="6" md="3">
           <div class="info-card">
+            <v-icon size="20" color="teal" class="mb-1">mdi-scale-balance</v-icon>
+            <div class="info-label">{{ $t('total_weight_invoice') }}</div>
+            <div class="info-value">{{ main.formatDisplayNumber(charge.total_weight_invoice ?? charge.total_weight) }} Kg</div>
+          </div>
+        </v-col>
+        <v-col cols="12" sm="6" md="3">
+          <div class="info-card">
             <v-icon size="20" color="success" class="mb-1">mdi-cash</v-icon>
             <div class="info-label">{{ $t('total_price') }}</div>
             <div class="info-value">{{ main.formatDisplayNumber(charge.total_price) }} {{ main.currency }}</div>

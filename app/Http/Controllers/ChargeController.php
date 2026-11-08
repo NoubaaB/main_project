@@ -32,6 +32,9 @@ class ChargeController extends Controller
             'supplier_id' => 'nullable|exists:suppliers,id',
             'truck_ids' => 'nullable|array',
             'truck_ids.*' => 'exists:trucks,id',
+            'total_price' => 'nullable|numeric|min:0',
+            'total_weight' => 'nullable|numeric|min:0',
+            'total_weight_invoice' => 'nullable|numeric|min:0',
             'details' => 'required|array|min:1',
             'details.*.detail_charge_category_id' => 'required|exists:detail_charge_categories,id',
             'details.*.article_description' => 'nullable|string',
@@ -40,6 +43,7 @@ class ChargeController extends Controller
             'details.*.weight' => 'nullable|numeric|min:0',
             'details.*.unit_price' => 'nullable|numeric|min:0',
             'details.*.total_price' => 'nullable|numeric|min:0',
+            'details.*.weight_invoice' => 'nullable|numeric|min:0',
             'details.*.package_type_id' => 'nullable|exists:package_types,id',
             'details.*.nbr_box' => 'nullable|numeric|min:0',
             'details.*.warehouse_id' => 'nullable|exists:warehouses,id',
@@ -48,9 +52,31 @@ class ChargeController extends Controller
             'details.*.supplier_id' => 'nullable|exists:suppliers,id',
         ]);
 
+        // Auto-calculate missing line item prices and defaults
+        foreach ($data['details'] as &$detail) {
+            $w = isset($detail['weight']) ? (float) $detail['weight'] : 0;
+            $up = isset($detail['unit_price']) ? (float) $detail['unit_price'] : 0;
+            $nbr = isset($detail['nbr_box']) ? (float) $detail['nbr_box'] : 0;
+
+            if (empty($detail['total_price']) || (float) $detail['total_price'] == 0) {
+                if ($w > 0 && $up > 0) {
+                    $detail['total_price'] = round($w * $up, 2);
+                } elseif ($nbr > 0 && $up > 0) {
+                    $detail['total_price'] = round($nbr * $up, 2);
+                }
+            }
+            if (!isset($detail['weight_invoice']) || $detail['weight_invoice'] === null || $detail['weight_invoice'] === '') {
+                $detail['weight_invoice'] = $w > 0 ? $w : null;
+            }
+        }
+        unset($detail);
+
         // Calculate totals
         $totalPrice = collect($data['details'])->sum('total_price') ?? 0;
         $totalWeight = collect($data['details'])->sum('weight') ?? 0;
+        $totalWeightInvoice = collect($data['details'])->sum(function ($d) {
+            return isset($d['weight_invoice']) && $d['weight_invoice'] !== null ? (float) $d['weight_invoice'] : (float) ($d['weight'] ?? 0);
+        }) ?? 0;
 
         if (!empty($data['supplier_id'])) {
             $supplier = Supplier::find($data['supplier_id']);
@@ -65,13 +91,14 @@ class ChargeController extends Controller
             }
         }
 
-        return DB::transaction(function () use ($data, $request, $totalPrice, $totalWeight) {
+        return DB::transaction(function () use ($data, $request, $totalPrice, $totalWeight, $totalWeightInvoice) {
 
             // Create charge
             $charge = Charge::create([
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
+                'total_weight_invoice' => $totalWeightInvoice,
                 'charge_category_id' => $data['charge_category_id'],
                 'reception_tracking_number' => $data['reception_tracking_number'] ?? null,
                 'tracking_onp_numbers' => $data['tracking_onp_numbers'] ?? null,
@@ -140,6 +167,9 @@ class ChargeController extends Controller
             'description' => 'nullable|string|max:1000',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'truck_ids' => 'nullable|array',
+            'total_price' => 'nullable|numeric|min:0',
+            'total_weight' => 'nullable|numeric|min:0',
+            'total_weight_invoice' => 'nullable|numeric|min:0',
             'details' => 'required|array|min:1',
             'details.*.detail_charge_category_id' => 'required|exists:detail_charge_categories,id',
             'details.*.article_description' => 'nullable|string',
@@ -148,6 +178,7 @@ class ChargeController extends Controller
             'details.*.weight' => 'nullable|numeric|min:0',
             'details.*.unit_price' => 'nullable|numeric|min:0',
             'details.*.total_price' => 'nullable|numeric|min:0',
+            'details.*.weight_invoice' => 'nullable|numeric|min:0',
             'details.*.package_type_id' => 'nullable|exists:package_types,id',
             'details.*.nbr_box' => 'nullable|numeric|min:0',
             'details.*.warehouse_id' => 'nullable|exists:warehouses,id',
@@ -155,6 +186,25 @@ class ChargeController extends Controller
             'details.*.truck_id' => 'nullable|exists:trucks,id',
             'details.*.supplier_id' => 'nullable|exists:suppliers,id',
         ]);
+
+        // Auto-calculate missing line item prices and defaults
+        foreach ($data['details'] as &$detail) {
+            $w = isset($detail['weight']) ? (float) $detail['weight'] : 0;
+            $up = isset($detail['unit_price']) ? (float) $detail['unit_price'] : 0;
+            $nbr = isset($detail['nbr_box']) ? (float) $detail['nbr_box'] : 0;
+
+            if (empty($detail['total_price']) || (float) $detail['total_price'] == 0) {
+                if ($w > 0 && $up > 0) {
+                    $detail['total_price'] = round($w * $up, 2);
+                } elseif ($nbr > 0 && $up > 0) {
+                    $detail['total_price'] = round($nbr * $up, 2);
+                }
+            }
+            if (!isset($detail['weight_invoice']) || $detail['weight_invoice'] === null || $detail['weight_invoice'] === '') {
+                $detail['weight_invoice'] = $w > 0 ? $w : null;
+            }
+        }
+        unset($detail);
 
         // Capture old state for audit trail
         $oldData = $charge->toArray();
@@ -169,11 +219,15 @@ class ChargeController extends Controller
             // Recalculate totals
             $totalPrice = collect($data['details'])->sum('total_price') ?? 0;
             $totalWeight = collect($data['details'])->sum('weight') ?? 0;
+            $totalWeightInvoice = collect($data['details'])->sum(function ($d) {
+                return isset($d['weight_invoice']) && $d['weight_invoice'] !== null ? (float) $d['weight_invoice'] : (float) ($d['weight'] ?? 0);
+            }) ?? 0;
 
             $charge->update([
                 'date' => $data['date'],
                 'total_price' => $totalPrice,
                 'total_weight' => $totalWeight,
+                'total_weight_invoice' => $totalWeightInvoice,
                 'charge_category_id' => $data['charge_category_id'],
                 'reception_tracking_number' => $data['reception_tracking_number'] ?? null,
                 'tracking_onp_numbers' => $data['tracking_onp_numbers'] ?? null,

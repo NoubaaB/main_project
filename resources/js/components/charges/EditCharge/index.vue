@@ -115,16 +115,21 @@
               <v-divider class="my-2"></v-divider>
               <div class="summary-global">
                 <v-chip size="small" color="#42A5F5" variant="elevated" class="mb-1 font-weight-bold">{{ $t('global_total') }}</v-chip>
-                <div class="d-flex align-center ga-4">
+                <div class="d-flex align-center ga-4 flex-wrap">
                   <div class="summary-item">
                     <v-icon size="18" color="#42A5F5" class="mr-1">mdi-weight-kilogram</v-icon>
                     <span class="summary-label">{{ $t('total_weight') }}:</span>
-                    <span class="summary-value text-info">{{ main.formatDisplayNumber(chargeStore.charge.total_weight) }} Kg</span>
+                    <span class="summary-value text-info">{{ main.formatDisplayNumber(computedTotalWeight) }} Kg</span>
+                  </div>
+                  <div class="summary-item">
+                    <v-icon size="18" color="teal" class="mr-1">mdi-scale-balance</v-icon>
+                    <span class="summary-label">{{ $t('total_weight_invoice') }}:</span>
+                    <span class="summary-value text-teal">{{ main.formatDisplayNumber(computedTotalWeightInvoice) }} Kg</span>
                   </div>
                   <div class="summary-item">
                     <v-icon size="18" color="success" class="mr-1">mdi-cash</v-icon>
                     <span class="summary-label">{{ $t('total_price') }}:</span>
-                    <span class="summary-value text-success">{{ main.formatDisplayNumber(chargeStore.charge.total_price) }} {{ main.currency }}</span>
+                    <span class="summary-value text-success">{{ main.formatDisplayNumber(computedTotalPrice) }} {{ main.currency }}</span>
                   </div>
                 </div>
               </div>
@@ -160,8 +165,9 @@
         <div v-if="summarySnackbar.trackingNumbers"><v-icon size="14" color="#42A5F5" class="mr-1">mdi-barcode</v-icon><span class="text-medium-emphasis">{{ $t('reception_tracking_number') }}:</span> <strong>{{ summarySnackbar.trackingNumbers }}</strong></div>
         <div v-if="summarySnackbar.supplier"><v-icon size="14" color="#42A5F5" class="mr-1">mdi-account</v-icon><span class="text-medium-emphasis">{{ $t('supplier') }}:</span> <strong>{{ summarySnackbar.supplier }}</strong></div>
         <v-divider class="my-1"></v-divider>
-        <div class="d-flex ga-4">
+        <div class="d-flex ga-4 flex-wrap">
           <div><v-icon size="14" color="#42A5F5" class="mr-1">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('total_weight') }}:</span> <strong class="text-charge">{{ summarySnackbar.totalWeight }} Kg</strong></div>
+          <div v-if="summarySnackbar.totalWeightInvoice"><v-icon size="14" color="teal" class="mr-1">mdi-scale-balance</v-icon><span class="text-medium-emphasis">{{ $t('total_weight_invoice') }}:</span> <strong class="text-teal">{{ summarySnackbar.totalWeightInvoice }} Kg</strong></div>
           <div><v-icon size="14" color="success" class="mr-1">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span> <strong class="text-success">{{ summarySnackbar.totalPrice }} {{ main.currency }}</strong></div>
         </div>
       </div>
@@ -204,6 +210,18 @@ export default {
         else { this.chargeStore.charge.date = val; }
       }
     },
+    computedTotalWeight() {
+      return (this.chargeStore.charge?.details || []).reduce((sum, d) => sum + (parseFloat(d.weight) || 0), 0);
+    },
+    computedTotalWeightInvoice() {
+      return (this.chargeStore.charge?.details || []).reduce((sum, d) => {
+        const wi = d.weight_invoice !== null && d.weight_invoice !== undefined && d.weight_invoice !== '' ? parseFloat(d.weight_invoice) : parseFloat(d.weight);
+        return sum + (isNaN(wi) ? 0 : wi);
+      }, 0);
+    },
+    computedTotalPrice() {
+      return (this.chargeStore.charge?.details || []).reduce((sum, d) => sum + (parseFloat(d.total_price) || 0), 0);
+    },
     categorySummary() {
       const details = this.chargeStore.charge?.details || [];
       if (!details.length) return [];
@@ -214,12 +232,28 @@ export default {
         const catId = d.detail_charge_category_id;
         if (!map[catId]) {
           const cat = detailCats.find(c => c.id === catId);
-          map[catId] = { id: catId, name: cat ? (cat[`name_${lang}`] || cat.name_fr || cat.name_en || `#${catId}`) : `#${catId}`, totalWeight: 0, totalPrice: 0 };
+          map[catId] = {
+            id: catId,
+            name: cat ? (cat[`name_${lang}`] || cat.name_fr || cat.name_en || `#${catId}`) : `#${catId}`,
+            totalWeight: 0,
+            totalWeightInvoice: 0,
+            totalPrice: 0,
+          };
         }
         map[catId].totalWeight += parseFloat(d.weight) || 0;
+        const wi = d.weight_invoice !== null && d.weight_invoice !== undefined && d.weight_invoice !== '' ? parseFloat(d.weight_invoice) : parseFloat(d.weight);
+        map[catId].totalWeightInvoice += isNaN(wi) ? 0 : wi;
         map[catId].totalPrice += parseFloat(d.total_price) || 0;
       });
       return Object.values(map);
+    },
+  },
+  watch: {
+    'chargeStore.charge.details': {
+      handler() {
+        this.chargeStore.recalc_totals();
+      },
+      deep: true,
     },
   },
   mounted() { this.fetchAndLoad(); },
@@ -250,7 +284,7 @@ export default {
             weight: d.weight,
             unit_price: d.unit_price,
             total_price: d.total_price,
-            weight_invoice: d.weight_invoice,
+            weight_invoice: d.weight_invoice != null ? d.weight_invoice : d.weight,
             package_type_id: d.package_type_id,
             nbr_box: d.nbr_box,
             warehouse_id: d.warehouse_id,
@@ -259,6 +293,7 @@ export default {
           })),
           total_price: charge.total_price,
           total_weight: charge.total_weight,
+          total_weight_invoice: charge.total_weight_invoice ?? charge.total_weight ?? 0,
         };
         this.chargeStore.showAdditionalInfo = true;
       } catch (e) { console.error(e); }
@@ -274,8 +309,9 @@ export default {
         date: c?.date || '',
         trackingNumbers: (c?.reception_tracking_number || []).join(', '),
         supplier: supplierName,
-        totalWeight: this.main.formatDisplayNumber(c?.total_weight || 0),
-        totalPrice: this.main.formatDisplayNumber(c?.total_price || 0),
+        totalWeight: this.main.formatDisplayNumber(this.computedTotalWeight),
+        totalWeightInvoice: this.main.formatDisplayNumber(this.computedTotalWeightInvoice),
+        totalPrice: this.main.formatDisplayNumber(this.computedTotalPrice),
       };
     },
     showSnackbarFromSnapshot(snap) {
@@ -290,9 +326,19 @@ export default {
     async updateCharge() {
       this.submitting = true;
       try {
+        this.chargeStore.recalc_totals();
         const snapshot = this.buildSnapshot();
         const c = JSON.parse(JSON.stringify(this.chargeStore.charge));
-        c.details = c.details.map(d => { const { _uid, ...rest } = d; return rest; });
+        c.total_weight = this.computedTotalWeight;
+        c.total_weight_invoice = this.computedTotalWeightInvoice;
+        c.total_price = this.computedTotalPrice;
+        c.details = c.details.map(d => {
+          const { _uid, ...rest } = d;
+          if (rest.weight_invoice === null || rest.weight_invoice === undefined || rest.weight_invoice === '') {
+            rest.weight_invoice = rest.weight != null ? rest.weight : null;
+          }
+          return rest;
+        });
         const id = c.id; delete c.id;
         await axios.put(`/api/charge/${id}`, c);
         this.chargeStore.add_charge(null);

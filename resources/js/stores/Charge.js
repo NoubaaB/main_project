@@ -28,6 +28,7 @@ export const useCharge = defineStore("charge", {
                 details: [],
                 total_price: 0,
                 total_weight: 0,
+                total_weight_invoice: 0,
             };
             this.input_tracking_number = null;
             this.showAdditionalInfo = false;
@@ -44,6 +45,7 @@ export const useCharge = defineStore("charge", {
                 weight: null,
                 unit_price: null,
                 total_price: null,
+                weight_invoice: null,
                 package_type_id: null,
                 nbr_box: null,
                 warehouse_id: null,
@@ -60,6 +62,10 @@ export const useCharge = defineStore("charge", {
             if (!this.charge) return;
             this.charge.total_price = this.charge.details.reduce((sum, d) => sum + (parseFloat(d.total_price) || 0), 0);
             this.charge.total_weight = this.charge.details.reduce((sum, d) => sum + (parseFloat(d.weight) || 0), 0);
+            this.charge.total_weight_invoice = this.charge.details.reduce((sum, d) => {
+                const wi = d.weight_invoice !== null && d.weight_invoice !== undefined && d.weight_invoice !== '' ? parseFloat(d.weight_invoice) : parseFloat(d.weight);
+                return sum + (isNaN(wi) ? 0 : wi);
+            }, 0);
             this._persistDraft();
         },
         _persistDraft() {

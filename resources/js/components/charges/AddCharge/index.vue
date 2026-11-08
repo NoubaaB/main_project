@@ -176,7 +176,7 @@
               </div>
 
               <!-- Top KPI metric tiles -->
-              <div class="summary-kpi-row d-flex ga-2 mb-3 w-100">
+              <div class="summary-kpi-row d-flex ga-2 mb-3 w-100 flex-wrap flex-sm-nowrap">
                 <!-- Total Articles -->
                 <div class="summary-kpi-tile pa-2 rounded-lg text-center" style="flex: 1 1 0; min-width: 0; background: rgba(var(--v-theme-on-surface), .03); border: 1px solid rgba(var(--v-theme-on-surface), .06);">
                   <div class="text-caption text-medium-emphasis mb-1 text-truncate">{{ $t('articles') || 'Articles' }}</div>
@@ -189,7 +189,16 @@
                 <div class="summary-kpi-tile pa-2 rounded-lg text-center" style="flex: 1 1 0; min-width: 0; background: rgba(66, 165, 245, .08); border: 1px solid rgba(66, 165, 245, .2);">
                   <div class="text-caption text-medium-emphasis mb-1 text-truncate">{{ $t('total_weight') }}</div>
                   <div class="text-h6 font-weight-bold text-charge" style="line-height: 1.2;">
-                    {{ main.formatDisplayNumber(chargeStore.charge?.total_weight || 0) }}
+                    {{ main.formatDisplayNumber(computedTotalWeight) }}
+                    <span class="text-caption font-weight-normal">Kg</span>
+                  </div>
+                </div>
+
+                <!-- Total Weight Invoice -->
+                <div class="summary-kpi-tile pa-2 rounded-lg text-center" style="flex: 1 1 0; min-width: 0; background: rgba(0, 150, 136, .08); border: 1px solid rgba(0, 150, 136, .2);">
+                  <div class="text-caption text-medium-emphasis mb-1 text-truncate">{{ $t('total_weight_invoice') }}</div>
+                  <div class="text-h6 font-weight-bold text-teal" style="line-height: 1.2;">
+                    {{ main.formatDisplayNumber(computedTotalWeightInvoice) }}
                     <span class="text-caption font-weight-normal">Kg</span>
                   </div>
                 </div>
@@ -198,7 +207,7 @@
                 <div class="summary-kpi-tile pa-2 rounded-lg text-center" style="flex: 1 1 0; min-width: 0; background: rgba(76, 175, 80, .08); border: 1px solid rgba(76, 175, 80, .2);">
                   <div class="text-caption text-medium-emphasis mb-1 text-truncate">{{ $t('total_price') }}</div>
                   <div class="text-h6 font-weight-bold text-success" style="line-height: 1.2;">
-                    {{ main.formatDisplayNumber(chargeStore.charge?.total_price || 0) }}
+                    {{ main.formatDisplayNumber(computedTotalPrice) }}
                     <span class="text-caption font-weight-normal">{{ main.currency }}</span>
                   </div>
                 </div>
@@ -215,8 +224,9 @@
                     <span class="cat-dot" :style="{ background: getCategoryColor(idx) }"></span>
                     <span class="font-weight-medium">{{ cat.name }}</span>
                   </div>
-                  <div class="d-flex align-center ga-2">
+                  <div class="d-flex align-center ga-2 flex-wrap justify-end">
                     <span class="text-medium-emphasis">{{ main.formatDisplayNumber(cat.totalWeight) }} Kg</span>
+                    <span v-if="cat.totalWeightInvoice && cat.totalWeightInvoice !== cat.totalWeight" class="text-teal font-weight-medium">({{ main.formatDisplayNumber(cat.totalWeightInvoice) }} Kg {{ $t('total_weight_invoice') }})</span>
                     <span class="font-weight-bold text-success">{{ main.formatDisplayNumber(cat.totalPrice) }} {{ main.currency }}</span>
                   </div>
                 </div>
@@ -371,11 +381,16 @@
           <strong>{{ summarySnackbar.supplier }}</strong>
         </div>
         <v-divider class="my-1"></v-divider>
-        <div class="d-flex ga-4">
+        <div class="d-flex ga-4 flex-wrap">
           <div>
             <v-icon size="14" color="#42A5F5" class="mr-1">mdi-weight-kilogram</v-icon>
             <span class="text-medium-emphasis">{{ $t('total_weight') }}:</span>
             <strong class="text-charge">{{ summarySnackbar.totalWeight }} Kg</strong>
+          </div>
+          <div v-if="summarySnackbar.totalWeightInvoice">
+            <v-icon size="14" color="teal" class="mr-1">mdi-scale-balance</v-icon>
+            <span class="text-medium-emphasis">{{ $t('total_weight_invoice') }}:</span>
+            <strong class="text-teal">{{ summarySnackbar.totalWeightInvoice }} Kg</strong>
           </div>
           <div>
             <v-icon size="14" color="success" class="mr-1">mdi-cash</v-icon>
@@ -487,6 +502,18 @@ export default {
         day: 'numeric',
       });
     },
+    computedTotalWeight() {
+      return (this.chargeStore.charge?.details || []).reduce((sum, d) => sum + (parseFloat(d.weight) || 0), 0);
+    },
+    computedTotalWeightInvoice() {
+      return (this.chargeStore.charge?.details || []).reduce((sum, d) => {
+        const wi = d.weight_invoice !== null && d.weight_invoice !== undefined && d.weight_invoice !== '' ? parseFloat(d.weight_invoice) : parseFloat(d.weight);
+        return sum + (isNaN(wi) ? 0 : wi);
+      }, 0);
+    },
+    computedTotalPrice() {
+      return (this.chargeStore.charge?.details || []).reduce((sum, d) => sum + (parseFloat(d.total_price) || 0), 0);
+    },
     categorySummary() {
       const details = this.chargeStore.charge?.details || [];
       if (!details.length) return [];
@@ -501,10 +528,13 @@ export default {
             id: catId,
             name: cat ? (cat[`name_${lang}`] || cat.name_fr || cat.name_en || `#${catId}`) : `#${catId}`,
             totalWeight: 0,
+            totalWeightInvoice: 0,
             totalPrice: 0,
           };
         }
         map[catId].totalWeight += parseFloat(d.weight) || 0;
+        const wi = d.weight_invoice !== null && d.weight_invoice !== undefined && d.weight_invoice !== '' ? parseFloat(d.weight_invoice) : parseFloat(d.weight);
+        map[catId].totalWeightInvoice += isNaN(wi) ? 0 : wi;
         map[catId].totalPrice += parseFloat(d.total_price) || 0;
       });
       return Object.values(map);
@@ -521,6 +551,12 @@ export default {
     if (this.snackbarTimer) clearInterval(this.snackbarTimer);
   },
   watch: {
+    'chargeStore.charge.details': {
+      handler() {
+        this.chargeStore.recalc_totals();
+      },
+      deep: true,
+    },
     'chargeStore.charge': { handler() { this.chargeStore._persistDraft(); }, deep: true },
     'chargeStore.showAdditionalInfo'() { this.chargeStore._persistDraft(); },
   },
@@ -569,6 +605,7 @@ export default {
       this.chargeStore.charge.origin_id = null;
       this.chargeStore.charge.total_price = 0;
       this.chargeStore.charge.total_weight = 0;
+      this.chargeStore.charge.total_weight_invoice = 0;
       this.chargeStore.showAdditionalInfo = false;
     },
     resetCharge() {
@@ -581,9 +618,19 @@ export default {
     async submitCharge() {
       this.submitting = true;
       try {
+        this.chargeStore.recalc_totals();
         const snapshot = this.buildSnapshot();
         const c = JSON.parse(JSON.stringify(this.chargeStore.charge));
-        c.details = c.details.map(d => { const { _uid, ...rest } = d; return rest; });
+        c.total_weight = this.computedTotalWeight;
+        c.total_weight_invoice = this.computedTotalWeightInvoice;
+        c.total_price = this.computedTotalPrice;
+        c.details = c.details.map(d => {
+          const { _uid, ...rest } = d;
+          if (rest.weight_invoice === null || rest.weight_invoice === undefined || rest.weight_invoice === '') {
+            rest.weight_invoice = rest.weight != null ? rest.weight : null;
+          }
+          return rest;
+        });
         delete c.id;
         await axios.post('/api/charge', c);
         this.chargeStore.clearDraft();
@@ -610,8 +657,9 @@ export default {
         date: c?.date || '',
         trackingNumbers: (c?.reception_tracking_number || []).join(', '),
         supplier: supplierName,
-        totalWeight: this.main.formatDisplayNumber(c?.total_weight || 0),
-        totalPrice: this.main.formatDisplayNumber(c?.total_price || 0),
+        totalWeight: this.main.formatDisplayNumber(this.computedTotalWeight),
+        totalWeightInvoice: this.main.formatDisplayNumber(this.computedTotalWeightInvoice),
+        totalPrice: this.main.formatDisplayNumber(this.computedTotalPrice),
       };
     },
     showSummarySnackbar(type) {

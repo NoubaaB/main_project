@@ -434,7 +434,7 @@ export function filterWorkerFn(payload) {
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     const w = Number(item.total_weight || 0);
-    const wi = Number(item.total_weight_invoice || 0);
+    const wi = Number(item.total_weight_invoice ?? item._total_weight_invoice ?? item.total_weight ?? 0);
     const p = Number(item.total_price || 0);
     const spc = Number(item.total_secondary_packaging_cost || 0);
 
