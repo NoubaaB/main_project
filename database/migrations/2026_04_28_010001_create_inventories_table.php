@@ -19,6 +19,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index('date', 'idx_inventories_date');
             $table->comment('Physical inventory counts. Has many detail_inventories.');
         });
     }

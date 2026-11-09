@@ -23,10 +23,11 @@ return new class extends Migration {
             $table->string('direction')->nullable()->comment('Sale direction: local or export');
             $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete()->comment('FK to clients - the single client for this shipping');
             $table->boolean('allow_invoice')->default(true)->comment('Whether this shipping can be included in client invoices');
-            $table->unsignedBigInteger('invoice_id')->nullable()->comment('FK to client_invoices - null if not yet invoiced');
+            $table->foreignId('invoice_id')->nullable()->constrained('client_invoices')->nullOnDelete()->comment('FK to client_invoices - null if not yet invoiced');
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index('date', 'idx_shippings_date');
             $table->comment('Fish sale transactions. BelongsTo shipping_categories, fisheries, ships, origins, clients, client_invoices. BelongsToMany trucks (shipping_truck). Has many detail_shippings.');
         });
     }

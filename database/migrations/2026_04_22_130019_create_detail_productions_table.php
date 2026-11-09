@@ -18,6 +18,8 @@ return new class extends Migration {
             $table->decimal('weight', 14, 2)->nullable()->comment('Weight in KG');
             $table->decimal('unit_price', 14, 2)->nullable()->comment('Price per KG in MAD');
             $table->decimal('total_price', 14, 2)->nullable()->comment('Total line price in MAD');
+            $table->decimal('secondary_packaging_cost', 12, 2)->default(0.00)->comment('Secondary packaging cost calculated for this detail production line');
+            $table->json('secondary_packaging_details')->nullable()->comment('JSON breakdown of secondary packaging quantities and unit costs');
             $table->foreignId('package_type_id')->nullable()->constrained('package_types')->nullOnDelete()->comment('FK to package_types');
             $table->decimal('nbr_box', 10, 2)->nullable()->comment('Number of boxes/packages');
             $table->foreignId('warehouse_id')->nullable()->constrained('warehouses')->nullOnDelete()->comment('FK to warehouses');
@@ -26,6 +28,7 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index(['stockable_type', 'stockable_id'], 'idx_detail_productions_stockable');
             $table->comment('Line items in a production. Polymorphic stockable. BelongsTo productions, detail_production_categories, package_types, warehouses, trucks.');
         });
     }

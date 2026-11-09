@@ -24,6 +24,7 @@ return new class extends Migration
 
             $table->index(['workforce_id', 'fortnight_period']);
             $table->index(['workforce_id', 'date']);
+            $table->index('date', 'idx_fortnight_activities_date');
             $table->comment('Daily work assignments. BelongsTo workforces, sections, corporals. Q1=1st-15th, Q2=16th-end. Either section_id OR corporal_id set.');
         });
     }

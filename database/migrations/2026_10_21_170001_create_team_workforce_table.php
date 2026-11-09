@@ -6,20 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('teams', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->foreignId('corporal_id')->nullable()->constrained('corporals')->nullOnDelete();
-            $table->text('description')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
-        });
-
         Schema::create('team_workforce', function (Blueprint $table) {
             $table->id();
             $table->foreignId('team_id')->constrained('teams')->cascadeOnDelete();
@@ -30,12 +18,9 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('team_workforce');
-        Schema::dropIfExists('teams');
     }
 };
+

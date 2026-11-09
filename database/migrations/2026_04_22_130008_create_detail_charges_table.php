@@ -29,6 +29,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index(['stockable_type', 'stockable_id'], 'idx_detail_charges_stockable');
             $table->comment('Line items in a charge. Polymorphic stockable (FishType/GuanoType/PackageType). BelongsTo charges, detail_charge_categories, package_types, warehouses, trucks, suppliers.');
         });
     }

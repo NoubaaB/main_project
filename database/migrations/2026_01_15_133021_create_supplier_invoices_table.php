@@ -11,8 +11,6 @@ return new class extends Migration {
     public function up(): void
     {
         // Supplier invoices group one or more charges and/or productions into a single billable document.
-        // Each invoice tracks the date, tracking numbers, and aggregated totals.
-        // Optionally linked to a single supplier via supplier_id for direct invoices.
         Schema::create('supplier_invoices', function (Blueprint $table) {
             $table->id();
             $table->date('date')->comment('Date the invoice was issued');
@@ -25,6 +23,9 @@ return new class extends Migration {
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index('date', 'idx_supplier_invoices_date');
+            $table->index('created_at', 'idx_supplier_invoices_created_at');
 
             $table->comment('Supplier invoices containing grouped charges and/or productions. Has many charges, productions, payments, and suppliers (via pivot). , and have relations to Supplier Settlement');
         });

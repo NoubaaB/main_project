@@ -18,6 +18,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index('date', 'idx_warehouse_transfers_date');
             $table->comment('Stock transfers between warehouses. BelongsToMany trucks (warehouse_transfer_truck). Has many detail_warehouse_transfers.');
         });
     }

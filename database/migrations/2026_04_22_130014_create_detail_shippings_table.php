@@ -27,6 +27,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index(['stockable_type', 'stockable_id'], 'idx_detail_shippings_stockable');
             $table->comment('Line items in a shipping. Polymorphic stockable. BelongsTo shippings, detail_shipping_categories, package_types, warehouses, trucks.');
         });
     }

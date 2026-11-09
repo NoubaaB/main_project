@@ -21,6 +21,12 @@ return new class extends Migration
             $table->boolean('fixed_daily_pay')->default(false);
             $table->string('cnss_id', 100)->nullable()->comment('CNSS registration number');
             $table->decimal('daily_price', 10, 2)->default(0);
+            $table->string('status')->default('active')->comment('active, absent, left_company');
+            $table->date('departure_date')->nullable();
+            $table->string('departure_reason')->nullable();
+            $table->date('return_date')->nullable();
+            $table->json('previous_team_ids')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
 

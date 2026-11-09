@@ -21,20 +21,18 @@ return new class extends Migration
             $table->integer('print_counter')->default(0)->comment('Number of times this invoice has been printed');
             $table->timestamps();
             $table->softDeletes();
-            $table->comment('Client invoices grouping shippings and productions. Has many shippings (FK invoice_id), productions (FK client_invoice_id).');
-        });
 
-        // Add FK from shippings.invoice_id -> client_invoices after table is created
-        Schema::table('shippings', function (Blueprint $table) {
-            $table->foreign('invoice_id')->references('id')->on('client_invoices')->nullOnDelete();
+            $table->index('date', 'idx_client_invoices_date');
+            $table->index('created_at', 'idx_client_invoices_created_at');
+            $table->index('type_invoice', 'idx_client_invoices_type');
+
+            $table->comment('Client invoices grouping shippings and productions. Has many shippings (FK invoice_id), productions (FK client_invoice_id).');
         });
     }
 
     public function down(): void
     {
-        Schema::table('shippings', function (Blueprint $table) {
-            $table->dropForeign(['invoice_id']);
-        });
         Schema::dropIfExists('client_invoices');
     }
 };
+

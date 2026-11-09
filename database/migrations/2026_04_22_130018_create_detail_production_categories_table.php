@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('warehouse_operation')->nullable()->comment('Default warehouse operation: stock_in or stock_out');
             $table->boolean('allow_detail_truck_id')->default(false)->comment('Show truck selection per line item');
             $table->boolean('include_in_invoice')->default(true)->comment('Whether this line type appears on invoices');
+            $table->boolean('allow_secondary_packaging')->default(false)->comment('If true, calculates secondary packaging cost for detail productions in this category');
             $table->foreignId('production_category_id')->constrained('production_categories')->cascadeOnDelete()->comment('FK to production_categories');
             $table->timestamps();
             $table->softDeletes();

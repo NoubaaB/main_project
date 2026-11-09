@@ -26,6 +26,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index(['stockable_type', 'stockable_id'], 'idx_detail_inventories_stockable');
             $table->comment('Line items in an inventory count. Polymorphic stockable. BelongsTo inventories, detail_inventory_categories, package_types, warehouses.');
         });
     }

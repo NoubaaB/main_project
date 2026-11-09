@@ -22,6 +22,8 @@ return new class extends Migration
             $table->text('formula')->comment('Math formula expression e.g. ((c2+c3)/c1)*100');
             $table->text('description')->nullable()->comment('Description of cost calculation');
             $table->boolean('enabled')->default(true)->comment('Whether cost formula is active');
+            $table->boolean('show_in_chart')->default(false)->comment('Whether to display this cost as a line in Jupiter Dashboard chart');
+            $table->string('chart_color', 9)->nullable()->comment('Hex color for the chart line e.g. #FF5722');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->comment('FK to users');
             $table->timestamps();
             $table->softDeletes();

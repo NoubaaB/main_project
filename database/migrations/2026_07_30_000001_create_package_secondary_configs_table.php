@@ -35,6 +35,8 @@ return new class extends Migration
             
             $table->decimal('scotch_qte', 10, 4)->default(0);
             $table->decimal('scotch_price', 10, 4)->default(0);
+
+            $table->json('components')->nullable()->comment('Array of secondary packaging components [{key, name, unit, qte, price}]');
             
             $table->decimal('unit_cost', 12, 4)->default(0)->comment('Sum of (qte * price) for all 6 items per package unit');
 

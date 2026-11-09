@@ -14,6 +14,7 @@ return new class extends Migration
             $table->date('date')->comment('Date the purchase was recorded');
             $table->decimal('total_price', 14, 2)->default(0)->comment('Sum of all line item prices in MAD');
             $table->decimal('total_weight', 14, 2)->default(0)->comment('Sum of all line item weights in KG');
+            $table->decimal('total_weight_invoice', 14, 2)->default(0)->comment('Sum of detail invoiced weights in KG');
             $table->foreignId('charge_category_id')->constrained('charge_categories')->cascadeOnDelete()->comment('FK to charge_categories - determines the type of purchase');
             $table->json('reception_tracking_number')->nullable()->comment('JSON array of reception tracking numbers from fishery');
             $table->json('tracking_onp_numbers')->nullable()->comment('JSON array of ONP tracking numbers');
@@ -28,6 +29,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index('date', 'idx_charges_date');
             $table->comment('Fish purchase transactions. BelongsTo charge_categories, fisheries, ships, origins, suppliers, supplier_invoices. BelongsToMany trucks (charge_truck). Has many detail_charges. HasOne production.');
         });
     }

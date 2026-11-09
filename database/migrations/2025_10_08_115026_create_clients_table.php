@@ -23,6 +23,11 @@ return new class extends Migration
             $table->string("description", 200)->nullable()->comment('Additional notes about the client');
             $table->string("logo_image", 200)->nullable()->comment('Path to client logo image');
             $table->boolean("active_status")->default(true)->comment('Whether the client is currently active');
+            $table->boolean('enable_plafond')->default(false)->comment('Whether plafond limit is active');
+            $table->decimal('plafond_amount', 15, 2)->nullable()->comment('Max credit limit / plafond amount in MAD');
+            $table->boolean('block_on_plafond')->default(false)->comment('Block shipping/sales when plafond is reached');
+            $table->string('plafond_mode', 20)->default('monthly')->comment('Plafond calculation mode: monthly or yearly');
+            $table->string('plafond_blocking_scope', 30)->default('past_unpaid')->comment('Scope: past_unpaid or current_month_only');
 
             $table->timestamps();
             $table->softDeletes();

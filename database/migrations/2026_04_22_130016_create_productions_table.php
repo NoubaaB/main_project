@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->id();
             $table->date('date')->comment('Date the production was recorded');
             $table->decimal('total_price', 14, 2)->default(0)->comment('Sum of all line item prices in MAD');
+            $table->decimal('total_secondary_packaging_cost', 12, 2)->default(0.00)->comment('Total cost of secondary packaging across all detail productions');
             $table->decimal('total_weight', 14, 2)->default(0)->comment('Sum of all line item weights in KG');
             $table->decimal('fresh_reception_weight', 12, 2)->default(0);
             $table->decimal('frozen_production_weight', 12, 2)->default(0);
@@ -38,6 +39,7 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index('date', 'idx_productions_date');
             $table->comment('Fish processing records. BelongsTo production_categories, fisheries, ships, origins, charges, suppliers, clients, supplier_invoices, client_invoices. Has many detail_productions.');
         });
     }
