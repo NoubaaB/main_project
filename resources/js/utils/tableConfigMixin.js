@@ -92,10 +92,217 @@ export default {
     isAllExpanded() {
       const items = this.colFilteredItems || [];
       if (!items.length) return false;
+      if (this.expandedCount < items.length) return false;
       return items.every(i => Boolean(this.expanded && this.expanded[i.id]));
     },
     expandedCount() {
-      return Object.values(this.expanded || {}).filter(Boolean).length;
+      if (!this.expanded) return 0;
+      let count = 0;
+      for (const k in this.expanded) {
+        if (this.expanded[k]) count++;
+      }
+      return count;
+    },
+    headerPinStyles() {
+      const isDark = Boolean(this.isDarkTheme ?? this.main?.is_dark);
+      const bg = isDark ? '#1e293b' : '#ffffff';
+      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 92;
+      const headers = this.headers || [];
+      const pinState = this.pinState || {};
+      const colWidths = this.colWidths || {};
+
+      const leftCols = headers.filter(h => !h.fixed && pinState[h.key] === 'left');
+      const rightCols = headers.filter(h => !h.fixed && pinState[h.key] === 'right');
+      const lastLeftKey = leftCols.length > 0 ? leftCols[leftCols.length - 1].key : null;
+      const firstRightKey = rightCols.length > 0 ? rightCols[0].key : null;
+
+      const styles = {
+        __checkbox: {
+          position: 'sticky',
+          left: '0px',
+          zIndex: 4,
+          background: bg,
+          width: '50px',
+          minWidth: '50px',
+          maxWidth: '50px',
+        },
+        expand: {
+          position: 'sticky',
+          left: '50px',
+          zIndex: 3,
+          background: bg,
+          width: '40px',
+          minWidth: '40px',
+          maxWidth: '40px',
+          boxShadow: !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+        },
+        actions: {
+          position: 'sticky',
+          right: '0px',
+          zIndex: 3,
+          background: bg,
+          width: actionsW + 'px',
+          minWidth: actionsW + 'px',
+          boxShadow: !firstRightKey ? `-3px 0 8px -2px rgba(0, 0, 0, ${isDark ? '0.45' : '0.12'})` : 'none',
+        },
+      };
+
+      let leftOffset = 90; // 50 (checkbox) + 40 (expand)
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i];
+        const key = h.key;
+        if (key === '__checkbox' || key === 'expand' || key === 'actions') continue;
+        const side = pinState[key];
+        const w = colWidths[key] || this.getDefaultColWidth(key);
+        if (side === 'left') {
+          styles[key] = {
+            position: 'sticky',
+            left: leftOffset + 'px',
+            zIndex: 2,
+            background: bg,
+            width: w + 'px',
+            minWidth: w + 'px',
+            maxWidth: w + 'px',
+            boxShadow: key === lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          };
+          leftOffset += w;
+        } else if (!side) {
+          styles[key] = {
+            width: w + 'px',
+            minWidth: w + 'px',
+            maxWidth: w + 'px',
+          };
+        }
+      }
+
+      let rightOffset = actionsW;
+      for (let i = headers.length - 1; i >= 0; i--) {
+        const h = headers[i];
+        const key = h.key;
+        if (key === '__checkbox' || key === 'expand' || key === 'actions') continue;
+        const side = pinState[key];
+        if (side === 'right') {
+          const w = colWidths[key] || this.getDefaultColWidth(key);
+          styles[key] = {
+            position: 'sticky',
+            right: rightOffset + 'px',
+            zIndex: 2,
+            background: bg,
+            width: w + 'px',
+            minWidth: w + 'px',
+            maxWidth: w + 'px',
+            boxShadow: key === firstRightKey ? '-3px 0 8px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          };
+          rightOffset += w;
+        }
+      }
+
+      return styles;
+    },
+    thPinStyles() {
+      const isDark = Boolean(this.isDarkTheme ?? this.main?.is_dark);
+      const thBg = isDark ? '#1e293b' : '#f8fafc';
+      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 92;
+      const headers = this.headers || [];
+      const pinState = this.pinState || {};
+      const colWidths = this.colWidths || {};
+
+      const leftCols = headers.filter(h => !h.fixed && pinState[h.key] === 'left');
+      const rightCols = headers.filter(h => !h.fixed && pinState[h.key] === 'right');
+      const lastLeftKey = leftCols.length > 0 ? leftCols[leftCols.length - 1].key : null;
+      const firstRightKey = rightCols.length > 0 ? rightCols[0].key : null;
+
+      const styles = {
+        __checkbox: {
+          position: 'sticky',
+          top: '0px',
+          left: '0px',
+          zIndex: 8,
+          background: thBg,
+          width: '50px',
+          minWidth: '50px',
+          maxWidth: '50px',
+        },
+        expand: {
+          position: 'sticky',
+          top: '0px',
+          left: '50px',
+          zIndex: 7,
+          background: thBg,
+          width: '40px',
+          minWidth: '40px',
+          maxWidth: '40px',
+          boxShadow: !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+        },
+        actions: {
+          position: 'sticky',
+          top: '0px',
+          right: '0px',
+          zIndex: 7,
+          background: thBg,
+          width: actionsW + 'px',
+          minWidth: actionsW + 'px',
+          boxShadow: !firstRightKey ? `-3px 0 8px -2px rgba(0, 0, 0, ${isDark ? '0.45' : '0.12'})` : 'none',
+        },
+      };
+
+      let leftOffset = 90;
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i];
+        const key = h.key;
+        if (key === '__checkbox' || key === 'expand' || key === 'actions') continue;
+        const side = pinState[key];
+        const w = colWidths[key] || this.getDefaultColWidth(key);
+        if (side === 'left') {
+          styles[key] = {
+            position: 'sticky',
+            top: '0px',
+            left: leftOffset + 'px',
+            zIndex: 6,
+            background: thBg,
+            width: w + 'px',
+            minWidth: w + 'px',
+            maxWidth: w + 'px',
+            boxShadow: key === lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          };
+          leftOffset += w;
+        } else if (!side) {
+          styles[key] = {
+            position: 'sticky',
+            top: '0px',
+            zIndex: 4,
+            background: thBg,
+            width: w + 'px',
+            minWidth: w + 'px',
+            maxWidth: w + 'px',
+          };
+        }
+      }
+
+      let rightOffset = actionsW;
+      for (let i = headers.length - 1; i >= 0; i--) {
+        const h = headers[i];
+        const key = h.key;
+        if (key === '__checkbox' || key === 'expand' || key === 'actions') continue;
+        const side = pinState[key];
+        if (side === 'right') {
+          const w = colWidths[key] || this.getDefaultColWidth(key);
+          styles[key] = {
+            position: 'sticky',
+            top: '0px',
+            right: rightOffset + 'px',
+            zIndex: 6,
+            background: thBg,
+            width: w + 'px',
+            minWidth: w + 'px',
+            maxWidth: w + 'px',
+            boxShadow: key === firstRightKey ? '-3px 0 8px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          };
+          rightOffset += w;
+        }
+      }
+
+      return styles;
     },
   },
   mounted() {
@@ -386,95 +593,10 @@ export default {
       return offset;
     },
     colPinStyle(key, zIndex = 2) {
-      const isDark = this.main?.is_dark;
-      const bg = isDark ? '#1e293b' : '#ffffff';
-      const thBg = isDark ? '#1c1f28' : '#f8fafc';
-      const currentBg = zIndex >= 3 ? thBg : bg;
-
-      if (key === '__checkbox') {
-        return {
-          position: 'sticky',
-          left: '0px',
-          zIndex: zIndex + 2,
-          background: currentBg,
-          width: '50px',
-          minWidth: '50px',
-          maxWidth: '50px',
-        };
+      if (zIndex >= 3) {
+        return (this.thPinStyles && this.thPinStyles[key]) || { width: this.getColWidth(key) + 'px' };
       }
-
-      if (key === 'expand') {
-        const isLastLeft = !this.hasLeftPinnedColumns;
-        return {
-          position: 'sticky',
-          left: '50px',
-          zIndex: zIndex + 1,
-          background: currentBg,
-          width: '40px',
-          minWidth: '40px',
-          maxWidth: '40px',
-          boxShadow: isLastLeft ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
-        };
-      }
-
-      if (key === 'actions') {
-        const isFirstRight = !this.hasRightPinnedColumns;
-        const actionsW = this.getActionsColWidth();
-        return {
-          position: 'sticky',
-          right: '0px',
-          zIndex: zIndex + 1,
-          background: currentBg,
-          width: actionsW + 'px',
-          minWidth: actionsW + 'px',
-          boxShadow: isFirstRight ? `-3px 0 8px -2px rgba(0, 0, 0, ${isDark ? '0.45' : '0.12'})` : 'none',
-        };
-      }
-
-      const side = this.pinSide(key);
-      const w = this.getColWidth(key);
-
-      if (!side) {
-        return {
-          width: w + 'px',
-          minWidth: w + 'px',
-          maxWidth: w + 'px',
-        };
-      }
-
-      if (side === 'left') {
-        const isLastLeft = this.isLastLeftPinnedCol(key);
-        return {
-          position: 'sticky',
-          left: this.getPinLeft(key) + 'px',
-          zIndex: zIndex,
-          background: currentBg,
-          width: w + 'px',
-          minWidth: w + 'px',
-          maxWidth: w + 'px',
-          boxShadow: isLastLeft ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
-        };
-      }
-
-      if (side === 'right') {
-        const isFirstRight = this.isFirstRightPinnedCol(key);
-        return {
-          position: 'sticky',
-          right: this.getPinRight(key) + 'px',
-          zIndex: zIndex,
-          background: currentBg,
-          width: w + 'px',
-          minWidth: w + 'px',
-          maxWidth: w + 'px',
-          boxShadow: isFirstRight ? '-3px 0 8px -2px rgba(0, 0, 0, 0.12)' : 'none',
-        };
-      }
-
-      return {
-        width: w + 'px',
-        minWidth: w + 'px',
-        maxWidth: w + 'px',
-      };
+      return (this.headerPinStyles && this.headerPinStyles[key]) || { width: this.getColWidth(key) + 'px' };
     },
     // Column Resizing
     startColResize(key, e) {

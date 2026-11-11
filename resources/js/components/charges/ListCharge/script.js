@@ -1,3 +1,4 @@
+import { toRaw } from 'vue';
 import axios from 'axios';
 import { gqlGetCharges } from '@/services/appGraphql.js';
 import { useMain } from '@/stores/Main';
@@ -60,6 +61,9 @@ export default {
   },
   computed: {
     main() { return useMain() },
+    currentLang() { return useMain().lang?.code || 'en' },
+    currentCurrency() { return useMain().currency || 'Dh' },
+    isDarkTheme() { return Boolean(useMain().is_dark) },
     cats() { return useChargeCategory().list },
     fishFamilies() { return useFishFamily().list },
     fishTypes() { return useFishType().list },
@@ -70,7 +74,21 @@ export default {
     today() { return new Date().toISOString().slice(0, 10) },
     datePresetOptions() { return getDatePresetOptions(this.$t); },
     dateRangeVC: { get() { return { start: this.dateRange[0], end: this.dateRange[1] || this.dateRange[0] } }, set(v) { if (v && v.start && v.end) this.dateRange = [v.start, v.end] } },
-    catName() { return (id) => { const l = this.main.lang?.code || 'en'; const c = this.cats.find(x => x.id === id); return c ? (c[`name_${l}`] || c.name || `#${id}`) : `#${id}` } },
+    catName() { return (id) => { const l = this.currentLang; const c = this.cats.find(x => x.id === id); return c ? (c[`name_${l}`] || c.name || `#${id}`) : `#${id}` } },
+    selectedSet() { return new Set(this.selected || []) },
+    selectAll: {
+      get() {
+        const total = this.colFilteredItems?.length || 0;
+        return total > 0 && (this.selected?.length || 0) === total;
+      },
+      set(val) {
+        if (val) {
+          this.selected = (this.colFilteredItems || []).map(c => c.id);
+        } else {
+          this.selected = [];
+        }
+      }
+    },
     activeFilterCount() {
       let count = 0;
       if (this.searchQuery && this.searchQuery.trim()) count++;
@@ -98,8 +116,22 @@ export default {
       return count;
     },
     dynamicAdvOptions() {
-      const lang = this.main.lang?.code || 'en';
+      if (this.workerAdvOptions) {
+        return this.workerAdvOptions;
+      }
       const items = this.charges || [];
+      if (items.length > 100) {
+        return {
+          articleTypes: [],
+          warehouses: [],
+          fishFamilies: [],
+          fishFreshFrozen: [],
+          fishProcessTypes: [],
+          fishTypes: [],
+          guanoTypes: [],
+          packageTypes: []
+        };
+      }
       return extractAdvFilterOptions(
         items,
         this.advFilter || {},
@@ -111,7 +143,7 @@ export default {
           packageTypes: this.packageTypes,
           warehouses: this.warehouses,
         },
-        lang
+        this.currentLang
       );
     },
     articleTypeOptions() {
@@ -231,7 +263,7 @@ export default {
       if (this.workerCategoryStats && this.workerCategoryStats.length) {
         return this.workerCategoryStats;
       }
-      const lang = this.main.lang?.code || 'en';
+      const lang = this.currentLang;
       const map = {};
       this.colFilteredItems.forEach(c => {
         const catId = c.charge_category_id;
@@ -252,7 +284,7 @@ export default {
         const sorted = Object.keys(buckets).sort();
         return [
           { name: this.$t('total_weight') + ' (Kg)', type: 'area', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].w * 100) / 100 })) },
-          { name: this.$t('total_price') + ' (' + this.main.currency + ')', type: 'line', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].p * 100) / 100 })) }
+          { name: this.$t('total_price') + ' (' + this.currentCurrency + ')', type: 'line', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].p * 100) / 100 })) }
         ];
       }
       const items = this.colFilteredItems;
@@ -269,7 +301,7 @@ export default {
         buckets[key].p += Number(c.total_price || 0);
       });
       const sorted = Object.keys(buckets).sort();
-      return [{ name: this.$t('total_weight') + ' (Kg)', type: 'area', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].w * 100) / 100 })) }, { name: this.$t('total_price') + ' (' + this.main.currency + ')', type: 'line', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].p * 100) / 100 })) }];
+      return [{ name: this.$t('total_weight') + ' (Kg)', type: 'area', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].w * 100) / 100 })) }, { name: this.$t('total_price') + ' (' + this.currentCurrency + ')', type: 'line', data: sorted.map(k => ({ x: k, y: Math.round(buckets[k].p * 100) / 100 })) }];
     },
     chartOptions() {
       return {
@@ -278,15 +310,15 @@ export default {
         fill: { type: ['gradient', 'solid'], gradient: { shadeIntensity: 1, opacityFrom: .4, opacityTo: .05, stops: [0, 90, 100] } },
         colors: ['#42A5F5', '#FF7043'],
         xaxis: { type: 'category', labels: { style: { fontSize: '10px', fontWeight: 600 }, rotate: -45, rotateAlways: this.chartMode === 'daily' }, tooltip: { enabled: false } },
-        yaxis: [{ title: { text: this.$t('total_weight') + ' (Kg)', style: { fontSize: '11px', fontWeight: 700, color: '#42A5F5' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }, { opposite: true, title: { text: this.$t('total_price') + ' (' + this.main.currency + ')', style: { fontSize: '11px', fontWeight: 700, color: '#FF7043' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }],
+        yaxis: [{ title: { text: this.$t('total_weight') + ' (Kg)', style: { fontSize: '11px', fontWeight: 700, color: '#42A5F5' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }, { opposite: true, title: { text: this.$t('total_price') + ' (' + this.currentCurrency + ')', style: { fontSize: '11px', fontWeight: 700, color: '#FF7043' } }, labels: { style: { fontSize: '10px' }, formatter: v => this.main.formatDisplayNumber(v) } }],
         tooltip: { shared: true, intersect: false, y: { formatter: v => this.main.formatDisplayNumber(v) } },
         grid: { borderColor: 'rgba(0,0,0,.06)', strokeDashArray: 4 },
         legend: { position: 'top', fontSize: '11px', fontWeight: 600 },
         dataLabels: { enabled: false },
-        theme: { mode: this.main.is_dark ? 'dark' : 'light' },
+        theme: { mode: this.isDarkTheme ? 'dark' : 'light' },
       };
     },
-    selectedCharges() { return this.charges.filter(c => this.selected.includes(c.id)) },
+    selectedCharges() { return this.charges.filter(c => this.selectedSet.has(c.id)) },
     uninvoicedSelectedCharges() { return this.selectedCharges.filter(c => !c._is_invoiced) },
     invoiceSuppliers() {
       const s = new Set();
@@ -341,25 +373,25 @@ export default {
     async dispatchWorkerFilter(debounceMs = 0) {
       this.initWorker();
       if (!this._cachedWorkerItems || !this._cachedWorkerItems.length) {
-        this._cachedWorkerItems = JSON.parse(JSON.stringify(this.charges || []));
+        this._cachedWorkerItems = toRaw(this.charges || []);
       }
       this.isWorkerFiltering = true;
       const payload = {
-        items: this._cachedWorkerItems,
+        items: toRaw(this._cachedWorkerItems),
         moduleType: 'charge',
         searchQuery: this.searchQuery,
-        colFilters: JSON.parse(JSON.stringify(this.colFilters || {})),
-        advFilter: JSON.parse(JSON.stringify(this.advFilter || {})),
-        colSorts: JSON.parse(JSON.stringify(this.colSorts || [])),
+        colFilters: toRaw(this.colFilters || {}),
+        advFilter: toRaw(this.advFilter || {}),
+        colSorts: toRaw(this.colSorts || []),
         chartMode: this.chartMode,
-        langCode: this.main.lang?.code || 'en',
-        cats: JSON.parse(JSON.stringify(this.cats || [])),
-        fishFamilies: JSON.parse(JSON.stringify(this.fishFamilies || [])),
-        fishTypes: JSON.parse(JSON.stringify(this.fishTypes || [])),
-        fishProcessTypes: JSON.parse(JSON.stringify(this.fishProcessTypes || [])),
-        guanoTypes: JSON.parse(JSON.stringify(this.guanoTypes || [])),
-        packageTypes: JSON.parse(JSON.stringify(this.packageTypes || [])),
-        warehouses: JSON.parse(JSON.stringify(this.warehouses || [])),
+        langCode: this.currentLang,
+        cats: toRaw(this.cats || []),
+        fishFamilies: toRaw(this.fishFamilies || []),
+        fishTypes: toRaw(this.fishTypes || []),
+        fishProcessTypes: toRaw(this.fishProcessTypes || []),
+        guanoTypes: toRaw(this.guanoTypes || []),
+        packageTypes: toRaw(this.packageTypes || []),
+        warehouses: toRaw(this.warehouses || []),
         allHeaderKeys: this.allHeaders.map(h => h.key),
       };
       try {
@@ -402,11 +434,11 @@ export default {
             // Date outside range — remove if it existed
             this.charges = this.charges.filter(c => c.id !== rd.id);
           }
-          this._cachedWorkerItems = JSON.parse(JSON.stringify(this.charges));
+          this._cachedWorkerItems = toRaw(this.charges);
           this.dispatchWorkerFilter(0);
         } else if (d.action === 'deleted' && d.record_id) {
           this.charges = this.charges.filter(c => c.id !== d.record_id);
-          this._cachedWorkerItems = JSON.parse(JSON.stringify(this.charges));
+          this._cachedWorkerItems = toRaw(this.charges);
           this.dispatchWorkerFilter(0);
         }
       } else if (d.model === 'SupplierInvoice') {
@@ -484,7 +516,7 @@ export default {
           items = r.data.charges || [];
         }
         this.charges = (items || []).map(c => this.mapCharge(c));
-        this._cachedWorkerItems = JSON.parse(JSON.stringify(this.charges));
+        this._cachedWorkerItems = toRaw(this.charges);
         this.dispatchWorkerFilter(0);
         // Fetch open issue counts and merge
         this._fetchIssueCounts('Charge');
@@ -536,7 +568,17 @@ export default {
       if (!this.colSorts || !this.colSorts.length) return items;
       return [...items].sort((a, b) => { for (const { key, dir } of this.colSorts) { let va = key === 'charge_category_id' ? this.catName(a[key]) : a[key], vb = key === 'charge_category_id' ? this.catName(b[key]) : b[key]; if (va == null) va = ''; if (vb == null) vb = ''; const n = typeof va === 'number' && typeof vb === 'number'; if (n) { if (va !== vb) return dir === 'asc' ? va - vb : vb - va } else { const c = String(va).localeCompare(String(vb)); if (c) return dir === 'asc' ? c : -c } } return 0 });
     },
+    toggleItemSelect(id) {
+      const idx = this.selected.indexOf(id);
+      if (idx > -1) {
+        this.selected.splice(idx, 1);
+      } else {
+        this.selected.push(id);
+      }
+    },
     groupDetails(charge) {
+      if (!charge) return [];
+      if (charge._cachedGroupDetails) return charge._cachedGroupDetails;
       const groups = {};
       (charge.detail_charges || []).forEach(dc => {
         const catId = dc.detail_charge_category_id;
@@ -546,16 +588,17 @@ export default {
         groups[catId].totalP += Number(dc.total_price || 0);
         groups[catId].totalWI += Number(dc.weight_invoice || 0);
       });
-      return Object.values(groups);
+      charge._cachedGroupDetails = Object.values(groups);
+      return charge._cachedGroupDetails;
     },
     articleName(dc) {
       if (!dc.stockable_type || dc.stockable_type === 'text') return dc.article_description || '-';
-      const s = dc.stockable; return s ? (s.name || s[`name_${this.main.lang?.code}`] || '-') : '-';
+      const s = dc.stockable; return s ? (s.name || s[`name_${this.currentLang}`] || '-') : '-';
     },
     articleFamily(dc) {
       if ((dc.stockable_type === 'FishType' || dc.stockable_type?.includes('FishType')) && dc.stockable) {
         const fam = this.fishFamilies.find(f => f.id === dc.stockable.fish_family_id);
-        return fam ? (fam[`name_${this.main.lang?.code}`] || fam.name || '-') : '-';
+        return fam ? (fam[`name_${this.currentLang}`] || fam.name || '-') : '-';
       }
       return '-';
     },

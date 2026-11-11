@@ -8,8 +8,9 @@ export default {
       tableScrollTop: 0,
       tableContainerHeight: 600,
       rowHeight: 44, // standard row height in px
-      virtualBuffer: 25, // buffer rows above and below viewport
+      virtualBuffer: 8, // buffer rows above and below viewport (reduced for ultra-fast DOM rendering)
       _scrollRaf: null,
+      _resizeRaf: null,
       _resizeObserver: null,
     };
   },
@@ -18,37 +19,37 @@ export default {
       return this.colFilteredItems ? this.colFilteredItems.length : 0;
     },
     virtualStartIndex() {
-      if (this.virtualTotalCount <= 50) return 0;
+      if (this.virtualTotalCount <= 40) return 0;
       const idx = Math.floor(this.tableScrollTop / this.rowHeight) - this.virtualBuffer;
       return Math.max(0, idx);
     },
     virtualEndIndex() {
-      if (this.virtualTotalCount <= 50) return this.virtualTotalCount;
+      if (this.virtualTotalCount <= 40) return this.virtualTotalCount;
       const inView = Math.ceil(this.tableContainerHeight / this.rowHeight);
       const idx = Math.floor(this.tableScrollTop / this.rowHeight) + inView + this.virtualBuffer;
       return Math.min(this.virtualTotalCount, idx);
     },
     virtualTopHeight() {
-      if (this.virtualTotalCount <= 50) return 0;
+      if (this.virtualTotalCount <= 40) return 0;
       return this.virtualStartIndex * this.rowHeight;
     },
     virtualBottomHeight() {
-      if (this.virtualTotalCount <= 50) return 0;
+      if (this.virtualTotalCount <= 40) return 0;
       return Math.max(0, (this.virtualTotalCount - this.virtualEndIndex) * this.rowHeight);
     },
     visibleItems() {
-      if (this.virtualTotalCount <= 50) return this.colFilteredItems || [];
+      if (this.virtualTotalCount <= 40) return this.colFilteredItems || [];
       return (this.colFilteredItems || []).slice(this.virtualStartIndex, this.virtualEndIndex);
     },
   },
   methods: {
     onTableScroll(e) {
       if (this._scrollRaf) cancelAnimationFrame(this._scrollRaf);
+      const target = e && e.target;
+      if (!target) return;
+      const st = target.scrollTop;
       this._scrollRaf = requestAnimationFrame(() => {
-        if (e && e.target) {
-          this.tableScrollTop = e.target.scrollTop;
-          this.tableContainerHeight = e.target.clientHeight || 600;
-        }
+        this.tableScrollTop = st;
       });
     },
     resetTableScroll() {
@@ -66,7 +67,14 @@ export default {
           this._resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
               if (entry.target === this.$refs.tableWrap) {
-                this.tableContainerHeight = entry.contentRect.height || this.tableContainerHeight;
+                const newHeight = Math.round(entry.contentRect.height);
+                // Only update when vertical height actually changes (ignores sidebar width animations)
+                if (newHeight > 0 && Math.abs(newHeight - this.tableContainerHeight) >= 2) {
+                  if (this._resizeRaf) cancelAnimationFrame(this._resizeRaf);
+                  this._resizeRaf = requestAnimationFrame(() => {
+                    this.tableContainerHeight = newHeight;
+                  });
+                }
               }
             }
           });
@@ -77,6 +85,7 @@ export default {
   },
   beforeUnmount() {
     if (this._scrollRaf) cancelAnimationFrame(this._scrollRaf);
+    if (this._resizeRaf) cancelAnimationFrame(this._resizeRaf);
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
       this._resizeObserver = null;

@@ -1198,13 +1198,13 @@
       <v-progress-linear v-if="isWorkerFiltering" indeterminate color="#4643a0" height="2" class="ls-table-loader"></v-progress-linear>
       <table class="ls-table">
         <thead class="ls-thead"><tr>
-          <th class="ls-th ls-th-pin" :style="colPinStyle('__checkbox', 3)"><v-checkbox-btn v-model="selectAll" color="#4643a0" density="compact" hide-details></v-checkbox-btn></th>
+          <th class="ls-th ls-th-pin" :style="thPinStyles['__checkbox']"><v-checkbox-btn v-model="selectAll" color="#4643a0" density="compact" hide-details></v-checkbox-btn></th>
           <th
             v-for="h in headers"
             :key="h.key"
             class="ls-th"
             :class="{'ls-th-pin': isPinned(h.key) || h.fixed, 'ls-th-dragover': dragOverCol === h.key, 'ls-th-actions': h.key === 'actions'}"
-            :style="colPinStyle(h.key, 3)"
+            :style="thPinStyles[h.key]"
             :draggable="!h.fixed"
             @dragstart="onDragStart(h.key)"
             @dragover="onDragOver(h.key, $event)"
@@ -1301,7 +1301,7 @@
         <tbody>
           <template v-if="loading">
             <tr v-for="r in 8" :key="'ls-skel-' + r" class="ls-row app-skeleton-table-row">
-              <td class="ls-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td class="ls-td ls-col-pin text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
               <td v-for="h in headers" :key="'ls-skel-' + h.key + '-' + r" class="ls-td" :class="{'ls-col-pin': isPinned(h.key) || h.fixed, 'ls-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
                 <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
               </td>
@@ -1314,8 +1314,8 @@
             </tr>
             <template v-for="item in visibleItems" :key="item.id">
             <tr class="ls-row" :class="{'ls-row-expanded':expanded[item.id],'ls-row-invoiced':item._is_invoiced}">
-              <td class="ls-td ls-th-pin" :style="colPinStyle('__checkbox', 2)"><v-checkbox-btn v-model="selected" :value="item.id" color="#4643a0" density="compact" hide-details></v-checkbox-btn></td>
-              <td v-for="h in headers" :key="h.key" class="ls-td" :class="{'ls-col-pin': isPinned(h.key) || h.fixed, 'ls-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
+              <td class="ls-td ls-col-pin" :style="headerPinStyles['__checkbox']"><v-checkbox-btn :model-value="selectedSet.has(item.id)" @update:model-value="toggleItemSelect(item.id)" color="#4643a0" density="compact" hide-details></v-checkbox-btn></td>
+              <td v-for="h in headers" :key="h.key" class="ls-td" :class="{'ls-col-pin': isPinned(h.key) || h.fixed, 'ls-td-actions': h.key === 'actions'}" :style="headerPinStyles[h.key]">
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
                 <template v-else-if="h.key==='shipping_category_id'"><v-chip size="small" color="#4643a0" variant="tonal">{{ catName(item.shipping_category_id) }}</v-chip></template>
@@ -1335,10 +1335,10 @@
                       variant="tonal"
                       color="#4643a0"
                       class="ls-act-btn"
+                      :title="$t('view')"
                       @click="$router.push({ name: 'view_shipping', params: { id: item.id } })"
                     >
                       <v-icon size="14">mdi-eye</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('view') }}</v-tooltip>
                     </v-btn>
 
                     <v-btn
@@ -1348,10 +1348,10 @@
                       variant="tonal"
                       color="warning"
                       class="ls-act-btn"
+                      :title="$t('edit')"
                       @click="$router.push({ name: 'edit_shipping', params: { id: item.id } })"
                     >
                       <v-icon size="14">mdi-pencil</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
                     </v-btn>
 
                     <v-menu location="bottom end" :close-on-content-click="true">
@@ -1363,6 +1363,7 @@
                           variant="tonal"
                           color="blue-grey"
                           class="ls-act-btn"
+                          :title="$t('more_actions')"
                         >
                           <v-badge
                             v-if="(item._open_issues || 0) > 0"
@@ -1374,7 +1375,6 @@
                             <v-icon size="15">mdi-dots-vertical</v-icon>
                           </v-badge>
                           <v-icon v-else size="15">mdi-dots-vertical</v-icon>
-                          <v-tooltip activator="parent" location="top">{{ $t('more_actions') }}</v-tooltip>
                         </v-btn>
                       </template>
 
@@ -1426,9 +1426,9 @@
             <tr v-if="expanded[item.id]"><td :colspan="headers.length+1" class="pa-0">
               <div class="ls-expand-content">
                 <div v-for="(grp,gi) in groupDetails(item)" :key="gi" class="ls-detail-group mb-2">
-                  <div class="ls-detail-group-header"><v-icon size="16" color="#4643a0" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${main.lang?.code}`]||grp.category.name:'-' }}</b></div>
+                  <div class="ls-detail-group-header"><v-icon size="16" color="#4643a0" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${currentLang}`]||grp.category.name:'-' }}</b></div>
                   <table class="ls-detail-table"><thead><tr><th>{{ $t('classification') }}</th><th>{{ $t('product') }}</th><th>{{ $t('product_family') }}</th><th>{{ $t('warehouse') }}</th><th>{{ $t('total_weight') }}</th><th>{{ $t('unit_price') }}</th><th>{{ $t('total_price') }}</th><th>{{ $t('package_type') }}</th><th>{{ $t('total_package_count') }}</th></tr></thead>
-                  <tbody><tr v-for="dc in grp.items" :key="dc.id"><td><v-chip size="x-small" color="#4643a0" variant="tonal">{{ dc.stockable_type||$t('text') }}</v-chip></td><td class="font-weight-bold">{{ articleName(dc) }}</td><td>{{ articleFamily(dc) }}</td><td><span v-if="dc.warehouse">{{ dc.warehouse[`name_${main.lang?.code}`]||dc.warehouse.name }}</span><span v-else>{{ $t('non_stockable') }}</span></td><td>{{ main.formatDisplayNumber(dc.weight) }}</td><td>{{ main.formatDisplayNumber(dc.unit_price) }}</td><td>{{ main.formatDisplayNumber(dc.total_price) }}</td><td>{{ dc.package_type?dc.package_type.name:'N/A' }}</td><td>{{ dc.nbr_box||'-' }}</td></tr></tbody>
+                  <tbody><tr v-for="dc in grp.items" :key="dc.id"><td><v-chip size="x-small" color="#4643a0" variant="tonal">{{ dc.stockable_type||$t('text') }}</v-chip></td><td class="font-weight-bold">{{ articleName(dc) }}</td><td>{{ articleFamily(dc) }}</td><td><span v-if="dc.warehouse">{{ dc.warehouse[`name_${currentLang}`]||dc.warehouse.name }}</span><span v-else>{{ $t('non_stockable') }}</span></td><td>{{ main.formatDisplayNumber(dc.weight) }}</td><td>{{ main.formatDisplayNumber(dc.unit_price) }}</td><td>{{ main.formatDisplayNumber(dc.total_price) }}</td><td>{{ dc.package_type?dc.package_type.name:'N/A' }}</td><td>{{ dc.nbr_box||'-' }}</td></tr></tbody>
                   <tfoot><tr class="ls-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalW) }}</td><td></td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalP) }}</td><td colspan="2"></td></tr></tfoot></table>
                 </div>
               </div>
@@ -1439,7 +1439,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="ls-tfoot"><tr><td class="ls-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="ls-td text-center font-weight-bold" :class="{'ls-col-pin': isPinned(h.key) || h.fixed, 'ls-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        <tfoot class="ls-tfoot"><tr><td class="ls-td ls-col-pin" :style="headerPinStyles['__checkbox']"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="headerPinStyles[h.key]" class="ls-td text-center font-weight-bold" :class="{'ls-col-pin': isPinned(h.key) || h.fixed, 'ls-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
     </div>
@@ -1469,7 +1469,7 @@ export default {
   mixins: [virtualTableMixin, tableConfigMixin],
   components:{...script.components,AddShipping,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle,TableColumnFilter,TableColumnManager},
   data(){return{...script.data.call(this),activeTab:0,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,sellTabs:[{value:0,label:'list_shipping',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('shippings.create')?[{value:1,label:'add_shipping',icon:'mdi-sticker-plus-outline'}]:[])]}},
-  computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
+  computed:{...script.computed,auth(){return useAuth()}},
   methods:{...script.methods,openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true}},
   watch:{...script.watch,activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0)this.fetchShippings()},showInvoice(v){if(v&&this.selectedShippings.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
   mounted(){script.mounted.call(this);if(this.loadTableConfig)this.loadTableConfig();if(this.$route.query.tab==='add')this.activeTab=1},
@@ -1509,7 +1509,8 @@ export default {
 .ls-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
 .ls-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .ls-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
-.ls-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
+.ls-thead th{position:sticky;top:0}
+.ls-th{position:sticky;top:0;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
 .ls-th-actions{text-align:center!important;overflow:visible!important;width:92px!important;min-width:92px!important}
 .ls-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
 .ls-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 3px!important;white-space:nowrap!important;width:92px!important;min-width:92px!important}
@@ -1520,7 +1521,7 @@ export default {
 .ls-th-pin-btn{opacity:.65;transition:opacity .15s}.ls-th-pin-btn:hover{opacity:1}
 .ls-active-sorts-strip{font-family:'Inter',sans-serif}
 .ls-col-pin{position:sticky!important;z-index:2!important;background:#ffffff!important}
-.ls-th-pin{position:sticky!important;z-index:5!important;background:#f8fafc!important}
+.ls-th-pin{position:sticky!important;top:0!important;z-index:6!important;background:#f8fafc!important}
 :deep(.v-theme--dark) .ls-col-pin,
 :deep(.v-theme--dark) .ls-th-pin,
 .v-theme--dark .ls-col-pin,

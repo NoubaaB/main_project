@@ -1126,13 +1126,13 @@
       <v-progress-linear v-if="isWorkerFiltering" indeterminate color="#42A5F5" height="2" class="lc-table-loader"></v-progress-linear>
       <table class="lc-table">
         <thead class="lc-thead"><tr>
-          <th class="lc-th lc-th-pin" :style="colPinStyle('__checkbox', 3)"><v-checkbox-btn v-model="selectAll" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></th>
+          <th class="lc-th lc-th-pin" :style="thPinStyles['__checkbox']"><v-checkbox-btn v-model="selectAll" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></th>
           <th
             v-for="h in headers"
             :key="h.key"
             class="lc-th"
             :class="{'lc-th-pin': isPinned(h.key) || h.fixed, 'lc-th-dragover': dragOverCol === h.key, 'lc-th-actions': h.key === 'actions'}"
-            :style="colPinStyle(h.key, 3)"
+            :style="thPinStyles[h.key]"
             :draggable="!h.fixed"
             @dragstart="onDragStart(h.key)"
             @dragover="onDragOver(h.key, $event)"
@@ -1229,7 +1229,7 @@
         <tbody>
           <template v-if="loading">
             <tr v-for="r in 8" :key="'lc-skel-' + r" class="lc-row app-skeleton-table-row">
-              <td class="lc-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td class="lc-td lc-col-pin text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
               <td v-for="h in headers" :key="'lc-skel-' + h.key + '-' + r" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
                 <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
               </td>
@@ -1242,8 +1242,8 @@
             </tr>
             <template v-for="item in visibleItems" :key="item.id">
             <tr class="lc-row" :class="{'lc-row-expanded':expanded[item.id],'lc-row-invoiced':item._is_invoiced}">
-              <td class="lc-td lc-th-pin" :style="colPinStyle('__checkbox', 2)"><v-checkbox-btn v-model="selected" :value="item.id" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></td>
-              <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
+              <td class="lc-td lc-col-pin" :style="headerPinStyles['__checkbox']"><v-checkbox-btn :model-value="selectedSet.has(item.id)" @update:model-value="toggleItemSelect(item.id)" color="#42A5F5" density="compact" hide-details></v-checkbox-btn></td>
+              <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="headerPinStyles[h.key]">
                 <!-- expand -->
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <!-- date -->
@@ -1282,10 +1282,10 @@
                       variant="tonal"
                       color="#42A5F5"
                       class="lc-act-btn"
+                      :title="$t('view')"
                       @click="$router.push({ name: 'view_charge', params: { id: item.id } })"
                     >
                       <v-icon size="14">mdi-eye</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('view') }}</v-tooltip>
                     </v-btn>
 
                     <v-btn
@@ -1296,10 +1296,10 @@
                       color="warning"
                       class="lc-act-btn"
                       :disabled="item._is_invoiced"
+                      :title="$t('edit')"
                       @click="$router.push({ name: 'edit_charge', params: { id: item.id } })"
                     >
                       <v-icon size="14">mdi-pencil</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
                     </v-btn>
 
                     <v-menu location="bottom end" :close-on-content-click="true">
@@ -1311,6 +1311,7 @@
                           variant="tonal"
                           color="blue-grey"
                           class="lc-act-btn"
+                          :title="$t('more_actions')"
                         >
                           <v-badge
                             v-if="(item._open_issues || 0) > 0"
@@ -1322,7 +1323,6 @@
                             <v-icon size="15">mdi-dots-vertical</v-icon>
                           </v-badge>
                           <v-icon v-else size="15">mdi-dots-vertical</v-icon>
-                          <v-tooltip activator="parent" location="top">{{ $t('more_actions') }}</v-tooltip>
                         </v-btn>
                       </template>
 
@@ -1402,12 +1402,12 @@
             <tr v-if="expanded[item.id]"><td :colspan="headers.length+1" class="pa-0">
               <div class="lc-expand-content">
                 <div v-for="(grp,gi) in groupDetails(item)" :key="gi" class="lc-detail-group mb-2">
-                  <div class="lc-detail-group-header"><v-icon size="16" color="info" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${main.lang?.code}`]||grp.category.name:'-' }}</b></div>
+                  <div class="lc-detail-group-header"><v-icon size="16" color="info" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${currentLang}`]||grp.category.name:'-' }}</b></div>
                   <table class="lc-detail-table"><thead><tr><th>{{ $t('classification') }}</th><th>{{ $t('product') }}</th><th>{{ $t('product_family') }}</th><th>{{ $t('warehouse') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_weight_invoice') }} (Kg)</th><th>{{ $t('gap') }}</th><th>{{ $t('unit_price') }}</th><th>{{ $t('total_price') }}</th><th>{{ $t('package_type') }}</th><th>{{ $t('total_package_count') }}</th></tr></thead>
                   <tbody><tr v-for="dc in grp.items" :key="dc.id">
                     <td><v-chip size="x-small" color="info" variant="tonal">{{ dc.stockable_type||$t('text') }}</v-chip></td>
                     <td class="font-weight-bold">{{ articleName(dc) }}</td><td>{{ articleFamily(dc) }}</td>
-                    <td><v-chip v-if="dc.warehouse" size="x-small" variant="tonal">{{ dc.warehouse[`name_${main.lang?.code}`]||dc.warehouse.name }}</v-chip><span v-else>{{ $t('non_stockable') }}</span></td>
+                    <td><v-chip v-if="dc.warehouse" size="x-small" variant="tonal">{{ dc.warehouse[`name_${currentLang}`]||dc.warehouse.name }}</v-chip><span v-else>{{ $t('non_stockable') }}</span></td>
                     <td>{{ main.formatDisplayNumber(dc.weight) }}</td>
                     <td>{{ main.formatDisplayNumber(dc.weight_invoice) }}</td>
                     <td><v-chip size="x-small" :color="Math.abs(Number(dc.weight||0)-Number(dc.weight_invoice||0))<0.01?'success':'warning'" variant="tonal">{{ main.formatDisplayNumber(Math.abs(Number(dc.weight||0)-Number(dc.weight_invoice||0))) }}</v-chip></td>
@@ -1426,7 +1426,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="lc-tfoot"><tr><td class="lc-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="lc-td text-center font-weight-bold" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice' || h.key==='total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        <tfoot class="lc-tfoot"><tr><td class="lc-td lc-col-pin" :style="headerPinStyles['__checkbox']"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="headerPinStyles[h.key]" class="lc-td text-center font-weight-bold" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice' || h.key==='total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
     </div>
@@ -1461,7 +1461,7 @@ export default {
   mixins: [virtualTableMixin, tableConfigMixin],
   components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle,TableColumnFilter,TableColumnManager},
   data(){return{...script.data.call(this),activeTab:0,qcDialogOpen:false,qcDialogCharge:null,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,chargeTabs:[{value:0,label:'list_charge',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('charges.create')?[{value:1,label:'add_charge',icon:'mdi-sticker-plus-outline'}]:[])]}},
-  computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
+  computed:{...script.computed,auth(){return useAuth()}},
   methods:{...script.methods,openQcDialog(item){this.qcDialogCharge=item;this.qcDialogOpen=true},onQcSaved(){this.fetchCharges()},onQcDeleted(){this.fetchCharges()},openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true}},
   watch:{...script.watch,activeTab(v){const q=v===1?{tab:'add'}:{};if(JSON.stringify(this.$route.query)!==JSON.stringify(q))this.$router.replace({query:q}).catch(()=>{});if(v===0)this.fetchCharges()},showInvoice(v){if(v&&this.uninvoicedSelectedCharges.length){this.fetchNextTracking(this.invForm.type_invoice||'local')}}},
   mounted(){script.mounted.call(this);if(this.loadTableConfig)this.loadTableConfig();if(this.$route.query.tab==='add')this.activeTab=1},
@@ -1502,7 +1502,8 @@ export default {
 .lc-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
 .lc-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .lc-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
-.lc-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
+.lc-thead th{position:sticky;top:0}
+.lc-th{position:sticky;top:0;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
 .lc-th-actions{text-align:center!important;overflow:visible!important;width:92px!important;min-width:92px!important}
 .lc-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
 .lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 3px!important;white-space:nowrap!important;width:92px!important;min-width:92px!important}
@@ -1513,7 +1514,7 @@ export default {
 .lc-th-pin-btn{opacity:.65;transition:opacity .15s}.lc-th-pin-btn:hover{opacity:1}
 .lc-active-sorts-strip{font-family:'Inter',sans-serif}
 .lc-col-pin{position:sticky!important;z-index:2!important;background:#ffffff!important}
-.lc-th-pin{position:sticky!important;z-index:5!important;background:#f8fafc!important}
+.lc-th-pin{position:sticky!important;top:0!important;z-index:6!important;background:#f8fafc!important}
 :deep(.v-theme--dark) .lc-col-pin,
 :deep(.v-theme--dark) .lc-th-pin,
 .v-theme--dark .lc-col-pin,

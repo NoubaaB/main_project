@@ -1253,13 +1253,13 @@
       <v-progress-linear v-if="isWorkerFiltering" indeterminate color="#00897B" height="2" class="lp-table-loader"></v-progress-linear>
       <table class="lp-table">
         <thead class="lp-thead"><tr>
-          <th class="lp-th lp-th-pin" :style="colPinStyle('__checkbox', 3)"><v-checkbox-btn v-model="selectAll" color="#00897B" density="compact" hide-details></v-checkbox-btn></th>
+          <th class="lp-th lp-th-pin" :style="thPinStyles['__checkbox']"><v-checkbox-btn v-model="selectAll" color="#00897B" density="compact" hide-details></v-checkbox-btn></th>
           <th
             v-for="h in headers"
             :key="h.key"
             class="lp-th"
             :class="{'lp-th-pin': isPinned(h.key) || h.fixed, 'lp-th-dragover': dragOverCol === h.key, 'lp-th-actions': h.key === 'actions'}"
-            :style="colPinStyle(h.key, 3)"
+            :style="thPinStyles[h.key]"
             :draggable="!h.fixed"
             @dragstart="onDragStart(h.key)"
             @dragover="onDragOver(h.key, $event)"
@@ -1356,7 +1356,7 @@
         <tbody>
           <template v-if="loading">
             <tr v-for="r in 8" :key="'lp-skel-' + r" class="lp-row app-skeleton-table-row">
-              <td class="lp-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td class="lp-td lp-col-pin text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
               <td v-for="h in headers" :key="'lp-skel-' + h.key + '-' + r" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
                 <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
               </td>
@@ -1369,8 +1369,8 @@
             </tr>
             <template v-for="item in visibleItems" :key="item.id">
             <tr class="lp-row" :class="{'lp-row-expanded':expanded[item.id],'lp-row-invoiced':item._is_invoiced}">
-              <td class="lp-td lp-th-pin" :style="colPinStyle('__checkbox', 2)"><v-checkbox-btn v-model="selected" :value="item.id" color="#00897B" density="compact" hide-details></v-checkbox-btn></td>
-              <td v-for="h in headers" :key="h.key" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
+              <td class="lp-td lp-col-pin" :style="headerPinStyles['__checkbox']"><v-checkbox-btn :model-value="selectedSet.has(item.id)" @update:model-value="toggleItemSelect(item.id)" color="#00897B" density="compact" hide-details></v-checkbox-btn></td>
+              <td v-for="h in headers" :key="h.key" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}" :style="headerPinStyles[h.key]">
                 <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
                 <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
                 <template v-else-if="h.key==='production_category_id'"><v-chip size="small" color="#00897B" variant="tonal">{{ catName(item.production_category_id) }}</v-chip></template>
@@ -1387,10 +1387,10 @@
                       variant="tonal"
                       color="#00897B"
                       class="lp-act-btn"
+                      :title="$t('view')"
                       @click="$router.push({ name: 'view_production', params: { id: item.id } })"
                     >
                       <v-icon size="14">mdi-eye</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('view') }}</v-tooltip>
                     </v-btn>
 
                     <v-btn
@@ -1400,10 +1400,10 @@
                       variant="tonal"
                       color="warning"
                       class="lp-act-btn"
+                      :title="$t('edit')"
                       @click="$router.push({ name: 'edit_production', params: { id: item.id } })"
                     >
                       <v-icon size="14">mdi-pencil</v-icon>
-                      <v-tooltip activator="parent" location="top">{{ $t('edit') }}</v-tooltip>
                     </v-btn>
 
                     <v-menu location="bottom end" :close-on-content-click="true">
@@ -1415,6 +1415,7 @@
                           variant="tonal"
                           color="blue-grey"
                           class="lp-act-btn"
+                          :title="$t('more_actions')"
                         >
                           <v-badge
                             v-if="(item._open_issues || 0) > 0"
@@ -1426,7 +1427,6 @@
                             <v-icon size="15">mdi-dots-vertical</v-icon>
                           </v-badge>
                           <v-icon v-else size="15">mdi-dots-vertical</v-icon>
-                          <v-tooltip activator="parent" location="top">{{ $t('more_actions') }}</v-tooltip>
                         </v-btn>
                       </template>
 
@@ -1478,14 +1478,14 @@
             <tr v-if="expanded[item.id]"><td :colspan="headers.length+1" class="pa-0">
               <div class="lp-expand-content">
                 <div v-for="(grp,gi) in groupDetails(item)" :key="gi" class="lp-detail-group mb-2">
-                  <div class="lp-detail-group-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${main.lang?.code}`]||grp.category.name:'-' }}</b></div>
+                  <div class="lp-detail-group-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-tag</v-icon><b>{{ grp.category?grp.category[`name_${currentLang}`]||grp.category.name:'-' }}</b></div>
                   <table class="lp-detail-table"><thead><tr><th>{{ $t('classification') }}</th><th>{{ $t('product') }}</th><th>{{ $t('product_family') }}</th><th>{{ $t('warehouse') }}</th><th>{{ $t('total_weight') }}</th><th>{{ $t('unit_price') }}</th><th>{{ $t('total_price') }}</th><th>{{ $t('secondary_packaging_cost') }}</th><th>{{ $t('package_type') }}</th><th>{{ $t('total_package_count') }}</th></tr></thead>
                   <tbody><tr v-for="dc in grp.items" :key="dc.id">
                     <td><v-chip size="x-small" color="#00897B" variant="tonal">{{ dc.stockable_type||$t('text') }}</v-chip></td>
                     <td class="font-weight-bold">{{ articleName(dc) }}</td><td>{{ articleFamily(dc) }}</td>
-                    <td><span v-if="dc.warehouse">{{ dc.warehouse[`name_${main.lang?.code}`]||dc.warehouse.name }}</span><span v-else>{{ $t('non_stockable') }}</span></td>
+                    <td><span v-if="dc.warehouse">{{ dc.warehouse[`name_${currentLang}`]||dc.warehouse.name }}</span><span v-else>{{ $t('non_stockable') }}</span></td>
                     <td>{{ main.formatDisplayNumber(dc.weight) }}</td><td>{{ main.formatDisplayNumber(dc.unit_price) }}</td><td>{{ main.formatDisplayNumber(dc.total_price) }}</td>
-                    <td><span v-if="dc.secondary_packaging_cost > 0" class="font-weight-bold text-blue-grey">{{ main.formatDisplayNumber(dc.secondary_packaging_cost) }} {{ main.currency }}</span><span v-else class="text-grey">-</span></td>
+                    <td><span v-if="dc.secondary_packaging_cost > 0" class="font-weight-bold text-blue-grey">{{ main.formatDisplayNumber(dc.secondary_packaging_cost) }} {{ currentCurrency }}</span><span v-else class="text-grey">-</span></td>
                     <td>{{ dc.package_type?dc.package_type.name:'N/A' }}</td><td>{{ dc.nbr_box||'-' }}</td>
                   </tr></tbody>
                   <tfoot><tr class="lp-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalW) }}</td><td></td><td class="font-weight-bold">{{ main.formatDisplayNumber(grp.totalP) }}</td><td colspan="3"></td></tr></tfoot>
@@ -1499,7 +1499,7 @@
             </tr>
           </template>
         </tbody>
-        <tfoot class="lp-tfoot"><tr><td class="lp-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="lp-td text-center font-weight-bold" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        <tfoot class="lp-tfoot"><tr><td class="lp-td lp-col-pin" :style="headerPinStyles['__checkbox']"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="headerPinStyles[h.key]" class="lp-td text-center font-weight-bold" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
     </div>
@@ -1574,7 +1574,6 @@ export default {
   computed:{
     ...script.computed,
     auth(){return useAuth()},
-    selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}},
     statsSectionItems() {
       return [
         { value: 'all', label: this.$t('all'), icon: 'mdi-view-grid-outline' },
@@ -1683,7 +1682,8 @@ export default {
 .lp-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
 .lp-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .lp-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
-.lp-th{position:relative;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
+.lp-thead th{position:sticky;top:0}
+.lp-th{position:sticky;top:0;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
 .lp-th-actions{text-align:center!important;overflow:visible!important;width:92px!important;min-width:92px!important}
 .lp-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
 .lp-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 3px!important;white-space:nowrap!important;width:92px!important;min-width:92px!important}
@@ -1694,7 +1694,7 @@ export default {
 .lp-th-pin-btn{opacity:.65;transition:opacity .15s}.lp-th-pin-btn:hover{opacity:1}
 .lp-active-sorts-strip{font-family:'Inter',sans-serif}
 .lp-col-pin{position:sticky!important;z-index:2!important;background:#ffffff!important}
-.lp-th-pin{position:sticky!important;z-index:5!important;background:#f8fafc!important}
+.lp-th-pin{position:sticky!important;top:0!important;z-index:6!important;background:#f8fafc!important}
 :deep(.v-theme--dark) .lp-col-pin,
 :deep(.v-theme--dark) .lp-th-pin,
 .v-theme--dark .lp-col-pin,

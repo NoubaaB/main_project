@@ -1,3 +1,4 @@
+import { toRaw } from 'vue';
 import axios from 'axios';
 import { gqlGetProductions, gqlGetProductionAnalytics } from '@/services/appGraphql.js';
 import { useMain } from '@/stores/Main';
@@ -67,6 +68,23 @@ export default {
   },
   computed: {
     main() { return useMain() },
+    currentLang() { return useMain().lang?.code || 'en' },
+    currentCurrency() { return useMain().currency || 'Dh' },
+    isDarkTheme() { return Boolean(useMain().is_dark) },
+    selectedSet() { return new Set(this.selected || []) },
+    selectAll: {
+      get() {
+        const total = this.colFilteredItems?.length || 0;
+        return total > 0 && (this.selected?.length || 0) === total;
+      },
+      set(val) {
+        if (val) {
+          this.selected = (this.colFilteredItems || []).map(c => c.id);
+        } else {
+          this.selected = [];
+        }
+      }
+    },
     cats() { return useProductionCategory().list },
     fishFamilies() { return useFishFamily().list },
     fishTypes() { return useFishType().list },
@@ -77,7 +95,7 @@ export default {
     today() { return new Date().toISOString().slice(0, 10) },
     datePresetOptions() { return getDatePresetOptions(this.$t); },
     dateRangeVC: { get() { return { start: this.dateRange[0], end: this.dateRange[1] || this.dateRange[0] } }, set(v) { if (v && v.start && v.end) this.dateRange = [v.start, v.end] } },
-    catName() { return (id) => { const l = this.main.lang?.code || 'en'; const c = this.cats.find(x => x.id === id); return c ? (c[`name_${l}`] || c.name || `#${id}`) : `#${id}` } },
+    catName() { return (id) => { const l = this.currentLang; const c = this.cats.find(x => x.id === id); return c ? (c[`name_${l}`] || c.name || `#${id}`) : `#${id}` } },
     activeFilterCount() {
       let count = 0;
       if (this.searchQuery && this.searchQuery.trim()) count++;
@@ -105,8 +123,22 @@ export default {
       return count;
     },
     dynamicAdvOptions() {
-      const lang = this.main.lang?.code || 'en';
+      if (this.workerAdvOptions) {
+        return this.workerAdvOptions;
+      }
       const items = this.productions || [];
+      if (items.length > 100) {
+        return {
+          articleTypes: [],
+          warehouses: [],
+          fishFamilies: [],
+          fishFreshFrozen: [],
+          fishProcessTypes: [],
+          fishTypes: [],
+          guanoTypes: [],
+          packageTypes: []
+        };
+      }
       return extractAdvFilterOptions(
         items,
         this.advFilter || {},
@@ -118,7 +150,7 @@ export default {
           packageTypes: this.packageTypes,
           warehouses: this.warehouses,
         },
-        lang
+        this.currentLang
       );
     },
     articleTypeOptions() {
@@ -349,7 +381,7 @@ export default {
       if (this.workerCategoryStats && this.workerCategoryStats.length) {
         return this.workerCategoryStats;
       }
-      const lang = this.main.lang?.code || 'en'; const map = {};
+      const lang = this.currentLang; const map = {};
       this.colFilteredItems.forEach(c => { const catId = c.production_category_id; if (!map[catId]) { const cat = this.cats.find(x => x.id === catId); map[catId] = { name: cat ? (cat[`name_${lang}`] || cat.name || `#${catId}`) : `#${catId}`, weight: 0, price: 0, invoiceWeight: 0, invoicePrice: 0, count: 0 } } map[catId].weight += Number(c.total_weight || 0); map[catId].price += Number(c.total_price || 0); if (c._is_invoiced) { map[catId].invoiceWeight += Number(c.total_weight || 0); map[catId].invoicePrice += Number(c.total_price || 0); } map[catId].count++ });
       return Object.values(map);
     },
@@ -425,11 +457,11 @@ export default {
         grid: { borderColor: 'rgba(0, 0, 0, 0.24)', strokeDashArray: 2 },
         legend: { position: 'top', fontSize: '11px', fontWeight: 600 },
         dataLabels: { enabled: false },
-        theme: { mode: this.main.is_dark ? 'dark' : 'light' },
+        theme: { mode: this.isDarkTheme ? 'dark' : 'light' },
         markers: { size: Array(4).fill(0).concat(Array(yieldCount).fill(4)), hover: { sizeOffset: 2 } },
       };
     },
-    selectedProductions() { return this.productions.filter(c => this.selected.includes(c.id)) },
+    selectedProductions() { return this.productions.filter(c => this.selectedSet.has(c.id)) },
     uninvoicedSelectedProductions() { return this.selectedProductions.filter(c => !c._is_invoiced) },
     invoiceSuppliers() { const s = new Set(); this.uninvoicedSelectedProductions.forEach(c => { if (c.supplier?.name) s.add(c.supplier.name); if (c.client?.name) s.add(c.client.name) }); return [...s] },
     canSetupInvoice() {
@@ -523,25 +555,25 @@ export default {
     async dispatchWorkerFilter(debounceMs = 0) {
       this.initWorker();
       if (!this._cachedWorkerItems || !this._cachedWorkerItems.length) {
-        this._cachedWorkerItems = JSON.parse(JSON.stringify(this.productions || []));
+        this._cachedWorkerItems = toRaw(this.productions || []);
       }
       this.isWorkerFiltering = true;
       const payload = {
-        items: this._cachedWorkerItems,
+        items: toRaw(this._cachedWorkerItems),
         moduleType: 'production',
         searchQuery: this.searchQuery,
-        colFilters: JSON.parse(JSON.stringify(this.colFilters || {})),
-        advFilter: JSON.parse(JSON.stringify(this.advFilter || {})),
-        colSorts: JSON.parse(JSON.stringify(this.colSorts || [])),
+        colFilters: toRaw(this.colFilters || {}),
+        advFilter: toRaw(this.advFilter || {}),
+        colSorts: toRaw(this.colSorts || []),
         chartMode: this.chartMode,
-        langCode: this.main.lang?.code || 'en',
-        cats: JSON.parse(JSON.stringify(this.cats || [])),
-        fishFamilies: JSON.parse(JSON.stringify(this.fishFamilies || [])),
-        fishTypes: JSON.parse(JSON.stringify(this.fishTypes || [])),
-        fishProcessTypes: JSON.parse(JSON.stringify(this.fishProcessTypes || [])),
-        guanoTypes: JSON.parse(JSON.stringify(this.guanoTypes || [])),
-        packageTypes: JSON.parse(JSON.stringify(this.packageTypes || [])),
-        warehouses: JSON.parse(JSON.stringify(this.warehouses || [])),
+        langCode: this.currentLang,
+        cats: toRaw(this.cats || []),
+        fishFamilies: toRaw(this.fishFamilies || []),
+        fishTypes: toRaw(this.fishTypes || []),
+        fishProcessTypes: toRaw(this.fishProcessTypes || []),
+        guanoTypes: toRaw(this.guanoTypes || []),
+        packageTypes: toRaw(this.packageTypes || []),
+        warehouses: toRaw(this.warehouses || []),
         allHeaderKeys: this.allHeaders.map(h => h.key),
       };
       try {
@@ -584,12 +616,12 @@ export default {
           } else {
             this.productions = this.productions.filter(c => c.id !== rd.id);
           }
-          this._cachedWorkerItems = JSON.parse(JSON.stringify(this.productions));
+          this._cachedWorkerItems = toRaw(this.productions);
           this.dispatchWorkerFilter(0);
           this.fetchAnalytics();
         } else if (d.action === 'deleted' && d.record_id) {
           this.productions = this.productions.filter(c => c.id !== d.record_id);
-          this._cachedWorkerItems = JSON.parse(JSON.stringify(this.productions));
+          this._cachedWorkerItems = toRaw(this.productions);
           this.dispatchWorkerFilter(0);
           this.fetchAnalytics();
         }
@@ -677,7 +709,7 @@ export default {
           prods = r.data.productions || [];
         }
         this.productions = (prods || []).map(c => this.mapProduction(c));
-        this._cachedWorkerItems = JSON.parse(JSON.stringify(this.productions));
+        this._cachedWorkerItems = toRaw(this.productions);
         this.dispatchWorkerFilter(0);
         // Fetch open issue counts and merge
         this._fetchIssueCounts('Production');
@@ -734,9 +766,30 @@ export default {
       this.dispatchWorkerFilter(0);
     },
     sortItems(items) { if (!this.colSorts || !this.colSorts.length) return items; return [...items].sort((a, b) => { for (const { key, dir } of this.colSorts) { let va = key === 'production_category_id' ? this.catName(a[key]) : a[key], vb = key === 'production_category_id' ? this.catName(b[key]) : b[key]; if (va == null) va = ''; if (vb == null) vb = ''; const n = typeof va === 'number' && typeof vb === 'number'; if (n) { if (va !== vb) return dir === 'asc' ? va - vb : vb - va } else { const c = String(va).localeCompare(String(vb)); if (c) return dir === 'asc' ? c : -c } } return 0 }) },
-    groupDetails(prod) { const groups = {}; (prod.detail_productions || []).forEach(dc => { const catId = dc.detail_production_category_id; if (!groups[catId]) groups[catId] = { category: dc.detail_production_category, items: [], totalW: 0, totalP: 0 }; groups[catId].items.push(dc); groups[catId].totalW += Number(dc.weight || 0); groups[catId].totalP += Number(dc.total_price || 0) }); return Object.values(groups) },
-    articleName(dc) { if (!dc.stockable_type || dc.stockable_type === 'text') return dc.article_description || '-'; const s = dc.stockable; return s ? (s.name || s[`name_${this.main.lang?.code}`] || '-') : '-' },
-    articleFamily(dc) { if ((dc.stockable_type === 'FishType' || dc.stockable_type?.includes('FishType')) && dc.stockable) { const fam = this.fishFamilies.find(f => f.id === dc.stockable.fish_family_id); return fam ? (fam[`name_${this.main.lang?.code}`] || fam.name || '-') : '-' } return '-' },
+    toggleItemSelect(id) {
+      const idx = this.selected.indexOf(id);
+      if (idx > -1) {
+        this.selected.splice(idx, 1);
+      } else {
+        this.selected.push(id);
+      }
+    },
+    groupDetails(prod) {
+      if (!prod) return [];
+      if (prod._cachedGroupDetails) return prod._cachedGroupDetails;
+      const groups = {};
+      (prod.detail_productions || []).forEach(dc => {
+        const catId = dc.detail_production_category_id;
+        if (!groups[catId]) groups[catId] = { category: dc.detail_production_category, items: [], totalW: 0, totalP: 0 };
+        groups[catId].items.push(dc);
+        groups[catId].totalW += Number(dc.weight || 0);
+        groups[catId].totalP += Number(dc.total_price || 0);
+      });
+      prod._cachedGroupDetails = Object.values(groups);
+      return prod._cachedGroupDetails;
+    },
+    articleName(dc) { if (!dc.stockable_type || dc.stockable_type === 'text') return dc.article_description || '-'; const s = dc.stockable; return s ? (s.name || s[`name_${this.currentLang}`] || '-') : '-' },
+    articleFamily(dc) { if ((dc.stockable_type === 'FishType' || dc.stockable_type?.includes('FishType')) && dc.stockable) { const fam = this.fishFamilies.find(f => f.id === dc.stockable.fish_family_id); return fam ? (fam[`name_${this.currentLang}`] || fam.name || '-') : '-' } return '-' },
     clearAdvFilters() {
       this.advFilter = {
         articleTypes: [],
