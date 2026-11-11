@@ -3636,5 +3636,20 @@
     "charges_total_weight_updated": "Total Weight Adjustment",
     "charges_total_price_updated": "Total Price Adjustment",
     "no_charges_needed_recalculation": "All charges are already in sync with detail lines",
-    "duration": "Duration"
+    "duration": "Duration",
+    "exit_expand_view": "Exit Expanded View",
+    "column_visibility": "Column Visibility & Order",
+    "show_all_columns": "Show All",
+    "hide_all_columns": "Hide All",
+    "search_columns": "Search columns...",
+    "move_up": "Move Up",
+    "move_down": "Move Down",
+    "density": "Density",
+    "density_comfortable": "Comfortable",
+    "density_compact": "Compact",
+    "density_dense": "Dense",
+    "export_all_filtered": "Export All Filtered ({count})",
+    "export_selected_only": "Export Selected ({count})",
+    "export_started": "Export started...",
+    "visible_columns_count": "{visible} of {total} columns visible"
 }

@@ -32,6 +32,14 @@
             } catch(e) {}
         })();
         window.__APP_VERSION_INFO__ = {!! json_encode(file_exists(base_path('version.json')) ? json_decode(file_get_contents(base_path('version.json')), true) : ['name' => 'Jupiter', 'version' => '1.0.2', 'build' => 1]) !!};
+        window.__WS_CONFIG__ = {
+            appKey: "{{ env('REVERB_APP_KEY', 'bqaxiguwwluoutcadzq2') }}",
+            tunnelHost: "{{ env('TUNNEL_REVERB_HOST', 'brotherhoodsocket.congelationvillamar.com') }}",
+            tunnelWebDomain: "{{ env('TUNNEL_DOMAIN', 'congelationvillamar.com') }}",
+            defaultHost: "{{ env('REVERB_HOST', 'dev.local') }}",
+            defaultPort: {{ env('REVERB_PORT', 443) }},
+            defaultScheme: "{{ env('REVERB_SCHEME', 'https') }}"
+        };
     </script>
 
     <meta name="viewport"

@@ -7,8 +7,15 @@
  * - PIN / UNPIN Columns (left, right, none) with pixel-perfect sticky positioning & drop shadows.
  * - Multi-column Sorting (Shift+Click or dedicated toggle, priority badges, active sorts bar).
  * - Expand / Collapse All Details toggle.
- * - LocalStorage Persistence & Restoration of column order, widths, pin states, and sorts.
+ * - Expand View (Fullscreen Workspace mode with live KPIs, search, density switcher, exit on ESC).
+ * - Show / Hide Columns manager with search, show all, hide all, persistence.
+ * - Drag-and-drop & Click-to-reorder columns.
+ * - Table Density controls (Comfortable / Compact / Dense).
+ * - Full CSV & Excel export (All Filtered vs Selected).
+ * - LocalStorage Persistence & Restoration of column order, widths, pin states, sorts, visibility, and density.
  */
+
+import * as XLSX from 'xlsx';
 
 export default {
   data() {
@@ -18,6 +25,11 @@ export default {
       resizeStartX: 0,
       resizeStartWidth: 0,
       tableConfigMenu: false,
+      isExpandedView: false,
+      hiddenColumns: [],
+      tableDensity: 'compact',
+      colSearchQuery: '',
+      exportMenuOpen: false,
     };
   },
   computed: {
@@ -53,6 +65,9 @@ export default {
         actions: this.getActionsColWidth(),
       };
     },
+    allToggleableColumns() {
+      return (this.allHeaders || []).filter(h => !h.fixed);
+    },
     hasLeftPinnedColumns() {
       return (this.headers || []).some(h => !h.fixed && this.pinState && this.pinState[h.key] === 'left');
     },
@@ -62,7 +77,17 @@ export default {
     configColumns() {
       const map = Object.fromEntries((this.allHeaders || []).map(h => [h.key, h]));
       const order = this.columnOrder || (this.allHeaders || []).filter(h => !h.fixed).map(h => h.key);
-      return order.map(k => map[k]).filter(Boolean);
+      let cols = order.map(k => map[k]).filter(Boolean);
+      if (this.colSearchQuery && this.colSearchQuery.trim()) {
+        const q = this.colSearchQuery.trim().toLowerCase();
+        cols = cols.filter(c => (c.title || c.key || '').toLowerCase().includes(q));
+      }
+      return cols;
+    },
+    visibleToggleableColumnsCount() {
+      const toggleable = this.allToggleableColumns;
+      const hidden = new Set(this.hiddenColumns || []);
+      return toggleable.filter(t => !hidden.has(t.key)).length;
     },
     isAllExpanded() {
       const items = this.colFilteredItems || [];
@@ -73,9 +98,248 @@ export default {
       return Object.values(this.expanded || {}).filter(Boolean).length;
     },
   },
+  mounted() {
+    window.addEventListener('keydown', this.handleTableGlobalKeydown);
+  },
+  beforeUnmount() {
+    window.removeEventListener('keydown', this.handleTableGlobalKeydown);
+    if (this.isExpandedView) {
+      document.body.classList.remove('table-expanded-active');
+      document.documentElement.classList.remove('table-expanded-active');
+      document.body.style.overflow = '';
+    }
+  },
   methods: {
+    handleTableGlobalKeydown(e) {
+      if (e.key === 'Escape' && this.isExpandedView) {
+        this.exitExpandedView();
+      }
+    },
+    toggleExpandedView() {
+      this.isExpandedView = !this.isExpandedView;
+      if (this.isExpandedView) {
+        document.body.classList.add('table-expanded-active');
+        document.documentElement.classList.add('table-expanded-active');
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.classList.remove('table-expanded-active');
+        document.documentElement.classList.remove('table-expanded-active');
+        document.body.style.overflow = '';
+      }
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+        if (this.$refs.tableWrap) {
+          this.tableContainerHeight = this.$refs.tableWrap.clientHeight || 600;
+        }
+      });
+    },
+    exitExpandedView() {
+      if (this.isExpandedView) {
+        this.isExpandedView = false;
+        document.body.classList.remove('table-expanded-active');
+        document.documentElement.classList.remove('table-expanded-active');
+        document.body.style.overflow = '';
+        this.$nextTick(() => {
+          window.dispatchEvent(new Event('resize'));
+          if (this.$refs.tableWrap) {
+            this.tableContainerHeight = this.$refs.tableWrap.clientHeight || 600;
+          }
+        });
+      }
+    },
+    setTableDensity(density) {
+      if (!['comfortable', 'compact', 'dense'].includes(density)) return;
+      this.tableDensity = density;
+      if (density === 'comfortable') {
+        this.rowHeight = 52;
+      } else if (density === 'dense') {
+        this.rowHeight = 34;
+      } else {
+        this.rowHeight = 42;
+      }
+      this.saveTableConfig();
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    },
+    toggleColumnVisibility(key) {
+      if (!key) return;
+      const current = [...(this.hiddenColumns || [])];
+      const idx = current.indexOf(key);
+      if (idx > -1) {
+        current.splice(idx, 1);
+      } else {
+        const toggleableKeys = this.allToggleableColumns.map(h => h.key);
+        const remainingVisible = toggleableKeys.filter(k => !current.includes(k) && k !== key);
+        if (remainingVisible.length === 0) {
+          if (this.main?.add_snackbar) {
+            this.main.add_snackbar({
+              show: true,
+              message: this.$t('at_least_one_column_required') || 'At least one column must remain visible',
+              color: 'warning',
+            });
+          }
+          return;
+        }
+        current.push(key);
+      }
+      this.hiddenColumns = current;
+      this.saveTableConfig();
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+        if (this.measureColWidths) this.measureColWidths();
+      });
+    },
+    isColumnVisible(key) {
+      return !(this.hiddenColumns || []).includes(key);
+    },
+    showAllColumns() {
+      this.hiddenColumns = [];
+      this.saveTableConfig();
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+        if (this.measureColWidths) this.measureColWidths();
+      });
+    },
+    hideAllColumns() {
+      const toggleableKeys = this.allToggleableColumns.map(h => h.key);
+      if (toggleableKeys.length > 1) {
+        this.hiddenColumns = toggleableKeys.slice(1);
+      }
+      this.saveTableConfig();
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+        if (this.measureColWidths) this.measureColWidths();
+      });
+    },
+    moveColumn(key, direction) {
+      const order = [...(this.columnOrder || this.allToggleableColumns.map(h => h.key))];
+      const idx = order.indexOf(key);
+      if (idx === -1) return;
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= order.length) return;
+      const [moved] = order.splice(idx, 1);
+      order.splice(targetIdx, 0, moved);
+      this.columnOrder = order;
+      this.saveTableConfig();
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    },
+    moveColumnUp(key) {
+      this.moveColumn(key, 'up');
+    },
+    moveColumnDown(key) {
+      this.moveColumn(key, 'down');
+    },
+    onColumnManagerReorder({ fromKey, toKey }) {
+      if (!fromKey || !toKey || fromKey === toKey) return;
+      const order = [...(this.columnOrder || this.allToggleableColumns.map(h => h.key))];
+      const fromIdx = order.indexOf(fromKey);
+      const toIdx = order.indexOf(toKey);
+      if (fromIdx > -1 && toIdx > -1) {
+        order.splice(fromIdx, 1);
+        order.splice(toIdx, 0, fromKey);
+        this.columnOrder = order;
+        this.saveTableConfig();
+        this.$nextTick(() => {
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
+    },
+    getSelectedItems() {
+      const list = this.charges || this.productions || this.shippings || [];
+      const sel = new Set(this.selected || []);
+      return list.filter(item => sel.has(item.id));
+    },
+    exportTableToExcel(filename, customItems) {
+      try {
+        const items = customItems || this.colFilteredItems || [];
+        const visibleHeaders = (this.headers || []).filter(
+          h => h.key !== 'actions' && h.key !== 'expand' && h.key !== '__checkbox'
+        );
+        const data = items.map(c => {
+          const row = {};
+          visibleHeaders.forEach(h => {
+            row[h.title || h.key] = this.cellText ? this.cellText(h.key, c) : (c[h.key] != null ? String(c[h.key]) : '-');
+          });
+          return row;
+        });
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        const sheetName = (this.tableModuleKey || 'Data').charAt(0).toUpperCase() + (this.tableModuleKey || 'Data').slice(1);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        const dateStr = this.today || new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(wb, filename || `${this.tableModuleKey || 'export'}_${dateStr}.xlsx`);
+        if (this.main?.add_snackbar) {
+          this.main.add_snackbar({
+            show: true,
+            message: this.$t('export_success') || 'Export successfully generated',
+            color: 'success',
+          });
+        }
+      } catch (e) {
+        console.error('Failed to export Excel:', e);
+        if (this.main?.add_snackbar) {
+          this.main.add_snackbar({
+            show: true,
+            message: this.$t('error') || 'Export failed',
+            color: 'error',
+          });
+        }
+      }
+    },
+    exportTableToCsv(filename, customItems) {
+      try {
+        const items = customItems || this.colFilteredItems || [];
+        const visibleHeaders = (this.headers || []).filter(
+          h => h.key !== 'actions' && h.key !== 'expand' && h.key !== '__checkbox'
+        );
+        const headerTitles = visibleHeaders.map(h => `"${(h.title || h.key).replace(/"/g, '""')}"`);
+        const rows = items.map(item => {
+          return visibleHeaders.map(h => {
+            const val = this.cellText ? this.cellText(h.key, item) : (item[h.key] != null ? String(item[h.key]) : '-');
+            return `"${String(val).replace(/"/g, '""')}"`;
+          }).join(',');
+        });
+        const csvContent = '\uFEFF' + [headerTitles.join(','), ...rows].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        const dateStr = this.today || new Date().toISOString().slice(0, 10);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename || `${this.tableModuleKey || 'export'}_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        if (this.main?.add_snackbar) {
+          this.main.add_snackbar({
+            show: true,
+            message: this.$t('export_success') || 'Export successfully generated',
+            color: 'success',
+          });
+        }
+      } catch (e) {
+        console.error('Failed to export CSV:', e);
+        if (this.main?.add_snackbar) {
+          this.main.add_snackbar({
+            show: true,
+            message: this.$t('error') || 'Export failed',
+            color: 'error',
+          });
+        }
+      }
+    },
+    exportSelectedToExcel() {
+      const items = this.getSelectedItems();
+      this.exportTableToExcel(null, items);
+    },
+    exportSelectedToCsv() {
+      const items = this.getSelectedItems();
+      this.exportTableToCsv(null, items);
+    },
     getActionsColWidth() {
-      // Compact, practical actions column width (View, Edit, More menu)
       return 92;
     },
     getDefaultColWidth(key) {
@@ -202,7 +466,7 @@ export default {
           width: w + 'px',
           minWidth: w + 'px',
           maxWidth: w + 'px',
-          boxShadow: isFirstRight ? '-3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          boxShadow: isFirstRight ? '-3px 0 8px -2px rgba(0, 0, 0, 0.12)' : 'none',
         };
       }
 
@@ -293,7 +557,7 @@ export default {
         this.colSorts.splice(i, 1);
       }
       this.saveTableConfig();
-      this.dispatchWorkerFilter(0);
+      if (this.dispatchWorkerFilter) this.dispatchWorkerFilter(0);
     },
     toggleMultiSort(key) {
       const i = this.colSorts.findIndex(s => s.key === key);
@@ -305,7 +569,7 @@ export default {
         this.colSorts.splice(i, 1);
       }
       this.saveTableConfig();
-      this.dispatchWorkerFilter(0);
+      if (this.dispatchWorkerFilter) this.dispatchWorkerFilter(0);
     },
     sortDir(key) {
       const s = (this.colSorts || []).find(x => x.key === key);
@@ -318,12 +582,12 @@ export default {
     clearColSorts() {
       this.colSorts = [];
       this.saveTableConfig();
-      this.dispatchWorkerFilter(0);
+      if (this.dispatchWorkerFilter) this.dispatchWorkerFilter(0);
     },
     removeColSort(key) {
       this.colSorts = (this.colSorts || []).filter(s => s.key !== key);
       this.saveTableConfig();
-      this.dispatchWorkerFilter(0);
+      if (this.dispatchWorkerFilter) this.dispatchWorkerFilter(0);
     },
     // Expanding
     toggleExpand(id) {
@@ -341,7 +605,7 @@ export default {
         this.expanded = exp;
       }
     },
-    // Drag & Drop Column Reordering
+    // Drag & Drop Column Reordering on Table Headers
     onDragStart(key) {
       this.dragCol = key;
     },
@@ -375,6 +639,8 @@ export default {
           },
           pinState: this.pinState,
           colSorts: this.colSorts,
+          hiddenColumns: this.hiddenColumns || [],
+          tableDensity: this.tableDensity || 'compact',
         };
         localStorage.setItem(this.storageConfigKey, JSON.stringify(config));
       } catch (e) {
@@ -393,6 +659,9 @@ export default {
           } else {
             this.colWidths.actions = this.getActionsColWidth();
           }
+          this.hiddenColumns = [];
+          this.tableDensity = 'compact';
+          this.rowHeight = 42;
           return;
         }
         const config = JSON.parse(raw);
@@ -428,6 +697,22 @@ export default {
         if (config.colSorts && Array.isArray(config.colSorts)) {
           this.colSorts = config.colSorts;
         }
+
+        if (config.hiddenColumns && Array.isArray(config.hiddenColumns)) {
+          this.hiddenColumns = config.hiddenColumns.filter(k => validKeys.has(k));
+        } else {
+          this.hiddenColumns = [];
+        }
+
+        if (config.tableDensity && ['comfortable', 'compact', 'dense'].includes(config.tableDensity)) {
+          this.tableDensity = config.tableDensity;
+          if (this.tableDensity === 'comfortable') this.rowHeight = 52;
+          else if (this.tableDensity === 'dense') this.rowHeight = 34;
+          else this.rowHeight = 42;
+        } else {
+          this.tableDensity = 'compact';
+          this.rowHeight = 42;
+        }
       } catch (e) {
         console.error('Failed to load table configuration:', e);
       }
@@ -439,8 +724,11 @@ export default {
         this.colWidths = { ...this.defaultColWidths, actions: this.getActionsColWidth() };
         this.pinState = {};
         this.colSorts = [];
+        this.hiddenColumns = [];
+        this.tableDensity = 'compact';
+        this.rowHeight = 42;
         this.saveTableConfig();
-        this.dispatchWorkerFilter(0);
+        if (this.dispatchWorkerFilter) this.dispatchWorkerFilter(0);
         if (this.main && this.main.add_snackbar) {
           this.main.add_snackbar({
             show: true,
@@ -448,6 +736,9 @@ export default {
             color: 'info',
           });
         }
+        this.$nextTick(() => {
+          window.dispatchEvent(new Event('resize'));
+        });
       } catch (e) {
         console.error('Failed to reset table configuration:', e);
       }

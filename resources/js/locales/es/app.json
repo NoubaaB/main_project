@@ -3636,5 +3636,20 @@
     "charges_total_weight_updated": "Ajuste del peso total",
     "charges_total_price_updated": "Ajuste del precio total",
     "no_charges_needed_recalculation": "Todos los cargos ya están perfectamente sincronizados con las líneas de detalle",
-    "duration": "Duración"
+    "duration": "Duración",
+    "exit_expand_view": "Salir de vista ampliada",
+    "column_visibility": "Visibilidad y orden de columnas",
+    "show_all_columns": "Mostrar todo",
+    "hide_all_columns": "Ocultar todo",
+    "search_columns": "Buscar columnas...",
+    "move_up": "Subir",
+    "move_down": "Bajar",
+    "density": "Densidad",
+    "density_comfortable": "Espacioso",
+    "density_compact": "Compacto",
+    "density_dense": "Denso",
+    "export_all_filtered": "Exportar todos los filtrados ({count})",
+    "export_selected_only": "Exportar la selección ({count})",
+    "export_started": "Exportación iniciada...",
+    "visible_columns_count": "{visible} de {total} columnas visibles"
 }

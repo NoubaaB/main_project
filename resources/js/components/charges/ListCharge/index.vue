@@ -145,30 +145,28 @@
     </v-row>
 
     <!-- Unified Command & Filter Toolbar -->
-    <div class="lc-toolbar mb-3 pa-2 rounded-xl">
-      <v-row dense align="center">
-        <!-- Quick Search Field -->
-        <v-col cols="12" md="4" sm="6">
+    <div class="lc-toolbar mb-3 pa-2 px-3 rounded-xl">
+      <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+        <!-- Left Side: Quick Search & Primary Filter Controls -->
+        <div class="d-flex align-center flex-wrap ga-2 flex-grow-1" style="min-width: 260px;">
           <v-text-field
             v-model="searchQuery"
             density="compact"
             variant="outlined"
-            rounded
+            rounded="lg"
             hide-details
             clearable
             color="#42A5F5"
-            class="text-charge"
+            class="text-charge lc-search-field"
             prepend-inner-icon="mdi-magnify"
             :placeholder="$t('search_records_placeholder') || 'Search tracking #, supplier, origin...'"
+            style="min-width: 200px; max-width: 280px;"
           ></v-text-field>
-        </v-col>
 
-        <!-- Filter Toggle & Invoice Workflow -->
-        <v-col cols="12" md="5" sm="6" class="d-flex align-center ga-2 flex-wrap">
           <v-btn
             :variant="showAdvanced ? 'flat' : 'tonal'"
             :color="showAdvanced ? '#42A5F5' : undefined"
-            rounded
+            rounded="lg"
             size="small"
             class="lc-filter-btn"
             @click="showAdvanced = !showAdvanced"
@@ -187,7 +185,7 @@
           <v-btn
             :variant="showInvoice ? 'flat' : 'tonal'"
             :color="showInvoice ? '#00897B' : undefined"
-            rounded
+            rounded="lg"
             size="small"
             class="lc-filter-btn"
             :disabled="!canSetupInvoice"
@@ -204,13 +202,35 @@
             ></v-badge>
           </v-btn>
 
+          <v-btn
+            v-if="activeFilterCount > 0"
+            variant="text"
+            color="warning"
+            rounded="lg"
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="clearAllFilters"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
+        </div>
+
+        <!-- Right Side: Records Counter, Row Expander, Columns Manager, Export & Expand View -->
+        <div class="d-flex align-center flex-wrap ga-2">
+          <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-medium">
+            {{ colFilteredItems.length }} / {{ charges.length }} {{ $t('records') }}
+          </v-chip>
+
+          <v-divider vertical class="mx-1 my-1" style="height: 22px;"></v-divider>
+
           <!-- Expand / Collapse All Details Button -->
           <v-btn
             :variant="isAllExpanded ? 'flat' : 'tonal'"
             :color="isAllExpanded ? 'warning' : '#42A5F5'"
-            rounded
+            rounded="lg"
             size="small"
             class="lc-filter-btn"
+            :title="isAllExpanded ? $t('collapse_all') : $t('expand_all')"
             @click="toggleExpandAll"
           >
             <v-icon size="16" class="mr-1">{{ isAllExpanded ? 'mdi-arrow-collapse-vertical' : 'mdi-arrow-expand-vertical' }}</v-icon>
@@ -224,115 +244,79 @@
             ></v-badge>
           </v-btn>
 
-          <v-btn
-            v-if="activeFilterCount > 0"
-            variant="text"
-            color="warning"
-            rounded
-            size="small"
-            prepend-icon="mdi-filter-off"
-            @click="clearAllFilters"
-          >
-            {{ $t('clear_filters') }}
-          </v-btn>
-        </v-col>
+          <!-- Columns Manager -->
+          <TableColumnManager
+            :columns="configColumns"
+            :color="moduleColor"
+            :hidden-columns="hiddenColumns"
+            :pin-state="pinState"
+            @toggle-visibility="toggleColumnVisibility"
+            @show-all="showAllColumns"
+            @hide-all="hideAllColumns"
+            @move-up="moveColumnUp"
+            @move-down="moveColumnDown"
+            @set-pin="setPin($event.key, $event.side)"
+            @reset="resetTableConfig"
+            @reorder="onColumnManagerReorder"
+          />
 
-        <!-- Right: Actions (Records Counter, Table Settings & Excel) -->
-        <v-col cols="12" md="3" sm="12" class="d-flex justify-end align-center ga-2">
-          <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-medium">
-            {{ colFilteredItems.length }} / {{ charges.length }} {{ $t('records') }}
-          </v-chip>
-
-          <!-- Table Settings Menu -->
-          <v-menu v-model="tableConfigMenu" :close-on-content-click="false" location="bottom end" width="300">
-            <template #activator="{ props: menuProps }">
+          <!-- Export Menu (Excel & CSV) -->
+          <v-menu location="bottom end" :close-on-content-click="true">
+            <template #activator="{ props: expProps }">
               <v-btn
-                v-bind="menuProps"
-                icon
+                v-bind="expProps"
                 variant="tonal"
-                color="#42A5F5"
+                color="#4CAF50"
                 size="small"
-                :title="$t('table_settings')"
+                rounded="lg"
+                prepend-icon="mdi-file-export-outline"
+                class="font-weight-medium"
               >
-                <v-icon size="18">mdi-table-cog</v-icon>
+                {{ $t('export') || 'Export' }}
+                <v-icon end size="14">mdi-chevron-down</v-icon>
               </v-btn>
             </template>
-            <v-card class="rounded-xl pa-3" elevation="8">
-              <div class="d-flex align-center justify-space-between mb-2 pb-2 border-b">
-                <div class="d-flex align-center ga-1 font-weight-bold text-caption text-charge">
-                  <v-icon size="16" color="#42A5F5">mdi-table-cog</v-icon>
-                  <span>{{ $t('table_settings') }}</span>
-                </div>
-                <v-btn icon="mdi-close" size="x-small" variant="text" @click="tableConfigMenu = false"></v-btn>
-              </div>
-
-              <!-- Quick Reset Button -->
-              <v-btn
-                size="small"
-                variant="tonal"
-                color="warning"
-                prepend-icon="mdi-restore"
-                rounded="lg"
-                block
-                class="mb-3"
-                @click="resetTableConfig"
-              >
-                {{ $t('reset_table_config') }}
-              </v-btn>
-
-              <div class="text-caption text-medium-emphasis mb-2 font-weight-bold">
-                {{ $t('columns_order_and_pin') }}:
-              </div>
-
-              <div class="table-config-col-list" style="max-height: 260px; overflow-y: auto;">
-                <div
-                  v-for="h in configColumns"
-                  :key="h.key"
-                  class="d-flex align-center justify-space-between pa-1 px-2 mb-1 rounded bg-surface-variant-subtle"
-                  style="font-size: 11px;"
-                >
-                  <span class="text-truncate font-weight-medium" style="max-width: 140px;" :title="h.title">
-                    {{ h.title }}
-                  </span>
-                  <div class="d-flex align-center ga-1">
-                    <v-btn
-                      size="20"
-                      icon
-                      :variant="pinSide(h.key) === 'left' ? 'flat' : 'text'"
-                      :color="pinSide(h.key) === 'left' ? '#42A5F5' : 'grey'"
-                      :title="$t('pin_left')"
-                      @click="setPin(h.key, pinSide(h.key) === 'left' ? 'none' : 'left')"
-                    >
-                      <v-icon size="12">mdi-dock-left</v-icon>
-                    </v-btn>
-                    <v-btn
-                      size="20"
-                      icon
-                      :variant="pinSide(h.key) === 'right' ? 'flat' : 'text'"
-                      :color="pinSide(h.key) === 'right' ? '#FF7043' : 'grey'"
-                      :title="$t('pin_right')"
-                      @click="setPin(h.key, pinSide(h.key) === 'right' ? 'none' : 'right')"
-                    >
-                      <v-icon size="12">mdi-dock-right</v-icon>
-                    </v-btn>
-                  </div>
-                </div>
-              </div>
-            </v-card>
+            <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+              <v-list-item prepend-icon="mdi-file-excel-outline" @click="exportTableToExcel()">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.xlsx)
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item prepend-icon="mdi-file-delimited-outline" @click="exportTableToCsv()">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.csv)
+                </v-list-item-title>
+              </v-list-item>
+              <v-divider v-if="selected.length" class="my-1"></v-divider>
+              <v-list-item v-if="selected.length" prepend-icon="mdi-file-excel-outline" @click="exportSelectedToExcel">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_selected_only', { count: selected.length }) }} (.xlsx)
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item v-if="selected.length" prepend-icon="mdi-file-delimited-outline" @click="exportSelectedToCsv">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_selected_only', { count: selected.length }) }} (.csv)
+                </v-list-item-title>
+              </v-list-item>
+            </v-list>
           </v-menu>
 
+          <!-- Expand View Button -->
           <v-btn
-            icon
-            variant="tonal"
-            color="#4CAF50"
+            :variant="isExpandedView ? 'flat' : 'elevated'"
+            :color="isExpandedView ? 'warning' : '#42A5F5'"
+            rounded="lg"
             size="small"
-            :title="$t('export_excel')"
-            @click="exportExcel"
+            class="lc-filter-btn font-weight-bold"
+            :class="{ 'text-white': !isExpandedView }"
+            :prepend-icon="isExpandedView ? 'mdi-arrow-collapse-all' : 'mdi-arrow-expand-all'"
+            :title="isExpandedView ? $t('collapse_view') : $t('expand_view')"
+            @click="toggleExpandedView"
           >
-            <v-icon size="18">mdi-file-excel-outline</v-icon>
+            {{ isExpandedView ? $t('collapse_view') : $t('expand_view') }}
           </v-btn>
-        </v-col>
-      </v-row>
+        </div>
+      </div>
 
       <!-- Advanced Filters Expandable Panel -->
       <v-expand-transition>
@@ -913,40 +897,232 @@
       </v-expand-transition>
     </div>
 
-    <!-- Active Multi-Sorts Strip -->
-    <div v-if="colSorts && colSorts.length > 0" class="lc-active-sorts-strip d-flex align-center flex-wrap ga-1 px-3 py-1 mb-2 rounded-lg" style="background: rgba(66, 165, 245, 0.06); border: 1px dashed rgba(66, 165, 245, 0.3);">
-      <span class="text-caption font-weight-bold d-flex align-center ga-1 text-charge mr-1">
-        <v-icon size="14" color="#42A5F5">mdi-sort</v-icon>
-        {{ $t('sorted_by') }}:
-      </span>
-      <v-chip
-        v-for="(s, sIdx) in colSorts"
-        :key="'sort_' + s.key"
-        size="x-small"
-        rounded="lg"
-        color="#42A5F5"
-        variant="flat"
-        closable
-        @click:close="removeColSort(s.key)"
-        @click="toggleMultiSort(s.key)"
-      >
-        <span class="font-weight-bold mr-1">{{ sIdx + 1 }}.</span>
-        <span>{{ getHeaderTitle(s.key) }}</span>
-        <v-icon end size="12">{{ s.dir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>
-      </v-chip>
-      <v-btn
-        size="x-small"
-        variant="text"
-        color="error"
-        class="ml-1 text-caption font-weight-medium"
-        @click="clearColSorts"
-      >
-        {{ $t('clear_sorts') }}
-      </v-btn>
-    </div>
+    <!-- Table Container (Supports Normal Mode and Expanded Fullscreen Mode) -->
+    <div
+      class="lc-table-container"
+      :class="{
+        'lc-fullscreen-mode': isExpandedView,
+        ['density-' + tableDensity]: true,
+      }"
+    >
+      <!-- Dedicated Command Bar when Expanded View is Active -->
+      <div v-if="isExpandedView" class="lc-fullscreen-header mb-3 pa-2 px-3 rounded-xl">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <!-- Left: Module Brand & Live KPI Chips -->
+          <div class="d-flex align-center ga-2 flex-wrap">
+            <div class="d-flex align-center ga-2 mr-1">
+              <v-avatar size="32" color="#42A5F5" variant="flat" rounded="lg">
+                <v-icon size="18" color="white">mdi-truck-cargo-container</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-caption font-weight-bold text-charge" style="line-height: 1.2;">{{ $t('charges') }}</div>
+                <div class="text-caption text-medium-emphasis" style="font-size: 10px !important;">{{ $t('expand_view') }}</div>
+              </div>
+            </div>
 
-    <!-- Data Table -->
-    <div class="lc-table-wrap" ref="tableWrap" @scroll.passive="onTableScroll">
+            <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold">
+              <v-icon start size="14">mdi-counter</v-icon>
+              {{ colFilteredItems.length }} / {{ charges.length }} {{ $t('records') }}
+            </v-chip>
+            <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold">
+              <v-icon start size="14">mdi-weight-kilogram</v-icon>
+              {{ main.formatDisplayNumber(totalWeight) }} Kg
+            </v-chip>
+            <v-chip size="small" variant="tonal" color="#42A5F5" class="font-weight-bold">
+              <v-icon start size="14">mdi-cash</v-icon>
+              {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}
+            </v-chip>
+            <v-chip v-if="totalInvoiced > 0" size="small" variant="tonal" color="success" class="font-weight-bold">
+              <v-icon start size="14">mdi-check-decagram</v-icon>
+              {{ totalInvoiced }} {{ $t('invoiced') }}
+            </v-chip>
+          </div>
+
+          <!-- Right: Search, Density, Expand All, Columns Manager, Export, Bulk Actions & Exit -->
+          <div class="d-flex align-center ga-2 flex-wrap">
+            <v-text-field
+              v-model="searchQuery"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              clearable
+              color="#42A5F5"
+              class="text-charge"
+              prepend-inner-icon="mdi-magnify"
+              :placeholder="$t('search_records_placeholder') || 'Search records...'"
+              style="min-width: 170px; max-width: 220px;"
+            ></v-text-field>
+
+            <!-- Table Density Selector -->
+            <div class="d-flex align-center border rounded-lg pa-0-5 bg-surface">
+              <v-btn
+                size="x-small"
+                icon
+                :variant="tableDensity === 'comfortable' ? 'flat' : 'text'"
+                :color="tableDensity === 'comfortable' ? '#42A5F5' : 'grey'"
+                :title="$t('density_comfortable')"
+                @click="setTableDensity('comfortable')"
+              >
+                <v-icon size="15">mdi-view-headline</v-icon>
+              </v-btn>
+              <v-btn
+                size="x-small"
+                icon
+                :variant="tableDensity === 'compact' ? 'flat' : 'text'"
+                :color="tableDensity === 'compact' ? '#42A5F5' : 'grey'"
+                :title="$t('density_compact')"
+                @click="setTableDensity('compact')"
+              >
+                <v-icon size="15">mdi-view-agenda-outline</v-icon>
+              </v-btn>
+              <v-btn
+                size="x-small"
+                icon
+                :variant="tableDensity === 'dense' ? 'flat' : 'text'"
+                :color="tableDensity === 'dense' ? '#42A5F5' : 'grey'"
+                :title="$t('density_dense')"
+                @click="setTableDensity('dense')"
+              >
+                <v-icon size="15">mdi-view-sequential-outline</v-icon>
+              </v-btn>
+            </div>
+
+            <!-- Expand / Collapse All Details -->
+            <v-btn
+              size="small"
+              variant="tonal"
+              :color="isAllExpanded ? 'warning' : '#42A5F5'"
+              rounded="lg"
+              :title="isAllExpanded ? $t('collapse_all') : $t('expand_all')"
+              @click="toggleExpandAll"
+            >
+              <v-icon size="16">{{ isAllExpanded ? 'mdi-arrow-collapse-vertical' : 'mdi-arrow-expand-vertical' }}</v-icon>
+            </v-btn>
+
+            <!-- Column Visibility & Order Manager -->
+            <TableColumnManager
+              :columns="configColumns"
+              :color="moduleColor"
+              :hidden-columns="hiddenColumns"
+              :pin-state="pinState"
+              @toggle-visibility="toggleColumnVisibility"
+              @show-all="showAllColumns"
+              @hide-all="hideAllColumns"
+              @move-up="moveColumnUp"
+              @move-down="moveColumnDown"
+              @set-pin="setPin($event.key, $event.side)"
+              @reset="resetTableConfig"
+              @reorder="onColumnManagerReorder"
+            />
+
+            <!-- Export Menu -->
+            <v-menu location="bottom end" :close-on-content-click="true">
+              <template #activator="{ props: expProps }">
+                <v-btn
+                  v-bind="expProps"
+                  variant="tonal"
+                  color="#4CAF50"
+                  size="small"
+                  rounded="lg"
+                  prepend-icon="mdi-file-export-outline"
+                  class="font-weight-medium"
+                >
+                  {{ $t('export') || 'Export' }}
+                  <v-icon end size="14">mdi-chevron-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+                <v-list-item prepend-icon="mdi-file-excel-outline" @click="exportTableToExcel()">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.xlsx)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item prepend-icon="mdi-file-delimited-outline" @click="exportTableToCsv()">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.csv)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-divider v-if="selected.length" class="my-1"></v-divider>
+                <v-list-item v-if="selected.length" prepend-icon="mdi-file-excel-outline" @click="exportSelectedToExcel">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_selected_only', { count: selected.length }) }} (.xlsx)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item v-if="selected.length" prepend-icon="mdi-file-delimited-outline" @click="exportSelectedToCsv">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_selected_only', { count: selected.length }) }} (.csv)
+                  </v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+
+            <!-- Bulk Delete -->
+            <v-btn
+              v-if="selected.length && auth.hasPermission('charges.delete')"
+              variant="tonal"
+              color="error"
+              rounded="lg"
+              size="small"
+              prepend-icon="mdi-delete"
+              @click="confirmBulkDelete"
+            >
+              {{ $t('delete_selected') }} ({{ selected.length }})
+            </v-btn>
+
+            <v-divider vertical class="mx-1 my-1" style="height: 22px;"></v-divider>
+
+            <!-- Exit Fullscreen Button -->
+            <v-btn
+              variant="flat"
+              color="error"
+              rounded="lg"
+              size="small"
+              prepend-icon="mdi-fullscreen-exit"
+              @click="exitExpandedView"
+              class="font-weight-bold text-white shadow-sm"
+            >
+              {{ $t('exit_expand_view') }}
+              <v-chip size="x-small" color="white" variant="outlined" class="ml-1 font-weight-bold px-1" style="height: 18px; font-size: 10px;">ESC</v-chip>
+            </v-btn>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Multi-Sorts Strip -->
+      <div v-if="colSorts && colSorts.length > 0" class="lc-active-sorts-strip d-flex align-center flex-wrap ga-1 px-3 py-1 mb-2 rounded-lg" style="background: rgba(66, 165, 245, 0.06); border: 1px dashed rgba(66, 165, 245, 0.3);">
+        <span class="text-caption font-weight-bold d-flex align-center ga-1 text-charge mr-1">
+          <v-icon size="14" color="#42A5F5">mdi-sort</v-icon>
+          {{ $t('sorted_by') }}:
+        </span>
+        <v-chip
+          v-for="(s, sIdx) in colSorts"
+          :key="'sort_' + s.key"
+          size="x-small"
+          rounded="lg"
+          color="#42A5F5"
+          variant="flat"
+          closable
+          @click:close="removeColSort(s.key)"
+          @click="toggleMultiSort(s.key)"
+        >
+          <span class="font-weight-bold mr-1">{{ sIdx + 1 }}.</span>
+          <span>{{ getHeaderTitle(s.key) }}</span>
+          <v-icon end size="12">{{ s.dir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>
+        </v-chip>
+        <v-btn
+          size="x-small"
+          variant="text"
+          color="error"
+          class="ml-1 text-caption font-weight-medium"
+          @click="clearColSorts"
+        >
+          {{ $t('clear_sorts') }}
+        </v-btn>
+      </div>
+
+      <!-- Data Table -->
+      <div class="lc-table-wrap" ref="tableWrap" @scroll.passive="onTableScroll">
       <v-progress-linear v-if="isWorkerFiltering" indeterminate color="#42A5F5" height="2" class="lc-table-loader"></v-progress-linear>
       <table class="lc-table">
         <thead class="lc-thead"><tr>
@@ -1253,6 +1429,7 @@
         <tfoot class="lc-tfoot"><tr><td class="lc-td" :style="colPinStyle('__checkbox', 2)"></td><td v-for="h in headers" :key="'foot-'+h.key" :style="colPinStyle(h.key, 2)" class="lc-td text-center font-weight-bold" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='_total_weight_invoice' || h.key==='total_weight_invoice'">Σ {{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
       </table>
     </div>
+    </div>
   </v-card-text>
   <!-- TAB: Add Charge -->
   <v-card-text v-else-if="activeTab === 1" class="pa-0">
@@ -1277,11 +1454,12 @@ import AuditLogDialog from '@/components/shared/AuditLogDialog.vue';
 import RecordIssueDialog from '@/components/shared/RecordIssueDialog.vue';
 import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
+import TableColumnManager from '@/components/common/TableColumnManager.vue';
 import { useAuth } from '@/stores/Auth';
 export default {
   ...script,
   mixins: [virtualTableMixin, tableConfigMixin],
-  components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle,TableColumnFilter},
+  components:{...script.components,AddCharge,QualityControlDialog,AuditLogDialog,RecordIssueDialog,SegmentedPillToggle,TableColumnFilter,TableColumnManager},
   data(){return{...script.data.call(this),activeTab:0,qcDialogOpen:false,qcDialogCharge:null,auditLogDialogOpen:false,auditLogRecordId:0,issueDialogOpen:false,issueDialogRecordId:0,chargeTabs:[{value:0,label:'list_charge',icon:'mdi-view-list-outline'},...(useAuth().hasPermission('charges.create')?[{value:1,label:'add_charge',icon:'mdi-sticker-plus-outline'}]:[])]}},
   computed:{...script.computed,auth(){return useAuth()},selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
   methods:{...script.methods,openQcDialog(item){this.qcDialogCharge=item;this.qcDialogOpen=true},onQcSaved(){this.fetchCharges()},onQcDeleted(){this.fetchCharges()},openAuditLog(id){this.auditLogRecordId=id;this.auditLogDialogOpen=true},openIssueDialog(id){this.issueDialogRecordId=id;this.issueDialogOpen=true}},
@@ -1369,4 +1547,70 @@ export default {
 .lc-stats-panel{max-height:400px}
 .lc-stat-item{padding:8px 10px;border-radius:10px;background:rgba(25,118,210,.03);border:1px solid rgba(25,118,210,.06)}
 .lc-date-presets-wrapper{width:100%;overflow-x:auto;scrollbar-width:none}
+
+/* Fullscreen Expanded Workspace Mode */
+.lc-fullscreen-mode {
+  position: fixed !important;
+  top: var(--v-layout-top, 64px) !important;
+  left: var(--v-layout-left, 64px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 1000 !important;
+  background: rgb(var(--v-theme-surface)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.lc-fullscreen-mode .lc-table-wrap {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: auto !important;
+}
+.lc-fullscreen-header {
+  background: rgba(var(--v-theme-surface), 0.98);
+  border: 1px solid rgba(66, 165, 245, 0.25);
+  box-shadow: 0 2px 12px rgba(13, 71, 161, 0.08);
+  flex-shrink: 0;
+}
+
+/* Density Controls */
+.density-comfortable .lc-td {
+  padding: 12px 10px !important;
+  font-size: 13px !important;
+}
+.density-comfortable .lc-th {
+  padding: 10px 8px !important;
+}
+.density-compact .lc-td {
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+}
+.density-compact .lc-th {
+  padding: 8px 8px !important;
+}
+.density-dense .lc-td {
+  padding: 3px 5px !important;
+  font-size: 11px !important;
+}
+.density-dense .lc-th {
+  padding: 5px 4px !important;
+}
+.density-dense .v-chip {
+  height: 18px !important;
+  font-size: 10px !important;
+  padding: 0 5px !important;
+}
+.density-dense .lc-actions-wrapper .v-btn {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+}
 </style>

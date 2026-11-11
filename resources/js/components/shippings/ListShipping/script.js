@@ -87,11 +87,22 @@ export default {
       ]
     },
     headers() {
-      if (!this.columnOrder) return this.allHeaders;
+      const hiddenSet = new Set(this.hiddenColumns || []);
+      if (!this.columnOrder) {
+        return this.allHeaders.filter(h => h.fixed || !hiddenSet.has(h.key));
+      }
       const map = Object.fromEntries(this.allHeaders.map(h => [h.key, h]));
       const fixed = this.allHeaders.filter(h => h.fixed);
-      const ordered = this.columnOrder.filter(k => map[k] && !map[k].fixed).map(k => map[k]);
-      return [fixed[0], ...ordered.filter(h => this.pinState[h.key] === 'left'), ...ordered.filter(h => !this.pinState[h.key]), ...ordered.filter(h => this.pinState[h.key] === 'right'), fixed[fixed.length - 1]];
+      const ordered = this.columnOrder
+        .filter(k => map[k] && !map[k].fixed && !hiddenSet.has(k))
+        .map(k => map[k]);
+      return [
+        fixed[0],
+        ...ordered.filter(h => this.pinState[h.key] === 'left'),
+        ...ordered.filter(h => !this.pinState[h.key]),
+        ...ordered.filter(h => this.pinState[h.key] === 'right'),
+        fixed[fixed.length - 1]
+      ];
     },
     activeFilterCount() {
       let count = 0;

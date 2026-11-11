@@ -172,5 +172,19 @@ body.aiq-body-fullscreen .v-main > .v-container {
   margin: 0 !important;
   max-width: 100vw !important;
 }
+
+/* Table Expanded Workspace Mode Rules */
+html.table-expanded-active,
+body.table-expanded-active {
+  overflow: hidden !important;
+}
+
+body.table-expanded-active .ai-assistant-fab,
+body.table-expanded-active .ai-chat-panel {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
 </style>
 
