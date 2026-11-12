@@ -19,19 +19,31 @@
             </div>
           </div>
 
-          <v-card-text v-if="loading" class="pa-6">
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-skeleton-loader type="text, text" class="app-skel-cell mb-4" />
-                <v-skeleton-loader type="heading" class="app-skel-cell" />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-skeleton-loader type="text, text" class="app-skel-cell mb-4" />
-                <v-skeleton-loader type="heading" class="app-skel-cell" />
+          <v-card-text v-if="loading" class="pa-6 d-flex flex-column ga-5">
+            <!-- Form Fields Grid Skeleton -->
+            <v-row dense>
+              <v-col cols="12" sm="6" md="4" v-for="i in 6" :key="'ec-field-skel-' + i">
+                <div class="d-flex flex-column ga-1 mb-2">
+                  <div class="skel-bone" style="width: 35%; height: 11px;"></div>
+                  <div class="skel-bone rounded-lg" style="width: 100%; height: 42px;"></div>
+                </div>
               </v-col>
             </v-row>
-            <div class="mt-6">
-              <v-skeleton-loader type="table-heading, table-row@4" class="app-skel-cell" />
+
+            <!-- Table Card Skeleton -->
+            <div class="border rounded-lg overflow-hidden mt-2">
+              <div class="d-flex align-center justify-space-between pa-3 bg-surface-variant border-b">
+                <div class="skel-bone" style="width: 25%; height: 14px;"></div>
+                <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+                <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+                <div class="skel-bone" style="width: 15%; height: 14px;"></div>
+              </div>
+              <div v-for="r in 4" :key="'ec-tbl-skel-' + r" class="d-flex align-center justify-space-between pa-3 border-b">
+                <div class="skel-bone" style="width: 30%; height: 13px;"></div>
+                <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+                <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+                <div class="skel-bone" style="width: 12%; height: 13px;"></div>
+              </div>
             </div>
           </v-card-text>
 

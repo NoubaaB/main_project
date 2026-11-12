@@ -21,7 +21,41 @@
       </div>
 
       <!-- Scrollable Statistics Body matching production/list -->
-      <div class="stats-scroll-container">
+      <div v-if="loading" class="d-flex flex-column ga-3 py-2">
+        <div v-for="s in 4" :key="'jup-stat-skel-' + s" class="pa-2.5 rounded-xl border bg-surface">
+          <div class="d-flex align-center justify-space-between mb-1.5">
+            <div class="skel-bone" style="width: 95px; height: 18px; border-radius: 999px;"></div>
+            <div class="skel-bone" style="width: 40px; height: 18px; border-radius: 999px;"></div>
+          </div>
+          <div class="skel-bone mb-2" style="width: 100%; height: 5px; border-radius: 999px;"></div>
+          <div class="d-flex flex-column ga-1.5">
+            <div class="d-flex align-center ga-1.5">
+              <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+              <div class="skel-bone" style="width: 50px; height: 11px;"></div>
+              <div class="skel-bone ml-auto" style="width: 65px; height: 11px;"></div>
+            </div>
+            <div class="d-flex align-center ga-1.5">
+              <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+              <div class="skel-bone" style="width: 60px; height: 11px;"></div>
+              <div class="skel-bone ml-auto" style="width: 75px; height: 11px;"></div>
+            </div>
+          </div>
+        </div>
+        <v-divider class="my-2 border-dashed" />
+        <div class="d-flex flex-column ga-2">
+          <div class="d-flex align-center ga-2">
+            <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+            <div class="skel-bone" style="width: 70px; height: 12px;"></div>
+            <div class="skel-bone ml-auto" style="width: 80px; height: 12px;"></div>
+          </div>
+          <div class="d-flex align-center ga-2">
+            <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+            <div class="skel-bone" style="width: 65px; height: 12px;"></div>
+            <div class="skel-bone ml-auto" style="width: 85px; height: 12px;"></div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="stats-scroll-container">
         <!-- 1. CATEGORY STATISTICS (with Progress Bars) -->
         <div class="stat-section-block mb-3">
           <div class="stat-block-title d-flex align-center ga-1 mb-2">
@@ -335,6 +369,10 @@ export default {
         secondary_packaging: { total_cost: 0, items: [] },
         yields: [],
       }),
+    },
+    loading: {
+      type: Boolean,
+      default: false,
     },
   },
   computed: {

@@ -33,7 +33,11 @@
 
       <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#a21ee5' : false" density="comfortable" class="rounded-xl param-table" hover>
         <template v-slot:loading>
-          <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+          <tr v-for="r in 6" :key="'wco-skel-' + r" class="app-skeleton-table-row">
+            <td v-for="c in 5" :key="'wco-c-' + c" class="pa-3 text-center">
+              <div class="skel-bone mx-auto" style="width: 75%; height: 14px;"></div>
+            </td>
+          </tr>
         </template>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>

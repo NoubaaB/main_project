@@ -131,7 +131,11 @@
             :height="tableHeight"
           >
             <template v-slot:loading>
-              <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+              <tr v-for="r in 6" :key="'scm-skel-' + r" class="app-skeleton-table-row">
+                <td v-for="c in 6" :key="'scm-c-' + c" class="pa-3 text-center">
+                  <div class="skel-bone mx-auto" style="width: 75%; height: 14px;"></div>
+                </td>
+              </tr>
             </template>
             <!-- Custom headers with integrated column filters -->
             <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">

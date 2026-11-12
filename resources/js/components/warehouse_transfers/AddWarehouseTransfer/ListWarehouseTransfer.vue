@@ -53,7 +53,15 @@
               <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
             </v-btn-toggle>
           </div>
-          <apexchart v-if="chartSeries.length>1 || (chartSeries[0] && chartSeries[0].data.length)" type="area" :height="300" :options="chartOptions" :series="chartSeries"></apexchart>
+          <div v-if="loading" class="d-flex flex-column justify-space-between" style="height: 300px; padding: 16px;">
+            <div class="d-flex align-end justify-space-between ga-2" style="height: 240px; width: 100%;">
+              <div v-for="b in 12" :key="'lwt-chart-skel-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+            </div>
+            <div class="d-flex justify-space-between mt-2">
+              <div v-for="t in 6" :key="'lwt-chart-lbl-' + t" class="skel-bone" style="width: 36px; height: 10px; border-radius: 4px;"></div>
+            </div>
+          </div>
+          <apexchart v-else-if="chartSeries.length>1 || (chartSeries[0] && chartSeries[0].data.length)" type="area" :height="300" :options="chartOptions" :series="chartSeries"></apexchart>
           <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-line-variant</v-icon></div>
         </div>
       </v-col>
@@ -61,19 +69,55 @@
       <v-col cols="12" md="3">
         <div class="lwt-panel-card lwt-stats-panel" style="height:100%;overflow-y:auto">
           <div class="lwt-panel-header"><v-icon size="16" color="#F9A825" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
-          <div v-for="(stat,si) in categoryStats" :key="si" class="lwt-stat-item mb-2">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="#F9A825" variant="tonal" class="font-weight-bold">{{ stat.name }} (<span class="fnm-currency-num">{{ stat.count }}</span>)</v-chip>
-              <v-chip size="x-small" color="#F9A825" variant="elevated" class="font-weight-bold fnm-currency-num">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+          <div v-if="loading" class="d-flex flex-column ga-3 py-2">
+            <div v-for="s in 3" :key="'lwt-skel-stat-' + s" class="lwt-stat-item mb-2">
+              <div class="d-flex align-center justify-space-between mb-1.5">
+                <div class="skel-bone" style="width: 90px; height: 18px; border-radius: 999px;"></div>
+                <div class="skel-bone" style="width: 40px; height: 18px; border-radius: 999px;"></div>
+              </div>
+              <div class="skel-bone mb-2" style="width: 100%; height: 5px; border-radius: 999px;"></div>
+              <div class="d-flex flex-column ga-1.5">
+                <div class="d-flex align-center ga-1.5">
+                  <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 50px; height: 11px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 65px; height: 11px;"></div>
+                </div>
+                <div class="d-flex align-center ga-1.5">
+                  <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 60px; height: 11px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 75px; height: 11px;"></div>
+                </div>
+              </div>
             </div>
-            <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#F9A825" rounded height="6" class="mb-1"></v-progress-linear>
-            <div class="d-flex align-center ga-3 text-caption">
-              <div><v-icon size="14" color="#F9A825">mdi-weight-kilogram</v-icon> <span class="fnm-currency-num">{{ main.formatDisplayNumber(stat.weight) }}</span> Kg</div>
+            <v-divider class="my-2" color="#F9A825"></v-divider>
+            <div class="d-flex flex-column ga-2">
+              <div class="d-flex align-center ga-2">
+                <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                <div class="skel-bone" style="width: 70px; height: 12px;"></div>
+                <div class="skel-bone ml-auto" style="width: 80px; height: 12px;"></div>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                <div class="skel-bone" style="width: 65px; height: 12px;"></div>
+                <div class="skel-bone ml-auto" style="width: 85px; height: 12px;"></div>
+              </div>
             </div>
           </div>
-          <div v-if="!categoryStats.length" class="text-center text-caption text-medium-emphasis pa-4">{{ $t('no_data_available') }}</div>
-          <v-divider class="my-2" color="#F9A825"></v-divider>
-          <div class="d-flex align-center ga-1"><v-icon size="14" color="#F9A825">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><span class="text-caption font-weight-bold fnm-currency-num" style="color:#F9A825">{{ main.formatDisplayNumber(totalWeight) }} Kg</span></div>
+          <template v-else>
+            <div v-for="(stat,si) in categoryStats" :key="si" class="lwt-stat-item mb-2">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <v-chip size="x-small" color="#F9A825" variant="tonal" class="font-weight-bold">{{ stat.name }} (<span class="fnm-currency-num">{{ stat.count }}</span>)</v-chip>
+                <v-chip size="x-small" color="#F9A825" variant="elevated" class="font-weight-bold fnm-currency-num">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+              </div>
+              <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#F9A825" rounded height="6" class="mb-1"></v-progress-linear>
+              <div class="d-flex align-center ga-3 text-caption">
+                <div><v-icon size="14" color="#F9A825">mdi-weight-kilogram</v-icon> <span class="fnm-currency-num">{{ main.formatDisplayNumber(stat.weight) }}</span> Kg</div>
+              </div>
+            </div>
+            <div v-if="!categoryStats.length" class="text-center text-caption text-medium-emphasis pa-4">{{ $t('no_data_available') }}</div>
+            <v-divider class="my-2" color="#F9A825"></v-divider>
+            <div class="d-flex align-center ga-1"><v-icon size="14" color="#F9A825">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><span class="text-caption font-weight-bold fnm-currency-num" style="color:#F9A825">{{ main.formatDisplayNumber(totalWeight) }} Kg</span></div>
+          </template>
         </div>
       </v-col>
     </v-row>
@@ -537,9 +581,16 @@
           <tbody>
             <template v-if="loading">
               <tr v-for="r in 8" :key="'wt-skel-' + r" class="lwt-row app-skeleton-table-row">
-                <td class="lwt-td text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+                <td class="lwt-td text-center" :style="headerPinStyles['__checkbox']">
+                  <div class="skel-bone mx-auto" style="width: 18px; height: 18px; border-radius: 4px;"></div>
+                </td>
                 <td v-for="h in headers" :key="'wt-skel-' + h.key + '-' + r" class="lwt-td" :class="{'lwt-col-pin': isPinned(h.key) || h.fixed, 'lwt-td-actions': h.key === 'actions'}" :style="headerPinStyles[h.key]">
-                  <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === '_tracking' ? 'chip' : 'text'" class="app-skel-cell" />
+                  <div v-if="h.key === 'expand'" class="skel-bone skel-circle mx-auto" style="width: 22px; height: 22px;"></div>
+                  <div v-else-if="h.key === 'actions'" class="d-flex align-center justify-center ga-1">
+                    <div v-for="a in 3" :key="a" class="skel-bone skel-circle" style="width: 20px; height: 20px;"></div>
+                  </div>
+                  <div v-else-if="h.key === '_tracking' || h.key.includes('status') || h.key.includes('type')" class="skel-bone" style="width: 85px; height: 20px; border-radius: 999px;"></div>
+                  <div v-else class="skel-bone" style="width: 75%; height: 13px;"></div>
                 </td>
               </tr>
             </template>

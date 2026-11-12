@@ -24,16 +24,37 @@
     <RecordIssueDialog v-model="issueDialog" record-type="Charge" :record-id="Number($route.params.id)" module-color="#42A5F5" />
 
     <v-card-text v-if="loading" class="pa-5">
+      <!-- Main Info Cards Skeleton -->
       <v-row class="mb-4">
         <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'vc-skel-' + k">
-          <div class="info-card">
-            <v-skeleton-loader type="avatar" width="24" height="24" class="app-skel-cell mb-1" />
-            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mb-1" />
-            <v-skeleton-loader type="heading" width="80%" class="app-skel-cell" />
+          <div class="info-card d-flex flex-column ga-1">
+            <div class="skel-bone skel-circle mb-1" style="width: 24px; height: 24px;"></div>
+            <div class="skel-bone mb-1" style="width: 55%; height: 11px;"></div>
+            <div class="skel-bone" style="width: 80%; height: 18px;"></div>
           </div>
         </v-col>
       </v-row>
-      <v-skeleton-loader type="table-row@4" class="app-skel-cell" />
+      <!-- Badges Row Skeleton -->
+      <div class="d-flex ga-2 mb-4">
+        <div class="skel-bone" style="width: 90px; height: 24px; border-radius: 999px;"></div>
+        <div class="skel-bone" style="width: 120px; height: 24px; border-radius: 999px;"></div>
+        <div class="skel-bone" style="width: 100px; height: 24px; border-radius: 999px;"></div>
+      </div>
+      <!-- Detail Table Skeleton -->
+      <div class="border rounded-lg overflow-hidden">
+        <div class="d-flex align-center justify-space-between pa-3 bg-surface-variant border-b">
+          <div class="skel-bone" style="width: 25%; height: 14px;"></div>
+          <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+          <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+          <div class="skel-bone" style="width: 15%; height: 14px;"></div>
+        </div>
+        <div v-for="r in 4" :key="'vc-tbl-skel-' + r" class="d-flex align-center justify-space-between pa-3 border-b">
+          <div class="skel-bone" style="width: 30%; height: 13px;"></div>
+          <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+          <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+          <div class="skel-bone" style="width: 12%; height: 13px;"></div>
+        </div>
+      </div>
     </v-card-text>
 
     <v-card-text v-else-if="charge" class="pa-5">

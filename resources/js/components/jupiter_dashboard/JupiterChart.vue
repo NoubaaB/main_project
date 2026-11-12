@@ -286,8 +286,15 @@
       </div>
 
       <!-- Section 4: Chart Skeleton Canvas -->
-      <div v-if="loading && !categories.length" class="pa-4">
-        <v-skeleton-loader type="image" height="340" class="rounded-2xl app-skel-transparent" />
+      <div v-if="loading" class="pa-4">
+        <div class="d-flex flex-column justify-space-between p-4 rounded-2xl border" style="height: 460px; padding: 24px;">
+          <div class="d-flex align-end justify-space-between ga-3" style="height: 380px; width: 100%;">
+            <div v-for="b in 16" :key="'jup-chart-skel-' + b" class="skel-bone" :style="{ width: '4%', height: (20 + (b * 19) % 75) + '%', borderRadius: '4px 4px 0 0' }"></div>
+          </div>
+          <div class="d-flex justify-space-between mt-3">
+            <div v-for="t in 8" :key="'jup-chart-lbl-' + t" class="skel-bone" style="width: 48px; height: 12px; border-radius: 4px;"></div>
+          </div>
+        </div>
       </div>
 
       <div v-else-if="!computedSeries.length" class="d-flex flex-column align-center justify-center py-16">

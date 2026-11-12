@@ -796,9 +796,9 @@
               <div class="text-caption text-medium-emphasis">{{ $t('step_preview_desc') || 'Vérifiez la visualisation finale et déployez-la sur votre tableau de bord' }}</div>
             </div>
 
-            <div v-if="previewLoading" class="d-flex flex-column align-center justify-center py-12">
-              <v-progress-circular indeterminate color="#0d9488" size="48" class="mb-3" />
-              <span class="text-caption text-medium-emphasis">{{ $t('loading') || 'Génération de l\'aperçu...' }}</span>
+            <div v-if="previewLoading" class="py-6">
+              <div v-if="form.display_type === 'statistic'" class="skel-bone rounded-xl mx-auto" style="width: 100%; height: 140px;"></div>
+              <div v-else class="skel-bone rounded-xl" style="width: 100%; height: 340px;"></div>
             </div>
 
             <template v-else>
@@ -919,8 +919,9 @@
             ></v-btn>
           </div>
 
-          <div v-if="previewLoading" class="d-flex justify-center py-10">
-            <v-progress-circular indeterminate color="#0d9488" size="32" />
+          <div v-if="previewLoading" class="py-4">
+            <div v-if="form.display_type === 'statistic'" class="skel-bone rounded-xl mx-auto" style="width: 100%; height: 110px;"></div>
+            <div v-else class="skel-bone rounded-xl" style="width: 100%; height: 260px;"></div>
           </div>
           <template v-else>
             <div v-if="form.display_type === 'statistic'" class="kpi-executive-card rounded-xl pa-6 text-center">

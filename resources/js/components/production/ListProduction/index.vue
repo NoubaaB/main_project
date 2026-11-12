@@ -96,7 +96,14 @@
               <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
             </v-btn-toggle>
           </div>
-          <v-skeleton-loader v-if="loading" type="image" height="300" class="rounded-xl app-skel-transparent" />
+          <div v-if="loading" class="d-flex flex-column justify-space-between" style="height: 300px; padding: 16px;">
+            <div class="d-flex align-end justify-space-between ga-2" style="height: 240px; width: 100%;">
+              <div v-for="b in 12" :key="'lp-chart-skel-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+            </div>
+            <div class="d-flex justify-space-between mt-2">
+              <div v-for="t in 6" :key="'lp-chart-lbl-' + t" class="skel-bone" style="width: 36px; height: 10px; border-radius: 4px;"></div>
+            </div>
+          </div>
           <apexchart v-else-if="chartSeries.length>1 || (chartSeries[0] && chartSeries[0].data.length)" type="line" :height="300" :options="chartOptions" :series="chartSeries"></apexchart>
           <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-line-variant</v-icon></div>
         </div>
@@ -1356,9 +1363,16 @@
         <tbody>
           <template v-if="loading">
             <tr v-for="r in 8" :key="'lp-skel-' + r" class="lp-row app-skeleton-table-row">
-              <td class="lp-td lp-col-pin text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td class="lp-td lp-col-pin text-center" :style="headerPinStyles['__checkbox']">
+                <div class="skel-bone mx-auto" style="width: 18px; height: 18px; border-radius: 4px;"></div>
+              </td>
               <td v-for="h in headers" :key="'lp-skel-' + h.key + '-' + r" class="lp-td" :class="{'lp-col-pin': isPinned(h.key) || h.fixed, 'lp-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
-                <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
+                <div v-if="h.key === 'expand'" class="skel-bone skel-circle mx-auto" style="width: 22px; height: 22px;"></div>
+                <div v-else-if="h.key === 'actions'" class="d-flex align-center justify-center ga-1">
+                  <div v-for="a in 3" :key="a" class="skel-bone skel-circle" style="width: 20px; height: 20px;"></div>
+                </div>
+                <div v-else-if="h.key === 'category' || h.key.includes('status') || h.key.includes('type')" class="skel-bone" style="width: 85px; height: 20px; border-radius: 999px;"></div>
+                <div v-else class="skel-bone" style="width: 75%; height: 13px;"></div>
               </td>
             </tr>
           </template>

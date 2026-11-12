@@ -392,8 +392,8 @@
             </div>
           </div>
           <template v-if="loading || workerProcessing">
-            <v-skeleton-loader type="heading" class="app-skel-cell" />
-            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+            <div class="skel-bone mb-1.5" style="width: 140px; height: 26px; border-radius: 4px;"></div>
+            <div class="skel-bone" style="width: 60%; height: 12px; border-radius: 4px;"></div>
           </template>
           <template v-else>
             <div class="wfs-kpi-val text-primary fnm-currency-num">{{ fmt(stats.grand_total) }} <span class="wfs-kpi-unit">{{ currency }}</span></div>
@@ -416,8 +416,8 @@
             </div>
           </div>
           <template v-if="loading || workerProcessing">
-            <v-skeleton-loader type="heading" class="app-skel-cell" />
-            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+            <div class="skel-bone mb-1.5" style="width: 140px; height: 26px; border-radius: 4px;"></div>
+            <div class="skel-bone" style="width: 60%; height: 12px; border-radius: 4px;"></div>
           </template>
           <template v-else>
             <div class="wfs-kpi-val fnm-currency-num" style="color: #00897B;">{{ stats.total_activities }}</div>
@@ -440,8 +440,8 @@
             </div>
           </div>
           <template v-if="loading || workerProcessing">
-            <v-skeleton-loader type="heading" class="app-skel-cell" />
-            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+            <div class="skel-bone mb-1.5" style="width: 140px; height: 26px; border-radius: 4px;"></div>
+            <div class="skel-bone" style="width: 60%; height: 12px; border-radius: 4px;"></div>
           </template>
           <template v-else>
             <div class="wfs-kpi-val fnm-currency-num" style="color: #E65100;">{{ stats.sections ? stats.sections.length : 0 }}</div>
@@ -464,8 +464,8 @@
             </div>
           </div>
           <template v-if="loading || workerProcessing">
-            <v-skeleton-loader type="heading" class="app-skel-cell" />
-            <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+            <div class="skel-bone mb-1.5" style="width: 140px; height: 26px; border-radius: 4px;"></div>
+            <div class="skel-bone" style="width: 60%; height: 12px; border-radius: 4px;"></div>
           </template>
           <template v-else>
             <div class="wfs-kpi-val fnm-currency-num" style="color: #7B1FA2;">{{ stats.workforces ? stats.workforces.length : 0 }}</div>
@@ -523,7 +523,14 @@
       </v-card-title>
 
       <v-card-text class="pa-4 pt-2">
-        <v-skeleton-loader v-if="loading || workerProcessing" type="image" height="320" class="rounded-xl"></v-skeleton-loader>
+        <div v-if="loading || workerProcessing" class="d-flex flex-column justify-space-between p-3" style="height: 320px; padding: 16px;">
+          <div class="d-flex align-end justify-space-between ga-2" style="height: 250px; width: 100%;">
+            <div v-for="b in 14" :key="'wfs-mchart-skel-' + b" class="skel-bone" :style="{ width: '4.5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+          </div>
+          <div class="d-flex justify-space-between mt-3">
+            <div v-for="t in 7" :key="'wfs-mchart-lbl-' + t" class="skel-bone" style="width: 42px; height: 10px; border-radius: 4px;"></div>
+          </div>
+        </div>
         <div v-else-if="mainChartSeries.length > 0 && mainChartSeries[0].data.length > 0">
           <apexchart
             :key="`${chartType}-${chartPeriod}-${main.is_dark}`"
@@ -577,7 +584,14 @@
           </v-card-title>
 
           <v-card-text class="pa-4 pt-2">
-            <v-skeleton-loader v-if="loading || workerProcessing" type="image" height="280" class="rounded-xl"></v-skeleton-loader>
+            <div v-if="loading || workerProcessing" class="d-flex flex-column justify-space-between p-3" style="height: 280px; padding: 16px;">
+              <div class="d-flex align-end justify-space-between ga-2" style="height: 210px; width: 100%;">
+                <div v-for="b in 8" :key="'wfs-sec-skel-' + b" class="skel-bone" :style="{ width: '8%', height: (35 + (b * 23) % 55) + '%', borderRadius: '4px 4px 0 0' }"></div>
+              </div>
+              <div class="d-flex justify-space-between mt-3">
+                <div v-for="t in 6" :key="'wfs-sec-lbl-' + t" class="skel-bone" style="width: 48px; height: 10px; border-radius: 4px;"></div>
+              </div>
+            </div>
             <template v-else-if="stats.sections && stats.sections.length > 0">
               <!-- Chart View -->
               <div v-show="sectionViewMode === 'chart'">
@@ -660,7 +674,14 @@
           </v-card-title>
 
           <v-card-text class="pa-4 pt-2">
-            <v-skeleton-loader v-if="loading || workerProcessing" type="image" height="280" class="rounded-xl"></v-skeleton-loader>
+            <div v-if="loading || workerProcessing" class="d-flex flex-column justify-space-between p-3" style="height: 280px; padding: 16px;">
+              <div class="d-flex align-end justify-space-between ga-2" style="height: 210px; width: 100%;">
+                <div v-for="b in 8" :key="'wfs-corp-skel-' + b" class="skel-bone" :style="{ width: '8%', height: (30 + (b * 29) % 60) + '%', borderRadius: '4px 4px 0 0' }"></div>
+              </div>
+              <div class="d-flex justify-space-between mt-3">
+                <div v-for="t in 6" :key="'wfs-corp-lbl-' + t" class="skel-bone" style="width: 48px; height: 10px; border-radius: 4px;"></div>
+              </div>
+            </div>
             <template v-else-if="stats.corporals && stats.corporals.length > 0">
               <!-- Chart View -->
               <div v-show="corporalViewMode === 'chart'">
@@ -762,7 +783,38 @@
       </v-card-title>
 
       <v-card-text class="pa-4 pt-2">
-        <v-skeleton-loader v-if="loading || workerProcessing" type="table" class="rounded-xl"></v-skeleton-loader>
+        <div v-if="loading || workerProcessing" class="wfs-table-wrap">
+          <table class="wfs-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 60px;">{{ $t('rank') }}</th>
+                <th>{{ $t('full_name') }}</th>
+                <th>{{ $t('matricule') }}</th>
+                <th>{{ $t('cin') }}</th>
+                <th>{{ $t('section') }}</th>
+                <th>{{ $t('corporal') }}</th>
+                <th class="text-center">{{ $t('work_days') }}</th>
+                <th class="text-center">{{ $t('count') }}</th>
+                <th class="text-right">{{ $t('total_amount') }}</th>
+                <th class="text-center" style="width: 80px;">{{ $t('actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in 6" :key="'wfs-tbl-skel-' + r" class="app-skeleton-table-row">
+                <td class="text-center"><div class="skel-bone skel-circle mx-auto" style="width: 22px; height: 22px;"></div></td>
+                <td><div class="skel-bone" style="width: 140px; height: 14px;"></div></td>
+                <td><div class="skel-bone" style="width: 60px; height: 18px; border-radius: 999px;"></div></td>
+                <td><div class="skel-bone" style="width: 70px; height: 14px;"></div></td>
+                <td><div class="skel-bone" style="width: 90px; height: 18px; border-radius: 999px;"></div></td>
+                <td><div class="skel-bone" style="width: 85px; height: 14px;"></div></td>
+                <td class="text-center"><div class="skel-bone mx-auto" style="width: 35px; height: 14px;"></div></td>
+                <td class="text-center"><div class="skel-bone mx-auto" style="width: 35px; height: 14px;"></div></td>
+                <td class="text-right"><div class="skel-bone ml-auto" style="width: 75px; height: 14px;"></div></td>
+                <td class="text-center"><div class="skel-bone skel-circle mx-auto" style="width: 24px; height: 24px;"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <div v-else-if="paginatedWorkforces.length > 0" class="wfs-table-wrap">
           <table class="wfs-table">
             <thead>
@@ -1079,7 +1131,32 @@
           {{ $t('movement_activity_log') }} ({{ trackerGranularity.toUpperCase() }})
         </div>
 
-        <v-skeleton-loader v-if="trackerLoading" type="table" class="rounded-xl"></v-skeleton-loader>
+        <div v-if="trackerLoading" class="wfs-table-wrap">
+          <table class="wfs-table">
+            <thead>
+              <tr>
+                <th>{{ trackerGranularity === 'daily' ? $t('date') : trackerGranularity === 'monthly' ? $t('month') : $t('year') }}</th>
+                <th>{{ $t('workforce') }}</th>
+                <th>{{ $t('corporal_in_charge') }}</th>
+                <th>{{ $t('section') }}</th>
+                <th>{{ $t('teams') }}</th>
+                <th class="text-center">{{ trackerGranularity === 'daily' ? $t('activities') : $t('days_worked') }}</th>
+                <th class="text-right">{{ $t('total_amount') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in 6" :key="'wfs-trk-skel-' + r" class="app-skeleton-table-row">
+                <td><div class="skel-bone" style="width: 80px; height: 14px;"></div></td>
+                <td><div class="skel-bone" style="width: 140px; height: 14px;"></div></td>
+                <td><div class="skel-bone" style="width: 100px; height: 14px;"></div></td>
+                <td><div class="skel-bone" style="width: 90px; height: 18px; border-radius: 999px;"></div></td>
+                <td><div class="skel-bone" style="width: 80px; height: 18px; border-radius: 999px;"></div></td>
+                <td class="text-center"><div class="skel-bone mx-auto" style="width: 35px; height: 14px;"></div></td>
+                <td class="text-right"><div class="skel-bone ml-auto" style="width: 75px; height: 14px;"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <div v-else-if="filteredTrackerTimeline.length > 0" class="wfs-table-wrap">
           <table class="wfs-table">
             <thead>

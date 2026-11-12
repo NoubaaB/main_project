@@ -58,7 +58,11 @@
         hover
       >
         <template v-slot:loading>
-          <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+          <tr v-for="r in 6" :key="'pcm-skel-' + r" class="app-skeleton-table-row">
+            <td v-for="c in 5" :key="'pcm-c-' + c" class="pa-3 text-center">
+              <div class="skel-bone mx-auto" style="width: 75%; height: 14px;"></div>
+            </td>
+          </tr>
         </template>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr>

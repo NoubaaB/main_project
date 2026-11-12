@@ -105,7 +105,14 @@
               <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
             </v-btn-toggle>
           </div>
-          <v-skeleton-loader v-if="loading" type="image" height="260" class="rounded-xl app-skel-transparent" />
+          <div v-if="loading" class="d-flex flex-column justify-space-between" style="height: 260px; padding: 16px;">
+            <div class="d-flex align-end justify-space-between ga-2" style="height: 200px; width: 100%;">
+              <div v-for="b in 12" :key="'lc-chart-skel-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+            </div>
+            <div class="d-flex justify-space-between mt-2">
+              <div v-for="t in 6" :key="'lc-chart-lbl-' + t" class="skel-bone" style="width: 36px; height: 10px; border-radius: 4px;"></div>
+            </div>
+          </div>
           <apexchart v-else-if="chartSeries[0].data.length" type="line" :height="260" :options="chartOptions" :series="chartSeries"></apexchart>
           <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-line-variant</v-icon></div>
         </div>
@@ -114,32 +121,68 @@
       <v-col cols="12" md="3">
         <div class="lc-panel-card lc-stats-panel" style="height:100%;overflow-y:auto">
           <div class="lc-panel-header"><v-icon size="16" color="#42A5F5" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
-          <!-- Per-category stats -->
-          <div v-for="(stat,si) in categoryStats" :key="si" class="lc-stat-item mb-2">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
-              <v-chip size="x-small" color="#42A5F5" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+          <div v-if="loading" class="d-flex flex-column ga-3 py-2">
+            <div v-for="s in 3" :key="'lc-skel-stat-' + s" class="lc-stat-item mb-2">
+              <div class="d-flex align-center justify-space-between mb-1.5">
+                <div class="skel-bone" style="width: 90px; height: 18px; border-radius: 999px;"></div>
+                <div class="skel-bone" style="width: 40px; height: 18px; border-radius: 999px;"></div>
+              </div>
+              <div class="skel-bone mb-2" style="width: 100%; height: 5px; border-radius: 999px;"></div>
+              <div class="d-flex flex-column ga-1.5">
+                <div class="d-flex align-center ga-1.5">
+                  <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 50px; height: 11px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 65px; height: 11px;"></div>
+                </div>
+                <div class="d-flex align-center ga-1.5">
+                  <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 60px; height: 11px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 75px; height: 11px;"></div>
+                </div>
+              </div>
             </div>
-            <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#42A5F5" bg-color="blue-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
-            <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="#42A5F5">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color: #42A5F5">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="teal">mdi-scale-balance</v-icon><span class="text-medium-emphasis">{{ $t('total_weight_invoice') }}:</span><b class="text-teal">{{ main.formatDisplayNumber(stat.weightInvoice) }} Kg</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
+            <v-divider class="my-2"></v-divider>
+            <div class="d-flex flex-column ga-2">
+              <div class="d-flex align-center ga-2">
+                <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                <div class="skel-bone" style="width: 70px; height: 12px;"></div>
+                <div class="skel-bone ml-auto" style="width: 80px; height: 12px;"></div>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                <div class="skel-bone" style="width: 65px; height: 12px;"></div>
+                <div class="skel-bone ml-auto" style="width: 85px; height: 12px;"></div>
+              </div>
             </div>
           </div>
-          <v-divider class="my-2"></v-divider>
-          <!-- Invoice stats -->
-          <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-2"><v-icon size="14" color="success">mdi-check-decagram</v-icon><span class="text-caption text-medium-emphasis">{{ $t('invoiced') }}:</span><v-chip size="x-small" color="success" variant="tonal"><b>{{ totalInvoiced }}</b></v-chip></div>
-            <div class="d-flex align-center ga-2"><v-icon size="14" color="grey">mdi-close-circle-outline</v-icon><span class="text-caption text-medium-emphasis">{{ $t('not_invoiced') }}:</span><v-chip size="x-small" color="grey" variant="tonal"><b>{{ totalNotInvoiced }}</b></v-chip></div>
-          </div>
-          <!-- Totals -->
-          <v-divider class="my-2"></v-divider>
-          <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b style="color: #42A5F5" class="text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="teal">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight_invoice') }}:</span><b class="text-teal text-caption">{{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
-          </div>
+          <template v-else>
+            <!-- Per-category stats -->
+            <div v-for="(stat,si) in categoryStats" :key="si" class="lc-stat-item mb-2">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <v-chip size="x-small" color="#42A5F5" variant="tonal" class="font-weight-bold">{{ stat.name }} ({{ stat.count }})</v-chip>
+                <v-chip size="x-small" color="#42A5F5" variant="elevated" class="font-weight-bold">{{ totalWeight>0?Math.round(stat.weight/totalWeight*1000)/10:0 }}%</v-chip>
+              </div>
+              <v-progress-linear :model-value="totalWeight>0?(stat.weight/totalWeight*100):0" color="#42A5F5" bg-color="blue-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
+              <div class="d-flex flex-column ga-1 text-caption">
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="#42A5F5">mdi-weight-kilogram</v-icon><span class="text-medium-emphasis">{{ $t('weight') }}:</span><b style="color: #42A5F5">{{ main.formatDisplayNumber(stat.weight) }} Kg</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="teal">mdi-scale-balance</v-icon><span class="text-medium-emphasis">{{ $t('total_weight_invoice') }}:</span><b class="text-teal">{{ main.formatDisplayNumber(stat.weightInvoice) }} Kg</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total_price') }}:</span><b class="text-deep-orange">{{ main.formatDisplayNumber(stat.price) }} {{ main.currency }}</b></div>
+              </div>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <!-- Invoice stats -->
+            <div class="d-flex flex-column ga-1">
+              <div class="d-flex align-center ga-2"><v-icon size="14" color="success">mdi-check-decagram</v-icon><span class="text-caption text-medium-emphasis">{{ $t('invoiced') }}:</span><v-chip size="x-small" color="success" variant="tonal"><b>{{ totalInvoiced }}</b></v-chip></div>
+              <div class="d-flex align-center ga-2"><v-icon size="14" color="grey">mdi-close-circle-outline</v-icon><span class="text-caption text-medium-emphasis">{{ $t('not_invoiced') }}:</span><v-chip size="x-small" color="grey" variant="tonal"><b>{{ totalNotInvoiced }}</b></v-chip></div>
+            </div>
+            <!-- Totals -->
+            <v-divider class="my-2"></v-divider>
+            <div class="d-flex flex-column ga-1">
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="#42A5F5">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight') }}:</span><b style="color: #42A5F5" class="text-caption">{{ main.formatDisplayNumber(totalWeight) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="12" color="teal">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_weight_invoice') }}:</span><b class="text-teal text-caption">{{ main.formatDisplayNumber(totalWeightInvoice) }} Kg</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_price') }}:</span><b class="text-deep-orange text-caption">{{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</b></div>
+            </div>
+          </template>
         </div>
       </v-col>
     </v-row>
@@ -1229,9 +1272,16 @@
         <tbody>
           <template v-if="loading">
             <tr v-for="r in 8" :key="'lc-skel-' + r" class="lc-row app-skeleton-table-row">
-              <td class="lc-td lc-col-pin text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+              <td class="lc-td lc-col-pin text-center" :style="headerPinStyles['__checkbox']">
+                <div class="skel-bone mx-auto" style="width: 18px; height: 18px; border-radius: 4px;"></div>
+              </td>
               <td v-for="h in headers" :key="'lc-skel-' + h.key + '-' + r" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="colPinStyle(h.key, 2)">
-                <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
+                <div v-if="h.key === 'expand'" class="skel-bone skel-circle mx-auto" style="width: 22px; height: 22px;"></div>
+                <div v-else-if="h.key === 'actions'" class="d-flex align-center justify-center ga-1">
+                  <div v-for="a in 3" :key="a" class="skel-bone skel-circle" style="width: 20px; height: 20px;"></div>
+                </div>
+                <div v-else-if="h.key === 'category' || h.key.includes('status') || h.key.includes('type')" class="skel-bone" style="width: 85px; height: 20px; border-radius: 999px;"></div>
+                <div v-else class="skel-bone" style="width: 75%; height: 13px;"></div>
               </td>
             </tr>
           </template>

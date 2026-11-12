@@ -187,12 +187,29 @@
         <v-card-text class="pa-5" style="max-height: 580px; overflow-y: auto;">
           <!-- Skeleton Loading -->
           <div v-if="recordIssues.loading" class="d-flex flex-column ga-3">
-            <v-skeleton-loader
+            <div
               v-for="i in 3"
-              :key="i"
-              type="article, actions"
-              class="rounded-xl border"
-            />
+              :key="'unres-skel-' + i"
+              class="rounded-xl border pa-4 bg-surface"
+            >
+              <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-3">
+                <div class="d-flex align-center ga-2">
+                  <div class="skel-bone" style="width: 85px; height: 24px; border-radius: 999px;"></div>
+                  <div class="skel-bone" style="width: 140px; height: 18px; border-radius: 4px;"></div>
+                  <div class="skel-bone" style="width: 70px; height: 14px; border-radius: 4px;"></div>
+                </div>
+                <div class="d-flex align-center ga-2">
+                  <div class="skel-bone" style="width: 70px; height: 22px; border-radius: 999px;"></div>
+                  <div class="skel-bone" style="width: 85px; height: 28px; border-radius: 8px;"></div>
+                </div>
+              </div>
+              <div class="skel-bone mb-2" style="width: 90%; height: 15px; border-radius: 4px;"></div>
+              <div class="skel-bone mb-3" style="width: 60%; height: 15px; border-radius: 4px;"></div>
+              <div class="d-flex align-center justify-space-between pt-2 border-t">
+                <div class="skel-bone" style="width: 110px; height: 12px; border-radius: 4px;"></div>
+                <div class="skel-bone" style="width: 80px; height: 12px; border-radius: 4px;"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Empty State -->

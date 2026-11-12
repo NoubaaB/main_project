@@ -17,18 +17,39 @@
   </div>
 
   <v-card-text v-if="loading" class="pa-5">
-    <v-row dense class="mb-4">
-      <v-col v-for="i in 4" :key="'top-' + i" cols="12" sm="6" md="3">
-        <v-skeleton-loader type="card" class="app-skel-card" />
+    <!-- Top & Mid Info Cards Skeleton -->
+    <v-row dense class="mb-3">
+      <v-col v-for="i in 4" :key="'vsi-top-' + i" cols="12" sm="6" md="3">
+        <div class="info-card d-flex flex-column ga-1">
+          <div class="skel-bone skel-circle mb-1" style="width: 24px; height: 24px;"></div>
+          <div class="skel-bone mb-1" style="width: 50%; height: 11px;"></div>
+          <div class="skel-bone" style="width: 75%; height: 18px;"></div>
+        </div>
       </v-col>
     </v-row>
     <v-row dense class="mb-4">
-      <v-col v-for="i in 4" :key="'mid-' + i" cols="6" md="3">
-        <v-skeleton-loader type="card" class="app-skel-card" />
+      <v-col v-for="i in 4" :key="'vsi-mid-' + i" cols="6" md="3">
+        <div class="info-card d-flex flex-column ga-1">
+          <div class="skel-bone skel-circle mb-1" style="width: 20px; height: 20px;"></div>
+          <div class="skel-bone mb-1" style="width: 45%; height: 10px;"></div>
+          <div class="skel-bone" style="width: 65%; height: 16px;"></div>
+        </div>
       </v-col>
     </v-row>
-    <div class="mt-4">
-      <v-skeleton-loader type="table-heading, table-row@6" class="app-skel-cell" />
+    <!-- Detail Table Skeleton -->
+    <div class="border rounded-lg overflow-hidden mt-3">
+      <div class="d-flex align-center justify-space-between pa-3 bg-surface-variant border-b">
+        <div class="skel-bone" style="width: 25%; height: 14px;"></div>
+        <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+        <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+        <div class="skel-bone" style="width: 15%; height: 14px;"></div>
+      </div>
+      <div v-for="r in 5" :key="'vsi-tbl-skel-' + r" class="d-flex align-center justify-space-between pa-3 border-b">
+        <div class="skel-bone" style="width: 30%; height: 13px;"></div>
+        <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+        <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+        <div class="skel-bone" style="width: 12%; height: 13px;"></div>
+      </div>
     </div>
   </v-card-text>
 

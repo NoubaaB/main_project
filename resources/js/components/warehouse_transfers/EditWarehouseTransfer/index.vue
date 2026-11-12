@@ -21,13 +21,33 @@
     <!-- Loading Skeleton -->
     <v-card-text v-if="loading" class="pa-6">
       <v-row>
+        <!-- LEFT: Transfer Info Form Skeleton -->
         <v-col cols="12" md="5" class="pa-4">
-          <v-skeleton-loader type="heading" class="app-skel-cell mb-4" />
-          <v-skeleton-loader type="text@4" class="app-skel-cell mb-4" />
-          <v-skeleton-loader type="button" class="app-skel-cell" />
+          <div class="d-flex flex-column ga-3">
+            <div class="skel-bone" style="width: 50%; height: 20px;"></div>
+            <div v-for="f in 4" :key="'wt-edit-fskel-' + f" class="d-flex flex-column ga-1">
+              <div class="skel-bone" style="width: 35%; height: 11px;"></div>
+              <div class="skel-bone rounded-lg" style="width: 100%; height: 40px;"></div>
+            </div>
+            <div class="skel-bone rounded-lg mt-2" style="width: 120px; height: 38px;"></div>
+          </div>
         </v-col>
+        <!-- RIGHT: Items Table Skeleton -->
         <v-col cols="12" md="7" class="pa-4">
-          <v-skeleton-loader type="table-row@4" class="app-skel-cell" />
+          <div class="border rounded-lg overflow-hidden">
+            <div class="d-flex align-center justify-space-between pa-3 bg-surface-variant border-b">
+              <div class="skel-bone" style="width: 30%; height: 14px;"></div>
+              <div class="skel-bone" style="width: 25%; height: 14px;"></div>
+              <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+              <div class="skel-bone" style="width: 15%; height: 14px;"></div>
+            </div>
+            <div v-for="r in 5" :key="'wt-edit-tbl-skel-' + r" class="d-flex align-center justify-space-between pa-3 border-b">
+              <div class="skel-bone" style="width: 35%; height: 13px;"></div>
+              <div class="skel-bone" style="width: 22%; height: 13px;"></div>
+              <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+              <div class="skel-bone" style="width: 12%; height: 13px;"></div>
+            </div>
+          </div>
         </v-col>
       </v-row>
     </v-card-text>

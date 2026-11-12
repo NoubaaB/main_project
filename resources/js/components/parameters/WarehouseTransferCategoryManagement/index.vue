@@ -27,7 +27,11 @@
 
       <v-data-table :headers="headers" :items="filteredItems" :loading="loading ? '#F9A825' : false" :multi-sort="true" density="comfortable" class="rounded-xl param-table" hover>
         <template v-slot:loading>
-          <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+          <tr v-for="n in 6" :key="'skel-' + n" class="skel-row">
+            <td v-for="c in headers.length" :key="'skel-c-' + c" class="text-center">
+              <div class="skel-bone mx-auto" :style="{ width: c === headers.length ? '60px' : (50 + (c * 13) % 40) + '%', height: '18px', borderRadius: '6px' }"></div>
+            </td>
+          </tr>
         </template>
         <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
           <tr><th v-for="col in columns" :key="col.key" class="param-th" :style="col.width ? { width: col.width } : {}"><div class="param-th-label" @click="col.sortable !== false ? toggleSort(col) : null" :style="{ cursor: col.sortable !== false ? 'pointer' : 'default' }">{{ col.title }}<v-icon v-if="isSorted(col)" size="14" class="ms-1">{{ getSortIcon(col) }}</v-icon></div></th></tr>

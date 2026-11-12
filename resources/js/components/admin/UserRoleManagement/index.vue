@@ -191,7 +191,22 @@
       hover
     >
       <template v-slot:loading>
-        <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+        <tr v-for="n in 6" :key="'skel-usr-' + n" class="skel-row">
+          <td v-for="(col, cIdx) in userHeaders" :key="'skel-u-col-' + cIdx" class="py-3">
+            <div v-if="cIdx === 0" class="d-flex align-center ga-2">
+              <div class="skel-bone skel-circle" style="width: 32px; height: 32px; min-width: 32px;"></div>
+              <div class="skel-bone" style="width: 120px; height: 16px; border-radius: 6px;"></div>
+            </div>
+            <div v-else-if="col.key === 'role'" class="d-flex align-center">
+              <div class="skel-bone" style="width: 90px; height: 24px; border-radius: 999px;"></div>
+            </div>
+            <div v-else-if="col.key === 'actions'" class="d-flex align-center justify-center ga-1">
+              <div class="skel-bone" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+              <div class="skel-bone" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+            </div>
+            <div v-else class="skel-bone" :style="{ width: (50 + (cIdx * 17) % 35) + '%', height: '16px', borderRadius: '6px' }"></div>
+          </td>
+        </tr>
       </template>
       <template v-slot:[`item.name`]="{ item }">
         <div class="d-flex align-center ga-2 py-1">
@@ -259,7 +274,22 @@
       hover
     >
       <template v-slot:loading>
-        <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+        <tr v-for="n in 6" :key="'skel-role-' + n" class="skel-row">
+          <td v-for="(col, cIdx) in roleHeaders" :key="'skel-r-col-' + cIdx" class="py-3">
+            <div v-if="cIdx === 0" class="d-flex align-center ga-2">
+              <div class="skel-bone skel-circle" style="width: 32px; height: 32px; min-width: 32px;"></div>
+              <div class="skel-bone" style="width: 110px; height: 16px; border-radius: 6px;"></div>
+            </div>
+            <div v-else-if="col.key === 'is_super_admin'" class="d-flex align-center">
+              <div class="skel-bone" style="width: 80px; height: 24px; border-radius: 999px;"></div>
+            </div>
+            <div v-else-if="col.key === 'actions'" class="d-flex align-center justify-center ga-1">
+              <div class="skel-bone" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+              <div class="skel-bone" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+            </div>
+            <div v-else class="skel-bone" :style="{ width: (50 + (cIdx * 17) % 35) + '%', height: '16px', borderRadius: '6px' }"></div>
+          </td>
+        </tr>
       </template>
       <template v-slot:[`item.name`]="{ item }">
         <div class="d-flex align-center ga-2 py-1">

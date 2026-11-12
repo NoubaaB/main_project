@@ -59,7 +59,12 @@
             <div class="ss-kpi-label">{{ $t('carry_forward') }}</div>
           </div>
           <div class="ss-kpi-value text-amber-darken-3">
-            {{ main.formatDisplayNumber(totalCarryForward) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            <template v-if="yearInvoicesLoading || store.loading">
+              <div class="skel-bone" style="width: 140px; height: 22px; border-radius: 4px;"></div>
+            </template>
+            <template v-else>
+              {{ main.formatDisplayNumber(totalCarryForward) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            </template>
           </div>
         </v-card>
       </v-col>
@@ -73,7 +78,12 @@
             <div class="ss-kpi-label">{{ $t('supplier_invoices') }}</div>
           </div>
           <div class="ss-kpi-value text-deep-orange">
-            {{ main.formatDisplayNumber(totalInvoices) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            <template v-if="yearInvoicesLoading || store.loading">
+              <div class="skel-bone" style="width: 140px; height: 22px; border-radius: 4px;"></div>
+            </template>
+            <template v-else>
+              {{ main.formatDisplayNumber(totalInvoices) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            </template>
           </div>
         </v-card>
       </v-col>
@@ -87,7 +97,12 @@
             <div class="ss-kpi-label">{{ $t('payments') }}</div>
           </div>
           <div class="ss-kpi-value text-teal">
-            {{ main.formatDisplayNumber(totalPayments) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            <template v-if="yearInvoicesLoading || store.loading">
+              <div class="skel-bone" style="width: 140px; height: 22px; border-radius: 4px;"></div>
+            </template>
+            <template v-else>
+              {{ main.formatDisplayNumber(totalPayments) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            </template>
           </div>
         </v-card>
       </v-col>
@@ -101,7 +116,12 @@
             <div class="ss-kpi-label">{{ $t('outstanding_balance') }}</div>
           </div>
           <div class="ss-kpi-value" :class="totalBalance > 0 ? 'text-error' : 'text-success'">
-            {{ main.formatDisplayNumber(totalBalance) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            <template v-if="yearInvoicesLoading || store.loading">
+              <div class="skel-bone" style="width: 140px; height: 22px; border-radius: 4px;"></div>
+            </template>
+            <template v-else>
+              {{ main.formatDisplayNumber(totalBalance) }} <span class="ss-kpi-cur">{{ main.currency }}</span>
+            </template>
           </div>
         </v-card>
       </v-col>
@@ -198,9 +218,73 @@
         </v-btn>
       </div>
 
-      <div v-if="yearInvoicesLoading || store.loading" class="d-flex flex-column ga-3 pa-4">
-        <div v-for="sk in 6" :key="'ss-month-skel-' + sk" class="ss-month-row pa-3 rounded-xl border">
-          <v-skeleton-loader type="list-item-avatar-two-line" class="app-skel-cell" />
+      <!-- Loading Month Rows Skeleton -->
+      <div v-if="yearInvoicesLoading || store.loading" class="d-flex flex-column mb-4">
+        <div
+          v-for="sk in 6"
+          :key="'ss-month-skel-' + sk"
+          class="ss-month-row ss-skel-month-row"
+        >
+          <div class="ss-month-bar">
+            <!-- Left: Month avatar circle + month name -->
+            <div class="d-flex align-center ga-2 min-w-0">
+              <div class="skel-bone skel-circle" style="width: 30px; height: 30px; flex-shrink: 0;"></div>
+              <div class="skel-bone" style="width: 120px; height: 16px;"></div>
+            </div>
+
+            <!-- Right: Exact replica of the 4 metric pills + excel btn + chevron -->
+            <div class="month-metrics-cluster">
+              <!-- Pill 1: Invoices -->
+              <div class="ss-metric-pill ss-metric-pill--invoices">
+                <div class="ss-pill-icon-wrap ss-icon--orange">
+                  <div class="skel-bone" style="width: 14px; height: 14px; border-radius: 4px;"></div>
+                </div>
+                <div class="ss-pill-body">
+                  <div class="skel-bone mb-1" style="width: 44px; height: 8px; border-radius: 3px;"></div>
+                  <div class="skel-bone" style="width: 76px; height: 12px; border-radius: 3px;"></div>
+                </div>
+              </div>
+
+              <!-- Pill 2: Payments -->
+              <div class="ss-metric-pill ss-metric-pill--payments">
+                <div class="ss-pill-icon-wrap ss-icon--teal">
+                  <div class="skel-bone" style="width: 14px; height: 14px; border-radius: 4px;"></div>
+                </div>
+                <div class="ss-pill-body">
+                  <div class="skel-bone mb-1" style="width: 48px; height: 8px; border-radius: 3px;"></div>
+                  <div class="skel-bone" style="width: 76px; height: 12px; border-radius: 3px;"></div>
+                </div>
+              </div>
+
+              <!-- Pill 3: Balance -->
+              <div class="ss-metric-pill ss-metric-pill--balance">
+                <div class="ss-pill-icon-wrap ss-icon--red">
+                  <div class="skel-bone" style="width: 14px; height: 14px; border-radius: 4px;"></div>
+                </div>
+                <div class="ss-pill-body">
+                  <div class="skel-bone mb-1" style="width: 42px; height: 8px; border-radius: 3px;"></div>
+                  <div class="skel-bone" style="width: 68px; height: 12px; border-radius: 3px;"></div>
+                </div>
+              </div>
+
+              <!-- Pill 4: Carry Forward -->
+              <div class="ss-metric-pill ss-metric-pill--carry">
+                <div class="ss-pill-icon-wrap ss-icon--slate">
+                  <div class="skel-bone" style="width: 14px; height: 14px; border-radius: 4px;"></div>
+                </div>
+                <div class="ss-pill-body">
+                  <div class="skel-bone mb-1" style="width: 60px; height: 8px; border-radius: 3px;"></div>
+                  <div class="skel-bone" style="width: 84px; height: 12px; border-radius: 3px;"></div>
+                </div>
+              </div>
+
+              <!-- Excel Button Skeleton -->
+              <div class="skel-bone rounded-lg" style="width: 28px; height: 28px; flex-shrink: 0;"></div>
+
+              <!-- Chevron Skeleton -->
+              <div class="skel-bone skel-circle" style="width: 20px; height: 20px; flex-shrink: 0;"></div>
+            </div>
+          </div>
         </div>
       </div>
 

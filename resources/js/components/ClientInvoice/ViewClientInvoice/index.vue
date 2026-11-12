@@ -4,8 +4,71 @@
       <!-- Invoice Document on Left -->
       <v-col class="invoice-content-col d-flex justify-center">
         <div id="invoice" class="invoice-width">
-          <div v-if="loading" class="pa-8 bg-surface rounded-xl border">
-            <v-skeleton-loader type="article, table-heading, table-row@6, actions" class="app-skel-cell" />
+          <div v-if="loading" class="pa-8 bg-surface rounded-xl border d-flex flex-column ga-6">
+            <!-- Header: Company & Invoice Info -->
+            <div class="d-flex align-start justify-space-between flex-wrap ga-4 pb-4 border-b">
+              <div class="d-flex align-center ga-3">
+                <div class="skel-bone rounded-lg" style="width: 54px; height: 54px;"></div>
+                <div class="d-flex flex-column ga-2">
+                  <div class="skel-bone" style="width: 160px; height: 18px;"></div>
+                  <div class="skel-bone" style="width: 120px; height: 12px;"></div>
+                </div>
+              </div>
+              <div class="d-flex flex-column align-end ga-2">
+                <div class="skel-bone" style="width: 110px; height: 26px; border-radius: 999px;"></div>
+                <div class="skel-bone" style="width: 90px; height: 12px;"></div>
+              </div>
+            </div>
+
+            <!-- Meta Details Grid -->
+            <div class="d-flex justify-space-between flex-wrap ga-4 py-2">
+              <div class="d-flex flex-column ga-2">
+                <div class="skel-bone" style="width: 70px; height: 11px;"></div>
+                <div class="skel-bone" style="width: 140px; height: 15px;"></div>
+              </div>
+              <div class="d-flex flex-column ga-2">
+                <div class="skel-bone" style="width: 70px; height: 11px;"></div>
+                <div class="skel-bone" style="width: 130px; height: 15px;"></div>
+              </div>
+              <div class="d-flex flex-column ga-2">
+                <div class="skel-bone" style="width: 70px; height: 11px;"></div>
+                <div class="skel-bone" style="width: 110px; height: 15px;"></div>
+              </div>
+            </div>
+
+            <!-- Table Rows Skeleton -->
+            <div class="border rounded-lg overflow-hidden">
+              <div class="d-flex align-center justify-space-between pa-3 bg-surface-variant border-b">
+                <div class="skel-bone" style="width: 30%; height: 14px;"></div>
+                <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+                <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+                <div class="skel-bone" style="width: 15%; height: 14px;"></div>
+              </div>
+              <div v-for="r in 5" :key="'ci-view-skel-' + r" class="d-flex align-center justify-space-between pa-3 border-b">
+                <div class="skel-bone" style="width: 35%; height: 13px;"></div>
+                <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+                <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+                <div class="skel-bone" style="width: 14%; height: 13px;"></div>
+              </div>
+            </div>
+
+            <!-- Totals Footer -->
+            <div class="d-flex justify-end pt-2">
+              <div class="d-flex flex-column align-end ga-2" style="min-width: 200px;">
+                <div class="d-flex justify-space-between w-100">
+                  <div class="skel-bone" style="width: 60px; height: 13px;"></div>
+                  <div class="skel-bone" style="width: 80px; height: 13px;"></div>
+                </div>
+                <div class="d-flex justify-space-between w-100">
+                  <div class="skel-bone" style="width: 70px; height: 13px;"></div>
+                  <div class="skel-bone" style="width: 60px; height: 13px;"></div>
+                </div>
+                <div class="d-flex justify-space-between w-100 pt-2 border-t">
+                  <div class="skel-bone" style="width: 70px; height: 18px;"></div>
+                  <div class="skel-bone" style="width: 100px; height: 20px;"></div>
+                </div>
+              </div>
+            </div>
           </div>
           <template v-else>
             <ClientInvoice

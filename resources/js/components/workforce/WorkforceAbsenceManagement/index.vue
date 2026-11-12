@@ -196,7 +196,11 @@
           class="wam-table"
         >
           <template v-slot:loading>
-            <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            <tr v-for="r in 6" :key="'wam-skel-' + r" class="app-skeleton-table-row">
+              <td v-for="c in (headers ? headers.length : 6)" :key="'wam-c-' + c" class="pa-3 text-center">
+                <div class="skel-bone mx-auto" style="width: 75%; height: 14px;"></div>
+              </td>
+            </tr>
           </template>
           <!-- Headers Slot with Sorting and Column Multiselect Filter Row -->
           <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
@@ -1040,8 +1044,17 @@
         <v-divider></v-divider>
 
         <v-card-text class="pa-4">
-          <div v-if="movementStore.history.loading" class="pa-2">
-            <v-skeleton-loader type="list-item-avatar-two-line@4" class="app-skel-cell" />
+          <div v-if="movementStore.history.loading" class="pa-2 d-flex flex-column ga-4">
+            <div v-for="t in 4" :key="'wam-hist-skel-' + t" class="d-flex align-center ga-3">
+              <div class="skel-bone skel-circle" style="width: 24px; height: 24px; flex-shrink: 0;"></div>
+              <div class="d-flex flex-column ga-1 flex-grow-1">
+                <div class="d-flex align-center justify-space-between">
+                  <div class="skel-bone" style="width: 120px; height: 14px;"></div>
+                  <div class="skel-bone" style="width: 60px; height: 12px;"></div>
+                </div>
+                <div class="skel-bone" style="width: 70%; height: 11px;"></div>
+              </div>
+            </div>
           </div>
 
           <div v-else-if="!movementStore.history.movements.length" class="text-center pa-8 text-grey">

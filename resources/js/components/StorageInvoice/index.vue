@@ -43,8 +43,95 @@
       </v-expand-transition>
 
       <!-- Analytics Row -->
-      <v-row dense class="mb-3"><v-col cols="8"><div class="si-panel"><div class="si-panel-hdr d-flex align-center justify-space-between"><div class="d-flex align-center"><v-icon size="16" color="#a21ee5" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div><v-btn-toggle v-model="chartMode" mandatory density="compact" color="#a21ee5" variant="outlined" rounded="lg" divided><v-btn value="monthly" size="x-small">{{ $t('monthly') }}</v-btn><v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn></v-btn-toggle></div><apexchart v-if="chartSeries[0].data.length" type="bar" :height="260" :options="chartOptions" :series="chartSeries"></apexchart><div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-bar</v-icon></div></div></v-col>
-      <v-col cols="4"><div class="si-panel si-stats" style="height:100%;overflow-y:auto"><div class="si-panel-hdr"><v-icon size="16" color="#a21ee5" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div><div v-for="stat in warehouseStats" :key="stat.name" class="si-stat-item mb-2"><div class="d-flex align-center justify-space-between mb-1"><v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold"><span class="fnm-currency-num">{{ stat.name }} ({{ stat.count }})</span></v-chip><v-chip size="x-small" color="success" variant="elevated" class="font-weight-bold"><span class="fnm-currency-num">{{ totalAmount>0?Math.round(stat.total/totalAmount*1000)/10:0 }}%</span></v-chip></div><v-progress-linear :model-value="totalAmount>0?(stat.total/totalAmount*100):0" color="#a21ee5" bg-color="purple-lighten-4" height="5" rounded class="mb-1"></v-progress-linear><div class="d-flex flex-column ga-1 text-caption"><div class="d-flex align-center ga-1"><v-icon size="12" color="info">mdi-arrow-down-bold</v-icon><span class="text-medium-emphasis">{{ $t('manipulation_in') }}:</span><b class="text-info fnm-currency-num">{{ formatNum(stat.manipIn) }} MAD</b></div><div class="d-flex align-center ga-1"><v-icon size="12" color="warning">mdi-arrow-up-bold</v-icon><span class="text-medium-emphasis">{{ $t('manipulation_out') }}:</span><b class="text-warning fnm-currency-num">{{ formatNum(stat.manipOut) }} MAD</b></div><div class="d-flex align-center ga-1"><v-icon size="12" color="deep-purple">mdi-clock-outline</v-icon><span class="text-medium-emphasis">{{ $t('sejour_stockage') }}:</span><b class="text-deep-purple fnm-currency-num">{{ formatNum(stat.sejour) }} MAD</b></div><div class="d-flex align-center ga-1"><v-icon size="12" color="success">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total') }}:</span><b class="text-success fnm-currency-num">{{ formatNum(stat.total) }} MAD</b></div></div></div><v-divider class="my-2"></v-divider><div class="d-flex flex-column ga-1"><div class="d-flex align-center ga-1"><v-icon size="14" color="info">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_in') }}:</span><b class="text-info text-caption fnm-currency-num">{{ formatNum(totalStockIn) }} KG</b></div><div class="d-flex align-center ga-1"><v-icon size="14" color="warning">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }}:</span><b class="text-warning text-caption fnm-currency-num">{{ formatNum(totalStockOut) }} KG</b></div><div class="d-flex align-center ga-1"><v-icon size="14" color="success">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total') }}:</span><b class="text-success text-caption fnm-currency-num">{{ formatNum(totalAmount) }} MAD</b></div></div></div></v-col></v-row>
+      <v-row dense class="mb-3">
+        <v-col cols="12" md="8">
+          <div class="si-panel">
+            <div class="si-panel-hdr d-flex align-center justify-space-between">
+              <div class="d-flex align-center">
+                <v-icon size="16" color="#a21ee5" class="mr-1">mdi-chart-areaspline</v-icon>
+                <span>{{ $t('analytics') }}</span>
+              </div>
+              <v-btn-toggle v-model="chartMode" mandatory density="compact" color="#a21ee5" variant="outlined" rounded="lg" divided>
+                <v-btn value="monthly" size="x-small">{{ $t('monthly') }}</v-btn>
+                <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
+              </v-btn-toggle>
+            </div>
+            <div v-if="loading" class="d-flex flex-column justify-space-between" style="height: 260px; padding: 16px;">
+              <div class="d-flex align-end justify-space-between ga-2" style="height: 200px; width: 100%;">
+                <div v-for="b in 12" :key="'si-chart-skel-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+              </div>
+              <div class="d-flex justify-space-between mt-2">
+                <div v-for="t in 6" :key="'si-chart-lbl-' + t" class="skel-bone" style="width: 36px; height: 10px; border-radius: 4px;"></div>
+              </div>
+            </div>
+            <apexchart v-else-if="chartSeries[0].data.length" type="bar" :height="260" :options="chartOptions" :series="chartSeries"></apexchart>
+            <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-bar</v-icon></div>
+          </div>
+        </v-col>
+        <v-col cols="12" md="4">
+          <div class="si-panel si-stats" style="height:100%;overflow-y:auto">
+            <div class="si-panel-hdr">
+              <v-icon size="16" color="#a21ee5" class="mr-1">mdi-chart-box-outline</v-icon>
+              <span>{{ $t('statistics') }}</span>
+            </div>
+            <div v-if="loading" class="d-flex flex-column ga-3 py-2">
+              <div v-for="s in 3" :key="'si-stat-skel-' + s" class="si-stat-item mb-2">
+                <div class="d-flex align-center justify-space-between mb-1.5">
+                  <div class="skel-bone" style="width: 90px; height: 18px; border-radius: 999px;"></div>
+                  <div class="skel-bone" style="width: 40px; height: 18px; border-radius: 999px;"></div>
+                </div>
+                <div class="skel-bone mb-2" style="width: 100%; height: 5px; border-radius: 999px;"></div>
+                <div class="d-flex flex-column ga-1.5">
+                  <div class="d-flex align-center ga-1.5">
+                    <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                    <div class="skel-bone" style="width: 50px; height: 11px;"></div>
+                    <div class="skel-bone ml-auto" style="width: 65px; height: 11px;"></div>
+                  </div>
+                  <div class="d-flex align-center ga-1.5">
+                    <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                    <div class="skel-bone" style="width: 60px; height: 11px;"></div>
+                    <div class="skel-bone ml-auto" style="width: 75px; height: 11px;"></div>
+                  </div>
+                </div>
+              </div>
+              <v-divider class="my-2"></v-divider>
+              <div class="d-flex flex-column ga-2">
+                <div class="d-flex align-center ga-2">
+                  <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 70px; height: 12px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 80px; height: 12px;"></div>
+                </div>
+                <div class="d-flex align-center ga-2">
+                  <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 65px; height: 12px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 85px; height: 12px;"></div>
+                </div>
+              </div>
+            </div>
+            <template v-else>
+              <div v-for="stat in warehouseStats" :key="stat.name" class="si-stat-item mb-2">
+                <div class="d-flex align-center justify-space-between mb-1">
+                  <v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold"><span class="fnm-currency-num">{{ stat.name }} ({{ stat.count }})</span></v-chip>
+                  <v-chip size="x-small" color="success" variant="elevated" class="font-weight-bold"><span class="fnm-currency-num">{{ totalAmount>0?Math.round(stat.total/totalAmount*1000)/10:0 }}%</span></v-chip>
+                </div>
+                <v-progress-linear :model-value="totalAmount>0?(stat.total/totalAmount*100):0" color="#a21ee5" bg-color="purple-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
+                <div class="d-flex flex-column ga-1 text-caption">
+                  <div class="d-flex align-center ga-1"><v-icon size="12" color="info">mdi-arrow-down-bold</v-icon><span class="text-medium-emphasis">{{ $t('manipulation_in') }}:</span><b class="text-info fnm-currency-num">{{ formatNum(stat.manipIn) }} MAD</b></div>
+                  <div class="d-flex align-center ga-1"><v-icon size="12" color="warning">mdi-arrow-up-bold</v-icon><span class="text-medium-emphasis">{{ $t('manipulation_out') }}:</span><b class="text-warning fnm-currency-num">{{ formatNum(stat.manipOut) }} MAD</b></div>
+                  <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-purple">mdi-clock-outline</v-icon><span class="text-medium-emphasis">{{ $t('sejour_stockage') }}:</span><b class="text-deep-purple fnm-currency-num">{{ formatNum(stat.sejour) }} MAD</b></div>
+                  <div class="d-flex align-center ga-1"><v-icon size="12" color="success">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('total') }}:</span><b class="text-success fnm-currency-num">{{ formatNum(stat.total) }} MAD</b></div>
+                </div>
+              </div>
+              <v-divider class="my-2"></v-divider>
+              <div class="d-flex flex-column ga-1">
+                <div class="d-flex align-center ga-1"><v-icon size="14" color="info">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_in') }}:</span><b class="text-info text-caption fnm-currency-num">{{ formatNum(totalStockIn) }} KG</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="14" color="warning">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('stock_out') }}:</span><b class="text-warning text-caption fnm-currency-num">{{ formatNum(totalStockOut) }} KG</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="14" color="success">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total') }}:</span><b class="text-success text-caption fnm-currency-num">{{ formatNum(totalAmount) }} MAD</b></div>
+              </div>
+            </template>
+          </div>
+        </v-col>
+      </v-row>
       <!-- Action btns -->
       <div class="d-flex ga-2 mb-3 justify-end"><v-btn v-if="selectedIds.length" color="#a21ee5" rounded size="small" prepend-icon="mdi-printer" :loading="loadingBatchPrint" @click="loadPrintMultiple">{{ $t('print') }} ({{ selectedIds.length }})</v-btn><v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn><v-btn icon variant="tonal" color="success" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn></div>
       <!-- Invoices List -->
@@ -52,9 +139,15 @@
       <tbody>
         <template v-if="loading">
           <tr v-for="r in 6" :key="'si-skel-' + r" class="si-row app-skeleton-table-row">
-            <td class="si-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+            <td class="si-td text-center" style="width:40px;">
+              <div class="skel-bone mx-auto" style="width: 18px; height: 18px; border-radius: 4px;"></div>
+            </td>
             <td v-for="h in headers" :key="'si-skel-' + h.key + '-' + r" class="si-td" :class="{'si-col-pin': isPinned(h.key)}" :style="colPinStyle(h.key, 2)">
-              <v-skeleton-loader :type="h.key === 'invoice_number' ? 'chip' : 'text'" class="app-skel-cell" />
+              <div v-if="h.key === 'actions'" class="d-flex align-center justify-center ga-1">
+                <div v-for="a in 2" :key="a" class="skel-bone skel-circle" style="width: 20px; height: 20px;"></div>
+              </div>
+              <div v-else-if="h.key === 'invoice_number' || h.key.includes('status')" class="skel-bone" style="width: 85px; height: 20px; border-radius: 999px;"></div>
+              <div v-else class="skel-bone" style="width: 75%; height: 13px;"></div>
             </td>
           </tr>
         </template><template v-else v-for="item in colFilteredItems" :key="item.id"><tr class="si-row"><td class="si-td"><v-checkbox-btn :model-value="selectedIds.includes(item.id)" color="#a21ee5" density="compact" hide-details @update:model-value="toggleSelect(item.id)"></v-checkbox-btn></td><td v-for="h in headers" :key="h.key" class="si-td" :class="{'si-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)"><template v-if="h.key==='invoice_number'"><v-chip color="#a21ee5" variant="tonal" size="small" class="font-weight-bold fnm-currency-num">{{ item.invoice_number }}</v-chip></template><template v-else-if="h.key==='_period'">{{ item._period }}</template><template v-else-if="h.key==='_warehouse'">{{ item._warehouse }}</template><template v-else-if="h.key==='total_stock_in_kg'||h.key==='total_stock_out_kg'||h.key==='manipulation_in_amount'||h.key==='manipulation_out_amount'||h.key==='sejour_amount'"><span class="fnm-currency-num">{{ formatNum(item[h.key]) }}</span></template><template v-else-if="h.key==='total_amount'"><span class="font-weight-bold text-success fnm-currency-num">{{ formatNum(item.total_amount) }} MAD</span></template><template v-else-if="h.key==='status'"><v-chip :color="item.status==='finalized'?'success':'warning'" size="small" variant="tonal">{{ $t(item.status) }}</v-chip></template><template v-else-if="h.key==='actions'"><v-btn icon size="x-small" variant="tonal" color="#a21ee5" class="mr-1" @click="loadPrintInvoice(item)"><v-icon size="16">mdi-printer</v-icon></v-btn><v-btn icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item)"><v-icon size="16">mdi-delete</v-icon></v-btn></template><template v-else>{{ item[h.key]||'-' }}</template></td></tr></template></tbody>

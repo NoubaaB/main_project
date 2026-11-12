@@ -129,19 +129,26 @@
         <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'mdb-stat-skel-' + k">
           <div class="pa-4 rounded-2xl border bg-surface">
             <div class="d-flex align-center justify-space-between mb-3">
-              <v-skeleton-loader type="chip" width="100" class="app-skel-cell" />
-              <v-skeleton-loader type="avatar" width="32" height="32" class="app-skel-cell" />
+              <div class="skel-bone" style="width: 100px; height: 22px; border-radius: 999px;"></div>
+              <div class="skel-bone skel-circle" style="width: 32px; height: 32px;"></div>
             </div>
-            <v-skeleton-loader type="heading" width="70%" class="app-skel-cell" />
+            <div class="skel-bone mt-2" style="width: 70%; height: 32px; border-radius: 6px;"></div>
           </div>
         </v-col>
         <v-col cols="12" md="6" v-for="c in 2" :key="'mdb-chart-skel-' + c">
           <div class="pa-4 rounded-2xl border bg-surface">
             <div class="d-flex align-center justify-space-between mb-4">
-              <v-skeleton-loader type="chip" width="140" class="app-skel-cell" />
-              <v-skeleton-loader type="button" width="80" class="app-skel-cell" />
+              <div class="skel-bone" style="width: 140px; height: 22px; border-radius: 999px;"></div>
+              <div class="skel-bone" style="width: 80px; height: 26px; border-radius: 8px;"></div>
             </div>
-            <v-skeleton-loader type="image" height="260" class="rounded-xl app-skel-transparent" />
+            <div class="d-flex flex-column justify-space-between" style="height: 260px; padding: 12px 0;">
+              <div class="d-flex align-end justify-space-between ga-2" style="height: 200px; width: 100%;">
+                <div v-for="b in 12" :key="'mdb-cskel-' + c + '-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+              </div>
+              <div class="d-flex justify-space-between mt-2">
+                <div v-for="t in 6" :key="'mdb-clbl-' + c + '-' + t" class="skel-bone" style="width: 36px; height: 10px; border-radius: 4px;"></div>
+              </div>
+            </div>
           </div>
         </v-col>
       </v-row>
@@ -196,7 +203,7 @@
               <div v-if="chartDataMap[chart.id]" class="stat-value">
                 {{ formatStatValue(chartDataMap[chart.id]) }}
               </div>
-              <v-skeleton-loader v-else type="text" width="140" height="42" />
+              <div v-else class="skel-bone" style="width: 140px; height: 36px; border-radius: 6px;"></div>
             </div>
           </v-card-text>
         </v-card>
@@ -233,7 +240,14 @@
             <v-divider class="my-2 border-dashed opacity-50" />
 
             <!-- Chart Body -->
-            <v-skeleton-loader v-if="!chartDataMap[chart.id]" type="image" height="320" class="rounded-xl app-skel-transparent pt-2" />
+            <div v-if="!chartDataMap[chart.id]" class="d-flex flex-column justify-space-between pt-2" style="height: 320px; padding: 16px;">
+              <div class="d-flex align-end justify-space-between ga-2" style="height: 250px; width: 100%;">
+                <div v-for="b in 14" :key="'mdb-cprev-skel-' + chart.id + '-' + b" class="skel-bone" :style="{ width: '4.5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+              </div>
+              <div class="d-flex justify-space-between mt-3">
+                <div v-for="t in 7" :key="'mdb-cprev-lbl-' + chart.id + '-' + t" class="skel-bone" style="width: 42px; height: 10px; border-radius: 4px;"></div>
+              </div>
+            </div>
             <div v-else class="chart-preview-wrapper pt-2">
               <ChartPreview
                 :chart-config="chart"

@@ -163,8 +163,30 @@
 
       <!-- Loading State -->
       <v-row v-if="store.loading" class="mt-2">
-        <v-col v-for="i in 6" :key="'chart-skel-' + i" cols="12" md="6" lg="4">
-          <v-skeleton-loader type="image, article" class="app-skel-card rounded-xl" />
+        <v-col v-for="i in 6" :key="'chart-skel-' + i" cols="12" sm="6" lg="4">
+          <v-card class="chart-gallery-card rounded-xl pa-4 d-flex flex-column ga-3" elevation="0">
+            <!-- Header -->
+            <div class="d-flex align-center justify-space-between ga-2">
+              <div class="d-flex align-center ga-3">
+                <div class="skel-bone rounded-lg" style="width: 36px; height: 36px; flex-shrink: 0;"></div>
+                <div class="d-flex flex-column ga-1">
+                  <div class="skel-bone" style="width: 120px; height: 16px;"></div>
+                  <div class="skel-bone" style="width: 80px; height: 11px;"></div>
+                </div>
+              </div>
+              <div class="skel-bone" style="width: 36px; height: 20px; border-radius: 999px;"></div>
+            </div>
+            <!-- Chart Preview Area -->
+            <div class="skel-bone rounded-lg my-1" style="width: 100%; height: 170px;"></div>
+            <!-- Footer -->
+            <div class="d-flex align-center justify-space-between pt-2 border-t">
+              <div class="skel-bone" style="width: 70px; height: 20px; border-radius: 999px;"></div>
+              <div class="d-flex ga-1">
+                <div class="skel-bone skel-circle" style="width: 24px; height: 24px;"></div>
+                <div class="skel-bone skel-circle" style="width: 24px; height: 24px;"></div>
+              </div>
+            </div>
+          </v-card>
         </v-col>
       </v-row>
 
@@ -365,7 +387,11 @@
           class="bg-transparent rounded-xl param-table"
         >
           <template v-slot:loading>
-            <v-skeleton-loader type="table-row@6" class="app-skel-cell" />
+            <tr v-for="r in 6" :key="'cm-tbl-skel-' + r" class="app-skeleton-table-row">
+              <td v-for="c in 7" :key="'cm-c-' + c" class="pa-3 text-center">
+                <div class="skel-bone mx-auto" style="width: 75%; height: 14px;"></div>
+              </td>
+            </tr>
           </template>
           <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
             <tr>
@@ -591,7 +617,7 @@
 
         <v-card-text class="param-dialog-body pa-4">
           <div v-if="previewModal.loading" class="pa-4">
-            <v-skeleton-loader type="image, article" class="app-skel-card rounded-xl" />
+            <div class="skel-bone rounded-xl" style="width: 100%; height: 380px;"></div>
           </div>
           <template v-else>
             <ChartPreview

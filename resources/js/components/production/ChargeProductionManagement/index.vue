@@ -92,7 +92,9 @@
           <template v-if="loading">
             <tr v-for="r in 6" :key="'cpm-skel-' + r" class="cpm-row app-skeleton-table-row">
               <td v-for="h in headers" :key="'cpm-skel-' + h.key + '-' + r" class="cpm-td" :class="{'cpm-col-pin': isPinned(h.key)}" :style="colPinStyle(h.key, 2)">
-                <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'category' ? 'chip' : 'text'" class="app-skel-cell" />
+                <div v-if="h.key === 'expand'" class="skel-bone skel-circle mx-auto" style="width: 22px; height: 22px;"></div>
+                <div v-else-if="h.key === 'charge_category_id' || h.key === '_tracking' || h.key === '_onp_tracking'" class="skel-bone mx-auto" style="width: 80px; height: 22px; border-radius: 999px;"></div>
+                <div v-else class="skel-bone mx-auto" style="width: 70%; height: 16px; border-radius: 6px;"></div>
               </td>
             </tr>
           </template>

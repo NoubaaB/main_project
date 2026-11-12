@@ -196,14 +196,20 @@
             <v-row dense class="mb-3">
               <v-col cols="4" v-for="k in 3" :key="'prv-kpi-skel-' + k">
                 <div class="pa-3 rounded-xl border bg-surface">
-                  <v-skeleton-loader type="heading" class="app-skel-cell" />
-                  <v-skeleton-loader type="text" width="50%" class="app-skel-cell mt-1" />
+                  <div class="skel-bone" style="width: 50%; height: 12px; border-radius: 4px;"></div>
+                  <div class="skel-bone mt-2" style="width: 70%; height: 24px; border-radius: 6px;"></div>
                 </div>
               </v-col>
             </v-row>
             <div v-for="sk in 3" :key="'prv-wh-skel-' + sk" class="pa-4 mb-3 rounded-xl border bg-surface">
-              <v-skeleton-loader type="chip" width="140" class="app-skel-cell mb-2" />
-              <v-skeleton-loader type="table-row@3" class="app-skel-cell" />
+              <div class="skel-bone mb-3" style="width: 140px; height: 22px; border-radius: 999px;"></div>
+              <div class="d-flex flex-column ga-2">
+                <div v-for="r in 3" :key="'prv-wh-row-' + sk + '-' + r" class="d-flex align-center justify-space-between ga-2 py-1">
+                  <div class="skel-bone" style="width: 30%; height: 16px; border-radius: 4px;"></div>
+                  <div class="skel-bone" style="width: 20%; height: 16px; border-radius: 4px;"></div>
+                  <div class="skel-bone" style="width: 25%; height: 16px; border-radius: 4px;"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -341,9 +347,9 @@
         </thead>
         <tbody>
           <template v-if="loadingResets">
-            <tr v-for="sk in 3" :key="'rst-skel-' + sk">
-              <td v-for="c in 8" :key="'rst-c-' + c" class="pa-2">
-                <v-skeleton-loader type="text" class="app-skel-cell" />
+            <tr v-for="sk in 3" :key="'rst-skel-' + sk" class="skel-row">
+              <td v-for="c in 8" :key="'rst-c-' + c" class="pa-2 text-center">
+                <div class="skel-bone mx-auto" :style="{ width: (50 + (c * 13) % 40) + '%', height: '16px', borderRadius: '4px' }"></div>
               </td>
             </tr>
           </template>

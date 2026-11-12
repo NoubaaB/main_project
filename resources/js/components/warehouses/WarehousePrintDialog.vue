@@ -652,14 +652,17 @@
                   </tr>
 
                   <!-- Loading State in Table -->
-                  <tr v-if="loadingData">
-                    <td :colspan="activeColumnsList.length + 1" class="text-center pa-8">
-                      <v-progress-circular indeterminate color="#a21ee5" size="36" width="3" />
-                      <div class="text-caption text-medium-emphasis mt-2 font-weight-bold">
-                        {{ tLabel('loading', 'Chargement des données...') }}
-                      </div>
-                    </td>
-                  </tr>
+                  <template v-if="loadingData">
+                    <tr v-for="sk in 8" :key="'wpd-skel-' + sk" class="skel-row">
+                      <td class="text-center py-2 px-1">
+                        <div class="skel-bone skel-circle mx-auto" style="width: 18px; height: 18px;"></div>
+                      </td>
+                      <td v-for="(col, ci) in activeColumnsList" :key="'wpd-col-skel-' + ci" class="py-2 px-2">
+                        <div v-if="col.key && (col.key.includes('code') || col.key.includes('status'))" class="skel-bone" style="width: 70px; height: 20px; border-radius: 999px;"></div>
+                        <div v-else class="skel-bone" :style="{ width: (50 + (ci * 13) % 40) + '%', height: '16px', borderRadius: '4px' }"></div>
+                      </td>
+                    </tr>
+                  </template>
 
                   <!-- Empty State in Table -->
                   <tr v-else-if="!previewDataRows.length">

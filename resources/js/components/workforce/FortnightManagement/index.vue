@@ -18,22 +18,20 @@
           <div class="d-flex flex-wrap align-center ga-3">
             <div class="fnm-hero-stat d-none d-sm-flex align-center ga-2">
               <v-icon size="16" color="white">mdi-account-group</v-icon>
-              <v-skeleton-loader
+              <div
                 v-if="isBreakdownLoading"
-                type="text"
-                width="70"
-                class="fnm-hero-stat-skeleton"
-              />
+                class="skel-bone"
+                style="width: 70px; height: 16px; border-radius: 4px; background: rgba(255, 255, 255, 0.25);"
+              ></div>
               <span v-else class="text-caption font-weight-medium">{{ (breakdownData.workforces || []).length }} {{ $t('workforces') }}</span>
             </div>
             <div class="fnm-hero-stat d-none d-sm-flex align-center ga-2">
               <v-icon size="16" color="white">mdi-cash-multiple</v-icon>
-              <v-skeleton-loader
+              <div
                 v-if="isSummaryLoading"
-                type="text"
-                width="85"
-                class="fnm-hero-stat-skeleton"
-              />
+                class="skel-bone"
+                style="width: 85px; height: 16px; border-radius: 4px; background: rgba(255, 255, 255, 0.25);"
+              ></div>
               <span v-else class="text-caption font-weight-bold">{{ formatNumber(summary.month_total) }} {{ main.currency || 'DH' }}</span>
             </div>
 
@@ -366,9 +364,9 @@
                     <v-icon size="16" color="#42A5F5">mdi-numeric-1-circle</v-icon>
                     <span class="text-caption font-weight-bold">{{ $t('first_fortnight') }}</span>
                   </div>
-                  <v-skeleton-loader type="chip" width="60" class="fnm-kpi-skel" />
+                  <div class="skel-bone" style="width: 60px; height: 20px; border-radius: 999px;"></div>
                 </div>
-                <v-skeleton-loader type="heading" width="130" class="fnm-kpi-skel" />
+                <div class="skel-bone" style="width: 130px; height: 28px; border-radius: 6px;"></div>
               </template>
               <template v-else>
                 <div class="d-flex align-center justify-space-between mb-1">
@@ -395,9 +393,9 @@
                     <v-icon size="16" color="#42A5F5">mdi-numeric-2-circle</v-icon>
                     <span class="text-caption font-weight-bold">{{ $t('second_fortnight') }}</span>
                   </div>
-                  <v-skeleton-loader type="chip" width="60" class="fnm-kpi-skel" />
+                  <div class="skel-bone" style="width: 60px; height: 20px; border-radius: 999px;"></div>
                 </div>
-                <v-skeleton-loader type="heading" width="130" class="fnm-kpi-skel" />
+                <div class="skel-bone" style="width: 130px; height: 28px; border-radius: 6px;"></div>
               </template>
               <template v-else>
                 <div class="d-flex align-center justify-space-between mb-1">
@@ -425,7 +423,7 @@
                     <span class="text-caption font-weight-bold text-medium-emphasis">{{ $t('total_month_amount') }} {{ monthNames[currentMonth] }}</span>
                   </div>
                 </div>
-                <v-skeleton-loader type="heading" width="150" class="fnm-kpi-skel" />
+                <div class="skel-bone" style="width: 150px; height: 32px; border-radius: 6px;"></div>
               </template>
               <template v-else>
                 <div class="d-flex align-center justify-space-between mb-1">
@@ -516,11 +514,11 @@
                     class="fnm-cal-cell fnm-cal-cell--skeleton"
                   >
                     <div class="fnm-cal-day-header">
-                      <v-skeleton-loader type="avatar" class="fnm-cal-skel-avatar" />
+                      <div class="skel-bone skel-circle" style="width: 22px; height: 22px;"></div>
                     </div>
-                    <div class="fnm-cal-activities pa-1">
-                      <v-skeleton-loader type="text" class="fnm-cal-skel-pill mb-1" />
-                      <v-skeleton-loader v-if="s % 2 === 0" type="text" class="fnm-cal-skel-pill" />
+                    <div class="fnm-cal-activities pa-1 d-flex flex-column ga-1">
+                      <div class="skel-bone" style="width: 85%; height: 16px; border-radius: 8px;"></div>
+                      <div v-if="s % 2 === 0" class="skel-bone" style="width: 65%; height: 16px; border-radius: 8px;"></div>
                     </div>
                   </div>
                 </template>
@@ -710,7 +708,7 @@
                   <div class="text-caption text-medium-emphasis">{{ $t('workforces_activities') }}</div>
                 </div>
                 <v-chip size="small" color="#42A5F5" variant="tonal" class="font-weight-medium ml-1">
-                  <v-skeleton-loader v-if="isBreakdownLoading" type="text" width="60" class="fnm-chip-skel" />
+                  <div v-if="isBreakdownLoading" class="skel-bone" style="width: 50px; height: 14px; border-radius: 999px;"></div>
                   <span v-else>{{ printDataRowCount }} {{ $t('records') || 'Records' }}</span>
                 </v-chip>
               </div>
@@ -978,11 +976,15 @@
                     <!-- Skeleton Rows while Loading -->
                     <template v-if="isBreakdownLoading">
                       <tr v-for="r in 6" :key="'wf-skel-tr-' + r">
-                        <td v-for="col in visibleWorkforceColumns" :key="'wf-skel-td-' + col.key + '-' + r" class="pa-2">
-                          <v-skeleton-loader
-                            :type="col.type === 'chip' ? 'list-item-avatar' : (col.type === 'boolean' || col.type.startsWith('checkbox') ? 'avatar' : 'text')"
-                            class="fnm-table-skel"
-                          />
+                        <td v-for="(col, cIdx) in visibleWorkforceColumns" :key="'wf-skel-td-' + col.key + '-' + r" class="pa-2">
+                          <div v-if="col.type === 'chip'" class="d-flex align-center ga-2">
+                            <div class="skel-bone skel-circle" style="width: 28px; height: 28px; min-width: 28px;"></div>
+                            <div class="skel-bone" style="width: 110px; height: 16px; border-radius: 6px;"></div>
+                          </div>
+                          <div v-else-if="col.type === 'boolean' || col.type.startsWith('checkbox')" class="d-flex align-center justify-center">
+                            <div class="skel-bone skel-circle" style="width: 18px; height: 18px;"></div>
+                          </div>
+                          <div v-else class="skel-bone mx-auto" :style="{ width: (50 + (cIdx * 13) % 40) + '%', height: '14px', borderRadius: '4px' }"></div>
                         </td>
                       </tr>
                     </template>
@@ -1079,10 +1081,10 @@
                   <tbody>
                     <template v-if="isBreakdownLoading">
                       <tr v-for="r in 5" :key="'wf-dd-skel-' + r">
-                        <td class="pa-2"><v-skeleton-loader type="chip" class="fnm-table-skel" /></td>
-                        <td class="pa-2"><v-skeleton-loader type="chip" class="fnm-table-skel" /></td>
-                        <td class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td class="pa-2 text-center"><v-skeleton-loader type="chip" class="fnm-table-skel" /></td>
+                        <td class="pa-2"><div class="skel-bone" style="width: 85px; height: 20px; border-radius: 999px;"></div></td>
+                        <td class="pa-2"><div class="skel-bone" style="width: 90px; height: 20px; border-radius: 999px;"></div></td>
+                        <td class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 60px; height: 14px; border-radius: 4px;"></div></td>
+                        <td class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 20px; border-radius: 999px;"></div></td>
                       </tr>
                     </template>
                     <template v-else>
@@ -1151,15 +1153,15 @@
                   <tbody>
                     <template v-if="isBreakdownLoading">
                       <tr v-for="r in 5" :key="'sec-skel-' + r">
-                        <td class="pa-2"><v-skeleton-loader type="chip" class="fnm-table-skel" /></td>
-                        <td class="pa-2 text-center"><v-skeleton-loader type="chip" width="36" class="fnm-table-skel mx-auto" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
+                        <td class="pa-2"><div class="skel-bone" style="width: 100px; height: 22px; border-radius: 999px;"></div></td>
+                        <td class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 32px; height: 20px; border-radius: 999px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 50px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 50px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
                       </tr>
                     </template>
                     <template v-else>
@@ -1220,15 +1222,15 @@
                   <tbody>
                     <template v-if="isBreakdownLoading">
                       <tr v-for="r in 5" :key="'sec-dd-skel-' + r">
-                        <td class="pa-2"><v-skeleton-loader type="chip" class="fnm-table-skel" /></td>
-                        <td v-for="c in 8" :key="'sec-dd-c-' + c" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
+                        <td class="pa-2"><div class="skel-bone" style="width: 90px; height: 22px; border-radius: 999px;"></div></td>
+                        <td v-for="c in 8" :key="'sec-dd-c-' + c" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 65%; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 50px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 65px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 50px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 65px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 65px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 65px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 65px; height: 14px; border-radius: 4px;"></div></td>
                       </tr>
                     </template>
                     <template v-else>
@@ -1285,15 +1287,15 @@
                   <tbody>
                     <template v-if="isBreakdownLoading">
                       <tr v-for="r in 5" :key="'corp-skel-' + r">
-                        <td class="pa-2"><v-skeleton-loader type="chip" class="fnm-table-skel" /></td>
-                        <td class="pa-2 text-center"><v-skeleton-loader type="chip" width="36" class="fnm-table-skel mx-auto" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
+                        <td class="pa-2"><div class="skel-bone" style="width: 100px; height: 22px; border-radius: 999px;"></div></td>
+                        <td class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 32px; height: 20px; border-radius: 999px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 50px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 50px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone mx-auto" style="width: 70px; height: 14px; border-radius: 4px;"></div></td>
                       </tr>
                     </template>
                     <template v-else>
@@ -1354,15 +1356,15 @@
                   <tbody>
                     <template v-if="isBreakdownLoading">
                       <tr v-for="r in 5" :key="'corp-dd-skel-' + r">
-                        <td class="pa-2"><v-skeleton-loader type="chip" class="fnm-table-skel" /></td>
-                        <td v-for="c in 8" :key="'corp-dd-c-' + c" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
-                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><v-skeleton-loader type="text" class="fnm-table-skel" /></td>
+                        <td class="pa-2"><div class="skel-bone" style="width: 85px; height: 22px; border-radius: 999px;"></div></td>
+                        <td v-for="c in 8" :key="'corp-dd-c-' + c" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q1' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
+                        <td v-if="breakdownPeriod === 'q2' || breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
+                        <td v-if="breakdownPeriod === 'month'" class="pa-2 text-center"><div class="skel-bone" style="width: 70%; height: 13px;"></div></td>
                       </tr>
                     </template>
                     <template v-else>
@@ -1412,8 +1414,8 @@
                         </v-avatar>
                       </div>
                       <template v-if="isBreakdownLoading">
-                        <v-skeleton-loader type="heading" class="fnm-kpi-skel" />
-                        <v-skeleton-loader type="text" width="55%" class="fnm-kpi-skel mt-1" />
+                        <div class="skel-bone my-1" style="width: 140px; height: 24px; border-radius: 4px;"></div>
+                        <div class="skel-bone" style="width: 90px; height: 13px; border-radius: 4px;"></div>
                       </template>
                       <template v-else>
                         <div class="text-h5 font-weight-bold text-workforce fnm-currency-num">
@@ -1436,8 +1438,8 @@
                         </v-avatar>
                       </div>
                       <template v-if="isBreakdownLoading">
-                        <v-skeleton-loader type="heading" class="fnm-kpi-skel" />
-                        <v-skeleton-loader type="text" width="55%" class="fnm-kpi-skel mt-1" />
+                        <div class="skel-bone my-1" style="width: 140px; height: 24px; border-radius: 4px;"></div>
+                        <div class="skel-bone" style="width: 90px; height: 13px; border-radius: 4px;"></div>
                       </template>
                       <template v-else>
                         <div class="text-h5 font-weight-bold text-workforce fnm-currency-num">
@@ -1460,8 +1462,8 @@
                         </v-avatar>
                       </div>
                       <template v-if="isBreakdownLoading">
-                        <v-skeleton-loader type="heading" class="fnm-hero-stat-skeleton" />
-                        <v-skeleton-loader type="sentences" class="fnm-hero-stat-skeleton mt-1" />
+                        <div class="skel-bone my-1" style="width: 160px; height: 26px; border-radius: 4px; background: rgba(255,255,255,0.25);"></div>
+                        <div class="skel-bone" style="width: 180px; height: 13px; border-radius: 4px; background: rgba(255,255,255,0.2);"></div>
                       </template>
                       <template v-else>
                         <div class="text-h5 font-weight-black text-white fnm-currency-num">
@@ -1815,7 +1817,26 @@
           <!-- Loading State: Realistic skeleton cards -->
           <div v-if="dayDetailLoading" class="d-flex flex-column ga-2 pa-3">
             <div v-for="sk in 4" :key="'dd-skel-' + sk" class="fnm-dd-card-row pa-3">
-              <v-skeleton-loader type="list-item-avatar-two-line" class="fnm-table-skel" />
+              <div class="d-flex align-center justify-space-between flex-wrap ga-3">
+                <div class="d-flex align-center ga-3">
+                  <div class="skel-bone skel-circle" style="width: 40px; height: 40px; flex-shrink: 0;"></div>
+                  <div class="d-flex flex-column ga-1.5">
+                    <div class="d-flex align-center ga-2">
+                      <div class="skel-bone" style="width: 130px; height: 16px;"></div>
+                      <div class="skel-bone" style="width: 45px; height: 16px; border-radius: 999px;"></div>
+                    </div>
+                    <div class="d-flex align-center ga-1.5">
+                      <div class="skel-bone" style="width: 70px; height: 16px; border-radius: 999px;"></div>
+                      <div class="skel-bone" style="width: 60px; height: 16px; border-radius: 999px;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="d-flex align-center ga-2">
+                  <div class="skel-bone" style="width: 80px; height: 24px; border-radius: 999px;"></div>
+                  <div class="skel-bone" style="width: 90px; height: 20px;"></div>
+                  <div class="skel-bone skel-circle" style="width: 28px; height: 28px;"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -8084,15 +8105,6 @@ export default {
 }
 
 /* Skeleton Loaders Styling in Fortnight Management */
-.fnm-hero-stat-skeleton {
-  background: transparent !important;
-}
-.fnm-hero-stat-skeleton :deep(.v-skeleton-loader__bone) {
-  background: rgba(255, 255, 255, 0.25) !important;
-}
-.fnm-kpi-skel {
-  background: transparent !important;
-}
 .fnm-cal-cell--skeleton {
   pointer-events: none !important;
   cursor: default !important;
@@ -8100,29 +8112,6 @@ export default {
 }
 .v-theme--dark .fnm-cal-cell--skeleton {
   background: #1E1E1E !important;
-}
-.fnm-cal-skel-avatar {
-  background: transparent !important;
-}
-.fnm-cal-skel-avatar :deep(.v-skeleton-loader__avatar) {
-  width: 22px !important;
-  height: 22px !important;
-  margin: 0 !important;
-}
-.fnm-cal-skel-pill {
-  background: transparent !important;
-}
-.fnm-cal-skel-pill :deep(.v-skeleton-loader__text) {
-  height: 16px !important;
-  border-radius: 8px !important;
-  margin: 0 !important;
-}
-.fnm-table-skel {
-  background: transparent !important;
-}
-.fnm-table-skel :deep(.v-skeleton-loader__text),
-.fnm-table-skel :deep(.v-skeleton-loader__chip) {
-  margin: 0 !important;
 }
 .fnm-chip-skel {
   background: transparent !important;

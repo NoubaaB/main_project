@@ -563,9 +563,132 @@ input[type="number"],
 }
 
 /* =========================================================================
- * GLOBAL SKELETON LOADER UTILITIES (Vuetify 3 v-skeleton-loader)
+ * GLOBAL SKELETON LOADER UTILITIES & SYNCHRONIZED HARDWARE SHIMMER
  * Seamless Shimmer & Theme Support Across All Application Sections
  * ========================================================================= */
+@keyframes app-skel-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skel-bone {
+  position: relative;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 6px;
+  display: inline-block;
+  vertical-align: middle;
+  pointer-events: none;
+  user-select: none;
+
+  &::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.45) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    animation: app-skel-shimmer 1.6s infinite ease-in-out;
+    content: '';
+  }
+}
+
+.v-theme--dark .skel-bone,
+.theme-dark .skel-bone,
+[data-theme="dark"] .skel-bone {
+  background: rgba(255, 255, 255, 0.08);
+
+  &::after {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+}
+
+.skel-circle {
+  border-radius: 50% !important;
+}
+
+.skel-pill {
+  border-radius: 9999px !important;
+}
+
+.skel-card {
+  border-radius: 16px !important;
+}
+
+.ss-skel-month-row,
+.cs-skel-month-row {
+  pointer-events: none;
+  user-select: none;
+}
+
+.v-theme--light .v-skeleton-loader__avatar,
+.v-theme--light .v-skeleton-loader__button,
+.v-theme--light .v-skeleton-loader__chip,
+.v-theme--light .v-skeleton-loader__divider,
+.v-theme--light .v-skeleton-loader__heading,
+.v-theme--light .v-skeleton-loader__image,
+.v-theme--light .v-skeleton-loader__text,
+[data-theme="light"] .v-skeleton-loader__avatar,
+[data-theme="light"] .v-skeleton-loader__button,
+[data-theme="light"] .v-skeleton-loader__chip,
+[data-theme="light"] .v-skeleton-loader__divider,
+[data-theme="light"] .v-skeleton-loader__heading,
+[data-theme="light"] .v-skeleton-loader__image,
+[data-theme="light"] .v-skeleton-loader__text {
+  background: rgba(15, 23, 42, 0.08) !important;
+}
+
+.v-theme--dark .v-skeleton-loader__avatar,
+.v-theme--dark .v-skeleton-loader__button,
+.v-theme--dark .v-skeleton-loader__chip,
+.v-theme--dark .v-skeleton-loader__divider,
+.v-theme--dark .v-skeleton-loader__heading,
+.v-theme--dark .v-skeleton-loader__image,
+.v-theme--dark .v-skeleton-loader__text,
+[data-theme="dark"] .v-skeleton-loader__avatar,
+[data-theme="dark"] .v-skeleton-loader__button,
+[data-theme="dark"] .v-skeleton-loader__chip,
+[data-theme="dark"] .v-skeleton-loader__divider,
+[data-theme="dark"] .v-skeleton-loader__heading,
+[data-theme="dark"] .v-skeleton-loader__image,
+[data-theme="dark"] .v-skeleton-loader__text {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Ensure compound container bones never have background or duplicate shimmers */
+.v-skeleton-loader__bone:not(.v-skeleton-loader__avatar):not(.v-skeleton-loader__button):not(.v-skeleton-loader__chip):not(.v-skeleton-loader__divider):not(.v-skeleton-loader__heading):not(.v-skeleton-loader__image):not(.v-skeleton-loader__text) {
+  background: transparent !important;
+}
+.v-skeleton-loader__bone:not(.v-skeleton-loader__avatar):not(.v-skeleton-loader__button):not(.v-skeleton-loader__chip):not(.v-skeleton-loader__divider):not(.v-skeleton-loader__heading):not(.v-skeleton-loader__image):not(.v-skeleton-loader__text)::after {
+  display: none !important;
+}
+
+/* Gentle, smooth shimmer for leaf bones (no harsh flashes, no cross-lines) */
+.v-theme--light .v-skeleton-loader__bone::after,
+[data-theme="light"] .v-skeleton-loader__bone::after {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 255, 255, 0) 100%) !important;
+}
+
+.v-theme--dark .v-skeleton-loader__bone::after,
+[data-theme="dark"] .v-skeleton-loader__bone::after {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0) 100%) !important;
+}
+
 .app-skeleton-table-row {
   pointer-events: none !important;
   cursor: default !important;
@@ -576,14 +699,24 @@ input[type="number"],
 .app-skel-cell {
   background: transparent !important;
 }
-.app-skel-cell .v-skeleton-loader__text,
-.app-skel-cell .v-skeleton-loader__bone {
-  margin: 0 !important;
-}
+.app-skel-cell .v-skeleton-loader,
+.app-skel-transparent .v-skeleton-loader,
 .app-skel-transparent {
   background: transparent !important;
 }
+.app-skel-cell > .v-skeleton-loader > .v-skeleton-loader__bone {
+  margin: 0 !important;
+}
 .app-skel-card {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+.app-skel-input {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+.app-skel-hero {
   border-radius: 16px !important;
   overflow: hidden !important;
 }

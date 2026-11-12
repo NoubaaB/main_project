@@ -16,13 +16,36 @@
     <RecordIssueDialog v-model="issueDialog" record-type="Shipping" :record-id="Number($route.params.id)" module-color="#4643a0" />
 
     <v-card-text v-if="loading" class="pa-5">
-      <v-row>
-        <v-col v-for="i in 4" :key="i" cols="12" sm="6" md="3">
-          <v-skeleton-loader type="card" class="app-skel-card" />
+      <!-- Main Info Cards Skeleton -->
+      <v-row class="mb-4">
+        <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'vs-skel-' + k">
+          <div class="info-card d-flex flex-column ga-1">
+            <div class="skel-bone skel-circle mb-1" style="width: 24px; height: 24px;"></div>
+            <div class="skel-bone mb-1" style="width: 55%; height: 11px;"></div>
+            <div class="skel-bone" style="width: 80%; height: 18px;"></div>
+          </div>
         </v-col>
       </v-row>
-      <div class="mt-5">
-        <v-skeleton-loader type="table-heading, table-row@6" class="app-skel-cell" />
+      <!-- Badges Row Skeleton -->
+      <div class="d-flex ga-2 mb-4">
+        <div class="skel-bone" style="width: 90px; height: 24px; border-radius: 999px;"></div>
+        <div class="skel-bone" style="width: 120px; height: 24px; border-radius: 999px;"></div>
+        <div class="skel-bone" style="width: 100px; height: 24px; border-radius: 999px;"></div>
+      </div>
+      <!-- Detail Table Skeleton -->
+      <div class="border rounded-lg overflow-hidden">
+        <div class="d-flex align-center justify-space-between pa-3 bg-surface-variant border-b">
+          <div class="skel-bone" style="width: 25%; height: 14px;"></div>
+          <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+          <div class="skel-bone" style="width: 20%; height: 14px;"></div>
+          <div class="skel-bone" style="width: 15%; height: 14px;"></div>
+        </div>
+        <div v-for="r in 4" :key="'vs-tbl-skel-' + r" class="d-flex align-center justify-space-between pa-3 border-b">
+          <div class="skel-bone" style="width: 30%; height: 13px;"></div>
+          <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+          <div class="skel-bone" style="width: 18%; height: 13px;"></div>
+          <div class="skel-bone" style="width: 12%; height: 13px;"></div>
+        </div>
       </div>
     </v-card-text>
     <v-card-text v-else-if="shipping" class="pa-5">

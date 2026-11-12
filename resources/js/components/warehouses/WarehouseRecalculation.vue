@@ -97,9 +97,23 @@
 
     <!-- MODE A: INVENTAIRES RÉELS (INVENTORY DAYS CAROUSEL / CARDS) -->
     <div v-if="selectionMode === 'inventory'">
-      <div v-if="loadingInventoryDays" class="py-8 text-center">
-        <v-progress-circular indeterminate color="#a21ee5" size="32"></v-progress-circular>
-        <div class="text-caption text-medium-emphasis mt-2">Chargement des sessions d'inventaire...</div>
+      <div v-if="loadingInventoryDays" class="wh-inv-scroll-strip d-flex ga-3 overflow-x-auto pb-2">
+        <div
+          v-for="sk in 4"
+          :key="'inv-day-skel-' + sk"
+          class="wh-inv-pill-card pa-3 rounded-xl border flex-shrink-0 d-flex flex-column ga-2"
+          style="min-width: 175px;"
+        >
+          <div class="d-flex align-center justify-space-between ga-2">
+            <div class="skel-bone" style="width: 75px; height: 16px;"></div>
+            <div class="skel-bone" style="width: 44px; height: 18px; border-radius: 999px;"></div>
+          </div>
+          <div class="skel-bone" style="width: 95px; height: 15px;"></div>
+          <div class="pt-1 border-t d-flex align-center justify-space-between">
+            <div class="skel-bone" style="width: 85px; height: 11px;"></div>
+            <div class="skel-bone skel-circle" style="width: 14px; height: 14px;"></div>
+          </div>
+        </div>
       </div>
 
       <div v-else-if="inventoryDays.length === 0" class="text-center pa-6 text-medium-emphasis border rounded-xl">

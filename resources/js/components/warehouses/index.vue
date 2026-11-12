@@ -470,15 +470,15 @@
       <!-- Table Loading State: Realistic Skeleton Table -->
       <div v-if="lotsLoading" class="wh-table-card rounded-2xl border bg-surface pa-4">
         <div class="d-flex align-center justify-space-between mb-4">
-          <v-skeleton-loader type="chip" width="160" class="app-skel-cell" />
-          <v-skeleton-loader type="button" width="100" class="app-skel-cell" />
+          <div class="skel-bone" style="width: 160px; height: 24px; border-radius: 999px;"></div>
+          <div class="skel-bone" style="width: 100px; height: 32px; border-radius: 8px;"></div>
         </div>
         <div v-for="sk in 6" :key="'lot-skel-' + sk" class="d-flex align-center ga-3 py-3 border-b">
-          <v-skeleton-loader type="avatar" width="24" height="24" class="app-skel-cell" />
-          <v-skeleton-loader type="chip" width="110" class="app-skel-cell" />
-          <v-skeleton-loader type="text" width="25%" class="app-skel-cell" />
-          <v-skeleton-loader type="text" width="20%" class="app-skel-cell" />
-          <v-skeleton-loader type="text" width="15%" class="app-skel-cell ml-auto" />
+          <div class="skel-bone skel-circle" style="width: 24px; height: 24px;"></div>
+          <div class="skel-bone" style="width: 110px; height: 22px; border-radius: 999px;"></div>
+          <div class="skel-bone" style="width: 25%; height: 16px; border-radius: 4px;"></div>
+          <div class="skel-bone" style="width: 20%; height: 16px; border-radius: 4px;"></div>
+          <div class="skel-bone ml-auto" style="width: 15%; height: 16px; border-radius: 4px;"></div>
         </div>
       </div>
 
@@ -1688,18 +1688,18 @@
       <!-- CONTINUOUS FULL TABLE SKELETON -->
       <div v-if="journalLoading" class="wh-table-card rounded-2xl border bg-surface pa-4">
         <div class="d-flex align-center justify-space-between mb-4">
-          <v-skeleton-loader type="chip" width="180" class="app-skel-cell" />
+          <div class="skel-bone" style="width: 180px; height: 24px; border-radius: 999px;"></div>
           <div class="d-flex ga-2">
-            <v-skeleton-loader type="button" width="90" class="app-skel-cell" />
-            <v-skeleton-loader type="button" width="90" class="app-skel-cell" />
+            <div class="skel-bone" style="width: 90px; height: 32px; border-radius: 8px;"></div>
+            <div class="skel-bone" style="width: 90px; height: 32px; border-radius: 8px;"></div>
           </div>
         </div>
         <div v-for="sk in 6" :key="'jrn-skel-' + sk" class="d-flex align-center ga-3 py-3 border-b">
-          <v-skeleton-loader type="text" width="100" class="app-skel-cell" />
-          <v-skeleton-loader type="chip" width="90" class="app-skel-cell" />
-          <v-skeleton-loader type="text" width="30%" class="app-skel-cell" />
-          <v-skeleton-loader type="text" width="15%" class="app-skel-cell ml-auto" />
-          <v-skeleton-loader type="chip" width="80" class="app-skel-cell" />
+          <div class="skel-bone" style="width: 100px; height: 16px; border-radius: 4px;"></div>
+          <div class="skel-bone" style="width: 90px; height: 22px; border-radius: 999px;"></div>
+          <div class="skel-bone" style="width: 30%; height: 16px; border-radius: 4px;"></div>
+          <div class="skel-bone ml-auto" style="width: 15%; height: 16px; border-radius: 4px;"></div>
+          <div class="skel-bone" style="width: 80px; height: 22px; border-radius: 999px;"></div>
         </div>
       </div>
 
@@ -2110,12 +2110,19 @@
         <v-row dense class="mb-4">
           <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'an-kpi-skel-' + k">
             <div class="pa-4 rounded-xl border bg-surface">
-              <v-skeleton-loader type="heading" class="app-skel-cell" />
-              <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-2" />
+              <div class="skel-bone" style="width: 50%; height: 14px; border-radius: 4px;"></div>
+              <div class="skel-bone mt-2" style="width: 70%; height: 28px; border-radius: 6px;"></div>
             </div>
           </v-col>
         </v-row>
-        <v-skeleton-loader type="image" height="280" class="rounded-xl app-skel-transparent" />
+        <div class="d-flex flex-column justify-space-between p-3" style="height: 280px; padding: 16px;">
+          <div class="d-flex align-end justify-space-between ga-2" style="height: 220px; width: 100%;">
+            <div v-for="b in 14" :key="'wh-an-chart-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+          </div>
+          <div class="d-flex justify-space-between mt-2">
+            <div v-for="t in 7" :key="'wh-an-lbl-' + t" class="skel-bone" style="width: 38px; height: 10px; border-radius: 4px;"></div>
+          </div>
+        </div>
       </div>
 
       <div v-else class="d-flex flex-column ga-4">
@@ -3117,8 +3124,13 @@
 
         <!-- Vouchers Loading State: Skeleton List -->
         <div v-if="traceabilityVouchersLoading" class="wh-panel-card pa-4 rounded-2xl border bg-surface">
-          <div v-for="sk in 4" :key="'vouch-skel-' + sk" class="pa-3 mb-2 rounded-xl border">
-            <v-skeleton-loader type="list-item-avatar-two-line" class="app-skel-cell" />
+          <div v-for="sk in 4" :key="'vouch-skel-' + sk" class="pa-3 mb-2 rounded-xl border d-flex align-center ga-3">
+            <div class="skel-bone skel-circle" style="width: 36px; height: 36px; min-width: 36px;"></div>
+            <div class="flex-grow-1">
+              <div class="skel-bone mb-1.5" style="width: 40%; height: 16px; border-radius: 4px;"></div>
+              <div class="skel-bone" style="width: 65%; height: 12px; border-radius: 4px;"></div>
+            </div>
+            <div class="skel-bone" style="width: 70px; height: 24px; border-radius: 999px;"></div>
           </div>
         </div>
 
@@ -3327,7 +3339,8 @@
           <v-row dense>
             <v-col cols="12" sm="6" md="4" v-for="sk in 6" :key="'tr-art-skel-' + sk">
               <div class="pa-4 rounded-xl border bg-surface">
-                <v-skeleton-loader type="list-item-two-line" class="app-skel-cell" />
+                <div class="skel-bone mb-2" style="width: 70%; height: 16px; border-radius: 4px;"></div>
+                <div class="skel-bone" style="width: 45%; height: 14px; border-radius: 4px;"></div>
               </div>
             </v-col>
           </v-row>
@@ -3701,10 +3714,10 @@
       <v-card-text class="pa-4 pa-md-5">
         <div v-if="traceabilityLoading" class="pa-4">
           <div v-for="sk in 4" :key="'tr-node-skel-' + sk" class="d-flex align-center ga-4 py-3 border-b">
-            <v-skeleton-loader type="avatar" width="40" height="40" class="app-skel-cell" />
+            <div class="skel-bone skel-circle" style="width: 40px; height: 40px; min-width: 40px;"></div>
             <div class="flex-grow-1">
-              <v-skeleton-loader type="heading" width="35%" class="app-skel-cell" />
-              <v-skeleton-loader type="text" width="60%" class="app-skel-cell mt-1" />
+              <div class="skel-bone mb-1.5" style="width: 35%; height: 16px; border-radius: 4px;"></div>
+              <div class="skel-bone" style="width: 60%; height: 14px; border-radius: 4px;"></div>
             </div>
           </div>
         </div>

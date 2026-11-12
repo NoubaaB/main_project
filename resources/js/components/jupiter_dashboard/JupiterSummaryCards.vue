@@ -178,7 +178,31 @@
 
       <!-- VIEW OPTION A: CHARGES CARDS GRID -->
       <div v-if="viewMode === 'cards'" class="pa-4 pa-sm-5 bg-surface-variant-subtle">
-        <v-row v-if="filteredCategories.length > 0" class="category-cards-grid">
+        <v-row v-if="loading" class="category-cards-grid">
+          <v-col v-for="sk in 6" :key="'cat-card-skel-' + sk" cols="12" md="6" lg="4" class="d-flex">
+            <v-card class="category-charge-card rounded-2xl elevation-1 border h-100 w-100 d-flex flex-column pa-4">
+              <div class="d-flex align-center justify-space-between ga-3 mb-3">
+                <div class="d-flex align-center ga-3 flex-grow-1">
+                  <div class="skel-bone skel-circle" style="width: 40px; height: 40px; min-width: 40px;"></div>
+                  <div class="flex-grow-1">
+                    <div class="skel-bone" style="width: 60%; height: 16px; border-radius: 4px;"></div>
+                    <div class="skel-bone mt-2" style="width: 40%; height: 12px; border-radius: 4px;"></div>
+                  </div>
+                </div>
+                <div class="skel-bone" style="width: 60px; height: 22px; border-radius: 999px;"></div>
+              </div>
+              <v-divider class="my-3"></v-divider>
+              <div class="d-flex justify-space-between mb-2">
+                <div class="skel-bone" style="width: 35%; height: 14px; border-radius: 4px;"></div>
+                <div class="skel-bone" style="width: 45%; height: 14px; border-radius: 4px;"></div>
+              </div>
+              <div class="d-flex align-end justify-space-between ga-2 mt-auto pt-3" style="height: 120px; width: 100%;">
+                <div v-for="b in 10" :key="'cat-cskel-' + sk + '-' + b" class="skel-bone" :style="{ width: '7%', height: (25 + (b * 23) % 65) + '%', borderRadius: '3px 3px 0 0' }"></div>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+        <v-row v-else-if="filteredCategories.length > 0" class="category-cards-grid">
           <v-col
             v-for="cat in filteredCategories"
             :key="cat.id"
@@ -423,7 +447,23 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="cat in filteredCategories" :key="cat.id" class="table-row-hover">
+              <template v-if="loading">
+                <tr v-for="sk in 6" :key="'cat-tbl-skel-' + sk" class="app-skeleton-table-row">
+                  <td class="py-3 px-4">
+                    <div class="d-flex align-center ga-3">
+                      <div class="skel-bone skel-circle" style="width: 32px; height: 32px; min-width: 32px;"></div>
+                      <div class="skel-bone" style="width: 120px; height: 16px; border-radius: 4px;"></div>
+                    </div>
+                  </td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 70px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 110px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 110px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 80px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 80px; height: 16px; border-radius: 4px;"></div></td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr v-for="cat in filteredCategories" :key="cat.id" class="table-row-hover">
                 <td class="py-3 px-4">
                   <div class="d-flex align-center ga-3">
                     <div class="cat-avatar-mini" :class="{ 'is-prod-avatar': cat.is_production }">
@@ -512,6 +552,7 @@
                   {{ main.formatDisplayNumber(cat.avg_price) }} {{ main.currency }}
                 </td>
               </tr>
+              </template>
             </tbody>
           </v-table>
         </div>
@@ -674,7 +715,31 @@
       <!-- VIEW OPTION A: SHIPPING CARDS GRID -->
       <!-- ════════════════════════════════════════════════════════════════ -->
       <div v-if="shippingViewMode === 'cards'" class="pa-4 pa-sm-5 bg-surface-variant-subtle">
-        <v-row v-if="filteredShippingCategories.length > 0" class="category-cards-grid">
+        <v-row v-if="loading" class="category-cards-grid">
+          <v-col v-for="sk in 6" :key="'ship-card-skel-' + sk" cols="12" md="6" lg="4" class="d-flex">
+            <v-card class="shipping-category-card rounded-2xl elevation-1 border h-100 w-100 d-flex flex-column pa-4">
+              <div class="d-flex align-center justify-space-between ga-3 mb-3">
+                <div class="d-flex align-center ga-3 flex-grow-1">
+                  <div class="skel-bone skel-circle" style="width: 40px; height: 40px; min-width: 40px;"></div>
+                  <div class="flex-grow-1">
+                    <div class="skel-bone" style="width: 60%; height: 16px; border-radius: 4px;"></div>
+                    <div class="skel-bone mt-2" style="width: 40%; height: 12px; border-radius: 4px;"></div>
+                  </div>
+                </div>
+                <div class="skel-bone" style="width: 60px; height: 22px; border-radius: 999px;"></div>
+              </div>
+              <v-divider class="my-3"></v-divider>
+              <div class="d-flex justify-space-between mb-2">
+                <div class="skel-bone" style="width: 35%; height: 14px; border-radius: 4px;"></div>
+                <div class="skel-bone" style="width: 45%; height: 14px; border-radius: 4px;"></div>
+              </div>
+              <div class="d-flex align-end justify-space-between ga-2 mt-auto pt-3" style="height: 120px; width: 100%;">
+                <div v-for="b in 10" :key="'ship-cskel-' + sk + '-' + b" class="skel-bone" :style="{ width: '7%', height: (25 + (b * 23) % 65) + '%', borderRadius: '3px 3px 0 0' }"></div>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+        <v-row v-else-if="filteredShippingCategories.length > 0" class="category-cards-grid">
           <v-col
             v-for="cat in filteredShippingCategories"
             :key="cat.id"
@@ -934,7 +999,23 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="cat in filteredShippingCategories" :key="cat.id" class="shipping-table-row-hover">
+              <template v-if="loading">
+                <tr v-for="sk in 6" :key="'ship-tbl-skel-' + sk" class="app-skeleton-table-row">
+                  <td class="py-3 px-4">
+                    <div class="d-flex align-center ga-3">
+                      <div class="skel-bone skel-circle" style="width: 32px; height: 32px; min-width: 32px;"></div>
+                      <div class="skel-bone" style="width: 120px; height: 16px; border-radius: 4px;"></div>
+                    </div>
+                  </td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 70px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 110px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 110px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 80px; height: 16px; border-radius: 4px;"></div></td>
+                  <td class="text-right py-3 px-4"><div class="skel-bone ml-auto" style="width: 80px; height: 16px; border-radius: 4px;"></div></td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr v-for="cat in filteredShippingCategories" :key="cat.id" class="shipping-table-row-hover">
                 <!-- Category Name + Icon + Badges -->
                 <td class="py-3 px-4">
                   <div class="d-flex align-center ga-3">
@@ -1032,6 +1113,7 @@
                   {{ main.formatDisplayNumber(cat.avg_price) }} {{ main.currency }}
                 </td>
               </tr>
+              </template>
             </tbody>
           </v-table>
         </div>

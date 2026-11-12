@@ -24,6 +24,13 @@
       :loading="loading"
       :rowProps="rowProps"
     >
+      <template v-slot:loading>
+        <tr v-for="n in 8" :key="'skel-dt-' + n" class="skel-row">
+          <td v-for="c in (headers ? headers.length : 8)" :key="'skel-dt-c-' + c" class="text-center py-2">
+            <div class="skel-bone mx-auto" :style="{ width: c === 1 ? '40px' : (50 + (c * 13) % 40) + '%', height: '16px', borderRadius: '4px' }"></div>
+          </td>
+        </tr>
+      </template>
       <template v-slot:top>
         <v-row class="mx-1" no-gutters>
           <v-col class="text-center"  v-if="hiddenHeaderKeys.length>0" cols="1">

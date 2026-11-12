@@ -2,7 +2,26 @@
   <v-card class="cs-card" elevation="0">
     <div class="cs-hero"><div class="cs-hero-inner"><div class="d-flex align-center ga-4"><div class="cs-hero-icon"><v-icon size="28" color="white">mdi-domain</v-icon></div><div><div class="cs-hero-title">{{ $t('company_settings') }}</div><div class="text-white text-caption" style="opacity:.7">{{ $t('company_settings_desc') }}</div></div></div></div></div>
     <v-card-text class="pa-6">
-      <v-form ref="form" @submit.prevent="save">
+      <!-- Loading Skeleton Form -->
+      <div v-if="loading" class="pa-2">
+        <v-row>
+          <v-col cols="12" sm="6" md="4" v-for="i in 12" :key="'cs-skel-' + i">
+            <div class="d-flex flex-column ga-1 mb-3">
+              <div class="skel-bone" style="width: 35%; height: 11px;"></div>
+              <div class="skel-bone rounded-lg" style="width: 100%; height: 40px;"></div>
+            </div>
+          </v-col>
+        </v-row>
+        <v-divider class="my-6"></v-divider>
+        <v-row>
+          <v-col cols="12" md="4" v-for="j in 3" :key="'cs-skel-logo-' + j" class="text-center">
+            <div class="skel-bone mx-auto mb-2" style="width: 50%; height: 12px;"></div>
+            <div class="skel-bone rounded-xl" style="width: 100%; height: 180px;"></div>
+          </v-col>
+        </v-row>
+      </div>
+
+      <v-form v-else ref="form" @submit.prevent="save">
         <!-- Section: General -->
         <div class="text-subtitle-2 font-weight-bold mb-2 d-flex align-center"><v-icon size="18" color="#546E7A" class="mr-1">mdi-office-building</v-icon>{{ $t('general_info') }}</div>
         <v-row dense>
@@ -267,6 +286,7 @@ export default {
     return {
       form: { company_name:'',director_name:'',director_gender:'male',company_origin:'',company_address:'',swift_code:'',phone_number:'',fax_number:'',email:'',bank_name:'',bank_account_number:'',capital:'',ice:'',rc:'',cnss:'',tva_number:'' },
       logoInvoiceUrl: '', logoInvoiceBodyUrl: '', invoiceHeaderImageUrl: '',
+      loading: false,
       saving: false,
       snack: { show: false, msg: '', color: 'success', icon: 'mdi-check-circle', timeout: 4000, progress: 100 },
       snackTimer: null,
@@ -319,6 +339,7 @@ export default {
       this.invoiceHeaderImageUrl = s.invoice_header_image_url || '';
     },
     async fetchSettings() {
+      this.loading = true;
       try {
         const r = await axios.get('/api/company-settings');
         const s = r.data.settings || {};
@@ -326,6 +347,7 @@ export default {
         // Update the Pinia store cache
         this.csStore.setSettings(s);
       } catch(e) { console.error(e); }
+      finally { this.loading = false; }
     },
     async save() {
       this.saving = true;

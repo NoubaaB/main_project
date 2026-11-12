@@ -51,7 +51,15 @@
               <v-btn value="yearly" size="x-small">{{ $t('yearly') }}</v-btn>
             </v-btn-toggle>
           </div>
-          <apexchart v-if="chartSeries[0].data.length" type="bar" :height="260" :options="chartOptions" :series="chartSeries"></apexchart>
+          <div v-if="loading" class="d-flex flex-column justify-space-between" style="height: 260px; padding: 16px;">
+            <div class="d-flex align-end justify-space-between ga-2" style="height: 200px; width: 100%;">
+              <div v-for="b in 12" :key="'ot-chart-skel-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+            </div>
+            <div class="d-flex justify-space-between mt-2">
+              <div v-for="t in 6" :key="'ot-chart-lbl-' + t" class="skel-bone" style="width: 36px; height: 10px; border-radius: 4px;"></div>
+            </div>
+          </div>
+          <apexchart v-else-if="chartSeries[0].data.length" type="bar" :height="260" :options="chartOptions" :series="chartSeries"></apexchart>
           <div v-else class="d-flex align-center justify-center" style="height:220px;opacity:.4"><v-icon size="48" color="grey">mdi-chart-bar</v-icon></div>
         </div>
       </v-col>
@@ -59,24 +67,60 @@
       <v-col cols="12" md="3">
         <div class="ot-panel ot-stats-panel" style="height:100%;overflow-y:auto">
           <div class="ot-panel-hdr"><v-icon size="16" color="#00897B" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
-          <!-- Per-currency stats -->
-          <div v-for="stat in currencyStats" :key="stat.name" class="ot-stat-item mb-2">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold"><span class="fnm-currency-num">{{ stat.name }} ({{ stat.count }})</span></v-chip>
-              <v-chip size="x-small" color="success" variant="elevated" class="font-weight-bold"><span class="fnm-currency-num">{{ formatNum(stat.total) }}</span></v-chip>
+          <div v-if="loading" class="d-flex flex-column ga-3 py-2">
+            <div v-for="s in 3" :key="'ot-skel-stat-' + s" class="ot-stat-item mb-2">
+              <div class="d-flex align-center justify-space-between mb-1.5">
+                <div class="skel-bone" style="width: 90px; height: 18px; border-radius: 999px;"></div>
+                <div class="skel-bone" style="width: 40px; height: 18px; border-radius: 999px;"></div>
+              </div>
+              <div class="skel-bone mb-2" style="width: 100%; height: 5px; border-radius: 999px;"></div>
+              <div class="d-flex flex-column ga-1.5">
+                <div class="d-flex align-center ga-1.5">
+                  <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 50px; height: 11px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 65px; height: 11px;"></div>
+                </div>
+                <div class="d-flex align-center ga-1.5">
+                  <div class="skel-bone skel-circle" style="width: 12px; height: 12px; flex-shrink: 0;"></div>
+                  <div class="skel-bone" style="width: 60px; height: 11px;"></div>
+                  <div class="skel-bone ml-auto" style="width: 75px; height: 11px;"></div>
+                </div>
+              </div>
             </div>
-            <v-progress-linear :model-value="totalAmount>0?(stat.total/totalAmount*100):0" color="#00897B" bg-color="teal-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
-            <div class="d-flex flex-column ga-1 text-caption">
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="#00897B">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('amount') }}:</span><b class="text-success fnm-currency-num">{{ formatNum(stat.total) }} {{ stat.name }}</b></div>
-              <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-percent</v-icon><span class="text-medium-emphasis">{{ $t('share') }}:</span><b class="text-deep-orange fnm-currency-num">{{ totalAmount>0 ? Math.round(stat.total/totalAmount*1000)/10 : 0 }}%</b></div>
+            <v-divider class="my-2"></v-divider>
+            <div class="d-flex flex-column ga-2">
+              <div class="d-flex align-center ga-2">
+                <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                <div class="skel-bone" style="width: 70px; height: 12px;"></div>
+                <div class="skel-bone ml-auto" style="width: 80px; height: 12px;"></div>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <div class="skel-bone skel-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></div>
+                <div class="skel-bone" style="width: 65px; height: 12px;"></div>
+                <div class="skel-bone ml-auto" style="width: 85px; height: 12px;"></div>
+              </div>
             </div>
           </div>
-          <v-divider class="my-2"></v-divider>
-          <!-- Totals -->
-          <div class="d-flex flex-column ga-1">
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="#00897B">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total') }}:</span><b class="text-success text-caption fnm-currency-num">{{ colFilteredItems.length }} {{ $t('records') }}</b></div>
-            <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_amount') }}:</span><b class="text-deep-orange text-caption fnm-currency-num">{{ formatNum(totalAmount) }}</b></div>
-          </div>
+          <template v-else>
+            <!-- Per-currency stats -->
+            <div v-for="stat in currencyStats" :key="stat.name" class="ot-stat-item mb-2">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold"><span class="fnm-currency-num">{{ stat.name }} ({{ stat.count }})</span></v-chip>
+                <v-chip size="x-small" color="success" variant="elevated" class="font-weight-bold"><span class="fnm-currency-num">{{ formatNum(stat.total) }}</span></v-chip>
+              </div>
+              <v-progress-linear :model-value="totalAmount>0?(stat.total/totalAmount*100):0" color="#00897B" bg-color="teal-lighten-4" height="5" rounded class="mb-1"></v-progress-linear>
+              <div class="d-flex flex-column ga-1 text-caption">
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="#00897B">mdi-cash</v-icon><span class="text-medium-emphasis">{{ $t('amount') }}:</span><b class="text-success fnm-currency-num">{{ formatNum(stat.total) }} {{ stat.name }}</b></div>
+                <div class="d-flex align-center ga-1"><v-icon size="12" color="deep-orange">mdi-percent</v-icon><span class="text-medium-emphasis">{{ $t('share') }}:</span><b class="text-deep-orange fnm-currency-num">{{ totalAmount>0 ? Math.round(stat.total/totalAmount*1000)/10 : 0 }}%</b></div>
+              </div>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <!-- Totals -->
+            <div class="d-flex flex-column ga-1">
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="#00897B">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total') }}:</span><b class="text-success text-caption fnm-currency-num">{{ colFilteredItems.length }} {{ $t('records') }}</b></div>
+              <div class="d-flex align-center ga-1"><v-icon size="14" color="deep-orange">mdi-sigma</v-icon><span class="text-caption font-weight-bold">{{ $t('total_amount') }}:</span><b class="text-deep-orange text-caption fnm-currency-num">{{ formatNum(totalAmount) }}</b></div>
+            </div>
+          </template>
         </div>
       </v-col>
     </v-row>
@@ -515,9 +559,15 @@
           <tbody>
             <template v-if="loading">
               <tr v-for="r in 8" :key="'ot-skel-' + r" class="ot-row app-skeleton-table-row">
-                <td class="ot-td text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+                <td class="ot-td text-center" :style="headerPinStyles['__checkbox']">
+                  <div class="skel-bone mx-auto" style="width: 18px; height: 18px; border-radius: 4px;"></div>
+                </td>
                 <td v-for="h in headers" :key="'ot-skel-' + h.key + '-' + r" class="ot-td" :class="{'ot-col-pin': isPinned(h.key) || h.fixed, 'ot-td-actions': h.key === 'actions'}" :style="headerPinStyles[h.key]">
-                  <v-skeleton-loader :type="h.key === 'transfer_number' ? 'chip' : 'text'" class="app-skel-cell" />
+                  <div v-if="h.key === 'actions'" class="d-flex align-center justify-center ga-1">
+                    <div v-for="a in 3" :key="a" class="skel-bone skel-circle" style="width: 20px; height: 20px;"></div>
+                  </div>
+                  <div v-else-if="h.key === 'transfer_number' || h.key.includes('status') || h.key.includes('type')" class="skel-bone" style="width: 85px; height: 20px; border-radius: 999px;"></div>
+                  <div v-else class="skel-bone" style="width: 75%; height: 13px;"></div>
                 </td>
               </tr>
             </template>

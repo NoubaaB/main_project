@@ -132,8 +132,21 @@
       <!-- Content -->
       <v-card-text class="pa-4 audit-body-scroll" style="max-height: 560px; overflow-y: auto;">
         <!-- Skeleton State -->
-        <div v-if="loading" class="pa-2">
-          <v-skeleton-loader type="list-item-avatar-three-line@4" class="app-skel-cell" />
+        <div v-if="loading" class="pa-2 d-flex flex-column ga-4">
+          <div v-for="sk in 4" :key="'audit-skel-' + sk" class="d-flex ga-3">
+            <div class="d-flex flex-column align-center">
+              <div class="skel-bone skel-circle" style="width: 24px; height: 24px; min-width: 24px;"></div>
+              <div class="skel-bone mt-1" style="width: 2px; height: 48px; border-radius: 2px;"></div>
+            </div>
+            <div class="flex-grow-1 pa-3 rounded-xl border bg-surface">
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="skel-bone" style="width: 130px; height: 16px; border-radius: 4px;"></div>
+                <div class="skel-bone" style="width: 75px; height: 14px; border-radius: 4px;"></div>
+              </div>
+              <div class="skel-bone mb-2" style="width: 80%; height: 14px; border-radius: 4px;"></div>
+              <div class="skel-bone" style="width: 90px; height: 20px; border-radius: 999px;"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Empty state: No logs at all -->

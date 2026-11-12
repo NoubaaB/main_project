@@ -127,20 +127,40 @@
   </v-card>
 
   <!-- Loading Skeleton State -->
-  <div v-if="loading && !stats" class="py-4">
+  <div v-if="loading" class="py-4">
     <v-row dense class="mb-4">
       <v-col cols="12" sm="6" md="3" v-for="k in 4" :key="'usr-skel-kpi-' + k">
-        <div class="pa-4 rounded-2xl border bg-surface">
-          <v-skeleton-loader type="heading" class="app-skel-cell" />
-          <v-skeleton-loader type="text" width="55%" class="app-skel-cell mt-2" />
+        <div class="pa-4 rounded-xl border bg-surface">
+          <div class="d-flex align-center justify-space-between mb-3">
+            <div class="skel-bone" style="width: 120px; height: 14px; border-radius: 4px;"></div>
+            <div class="skel-bone skel-circle" style="width: 32px; height: 32px;"></div>
+          </div>
+          <div class="d-flex align-baseline ga-2 mb-3">
+            <div class="skel-bone" style="width: 100px; height: 32px; border-radius: 6px;"></div>
+            <div class="skel-bone" style="width: 50px; height: 20px; border-radius: 999px;"></div>
+          </div>
+          <div class="d-flex align-center justify-space-between">
+            <div class="skel-bone" style="width: 80px; height: 12px; border-radius: 4px;"></div>
+            <div class="skel-bone" style="width: 60px; height: 12px; border-radius: 4px;"></div>
+          </div>
         </div>
       </v-col>
     </v-row>
     <v-row dense>
       <v-col cols="12" md="6" v-for="c in 2" :key="'usr-skel-c-' + c">
-        <div class="pa-4 rounded-2xl border bg-surface">
-          <v-skeleton-loader type="chip" width="120" class="app-skel-cell mb-3" />
-          <v-skeleton-loader type="image" height="260" class="rounded-xl app-skel-transparent" />
+        <div class="pa-4 rounded-xl border bg-surface">
+          <div class="d-flex align-center justify-space-between mb-3">
+            <div class="skel-bone" style="width: 140px; height: 20px; border-radius: 999px;"></div>
+            <div class="skel-bone" style="width: 60px; height: 20px; border-radius: 999px;"></div>
+          </div>
+          <div class="d-flex flex-column justify-space-between" style="height: 260px; padding: 12px 0;">
+            <div class="d-flex align-end justify-space-between ga-2" style="height: 200px; width: 100%;">
+              <div v-for="b in 12" :key="'usr-cskel-' + c + '-' + b" class="skel-bone" :style="{ width: '5%', height: (25 + (b * 19) % 65) + '%', borderRadius: '4px 4px 0 0' }"></div>
+            </div>
+            <div class="d-flex justify-space-between mt-2">
+              <div v-for="t in 6" :key="'usr-clbl-' + c + '-' + t" class="skel-bone" style="width: 36px; height: 10px; border-radius: 4px;"></div>
+            </div>
+          </div>
         </div>
       </v-col>
     </v-row>
