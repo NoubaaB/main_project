@@ -1,25 +1,82 @@
 <template>
 <v-card class="lc-card" elevation="0">
   <div class="lc-hero"><div class="lc-hero-inner">
-    <div class="d-flex align-center ga-4"><div class="lc-hero-icon"><v-icon size="28" color="white">mdi-file-document-multiple-outline</v-icon></div><div><div class="lc-hero-title">{{ $t('client_invoices') }}</div><div class="text-white text-caption" style="opacity:.7">{{ $t('client_invoice_list_desc') }}</div></div></div>
+    <div class="d-flex align-center ga-4">
+      <div class="lc-hero-icon"><v-icon size="28" color="white">mdi-file-document-multiple-outline</v-icon></div>
+      <div>
+        <div class="lc-hero-title">{{ $t('client_invoices') }}</div>
+        <div class="text-white text-caption" style="opacity:.7">{{ $t('client_invoice_list_desc') }}</div>
+      </div>
+    </div>
+    <!-- Live KPI Badges -->
+    <div class="d-flex align-center ga-2 flex-wrap">
+      <div class="lc-hero-kpi">
+        <v-icon size="14" color="white" class="mr-1">mdi-counter</v-icon>
+        <span class="lc-kpi-val">{{ colFilteredItems.length }}</span>
+        <span class="lc-kpi-lbl">{{ $t('records') }}</span>
+      </div>
+      <div class="lc-hero-kpi">
+        <v-icon size="14" color="white" class="mr-1">mdi-weight-kilogram</v-icon>
+        <span class="lc-kpi-val">{{ main.formatDisplayNumber(totalWeight) }}</span>
+        <span class="lc-kpi-lbl">Kg</span>
+      </div>
+      <div class="lc-hero-kpi">
+        <v-icon size="14" color="white" class="mr-1">mdi-cash</v-icon>
+        <span class="lc-kpi-val">{{ main.formatDisplayNumber(totalPrice) }}</span>
+        <span class="lc-kpi-lbl">{{ main.currency }}</span>
+      </div>
+    </div>
     <div class="lc-hero-actions">
       <v-btn variant="tonal" color="white" rounded size="small" prepend-icon="mdi-refresh" @click="fetchInvoices" :loading="loading">{{ $t('refresh') }}</v-btn>
       <v-btn v-if="selected.length" variant="tonal" color="white" rounded size="small" prepend-icon="mdi-eye" @click="viewSelected">{{ $t('view_invoices') }} ({{ selected.length }})</v-btn>
-      <v-btn v-if="selected.length" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
+      <v-btn v-if="selected.length && auth.hasPermission('client_invoices.delete')" variant="tonal" color="error" rounded size="small" prepend-icon="mdi-delete" @click="confirmBulkDelete">{{ $t('delete_selected') }} ({{ selected.length }})</v-btn>
     </div>
   </div></div>
+
   <v-card-text class="pa-4">
     <!-- Analytics Row: Calendar | Chart | Statistics -->
     <v-row dense class="mb-3">
       <!-- Calendar (left) -->
-      <v-col cols="3">
+      <v-col cols="12" md="3">
         <div class="lc-panel-card">
-          <div class="lc-panel-header"><v-icon size="16" color="#00838F" class="mr-1">mdi-calendar-range</v-icon><span>{{ $t('date_range') }}</span></div>
-          <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="teal" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
+          <div class="lc-panel-header d-flex align-center justify-space-between mb-2">
+            <div class="d-flex align-center">
+              <v-icon size="16" color="#00838F" class="mr-1">mdi-calendar-range</v-icon>
+              <span>{{ $t('date_range') }}</span>
+            </div>
+            <v-chip v-if="datePreset" size="x-small" color="#00838F" variant="tonal" class="font-weight-bold">
+              {{ $t(datePreset) }}
+            </v-chip>
+          </div>
+          <!-- Auto-select Date Range Segmented Pill Toggle -->
+          <div class="mb-2 d-flex justify-center lc-date-presets-wrapper">
+            <SegmentedPillToggle
+              v-model="datePreset"
+              :items="datePresetOptions"
+              color="#00838F"
+              size="x-small"
+              block
+              @update:model-value="onDatePresetChange"
+            />
+          </div>
+          <DatePicker v-model.range="dateRangeVC" :is-dark="main.is_dark" :locale="main.lang?.short||'en'" mode="date" color="cyan" :max-date="new Date()" expanded @update:model-value="onDateRangeChange" />
+
+          <!-- Selected Date Range Display Below VCalendar -->
+          <div class="lc-selected-range mt-2 pt-2 border-t d-flex align-center justify-center ga-2 flex-nowrap">
+            <v-chip size="x-small" color="#00838F" variant="tonal" class="font-weight-bold" :title="$t('start_date')">
+              <v-icon start size="12">mdi-calendar-start</v-icon>
+              {{ main.formateDate(dateRange[0]) }}
+            </v-chip>
+            <v-icon size="12" color="grey">mdi-arrow-right</v-icon>
+            <v-chip size="x-small" color="#00838F" variant="tonal" class="font-weight-bold" :title="$t('end_date')">
+              <v-icon start size="12">mdi-calendar-end</v-icon>
+              {{ main.formateDate(dateRange[1] || dateRange[0]) }}
+            </v-chip>
+          </div>
         </div>
       </v-col>
       <!-- Chart (center) -->
-      <v-col cols="6">
+      <v-col cols="12" md="6">
         <div class="lc-panel-card" style="height:100%">
           <div class="lc-panel-header d-flex align-center justify-space-between">
             <div class="d-flex align-center"><v-icon size="16" color="#00838F" class="mr-1">mdi-chart-areaspline</v-icon><span>{{ $t('analytics') }}</span></div>
@@ -34,7 +91,7 @@
         </div>
       </v-col>
       <!-- Statistics (right) -->
-      <v-col cols="3">
+      <v-col cols="12" md="3">
         <div class="lc-panel-card lc-stats-panel" style="height:100%;overflow-y:auto">
           <div class="lc-panel-header"><v-icon size="16" color="#00838F" class="mr-1">mdi-chart-box-outline</v-icon><span>{{ $t('statistics') }}</span></div>
           <!-- Per-client stats -->
@@ -64,162 +121,656 @@
         </div>
       </v-col>
     </v-row>
-    <div class="d-flex ga-2 mb-3 justify-end">
-      <v-btn v-if="Object.values(colFilters).some(f=>f&&f.length)" variant="tonal" color="warning" rounded size="small" prepend-icon="mdi-filter-off" @click="colFilters={}">{{ $t('clear_filters') }}</v-btn>
-      <v-btn icon variant="tonal" color="success" size="small" @click="exportExcel"><v-icon size="18">mdi-file-excel-outline</v-icon></v-btn>
+
+    <!-- Unified Command & Filter Toolbar -->
+    <div class="lc-toolbar mb-3 pa-2 px-3 rounded-xl">
+      <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+        <!-- Left Side: Quick Search & Filter Controls -->
+        <div class="d-flex align-center flex-wrap ga-2 flex-grow-1" style="min-width: 260px;">
+          <v-text-field
+            v-model="searchQuery"
+            density="compact"
+            variant="outlined"
+            rounded="lg"
+            hide-details
+            clearable
+            color="#00838F"
+            prepend-inner-icon="mdi-magnify"
+            :placeholder="$t('search_records_placeholder') || 'Search client invoices...'"
+            style="min-width: 200px; max-width: 280px;"
+          ></v-text-field>
+
+          <v-btn
+            v-if="Object.values(colFilters).some(f=>f&&f.length)"
+            variant="text"
+            color="warning"
+            rounded="lg"
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="colFilters={}"
+          >
+            {{ $t('clear_filters') }}
+          </v-btn>
+        </div>
+
+        <!-- Right Side: Records Counter, Row Expander, Columns Manager, Export & Expand View -->
+        <div class="d-flex align-center flex-wrap ga-2">
+          <v-chip size="small" variant="tonal" color="#00838F" class="font-weight-medium">
+            {{ colFilteredItems.length }} / {{ invoices.length }} {{ $t('records') }}
+          </v-chip>
+
+          <v-divider vertical class="mx-1 my-1" style="height: 22px;"></v-divider>
+
+          <!-- Expand / Collapse All Details Button -->
+          <v-btn
+            :variant="isAllExpanded ? 'flat' : 'tonal'"
+            :color="isAllExpanded ? 'warning' : '#00838F'"
+            rounded="lg"
+            size="small"
+            class="lc-filter-btn"
+            :title="isAllExpanded ? $t('collapse_all') : $t('expand_all')"
+            @click="toggleExpandAll"
+          >
+            <v-icon size="16" class="mr-1">{{ isAllExpanded ? 'mdi-arrow-collapse-vertical' : 'mdi-arrow-expand-vertical' }}</v-icon>
+            {{ isAllExpanded ? $t('collapse_all') : $t('expand_all') }}
+            <v-badge
+              v-if="expandedCount > 0"
+              :content="expandedCount"
+              :color="isAllExpanded ? 'warning' : '#00838F'"
+              inline
+              class="ml-1"
+            ></v-badge>
+          </v-btn>
+
+          <!-- Columns Manager -->
+          <TableColumnManager
+            :columns="configColumns"
+            :color="moduleColor"
+            :hidden-columns="hiddenColumns"
+            :pin-state="pinState"
+            @toggle-visibility="toggleColumnVisibility"
+            @show-all="showAllColumns"
+            @hide-all="hideAllColumns"
+            @move-up="moveColumnUp"
+            @move-down="moveColumnDown"
+            @set-pin="setPin($event.key, $event.side)"
+            @reset="resetTableConfig"
+            @reorder="onColumnManagerReorder"
+          />
+
+          <!-- Export Menu (Excel & CSV) -->
+          <v-menu location="bottom end" :close-on-content-click="true">
+            <template #activator="{ props: expProps }">
+              <v-btn
+                v-bind="expProps"
+                variant="tonal"
+                color="#4CAF50"
+                size="small"
+                rounded="lg"
+                prepend-icon="mdi-file-export-outline"
+                class="font-weight-medium"
+              >
+                {{ $t('export') || 'Export' }}
+                <v-icon end size="14">mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+              <v-list-item prepend-icon="mdi-file-excel-outline" @click="exportTableToExcel()">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.xlsx)
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item prepend-icon="mdi-file-delimited-outline" @click="exportTableToCsv()">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.csv)
+                </v-list-item-title>
+              </v-list-item>
+              <v-divider v-if="selected.length" class="my-1"></v-divider>
+              <v-list-item v-if="selected.length" prepend-icon="mdi-file-excel-outline" @click="exportSelectedToExcel">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_selected_only', { count: selected.length }) }} (.xlsx)
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item v-if="selected.length" prepend-icon="mdi-file-delimited-outline" @click="exportSelectedToCsv">
+                <v-list-item-title class="text-caption font-weight-medium">
+                  {{ $t('export_selected_only', { count: selected.length }) }} (.csv)
+                </v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+
+          <!-- Expand View Button -->
+          <v-btn
+            :variant="isExpandedView ? 'flat' : 'elevated'"
+            :color="isExpandedView ? 'warning' : '#00838F'"
+            rounded="lg"
+            size="small"
+            class="lc-filter-btn font-weight-bold"
+            :class="{ 'text-white': !isExpandedView }"
+            :prepend-icon="isExpandedView ? 'mdi-arrow-collapse-all' : 'mdi-arrow-expand-all'"
+            :title="isExpandedView ? $t('collapse_view') : $t('expand_view')"
+            @click="toggleExpandedView"
+          >
+            {{ isExpandedView ? $t('collapse_view') : $t('expand_view') }}
+          </v-btn>
+        </div>
+      </div>
     </div>
-    <div class="lc-table-wrap" ref="tableWrap">
-      <table class="lc-table">
-        <thead class="lc-thead"><tr>
-          <th class="lc-th lc-th-pin" style="min-width:50px;left:0"><v-checkbox-btn v-model="selectAll" color="#00838F" density="compact" hide-details></v-checkbox-btn></th>
-          <th v-for="h in headers" :key="h.key" class="lc-th" :class="{'lc-th-pin':isPinned(h.key),'lc-th-dragover':dragOverCol===h.key}" :style="colPinStyle(h.key,3)" :draggable="!h.fixed" @dragstart="onDragStart(h.key)" @dragover="onDragOver(h.key,$event)" @dragend="onDragEnd" @drop="onDragEnd">
-            <div class="lc-th-inner">
-              <v-icon v-if="!h.fixed" size="12" class="drag-handle" color="grey-lighten-1">mdi-drag-vertical</v-icon>
-              <span class="lc-th-title" @click="h.sortable!==false&&toggleSort(h.key)">{{ h.title }}</span>
-              <template v-if="h.key!=='actions'&&h.key!=='expand'">
-                <v-btn v-if="sortDir(h.key)" icon variant="text" size="14" @click.stop="toggleSort(h.key)"><v-icon size="12" color="#00838F">mdi-arrow-{{ sortDir(h.key)==='asc'?'up':'down' }}</v-icon></v-btn>
-                <span v-if="sortIdx(h.key)" class="sort-badge">{{ sortIdx(h.key) }}</span>
-                <TableColumnFilter
-                  v-model="colFilters[h.key]"
-                  :options="filterOpts(h.key)"
-                  :counts="filterCounts(h.key)"
-                  :title="h.title"
-                  color="#00838F"
-                />
-                <v-btn icon variant="text" size="14" @click.stop="togglePin(h.key)"><v-icon size="10" :color="pinSide(h.key)==='left'?'warning':pinSide(h.key)==='right'?'#00838F':'grey'">{{ pinSide(h.key)==='left'?'mdi-pin':pinSide(h.key)==='right'?'mdi-pin-outline':'mdi-pin-off-outline' }}</v-icon></v-btn>
-              </template>
+
+    <!-- Table Container (Supports Normal Mode and Expanded Fullscreen Mode) -->
+    <div
+      class="lc-table-container"
+      :class="{
+        'lc-fullscreen-mode': isExpandedView,
+        ['density-' + tableDensity]: true,
+      }"
+    >
+      <!-- Dedicated Command Bar when Expanded View is Active -->
+      <div v-if="isExpandedView" class="lc-fullscreen-header mb-3 pa-2 px-3 rounded-xl">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <!-- Left: Module Brand & Live KPI Chips -->
+          <div class="d-flex align-center ga-2 flex-wrap">
+            <div class="d-flex align-center ga-2 mr-1">
+              <v-avatar size="32" color="#00838F" variant="flat" rounded="lg">
+                <v-icon size="18" color="white">mdi-file-document-multiple-outline</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-caption font-weight-bold" style="line-height: 1.2; color: #00838F;">{{ $t('client_invoices') }}</div>
+                <div class="text-caption text-medium-emphasis" style="font-size: 10px !important;">{{ $t('expand_view') }}</div>
+              </div>
             </div>
-          </th>
-        </tr></thead>
-        <tbody>
-          <template v-if="loading">
-            <tr v-for="r in 8" :key="'ci-skel-' + r" class="lc-row app-skeleton-table-row">
-              <td class="lc-td text-center" style="width:40px;"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
-              <td v-for="h in headers" :key="'ci-skel-' + h.key + '-' + r" class="lc-td" :class="{'lc-col-pin': isPinned(h.key)}" :style="colPinStyle(h.key, 2)">
-                <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'invoice_number' ? 'chip' : 'text'" class="app-skel-cell" />
-              </td>
-            </tr>
-          </template>
-          <template v-else v-for="item in colFilteredItems" :key="item.id">
-            <tr class="lc-row" :class="{'lc-row-expanded':expanded[item.id]}">
-              <td class="lc-td lc-th-pin" style="left:0"><v-checkbox-btn v-model="selected" :value="item.id" color="#00838F" density="compact" hide-details></v-checkbox-btn></td>
-              <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin':isPinned(h.key)}" :style="colPinStyle(h.key,2)">
-                <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
-                <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
-                <template v-else-if="h.key==='_tracking_numbers'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_numbers||[])" :key="tn" size="x-small" color="#00838F" variant="tonal" class="fnm-currency-num">{{ tn }}</v-chip><span v-if="!(item.tracking_numbers||[]).length" class="text-grey">-</span></div></template>
-                <template v-else-if="h.key==='_type_invoice'"><v-chip size="x-small" :color="item._type_invoice==='export'?'warning':'info'" variant="tonal">{{ $t(item._type_invoice==='export'?'export_type':'local') }}</v-chip></template>
-                <template v-else-if="h.key==='_clients'">
-                  <div class="d-flex align-center ga-1 justify-center">
-                    <span>{{ item._clients }}</span>
-                    <v-chip v-if="item.client?.enable_plafond" size="x-small" color="#00838F" variant="outlined" class="ml-1 font-weight-bold" :title="$t('credit_plafond')">
-                      <v-icon start size="10">mdi-shield-check</v-icon>
-                      {{ main.formatDisplayNumber(item.client.plafond_amount) }}
-                    </v-chip>
-                  </div>
-                </template>
-                <template v-else-if="h.key==='total_weight'"><span class="fnm-currency-num">{{ main.formatDisplayNumber(item.total_weight) }} Kg</span></template>
-                <template v-else-if="h.key==='total_price'"><span class="fnm-currency-num font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</span></template>
-                <template v-else-if="h.key==='print_counter'"><v-chip size="small" :color="item.print_counter>0?'success':'grey'" variant="tonal"><v-icon size="14" class="mr-1">mdi-printer</v-icon>{{ item.print_counter }}</v-chip></template>
-                <template v-else-if="h.key==='actions'">
-                  <v-menu>
-                    <template v-slot:activator="{ props }"><v-btn icon="mdi-dots-vertical" size="x-small" variant="outlined" color="#00838F" v-bind="props"></v-btn></template>
-                    <v-list slim density="compact">
-                      <v-list-item prepend-icon="mdi-eye" @click="$router.push({name:'view_client_invoice',query:{ids:[item.id]}})"><v-list-item-title>{{$t('view_item')}}</v-list-item-title></v-list-item>
-                      <v-divider></v-divider>
-                      <v-list-item prepend-icon="mdi-delete" @click="confirmDelete(item.id)"><v-list-item-title>{{$t('delete_item')}}</v-list-item-title></v-list-item>
+
+            <v-chip size="small" variant="tonal" color="#00838F" class="font-weight-bold">
+              <v-icon start size="14">mdi-counter</v-icon>
+              {{ colFilteredItems.length }} / {{ invoices.length }} {{ $t('records') }}
+            </v-chip>
+            <v-chip size="small" variant="tonal" color="#00838F" class="font-weight-bold">
+              <v-icon start size="14">mdi-weight-kilogram</v-icon>
+              {{ main.formatDisplayNumber(totalWeight) }} Kg
+            </v-chip>
+            <v-chip size="small" variant="tonal" color="#00838F" class="font-weight-bold">
+              <v-icon start size="14">mdi-cash</v-icon>
+              {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}
+            </v-chip>
+          </div>
+
+          <!-- Right: Search, Density, Expand All, Columns Manager, Export, Bulk Actions & Exit -->
+          <div class="d-flex align-center ga-2 flex-wrap">
+            <v-text-field
+              v-model="searchQuery"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              clearable
+              color="#00838F"
+              prepend-inner-icon="mdi-magnify"
+              :placeholder="$t('search_records_placeholder') || 'Search records...'"
+              style="min-width: 170px; max-width: 220px;"
+            ></v-text-field>
+
+            <!-- Table Density Selector -->
+            <div class="d-flex align-center border rounded-lg pa-0-5 bg-surface">
+              <v-btn
+                size="x-small"
+                icon
+                :variant="tableDensity === 'comfortable' ? 'flat' : 'text'"
+                :color="tableDensity === 'comfortable' ? '#00838F' : 'grey'"
+                :title="$t('density_comfortable')"
+                @click="setTableDensity('comfortable')"
+              >
+                <v-icon size="15">mdi-view-headline</v-icon>
+              </v-btn>
+              <v-btn
+                size="x-small"
+                icon
+                :variant="tableDensity === 'compact' ? 'flat' : 'text'"
+                :color="tableDensity === 'compact' ? '#00838F' : 'grey'"
+                :title="$t('density_compact')"
+                @click="setTableDensity('compact')"
+              >
+                <v-icon size="15">mdi-view-agenda-outline</v-icon>
+              </v-btn>
+              <v-btn
+                size="x-small"
+                icon
+                :variant="tableDensity === 'dense' ? 'flat' : 'text'"
+                :color="tableDensity === 'dense' ? '#00838F' : 'grey'"
+                :title="$t('density_dense')"
+                @click="setTableDensity('dense')"
+              >
+                <v-icon size="15">mdi-view-sequential-outline</v-icon>
+              </v-btn>
+            </div>
+
+            <!-- Expand / Collapse All Details -->
+            <v-btn
+              size="small"
+              variant="tonal"
+              :color="isAllExpanded ? 'warning' : '#00838F'"
+              rounded="lg"
+              :title="isAllExpanded ? $t('collapse_all') : $t('expand_all')"
+              @click="toggleExpandAll"
+            >
+              <v-icon size="16">{{ isAllExpanded ? 'mdi-arrow-collapse-vertical' : 'mdi-arrow-expand-vertical' }}</v-icon>
+            </v-btn>
+
+            <!-- Column Visibility & Order Manager -->
+            <TableColumnManager
+              :columns="configColumns"
+              :color="moduleColor"
+              :hidden-columns="hiddenColumns"
+              :pin-state="pinState"
+              @toggle-visibility="toggleColumnVisibility"
+              @show-all="showAllColumns"
+              @hide-all="hideAllColumns"
+              @move-up="moveColumnUp"
+              @move-down="moveColumnDown"
+              @set-pin="setPin($event.key, $event.side)"
+              @reset="resetTableConfig"
+              @reorder="onColumnManagerReorder"
+            />
+
+            <!-- Export Menu -->
+            <v-menu location="bottom end" :close-on-content-click="true">
+              <template #activator="{ props: expProps }">
+                <v-btn
+                  v-bind="expProps"
+                  variant="tonal"
+                  color="#4CAF50"
+                  size="small"
+                  rounded="lg"
+                  prepend-icon="mdi-file-export-outline"
+                  class="font-weight-medium"
+                >
+                  {{ $t('export') || 'Export' }}
+                  <v-icon end size="14">mdi-chevron-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+                <v-list-item prepend-icon="mdi-file-excel-outline" @click="exportTableToExcel()">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.xlsx)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item prepend-icon="mdi-file-delimited-outline" @click="exportTableToCsv()">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.csv)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-divider v-if="selected.length" class="my-1"></v-divider>
+                <v-list-item v-if="selected.length" prepend-icon="mdi-file-excel-outline" @click="exportSelectedToExcel">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_selected_only', { count: selected.length }) }} (.xlsx)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item v-if="selected.length" prepend-icon="mdi-file-delimited-outline" @click="exportSelectedToCsv">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_selected_only', { count: selected.length }) }} (.csv)
+                  </v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+
+            <!-- Bulk Delete -->
+            <v-btn
+              v-if="selected.length && auth.hasPermission('client_invoices.delete')"
+              variant="tonal"
+              color="error"
+              rounded="lg"
+              size="small"
+              prepend-icon="mdi-delete"
+              @click="confirmBulkDelete"
+            >
+              {{ $t('delete_selected') }} ({{ selected.length }})
+            </v-btn>
+
+            <v-divider vertical class="mx-1 my-1" style="height: 22px;"></v-divider>
+
+            <!-- Exit Fullscreen Button -->
+            <v-btn
+              variant="flat"
+              color="error"
+              rounded="lg"
+              size="small"
+              prepend-icon="mdi-fullscreen-exit"
+              @click="exitExpandedView"
+              class="font-weight-bold text-white shadow-sm"
+            >
+              {{ $t('exit_expand_view') }}
+              <v-chip size="x-small" color="white" variant="outlined" class="ml-1 font-weight-bold px-1" style="height: 18px; font-size: 10px;">ESC</v-chip>
+            </v-btn>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Multi-Sorts Strip -->
+      <div v-if="colSorts && colSorts.length > 0" class="lc-active-sorts-strip d-flex align-center flex-wrap ga-1 px-3 py-1 mb-2 rounded-lg" style="background: rgba(0, 131, 143, 0.06); border: 1px dashed rgba(0, 131, 143, 0.3);">
+        <span class="text-caption font-weight-bold d-flex align-center ga-1 mr-1" style="color: #00838F;">
+          <v-icon size="14" color="#00838F">mdi-sort</v-icon>
+          {{ $t('sorted_by') }}:
+        </span>
+        <v-chip
+          v-for="(s, sIdx) in colSorts"
+          :key="'sort_' + s.key"
+          size="x-small"
+          rounded="lg"
+          color="#00838F"
+          variant="flat"
+          closable
+          @click:close="removeColSort(s.key)"
+          @click="toggleMultiSort(s.key)"
+        >
+          <span class="font-weight-bold mr-1">{{ sIdx + 1 }}.</span>
+          <span>{{ getHeaderTitle(s.key) }}</span>
+          <v-icon end size="12">{{ s.dir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>
+        </v-chip>
+        <v-btn
+          size="x-small"
+          variant="text"
+          color="error"
+          class="ml-1 text-caption font-weight-medium"
+          @click="clearColSorts"
+        >
+          {{ $t('clear_sorts') }}
+        </v-btn>
+      </div>
+
+      <!-- Data Table -->
+      <div class="lc-table-wrap" ref="tableWrap" @scroll.passive="onTableScroll">
+        <table class="lc-table">
+          <thead class="lc-thead"><tr>
+            <th class="lc-th lc-th-pin" :style="thPinStyles['__checkbox']"><v-checkbox-btn v-model="selectAll" color="#00838F" density="compact" hide-details></v-checkbox-btn></th>
+            <th
+              v-for="h in headers"
+              :key="h.key"
+              class="lc-th"
+              :class="{'lc-th-pin': isPinned(h.key) || h.fixed, 'lc-th-dragover': dragOverCol === h.key, 'lc-th-actions': h.key === 'actions'}"
+              :style="thPinStyles[h.key]"
+              :draggable="!h.fixed"
+              @dragstart="onDragStart(h.key)"
+              @dragover="onDragOver(h.key, $event)"
+              @dragend="onDragEnd"
+              @drop="onDragEnd"
+            >
+              <!-- Column Resizer Handle -->
+              <div
+                v-if="!h.fixed"
+                class="lc-col-resizer"
+                :class="{ 'lc-col-resizer-active': activeResizeCol === h.key }"
+                @mousedown.stop.prevent="startColResize(h.key, $event)"
+                :title="$t('resize_column')"
+              ></div>
+
+              <div class="lc-th-inner">
+                <v-icon v-if="!h.fixed" size="12" class="drag-handle mr-1" color="grey-lighten-1">mdi-drag-vertical</v-icon>
+                <span
+                  class="lc-th-title text-truncate"
+                  @click="h.sortable !== false && toggleSort(h.key, $event)"
+                  :title="$t('multi_sort_hint')"
+                >
+                  {{ h.title }}
+                </span>
+
+                <template v-if="h.key !== 'actions' && h.key !== 'expand'">
+                  <!-- Sort Arrow Button -->
+                  <v-btn
+                    v-if="sortDir(h.key)"
+                    icon
+                    variant="text"
+                    size="14"
+                    @click.stop="toggleMultiSort(h.key)"
+                    :title="sortDir(h.key) === 'asc' ? 'ASC (Click to toggle)' : 'DESC (Click to clear)'"
+                  >
+                    <v-icon size="12" color="#00838F">mdi-arrow-{{ sortDir(h.key) === 'asc' ? 'up' : 'down' }}</v-icon>
+                  </v-btn>
+
+                  <!-- Priority Badge for Multi-Sort -->
+                  <span v-if="sortIdx(h.key) && colSorts && colSorts.length > 1" class="sort-badge">
+                    {{ sortIdx(h.key) }}
+                  </span>
+
+                  <!-- Column Values Filter Menu -->
+                  <TableColumnFilter
+                    v-model="colFilters[h.key]"
+                    :options="filterOpts(h.key)"
+                    :counts="filterCounts(h.key)"
+                    :title="h.title"
+                    color="#00838F"
+                    @change="onColFilterChange"
+                  />
+
+                  <!-- Modern Pin / Unpin Menu -->
+                  <v-menu v-if="!h.fixed" location="bottom end" :close-on-content-click="true">
+                    <template #activator="{ props: pinMenuProps }">
+                      <v-btn
+                        v-bind="pinMenuProps"
+                        icon
+                        variant="text"
+                        size="14"
+                        class="lc-th-pin-btn"
+                        :title="$t('pin_column')"
+                        @click.stop
+                      >
+                        <v-icon
+                          size="11"
+                          :color="pinSide(h.key) === 'left' ? '#00838F' : pinSide(h.key) === 'right' ? '#FF7043' : 'grey-lighten-1'"
+                        >
+                          {{ pinSide(h.key) === 'left' ? 'mdi-dock-left' : pinSide(h.key) === 'right' ? 'mdi-dock-right' : 'mdi-pin-outline' }}
+                        </v-icon>
+                      </v-btn>
+                    </template>
+                    <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+                      <v-list-item density="compact" :active="pinSide(h.key) === 'left'" @click="setPin(h.key, 'left')">
+                        <template #prepend><v-icon size="15" color="#00838F">mdi-dock-left</v-icon></template>
+                        <v-list-item-title class="text-caption font-weight-medium">{{ $t('pin_left') }}</v-list-item-title>
+                      </v-list-item>
+                      <v-list-item density="compact" :active="pinSide(h.key) === 'right'" @click="setPin(h.key, 'right')">
+                        <template #prepend><v-icon size="15" color="#FF7043">mdi-dock-right</v-icon></template>
+                        <v-list-item-title class="text-caption font-weight-medium">{{ $t('pin_right') }}</v-list-item-title>
+                      </v-list-item>
+                      <v-divider v-if="pinSide(h.key)" class="my-1"></v-divider>
+                      <v-list-item v-if="pinSide(h.key)" density="compact" @click="setPin(h.key, 'none')">
+                        <template #prepend><v-icon size="15" color="grey">mdi-pin-off-outline</v-icon></template>
+                        <v-list-item-title class="text-caption text-error">{{ $t('unpin') }}</v-list-item-title>
+                      </v-list-item>
                     </v-list>
                   </v-menu>
                 </template>
-                <template v-else>{{ item[h.key] || '-' }}</template>
-              </td>
-            </tr>
-            <!-- Expanded detail -->
-            <tr v-if="expanded[item.id]"><td :colspan="headers.length+1" class="pa-0">
-              <div class="lc-expand-content">
-                <!-- Shippings sub-table -->
-                <div v-if="(item.shippings||[]).length" class="lc-detail-group mb-3">
-                  <div class="lc-detail-group-header"><v-icon size="16" color="#4643a0" class="mr-1">mdi-package-variant-closed</v-icon><b>{{ $t('shippings') }} ({{ item.shippings.length }})</b></div>
-                  <table class="lc-detail-table"><thead><tr>
-                    <th>{{ $t('date') }}</th><th>{{ $t('shipping_category') }}</th><th>{{ $t('shipping_tracking_number') }}</th><th>{{ $t('client') }}</th><th>{{ $t('direction') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }}</th>
-                  </tr></thead>
-                  <tbody><tr v-for="sh in item.shippings" :key="sh.id">
-                    <td>{{ main.formateDate(sh.date) }}</td>
-                    <td><v-chip size="x-small" color="#4643a0" variant="tonal">{{ shippingCatName(sh) }}</v-chip></td>
-                    <td><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (sh.shipping_tracking_number||[])" :key="tn" size="x-small" color="#00838F" variant="tonal">{{ tn }}</v-chip><span v-if="!(sh.shipping_tracking_number||[]).length" class="text-grey">-</span></div></td>
-                    <td>{{ sh.client?.name || '-' }}</td>
-                    <td>{{ sh.direction ? $t(sh.direction) : '-' }}</td>
-                    <td>{{ main.formatDisplayNumber(sh.total_weight) }}</td>
-                    <td>{{ main.formatDisplayNumber(sh.total_price) }} {{ main.currency }}</td>
-                  </tr></tbody>
-                  <tfoot><tr class="lc-detail-foot"><td colspan="5" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(item.shippings.reduce((s,c)=>s+Number(c.total_weight||0),0)) }}</td><td class="font-weight-bold">{{ main.formatDisplayNumber(item.shippings.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</td></tr></tfoot>
-                  </table>
-                </div>
-                <!-- Productions sub-table -->
-                <div v-if="(item.productions||[]).length" class="lc-detail-group mb-2">
-                  <div class="lc-detail-group-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-factory</v-icon><b>{{ $t('productions') }} ({{ item.productions.length }})</b></div>
-                  <table class="lc-detail-table"><thead><tr>
-                    <th>{{ $t('date') }}</th><th>{{ $t('production_category') }}</th><th>{{ $t('production_tracking_number') }}</th><th>{{ $t('client') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }}</th>
-                  </tr></thead>
-                  <tbody><tr v-for="pr in item.productions" :key="pr.id">
-                    <td>{{ main.formateDate(pr.date) }}</td>
-                    <td><v-chip size="x-small" color="#00897B" variant="tonal">{{ prodCatName(pr) }}</v-chip></td>
-                    <td><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (pr.production_tracking_number||[])" :key="tn" size="x-small" color="deep-orange" variant="tonal">{{ tn }}</v-chip><span v-if="!(pr.production_tracking_number||[]).length" class="text-grey">-</span></div></td>
-                    <td>{{ pr.client?.name || '-' }}</td>
-                    <td>{{ main.formatDisplayNumber(pr.total_weight) }}</td>
-                    <td>{{ main.formatDisplayNumber(pr.total_price) }} {{ main.currency }}</td>
-                  </tr></tbody>
-                  <tfoot><tr class="lc-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold">{{ main.formatDisplayNumber(item.productions.reduce((s,p)=>s+Number(p.total_weight||0),0)) }}</td><td class="font-weight-bold">{{ main.formatDisplayNumber(item.productions.reduce((s,p)=>s+Number(p.total_price||0),0)) }} {{ main.currency }}</td></tr></tfoot>
-                  </table>
-                </div>
               </div>
-            </td></tr>
-          </template>
-        </tbody>
-        <tfoot class="lc-tfoot"><tr><td class="lc-td"></td><td v-for="h in headers" :key="'foot-'+h.key" class="lc-td text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
-      </table>
+            </th>
+          </tr></thead>
+          <tbody>
+            <template v-if="loading">
+              <tr v-for="r in 8" :key="'ci-skel-' + r" class="lc-row app-skeleton-table-row">
+                <td class="lc-td text-center" :style="headerPinStyles['__checkbox']"><v-skeleton-loader type="chip" width="20" height="20" class="mx-auto app-skel-cell" /></td>
+                <td v-for="h in headers" :key="'ci-skel-' + h.key + '-' + r" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="headerPinStyles[h.key]">
+                  <v-skeleton-loader :type="h.key === 'expand' ? 'avatar' : h.key === 'invoice_number' ? 'chip' : 'text'" class="app-skel-cell" />
+                </td>
+              </tr>
+            </template>
+            <template v-else-if="colFilteredItems.length === 0"><tr><td :colspan="headers.length+1" class="text-center pa-8 text-grey">{{ $t('no_data_available') }}</td></tr></template>
+            <template v-else>
+              <tr v-if="virtualTopHeight > 0" class="virtual-spacer-row" :style="{ height: virtualTopHeight + 'px' }">
+                <td :colspan="headers.length + 1" :style="{ height: virtualTopHeight + 'px', padding: 0, border: 'none' }"></td>
+              </tr>
+              <template v-for="item in visibleItems" :key="item.id">
+                <tr class="lc-row" :class="{'lc-row-expanded':expanded[item.id]}">
+                  <td class="lc-td lc-col-pin" :style="headerPinStyles['__checkbox']"><v-checkbox-btn :model-value="selectedSet.has(item.id)" @update:model-value="toggleItemSelect(item.id)" color="#00838F" density="compact" hide-details></v-checkbox-btn></td>
+                  <td v-for="h in headers" :key="h.key" class="lc-td" :class="{'lc-col-pin': isPinned(h.key) || h.fixed, 'lc-td-actions': h.key === 'actions'}" :style="headerPinStyles[h.key]">
+                    <template v-if="h.key==='expand'"><v-btn icon variant="text" size="24" @click="toggleExpand(item.id)"><v-icon size="16">{{ expanded[item.id]?'mdi-chevron-up':'mdi-chevron-down' }}</v-icon></v-btn></template>
+                    <template v-else-if="h.key==='date'">{{ main.formateDate(item.date) }}</template>
+                    <template v-else-if="h.key==='_tracking_numbers'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (item.tracking_numbers||[])" :key="tn" size="x-small" color="#00838F" variant="tonal" class="fnm-currency-num">{{ tn }}</v-chip><span v-if="!(item.tracking_numbers||[]).length" class="text-grey">-</span></div></template>
+                    <template v-else-if="h.key==='_type_invoice'"><v-chip size="x-small" :color="item._type_invoice==='export'?'purple':'#00838F'" variant="tonal" class="font-weight-medium text-capitalize">{{ item._type_invoice }}</v-chip></template>
+                    <template v-else-if="h.key==='_clients'">{{ item._clients }}</template>
+                    <template v-else-if="h.key==='total_weight'"><span class="fnm-currency-num">{{ main.formatDisplayNumber(item.total_weight) }} Kg</span></template>
+                    <template v-else-if="h.key==='total_price'"><span class="fnm-currency-num font-weight-bold text-deep-orange">{{ main.formatDisplayNumber(item.total_price) }} {{ main.currency }}</span></template>
+                    <template v-else-if="h.key==='print_counter'"><v-chip size="small" :color="item.print_counter>0?'success':'grey'" variant="tonal"><v-icon size="14" class="mr-1">mdi-printer</v-icon>{{ item.print_counter }}</v-chip></template>
+                    <template v-else-if="h.key==='actions'">
+                      <div class="lc-actions-wrapper">
+                        <v-menu location="bottom end">
+                          <template v-slot:activator="{ props }"><v-btn icon="mdi-dots-vertical" size="x-small" variant="outlined" color="#00838F" v-bind="props"></v-btn></template>
+                          <v-list slim density="compact">
+                            <v-list-item prepend-icon="mdi-eye" @click="$router.push({name:'view_client_invoice',query:{ids:[item.id]}})"><v-list-item-title>{{$t('view_item')}}</v-list-item-title></v-list-item>
+                            <v-divider v-if="auth.hasPermission('client_invoices.delete')"></v-divider>
+                            <v-list-item v-if="auth.hasPermission('client_invoices.delete')" prepend-icon="mdi-delete" @click="confirmDelete(item.id)"><v-list-item-title>{{$t('delete_item')}}</v-list-item-title></v-list-item>
+                          </v-list>
+                        </v-menu>
+                      </div>
+                    </template>
+                    <template v-else>{{ item[h.key] || '-' }}</template>
+                  </td>
+                </tr>
+                <!-- Expanded detail -->
+                <tr v-if="expanded[item.id]"><td :colspan="headers.length+1" class="pa-0">
+                  <div class="lc-expand-content">
+                    <!-- Shippings sub-table -->
+                    <div v-if="(item.shippings||[]).length" class="lc-detail-group mb-3">
+                      <div class="lc-detail-group-header"><v-icon size="16" color="#4643a0" class="mr-1">mdi-package-variant-closed</v-icon><b>{{ $t('shippings') }} ({{ item.shippings.length }})</b></div>
+                      <table class="lc-detail-table"><thead><tr>
+                        <th>{{ $t('date') }}</th><th>{{ $t('shipping_category') }}</th><th>{{ $t('shipping_tracking_number') }}</th><th>{{ $t('client') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }}</th>
+                      </tr></thead>
+                      <tbody><tr v-for="sh in item.shippings" :key="sh.id">
+                        <td>{{ main.formateDate(sh.date) }}</td>
+                        <td><v-chip size="x-small" color="#4643a0" variant="tonal">{{ shippingCatName(sh) }}</v-chip></td>
+                        <td><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (sh.shipping_tracking_number||[])" :key="tn" size="x-small" color="#4643a0" variant="tonal">{{ tn }}</v-chip><span v-if="!(sh.shipping_tracking_number||[]).length" class="text-grey">-</span></div></td>
+                        <td>{{ clientName(item) }}</td>
+                        <td class="fnm-currency-num">{{ main.formatDisplayNumber(sh.total_weight) }}</td>
+                        <td class="fnm-currency-num">{{ main.formatDisplayNumber(sh.total_price) }} {{ main.currency }}</td>
+                      </tr></tbody>
+                      <tfoot><tr class="lc-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold fnm-currency-num">{{ main.formatDisplayNumber(item.shippings.reduce((s,c)=>s+Number(c.total_weight||0),0)) }}</td><td class="font-weight-bold fnm-currency-num">{{ main.formatDisplayNumber(item.shippings.reduce((s,c)=>s+Number(c.total_price||0),0)) }} {{ main.currency }}</td></tr></tfoot>
+                      </table>
+                    </div>
+                    <!-- Productions sub-table -->
+                    <div v-if="(item.productions||[]).length" class="lc-detail-group mb-2">
+                      <div class="lc-detail-group-header"><v-icon size="16" color="#00897B" class="mr-1">mdi-factory</v-icon><b>{{ $t('productions') }} ({{ item.productions.length }})</b></div>
+                      <table class="lc-detail-table"><thead><tr>
+                        <th>{{ $t('date') }}</th><th>{{ $t('production_category') }}</th><th>{{ $t('production_tracking_number') }}</th><th>{{ $t('client') }}</th><th>{{ $t('total_weight') }} (Kg)</th><th>{{ $t('total_price') }}</th>
+                      </tr></thead>
+                      <tbody><tr v-for="pr in item.productions" :key="pr.id">
+                        <td>{{ main.formateDate(pr.date) }}</td>
+                        <td><v-chip size="x-small" color="#00897B" variant="tonal">{{ prodCatName(pr) }}</v-chip></td>
+                        <td><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="tn in (pr.production_tracking_number||[])" :key="tn" size="x-small" color="#00897B" variant="tonal">{{ tn }}</v-chip><span v-if="!(pr.production_tracking_number||[]).length" class="text-grey">-</span></div></td>
+                        <td>{{ clientName(item) }}</td>
+                        <td class="fnm-currency-num">{{ main.formatDisplayNumber(pr.total_weight) }}</td>
+                        <td class="fnm-currency-num">{{ main.formatDisplayNumber(pr.total_price) }} {{ main.currency }}</td>
+                      </tr></tbody>
+                      <tfoot><tr class="lc-detail-foot"><td colspan="4" class="text-right font-weight-bold">{{ $t('total') }}:</td><td class="font-weight-bold fnm-currency-num">{{ main.formatDisplayNumber(item.productions.reduce((s,p)=>s+Number(p.total_weight||0),0)) }}</td><td class="font-weight-bold fnm-currency-num">{{ main.formatDisplayNumber(item.productions.reduce((s,p)=>s+Number(p.total_price||0),0)) }} {{ main.currency }}</td></tr></tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </td></tr>
+              </template>
+              <tr v-if="virtualBottomHeight > 0" class="virtual-spacer-row" :style="{ height: virtualBottomHeight + 'px' }">
+                <td :colspan="headers.length + 1" :style="{ height: virtualBottomHeight + 'px', padding: 0, border: 'none' }"></td>
+              </tr>
+            </template>
+          </tbody>
+          <tfoot class="lc-tfoot"><tr><td class="lc-td"></td><td v-for="h in headers" :key="'foot-'+h.key" class="lc-td text-center font-weight-bold"><template v-if="h.key==='total_weight'">Σ {{ main.formatDisplayNumber(totalWeight) }} Kg</template><template v-else-if="h.key==='total_price'">Σ {{ main.formatDisplayNumber(totalPrice) }} {{ main.currency }}</template></td></tr></tfoot>
+        </table>
+      </div>
     </div>
   </v-card-text>
-  <v-dialog v-model="deleteDialog" max-width="450"><v-card class="rounded-xl"><v-card-title class="pa-5 pb-2 d-flex align-center"><v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>{{ $t('confirm_delete') }}</v-card-title><v-card-text class="pa-5 pt-2">{{ deleteBulk?$t('confirm_bulk_delete_message',{count:selected.length}):$t('confirm_delete_invoice_message') }}</v-card-text><v-card-actions class="pa-5 pt-0"><v-spacer></v-spacer><v-btn @click="deleteDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="error" variant="flat" rounded @click="execDelete" :loading="deleting">{{ $t('delete') }}</v-btn></v-card-actions></v-card></v-dialog>
+
+  <!-- Delete Confirmation Dialog -->
+  <v-dialog v-model="deleteDialog" max-width="450">
+    <v-card class="rounded-xl">
+      <v-card-title class="pa-5 pb-2 d-flex align-center"><v-icon color="error" class="mr-2">mdi-alert-circle-outline</v-icon>{{ $t('confirm_delete') }}</v-card-title>
+      <v-card-text class="pa-5 pt-2">{{ deleteBulk?$t('confirm_bulk_delete_message',{count:selected.length}):$t('confirm_delete_charge_message') }}</v-card-text>
+      <v-card-actions class="pa-5 pt-0"><v-spacer></v-spacer><v-btn @click="deleteDialog=false" variant="text">{{ $t('cancel') }}</v-btn><v-btn color="error" variant="flat" rounded @click="execDelete" :loading="deleting">{{ $t('delete') }}</v-btn></v-card-actions>
+    </v-card>
+  </v-dialog>
 
   <!-- Summary Snackbar -->
   <v-snackbar v-for="(sb, i) in main.snackbars" :key="i" v-model="sb.show" :color="sb.color" :timeout="3000" location="bottom right">{{ sb.message }}</v-snackbar>
 </v-card>
 </template>
+
 <script>
 import script from './script.js';
+import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
+import TableColumnManager from '@/components/common/TableColumnManager.vue';
+
 export default {
   ...script,
-  components: { ...script.components, TableColumnFilter },
-  computed:{...script.computed,selectAll:{get(){return this.selected.length===this.colFilteredItems.length&&this.colFilteredItems.length>0},set(v){this.selected=v?this.colFilteredItems.map(i=>i.id):[]}}},
-  methods:{...script.methods,colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=i===0?'__checkbox':this.headers[i-1]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
-  watch:{...script.watch||{},headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true}},
-  mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths())},
-  beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},
-  updated(){this.measureColWidths()},
+  components: {
+    ...script.components,
+    SegmentedPillToggle,
+    TableColumnFilter,
+    TableColumnManager,
+  },
 };
 </script>
+
 <style scoped>
-.lc-card{border-radius:20px!important;font-family:'Inter',sans-serif}
-.lc-hero{background:linear-gradient(135deg,#006064 0%,#00838F 40%,#26C6DA 100%);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;min-height:100px}
-.lc-hero-inner{position:relative;z-index:1;padding:22px 26px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.lc-hero-icon{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.15)}
-.lc-hero-title{font-size:19px;font-weight:800;letter-spacing:.3px}
-.lc-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
-.lc-table-wrap{overflow:auto;max-height:calc(100vh - 300px);border-radius:12px;border:1px solid rgba(var(--v-border-color),.12)}
-.lc-table{width:100%;border-collapse:collapse;font-size:13px}
+.lc-hero{background:linear-gradient(135deg, #006064 0%, #00838F 40%, #26C6DA 100%);color:#fff;padding:20px 24px;border-radius:16px 16px 0 0}
+.lc-hero-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.lc-hero-icon{width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center}
+.lc-hero-title{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.lc-hero-kpi{display:flex;align-items:center;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);padding:4px 12px;border-radius:20px;font-size:12px}
+.lc-kpi-val{font-weight:700;margin-right:4px}
+.lc-kpi-lbl{opacity:.8}
+.lc-hero-actions{display:flex;gap:8px;align-items:center}
+.lc-panel-card{border:1.5px solid rgba(0,131,143,.15);border-radius:14px;padding:12px;background:rgba(var(--v-theme-surface),1)}
+.lc-panel-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center;color:#00838F}
+.lc-stats-panel{max-height:400px}
+.lc-stat-item{padding:8px 10px;border-radius:10px;background:rgba(0,131,143,.03);border:1px solid rgba(0,131,143,.06)}
+.lc-date-presets-wrapper{width:100%;overflow-x:auto;scrollbar-width:none}
+.lc-selected-range{font-family:'Inter',sans-serif}
+
+.lc-toolbar{background:rgba(var(--v-theme-surface),.8);border:1px solid rgba(var(--v-border-color),.12)}
+.lc-table-wrap{
+  overflow:auto;
+  max-height:calc(100vh - 300px);
+  border-radius:12px;
+  border:1px solid rgba(var(--v-border-color),.12);
+  scrollbar-width:thin!important;
+  scrollbar-color:rgba(0,0,0,.16) transparent!important;
+}
+.lc-table-wrap:hover{scrollbar-color:rgba(0,0,0,.38) transparent!important}
+.lc-table-wrap::-webkit-scrollbar{width:5px!important;height:5px!important}
+.lc-table-wrap::-webkit-scrollbar-button{display:none!important;width:0!important;height:0!important}
+.lc-table-wrap::-webkit-scrollbar-track{background:transparent!important;margin:3px!important}
+.lc-table-wrap::-webkit-scrollbar-corner{background:transparent!important}
+.lc-table-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.14)!important;border-radius:999px!important;transition:background .2s ease!important}
+.lc-table-wrap:hover::-webkit-scrollbar-thumb,.lc-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.36)!important}
+.lc-table-wrap::-webkit-scrollbar-thumb:active{background:#00838F!important}
+
+:deep(.v-theme--dark) .lc-table-wrap,
+.v-theme--dark .lc-table-wrap{scrollbar-color:rgba(255,255,255,.16) transparent!important}
+:deep(.v-theme--dark) .lc-table-wrap:hover,
+.v-theme--dark .lc-table-wrap:hover{scrollbar-color:rgba(255,255,255,.38) transparent!important}
+:deep(.v-theme--dark) .lc-table-wrap::-webkit-scrollbar-thumb,
+.v-theme--dark .lc-table-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16)!important}
+:deep(.v-theme--dark) .lc-table-wrap:hover::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .lc-table-wrap::-webkit-scrollbar-thumb:hover,
+.v-theme--dark .lc-table-wrap:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .lc-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.38)!important}
+:deep(.v-theme--dark) .lc-table-wrap::-webkit-scrollbar-thumb:active,
+.v-theme--dark .lc-table-wrap::-webkit-scrollbar-thumb:active{background:#00838F!important}
+
+.lc-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .lc-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
-.lc-th{padding:10px 12px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s}
-.lc-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
-.lc-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
-.lc-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
+.lc-thead th{position:sticky;top:0}
+.lc-th{position:sticky;top:0;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
+.lc-th-actions{text-align:center!important;overflow:visible!important;width:92px!important;min-width:92px!important}
+.lc-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 3px!important;white-space:nowrap!important;width:92px!important;min-width:92px!important}
+.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;flex-wrap:nowrap}
+.lc-actions-wrapper .v-btn{flex-shrink:0!important;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important}
+.lc-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
+.lc-col-resizer:hover,.lc-col-resizer-active{background:#00838F!important;width:3px!important}
+.lc-th-pin-btn{opacity:.65;transition:opacity .15s}.lc-th-pin-btn:hover{opacity:1}
+.lc-active-sorts-strip{font-family:'Inter',sans-serif}
+.lc-col-pin{position:sticky!important;z-index:2!important;background:#ffffff!important}
+.lc-th-pin{position:sticky!important;top:0!important;z-index:8!important;background:#f8fafc!important}
 :deep(.v-theme--dark) .lc-col-pin,
 :deep(.v-theme--dark) .lc-th-pin,
 .v-theme--dark .lc-col-pin,
 .v-theme--dark .lc-th-pin {
-  background: #1c1f28 !important;
+  background: #1e293b !important;
   color: #f1f5f9 !important;
-  box-shadow: 2px 0 4px -2px rgba(0,0,0,.4) !important;
 }
 .lc-th-dragover{background:rgba(0,131,143,.08)!important}
 .lc-th-inner{display:flex;align-items:center;justify-content:center;gap:2px}
@@ -228,20 +779,87 @@ export default {
 .sort-badge{font-size:9px;background:#00838F;color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center}
 .lc-row:hover{background:rgba(0,131,143,.04)}
 .lc-row-expanded{background:rgba(0,131,143,.06)}
-.lc-tfoot td{padding:10px 12px;border-top:2px solid rgba(0,131,143,.2);color:#006064;font-size:14px}
+.lc-tfoot td{padding:10px 12px;border-top:2px solid rgba(0,131,143,.2);color:#00838F;font-size:14px}
 :deep(.v-theme--dark) .lc-tfoot td,
 .v-theme--dark .lc-tfoot td {
-  color: #4DD0E1 !important;
+  color: #26C6DA !important;
 }
 .lc-expand-content{padding:12px 24px;background:rgba(var(--v-border-color),.03)}
-.lc-detail-group{border:1px solid rgba(var(--v-border-color),.12);border-radius:10px;overflow:hidden}
+.lc-detail-group{border:1px solid rgba(var(--v-border-color),.12);border-radius:10px;overflow-x:auto}
 .lc-detail-group-header{padding:8px 14px;background:rgba(0,131,143,.06);font-size:13px}
 .lc-detail-table{width:100%;border-collapse:collapse;font-size:12px}
 .lc-detail-table th{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;opacity:.6;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.1)}
 .lc-detail-table td{padding:6px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.05)}
 .lc-detail-foot td{padding:8px 10px;background:rgba(0,131,143,.04);border-top:1px solid rgba(0,131,143,.15)}
-.lc-panel-card{border:1.5px solid rgba(0,131,143,.12);border-radius:14px;padding:12px;background:rgba(var(--v-theme-surface),1)}
-.lc-panel-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:8px;display:flex;align-items:center}
-.lc-stats-panel{max-height:400px}
-.lc-stat-item{padding:8px 10px;border-radius:10px;background:rgba(0,131,143,.03);border:1px solid rgba(0,131,143,.06)}
+
+/* Fullscreen Expanded Workspace Mode */
+.lc-fullscreen-mode {
+  position: fixed !important;
+  top: var(--v-layout-top, 64px) !important;
+  left: var(--v-layout-left, 64px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 1000 !important;
+  background: rgb(var(--v-theme-surface)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.lc-fullscreen-mode .lc-table-wrap {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: auto !important;
+}
+.lc-fullscreen-header {
+  background: rgba(var(--v-theme-surface), 0.98);
+  border: 1px solid rgba(0, 131, 143, 0.25);
+  box-shadow: 0 2px 12px rgba(0, 131, 143, 0.08);
+  flex-shrink: 0;
+}
+
+/* Density Controls */
+.density-comfortable .lc-td {
+  padding: 12px 10px !important;
+  font-size: 13px !important;
+}
+.density-comfortable .lc-th {
+  padding: 10px 8px !important;
+}
+.density-compact .lc-td {
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+}
+.density-compact .lc-th {
+  padding: 8px 8px !important;
+}
+.density-dense .lc-td {
+  padding: 3px 5px !important;
+  font-size: 11px !important;
+}
+.density-dense .lc-th {
+  padding: 5px 4px !important;
+}
+.density-dense .v-chip {
+  height: 18px !important;
+  font-size: 10px !important;
+  padding: 0 5px !important;
+}
+.density-dense .lc-actions-wrapper .v-btn {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+}
+.fnm-currency-num {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+}
 </style>

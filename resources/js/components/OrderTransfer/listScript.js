@@ -5,34 +5,61 @@ import { useMain } from '@/stores/Main';
 import { useAuth } from '@/stores/Auth';
 import * as XLSX from 'xlsx';
 import { numberToFrenchWords } from '@/utils/numberToFrenchWords';
+import tableConfigMixin from '@/utils/tableConfigMixin.js';
+import virtualTableMixin from '@/utils/virtualTableMixin.js';
+import { getDatePresetRange, detectMatchingPreset, getDatePresetOptions } from '@/utils/datePresets.js';
 
 export default {
   name: 'OrderTransferList',
+  mixins: [tableConfigMixin, virtualTableMixin],
+  emits: ['edit'],
   data() {
-    const n = new Date(), sm = new Date(n.getFullYear(), n.getMonth(), 1);
+    const n = new Date();
+    const sm = new Date(n.getFullYear(), n.getMonth(), 1);
     return {
-      transfers: [], loading: false,
-      dateRange: [sm, n], dateMenu: false,
-      colFilters: {}, colSorts: [], pinState: {}, filterMenus: {},
-      columnOrder: null, dragCol: null, dragOverCol: null, colWidths: {},
-      selectedIds: [], chartMode: 'monthly',
-      deleteDialog: false, deleting: false, deleteId: null, deleteBulk: false,
-      printTransfers: [], loadingBatchPrint: false,
+      transfers: [],
+      loading: false,
+      dateRange: [sm, n],
+      datePreset: 'this_month',
+      searchQuery: '',
+      colFilters: {},
+      colSorts: [],
+      pinState: {},
+      filterMenus: {},
+      columnOrder: null,
+      dragCol: null,
+      dragOverCol: null,
+      colWidths: {},
+      selectedIds: [],
+      chartMode: 'monthly',
+      deleteDialog: false,
+      deleting: false,
+      deleteId: null,
+      deleteBulk: false,
+      printTransfers: [],
+      loadingBatchPrint: false,
       companySettings: {},
       summarySnackbar: { show: false, title: '', isError: false, number: '', amount: '', beneficiaries: '' },
-      snackbarProgress: 100, snackbarTimer: null,
+      snackbarProgress: 100,
+      snackbarTimer: null,
     };
   },
   computed: {
     main() { return useMain(); },
     auth() { return useAuth(); },
+    today() { return new Date().toISOString().slice(0, 10); },
+    tableModuleKey() { return 'order_transfers'; },
+    moduleColor() { return '#00897B'; },
+    datePickerColor() { return 'teal'; },
+    datePresetOptions() { return getDatePresetOptions(this.$t); },
+    selectedSet() { return new Set(this.selectedIds); },
     logoUrl() {
       if (this.companySettings.logo_invoice_url) return this.companySettings.logo_invoice_url;
       return new URL('/storage/images/logo_login.png', window.location.origin).href;
     },
     dateRangeVC: {
       get() { return { start: this.dateRange[0], end: this.dateRange[1] || this.dateRange[0] }; },
-      set(v) { if (v && v.start && v.end) this.dateRange = [v.start, v.end]; }
+      set(v) { if (v && v.start && v.end) this.dateRange = [v.start, v.end]; },
     },
     allHeaders() {
       return [
@@ -47,14 +74,40 @@ export default {
       ];
     },
     headers() {
-      if (!this.columnOrder) return this.allHeaders;
-      const map = Object.fromEntries(this.allHeaders.map(h => [h.key, h]));
-      const fixed = this.allHeaders.filter(h => h.fixed);
-      const ordered = this.columnOrder.filter(k => map[k] && !map[k].fixed).map(k => map[k]);
-      return [...ordered.filter(h => this.pinState[h.key] === 'left'), ...ordered.filter(h => !this.pinState[h.key]), ...ordered.filter(h => this.pinState[h.key] === 'right'), ...fixed];
+      const hiddenSet = new Set(this.hiddenColumns || []);
+      const expandCol = this.allHeaders.find(h => h.key === 'expand');
+      const actionsCol = this.allHeaders.find(h => h.key === 'actions');
+      const baseToggleable = this.allHeaders.filter(h => !h.fixed && !hiddenSet.has(h.key));
+      let orderedCols = baseToggleable;
+      if (this.columnOrder && this.columnOrder.length) {
+        const map = Object.fromEntries(this.allHeaders.map(h => [h.key, h]));
+        const ordered = this.columnOrder
+          .filter(k => map[k] && !map[k].fixed && !hiddenSet.has(k))
+          .map(k => map[k]);
+        const unhandled = baseToggleable.filter(h => !this.columnOrder.includes(h.key));
+        orderedCols = [...ordered, ...unhandled];
+      }
+      const res = [];
+      if (expandCol) res.push(expandCol);
+      res.push(...orderedCols.filter(h => this.pinState[h.key] === 'left'));
+      res.push(...orderedCols.filter(h => !this.pinState[h.key]));
+      res.push(...orderedCols.filter(h => this.pinState[h.key] === 'right'));
+      if (actionsCol) res.push(actionsCol);
+      return res;
     },
     colFilteredItems() {
       let items = this.transfers;
+      if (this.searchQuery && this.searchQuery.trim()) {
+        const q = this.searchQuery.trim().toLowerCase();
+        items = items.filter(it => {
+          return (it.transfer_number || '').toLowerCase().includes(q)
+            || (it._beneficiaries || '').toLowerCase().includes(q)
+            || (it.motif || '').toLowerCase().includes(q)
+            || (it.currency || '').toLowerCase().includes(q)
+            || (it._created_by || '').toLowerCase().includes(q)
+            || String(it.amount || '').includes(q);
+        });
+      }
       Object.entries(this.colFilters).forEach(([k, vals]) => {
         if (!vals || !vals.length) return;
         items = items.filter(it => vals.includes(this.cellText(k, it)));
@@ -63,6 +116,10 @@ export default {
     },
     allSelected() { return this.colFilteredItems.length > 0 && this.colFilteredItems.every(i => this.selectedIds.includes(i.id)); },
     someSelected() { return this.colFilteredItems.some(i => this.selectedIds.includes(i.id)); },
+    selectAll: {
+      get() { return this.allSelected; },
+      set(val) { this.toggleSelectAll(val); },
+    },
     totalAmount() { return this.colFilteredItems.reduce((s, t) => s + Number(t.amount || 0), 0); },
     totalMAD() { return this.colFilteredItems.filter(t => t.currency === 'MAD').reduce((s, t) => s + Number(t.amount || 0), 0); },
     totalEUR() { return this.colFilteredItems.filter(t => t.currency === 'EUR').reduce((s, t) => s + Number(t.amount || 0), 0); },
@@ -117,7 +174,11 @@ export default {
     this.fetchCompanySettings();
     mitt.on('model-changed', this._onMC);
   },
-  beforeUnmount() { mitt.off('model-changed', this._onMC); clearInterval(this.snackbarTimer); },
+  activated() { this.fetchTransfers(); },
+  beforeUnmount() {
+    mitt.off('model-changed', this._onMC);
+    clearInterval(this.snackbarTimer);
+  },
   methods: {
     numberToFrenchWords,
     formatNum(v) { return this.main.formatDisplayNumber(v); },
@@ -138,7 +199,24 @@ export default {
         _created_by: t.created_by_user ? t.created_by_user.name : (t.created_by?.name || '-'),
       };
     },
-    onDateRangeChange(val) { if (val && val.start && val.end) { this.dateRange = [val.start, val.end]; this.fetchTransfers(); } },
+    onDatePresetChange(preset) {
+      if (!preset) return;
+      const range = getDatePresetRange(preset);
+      if (range && range.length === 2) {
+        this.dateRange = [range[0], range[1]];
+        this.fetchTransfers();
+      }
+    },
+    onDateRangeChange(val) {
+      if (val && val.start && val.end) {
+        this.dateRange = [val.start, val.end];
+      }
+      this.datePreset = detectMatchingPreset(this.dateRange[0], this.dateRange[1]);
+      this.fetchTransfers();
+    },
+    onColFilterChange() {
+      this.resetTableScroll?.();
+    },
     async fetchTransfers() {
       this.loading = true;
       try {
@@ -158,13 +236,18 @@ export default {
     async fetchCompanySettings() {
       try { const r = await axios.get('/api/company-settings'); this.companySettings = r.data.settings || {}; } catch (e) { console.error(e); }
     },
-    fmtDate(d) { if (!d) return ''; if (typeof d === 'string') return d; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; },
+    fmtDate(d) {
+      if (!d) return '';
+      if (typeof d === 'string') return d;
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    },
     formatDateFrench(dateStr) {
       const months = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
       const d = new Date(dateStr);
       return `${d.getDate()} ${months[d.getMonth()+1]} ${d.getFullYear()}`;
     },
     cellText(key, item) {
+      if (!item) return '-';
       if (key === 'date') return this.main.formateDate(item.date);
       if (key === 'amount') return this.main.formatDisplayNumber(item.amount);
       const v = item[key]; return v == null ? '-' : String(v);
@@ -185,30 +268,67 @@ export default {
       });
       return counts;
     },
-    toggleSort(key) { const i = this.colSorts.findIndex(s => s.key === key); if (i === -1) this.colSorts.push({ key, dir: 'asc' }); else if (this.colSorts[i].dir === 'asc') this.colSorts[i].dir = 'desc'; else this.colSorts.splice(i, 1); },
     sortDir(key) { const s = this.colSorts.find(x => x.key === key); return s ? s.dir : null; },
     sortIdx(key) { return this.colSorts.findIndex(x => x.key === key) + 1; },
     sortItems(items) {
       if (!this.colSorts.length) return items;
-      return [...items].sort((a, b) => { for (const { key, dir } of this.colSorts) { let va = a[key], vb = b[key]; if (va == null) va = ''; if (vb == null) vb = ''; const n = typeof va === 'number' && typeof vb === 'number'; if (n) { if (va !== vb) return dir === 'asc' ? va - vb : vb - va; } else { const c = String(va).localeCompare(String(vb)); if (c) return dir === 'asc' ? c : -c; } } return 0; });
+      return [...items].sort((a, b) => {
+        for (const { key, dir } of this.colSorts) {
+          let va = a[key], vb = b[key];
+          if (va == null) va = '';
+          if (vb == null) vb = '';
+          const n = typeof va === 'number' && typeof vb === 'number';
+          if (n) {
+            if (va !== vb) return dir === 'asc' ? va - vb : vb - va;
+          } else {
+            const c = String(va).localeCompare(String(vb));
+            if (c) return dir === 'asc' ? c : -c;
+          }
+        }
+        return 0;
+      });
     },
-    togglePin(k) { const cur = this.pinState[k]; if (!cur) this.pinState[k] = 'left'; else if (cur === 'left') this.pinState[k] = 'right'; else delete this.pinState[k]; this.pinState = { ...this.pinState }; },
-    isPinned(k) { return !!this.pinState[k]; },
+    togglePin(k) {
+      const cur = this.pinState[k];
+      if (!cur) this.pinState[k] = 'left';
+      else if (cur === 'left') this.pinState[k] = 'right';
+      else delete this.pinState[k];
+      this.pinState = { ...this.pinState };
+    },
+    isPinned(k) { return !this.pinState[k]; },
     pinSide(k) { return this.pinState[k] || null; },
-    colPinStyle(key, z) { const side = this.pinSide(key); if (!side) return {}; const bg = this.main?.is_dark ? '#1c1f28' : '#F5F5F5'; return { position: 'sticky', [side]: '0px', zIndex: z, background: bg }; },
+    toggleItemSelect(id) {
+      this.toggleSelect(id);
+    },
+    toggleSelect(id) {
+      const i = this.selectedIds.indexOf(id);
+      if (i === -1) this.selectedIds.push(id);
+      else this.selectedIds.splice(i, 1);
+    },
+    toggleSelectAll(val) {
+      if (val) {
+        const ids = this.colFilteredItems.map(i => i.id);
+        this.selectedIds = [...new Set([...this.selectedIds, ...ids])];
+      } else {
+        const ids = new Set(this.colFilteredItems.map(i => i.id));
+        this.selectedIds = this.selectedIds.filter(id => !ids.has(id));
+      }
+    },
     onDragStart(key) { this.dragCol = key; },
     onDragOver(key, e) { e.preventDefault(); this.dragOverCol = key; },
     onDragEnd() {
       if (this.dragCol && this.dragOverCol && this.dragCol !== this.dragOverCol) {
-        const order = [...this.columnOrder]; const fi = order.indexOf(this.dragCol); const ti = order.indexOf(this.dragOverCol);
-        if (fi > -1 && ti > -1) { order.splice(fi, 1); order.splice(ti, 0, this.dragCol); this.columnOrder = order; }
+        const order = [...this.columnOrder];
+        const fi = order.indexOf(this.dragCol);
+        const ti = order.indexOf(this.dragOverCol);
+        if (fi > -1 && ti > -1) {
+          order.splice(fi, 1);
+          order.splice(ti, 0, this.dragCol);
+          this.columnOrder = order;
+        }
       }
-      this.dragCol = null; this.dragOverCol = null;
-    },
-    toggleSelect(id) { const i = this.selectedIds.indexOf(id); if (i === -1) this.selectedIds.push(id); else this.selectedIds.splice(i, 1); },
-    toggleSelectAll(val) {
-      if (val) { const ids = this.colFilteredItems.map(i => i.id); this.selectedIds = [...new Set([...this.selectedIds, ...ids])]; }
-      else { const ids = new Set(this.colFilteredItems.map(i => i.id)); this.selectedIds = this.selectedIds.filter(id => !ids.has(id)); }
+      this.dragCol = null;
+      this.dragOverCol = null;
     },
     confirmDelete(id) { this.deleteId = id; this.deleteBulk = false; this.deleteDialog = true; },
     confirmBulkDelete() { this.deleteBulk = true; this.deleteDialog = true; },
@@ -218,7 +338,9 @@ export default {
         const ids = this.deleteBulk ? this.selectedIds : [this.deleteId];
         await axios.delete('/api/order-transfers', { data: { ids } });
         this.showSnackbar(false, this.$t('order_transfer_deleted'), '', '', '');
-        this.selectedIds = []; this.deleteDialog = false; this.fetchTransfers();
+        this.selectedIds = [];
+        this.deleteDialog = false;
+        this.fetchTransfers();
       } catch (e) { console.error(e); }
       this.deleting = false;
     },
@@ -237,16 +359,14 @@ export default {
       } catch (e) { console.error(e); }
       this.loadingBatchPrint = false;
     },
-    exportExcel() {
-      const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions').forEach(h => { row[h.title] = this.cellText(h.key, c); }); return row; });
-      const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'OrderTransfers'); XLSX.writeFile(wb, `order_transfers_${new Date().toISOString().slice(0,10)}.xlsx`);
-    },
     showSnackbar(isError, title, number, amount, beneficiaries) {
       clearInterval(this.snackbarTimer);
       this.summarySnackbar = { show: true, isError, title, number, amount, beneficiaries };
       this.snackbarProgress = 100;
-      this.snackbarTimer = setInterval(() => { this.snackbarProgress -= 1.25; if (this.snackbarProgress <= 0) clearInterval(this.snackbarTimer); }, 100);
+      this.snackbarTimer = setInterval(() => {
+        this.snackbarProgress -= 1.25;
+        if (this.snackbarProgress <= 0) clearInterval(this.snackbarTimer);
+      }, 100);
     },
   },
 };

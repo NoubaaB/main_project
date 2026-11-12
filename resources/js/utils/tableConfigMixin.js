@@ -62,6 +62,23 @@ export default {
         direction: 110,
         production_type: 130,
         _charge: 140,
+        // Invoices
+        invoice_number: 160,
+        _tracking_numbers: 180,
+        print_counter: 120,
+        // Inventory
+        inventory_tracking_numbers: 180,
+        _details_count: 120,
+        // Warehouse Transfers
+        transfer_number: 160,
+        transfer_tracking_number: 180,
+        from_warehouse: 160,
+        to_warehouse: 160,
+        // Order Transfers
+        amount: 140,
+        currency: 100,
+        _beneficiaries: 200,
+        motif: 220,
         actions: this.getActionsColWidth(),
       };
     },
@@ -115,6 +132,7 @@ export default {
       const rightCols = headers.filter(h => !h.fixed && pinState[h.key] === 'right');
       const lastLeftKey = leftCols.length > 0 ? leftCols[leftCols.length - 1].key : null;
       const firstRightKey = rightCols.length > 0 ? rightCols[0].key : null;
+      const hasExpand = headers.some(h => h.key === 'expand');
 
       const styles = {
         __checkbox: {
@@ -125,6 +143,7 @@ export default {
           width: '50px',
           minWidth: '50px',
           maxWidth: '50px',
+          boxShadow: !hasExpand && !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
         },
         expand: {
           position: 'sticky',
@@ -147,7 +166,7 @@ export default {
         },
       };
 
-      let leftOffset = 90; // 50 (checkbox) + 40 (expand)
+      let leftOffset = hasExpand ? 90 : 50;
       for (let i = 0; i < headers.length; i++) {
         const h = headers[i];
         const key = h.key;
@@ -211,6 +230,7 @@ export default {
       const rightCols = headers.filter(h => !h.fixed && pinState[h.key] === 'right');
       const lastLeftKey = leftCols.length > 0 ? leftCols[leftCols.length - 1].key : null;
       const firstRightKey = rightCols.length > 0 ? rightCols[0].key : null;
+      const hasExpand = headers.some(h => h.key === 'expand');
 
       const styles = {
         __checkbox: {
@@ -222,6 +242,7 @@ export default {
           width: '50px',
           minWidth: '50px',
           maxWidth: '50px',
+          boxShadow: !hasExpand && !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
         },
         expand: {
           position: 'sticky',
@@ -246,7 +267,7 @@ export default {
         },
       };
 
-      let leftOffset = 90;
+      let leftOffset = hasExpand ? 90 : 50;
       for (let i = 0; i < headers.length; i++) {
         const h = headers[i];
         const key = h.key;
