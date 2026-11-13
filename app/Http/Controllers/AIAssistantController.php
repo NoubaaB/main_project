@@ -100,7 +100,10 @@ class AIAssistantController extends Controller
         }
 
         // "" READ intent: existing SQL pipeline ""
-        $sqlPrompt = $this->buildSQLPrompt($question, $messages, $schema, $tableComments, $businessCtx);
+        $cleanHistory = $this->formatCleanConversationHistory($messages);
+        $isComplex = $analytics->isComplexAnalyticsQuestion($question);
+
+        $sqlPrompt = $this->buildSQLPrompt($question, $cleanHistory, $schema, $tableComments, $businessCtx);
         $sqlQuery = $this->ai->generateSQL($sqlPrompt);
 
         $result = null;
@@ -118,16 +121,35 @@ class AIAssistantController extends Controller
 
         // Check for previously uploaded Excel files the user might be referencing
         $excelContext = $this->getExcelContextFromHistory($request);
-        $answerPrompt = $this->buildAnswerPrompt($question, $messages, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes, $excelContext, $theme, $sqlQuery);
-        $rawAnswer = $this->ai->generateAnswer($answerPrompt);
         $answer = null;
         $rows = $result ? (json_decode($result, true) ?: []) : [];
-        if ($rawAnswer) {
-            $answer = $this->beautifyAndValidateAIAnswer($rawAnswer, $question, $rows, 'asst_' . time(), $theme);
+
+        if ($result && $result !== '[]' && $result !== 'null' && !empty($rows)) {
+            if (!$isComplex) {
+                // Regular / simple factual question -> Direct Plain Text Answer
+                $plainPrompt = $this->buildPlainTextPrompt($question, $cleanHistory, $result, $businessCtx, $sqlQuery);
+                $rawAnswer = $this->ai->generatePlainTextAnswer($plainPrompt);
+                if ($rawAnswer && strlen(trim($rawAnswer)) > 5) {
+                    $answer = trim($rawAnswer);
+                }
+            } else {
+                // Complex question (KPIs, Dashboards, Charts) -> Rich Vuetify + ApexCharts Card
+                $answerPrompt = $this->buildAnswerPrompt($question, $cleanHistory, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes, $excelContext, $theme, $sqlQuery);
+                $rawAnswer = $this->ai->generateAnswer($answerPrompt);
+                if ($rawAnswer) {
+                    $answer = $this->beautifyAndValidateAIAnswer($rawAnswer, $question, $rows, 'asst_' . time(), $theme);
+                }
+            }
         }
 
-        if (!$answer || !$this->isAnswerSufficientlyPolished($answer, $rows)) {
-            $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme);
+        if (!$isComplex) {
+            if (!$answer || strlen(trim($answer)) < 3) {
+                $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme);
+            }
+        } else {
+            if (!$answer || !$this->isAnswerSufficientlyPolished($answer, $rows)) {
+                $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme);
+            }
         }
 
         $this->persistMessages($request, $question, $answer);
@@ -1811,6 +1833,89 @@ class AIAssistantController extends Controller
         }
     }
 
+    /**
+     * Format a clean, lightweight string representation of the conversation history.
+     */
+    private function formatCleanConversationHistory(mixed $rawMessages): string
+    {
+        if (empty($rawMessages)) {
+            return 'No prior conversation.';
+        }
+
+        $items = [];
+        if (is_string($rawMessages)) {
+            $decoded = json_decode($rawMessages, true);
+            if (is_array($decoded)) {
+                $items = $decoded;
+            } else {
+                $items = [['sender' => 'user', 'message' => $rawMessages]];
+            }
+        } elseif (is_array($rawMessages)) {
+            $items = $rawMessages;
+        }
+
+        // Take up to the last 8 turns to avoid token overflow
+        $recent = array_slice($items, -8);
+        $lines = [];
+
+        foreach ($recent as $turn) {
+            $sender = ($turn['sender'] ?? '') === 'AI' || ($turn['role'] ?? '') === 'assistant' || ($turn['role'] ?? '') === 'agent' ? 'Assistant' : 'User';
+            $msg = $turn['message'] ?? ($turn['text'] ?? ($turn['content'] ?? ''));
+            if (!$msg) continue;
+
+            // Strip HTML, script tags, style tags and excessive spaces
+            $clean = strip_tags(preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $msg));
+            $clean = preg_replace('/\s+/', ' ', trim($clean));
+            if (mb_strlen($clean) > 280) {
+                $clean = mb_substr($clean, 0, 280) . '...';
+            }
+
+            if (!empty($clean)) {
+                $lines[] = "{$sender}: {$clean}";
+            }
+        }
+
+        return !empty($lines) ? implode("\n", $lines) : 'No prior conversation.';
+    }
+
+    /**
+     * Build the plain text prompt for regular/simple factual questions.
+     */
+    private function buildPlainTextPrompt(
+        string $question,
+        string $history,
+        string $result,
+        string $businessCtx,
+        ?string $sqlQuery = null
+    ): string {
+        return <<<PROMPT
+=== YOUR ROLE & IDENTITY ===
+You are "Jupiter AI", the Elite Enterprise AI Data Analyst for Jupiter ERP.
+The user asked a simple, regular factual question.
+Deliver a direct, concise, perfectly formatted plain text answer (in clear Markdown).
+
+=== RULES ===
+1. Answer directly and precisely using the database result provided.
+2. NO HTML tags, NO <script> tags, NO ApexCharts, NO massive card containers.
+3. Use clean Markdown for emphasis: bold for numbers/amounts (e.g., **25 charge vouchers**, **147,769.50 MAD**).
+4. Match the user's language (English, French, Spanish, Arabic).
+5. If the count is 0 or empty, clearly state that no records were found for that period.
+6. NO conversational filler like "Hello, as an AI...". Provide the direct answer first, then a short sentence with details if relevant.
+
+=== CONVERSATION HISTORY ===
+{$history}
+
+=== USER QUESTION ===
+{$question}
+
+=== EXECUTED SQL QUERY ===
+{$sqlQuery}
+
+=== DATABASE DATA (EXACT TRUTH) ===
+{$result}
+PROMPT;
+    }
+
     // """""""""""""""""""""""""""""""""""""""""
     //  Prompt Builders
     // """""""""""""""""""""""""""""""""""""""""
@@ -1842,12 +1947,14 @@ class AIAssistantController extends Controller
         9. For aggregations (SUM, COUNT, AVG), always include meaningful GROUP BY and aliases.
         10. The currency is MAD (Moroccan Dirham).
         11. Weight is measured in KG (kilograms).
-        12. "charges" = purchases/incoming fish. "sells" = outgoing sales to clients.
+        12. "charges" = purchases/incoming fish. "shippings" = outgoing sales to clients.
         13. warehouse_stockable_tracking_number_operations is a polymorphic table (sourceable_type + sourceable_id) linking to both charges and sells. Contains unit_price, total_price, total_weight, total_package_count.
         14. non_warehouse_stockable_operations: For items that don't go through warehouse (direct charges like services).
         15. Fish types are in "fish_types" table, fish families in "fish_families" table.
-        16. don't get users conversation history.
-        17. **JSON columns**: Check the schema for columns with LaravelType "json_array" or cast "array". These store JSON arrays (e.g. reception_tracking_number, tracking_onp_numbers). When querying these columns:
+        16. AVOID DUPLICATES: When counting parent records (e.g. vouchers, charges, shippings), ALWAYS use COUNT(DISTINCT parent.id). NEVER use COUNT(*) when joining 1:N detail tables (like detail_charges, charge_suppliers) as it multiplies counts!
+        17. VOUCHERS / BONS: A charge voucher is a record in table `charges` where `reception_tracking_number` holds the bon number.
+        18. Understand conversation context: resolve pronouns, entities and follow-up filters using the CONVERSATION HISTORY provided.
+        19. **JSON columns**: Check the schema for columns with LaravelType "json_array" or cast "array". These store JSON arrays (e.g. reception_tracking_number, tracking_onp_numbers). When querying these columns:
             - To search inside: use JSON_CONTAINS() or JSON_SEARCH(). Example: JSON_CONTAINS(reception_tracking_number, '"26-00011"')
             - To extract values: use JSON_UNQUOTE(JSON_EXTRACT(column, '$[0]'))
             - When displaying: use JSON_UNQUOTE() to remove quotes from the output

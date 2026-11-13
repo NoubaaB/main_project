@@ -7,6 +7,15 @@ import { useWorkforce } from "./Workforce";
 import mitt from '@/plugins/mitt.js';
 import { useStorage } from '@vueuse/core';
 
+function sanitizeHistoryTurn(text) {
+    if (!text || typeof text !== 'string') return '';
+    let clean = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    clean = clean.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+    clean = clean.replace(/<[^>]+>/g, ' ');
+    clean = clean.replace(/\s+/g, ' ').trim();
+    return clean.length > 250 ? clean.substring(0, 250) + '...' : clean;
+}
+
 export const useAIPrompt = defineStore("ai_prompt", {
     state: () => {
         return {
@@ -29,15 +38,15 @@ export const useAIPrompt = defineStore("ai_prompt", {
     },
     actions: {
         sendMessage: async function (message) {
-            let messages = JSON.stringify((this.messages || []).filter(e => e.sender != 'AI').map(e => {
-                return {
-                    role: e.sender,
-                    text: e.text
-                }
+            let historyList = (this.messages || []).slice(-10).map(e => ({
+                role: e.sender === 'AI' || e.role === 'agent' ? 'assistant' : 'user',
+                sender: e.sender || (e.role === 'agent' ? 'AI' : 'user'),
+                text: sanitizeHistoryTurn(e.text)
             }));
+            let messages = JSON.stringify(historyList);
             this.messages.push({
                 text: message,
-                sender: this.auth.user.name,
+                sender: this.auth?.user?.name || 'User',
                 ts: Date.now()
             });
             let id = this.messages.length;
@@ -61,17 +70,19 @@ export const useAIPrompt = defineStore("ai_prompt", {
             }).catch(error => { this.error() });
         },
         sendMessageWithExcel: async function (message, excelFiles) {
+            let historyList = (this.messages || []).slice(-10).map(e => ({
+                role: e.sender === 'AI' || e.role === 'agent' ? 'assistant' : 'user',
+                sender: e.sender || (e.role === 'agent' ? 'AI' : 'user'),
+                text: sanitizeHistoryTurn(e.text)
+            }));
+            let messages = JSON.stringify(historyList);
             this.messages.push({
                 text: message,
-                sender: this.auth.user.name,
+                sender: this.auth?.user?.name || 'User',
                 ts: Date.now()
             });
             let id = this.messages.length;
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
-            let messages = JSON.stringify(this.messages.filter(e => e.sender != 'AI').map(e => ({
-                role: e.sender,
-                text: e.text
-            })));
             return await axios.post(`/api/ask-db`, {
                 message,
                 id,
@@ -189,13 +200,12 @@ export const useAIPrompt = defineStore("ai_prompt", {
             this.query_history_loaded = false;
         },
         askAssistant: async function (message) {
-            let messages = JSON.stringify(this.assistant_messages.map(e => {
-                return {
-                    id: e.id,
-                    role: e.role,
-                    text: e.text
-                }
+            let historyList = (this.assistant_messages || []).slice(-10).map(e => ({
+                id: e.id,
+                role: e.role === 'agent' ? 'assistant' : 'user',
+                text: sanitizeHistoryTurn(e.text)
             }));
+            let messages = JSON.stringify(historyList);
             let id = this.assistant_messages.length + 1;
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
             return await axios.post(`/api/ai-assistant`, {
