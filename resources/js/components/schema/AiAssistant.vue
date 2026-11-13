@@ -908,8 +908,13 @@ export default {
         const containerId = `ai-dynamic-${key}`;
         const el = document.getElementById(containerId);
         if (!el) continue;
-        // Use enhanced dynamic loader for both rich dashboards and plain text / markdown
-        loadExternalContent(m.text, containerId);
+        // For messages with scripts (charts, Vue apps), use the full dynamic loader
+        if (m.text.includes('<script') || m.text.includes('ApexCharts') || m.text.includes('createApp')) {
+          loadExternalContent(m.text, containerId);
+        } else {
+          // Plain HTML — just set innerHTML directly (faster)
+          el.innerHTML = m.text;
+        }
         this._renderedIds.add(key);
       }
       this.updateAllChartsTheme(this.isDark);

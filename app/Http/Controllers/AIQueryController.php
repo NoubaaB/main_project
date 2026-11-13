@@ -51,8 +51,6 @@ class AIQueryController extends Controller
 
         $this->ai->setThinkingLevel($thinkingLevel);
         $analytics = new AIAnalyticsService();
-        $isComplex = $analytics->isComplexAnalyticsQuestion($question);
-        $cleanHistory = $this->formatCleanConversationHistory($messages);
 
         // 1. Direct handling if asking about System Architecture & AI Core
         $lowerQuestion = mb_strtolower($question, 'UTF-8');
@@ -100,12 +98,6 @@ class AIQueryController extends Controller
 7. For date aggregations, use YEAR(date) and MONTH(date). Use 2026 if year not specified.
 8. Use COALESCE on all SUM and AVG calculations. Limit to 500 rows if unaggregated.
 9. If you cannot query the data, return: SELECT 1 AS no_data
-10. AVOID DUPLICATES: When counting parent records (vouchers, charges, shippings), ALWAYS use COUNT(DISTINCT parent.id). NEVER do COUNT(*) when joining 1:N detail tables (like detail_charges, charge_suppliers) as it duplicates counts!
-11. VOUCHERS / BONS: A charge voucher is a row in table `charges` where `reception_tracking_number` holds the voucher/bon number.
-12. Resolve pronouns, references, and follow-ups using the RECENT CONVERSATION CONTEXT below.
-
-=== RECENT CONVERSATION CONTEXT ===
-{$cleanHistory}
 
 === USER QUESTION ===
 {$question}
@@ -145,35 +137,19 @@ RETRY;
             }
         }
 
-        // 6. Step 4: Prompt Ollama for response according to question complexity
+        // 6. Step 4: If SQL executed with rows, prompt Ollama to build rich dashboard
         $answer = null;
         if ($result && $result !== '[]' && $result !== 'null' && !empty($resultRows)) {
-            if (!$isComplex) {
-                // Regular / simple factual question -> Direct Plain Text Answer
-                $plainPrompt = $this->buildPlainTextPrompt($question, $result, $cleanHistory, $businessCtx, $sqlQuery);
-                $rawAnswer = $this->ai->generatePlainTextAnswer($plainPrompt);
-                if ($rawAnswer && strlen(trim($rawAnswer)) > 5) {
-                    $answer = trim($rawAnswer);
-                }
-            } else {
-                // Complex question (KPIs, Dashboards, Charts) -> Rich Vuetify + ApexCharts Card
-                $answerPrompt = $this->buildVuePrompt($question, $result, $schema, $comments, $id, $theme, $cleanHistory, $businessCtx, $routes, '', $sqlQuery);
-                $rawAnswer = $this->ai->generateAnswer($answerPrompt);
-                if ($rawAnswer) {
-                    $answer = $this->beautifyAndValidateAIAnswer($rawAnswer, $question, $resultRows, $id, $theme);
-                }
+            $answerPrompt = $this->buildVuePrompt($question, $result, $schema, $comments, $id, $theme, $messages, $businessCtx, $routes, '', $sqlQuery);
+            $rawAnswer = $this->ai->generateAnswer($answerPrompt);
+            if ($rawAnswer) {
+                $answer = $this->beautifyAndValidateAIAnswer($rawAnswer, $question, $resultRows, $id, $theme);
             }
         }
 
         // 7. Step 5: Fallback to high-precision AIAnalyticsService if Ollama failed or produced degraded output
-        if (!$isComplex) {
-            if (!$answer || strlen(trim($answer)) < 3) {
-                $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
-            }
-        } else {
-            if (!$answer || !$this->isAnswerSufficientlyPolished($answer, $resultRows)) {
-                $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
-            }
+        if (!$answer || !$this->isAnswerSufficientlyPolished($answer, $resultRows)) {
+            $answer = $analytics->processQuestion($question, $id, $theme, $excelFiles);
         }
 
         $this->persistQueryMessage($request, $question, $answer);
@@ -279,89 +255,6 @@ RETRY;
             'route' => '/charges',
             'route_label' => 'Tableau de Bord',
         ];
-    }
-
-    /**
-     * Format a clean, lightweight string representation of the conversation history.
-     */
-    private function formatCleanConversationHistory(mixed $rawMessages): string
-    {
-        if (empty($rawMessages)) {
-            return 'No prior conversation.';
-        }
-
-        $items = [];
-        if (is_string($rawMessages)) {
-            $decoded = json_decode($rawMessages, true);
-            if (is_array($decoded)) {
-                $items = $decoded;
-            } else {
-                $items = [['sender' => 'user', 'message' => $rawMessages]];
-            }
-        } elseif (is_array($rawMessages)) {
-            $items = $rawMessages;
-        }
-
-        // Take up to the last 8 turns to avoid token overflow
-        $recent = array_slice($items, -8);
-        $lines = [];
-
-        foreach ($recent as $turn) {
-            $sender = ($turn['sender'] ?? 'user') === 'AI' || ($turn['role'] ?? '') === 'assistant' ? 'Assistant' : 'User';
-            $msg = $turn['message'] ?? ($turn['text'] ?? ($turn['content'] ?? ''));
-            if (!$msg) continue;
-
-            // Strip HTML, script tags, style tags and excessive spaces
-            $clean = strip_tags(preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $msg));
-            $clean = preg_replace('/\s+/', ' ', trim($clean));
-            if (mb_strlen($clean) > 280) {
-                $clean = mb_substr($clean, 0, 280) . '...';
-            }
-
-            if (!empty($clean)) {
-                $lines[] = "{$sender}: {$clean}";
-            }
-        }
-
-        return !empty($lines) ? implode("\n", $lines) : 'No prior conversation.';
-    }
-
-    /**
-     * Build the plain text prompt for regular/simple factual questions.
-     */
-    private function buildPlainTextPrompt(
-        string $question,
-        string $result,
-        string $history,
-        string $businessCtx,
-        ?string $sqlQuery = null
-    ): string {
-        return <<<PROMPT
-=== YOUR ROLE & IDENTITY ===
-You are "Jupiter AI", the Elite Enterprise AI Data Analyst for Jupiter ERP.
-The user asked a simple, regular factual question.
-Deliver a direct, concise, perfectly formatted plain text answer (in clear Markdown).
-
-=== RULES ===
-1. Answer directly and precisely using the database result provided.
-2. NO HTML tags, NO <script> tags, NO ApexCharts, NO massive card containers.
-3. Use clean Markdown for emphasis: bold for numbers/amounts (e.g., **25 charge vouchers**, **147,769.50 MAD**).
-4. Match the user's language (English, French, Spanish, Arabic).
-5. If the count is 0 or empty, clearly state that no records were found for that period.
-6. NO conversational filler like "Hello, as an AI...". Provide the direct answer first, then a short sentence with details if relevant.
-
-=== CONVERSATION HISTORY ===
-{$history}
-
-=== USER QUESTION ===
-{$question}
-
-=== EXECUTED SQL QUERY ===
-{$sqlQuery}
-
-=== DATABASE DATA (EXACT TRUTH) ===
-{$result}
-PROMPT;
     }
 
     /**

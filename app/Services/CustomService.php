@@ -200,48 +200,6 @@ class CustomService
     }
 
     /**
-     * Generate a concise plain-text answer from data for regular/simple questions.
-     * Returns direct, clear text without wrapping in complex HTML dashboards.
-     */
-    public function generatePlainTextAnswer(string $prompt): string|null
-    {
-        $options = [
-            'temperature' => 0.15,
-            'top_p' => 0.9,
-            'num_ctx' => 16384,
-        ];
-        $response = $this->executeOllama($this->getPlainTextSystemPrompt(), $prompt, $options);
-
-        try {
-            $text = $response['response'] ?? null;
-            if (!$text) return null;
-            // Strip code fences if model returned them
-            $text = preg_replace('/^```(?:markdown|text)?\s*/i', '', trim($text));
-            $text = preg_replace('/\s*```$/', '', $text);
-            return trim($text) ?: null;
-        } catch (\Throwable $e) {
-            report($e);
-            return null;
-        }
-    }
-
-    /**
-     * System prompt for plain text answer role (regular questions).
-     */
-    private function getPlainTextSystemPrompt(): string
-    {
-        return 'You are an elite Enterprise AI Data Analyst for Jupiter ERP. '
-            . 'Your goal is to answer the user question directly, accurately, and politely in plain text based STRICTLY on the provided database results. '
-            . 'MANDATORY RULES: '
-            . '1. TRUTH & ACCURACY: Base every figure strictly on the database results. Never invent or estimate numbers. '
-            . '2. PLAIN TEXT ONLY: Do NOT output HTML cards, tables, div tags, or charts. Output clean, direct plain text with standard Markdown formatting (**bold** for numbers and key facts, bullet points if listing a few items). '
-            . '3. ZERO DUPLICATES: Report distinct, deduplicated facts. If counting vouchers, state the exact distinct count and total amount/weight if available. '
-            . '4. LANGUAGE: Detect the exact language used by the user (English, French, Spanish, Arabic) and respond entirely in that SAME language. '
-            . '5. CURRENCY & UNITS: Amounts in MAD (e.g., 850 420.00 MAD); weights in KG (e.g., 42 150.00 KG); counts as integers (e.g., 24). '
-            . '6. BE DIRECT: Give the precise answer directly in 1 to 3 concise, highly professional sentences.';
-    }
-
-    /**
      * Classify user intent as read/create/delete.
      * Returns raw JSON string from the AI.
      */
@@ -273,11 +231,8 @@ class CustomService
             . '2. Use ONLY valid MySQL SELECT statements. Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, or CREATE. '
             . '3. Respect exact table names and column names from the provided schema and ERP Knowledge Map. NEVER invent tables or columns. '
             . '4. Always include "WHERE deleted_at IS NULL" on tables with soft deletes. '
-            . '5. ANTI-DUPLICATION RULE: Always use COUNT(DISTINCT parent.id) and SELECT DISTINCT parent.id... when counting or listing records. NEVER join 1:N detail tables (such as detail_charges, detail_shippings, detail_productions) when calculating parent counts or sums, as doing so multiplies and duplicates rows! '
-            . '6. CHARGE BON / VOUCHER: Each row in `charges` represents a charge voucher / bon (reception_tracking_number stores the bon number). To count charge vouchers for a given month/year: SELECT COUNT(DISTINCT id) FROM charges WHERE deleted_at IS NULL AND YEAR(date) = 2026 AND MONTH(date) = 11. '
-            . '7. CONVERSATION CONTEXT: If conversation history is provided, understand the context and resolve follow-up references, pronouns (it, that, them, those), and prior constraints accurately. '
-            . '8. For date aggregations, use YEAR(date) and MONTH(date). Use 2026 if year not specified. '
-            . '9. If you cannot answer or data is completely missing, return: SELECT 1 AS no_data';
+            . '5. For date aggregations, use YEAR(date) and MONTH(date). '
+            . '6. If you cannot answer or data is completely missing, return: SELECT 1 AS no_data';
     }
 
     /**

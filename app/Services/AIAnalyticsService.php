@@ -98,24 +98,19 @@ class AIAnalyticsService
     {
         $lower = mb_strtolower($text, 'UTF-8');
 
-        // 1. Arabic check
+        // Arabic check
         if (preg_match('/[\x{0600}-\x{06FF}]/u', $lower)) {
             return 'ar';
         }
 
-        // 2. English strong signals
-        if (preg_match('/\b(how many|how much|what is|what are|give me|show me|tell me|in this|this month|this year|vouchers?|shipments?|purchases?|average|overall|breakdown|please)\b/ui', $lower)) {
-            return 'en';
-        }
-
-        // 3. Spanish signals
-        if (preg_match('/\b(quien|es|son|los|las|para|con|dame|muestra|cuanto|cuantos|compras|ventas|produccion|almacen|pescado|proveedor|cliente|factura|total|peso|precio|este|mes|ano|año|hoy|ayer|camiones|barcos|ultimos|ultimas|lista|tabla|carga|cargas|bono|bonos)\b/ui', $lower)) {
-            return 'es';
-        }
-
-        // 4. French signals
+        // French signals
         if (preg_match('/\b(qui|est|sont|les|des|du|dans|pour|avec|donne|moi|affiche|combien|achats?|charges?|ventes?|expéditions?|productions?|stocks?|magasins?|entrepôts?|main|oeuvre|ouvriers?|factures?|règlements?|créances?|dettes?|résumés?|global|aujourd|hier|mois|année|rendement|poissons?|especes?|espèces?|fournisseurs?|clients?|prix|totals?|poids|derniers?|dernières?|camions?|navires?|bateaux?|liste|tableau|meilleurs?|cherche|montre|évolution|quinzaines?|caporaux|sections?)\b/ui', $lower)) {
             return 'fr';
+        }
+
+        // Spanish signals
+        if (preg_match('/\b(quien|es|son|los|las|para|con|dame|muestra|cuanto|compras|ventas|produccion|almacen|pescado|proveedor|cliente|factura|total|peso|precio|este|mes|ano|hoy|ayer|camiones|barcos|ultimos|ultimas|lista|tabla)\b/ui', $lower)) {
+            return 'es';
         }
 
         return 'en';
@@ -124,7 +119,7 @@ class AIAnalyticsService
     /**
      * Check if question is about creator / supervisor / owner / identity.
      */
-    public function isCreatorOrIdentityQuestion(string $text): bool
+    private function isCreatorOrIdentityQuestion(string $text): bool
     {
         $lower = mb_strtolower($text, 'UTF-8');
         $keywords = [
@@ -141,42 +136,6 @@ class AIAnalyticsService
             }
         }
 
-        return false;
-    }
-
-    /**
-     * Distinguish regular/simple questions (which require direct plain text)
-     * from complex analytics questions (which require ApexCharts, KPI cards, Vuetify widgets, and MDI icons).
-     */
-    public function isComplexAnalyticsQuestion(string $question): bool
-    {
-        $lower = mb_strtolower($question, 'UTF-8');
-
-        // Strong complex triggers: KPIs, dashboards, executive summaries, trends, charts, breakdowns
-        if (preg_match('/\b(kpi|kpis|indicateur|indicateurs|key performance)\b/ui', $lower)) {
-            return true;
-        }
-        if (preg_match('/\b(dashboard|tableau de bord|bilan|performance|vue d\'ensemble|synthèse|overview|analytics)\b/ui', $lower)) {
-            return true;
-        }
-        if (preg_match('/\b(graphique|graphiques|chart|charts|apexchart|courbe|diagramme|histogramme)\b/ui', $lower)) {
-            return true;
-        }
-        if (preg_match('/\b(comparer|comparaison|compare|comparison|évolution|evolution|tendance|tendances|trend|trends)\b/ui', $lower)) {
-            return true;
-        }
-        if (preg_match('/\b(répartition|repartition|ventilation|breakdown|distribution|proportion|part de marché)\b/ui', $lower)) {
-            return true;
-        }
-        if (preg_match('/\b(par mois|par fournisseur|par client|par catégorie|par section|par caporal|monthly|by supplier|by client|by category|by section|by corporal)\b/ui', $lower)) {
-            return true;
-        }
-        // Annual overview request like "give me all statistics for this year", "donne moi les statistiques de 2026"
-        if (preg_match('/(statistique|statistiques|stats?|analyse)\b.*(année|year|2026|global)/ui', $lower)) {
-            return true;
-        }
-
-        // Direct counts, vouchers, single lookups, simple facts -> Regular / Simple (Plain Text)
         return false;
     }
 
@@ -238,12 +197,8 @@ class AIAnalyticsService
             $timeFrame = 'last_month';
         }
 
-        // Monthly breakdown signals (e.g. "by month", "each month", "par mois", "monthly", "tous les mois")
-        // NOTE: "this month" or "last month" is a specific time frame, NOT a monthly breakdown across the year!
-        $isMonthlyBreakdown = (bool) preg_match('/(monthly|mensuel|mensuelle|mensuels|each month|by month|par mois|por mes|chaque mois|tous les mois|por cada mes)/ui', $lower);
-        if ($timeFrame === 'this_month' || $timeFrame === 'last_month' || $timeFrame === 'today' || $timeFrame === 'this_week') {
-            $isMonthlyBreakdown = false;
-        }
+        // Monthly / period check (handles "in each month", "each month", "all month", "par mois", etc.)
+        $isMonthly = (bool) preg_match('/(month|months|mois|mes|meses|monthly|mensuel|mensuelle|mensuels|each month|by month|par mois|por mes|all month|chaque mois|tous les mois)/ui', $lower);
 
         // Fortnight signals
         $isFortnight = (bool) preg_match('/(fortnight|fortnights|quinzaine|quinzaines|quincena|quincenas|\bq1\b|\bq2\b)/ui', $lower);
@@ -253,20 +208,20 @@ class AIAnalyticsService
         $isCorporal = (bool) preg_match('/(caporal|caporaux|corporal|corporals)/ui', $lower);
 
         // Charges / Purchases signals
-        $isCharges = (bool) preg_match('/(charge|charges|achat|achats|réception|réceptions|purchases?|carga|cargas|compra|compras|مشتريات|شراء|استلام|استلامات|وصل|وصولات)/ui', $lower);
+        $isCharges = (bool) preg_match('/(charge|charges|achat|achats|réception|réceptions|purchases?)/ui', $lower);
 
         // Shippings / Sales signals
-        $isShippings = (bool) preg_match('/(shipping|shippings|vente|ventes|expédition|expéditions|sales?|venta|ventas|expedicion|expediciones|مبيعات|بيع|شحنات|تصدير)/ui', $lower);
+        $isShippings = (bool) preg_match('/(shipping|shippings|vente|ventes|expédition|expéditions|sales?)/ui', $lower);
 
         // Productions signals
-        $isProductions = (bool) preg_match('/(production|productions|congélation|frais|guano|farine|huile|rendement|yield|equilibrium|produccion|producciones|congelacion|انتاج|معمل|مصنع)/ui', $lower);
+        $isProductions = (bool) preg_match('/(production|productions|congélation|frais|guano|farine|huile|rendement|yield|equilibrium)/ui', $lower);
 
         // Category breakdown signals
         $isCategory = (bool) preg_match('/(catégorie|catégories|categorie|categories|category)/ui', $lower);
 
         // 5. Domain extraction
         $domain = 'overview';
-        if ($isFortnight && $isMonthlyBreakdown) {
+        if ($isFortnight && $isMonthly) {
             $domain = 'fortnight_monthly';
         } elseif ($isCharges && $isCategory) {
             $domain = 'charges_categories';
@@ -274,11 +229,11 @@ class AIAnalyticsService
             $domain = 'shippings_categories';
         } elseif ($isProductions && $isCategory) {
             $domain = 'productions_categories';
-        } elseif ($isCharges && $isMonthlyBreakdown) {
+        } elseif ($isCharges && $isMonthly) {
             $domain = 'charges_monthly';
-        } elseif ($isShippings && $isMonthlyBreakdown) {
+        } elseif ($isShippings && $isMonthly) {
             $domain = 'shippings_monthly';
-        } elseif ($isProductions && $isMonthlyBreakdown) {
+        } elseif ($isProductions && $isMonthly) {
             $domain = 'productions_monthly';
         } elseif ($isFortnight && $isSection) {
             $domain = 'workforce_sections';
@@ -330,10 +285,8 @@ class AIAnalyticsService
             'limit' => $limit,
             'year' => $year,
             'timeFrame' => $timeFrame,
-            'isMonthly' => $isMonthlyBreakdown,
+            'isMonthly' => $isMonthly,
             'keyword' => $keyword,
-            'isComplex' => $this->isComplexAnalyticsQuestion($question),
-            'isVoucher' => (bool) preg_match('/\b(bon|bons|voucher|vouchers|ticket|reçu|reçus)\b/ui', $lower),
         ];
     }
 
@@ -1677,12 +1630,6 @@ TR;
             ['title' => 'Action', 'align' => 'center'],
         ];
 
-        $answerText = "Voici la ventilation des activités et de la masse salariale par caporal pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($corporals) . " équipes actives.";
-
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
-
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
@@ -1692,7 +1639,7 @@ TR;
             'moduleIcon' => 'mdi-account-tie',
             'badgeText' => "Caporaux & Équipes {$year}",
             'userQuestion' => $p['question'],
-            'answerText' => $answerText,
+            'answerText' => "Voici la ventilation des activités et de la masse salariale par caporal pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($corporals) . " équipes actives.",
             'kpis' => [
                 ['label' => "Masse Salariale Caporaux", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
                 ['label' => "Journées Travaillées", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
@@ -1730,42 +1677,12 @@ TR;
 
         $this->applyTimeFilter($q, 'c.date', $p['timeFrame']);
 
-        $totalCount = (clone $q)->distinct('c.id')->count('c.id');
+        $totalCount = (clone $q)->count();
         $totalWeight = (float) (clone $q)->sum('c.total_weight');
         $totalPrice = (float) (clone $q)->sum('c.total_price');
         $avgPrice = $totalWeight > 0 ? ($totalPrice / $totalWeight) : 0;
 
-        $periodLabel = match ($p['timeFrame']) {
-            'today' => match ($p['lang']) { 'fr' => "aujourd'hui", 'es' => 'hoy', 'ar' => 'اليوم', default => 'today' },
-            'this_week' => match ($p['lang']) { 'fr' => 'cette semaine', 'es' => 'esta semana', 'ar' => 'هذا الأسبوع', default => 'this week' },
-            'this_month' => match ($p['lang']) { 'fr' => 'ce mois-ci', 'es' => 'este mes', 'ar' => 'هذا الشهر', default => 'this month' },
-            'last_month' => match ($p['lang']) { 'fr' => 'le mois dernier', 'es' => 'el mes pasado', 'ar' => 'الشهر الماضي', default => 'last month' },
-            default => match ($p['lang']) { 'fr' => 'cette période', 'es' => 'este período', 'ar' => 'هذه الفترة', default => 'this period' }
-        };
-
-        // Build localized textual answer
-        if (!empty($p['isVoucher']) || $p['intent'] === 'count') {
-            $answerText = match ($p['lang']) {
-                'ar' => "يوجد حالياً **{$this->formatNumber($totalCount, 0)} سند استلام (bon de réception / charge)** مسجل لـ {$periodLabel}، بإجمالي وزن **{$this->formatNumber($totalWeight, 2)} كغ** وبمبلغ إجمالي قدره **{$this->formatNumber($totalPrice, 2)} درهم**.",
-                'es' => "Actualmente hay **{$this->formatNumber($totalCount, 0)} bonos de recepción (cargas)** registrados para {$periodLabel}, con un volumen total de **{$this->formatNumber($totalWeight, 2)} KG** y un importe de **{$this->formatNumber($totalPrice, 2)} MAD**.",
-                'en' => "There are currently **{$this->formatNumber($totalCount, 0)} charge vouchers (bons de réception)** recorded for {$periodLabel}, totaling **{$this->formatNumber($totalPrice, 2)} MAD** with a total weight of **{$this->formatNumber($totalWeight, 2)} KG**.",
-                default => "Il y a actuellement **{$this->formatNumber($totalCount, 0)} bons de réception (charges)** enregistrés pour {$periodLabel}, pour un volume total de **{$this->formatNumber($totalWeight, 2)} KG** et un montant global de **{$this->formatNumber($totalPrice, 2)} MAD**.",
-            };
-        } else {
-            $answerText = match ($p['lang']) {
-                'ar' => "إليك تفاصيل المشتريات والاستلامات لـ {$periodLabel}: تم تسجيل {$this->formatNumber($totalCount, 0)} استلام بإجمالي وزن {$this->formatNumber($totalWeight, 2)} كغ وبقيمة إجمالية {$this->formatNumber($totalPrice, 2)} درهم.",
-                'es' => "Aquí está el análisis de compras y recepciones para {$periodLabel}: se registraron {$this->formatNumber($totalCount, 0)} recepciones con un peso total de {$this->formatNumber($totalWeight, 2)} KG y un importe de {$this->formatNumber($totalPrice, 2)} MAD.",
-                'en' => "Here is the purchases and receptions analysis for {$periodLabel}: {$this->formatNumber($totalCount, 0)} receptions recorded with a total weight of {$this->formatNumber($totalWeight, 2)} KG and a total value of {$this->formatNumber($totalPrice, 2)} MAD.",
-                default => "Voici l'analyse détaillée des charges et réceptions pour {$periodLabel} : {$this->formatNumber($totalCount, 0)} réceptions enregistrées pour un volume global de {$this->formatNumber($totalWeight, 2)} KG et un montant de {$this->formatNumber($totalPrice, 2)} MAD (Prix moyen : {$this->formatNumber($avgPrice, 2)} MAD/KG).",
-            };
-        }
-
-        // Return plain text if not a complex KPI/dashboard request
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
-
-        // Fetch records if complex dashboard/table requested
+        // Fetch records if list or specific records requested
         $limit = $p['limit'] ?: 10;
         $records = (clone $q)
             ->select(
@@ -1798,6 +1715,14 @@ TR;
             $chartLabels[] = $ts->name;
             $chartData[] = round(((float)$ts->weight) / 1000, 2); // tons
         }
+
+        // Build localized textual answer
+        $answerText = match ($p['lang']) {
+            'ar' => "إليك تفاصيل المشتريات والاستلامات: تم تسجيل {$this->formatNumber($totalCount, 0)} استلام بإجمالي وزن {$this->formatNumber($totalWeight, 2)} كغ وبقيمة إجمالية {$this->formatNumber($totalPrice, 2)} درهم.",
+            'es' => "Aquí está el análisis de compras y recepciones: se registraron {$this->formatNumber($totalCount, 0)} recepciones con un peso total de {$this->formatNumber($totalWeight, 2)} KG y un importe de {$this->formatNumber($totalPrice, 2)} MAD.",
+            'en' => "Here is the purchases and receptions analysis: {$this->formatNumber($totalCount, 0)} receptions recorded with a total weight of {$this->formatNumber($totalWeight, 2)} KG and a total value of {$this->formatNumber($totalPrice, 2)} MAD.",
+            default => "Voici l'analyse détaillée des charges et réceptions : {$this->formatNumber($totalCount, 0)} réceptions enregistrées pour un volume global de {$this->formatNumber($totalWeight, 2)} KG et un montant de {$this->formatNumber($totalPrice, 2)} MAD (Prix moyen : {$this->formatNumber($avgPrice, 2)} MAD/KG).",
+        };
 
         $tableRowsHtml = '';
         foreach ($records as $r) {
@@ -1878,27 +1803,10 @@ TR;
 
         $this->applyTimeFilter($q, 's.date', $p['timeFrame']);
 
-        $totalCount = (clone $q)->distinct('s.id')->count('s.id');
+        $totalCount = (clone $q)->count();
         $totalWeight = (float) (clone $q)->sum('s.total_weight');
         $totalPrice = (float) (clone $q)->sum('s.total_price');
         $avgPrice = $totalWeight > 0 ? ($totalPrice / $totalWeight) : 0;
-
-        $periodLabel = match ($p['timeFrame']) {
-            'today' => match ($p['lang']) { 'fr' => "aujourd'hui", 'es' => 'hoy', 'ar' => 'اليوم', default => 'today' },
-            'this_week' => match ($p['lang']) { 'fr' => 'cette semaine', 'es' => 'esta semana', 'ar' => 'هذا الأسبوع', default => 'this week' },
-            'this_month' => match ($p['lang']) { 'fr' => 'ce mois-ci', 'es' => 'este mes', 'ar' => 'هذا الشهر', default => 'this month' },
-            'last_month' => match ($p['lang']) { 'fr' => 'le mois dernier', 'es' => 'el mes pasado', 'ar' => 'الشهر الماضي', default => 'last month' },
-            default => match ($p['lang']) { 'fr' => 'cette période', 'es' => 'este período', 'ar' => 'هذه الفترة', default => 'this period' }
-        };
-
-        if (empty($p['isComplex'])) {
-            return match ($p['lang']) {
-                'ar' => "يوجد حالياً **{$this->formatNumber($totalCount, 0)} شحنة / عملية بيع** مسجلة لـ {$periodLabel}، بإجمالي وزن **{$this->formatNumber($totalWeight, 2)} كغ** وبمبلغ إجمالي قدره **{$this->formatNumber($totalPrice, 2)} درهم** (متوسط السعر: **{$this->formatNumber($avgPrice, 2)} درهم/كغ**).",
-                'es' => "Actualmente hay **{$this->formatNumber($totalCount, 0)} expediciones / ventas** registradas para {$periodLabel}, con un volumen total de **{$this->formatNumber($totalWeight, 2)} KG** y un valor total de **{$this->formatNumber($totalPrice, 2)} MAD** (precio promedio: **{$this->formatNumber($avgPrice, 2)} MAD/KG**).",
-                'en' => "There are currently **{$this->formatNumber($totalCount, 0)} shipments / sales** recorded for {$periodLabel}, totaling **{$this->formatNumber($totalPrice, 2)} MAD** with a total weight of **{$this->formatNumber($totalWeight, 2)} KG** (average price: **{$this->formatNumber($avgPrice, 2)} MAD/KG**).",
-                default => "Il y a actuellement **{$this->formatNumber($totalCount, 0)} expéditions / ventes** enregistrées pour {$periodLabel}, représentant un volume global de **{$this->formatNumber($totalWeight, 2)} KG** et un montant total de **{$this->formatNumber($totalPrice, 2)} MAD** (prix moyen : **{$this->formatNumber($avgPrice, 2)} MAD/KG**).",
-            };
-        }
 
         $limit = $p['limit'] ?: 10;
         $records = (clone $q)
@@ -1932,14 +1840,6 @@ TR;
             $chartLabels[] = $tc->name;
             $chartData[] = round(((float)$tc->price) / 1000, 2); // k MAD
         }
-
-        $periodLabel = match ($p['timeFrame']) {
-            'today' => match ($p['lang']) { 'fr' => "aujourd'hui", 'es' => 'hoy', 'ar' => 'اليوم', default => 'today' },
-            'this_week' => match ($p['lang']) { 'fr' => 'cette semaine', 'es' => 'esta semana', 'ar' => 'هذا الأسبوع', default => 'this week' },
-            'this_month' => match ($p['lang']) { 'fr' => 'ce mois-ci', 'es' => 'este mes', 'ar' => 'هذا الشهر', default => 'this month' },
-            'last_month' => match ($p['lang']) { 'fr' => 'le mois dernier', 'es' => 'el mes pasado', 'ar' => 'الشهر الماضي', default => 'last month' },
-            default => match ($p['lang']) { 'fr' => 'cette période', 'es' => 'este período', 'ar' => 'هذه الفترة', default => 'this period' }
-        };
 
         $answerText = match ($p['lang']) {
             'ar' => "إليك تحليل المبيعات والشحنات: تم تسجيل {$this->formatNumber($totalCount, 0)} شحنة بقيمة إجمالية قدرها {$this->formatNumber($totalPrice, 2)} درهم وبإجمالي وزن {$this->formatNumber($totalWeight, 2)} كغ.",
@@ -2041,24 +1941,7 @@ TR;
             ->limit($limit)
             ->get();
 
-        $periodLabel = match ($p['timeFrame']) {
-            'today' => match ($p['lang']) { 'fr' => "aujourd'hui", 'es' => 'hoy', 'ar' => 'اليوم', default => 'today' },
-            'this_week' => match ($p['lang']) { 'fr' => 'cette semaine', 'es' => 'esta semana', 'ar' => 'هذا الأسبوع', default => 'this week' },
-            'this_month' => match ($p['lang']) { 'fr' => 'ce mois-ci', 'es' => 'este mes', 'ar' => 'هذا الشهر', default => 'this month' },
-            'last_month' => match ($p['lang']) { 'fr' => 'le mois dernier', 'es' => 'el mes pasado', 'ar' => 'الشهر الماضي', default => 'last month' },
-            default => match ($p['lang']) { 'fr' => 'cette période', 'es' => 'este período', 'ar' => 'هذه الفترة', default => 'this period' }
-        };
-
-        $answerText = match ($p['lang']) {
-            'ar' => "إليك ملخص إنتاج المصنع لـ {$periodLabel} : تم تسجيل {$this->formatNumber($totalCount, 0)} عملية إنتاج، بإجمالي {$this->formatNumber($frozenWeight, 2)} كغ سمك مجمد، و {$this->formatNumber($guanoWeight, 2)} كغ دقيق/سماد غوانو و {$this->formatNumber($freshWeight, 2)} كغ استلام سمك طازج.",
-            'es' => "Aquí está el resumen de producción de planta para {$periodLabel} : {$this->formatNumber($totalCount, 0)} operaciones registradas, con {$this->formatNumber($frozenWeight, 2)} KG de pescado congelado, {$this->formatNumber($guanoWeight, 2)} KG de harina/guano y {$this->formatNumber($freshWeight, 2)} KG de pescado fresco recibido.",
-            'en' => "Here is the factory production summary for {$periodLabel} : {$this->formatNumber($totalCount, 0)} production operations recorded, with {$this->formatNumber($frozenWeight, 2)} KG of frozen fish, {$this->formatNumber($guanoWeight, 2)} KG of fish meal/guano and {$this->formatNumber($freshWeight, 2)} KG of fresh fish received.",
-            default => "Voici le récapitulatif de production usine pour {$periodLabel} : {$this->formatNumber($totalCount, 0)} opérations de production enregistrées, avec un total de {$this->formatNumber($frozenWeight, 2)} KG de poisson congelé, {$this->formatNumber($guanoWeight, 2)} KG de farine/guano et {$this->formatNumber($freshWeight, 2)} KG de réception poisson frais.",
-        };
-
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
+        $answerText = "Voici le récapitulatif de production usine : {$this->formatNumber($totalCount, 0)} opérations de production enregistrées, avec un total de {$this->formatNumber($frozenWeight, 2)} KG de poisson congelé, {$this->formatNumber($guanoWeight, 2)} KG de farine/guano et {$this->formatNumber($freshWeight, 2)} KG de réception poisson frais.";
 
         $tableRowsHtml = '';
         foreach ($records as $r) {
@@ -2160,10 +2043,6 @@ TR;
 
             $answerText = "Voici la situation des stocks pour l'espèce « " . ucfirst($keyword) . " » : un stock total disponible de {$this->formatNumber($totalSpeciesStock, 2)} KG valorisé à {$this->formatNumber($totalSpeciesVal, 2)} MAD réparti sur " . count($stockRows) . " magasin(s).";
 
-            if (empty($p['isComplex'])) {
-                return $answerText;
-            }
-
             $tableRowsHtml = '';
             foreach ($stockRows as $sr) {
                 $kg = $this->formatNumber((float)$sr->stock_kg, 2);
@@ -2238,10 +2117,6 @@ TR;
         $warehousesCount = count($warehouses);
 
         $answerText = "Voici la situation globale des entrepôts et stocks : le réseau compte {$warehousesCount} magasins avec un stock global cumulé de {$this->formatNumber($totalStockKg, 2)} KG.";
-
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
 
         $tableRowsHtml = '';
         foreach ($warehouses as $wh) {
@@ -2327,10 +2202,6 @@ TR;
             ->get();
 
         $answerText = "Voici la situation de la facturation : {$this->formatNumber($clientInvoicesCount, 0)} factures clients émises ({$this->formatNumber($clientInvoicesTotal, 2)} MAD) et {$this->formatNumber($supplierInvoicesCount, 0)} factures fournisseurs enregistrées ({$this->formatNumber($supplierInvoicesTotal, 2)} MAD).";
-
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
 
         $tableRowsHtml = '';
         foreach ($invoices as $inv) {
@@ -2426,10 +2297,6 @@ TR;
 
         $answerText = "Voici la situation de la main d'œuvre : {$this->formatNumber($workersCount, 0)} ouvriers enregistrés, avec un historique de {$this->formatNumber($activitiesCount, 0)} journées de travail réparties sur les quinzaines pour une masse salariale traitée de {$this->formatNumber($totalPaid, 2)} MAD.";
 
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
-
         $tableRowsHtml = '';
         foreach ($workers as $w) {
             $name = htmlspecialchars($w->full_name);
@@ -2519,10 +2386,6 @@ TR;
 
         $answerText = "Voici la situation de la flotte de camions : {$this->formatNumber($trucksCount, 0)} camions répertoriés dans la base de données.";
 
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
-
         $tableRowsHtml = '';
         foreach ($trucks as $t) {
             $plate = htmlspecialchars($t->registration_plate ?: 'Camion #' . $t->id);
@@ -2594,10 +2457,6 @@ TR;
             ->get();
 
         $answerText = "Voici la flotte maritime : {$this->formatNumber($shipsCount, 0)} navires et bateaux de pêche répertoriés.";
-
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
 
         $tableRowsHtml = '';
         foreach ($ships as $s) {
@@ -2740,10 +2599,6 @@ TR;
 
         $answerText = "Voici la liste des fournisseurs de poissons : {$this->formatNumber($suppliersCount, 0)} fournisseurs actifs répertoriés.";
 
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
-
         $tableRowsHtml = '';
         foreach ($topSuppliers as $s) {
             $name = htmlspecialchars($s->name);
@@ -2820,10 +2675,6 @@ TR;
             ->get();
 
         $answerText = "Voici la liste des clients et partenaires : {$this->formatNumber($clientsCount, 0)} clients enregistrés.";
-
-        if (empty($p['isComplex'])) {
-            return $answerText;
-        }
 
         $tableRowsHtml = '';
         foreach ($topClients as $c) {
@@ -3005,10 +2856,6 @@ TR;
      */
     private function renderStandardCard(array $cfg): string
     {
-        if (isset($cfg['isComplex']) && $cfg['isComplex'] === false) {
-            return $cfg['answerText'] ?? '';
-        }
-
         $uniqueId = $cfg['uniqueId'];
         $chartId = $cfg['chartId'] ?? '';
         $theme = $cfg['theme'] ?? 'dark';
