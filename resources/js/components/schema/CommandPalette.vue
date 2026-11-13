@@ -403,12 +403,32 @@ export default {
   padding: 8px 12px 14px;
 }
 
+.command-results-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--v-theme-on-surface), 0.12) transparent;
+
+  &:hover {
+    scrollbar-color: rgba(var(--v-theme-on-surface), 0.32) transparent;
+  }
+}
+
 .command-results-list::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
+}
+.command-results-list::-webkit-scrollbar-track {
+  background: transparent !important;
 }
 .command-results-list::-webkit-scrollbar-thumb {
-  background: rgba(var(--v-theme-on-surface), 0.15);
-  border-radius: 4px;
+  background: rgba(var(--v-theme-on-surface), 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.command-results-list:hover::-webkit-scrollbar-thumb,
+.command-results-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.32);
+}
+.command-results-list::-webkit-scrollbar-thumb:active {
+  background: rgba(var(--v-theme-on-surface), 0.55);
 }
 
 .command-group {

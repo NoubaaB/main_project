@@ -722,9 +722,58 @@ input[type="number"],
 }
 
 /* =========================================================================
- * DATA TABLE SLEEK SCROLLBAR - MATCHING NAVIGATION DRAWER
- * Ultra-sleek 5px rounded pill scrollbar for vertical and horizontal tables
+ * NAVIGATION DRAWER SLEEK SCROLLBAR SYSTEM (UNIVERSAL & COMPONENTS)
+ * Ultra-sleek 4px rounded pill scrollbar matching NavigationDrawer exactly
  * ========================================================================= */
+
+/* Universal Scrollbar Engine */
+*,
+*::before,
+*::after {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
+}
+
+*:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
+}
+
+::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+  margin: 2px 0 !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease, opacity 0.2s ease !important;
+}
+
+*:hover::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32) !important;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Explicit Table Wrappers, Overlays, and Container Classes */
 .lc-table-wrap,
 .lp-table-wrap,
 .ls-table-wrap,
@@ -744,17 +793,25 @@ input[type="number"],
 .data-table-sleek-scroll,
 .lc-detail-group,
 .lp-detail-group,
-.ls-detail-group {
+.ls-detail-group,
+.v-navigation-drawer__content,
+.v-card-text,
+.v-overlay-container,
+.v-list,
+.v-menu,
+.feed-list-wrap,
+.us-table-container,
+.us-feed-wrap {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(0, 0, 0, 0.16) transparent !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
 
   &:hover {
-    scrollbar-color: rgba(0, 0, 0, 0.38) transparent !important;
+    scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
   }
 
   &::-webkit-scrollbar {
-    width: 5px !important;
-    height: 5px !important;
+    width: 4px !important;
+    height: 4px !important;
   }
 
   &::-webkit-scrollbar-button {
@@ -765,7 +822,7 @@ input[type="number"],
 
   &::-webkit-scrollbar-track {
     background: transparent !important;
-    margin: 3px !important;
+    margin: 2px 0 !important;
   }
 
   &::-webkit-scrollbar-corner {
@@ -773,23 +830,47 @@ input[type="number"],
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.14) !important;
+    background: rgba(0, 0, 0, 0.12) !important;
     border-radius: 999px !important;
-    transition: background 0.2s ease !important;
+    transition: background 0.2s ease, opacity 0.2s ease !important;
   }
 
   &:hover::-webkit-scrollbar-thumb,
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.36) !important;
+    background: rgba(0, 0, 0, 0.32) !important;
   }
 
   &::-webkit-scrollbar-thumb:active {
-    background: rgba(0, 0, 0, 0.58) !important;
+    background: rgba(0, 0, 0, 0.55) !important;
   }
 }
 
+/* Dark Theme Support */
 .theme-dark,
-.v-theme--dark {
+.v-theme--dark,
+[data-theme="dark"] {
+  &,
+  * {
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent !important;
+
+    &:hover {
+      scrollbar-color: rgba(255, 255, 255, 0.32) transparent !important;
+    }
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  *:hover::-webkit-scrollbar-thumb,
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.32) !important;
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.55) !important;
+  }
+
   .lc-table-wrap,
   .lp-table-wrap,
   .ls-table-wrap,
@@ -809,24 +890,32 @@ input[type="number"],
   .data-table-sleek-scroll,
   .lc-detail-group,
   .lp-detail-group,
-  .ls-detail-group {
-    scrollbar-color: rgba(255, 255, 255, 0.16) transparent !important;
+  .ls-detail-group,
+  .v-navigation-drawer__content,
+  .v-card-text,
+  .v-overlay-container,
+  .v-list,
+  .v-menu,
+  .feed-list-wrap,
+  .us-table-container,
+  .us-feed-wrap {
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent !important;
 
     &:hover {
-      scrollbar-color: rgba(255, 255, 255, 0.38) transparent !important;
+      scrollbar-color: rgba(255, 255, 255, 0.32) transparent !important;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.16) !important;
+      background: rgba(255, 255, 255, 0.12) !important;
     }
 
     &:hover::-webkit-scrollbar-thumb,
     &::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.38) !important;
+      background: rgba(255, 255, 255, 0.32) !important;
     }
 
     &::-webkit-scrollbar-thumb:active {
-      background: rgba(255, 255, 255, 0.6) !important;
+      background: rgba(255, 255, 255, 0.55) !important;
     }
   }
 }

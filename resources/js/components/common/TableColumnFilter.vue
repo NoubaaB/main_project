@@ -335,16 +335,49 @@ export default {
   padding: 0 5px !important;
 }
 
+.filter-options-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.filter-options-list:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
 .filter-options-list::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
 }
-
 .filter-options-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.03);
+  background: transparent !important;
 }
-
 .filter-options-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.filter-options-list:hover::-webkit-scrollbar-thumb,
+.filter-options-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.filter-options-list::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+:deep(.v-theme--dark) .filter-options-list,
+.v-theme--dark .filter-options-list {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+:deep(.v-theme--dark) .filter-options-list:hover,
+.v-theme--dark .filter-options-list:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+:deep(.v-theme--dark) .filter-options-list::-webkit-scrollbar-thumb,
+.v-theme--dark .filter-options-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+:deep(.v-theme--dark) .filter-options-list:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .filter-options-list:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+:deep(.v-theme--dark) .filter-options-list::-webkit-scrollbar-thumb:active,
+.v-theme--dark .filter-options-list::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
 }
 </style>

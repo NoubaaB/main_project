@@ -4,71 +4,80 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. Sleek 4.5px NavigationDrawer Scrollbar
+   1. Sleek 4px NavigationDrawer Scrollbar
    -------------------------------------------------------------------------- */
 .param-dialog-body,
 .param-dialog-card,
 .param-table :deep(.v-table__wrapper),
 .param-scrollable {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(208, 211, 218, 0.29) transparent !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
+
+  &:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
+  }
+
+  &::-webkit-scrollbar {
+    width: 4px !important;
+    height: 4px !important;
+  }
+
+  &::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent !important;
+    margin: 2px 0 !important;
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent !important;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12) !important;
+    border-radius: 999px !important;
+    transition: background 0.2s ease, opacity 0.2s ease !important;
+  }
+
+  &:hover::-webkit-scrollbar-thumb,
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.32) !important;
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background: rgba(0, 0, 0, 0.55) !important;
+  }
 }
 
-.param-dialog-body:hover,
-.param-dialog-card:hover,
-.param-table :deep(.v-table__wrapper):hover,
-.param-scrollable:hover {
-  scrollbar-color: rgba(208, 211, 218, 0.65) transparent !important;
-}
+.theme-dark,
+.v-theme--dark {
+  .param-dialog-body,
+  .param-dialog-card,
+  .param-table :deep(.v-table__wrapper),
+  .param-scrollable {
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent !important;
 
-.param-dialog-body::-webkit-scrollbar,
-.param-dialog-card::-webkit-scrollbar,
-.param-table :deep(.v-table__wrapper)::-webkit-scrollbar,
-.param-scrollable::-webkit-scrollbar {
-  width: 4.5px !important;
-  height: 4.5px !important;
-}
+    &:hover {
+      scrollbar-color: rgba(255, 255, 255, 0.32) transparent !important;
+    }
 
-.param-dialog-body::-webkit-scrollbar-button,
-.param-dialog-card::-webkit-scrollbar-button,
-.param-table :deep(.v-table__wrapper)::-webkit-scrollbar-button,
-.param-scrollable::-webkit-scrollbar-button {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12) !important;
+    }
 
-.param-dialog-body::-webkit-scrollbar-track,
-.param-dialog-card::-webkit-scrollbar-track,
-.param-table :deep(.v-table__wrapper)::-webkit-scrollbar-track,
-.param-scrollable::-webkit-scrollbar-track {
-  background: transparent !important;
-  margin: 4px 0 !important;
-}
+    &:hover::-webkit-scrollbar-thumb,
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.32) !important;
+    }
 
-.param-dialog-body::-webkit-scrollbar-corner,
-.param-dialog-card::-webkit-scrollbar-corner,
-.param-table :deep(.v-table__wrapper)::-webkit-scrollbar-corner,
-.param-scrollable::-webkit-scrollbar-corner {
-  background: transparent !important;
-}
-
-.param-dialog-body::-webkit-scrollbar-thumb,
-.param-dialog-card::-webkit-scrollbar-thumb,
-.param-table :deep(.v-table__wrapper)::-webkit-scrollbar-thumb,
-.param-scrollable::-webkit-scrollbar-thumb {
-  background: rgba(208, 211, 218, 0.29) !important;
-  border-radius: 999px !important;
-  transition: background 0.2s ease !important;
-}
-
-.param-dialog-body:hover::-webkit-scrollbar-thumb,
-.param-dialog-card:hover::-webkit-scrollbar-thumb,
-.param-table :deep(.v-table__wrapper):hover::-webkit-scrollbar-thumb,
-.param-scrollable:hover::-webkit-scrollbar-thumb,
-.param-dialog-body::-webkit-scrollbar-thumb:hover,
-.param-table :deep(.v-table__wrapper)::-webkit-scrollbar-thumb:hover {
-  background: rgba(208, 211, 218, 0.65) !important;
+    &::-webkit-scrollbar-thumb:active {
+      background: rgba(255, 255, 255, 0.55) !important;
+    }
+  }
 }
 
 /* --------------------------------------------------------------------------

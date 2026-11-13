@@ -1668,6 +1668,90 @@ export default {
   width: 100%;
   overflow-x: auto;
 }
+
+.wh-print-controls-scroll,
+.wh-print-preview-pane,
+.wh-sheet-table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.wh-print-controls-scroll:hover,
+.wh-print-preview-pane:hover,
+.wh-sheet-table-wrap:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.wh-print-controls-scroll::-webkit-scrollbar,
+.wh-print-preview-pane::-webkit-scrollbar,
+.wh-sheet-table-wrap::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.wh-print-controls-scroll::-webkit-scrollbar-track,
+.wh-print-preview-pane::-webkit-scrollbar-track,
+.wh-sheet-table-wrap::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.wh-print-controls-scroll::-webkit-scrollbar-thumb,
+.wh-print-preview-pane::-webkit-scrollbar-thumb,
+.wh-sheet-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.wh-print-controls-scroll:hover::-webkit-scrollbar-thumb,
+.wh-print-controls-scroll::-webkit-scrollbar-thumb:hover,
+.wh-print-preview-pane:hover::-webkit-scrollbar-thumb,
+.wh-print-preview-pane::-webkit-scrollbar-thumb:hover,
+.wh-sheet-table-wrap:hover::-webkit-scrollbar-thumb,
+.wh-sheet-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.wh-print-controls-scroll::-webkit-scrollbar-thumb:active,
+.wh-print-preview-pane::-webkit-scrollbar-thumb:active,
+.wh-sheet-table-wrap::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+:deep(.v-theme--dark) .wh-print-controls-scroll,
+.v-theme--dark .wh-print-controls-scroll,
+:deep(.v-theme--dark) .wh-print-preview-pane,
+.v-theme--dark .wh-print-preview-pane,
+:deep(.v-theme--dark) .wh-sheet-table-wrap,
+.v-theme--dark .wh-sheet-table-wrap {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+:deep(.v-theme--dark) .wh-print-controls-scroll:hover,
+.v-theme--dark .wh-print-controls-scroll:hover,
+:deep(.v-theme--dark) .wh-print-preview-pane:hover,
+.v-theme--dark .wh-print-preview-pane:hover,
+:deep(.v-theme--dark) .wh-sheet-table-wrap:hover,
+.v-theme--dark .wh-sheet-table-wrap:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+:deep(.v-theme--dark) .wh-print-controls-scroll::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-print-controls-scroll::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .wh-print-preview-pane::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-print-preview-pane::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .wh-sheet-table-wrap::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-sheet-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+:deep(.v-theme--dark) .wh-print-controls-scroll:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-print-controls-scroll:hover::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .wh-print-preview-pane:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-print-preview-pane:hover::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .wh-sheet-table-wrap:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-sheet-table-wrap:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+:deep(.v-theme--dark) .wh-print-controls-scroll::-webkit-scrollbar-thumb:active,
+.v-theme--dark .wh-print-controls-scroll::-webkit-scrollbar-thumb:active,
+:deep(.v-theme--dark) .wh-print-preview-pane::-webkit-scrollbar-thumb:active,
+.v-theme--dark .wh-print-preview-pane::-webkit-scrollbar-thumb:active,
+:deep(.v-theme--dark) .wh-sheet-table-wrap::-webkit-scrollbar-thumb:active,
+.v-theme--dark .wh-sheet-table-wrap::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
+}
 .wh-sheet-table {
   width: 100%;
   border-collapse: collapse;

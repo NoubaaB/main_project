@@ -6579,11 +6579,17 @@ export default {
   color: #1e293b;
   overflow-y: auto !important;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
+
+  &:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
+  }
 }
 .fnm-print-sidebar::-webkit-scrollbar,
 .fnm-print-cols-list::-webkit-scrollbar {
-  width: 5px !important;
-  height: 5px !important;
+  width: 4px !important;
+  height: 4px !important;
 }
 .fnm-print-sidebar::-webkit-scrollbar-button,
 .fnm-print-cols-list::-webkit-scrollbar-button {
@@ -6594,23 +6600,30 @@ export default {
 .fnm-print-sidebar::-webkit-scrollbar-track,
 .fnm-print-cols-list::-webkit-scrollbar-track {
   background: transparent !important;
+  margin: 2px 0 !important;
 }
 .fnm-print-sidebar::-webkit-scrollbar-thumb,
 .fnm-print-cols-list::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.35) !important;
-  border-radius: 5px !important;
-  transition: background 0.3s ease !important;
+  background: rgba(0, 0, 0, 0.12) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
 }
+.fnm-print-sidebar:hover::-webkit-scrollbar-thumb,
 .fnm-print-sidebar::-webkit-scrollbar-thumb:hover,
+.fnm-print-cols-list:hover::-webkit-scrollbar-thumb,
 .fnm-print-cols-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.65) !important;
+  background: rgba(0, 0, 0, 0.32) !important;
+}
+.fnm-print-sidebar::-webkit-scrollbar-thumb:active,
+.fnm-print-cols-list::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55) !important;
 }
 
 @supports not selector(::-webkit-scrollbar) {
   .fnm-print-sidebar,
   .fnm-print-cols-list {
     scrollbar-width: thin;
-    scrollbar-color: rgba(128, 128, 128, 0.4) transparent;
+    scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
   }
 }
 
@@ -6807,10 +6820,16 @@ export default {
   overflow: auto !important;
   padding: 24px 20px 48px;
   display: block;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+
+  &:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+  }
 }
 .fnm-print-stage::-webkit-scrollbar {
-  width: 6px !important;
-  height: 6px !important;
+  width: 4px !important;
+  height: 4px !important;
 }
 .fnm-print-stage::-webkit-scrollbar-button {
   display: none !important;
@@ -6819,29 +6838,28 @@ export default {
 }
 .fnm-print-stage::-webkit-scrollbar-track {
   background: transparent !important;
+  margin: 2px !important;
 }
 .fnm-print-stage::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.35) !important;
-  border-radius: 6px !important;
-  transition: background 0.3s ease !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
 }
 .fnm-print-stage::-webkit-scrollbar-corner {
   background: transparent !important;
 }
-.fnm-print-stage:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.6) !important;
-}
+.fnm-print-stage:hover::-webkit-scrollbar-thumb,
 .fnm-print-stage::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(255, 255, 255, 0.45) !important;
 }
 .fnm-print-stage::-webkit-scrollbar-thumb:active {
-  background: #42A5F5 !important;
+  background: rgba(255, 255, 255, 0.7) !important;
 }
 
 @supports not selector(::-webkit-scrollbar) {
   .fnm-print-stage {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
   }
 }
 .fnm-print-sheet-scaler {

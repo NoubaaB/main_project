@@ -1699,29 +1699,29 @@ export default {
   border-radius:12px;
   border:1px solid rgba(var(--v-border-color),.12);
   scrollbar-width:thin!important;
-  scrollbar-color:rgba(0,0,0,.16) transparent!important;
+  scrollbar-color:rgba(0,0,0,.12) transparent!important;
 }
-.lp-table-wrap:hover{scrollbar-color:rgba(0,0,0,.38) transparent!important}
-.lp-table-wrap::-webkit-scrollbar{width:5px!important;height:5px!important}
+.lp-table-wrap:hover{scrollbar-color:rgba(0,0,0,.32) transparent!important}
+.lp-table-wrap::-webkit-scrollbar{width:4px!important;height:4px!important}
 .lp-table-wrap::-webkit-scrollbar-button{display:none!important;width:0!important;height:0!important}
-.lp-table-wrap::-webkit-scrollbar-track{background:transparent!important;margin:3px!important}
+.lp-table-wrap::-webkit-scrollbar-track{background:transparent!important;margin:2px 0!important}
 .lp-table-wrap::-webkit-scrollbar-corner{background:transparent!important}
-.lp-table-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.14)!important;border-radius:999px!important;transition:background .2s ease!important}
-.lp-table-wrap:hover::-webkit-scrollbar-thumb,.lp-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.36)!important}
-.lp-table-wrap::-webkit-scrollbar-thumb:active{background:#00897B!important}
+.lp-table-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12)!important;border-radius:999px!important;transition:background .2s ease!important}
+.lp-table-wrap:hover::-webkit-scrollbar-thumb,.lp-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.32)!important}
+.lp-table-wrap::-webkit-scrollbar-thumb:active{background:rgba(0,0,0,.55)!important}
 
 :deep(.v-theme--dark) .lp-table-wrap,
-.v-theme--dark .lp-table-wrap{scrollbar-color:rgba(255,255,255,.16) transparent!important}
+.v-theme--dark .lp-table-wrap{scrollbar-color:rgba(255,255,255,.12) transparent!important}
 :deep(.v-theme--dark) .lp-table-wrap:hover,
-.v-theme--dark .lp-table-wrap:hover{scrollbar-color:rgba(255,255,255,.38) transparent!important}
+.v-theme--dark .lp-table-wrap:hover{scrollbar-color:rgba(255,255,255,.32) transparent!important}
 :deep(.v-theme--dark) .lp-table-wrap::-webkit-scrollbar-thumb,
-.v-theme--dark .lp-table-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16)!important}
+.v-theme--dark .lp-table-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12)!important}
 :deep(.v-theme--dark) .lp-table-wrap:hover::-webkit-scrollbar-thumb,
 :deep(.v-theme--dark) .lp-table-wrap::-webkit-scrollbar-thumb:hover,
 .v-theme--dark .lp-table-wrap:hover::-webkit-scrollbar-thumb,
-.v-theme--dark .lp-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.38)!important}
+.v-theme--dark .lp-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.32)!important}
 :deep(.v-theme--dark) .lp-table-wrap::-webkit-scrollbar-thumb:active,
-.v-theme--dark .lp-table-wrap::-webkit-scrollbar-thumb:active{background:#00897B!important}
+.v-theme--dark .lp-table-wrap::-webkit-scrollbar-thumb:active{background:rgba(255,255,255,.55)!important}
 .lp-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
 .lp-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .lp-thead th{position:sticky;top:0}
@@ -1766,73 +1766,68 @@ export default {
   max-height: 400px;
   overflow-y: auto;
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(148, 163, 184, 0.4) transparent !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
+
+  &:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
+  }
 }
 
-.lp-stats-panel:hover {
-  scrollbar-color: rgba(100, 116, 139, 0.65) transparent !important;
-}
-
-/* WebKit / Chromium (Chrome, Edge, Safari, Opera) */
 .lp-stats-panel::-webkit-scrollbar {
-  width: 4.5px !important;
-  height: 4.5px !important;
+  width: 4px !important;
+  height: 4px !important;
 }
 
-/* Remove top and bottom arrow buttons ("fleches") completely */
 .lp-stats-panel::-webkit-scrollbar-button {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-/* Fully transparent track with vertical margin */
 .lp-stats-panel::-webkit-scrollbar-track {
   background: transparent !important;
-  margin: 4px 0 !important;
+  margin: 2px 0 !important;
 }
 
 .lp-stats-panel::-webkit-scrollbar-corner {
   background: transparent !important;
 }
 
-/* Scrollbar Thumb: Unactive */
 .lp-stats-panel::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4) !important;
+  background: rgba(0, 0, 0, 0.12) !important;
   border-radius: 999px !important;
   transition: background 0.2s ease !important;
 }
 
-/* Scrollbar Thumb: Active / Hover */
 .lp-stats-panel:hover::-webkit-scrollbar-thumb,
-.lp-stats-panel::-webkit-scrollbar-thumb:hover,
-.lp-stats-panel::-webkit-scrollbar-thumb:active {
-  background: rgba(100, 116, 139, 0.65) !important;
+.lp-stats-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32) !important;
 }
 
-/* Dark Theme Variant */
+.lp-stats-panel::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55) !important;
+}
+
 :deep(.v-theme--dark) .lp-stats-panel,
 .v-theme--dark .lp-stats-panel {
-  scrollbar-color: rgba(208, 211, 218, 0.29) transparent !important;
-}
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent !important;
 
-:deep(.v-theme--dark) .lp-stats-panel:hover,
-.v-theme--dark .lp-stats-panel:hover {
-  scrollbar-color: rgba(208, 211, 218, 0.65) transparent !important;
-}
+  &:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.32) transparent !important;
+  }
 
-:deep(.v-theme--dark) .lp-stats-panel::-webkit-scrollbar-thumb,
-.v-theme--dark .lp-stats-panel::-webkit-scrollbar-thumb {
-  background: rgba(208, 211, 218, 0.29) !important;
-}
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
 
-:deep(.v-theme--dark) .lp-stats-panel:hover::-webkit-scrollbar-thumb,
-:deep(.v-theme--dark) .lp-stats-panel::-webkit-scrollbar-thumb:hover,
-:deep(.v-theme--dark) .lp-stats-panel::-webkit-scrollbar-thumb:active,
-.v-theme--dark .lp-stats-panel:hover::-webkit-scrollbar-thumb,
-.v-theme--dark .lp-stats-panel::-webkit-scrollbar-thumb:hover,
-.v-theme--dark .lp-stats-panel::-webkit-scrollbar-thumb:active {
-  background: rgba(208, 211, 218, 0.65) !important;
+  &:hover::-webkit-scrollbar-thumb,
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.32) !important;
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.55) !important;
+  }
 }
 .lp-stat-item{padding:8px 10px;border-radius:10px;background:rgba(0,137,123,.03);border:1px solid rgba(0,137,123,.06)}
 .lp-date-presets-wrapper{width:100%;overflow-x:auto;scrollbar-width:none}

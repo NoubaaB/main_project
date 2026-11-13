@@ -713,6 +713,53 @@ export default {
 .audit-kv-row { display: flex; gap: 4px; font-size: 11px; line-height: 1.4; }
 .audit-kv-key { color: rgba(var(--v-theme-on-surface), .6); font-weight: 600; white-space: nowrap; }
 .audit-kv-val { word-break: break-word; }
+
+/* Sleek Scrollbar matching Navigation Drawer */
+.audit-body-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.audit-body-scroll:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.audit-body-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.audit-body-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.audit-body-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.audit-body-scroll:hover::-webkit-scrollbar-thumb,
+.audit-body-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.audit-body-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+:deep(.v-theme--dark) .audit-body-scroll,
+.v-theme--dark .audit-body-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+:deep(.v-theme--dark) .audit-body-scroll:hover,
+.v-theme--dark .audit-body-scroll:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+:deep(.v-theme--dark) .audit-body-scroll::-webkit-scrollbar-thumb,
+.v-theme--dark .audit-body-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+:deep(.v-theme--dark) .audit-body-scroll:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .audit-body-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+:deep(.v-theme--dark) .audit-body-scroll::-webkit-scrollbar-thumb:active,
+.v-theme--dark .audit-body-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
+}
 </style>
 
 

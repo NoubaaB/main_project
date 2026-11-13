@@ -1089,16 +1089,34 @@ export default {
 .aimb-content :deep(.ai-analytics-inner),
 .aimb-content :deep([style*="overflow-x: auto"]) {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(66, 165, 245, 0.35) transparent !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
+
+  &:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
+  }
 }
 .aimb-content :deep(.ai-analytics-inner::-webkit-scrollbar),
 .aimb-content :deep([style*="overflow-x: auto"]::-webkit-scrollbar) {
-  height: 5px !important;
+  height: 4px !important;
+  width: 4px !important;
+}
+.aimb-content :deep(.ai-analytics-inner::-webkit-scrollbar-track),
+.aimb-content :deep([style*="overflow-x: auto"]::-webkit-scrollbar-track) {
+  background: transparent !important;
 }
 .aimb-content :deep(.ai-analytics-inner::-webkit-scrollbar-thumb),
 .aimb-content :deep([style*="overflow-x: auto"]::-webkit-scrollbar-thumb) {
-  background: rgba(66, 165, 245, 0.35) !important;
-  border-radius: 10px !important;
+  background: rgba(0, 0, 0, 0.12) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
+}
+.aimb-content :deep(.ai-analytics-inner::-webkit-scrollbar-thumb:hover),
+.aimb-content :deep([style*="overflow-x: auto"]::-webkit-scrollbar-thumb:hover) {
+  background: rgba(0, 0, 0, 0.32) !important;
+}
+.aimb-content :deep(.ai-analytics-inner::-webkit-scrollbar-thumb:active),
+.aimb-content :deep([style*="overflow-x: auto"]::-webkit-scrollbar-thumb:active) {
+  background: rgba(0, 0, 0, 0.55) !important;
 }
 
 /* Material Design Icons Guarantee inside dynamically rendered content */

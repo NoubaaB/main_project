@@ -1305,16 +1305,88 @@ export default {
   z-index: 2;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
-.controls-scroll {
+.controls-scroll,
+.preview-canvas-viewport {
   scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
 }
+.controls-scroll:hover,
+.preview-canvas-viewport:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.controls-scroll::-webkit-scrollbar,
+.preview-canvas-viewport::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.controls-scroll::-webkit-scrollbar-track,
+.preview-canvas-viewport::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.controls-scroll::-webkit-scrollbar-thumb,
+.preview-canvas-viewport::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.controls-scroll:hover::-webkit-scrollbar-thumb,
+.controls-scroll::-webkit-scrollbar-thumb:hover,
+.preview-canvas-viewport:hover::-webkit-scrollbar-thumb,
+.preview-canvas-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.controls-scroll::-webkit-scrollbar-thumb:active,
+.preview-canvas-viewport::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.customizer-dark .controls-scroll,
+.customizer-dark .preview-canvas-viewport,
+:deep(.v-theme--dark) .controls-scroll,
+.v-theme--dark .controls-scroll,
+:deep(.v-theme--dark) .preview-canvas-viewport,
+.v-theme--dark .preview-canvas-viewport {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+.customizer-dark .controls-scroll:hover,
+.customizer-dark .preview-canvas-viewport:hover,
+:deep(.v-theme--dark) .controls-scroll:hover,
+.v-theme--dark .controls-scroll:hover,
+:deep(.v-theme--dark) .preview-canvas-viewport:hover,
+.v-theme--dark .preview-canvas-viewport:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+.customizer-dark .controls-scroll::-webkit-scrollbar-thumb,
+.customizer-dark .preview-canvas-viewport::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .controls-scroll::-webkit-scrollbar-thumb,
+.v-theme--dark .controls-scroll::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .preview-canvas-viewport::-webkit-scrollbar-thumb,
+.v-theme--dark .preview-canvas-viewport::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+.customizer-dark .controls-scroll:hover::-webkit-scrollbar-thumb,
+.customizer-dark .controls-scroll::-webkit-scrollbar-thumb:hover,
+.customizer-dark .preview-canvas-viewport:hover::-webkit-scrollbar-thumb,
+.customizer-dark .preview-canvas-viewport::-webkit-scrollbar-thumb:hover,
+:deep(.v-theme--dark) .controls-scroll:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .controls-scroll:hover::-webkit-scrollbar-thumb,
+:deep(.v-theme--dark) .preview-canvas-viewport:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .preview-canvas-viewport:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+.customizer-dark .controls-scroll::-webkit-scrollbar-thumb:active,
+.customizer-dark .preview-canvas-viewport::-webkit-scrollbar-thumb:active,
+:deep(.v-theme--dark) .controls-scroll::-webkit-scrollbar-thumb:active,
+.v-theme--dark .controls-scroll::-webkit-scrollbar-thumb:active,
+:deep(.v-theme--dark) .preview-canvas-viewport::-webkit-scrollbar-thumb:active,
+.v-theme--dark .preview-canvas-viewport::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
+}
+
 .customizer-preview-pane {
   position: relative;
   display: flex;
   flex-direction: column;
-}
-.preview-canvas-viewport {
-  scrollbar-width: thin;
 }
 .customizer-tabs :deep(.v-tab) {
   min-width: unset !important;

@@ -1655,16 +1655,45 @@ export default {
   overflow-y: auto;
   overflow-x: hidden;
   height: calc(100% - 150px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+.drawer-theme-light .pro-nav-scroll-area {
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.pro-nav-scroll-area:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+.drawer-theme-light .pro-nav-scroll-area:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
 }
 .pro-nav-scroll-area::-webkit-scrollbar {
   width: 4px;
 }
+.pro-nav-scroll-area::-webkit-scrollbar-track {
+  background: transparent !important;
+}
 .pro-nav-scroll-area::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.pro-nav-scroll-area:hover::-webkit-scrollbar-thumb,
+.pro-nav-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+.pro-nav-scroll-area::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
 }
 .drawer-theme-light .pro-nav-scroll-area::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.12);
+}
+.drawer-theme-light .pro-nav-scroll-area:hover::-webkit-scrollbar-thumb,
+.drawer-theme-light .pro-nav-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.drawer-theme-light .pro-nav-scroll-area::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .pro-section-group {

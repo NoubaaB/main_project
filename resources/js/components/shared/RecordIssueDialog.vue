@@ -25,7 +25,7 @@
 
       <v-progress-linear v-if="loading" indeterminate :color="moduleColor"></v-progress-linear>
 
-      <v-card-text class="pa-4" style="max-height: 520px; overflow-y: auto;">
+      <v-card-text class="pa-4 ri-body-scroll" style="max-height: 520px; overflow-y: auto;">
         <!-- Create Issue Form -->
         <v-expand-transition>
           <div v-if="showCreateForm" class="ri-create-form mb-4">
@@ -438,4 +438,51 @@ export default {
 .ri-content { flex: 1; padding-bottom: 20px; min-width: 0; }
 .ri-description { font-size: 13px; line-height: 1.6; padding: 10px 14px; border-radius: 10px; background: rgba(var(--v-theme-on-surface), .03); border: 1px solid rgba(var(--v-border-color), .08); word-wrap: break-word; }
 .ri-resolution { font-size: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(67, 160, 71, .06); border: 1px solid rgba(67, 160, 71, .12); }
+
+/* Sleek Scrollbar matching Navigation Drawer */
+.ri-body-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.ri-body-scroll:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.ri-body-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.ri-body-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.ri-body-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.ri-body-scroll:hover::-webkit-scrollbar-thumb,
+.ri-body-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.ri-body-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+:deep(.v-theme--dark) .ri-body-scroll,
+.v-theme--dark .ri-body-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+:deep(.v-theme--dark) .ri-body-scroll:hover,
+.v-theme--dark .ri-body-scroll:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+:deep(.v-theme--dark) .ri-body-scroll::-webkit-scrollbar-thumb,
+.v-theme--dark .ri-body-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+:deep(.v-theme--dark) .ri-body-scroll:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .ri-body-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+:deep(.v-theme--dark) .ri-body-scroll::-webkit-scrollbar-thumb:active,
+.v-theme--dark .ri-body-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
+}
 </style>

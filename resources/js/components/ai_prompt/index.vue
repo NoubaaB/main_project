@@ -1142,31 +1142,36 @@ export default {
   flex-direction: column;
   scroll-behavior: smooth;
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(66, 165, 245, 0.35) transparent !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
   transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .aiq-chat-body:hover {
-  scrollbar-color: rgba(66, 165, 245, 0.7) transparent !important;
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
 }
 
 .aiq-chat-body::-webkit-scrollbar {
-  width: 6px !important;
+  width: 4px !important;
 }
 
 .aiq-chat-body::-webkit-scrollbar-track {
   background: transparent !important;
-  margin: 6px 0 !important;
+  margin: 2px 0 !important;
 }
 
 .aiq-chat-body::-webkit-scrollbar-thumb {
-  background: rgba(66, 165, 245, 0.35) !important;
-  border-radius: 10px !important;
+  background: rgba(0, 0, 0, 0.12) !important;
+  border-radius: 999px !important;
   transition: background 0.2s ease;
 }
 
+.aiq-chat-body:hover::-webkit-scrollbar-thumb,
 .aiq-chat-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(66, 165, 245, 0.75) !important;
+  background: rgba(0, 0, 0, 0.32) !important;
+}
+
+.aiq-chat-body::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55) !important;
 }
 
 .aiq-chat-container {

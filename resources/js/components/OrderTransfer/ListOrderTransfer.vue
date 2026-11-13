@@ -721,29 +721,29 @@ export default {
   border-radius: 12px;
   border: 1px solid rgba(var(--v-border-color), .12);
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(0, 0, 0, .16) transparent !important;
+  scrollbar-color: rgba(0, 0, 0, .12) transparent !important;
 }
-.ot-table-wrap:hover { scrollbar-color: rgba(0, 0, 0, .38) transparent !important; }
-.ot-table-wrap::-webkit-scrollbar { width: 5px !important; height: 5px !important; }
+.ot-table-wrap:hover { scrollbar-color: rgba(0, 0, 0, .32) transparent !important; }
+.ot-table-wrap::-webkit-scrollbar { width: 4px !important; height: 4px !important; }
 .ot-table-wrap::-webkit-scrollbar-button { display: none !important; width: 0 !important; height: 0 !important; }
-.ot-table-wrap::-webkit-scrollbar-track { background: transparent !important; margin: 3px !important; }
+.ot-table-wrap::-webkit-scrollbar-track { background: transparent !important; margin: 2px 0 !important; }
 .ot-table-wrap::-webkit-scrollbar-corner { background: transparent !important; }
-.ot-table-wrap::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .14) !important; border-radius: 999px !important; transition: background .2s ease !important; }
-.ot-table-wrap:hover::-webkit-scrollbar-thumb, .ot-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, .36) !important; }
-.ot-table-wrap::-webkit-scrollbar-thumb:active { background: #00897B !important; }
+.ot-table-wrap::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .12) !important; border-radius: 999px !important; transition: background .2s ease !important; }
+.ot-table-wrap:hover::-webkit-scrollbar-thumb, .ot-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, .32) !important; }
+.ot-table-wrap::-webkit-scrollbar-thumb:active { background: rgba(0, 0, 0, .55) !important; }
 
 :deep(.v-theme--dark) .ot-table-wrap,
-.v-theme--dark .ot-table-wrap { scrollbar-color: rgba(255, 255, 255, .16) transparent !important; }
+.v-theme--dark .ot-table-wrap { scrollbar-color: rgba(255, 255, 255, .12) transparent !important; }
 :deep(.v-theme--dark) .ot-table-wrap:hover,
-.v-theme--dark .ot-table-wrap:hover { scrollbar-color: rgba(255, 255, 255, .38) transparent !important; }
+.v-theme--dark .ot-table-wrap:hover { scrollbar-color: rgba(255, 255, 255, .32) transparent !important; }
 :deep(.v-theme--dark) .ot-table-wrap::-webkit-scrollbar-thumb,
-.v-theme--dark .ot-table-wrap::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .16) !important; }
+.v-theme--dark .ot-table-wrap::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12) !important; }
 :deep(.v-theme--dark) .ot-table-wrap:hover::-webkit-scrollbar-thumb,
 :deep(.v-theme--dark) .ot-table-wrap::-webkit-scrollbar-thumb:hover,
 .v-theme--dark .ot-table-wrap:hover::-webkit-scrollbar-thumb,
-.v-theme--dark .ot-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .38) !important; }
+.v-theme--dark .ot-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .32) !important; }
 :deep(.v-theme--dark) .ot-table-wrap::-webkit-scrollbar-thumb:active,
-.v-theme--dark .ot-table-wrap::-webkit-scrollbar-thumb:active { background: #00897B !important; }
+.v-theme--dark .ot-table-wrap::-webkit-scrollbar-thumb:active { background: rgba(255, 255, 255, .55) !important; }
 
 .ot-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; table-layout: fixed; }
 .ot-thead { position: sticky; top: 0; z-index: 4; background: rgb(var(--v-theme-surface)); }

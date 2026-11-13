@@ -1310,10 +1310,52 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
-/* Inventory Scroll Strip */
+/* Inventory Scroll Strip - Matching Navigation Drawer */
 .wh-inv-scroll-strip {
   scrollbar-width: thin;
-  scrollbar-color: rgba(162, 30, 229, 0.3) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.wh-inv-scroll-strip:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.wh-inv-scroll-strip::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+.wh-inv-scroll-strip::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.wh-inv-scroll-strip::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.wh-inv-scroll-strip:hover::-webkit-scrollbar-thumb,
+.wh-inv-scroll-strip::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.wh-inv-scroll-strip::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+:deep(.v-theme--dark) .wh-inv-scroll-strip,
+.v-theme--dark .wh-inv-scroll-strip {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+:deep(.v-theme--dark) .wh-inv-scroll-strip:hover,
+.v-theme--dark .wh-inv-scroll-strip:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+:deep(.v-theme--dark) .wh-inv-scroll-strip::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-inv-scroll-strip::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+:deep(.v-theme--dark) .wh-inv-scroll-strip:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .wh-inv-scroll-strip:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+:deep(.v-theme--dark) .wh-inv-scroll-strip::-webkit-scrollbar-thumb:active,
+.v-theme--dark .wh-inv-scroll-strip::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .wh-inv-pill-card {

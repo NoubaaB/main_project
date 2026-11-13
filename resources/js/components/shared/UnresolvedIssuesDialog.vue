@@ -184,7 +184,7 @@
         </div>
 
         <!-- Dialog Scrollable Body -->
-        <v-card-text class="pa-5" style="max-height: 580px; overflow-y: auto;">
+        <v-card-text class="pa-5 ri-dialog-body-scroll" style="max-height: 580px; overflow-y: auto;">
           <!-- Skeleton Loading -->
           <div v-if="recordIssues.loading" class="d-flex flex-column ga-3">
             <div
@@ -625,5 +625,52 @@ export default {
 .ri-issue-description {
   background: rgba(128, 128, 128, 0.05);
   border-left: 3px solid #E53935;
+}
+
+/* Sleek Scrollbar matching Navigation Drawer */
+.ri-dialog-body-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.ri-dialog-body-scroll:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.ri-dialog-body-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.ri-dialog-body-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.ri-dialog-body-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.ri-dialog-body-scroll:hover::-webkit-scrollbar-thumb,
+.ri-dialog-body-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.ri-dialog-body-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+:deep(.v-theme--dark) .ri-dialog-body-scroll,
+.v-theme--dark .ri-dialog-body-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+:deep(.v-theme--dark) .ri-dialog-body-scroll:hover,
+.v-theme--dark .ri-dialog-body-scroll:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+:deep(.v-theme--dark) .ri-dialog-body-scroll::-webkit-scrollbar-thumb,
+.v-theme--dark .ri-dialog-body-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+:deep(.v-theme--dark) .ri-dialog-body-scroll:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .ri-dialog-body-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+:deep(.v-theme--dark) .ri-dialog-body-scroll::-webkit-scrollbar-thumb:active,
+.v-theme--dark .ri-dialog-body-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
 }
 </style>

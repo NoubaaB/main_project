@@ -1992,14 +1992,20 @@ export default {
   width: 4px;
 }
 .ai-chat-messages::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }
 .ai-chat-messages::-webkit-scrollbar-thumb {
   background: var(--ai-body-scroll-thumb);
-  border-radius: 10px;
+  border-radius: 999px;
+  transition: background 0.2s ease;
 }
+.ai-chat-messages:hover::-webkit-scrollbar-thumb,
 .ai-chat-messages::-webkit-scrollbar-thumb:hover {
   background: var(--ai-body-scroll-thumb-hover);
+}
+.ai-chat-messages::-webkit-scrollbar-thumb:active {
+  background: var(--ai-body-scroll-thumb-hover);
+  opacity: 0.9;
 }
 
 /* ---------- Message Row ---------- */

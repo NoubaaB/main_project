@@ -2063,9 +2063,27 @@ export default {
   max-height: 380px;
   overflow-y: auto;
   padding: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--v-theme-on-surface), 0.12) transparent;
+
+  &:hover {
+    scrollbar-color: rgba(var(--v-theme-on-surface), 0.32) transparent;
+  }
 }
 .notif-list::-webkit-scrollbar { width: 4px; }
-.notif-list::-webkit-scrollbar-thumb { background: rgba(var(--v-theme-on-surface), .15); border-radius: 4px; }
+.notif-list::-webkit-scrollbar-track { background: transparent !important; }
+.notif-list::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.notif-list:hover::-webkit-scrollbar-thumb,
+.notif-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.32);
+}
+.notif-list::-webkit-scrollbar-thumb:active {
+  background: rgba(var(--v-theme-on-surface), 0.55);
+}
 
 .notif-item {
   display: flex;

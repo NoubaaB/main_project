@@ -286,5 +286,51 @@ export default {
 .col-drag-handle:active {
   cursor: grabbing;
 }
+
+.table-col-manager-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.table-col-manager-list:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.table-col-manager-list::-webkit-scrollbar {
+  width: 4px;
+}
+.table-col-manager-list::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.table-col-manager-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.table-col-manager-list:hover::-webkit-scrollbar-thumb,
+.table-col-manager-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+.table-col-manager-list::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55);
+}
+:deep(.v-theme--dark) .table-col-manager-list,
+.v-theme--dark .table-col-manager-list {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+:deep(.v-theme--dark) .table-col-manager-list:hover,
+.v-theme--dark .table-col-manager-list:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+:deep(.v-theme--dark) .table-col-manager-list::-webkit-scrollbar-thumb,
+.v-theme--dark .table-col-manager-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+:deep(.v-theme--dark) .table-col-manager-list:hover::-webkit-scrollbar-thumb,
+.v-theme--dark .table-col-manager-list:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.32);
+}
+:deep(.v-theme--dark) .table-col-manager-list::-webkit-scrollbar-thumb:active,
+.v-theme--dark .table-col-manager-list::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
+}
 </style>
 

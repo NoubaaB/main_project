@@ -4772,20 +4772,63 @@ th.has-filter-active {
   color: inherit !important;
 }
 
-/* Scrollbar refinement */
+/* Scrollbar refinement - Matching Navigation Drawer */
+.wh-table-wrap {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent !important;
+}
+.wh-table-wrap:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent !important;
+}
 .wh-table-wrap::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  height: 4px !important;
+  width: 4px !important;
+}
+.wh-table-wrap::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 .wh-table-wrap::-webkit-scrollbar-track {
-  background: rgba(162, 30, 229, 0.04);
+  background: transparent !important;
+  margin: 2px !important;
+}
+.wh-table-wrap::-webkit-scrollbar-corner {
+  background: transparent !important;
 }
 .wh-table-wrap::-webkit-scrollbar-thumb {
-  background: rgba(162, 30, 229, 0.25);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
 }
+.wh-table-wrap:hover::-webkit-scrollbar-thumb,
 .wh-table-wrap::-webkit-scrollbar-thumb:hover {
-  background: rgba(162, 30, 229, 0.45);
+  background: rgba(0, 0, 0, 0.32) !important;
+}
+.wh-table-wrap::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.55) !important;
+}
+
+:deep(.v-theme--dark) .wh-table-wrap,
+.v-theme--dark .wh-table-wrap {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent !important;
+
+  &:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.32) transparent !important;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  &:hover::-webkit-scrollbar-thumb,
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.32) !important;
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.55) !important;
+  }
 }
 
 /* 3-Stage Traceability Workflow Styling */

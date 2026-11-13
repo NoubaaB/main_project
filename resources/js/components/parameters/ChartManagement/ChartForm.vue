@@ -1480,14 +1480,32 @@ export default {
   padding: 8px 12px;
   overflow-x: auto;
   scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
   -webkit-overflow-scrolling: touch;
-}
-.stepper-nav-bar::-webkit-scrollbar {
-  height: 4px;
-}
-.stepper-nav-bar::-webkit-scrollbar-thumb {
-  background: rgba(13, 148, 136, 0.25);
-  border-radius: 4px;
+
+  &:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+  }
+
+  &::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 999px;
+    transition: background 0.2s ease;
+  }
+  &:hover::-webkit-scrollbar-thumb,
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.32);
+  }
+  &::-webkit-scrollbar-thumb:active {
+    background: rgba(0, 0, 0, 0.55);
+  }
 }
 .stepper-track {
   min-width: 560px;
