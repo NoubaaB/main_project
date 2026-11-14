@@ -119,6 +119,24 @@ export const useMain = defineStore("main", {
             this.lang = lang;
             this.fetchAppVersion();
         },
+        toggleTheme: function () {
+            if (typeof document !== 'undefined') {
+                document.documentElement.classList.add('theme-switching');
+            }
+            this.is_dark = !this.is_dark;
+            const theme = this.is_dark ? "dark" : "light";
+            try {
+                localStorage.setItem("theme", theme);
+            } catch (e) {}
+
+            if (typeof window !== 'undefined') {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        document.documentElement.classList.remove('theme-switching');
+                    });
+                });
+            }
+        },
         fetchAppVersion: async function () {
             try {
                 const res = await axios.get('/api/version');

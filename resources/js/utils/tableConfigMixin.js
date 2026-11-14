@@ -121,8 +121,7 @@ export default {
       return count;
     },
     headerPinStyles() {
-      const isDark = Boolean(this.isDarkTheme ?? this.main?.is_dark);
-      const bg = isDark ? '#1e293b' : '#ffffff';
+      const bg = 'var(--table-pin-bg, #ffffff)';
       const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 92;
       const headers = this.headers || [];
       const pinState = this.pinState || {};
@@ -143,7 +142,7 @@ export default {
           width: '50px',
           minWidth: '50px',
           maxWidth: '50px',
-          boxShadow: !hasExpand && !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          boxShadow: !hasExpand && !lastLeftKey ? 'var(--table-pin-shadow-left, 3px 0 6px -2px rgba(0, 0, 0, 0.12))' : 'none',
         },
         expand: {
           position: 'sticky',
@@ -153,7 +152,7 @@ export default {
           width: '40px',
           minWidth: '40px',
           maxWidth: '40px',
-          boxShadow: !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          boxShadow: !lastLeftKey ? 'var(--table-pin-shadow-left, 3px 0 6px -2px rgba(0, 0, 0, 0.12))' : 'none',
         },
         actions: {
           position: 'sticky',
@@ -162,7 +161,7 @@ export default {
           background: bg,
           width: actionsW + 'px',
           minWidth: actionsW + 'px',
-          boxShadow: !firstRightKey ? `-3px 0 8px -2px rgba(0, 0, 0, ${isDark ? '0.45' : '0.12'})` : 'none',
+          boxShadow: !firstRightKey ? 'var(--table-pin-shadow-right, -3px 0 8px -2px rgba(0, 0, 0, 0.12))' : 'none',
         },
       };
 
@@ -182,7 +181,7 @@ export default {
             width: w + 'px',
             minWidth: w + 'px',
             maxWidth: w + 'px',
-            boxShadow: key === lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+            boxShadow: key === lastLeftKey ? 'var(--table-pin-shadow-left, 3px 0 6px -2px rgba(0, 0, 0, 0.12))' : 'none',
           };
           leftOffset += w;
         } else if (!side) {
@@ -210,7 +209,7 @@ export default {
             width: w + 'px',
             minWidth: w + 'px',
             maxWidth: w + 'px',
-            boxShadow: key === firstRightKey ? '-3px 0 8px -2px rgba(0, 0, 0, 0.12)' : 'none',
+            boxShadow: key === firstRightKey ? 'var(--table-pin-shadow-right, -3px 0 8px -2px rgba(0, 0, 0, 0.12))' : 'none',
           };
           rightOffset += w;
         }
@@ -219,8 +218,7 @@ export default {
       return styles;
     },
     thPinStyles() {
-      const isDark = Boolean(this.isDarkTheme ?? this.main?.is_dark);
-      const thBg = isDark ? '#1e293b' : '#f8fafc';
+      const thBg = 'var(--table-pin-th-bg, #f8fafc)';
       const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 92;
       const headers = this.headers || [];
       const pinState = this.pinState || {};
@@ -242,7 +240,7 @@ export default {
           width: '50px',
           minWidth: '50px',
           maxWidth: '50px',
-          boxShadow: !hasExpand && !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          boxShadow: !hasExpand && !lastLeftKey ? 'var(--table-pin-shadow-left, 3px 0 6px -2px rgba(0, 0, 0, 0.12))' : 'none',
         },
         expand: {
           position: 'sticky',
@@ -253,7 +251,7 @@ export default {
           width: '40px',
           minWidth: '40px',
           maxWidth: '40px',
-          boxShadow: !lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+          boxShadow: !lastLeftKey ? 'var(--table-pin-shadow-left, 3px 0 6px -2px rgba(0, 0, 0, 0.12))' : 'none',
         },
         actions: {
           position: 'sticky',
@@ -263,7 +261,7 @@ export default {
           background: thBg,
           width: actionsW + 'px',
           minWidth: actionsW + 'px',
-          boxShadow: !firstRightKey ? `-3px 0 8px -2px rgba(0, 0, 0, ${isDark ? '0.45' : '0.12'})` : 'none',
+          boxShadow: !firstRightKey ? 'var(--table-pin-shadow-right, -3px 0 8px -2px rgba(0, 0, 0, 0.12))' : 'none',
         },
       };
 
@@ -284,7 +282,7 @@ export default {
             width: w + 'px',
             minWidth: w + 'px',
             maxWidth: w + 'px',
-            boxShadow: key === lastLeftKey ? '3px 0 6px -2px rgba(0, 0, 0, 0.12)' : 'none',
+            boxShadow: key === lastLeftKey ? 'var(--table-pin-shadow-left, 3px 0 6px -2px rgba(0, 0, 0, 0.12))' : 'none',
           };
           leftOffset += w;
         } else if (!side) {
@@ -317,7 +315,7 @@ export default {
             width: w + 'px',
             minWidth: w + 'px',
             maxWidth: w + 'px',
-            boxShadow: key === firstRightKey ? '-3px 0 8px -2px rgba(0, 0, 0, 0.12)' : 'none',
+            boxShadow: key === firstRightKey ? 'var(--table-pin-shadow-right, -3px 0 8px -2px rgba(0, 0, 0, 0.12))' : 'none',
           };
           rightOffset += w;
         }

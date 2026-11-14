@@ -44,6 +44,14 @@ export default {
         immediate: true,
         handler(value) {
           const theme = value ? "dark" : "light";
+          if (typeof document !== 'undefined' && !document.documentElement.classList.contains('theme-switching')) {
+            document.documentElement.classList.add('theme-switching');
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                document.documentElement.classList.remove('theme-switching');
+              });
+            });
+          }
           if (this.$vuetify?.theme?.change) {
             this.$vuetify.theme.change(theme);
           } else if (this.$vuetify?.theme?.global) {

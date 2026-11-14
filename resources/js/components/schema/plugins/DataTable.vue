@@ -1078,9 +1078,6 @@ export default {
         this.$nextTick(() => this.syncHeaderOrder())
       }
     },
-    "main.is_dark": function () {
-      this.computePinnedCss();
-    },
     date: {
       deep: true,
       handler (d) {
@@ -1498,12 +1495,11 @@ export default {
         const rect = th.getBoundingClientRect()
         return Math.max(1, Math.round(rect.width || th.offsetWidth || 0))
       })
-      const isDark = !!(this.main && this.main.is_dark)
-      const headerBg = isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'
-      const bodyBg = isDark ? 'rgba(33,33,33,1)' : '#f9f9fa'
-      const selectBg = isDark ? 'rgba(255,255,255,0.04)' : '#f1f1f1'
-      const headerShadow = isDark ? '2px 0 12px rgba(0,0,0,0.6)' : '2px 0 8px rgba(0,0,0,0.06)'
-      const bodyShadow = isDark ? '1px 0 8px rgba(0,0,0,0.45)' : '1px 0 6px rgba(0,0,0,0.03)'
+      const headerBg = 'var(--table-pinned-header-bg, #ffffff)'
+      const bodyBg = 'var(--table-pinned-body-bg, #f9f9fa)'
+      const selectBg = 'var(--table-pinned-select-bg, #f1f1f1)'
+      const headerShadow = 'var(--table-pinned-header-shadow, 2px 0 8px rgba(0,0,0,0.06))'
+      const bodyShadow = 'var(--table-pinned-body-shadow, 1px 0 6px rgba(0,0,0,0.03))'
 
       const visibleKeys = this.orderedVisibleHeaders.map(h => h.key)
 

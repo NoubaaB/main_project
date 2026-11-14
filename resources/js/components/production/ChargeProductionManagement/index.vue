@@ -165,7 +165,7 @@ import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
 export default {
   ...script,
   components: { ...script.components, TableColumnFilter },
-  methods:{...script.methods,colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg=this.main?.is_dark?'#1c1f28':'#F5F5F5';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=this.headers[i]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
+  methods:{...script.methods,colPinStyle(key,z){const side=this.pinSide(key);if(!side)return{};const bg='var(--table-pin-bg, #ffffff)';if(side==='left')return{position:'sticky',left:this.getPinLeft(key)+'px',zIndex:z,background:bg};return{position:'sticky',right:this.getPinRight(key)+'px',zIndex:z,background:bg};},measureColWidths(){this.$nextTick(()=>{const ths=this.$refs.tableWrap?.querySelectorAll('thead th');if(!ths)return;const w={};ths.forEach((th,i)=>{const key=this.headers[i]?.key;if(key)w[key]=th.offsetWidth});this.colWidths=w})}},
   watch:{...script.watch,headers(){this.measureColWidths()},pinState:{handler(){this.measureColWidths()},deep:true}},
   mounted(){script.mounted.call(this);this.$nextTick(()=>this.measureColWidths())},
   beforeUnmount(){if(script.beforeUnmount)script.beforeUnmount.call(this)},

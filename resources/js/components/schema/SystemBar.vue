@@ -72,7 +72,6 @@
             v-model="navHistory.historyMenuOpen"
             transition="scale-transition"
             :close-on-content-click="false"
-            :theme="main.is_dark ? 'dark' : 'light'"
             offset="8"
             location="bottom start"
           >
@@ -340,7 +339,6 @@
         <v-menu
           v-if="currentContext && currentContext.siblings && currentContext.siblings.length"
           transition="scale-transition"
-          :theme="main.is_dark ? 'dark' : 'light'"
           offset="6"
         >
           <template v-slot:activator="{ props }">
@@ -455,7 +453,6 @@
           <v-menu
             transition="scale-transition"
             :close-on-content-click="false"
-            :theme="main.is_dark ? 'dark' : 'light'"
             v-if="auth.is_auth"
             offset="8"
           >
@@ -525,7 +522,6 @@
           <v-menu
             transition="scale-transition"
             :close-on-content-click="false"
-            :theme="main.is_dark ? 'dark' : 'light'"
             v-if="auth.is_auth"
             v-model="issuesMenuOpen"
             offset="8"
@@ -708,7 +704,6 @@
           <v-menu
             transition="scale-transition"
             :close-on-content-click="false"
-            :theme="main.is_dark ? 'dark' : 'light'"
             v-if="auth.is_auth"
             v-model="notifMenuOpen"
             offset="8"
@@ -893,7 +888,6 @@
           <v-menu
             transition="scale-transition"
             :close-on-content-click="true"
-            :theme="main.is_dark ? 'dark' : 'light'"
             offset="8"
           >
             <template v-slot:activator="{ props }">
@@ -949,7 +943,7 @@
             size="32"
             class="dock-btn theme-toggle-btn"
             :class="main.is_dark ? 'text-amber' : 'text-indigo-darken-1'"
-            @click="main.is_dark = !main.is_dark"
+            @click="main.toggleTheme()"
           >
             <v-icon size="18" :class="{ 'theme-icon-rotate': main.is_dark }">
               {{ main.is_dark ? 'mdi-white-balance-sunny' : 'mdi-weather-night' }}
@@ -980,7 +974,6 @@
           <v-menu
             v-if="auth.is_auth"
             transition="scale-transition"
-            :theme="main.is_dark ? 'dark' : 'light'"
             offset="8"
           >
             <template v-slot:activator="{ props }">

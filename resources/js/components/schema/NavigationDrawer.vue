@@ -7,7 +7,6 @@
     :rail="main.sidebar_mini"
     :rail-width="70"
     :width="272"
-    :theme="main.is_dark ? 'dark' : 'light'"
     class="pro-nav-drawer"
     :class="[
       main.is_dark ? 'drawer-theme-dark' : 'drawer-theme-light',
@@ -60,7 +59,7 @@
 
         <!-- In-Drawer Toggle Button (Visible when expanded) -->
         <button
-          v-if="!main.sidebar_mini"
+          v-show="!main.sidebar_mini"
           type="button"
           class="pro-collapse-btn ml-auto"
           @click.stop="toggleSidebar"
@@ -72,13 +71,12 @@
 
       <!-- Rail Tooltip for Brand -->
       <v-tooltip
-        v-if="main.sidebar_mini"
+        :disabled="!main.sidebar_mini"
         activator="parent"
         location="end"
         offset="14"
         :open-delay="50"
         :close-delay="100"
-        :theme="main.is_dark ? 'dark' : 'light'"
         :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
       >
         <div class="pro-single-tooltip-card">
@@ -114,7 +112,7 @@
          ============================================================ -->
     <div class="pro-search-area">
       <!-- Expanded Search Input -->
-      <div v-if="!main.sidebar_mini" class="pro-search-input-wrap">
+      <div v-show="!main.sidebar_mini" class="pro-search-input-wrap">
         <v-text-field
           v-model="filterQuery"
           :placeholder="t('filter_menu')"
@@ -130,7 +128,7 @@
       </div>
 
       <!-- Rail Search Icon Button -->
-      <div v-else class="pro-rail-search-box">
+      <div v-show="main.sidebar_mini" class="pro-rail-search-box">
         <button
           type="button"
           class="pro-rail-search-btn"
@@ -138,12 +136,12 @@
         >
           <v-icon size="17">mdi-magnify</v-icon>
           <v-tooltip
+            :disabled="!main.sidebar_mini"
             activator="parent"
             location="end"
             offset="14"
             :open-delay="50"
             :close-delay="100"
-            :theme="main.is_dark ? 'dark' : 'light'"
             :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
           >
             <div class="pro-single-tooltip-card">
@@ -218,13 +216,12 @@
 
               <!-- Rail Tooltip for AI Prompt -->
               <v-tooltip
-                v-if="main.sidebar_mini"
+                :disabled="!main.sidebar_mini"
                 activator="parent"
                 location="end"
                 offset="14"
                 :open-delay="50"
                 :close-delay="100"
-                :theme="main.is_dark ? 'dark' : 'light'"
                 :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
               >
                 <div class="pro-single-tooltip-card">
@@ -292,13 +289,12 @@
 
               <!-- Rail Tooltip for Single Leaf Nav Link -->
               <v-tooltip
-                v-if="main.sidebar_mini"
+                :disabled="!main.sidebar_mini"
                 activator="parent"
                 location="end"
                 offset="14"
                 :open-delay="50"
                 :close-delay="100"
-                :theme="main.is_dark ? 'dark' : 'light'"
                 :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
               >
                 <div class="pro-single-tooltip-card">
@@ -383,13 +379,12 @@
 
                 <!-- Rail Tooltip: Detail of all sub-navs with original icons & theme colors -->
                 <v-tooltip
-                  v-if="main.sidebar_mini"
+                  :disabled="!main.sidebar_mini"
                   activator="parent"
                   location="end"
                   offset="14"
                   :open-delay="60"
                   :close-delay="150"
-                  :theme="main.is_dark ? 'dark' : 'light'"
                   :content-class="['pro-nav-tooltip', 'pro-nav-group-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
                 >
                   <div class="pro-group-tooltip-card">
@@ -501,7 +496,7 @@
 
               <!-- Rail Mode Mini Sub-navs Column (Visible only in rail mode when group is expanded) -->
               <div
-                v-if="main.sidebar_mini && isGroupExpanded(item.id)"
+                v-show="main.sidebar_mini && isGroupExpanded(item.id)"
                 class="pro-rail-subnavs-col"
               >
                 <div
@@ -525,12 +520,12 @@
 
                   <!-- Individual Sub-Nav Tooltip in Rail Mode -->
                   <v-tooltip
+                    :disabled="!main.sidebar_mini"
                     activator="parent"
                     location="end"
                     offset="14"
                     :open-delay="50"
                     :close-delay="100"
-                    :theme="main.is_dark ? 'dark' : 'light'"
                     :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
                   >
                     <div class="pro-subnav-tooltip-card">
@@ -627,7 +622,7 @@
           <span class="pro-user-role">{{ userRole }} • <strong class="pro-footer-version">v{{ main.app_version }}</strong></span>
         </div>
 
-        <div v-if="!main.sidebar_mini" class="pro-footer-actions ml-auto">
+        <div v-show="!main.sidebar_mini" class="pro-footer-actions ml-auto">
           <button
             type="button"
             class="pro-footer-action-btn"
@@ -648,13 +643,12 @@
 
         <!-- Rail Tooltip for Profile -->
         <v-tooltip
-          v-if="main.sidebar_mini"
+          :disabled="!main.sidebar_mini"
           activator="parent"
           location="top"
           offset="14"
           :open-delay="50"
           :close-delay="100"
-          :theme="main.is_dark ? 'dark' : 'light'"
           :content-class="['pro-nav-tooltip', 'pro-nav-single-tooltip', main.is_dark ? 'pro-nav-tooltip--dark' : 'pro-nav-tooltip--light']"
         >
           <div class="pro-single-tooltip-card">
@@ -1063,32 +1057,16 @@ export default {
       if (this.main.sidebar_mini) return;
 
       const target = event.target;
-      if (!target) return;
+      if (!target || !(target instanceof Element)) return;
 
-      // 1. Direct ref or root element check
-      const drawerEl = this.$refs.drawerRoot?.$el || this.$el;
-      if (drawerEl && (drawerEl === target || drawerEl.contains(target))) {
+      // Fast check: if target is inside drawer, systembar toggle button, or tooltip/overlay, don't collapse
+      if (target.closest('.pro-nav-drawer, .systembar-nav-toggle-btn, .pro-nav-tooltip, .v-overlay')) {
         return;
       }
 
-      // 2. Composed path check (supports deep shadow DOM and portals)
-      if (typeof event.composedPath === 'function') {
-        const path = event.composedPath();
-        if (drawerEl && path.includes(drawerEl)) return;
-        if (path.some(el => el && el.classList && (
-          el.classList.contains('pro-nav-drawer') ||
-          el.classList.contains('systembar-nav-toggle-btn') ||
-          el.classList.contains('pro-nav-tooltip')
-        ))) {
-          return;
-        }
-      }
-
-      // 3. Class-based element ancestry fallback
-      if (target.closest) {
-        if (target.closest('.pro-nav-drawer')) return;
-        if (target.closest('.systembar-nav-toggle-btn')) return;
-        if (target.closest('.pro-nav-tooltip')) return;
+      const drawerEl = this.$refs.drawerRoot?.$el || this.$el;
+      if (drawerEl && (drawerEl === target || drawerEl.contains(target))) {
+        return;
       }
 
       // Outside click detected -> collapse/close navigation drawer
@@ -1440,6 +1418,10 @@ export default {
   user-select: none;
   z-index: 1001 !important;
   will-change: width;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition: width 0.28s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.2s ease, border-color 0.2s ease !important;
+  overflow-x: hidden !important;
 }
 
 /* ── Dark Theme Surfaces ── */
@@ -1460,7 +1442,7 @@ export default {
  * 1. HEADER & BRAND
  * ========================================================================= */
 .pro-header-area {
-  padding: 14px 12px 10px;
+  padding: 14px 11px 10px;
   position: relative;
 }
 
@@ -1606,7 +1588,7 @@ export default {
  * 2. SEARCH AREA
  * ========================================================================= */
 .pro-search-area {
-  padding: 0 12px 6px;
+  padding: 0 11px 6px;
 }
 .pro-search-input-wrap {
   width: 100%;
@@ -1651,7 +1633,7 @@ export default {
  * 3. NAVIGATION LIST (Scroll Area)
  * ========================================================================= */
 .pro-nav-scroll-area {
-  padding: 4px 8px 75px;
+  padding: 4px 11px 75px;
   overflow-y: auto;
   overflow-x: hidden;
   height: calc(100% - 150px);
@@ -1967,7 +1949,7 @@ export default {
  * 4. USER PROFILE & FOOTER
  * ========================================================================= */
 .pro-footer-area {
-  padding: 8px 8px 10px;
+  padding: 8px 11px 10px;
   position: absolute;
   bottom: 0;
   left: 0;
@@ -2069,13 +2051,25 @@ export default {
  * ========================================================================= */
 .drawer-is-rail {
   cursor: pointer;
-  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .drawer-is-rail:hover {
   box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
 }
 .drawer-theme-dark.drawer-is-rail:hover {
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35);
+}
+
+.pro-brand-text-block,
+.pro-collapse-btn,
+.pro-item-label-wrap,
+.pro-subnav-accordion,
+.pro-user-info-wrap,
+.pro-footer-actions,
+.pro-section-title {
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
+  transition: opacity 0.22s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .drawer-is-rail .pro-brand-text-block,
@@ -2086,12 +2080,26 @@ export default {
 .drawer-is-rail .pro-footer-actions,
 .drawer-is-rail .pro-section-title {
   opacity: 0 !important;
-  transform: translateX(-6px) !important;
+  transform: translateX(-8px) !important;
   pointer-events: none !important;
   max-width: 0 !important;
   overflow: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
+  visibility: hidden;
+}
+
+.drawer-is-expanded .pro-brand-text-block,
+.drawer-is-expanded .pro-collapse-btn,
+.drawer-is-expanded .pro-item-label-wrap,
+.drawer-is-expanded .pro-subnav-accordion,
+.drawer-is-expanded .pro-user-info-wrap,
+.drawer-is-expanded .pro-footer-actions,
+.drawer-is-expanded .pro-section-title {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .drawer-is-rail .pro-section-header {
@@ -2100,19 +2108,6 @@ export default {
 }
 .drawer-is-rail .pro-rail-micro-separator {
   display: block !important;
-}
-
-.drawer-is-rail .pro-nav-item {
-  justify-content: center;
-  padding: 0;
-}
-.drawer-is-rail .pro-user-row {
-  justify-content: center;
-  padding: 6px 0;
-}
-.drawer-is-rail .pro-brand-row {
-  justify-content: center;
-  padding: 4px 0;
 }
 
 /* ── Rail Subnavs Column (Mini icons under expanded group in rail mode) ── */
