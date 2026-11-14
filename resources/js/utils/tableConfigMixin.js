@@ -79,11 +79,40 @@ export default {
         currency: 100,
         _beneficiaries: 200,
         motif: 220,
+        // Warehouse Stock Par Lot
+        lot_number: 205,
+        status: 145,
+        supplier: 220,
+        chamber: 155,
+        species: 215,
+        rem_weight: 195,
+        boxes: 130,
+        valuation: 185,
         actions: this.getActionsColWidth(),
       };
     },
     allToggleableColumns() {
       return (this.allHeaders || []).filter(h => !h.fixed);
+    },
+    headers() {
+      const all = this.allHeaders || [];
+      const hiddenSet = new Set(this.hiddenColumns || []);
+      if (!this.columnOrder) {
+        return all.filter(h => h.fixed || !hiddenSet.has(h.key));
+      }
+      const map = Object.fromEntries(all.map(h => [h.key, h]));
+      const fixed = all.filter(h => h.fixed);
+      const ordered = this.columnOrder
+        .filter(k => map[k] && !map[k].fixed && !hiddenSet.has(k))
+        .map(k => map[k]);
+      const pinState = this.pinState || {};
+      return [
+        fixed[0],
+        ...ordered.filter(h => pinState[h.key] === 'left'),
+        ...ordered.filter(h => !pinState[h.key]),
+        ...ordered.filter(h => pinState[h.key] === 'right'),
+        fixed[fixed.length - 1],
+      ].filter(Boolean);
     },
     hasLeftPinnedColumns() {
       return (this.headers || []).some(h => !h.fixed && this.pinState && this.pinState[h.key] === 'left');
@@ -566,6 +595,7 @@ export default {
       this.exportTableToCsv(null, items);
     },
     getActionsColWidth() {
+      if (this.tableModuleKey === 'warehouse') return 115;
       return 92;
     },
     getDefaultColWidth(key) {

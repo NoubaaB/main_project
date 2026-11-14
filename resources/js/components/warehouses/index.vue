@@ -296,12 +296,20 @@
 
           <!-- Table Controls: Expand/Collapse All & Density & Reset -->
           <div class="d-flex align-center ga-2 flex-wrap">
+            <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-medium">
+              {{ filteredLots.length }} / {{ lotsPagination.total || lots.length }} {{ $t('records') }}
+            </v-chip>
+
+            <v-divider vertical class="mx-1 my-1" style="height: 22px;"></v-divider>
+
+            <!-- Expand / Collapse All Details Button -->
             <v-btn
               size="small"
               variant="tonal"
-              color="#a21ee5"
+              :color="isAllLotsExpanded ? 'warning' : '#a21ee5'"
               rounded="lg"
               class="font-weight-bold"
+              :title="isAllLotsExpanded ? tLabel('collapse_all', 'Tout Replier') : tLabel('expand_all', 'Tout Déplier')"
               @click="toggleExpandAllLots"
             >
               <v-icon size="15" class="mr-1">{{ isAllLotsExpanded ? 'mdi-arrow-collapse-vertical' : 'mdi-arrow-expand-vertical' }}</v-icon>
@@ -315,6 +323,78 @@
               />
             </v-btn>
 
+            <!-- Columns Manager -->
+            <TableColumnManager
+              :columns="configColumns"
+              :color="moduleColor"
+              :hidden-columns="hiddenColumns"
+              :pin-state="pinState"
+              @toggle-visibility="toggleColumnVisibility"
+              @show-all="showAllColumns"
+              @hide-all="hideAllColumns"
+              @move-up="moveColumnUp"
+              @move-down="moveColumnDown"
+              @set-pin="setPin($event.key, $event.side)"
+              @reset="resetTableConfig"
+              @reorder="onColumnManagerReorder"
+            />
+
+            <!-- Export Menu (Excel & CSV) -->
+            <v-menu location="bottom end" :close-on-content-click="true">
+              <template #activator="{ props: expProps }">
+                <v-btn
+                  v-bind="expProps"
+                  variant="tonal"
+                  color="#4CAF50"
+                  size="small"
+                  rounded="lg"
+                  prepend-icon="mdi-file-export-outline"
+                  class="font-weight-medium"
+                >
+                  {{ $t('export') || 'Export' }}
+                  <v-icon end size="14">mdi-chevron-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+                <v-list-item prepend-icon="mdi-file-excel-outline" @click="exportTableToExcel()">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.xlsx)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item prepend-icon="mdi-file-delimited-outline" @click="exportTableToCsv()">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_all_filtered', { count: colFilteredItems.length }) }} (.csv)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-divider v-if="selected.length" class="my-1"></v-divider>
+                <v-list-item v-if="selected.length" prepend-icon="mdi-file-excel-outline" @click="exportSelectedToExcel">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_selected_only', { count: selected.length }) }} (.xlsx)
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item v-if="selected.length" prepend-icon="mdi-file-delimited-outline" @click="exportSelectedToCsv">
+                  <v-list-item-title class="text-caption font-weight-medium">
+                    {{ $t('export_selected_only', { count: selected.length }) }} (.csv)
+                  </v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+
+            <!-- Expand View Button -->
+            <v-btn
+              :variant="isExpandedView ? 'flat' : 'elevated'"
+              :color="isExpandedView ? 'warning' : '#a21ee5'"
+              rounded="lg"
+              size="small"
+              class="wh-filter-btn font-weight-bold"
+              :class="{ 'text-white': !isExpandedView }"
+              :prepend-icon="isExpandedView ? 'mdi-arrow-collapse-all' : 'mdi-arrow-expand-all'"
+              :title="isExpandedView ? $t('collapse_view') : $t('expand_view')"
+              @click="toggleExpandedView"
+            >
+              {{ isExpandedView ? $t('collapse_view') : $t('expand_view') }}
+            </v-btn>
+
             <!-- Reset Filters Button if Active -->
             <v-btn
               v-if="hasActiveFilters"
@@ -324,7 +404,7 @@
               rounded="lg"
               prepend-icon="mdi-filter-off"
               class="font-weight-bold"
-              @click="resetAllFilters"
+              @click="clearAllFilters"
             >
               {{ tLabel('reset_all_filters', 'Réinitialiser') }}
               <v-badge :content="activeFilterCount" color="warning" inline class="ml-1" />
@@ -467,25 +547,219 @@
         </div>
       </v-card>
 
-      <!-- Table Loading State: Realistic Skeleton Table -->
-      <div v-if="lotsLoading" class="wh-table-card rounded-2xl border bg-surface pa-4">
-        <div class="d-flex align-center justify-space-between mb-4">
-          <div class="skel-bone" style="width: 160px; height: 24px; border-radius: 999px;"></div>
-          <div class="skel-bone" style="width: 100px; height: 32px; border-radius: 8px;"></div>
-        </div>
-        <div v-for="sk in 6" :key="'lot-skel-' + sk" class="d-flex align-center ga-3 py-3 border-b">
-          <div class="skel-bone skel-circle" style="width: 24px; height: 24px;"></div>
-          <div class="skel-bone" style="width: 110px; height: 22px; border-radius: 999px;"></div>
-          <div class="skel-bone" style="width: 25%; height: 16px; border-radius: 4px;"></div>
-          <div class="skel-bone" style="width: 20%; height: 16px; border-radius: 4px;"></div>
-          <div class="skel-bone ml-auto" style="width: 15%; height: 16px; border-radius: 4px;"></div>
-        </div>
-      </div>
+      <!-- Table Container (Supports Normal Mode and Fullscreen Workspace Mode) -->
+      <div
+        class="wh-table-container"
+        :class="{
+          'wh-fullscreen-mode': isExpandedView,
+          ['density-' + (tableDensity || 'comfortable')]: true,
+        }"
+      >
+        <!-- Dedicated Command Bar when Fullscreen Workspace is Active -->
+        <div v-if="isExpandedView" class="wh-fullscreen-header mb-3 pa-2 px-3 rounded-xl border">
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+            <!-- Left: Module Brand & Live KPI Chips -->
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <div class="d-flex align-center ga-2 mr-1">
+                <v-avatar size="32" color="#a21ee5" variant="flat" rounded="lg">
+                  <v-icon size="18" color="white">mdi-warehouse</v-icon>
+                </v-avatar>
+                <div>
+                  <div class="text-caption font-weight-bold text-warehouse" style="line-height: 1.2;">{{ tLabel('warehouses', 'Entrepôts') }}</div>
+                  <div class="text-caption text-medium-emphasis" style="font-size: 10px !important;">{{ tLabel('expand_view', 'Plein Écran') }}</div>
+                </div>
+              </div>
 
-      <!-- REDESIGNED PRACTICAL & SPACIOUS DATA TABLE -->
-      <div v-else-if="lots.length" class="wh-table-card rounded-2xl border bg-surface overflow-hidden">
+              <v-chip size="small" variant="tonal" color="#a21ee5" class="font-weight-bold">
+                <v-icon start size="14">mdi-barcode-scan</v-icon>
+                {{ colFilteredItems.length }} / {{ lots.length }} {{ tLabel('lots', 'N° Suivi') }}
+              </v-chip>
+              <v-chip size="small" variant="tonal" color="#00897B" class="font-weight-bold">
+                <v-icon start size="14">mdi-scale</v-icon>
+                {{ main.formatDisplayNumber(pageFilteredWeight) }} Kg
+              </v-chip>
+              <v-chip size="small" variant="tonal" color="#6D4C41" class="font-weight-bold">
+                <v-icon start size="14">mdi-package-variant-closed</v-icon>
+                {{ main.formatDisplayNumber(pageFilteredBoxes) }} {{ tLabel('package_count', 'Cartons') }}
+              </v-chip>
+              <v-chip size="small" variant="tonal" color="#E65100" class="font-weight-bold">
+                <v-icon start size="14">mdi-cash-multiple</v-icon>
+                {{ main.formatDisplayNumber(pageFilteredValuation) }} {{ main.currency }}
+              </v-chip>
+            </div>
+
+            <!-- Right: Search, Density, Expand All, Columns Manager, Export & Exit -->
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <v-text-field
+                v-model="searchQuery"
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                clearable
+                color="#a21ee5"
+                prepend-inner-icon="mdi-magnify"
+                :placeholder="tLabel('search_lots_placeholder', 'Rechercher N° suivi, fournisseur...')"
+                style="min-width: 170px; max-width: 240px;"
+                @update:model-value="fetchStockParLot(true)"
+              ></v-text-field>
+
+              <!-- Table Density Selector -->
+              <div class="d-flex align-center border rounded-lg pa-0-5 bg-surface">
+                <v-btn
+                  size="x-small"
+                  icon
+                  :variant="tableDensity === 'comfortable' ? 'flat' : 'text'"
+                  :color="tableDensity === 'comfortable' ? '#a21ee5' : 'grey'"
+                  :title="tLabel('density_comfortable', 'Confortable')"
+                  @click="setTableDensity('comfortable')"
+                >
+                  <v-icon size="15">mdi-view-headline</v-icon>
+                </v-btn>
+                <v-btn
+                  size="x-small"
+                  icon
+                  :variant="tableDensity === 'compact' ? 'flat' : 'text'"
+                  :color="tableDensity === 'compact' ? '#a21ee5' : 'grey'"
+                  :title="tLabel('density_compact', 'Compact')"
+                  @click="setTableDensity('compact')"
+                >
+                  <v-icon size="15">mdi-view-agenda-outline</v-icon>
+                </v-btn>
+                <v-btn
+                  size="x-small"
+                  icon
+                  :variant="tableDensity === 'dense' ? 'flat' : 'text'"
+                  :color="tableDensity === 'dense' ? '#a21ee5' : 'grey'"
+                  :title="tLabel('density_dense', 'Dense')"
+                  @click="setTableDensity('dense')"
+                >
+                  <v-icon size="15">mdi-view-sequential-outline</v-icon>
+                </v-btn>
+              </div>
+
+              <!-- Expand / Collapse All Details -->
+              <v-btn
+                size="small"
+                variant="tonal"
+                :color="isAllExpanded ? 'warning' : '#a21ee5'"
+                rounded="lg"
+                :title="isAllExpanded ? tLabel('collapse_all', 'Tout Réduire') : tLabel('expand_all', 'Tout Développer')"
+                @click="toggleExpandAll"
+              >
+                <v-icon size="16">{{ isAllExpanded ? 'mdi-arrow-collapse-vertical' : 'mdi-arrow-expand-vertical' }}</v-icon>
+              </v-btn>
+
+              <!-- Column Visibility & Order Manager -->
+              <TableColumnManager
+                :columns="configColumns"
+                :color="moduleColor"
+                :hidden-columns="hiddenColumns"
+                :pin-state="pinState"
+                @toggle-visibility="toggleColumnVisibility"
+                @show-all="showAllColumns"
+                @hide-all="hideAllColumns"
+                @move-up="moveColumnUp"
+                @move-down="moveColumnDown"
+                @set-pin="setPin($event.key, $event.side)"
+                @reset="resetTableConfig"
+                @reorder="onColumnManagerReorder"
+              />
+
+              <!-- Export Menu -->
+              <v-menu location="bottom end" :close-on-content-click="true">
+                <template #activator="{ props: expProps }">
+                  <v-btn
+                    v-bind="expProps"
+                    variant="tonal"
+                    color="#4CAF50"
+                    size="small"
+                    rounded="lg"
+                    prepend-icon="mdi-file-export-outline"
+                    class="font-weight-medium"
+                  >
+                    {{ tLabel('export', 'Exporter') }}
+                    <v-icon end size="14">mdi-chevron-down</v-icon>
+                  </v-btn>
+                </template>
+                <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+                  <v-list-item prepend-icon="mdi-file-excel-outline" @click="exportTableToExcel()">
+                    <v-list-item-title class="text-caption font-weight-medium">
+                      {{ tLabel('export_all_filtered', 'Exporter tout filtré') }} ({{ colFilteredItems.length }}) (.xlsx)
+                    </v-list-item-title>
+                  </v-list-item>
+                  <v-list-item prepend-icon="mdi-file-delimited-outline" @click="exportTableToCsv()">
+                    <v-list-item-title class="text-caption font-weight-medium">
+                      {{ tLabel('export_all_filtered', 'Exporter tout filtré') }} ({{ colFilteredItems.length }}) (.csv)
+                    </v-list-item-title>
+                  </v-list-item>
+                  <v-divider v-if="selected.length" class="my-1"></v-divider>
+                  <v-list-item v-if="selected.length" prepend-icon="mdi-file-excel-outline" @click="exportSelectedToExcel">
+                    <v-list-item-title class="text-caption font-weight-medium">
+                      {{ tLabel('export_selected_only', 'Exporter sélection') }} ({{ selected.length }}) (.xlsx)
+                    </v-list-item-title>
+                  </v-list-item>
+                  <v-list-item v-if="selected.length" prepend-icon="mdi-file-delimited-outline" @click="exportSelectedToCsv">
+                    <v-list-item-title class="text-caption font-weight-medium">
+                      {{ tLabel('export_selected_only', 'Exporter sélection') }} ({{ selected.length }}) (.csv)
+                    </v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+
+              <v-divider vertical class="mx-1 my-1" style="height: 22px;"></v-divider>
+
+              <!-- Exit Fullscreen Button -->
+              <v-btn
+                variant="flat"
+                color="error"
+                rounded="lg"
+                size="small"
+                prepend-icon="mdi-fullscreen-exit"
+                @click="exitExpandedView"
+                class="font-weight-bold text-white shadow-sm"
+              >
+                {{ tLabel('exit_expand_view', 'Quitter Plein Écran') }}
+                <v-chip size="x-small" color="white" variant="outlined" class="ml-1 font-weight-bold px-1" style="height: 18px; font-size: 10px;">ESC</v-chip>
+              </v-btn>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Multi-Sorts Strip -->
+        <div v-if="colSorts && colSorts.length > 0" class="wh-active-sorts-strip d-flex align-center flex-wrap ga-1 px-3 py-1 mb-2 rounded-lg">
+          <span class="text-caption font-weight-bold d-flex align-center ga-1 text-warehouse mr-1">
+            <v-icon size="14" color="#a21ee5">mdi-sort</v-icon>
+            {{ tLabel('sorted_by', 'Trié par') }}:
+          </span>
+          <v-chip
+            v-for="(s, sIdx) in colSorts"
+            :key="'sort_' + s.key"
+            size="x-small"
+            rounded="lg"
+            color="#a21ee5"
+            variant="flat"
+            closable
+            @click:close="removeColSort(s.key)"
+            @click="toggleMultiSort(s.key)"
+          >
+            <span class="font-weight-bold mr-1">{{ sIdx + 1 }}.</span>
+            <span>{{ getHeaderTitle(s.key) }}</span>
+            <v-icon end size="12">{{ s.dir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>
+          </v-chip>
+          <v-btn
+            size="x-small"
+            variant="text"
+            color="error"
+            class="ml-1 text-caption font-weight-medium"
+            @click="clearColSorts"
+          >
+            {{ tLabel('clear_sorts', 'Effacer les tris') }}
+          </v-btn>
+        </div>
+
         <!-- Active Multi-Column Filters Bar for Stock Par Lot -->
-        <div v-if="hasActiveLotColFilters" class="wh-active-filters-bar d-flex align-center justify-space-between flex-wrap ga-2 px-3 py-2 border-b bg-surface">
+        <div v-if="hasActiveLotColFilters" class="wh-active-filters-bar d-flex align-center justify-space-between flex-wrap ga-2 px-3 py-2 border-b bg-surface rounded-t-2xl">
           <div class="d-flex align-center ga-2 flex-wrap">
             <v-icon size="15" color="#a21ee5">mdi-filter-check</v-icon>
             <span class="text-caption font-weight-bold text-medium-emphasis">
@@ -518,477 +792,427 @@
           </v-btn>
         </div>
 
-        <div class="wh-table-wrap">
-          <table :class="['wh-modern-table wh-lot-main-table', 'density-' + tableDensity]">
-            <thead>
-              <tr>
-                <!-- 1. Expand Chevron column -->
-                <th style="width: 48px;" class="text-center"></th>
+        <div class="wh-table-card rounded-2xl border bg-surface overflow-hidden">
+          <div class="wh-table-wrap" ref="tableWrap">
+            <table :class="['wh-modern-table wh-lot-main-table', 'density-' + (tableDensity || 'comfortable')]">
+              <thead class="wh-thead">
+                <tr>
+                  <!-- Checkbox Column Pinned Left -->
+                  <th class="wh-th wh-th-pin text-center" :style="thPinStyles['__checkbox']">
+                    <v-checkbox-btn v-model="selectAll" color="#a21ee5" density="compact" hide-details></v-checkbox-btn>
+                  </th>
 
-                <!-- 2. Lot Number (Clickable Sort & Multi-Filter) -->
-                <th
-                  class="wh-sort-th text-left"
-                  :class="{ 'is-sorted': isSorted('lot'), 'has-filter-active': hasLotColFilter('lot_number') }"
-                  style="min-width: 205px;"
-                  :title="tLabel('click_to_sort', 'Cliquer pour trier')"
-                >
-                  <div class="d-flex align-center justify-space-between w-100 ga-1">
-                    <div class="d-flex align-center ga-2 cursor-pointer flex-grow-1" @click="onSortColumn('lot')">
-                      <v-icon size="15" color="#a21ee5">mdi-barcode-scan</v-icon>
-                      <span>{{ tLabel('lot_number', 'N° Suivi Réception') }}</span>
-                      <v-icon size="14">{{ getSortIcon('lot') }}</v-icon>
-                    </div>
-                    <TableColumnFilter
-                      v-model="lotColFilters.lot_number"
-                      :options="lotFilterOpts('lot_number')"
-                      :title="tLabel('lot_number', 'N° Suivi Réception')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      @click.stop
-                    />
-                  </div>
-                </th>
+                  <!-- Dynamic Headers Loop with Resize, Drag Reorder, Pinning & Sorting -->
+                  <th
+                    v-for="h in headers"
+                    :key="h.key"
+                    class="wh-th"
+                    :class="{
+                      'wh-th-pin': isPinned(h.key) || h.fixed,
+                      'wh-th-dragover': dragOverCol === h.key,
+                      'wh-th-actions': h.key === 'actions',
+                      'is-sorted': isSorted(h.key),
+                      'has-filter-active': hasLotColFilter(h.key)
+                    }"
+                    :style="thPinStyles[h.key]"
+                    :draggable="!h.fixed"
+                    @dragstart="onDragStart(h.key)"
+                    @dragover="onDragOver(h.key, $event)"
+                    @dragend="onDragEnd"
+                    @drop="onDragEnd"
+                  >
+                    <!-- Column Resizer Handle -->
+                    <div
+                      v-if="!h.fixed"
+                      class="wh-col-resizer"
+                      :class="{ 'wh-col-resizer-active': activeResizeCol === h.key }"
+                      @mousedown.stop.prevent="startColResize(h.key, $event)"
+                      :title="tLabel('resize_column', 'Redimensionner la colonne')"
+                    ></div>
 
-                <!-- 3. Status (Clickable Sort & Multi-Filter) -->
-                <th
-                  class="wh-sort-th text-center"
-                  :class="{ 'is-sorted': isSorted('status'), 'has-filter-active': hasLotColFilter('status') }"
-                  style="min-width: 145px;"
-                  :title="tLabel('click_to_sort', 'Cliquer pour trier')"
-                >
-                  <div class="d-flex align-center justify-center w-100 ga-1">
-                    <div class="d-flex align-center justify-center ga-2 cursor-pointer" @click="onSortColumn('status')">
-                      <v-icon size="14" color="#a21ee5">mdi-shield-check-outline</v-icon>
-                      <span>{{ tLabel('status', 'Statut') }}</span>
-                      <v-icon size="14">{{ getSortIcon('status') }}</v-icon>
-                    </div>
-                    <TableColumnFilter
-                      v-model="lotColFilters.status"
-                      :options="lotFilterOpts('status')"
-                      :title="tLabel('status', 'Statut')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      @click.stop
-                    />
-                  </div>
-                </th>
-
-                <!-- 4. Date & Age (Clickable Sort & Multi-Filter) -->
-                <th
-                  class="wh-sort-th text-center"
-                  :class="{ 'is-sorted': isSorted('date') || isSorted('age'), 'has-filter-active': hasLotColFilter('date') }"
-                  style="min-width: 165px;"
-                  :title="tLabel('click_to_sort', 'Cliquer pour trier')"
-                >
-                  <div class="d-flex align-center justify-center w-100 ga-1">
-                    <div class="d-flex align-center justify-center ga-2 cursor-pointer" @click="onSortColumn('date')">
-                      <v-icon size="14" color="#a21ee5">mdi-calendar-range</v-icon>
-                      <span>{{ tLabel('date', 'Réception') }} &amp; {{ tLabel('age_days', 'Âge') }}</span>
-                      <v-icon size="14">{{ getSortIcon('date') }}</v-icon>
-                    </div>
-                    <TableColumnFilter
-                      v-model="lotColFilters.date"
-                      :options="lotFilterOpts('date')"
-                      :title="tLabel('date', 'Date Réception')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      @click.stop
-                    />
-                  </div>
-                </th>
-
-                <!-- 5. Supplier & Vessel/Origin (Clickable Sort & Multi-Filter) -->
-                <th
-                  class="wh-sort-th text-left"
-                  :class="{ 'is-sorted': isSorted('supplier'), 'has-filter-active': hasLotColFilter('supplier') }"
-                  style="min-width: 220px;"
-                  :title="tLabel('click_to_sort', 'Cliquer pour trier')"
-                >
-                  <div class="d-flex align-center justify-space-between w-100 ga-1">
-                    <div class="d-flex align-center ga-2 cursor-pointer flex-grow-1" @click="onSortColumn('supplier')">
-                      <v-icon size="14" color="#a21ee5">mdi-domain</v-icon>
-                      <span>{{ tLabel('suppliers', 'Fournisseur') }} / {{ tLabel('boat_fishery', 'Bateau') }}</span>
-                      <v-icon size="14">{{ getSortIcon('supplier') }}</v-icon>
-                    </div>
-                    <TableColumnFilter
-                      v-model="lotColFilters.supplier"
-                      :options="lotFilterOpts('supplier')"
-                      :title="tLabel('suppliers', 'Fournisseur')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      @click.stop
-                    />
-                  </div>
-                </th>
-
-                <!-- 6. Chamber Location (Multi-Filter) -->
-                <th class="text-center" :class="{ 'has-filter-active': hasLotColFilter('chamber') }" style="min-width: 155px;">
-                  <div class="d-flex align-center justify-center w-100 ga-1">
-                    <div class="d-flex align-center justify-center ga-2">
-                      <v-icon size="14" color="#a21ee5">mdi-snowflake</v-icon>
-                      <span>{{ tLabel('chamber_location', 'Chambre Froide') }}</span>
-                    </div>
-                    <TableColumnFilter
-                      v-model="lotColFilters.chamber"
-                      :options="lotFilterOpts('chamber')"
-                      :title="tLabel('chamber_location', 'Chambre Froide')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      @click.stop
-                    />
-                  </div>
-                </th>
-
-                <!-- 7. Contained Species (Multi-Filter) -->
-                <th class="text-left" :class="{ 'has-filter-active': hasLotColFilter('species') }" style="min-width: 215px;">
-                  <div class="d-flex align-center justify-space-between w-100 ga-1">
-                    <div class="d-flex align-center ga-2">
-                      <v-icon size="14" color="#a21ee5">mdi-fish</v-icon>
-                      <span>{{ tLabel('contained_species', 'Espèces / Articles') }}</span>
-                    </div>
-                    <TableColumnFilter
-                      v-model="lotColFilters.species"
-                      :options="lotFilterOpts('species')"
-                      :title="tLabel('contained_species', 'Espèces / Articles')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      @click.stop
-                    />
-                  </div>
-                </th>
-
-                <!-- 8. Remaining Stock Balance (Clickable Sort & Multi-Filter) -->
-                <th
-                  class="wh-sort-th text-right"
-                  :class="{ 'is-sorted': isSorted('rem_weight'), 'has-filter-active': hasLotColFilter('rem_weight') }"
-                  style="min-width: 195px;"
-                  :title="tLabel('click_to_sort', 'Cliquer pour trier')"
-                >
-                  <div class="d-flex align-center justify-end w-100 ga-1">
-                    <TableColumnFilter
-                      v-model="lotColFilters.rem_weight"
-                      :options="lotFilterOpts('rem_weight')"
-                      :title="tLabel('remaining', 'Solde en Stock')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      class="mr-1"
-                      @click.stop
-                    />
-                    <div class="d-flex align-center ga-2 cursor-pointer" @click="onSortColumn('rem_weight')">
-                      <v-icon size="14" color="#a21ee5">mdi-scale</v-icon>
-                      <span>{{ tLabel('remaining', 'Solde en Stock') }} (Kg)</span>
-                      <v-icon size="14">{{ getSortIcon('rem_weight') }}</v-icon>
-                    </div>
-                  </div>
-                </th>
-
-                <!-- 9. Packages / Boxes (Clickable Sort & Multi-Filter) -->
-                <th
-                  class="wh-sort-th text-center"
-                  :class="{ 'is-sorted': isSorted('boxes'), 'has-filter-active': hasLotColFilter('boxes') }"
-                  style="min-width: 130px;"
-                  :title="tLabel('click_to_sort', 'Cliquer pour trier')"
-                >
-                  <div class="d-flex align-center justify-center w-100 ga-1">
-                    <div class="d-flex align-center justify-center ga-2 cursor-pointer" @click="onSortColumn('boxes')">
-                      <v-icon size="14" color="#a21ee5">mdi-package-variant-closed</v-icon>
-                      <span>{{ tLabel('package_count', 'Cartons') }}</span>
-                      <v-icon size="14">{{ getSortIcon('boxes') }}</v-icon>
-                    </div>
-                    <TableColumnFilter
-                      v-model="lotColFilters.boxes"
-                      :options="lotFilterOpts('boxes')"
-                      :title="tLabel('package_count', 'Cartons')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      @click.stop
-                    />
-                  </div>
-                </th>
-
-                <!-- 10. Valuation & WAP (Clickable Sort & Multi-Filter) -->
-                <th
-                  class="wh-sort-th text-right"
-                  :class="{ 'is-sorted': isSorted('valuation'), 'has-filter-active': hasLotColFilter('valuation') }"
-                  style="min-width: 185px;"
-                  :title="tLabel('click_to_sort', 'Cliquer pour trier')"
-                >
-                  <div class="d-flex align-center justify-end w-100 ga-1">
-                    <TableColumnFilter
-                      v-model="lotColFilters.valuation"
-                      :options="lotFilterOpts('valuation')"
-                      :title="tLabel('total_price', 'Valeur')"
-                      color="#a21ee5"
-                      button-size="20"
-                      icon-size="13"
-                      class="mr-1"
-                      @click.stop
-                    />
-                    <div class="d-flex align-center ga-2 cursor-pointer" @click="onSortColumn('valuation')">
-                      <v-icon size="14" color="#a21ee5">mdi-cash-multiple</v-icon>
-                      <span>{{ tLabel('total_price', 'Valeur') }} &amp; {{ tLabel('wap', 'PMP') }}</span>
-                      <v-icon size="14">{{ getSortIcon('valuation') }}</v-icon>
-                    </div>
-                  </div>
-                </th>
-
-                <!-- 11. Actions -->
-                <th class="text-center" style="width: 96px;">
-                  <span>{{ tLabel('actions', 'Actions') }}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-for="lot in filteredLots" :key="lot.raw_lot">
-                <tr
-                  :class="['wh-lot-row cursor-pointer', { 'is-expanded': expandedLots[lot.lot_number], 'is-depleted': lot.status === 'depleted' }]"
-                  @click="toggleLotExpand(lot.lot_number)"
-                >
-                  <!-- 1. Expand Chevron Button -->
-                  <td class="text-center">
-                    <div class="wh-chevron-box" :class="{ 'is-active': expandedLots[lot.lot_number] }">
-                      <v-icon size="18" :color="expandedLots[lot.lot_number] ? '#a21ee5' : 'grey'">
-                        {{ expandedLots[lot.lot_number] ? 'mdi-chevron-down' : 'mdi-chevron-right' }}
-                      </v-icon>
-                    </div>
-                  </td>
-
-                  <!-- 2. Lot Number & Articles Subtitle (Spacious Vertical Separation) -->
-                  <td class="text-left">
-                    <div class="wh-tracking-identity-cell d-flex flex-column py-1">
-                      <!-- Top: Unified Lot Badge with Copy Icon -->
-                      <div
-                        class="wh-lot-id-badge cursor-pointer"
-                        @click.stop="copyTrackingNumber(lot.lot_number)"
-                        :title="tLabel('click_to_copy', 'Cliquer pour copier le N° de suivi')"
-                      >
-                        <v-icon size="14" color="#a21ee5" class="wh-lot-barcode-icon mr-1.5">mdi-barcode</v-icon>
-                        <span class="wh-lot-number">#{{ lot.lot_number }}</span>
-                        <v-icon size="13" color="#a21ee5" class="wh-copy-icon ml-1.5">mdi-content-copy</v-icon>
-                      </div>
-
-                      <!-- Bottom: Distinct Articles Metadata Tag with Clear Space -->
-                      <div class="wh-lot-articles-meta d-flex align-center ga-1.5 flex-wrap">
-                        <span class="wh-articles-pill">
-                          <v-icon size="12" color="#a21ee5" class="mr-1.5">mdi-layers-triple-outline</v-icon>
-                          <b>{{ lot.articles_count }}</b>
-                          <span class="ml-1 opacity-80">{{ lot.articles_count > 1 ? tLabel('articles_plural', 'articles') : tLabel('article_singular', 'article') }}</span>
-                        </span>
-                        <div v-if="lot.contained_types && lot.contained_types.length" class="d-flex align-center ga-1">
-                          <v-chip
-                            v-for="ct in lot.contained_types"
-                            :key="ct"
-                            size="x-small"
-                            variant="tonal"
-                            :color="ct === 'FishType' ? '#a21ee5' : (ct === 'GuanoType' ? '#6D4C41' : '#00897B')"
-                            class="px-1 font-weight-bold"
-                            style="font-size: 10px; height: 18px;"
-                          >
-                            {{ articleTypeLabel(ct) }}
-                          </v-chip>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- 3. Dedicated Status Column (High Readability & Balanced Positioning) -->
-                  <td class="text-center">
-                    <div class="d-flex align-center justify-center">
-                      <div
-                        :class="['wh-status-badge', 'status-' + (lot.status || 'in_stock')]"
-                        :title="lotStatusLabel(lot.status)"
-                      >
-                        <v-icon size="13" class="wh-status-icon mr-1.5">
-                          {{ lot.status === 'in_stock' ? 'mdi-check-circle' : (lot.status === 'partially_out' ? 'mdi-progress-clock' : 'mdi-archive-check') }}
-                        </v-icon>
-                        <span class="wh-status-text">{{ lotStatusLabel(lot.status) }}</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- 4. Reception Date & Age (Spacious Separation) -->
-                  <td class="text-center">
-                    <div class="wh-date-age-cell py-1">
-                      <div class="wh-date-row d-flex align-center justify-center ga-2 font-weight-bold text-body-2">
-                        <v-icon size="14" color="#a21ee5" style="opacity: 0.7;">mdi-calendar-blank-outline</v-icon>
-                        <span>{{ lot.first_date ? main.formateDate(lot.first_date) : '-' }}</span>
-                      </div>
-                      <div
-                        :class="['wh-age-badge', getAgeClass(lot.age_days)]"
-                        :title="Math.round(lot.age_days || 0) + ' ' + tLabel('days_in_warehouse', 'jours en entrepôt')"
-                      >
-                        <v-icon size="11" class="mr-1">mdi-clock-outline</v-icon>
-                        <span>{{ Math.round(lot.age_days || 0) }} {{ tLabel('days_short', 'j') }}</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- 5. Supplier & Vessel / Fishery / Origin (Spacious Avatar & Texts) -->
-                  <td class="text-left">
-                    <div class="wh-supplier-cell py-1">
-                      <v-avatar size="36" color="rgba(162, 30, 229, 0.08)" class="wh-supplier-avatar rounded-xl flex-shrink-0 border">
-                        <v-icon size="18" color="#a21ee5">mdi-domain</v-icon>
-                      </v-avatar>
-                      <div class="wh-supplier-info overflow-hidden" style="max-width: 230px;">
-                        <span class="wh-supplier-name text-truncate" :title="lot.supplier_name">
-                          {{ lot.supplier_name || '-' }}
-                        </span>
-                        <div
-                          v-if="lot.fishery_name !== '-' || lot.origin_name !== '-'"
-                          class="wh-vessel-meta text-truncate d-flex align-center ga-1 text-caption"
-                          :title="[lot.fishery_name, lot.origin_name].filter(x => x && x !== '-').join(' • ')"
-                        >
-                          <v-icon size="12" color="#00897B" class="flex-shrink-0">mdi-ferry</v-icon>
-                          <span class="text-truncate">{{ [lot.fishery_name, lot.origin_name].filter(x => x && x !== '-').join(' • ') }}</span>
-                        </div>
-                        <div v-else class="wh-vessel-meta direct text-caption d-flex align-center ga-1">
-                          <v-icon size="11" color="grey" class="flex-shrink-0">mdi-truck-outline</v-icon>
-                          <span>{{ tLabel('direct_reception', 'Réception directe') }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- 6. Chamber Location (Refined Cold Storage Pill) -->
-                  <td class="text-center">
-                    <div class="d-flex flex-column align-center ga-1 py-1">
-                      <div class="wh-chamber-badge">
-                        <v-icon size="13" color="#a21ee5" class="mr-1.5">mdi-snowflake</v-icon>
-                        <span class="font-weight-bold">{{ lot.primary_warehouse }}</span>
-                      </div>
+                    <div class="wh-th-inner">
+                      <v-icon v-if="!h.fixed" size="12" class="drag-handle mr-1" color="grey-lighten-1">mdi-drag-vertical</v-icon>
                       <span
-                        v-if="lot.warehouses && lot.warehouses.length > 1"
-                        class="wh-multi-chambers-tag text-caption font-weight-medium"
-                        :title="lot.warehouses.join(', ')"
+                        class="wh-th-title text-truncate"
+                        @click="h.sortable !== false && toggleSort(h.key, $event)"
+                        :title="tLabel('multi_sort_hint', 'Cliquer pour trier, Maj+Clic pour tri multiple')"
                       >
-                        +{{ lot.warehouses.length - 1 }} {{ tLabel('other_chambers', 'autre(s)') }}
+                        {{ h.title }}
                       </span>
-                    </div>
-                  </td>
 
-                  <!-- 7. Contained Species Preview (Clean Fish Tags with Tooltips) -->
-                  <td class="text-left">
-                    <div class="wh-species-container d-flex align-center ga-1 flex-wrap py-1" style="max-width: 250px;">
-                      <div
-                        v-for="(sp, sidx) in (lot.species_list || []).slice(0, 3)"
-                        :key="sidx"
-                        class="wh-species-tag"
-                        :title="sp"
-                      >
-                        <v-icon size="11" color="#00897B" class="mr-1">mdi-fish</v-icon>
-                        <span class="text-truncate" style="max-width: 90px;">{{ sp }}</span>
-                      </div>
-                      <div
-                        v-if="(lot.species_list || []).length > 3"
-                        class="wh-species-overflow-tag"
-                        :title="(lot.species_list || []).slice(3).join(', ')"
-                      >
-                        +{{ lot.species_list.length - 3 }}
-                      </div>
-                    </div>
-                  </td>
+                      <template v-if="h.key !== 'actions' && h.key !== 'expand'">
+                        <!-- Sort Arrow Button -->
+                        <v-btn
+                          v-if="sortDir(h.key)"
+                          icon
+                          variant="text"
+                          size="14"
+                          @click.stop="toggleMultiSort(h.key)"
+                          :title="sortDir(h.key) === 'asc' ? 'ASC (Click to toggle)' : 'DESC (Click to clear)'"
+                        >
+                          <v-icon size="12" color="#a21ee5">mdi-arrow-{{ sortDir(h.key) === 'asc' ? 'up' : 'down' }}</v-icon>
+                        </v-btn>
 
-                  <!-- 8. Remaining Stock Balance with Sleek Ratio Bar -->
-                  <td class="text-right">
-                    <div class="wh-balance-cell d-flex flex-column align-end py-1">
-                      <div class="wh-remaining-weight font-weight-bold text-teal" style="font-size: 14.5px; line-height: 1.2;">
-                        {{ main.formatDisplayNumber(lot.remaining_weight) }} <span class="text-caption font-weight-bold">Kg</span>
-                      </div>
-                      <div class="wh-progress-wrap w-100 my-1.5" style="max-width: 140px;">
-                        <v-progress-linear
-                          :model-value="100 - lot.consumption_pct"
-                          :color="lot.status === 'in_stock' ? '#00897B' : (lot.status === 'partially_out' ? '#FB8C00' : '#9E9E9E')"
-                          height="5"
-                          rounded
-                          bg-opacity="0.15"
+                        <!-- Priority Badge for Multi-Sort -->
+                        <span v-if="sortIdx(h.key) && colSorts && colSorts.length > 1" class="sort-badge">
+                          {{ sortIdx(h.key) }}
+                        </span>
+
+                        <!-- Column Values Filter Menu -->
+                        <TableColumnFilter
+                          v-if="hasFilter(h.key)"
+                          v-model="lotColFilters[h.key]"
+                          :options="lotFilterOpts(h.key)"
+                          :title="h.title"
+                          color="#a21ee5"
+                          button-size="20"
+                          icon-size="13"
+                          @click.stop
                         />
-                      </div>
-                      <div class="wh-sub-weight-meta text-caption text-medium-emphasis font-weight-medium" style="font-size: 11px;">
-                        <span class="opacity-80">{{ tLabel('initial', 'Init.') }}:</span>
-                        <b>{{ main.formatDisplayNumber(lot.initial_weight) }}</b> Kg
-                        <span class="opacity-70 ml-1">({{ lot.consumption_pct }}% {{ tLabel('consumed', 'sorti') }})</span>
-                      </div>
+
+                        <!-- Modern Pin / Unpin Menu -->
+                        <v-menu v-if="!h.fixed" location="bottom end" :close-on-content-click="true">
+                          <template #activator="{ props: pinMenuProps }">
+                            <v-btn
+                              v-bind="pinMenuProps"
+                              icon
+                              variant="text"
+                              size="14"
+                              class="wh-th-pin-btn"
+                              :title="tLabel('pin_column', 'Épingler la colonne')"
+                              @click.stop
+                            >
+                              <v-icon
+                                size="11"
+                                :color="pinSide(h.key) === 'left' ? '#a21ee5' : pinSide(h.key) === 'right' ? '#FF7043' : 'grey-lighten-1'"
+                              >
+                                {{ pinSide(h.key) === 'left' ? 'mdi-dock-left' : pinSide(h.key) === 'right' ? 'mdi-dock-right' : 'mdi-pin-outline' }}
+                              </v-icon>
+                            </v-btn>
+                          </template>
+                          <v-list density="compact" class="py-1 rounded-lg" elevation="6">
+                            <v-list-item density="compact" :active="pinSide(h.key) === 'left'" @click="setPin(h.key, 'left')">
+                              <template #prepend><v-icon size="15" color="#a21ee5">mdi-dock-left</v-icon></template>
+                              <v-list-item-title class="text-caption font-weight-medium">{{ tLabel('pin_left', 'Épingler à gauche') }}</v-list-item-title>
+                            </v-list-item>
+                            <v-list-item density="compact" :active="pinSide(h.key) === 'right'" @click="setPin(h.key, 'right')">
+                              <template #prepend><v-icon size="15" color="#FF7043">mdi-dock-right</v-icon></template>
+                              <v-list-item-title class="text-caption font-weight-medium">{{ tLabel('pin_right', 'Épingler à droite') }}</v-list-item-title>
+                            </v-list-item>
+                            <v-divider v-if="pinSide(h.key)" class="my-1"></v-divider>
+                            <v-list-item v-if="pinSide(h.key)" density="compact" @click="setPin(h.key, 'none')">
+                              <template #prepend><v-icon size="15" color="grey">mdi-pin-off-outline</v-icon></template>
+                              <v-list-item-title class="text-caption text-error">{{ tLabel('unpin', 'Détacher') }}</v-list-item-title>
+                            </v-list-item>
+                          </v-list>
+                        </v-menu>
+                      </template>
                     </div>
+                  </th>
+                </tr>
+              </thead>
+            <tbody>
+              <!-- Realistic Skeleton Table Rows when Loading -->
+              <template v-if="lotsLoading">
+                <tr v-for="sk in 8" :key="'lot-skel-' + sk" class="wh-lot-row app-skeleton-table-row">
+                  <td class="wh-td wh-col-pin text-center" :style="headerPinStyles['__checkbox']">
+                    <div class="skel-bone mx-auto" style="width: 18px; height: 18px; border-radius: 4px;"></div>
                   </td>
-
-                  <!-- 9. Packaging Boxes -->
-                  <td class="text-center">
-                    <div class="wh-boxes-badge">
-                      <v-icon size="13" color="#6D4C41" class="mr-1">mdi-package-variant-closed</v-icon>
-                      <span class="font-weight-bold">{{ main.formatDisplayNumber(lot.remaining_boxes) }}</span>
+                  <td
+                    v-for="h in headers"
+                    :key="'lot-skel-' + h.key + '-' + sk"
+                    class="wh-td"
+                    :class="{'wh-col-pin': isPinned(h.key) || h.fixed, 'wh-td-actions': h.key === 'actions'}"
+                    :style="headerPinStyles[h.key]"
+                  >
+                    <div v-if="h.key === 'expand'" class="skel-bone skel-circle mx-auto" style="width: 22px; height: 22px;"></div>
+                    <div v-else-if="h.key === 'actions'" class="d-flex align-center justify-center ga-1">
+                      <div v-for="a in 3" :key="a" class="skel-bone skel-circle" style="width: 20px; height: 20px;"></div>
                     </div>
-                  </td>
-
-                  <!-- 10. Valuation & WAP -->
-                  <td class="text-right">
-                    <div class="wh-valuation-cell d-flex flex-column align-end py-1">
-                      <div class="font-weight-bold text-deep-orange" style="font-size: 13.5px; line-height: 1.2;">
-                        {{ main.formatDisplayNumber(lot.total_valuation) }} <span class="text-caption font-weight-bold">{{ main.currency }}</span>
-                      </div>
-                      <div class="text-caption text-medium-emphasis mt-1" style="font-size: 11px;">
-                        <span>{{ tLabel('wap_short', 'PMP') }}:</span>
-                        <b style="color: #a21ee5; margin-left: 2px;">{{ lot.avg_unit_price > 0 ? main.formatDisplayNumber(lot.avg_unit_price) : '-' }}</b> /Kg
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- 11. Actions -->
-                  <td class="text-center text-no-wrap">
-                    <div class="d-flex align-center justify-center ga-2">
-                      <v-btn
-                        icon
-                        variant="tonal"
-                        size="small"
-                        color="#a21ee5"
-                        @click.stop="openTraceability(lot)"
-                        :title="tLabel('lot_traceability', 'Fiche Traçabilité Complète du N° de Suivi de Réception')"
-                        class="wh-action-btn"
-                        style="width: 32px; height: 32px;"
-                      >
-                        <v-icon size="16">mdi-timeline-text-outline</v-icon>
-                      </v-btn>
-
-                      <v-btn
-                        icon
-                        variant="tonal"
-                        size="small"
-                        color="#00897B"
-                        @click.stop="switchToTraceabilityWithLot(lot)"
-                        :title="tLabel('view_traceability', 'Traçabilité Chronologique Plein Écran')"
-                        class="wh-action-btn"
-                        style="width: 32px; height: 32px;"
-                      >
-                        <v-icon size="16">mdi-timeline-clock-outline</v-icon>
-                      </v-btn>
-
-                      <v-btn
-                        v-if="lot.articles && lot.articles[0]"
-                        icon
-                        variant="tonal"
-                        size="small"
-                        color="#1565C0"
-                        @click.stop="goToSource(lot.articles[0])"
-                        :title="tLabel('view_source', 'Voir Document Réception')"
-                        class="wh-action-btn"
-                        style="width: 32px; height: 32px;"
-                      >
-                        <v-icon size="16">mdi-open-in-new</v-icon>
-                      </v-btn>
-                    </div>
+                    <div v-else-if="h.key === 'status' || h.key === 'chamber' || h.key === 'boxes'" class="skel-bone" style="width: 85px; height: 20px; border-radius: 999px;"></div>
+                    <div v-else class="skel-bone" style="width: 75%; height: 13px;"></div>
                   </td>
                 </tr>
+              </template>
 
-                <!-- EXPANDED LOT BREAKDOWN PANEL (Spacious & Highly Detailed) -->
-                <tr v-if="expandedLots[lot.lot_number]">
-                  <td colspan="11" class="pa-0">
+              <!-- Empty State inside Table -->
+              <template v-else-if="colFilteredItems.length === 0">
+                <tr>
+                  <td :colspan="(headers?.length || 11) + 1" class="text-center pa-10 text-grey">
+                    <v-icon size="48" color="#a21ee5" style="opacity: 0.35;" class="mb-2">mdi-cube-off-outline</v-icon>
+                    <div class="text-subtitle-1 font-weight-bold">{{ tLabel('empty_lot_message', 'Aucun numéro de suivi de réception ne correspond aux critères de recherche') }}</div>
+                    <div class="text-caption text-medium-emphasis mt-1">{{ tLabel('try_adjusting_filters', 'Essayez d\'ajuster vos critères de recherche ou filtres de statut') }}</div>
+                  </td>
+                </tr>
+              </template>
+
+              <!-- Actual Lot Rows -->
+              <template v-else>
+                <template v-for="lot in colFilteredItems" :key="lot.raw_lot">
+                  <tr
+                    :class="['wh-lot-row cursor-pointer', { 'is-expanded': expandedLots[lot.lot_number], 'is-depleted': lot.status === 'depleted', 'is-selected': selectedSet.has(lot.lot_number) }]"
+                    @click="toggleLotExpand(lot.lot_number)"
+                  >
+                    <!-- Checkbox Column Pinned Left -->
+                    <td class="wh-td wh-col-pin text-center" :style="headerPinStyles['__checkbox']" @click.stop>
+                      <v-checkbox-btn
+                        :model-value="selectedSet.has(lot.lot_number)"
+                        @update:model-value="toggleItemSelect(lot.lot_number)"
+                        color="#a21ee5"
+                        density="compact"
+                        hide-details
+                      />
+                    </td>
+
+                    <!-- Dynamic Configured Columns based on `headers` -->
+                    <td
+                      v-for="h in headers"
+                      :key="h.key"
+                      class="wh-td"
+                      :class="{
+                        'wh-col-pin': isPinned(h.key) || h.fixed,
+                        'wh-td-actions': h.key === 'actions',
+                        'text-center': ['expand', 'status', 'date', 'chamber', 'boxes', 'actions'].includes(h.key),
+                        'text-right': ['rem_weight', 'valuation'].includes(h.key),
+                        'text-left': ['lot_number', 'supplier', 'species'].includes(h.key)
+                      }"
+                      :style="headerPinStyles[h.key]"
+                    >
+                      <!-- 1. Expand Chevron Button -->
+                      <template v-if="h.key === 'expand'">
+                        <div class="wh-chevron-box" :class="{ 'is-active': expandedLots[lot.lot_number] }">
+                          <v-icon size="18" :color="expandedLots[lot.lot_number] ? '#a21ee5' : 'grey'">
+                            {{ expandedLots[lot.lot_number] ? 'mdi-chevron-down' : 'mdi-chevron-right' }}
+                          </v-icon>
+                        </div>
+                      </template>
+
+                      <!-- 2. Lot Number & Articles Subtitle (Spacious Vertical Separation) -->
+                      <template v-else-if="h.key === 'lot_number'">
+                        <div class="wh-tracking-identity-cell d-flex flex-column py-1">
+                          <div
+                            class="wh-lot-id-badge cursor-pointer"
+                            @click.stop="copyTrackingNumber(lot.lot_number)"
+                            :title="tLabel('click_to_copy', 'Cliquer pour copier le N° de suivi')"
+                          >
+                            <v-icon size="14" color="#a21ee5" class="wh-lot-barcode-icon mr-1.5">mdi-barcode</v-icon>
+                            <span class="wh-lot-number">#{{ lot.lot_number }}</span>
+                            <v-icon size="13" color="#a21ee5" class="wh-copy-icon ml-1.5">mdi-content-copy</v-icon>
+                          </div>
+                          <div class="wh-lot-articles-meta d-flex align-center ga-1.5 flex-wrap">
+                            <span class="wh-articles-pill">
+                              <v-icon size="12" color="#a21ee5" class="mr-1.5">mdi-layers-triple-outline</v-icon>
+                              <b>{{ lot.articles_count }}</b>
+                              <span class="ml-1 opacity-80">{{ lot.articles_count > 1 ? tLabel('articles_plural', 'articles') : tLabel('article_singular', 'article') }}</span>
+                            </span>
+                            <div v-if="lot.contained_types && lot.contained_types.length" class="d-flex align-center ga-1">
+                              <v-chip
+                                v-for="ct in lot.contained_types"
+                                :key="ct"
+                                size="x-small"
+                                variant="tonal"
+                                :color="ct === 'FishType' ? '#a21ee5' : (ct === 'GuanoType' ? '#6D4C41' : '#00897B')"
+                                class="px-1 font-weight-bold"
+                                style="font-size: 10px; height: 18px;"
+                              >
+                                {{ articleTypeLabel(ct) }}
+                              </v-chip>
+                            </div>
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 3. Dedicated Status Column (High Readability & Balanced Positioning) -->
+                      <template v-else-if="h.key === 'status'">
+                        <div class="d-flex align-center justify-center">
+                          <div
+                            :class="['wh-status-badge', 'status-' + (lot.status || 'in_stock')]"
+                            :title="lotStatusLabel(lot.status)"
+                          >
+                            <v-icon size="13" class="wh-status-icon mr-1.5">
+                              {{ lot.status === 'in_stock' ? 'mdi-check-circle' : (lot.status === 'partially_out' ? 'mdi-progress-clock' : 'mdi-archive-check') }}
+                            </v-icon>
+                            <span class="wh-status-text">{{ lotStatusLabel(lot.status) }}</span>
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 4. Reception Date & Age (Spacious Separation) -->
+                      <template v-else-if="h.key === 'date'">
+                        <div class="wh-date-age-cell py-1">
+                          <div class="wh-date-row d-flex align-center justify-center ga-2 font-weight-bold text-body-2">
+                            <v-icon size="14" color="#a21ee5" style="opacity: 0.7;">mdi-calendar-blank-outline</v-icon>
+                            <span>{{ lot.first_date ? main.formateDate(lot.first_date) : '-' }}</span>
+                          </div>
+                          <div
+                            :class="['wh-age-badge', getAgeClass(lot.age_days)]"
+                            :title="Math.round(lot.age_days || 0) + ' ' + tLabel('days_in_warehouse', 'jours en entrepôt')"
+                          >
+                            <v-icon size="11" class="mr-1">mdi-clock-outline</v-icon>
+                            <span>{{ Math.round(lot.age_days || 0) }} {{ tLabel('days_short', 'j') }}</span>
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 5. Supplier & Vessel / Fishery / Origin (Spacious Avatar & Texts) -->
+                      <template v-else-if="h.key === 'supplier'">
+                        <div class="wh-supplier-cell py-1">
+                          <v-avatar size="36" color="rgba(162, 30, 229, 0.08)" class="wh-supplier-avatar rounded-xl flex-shrink-0 border">
+                            <v-icon size="18" color="#a21ee5">mdi-domain</v-icon>
+                          </v-avatar>
+                          <div class="wh-supplier-info overflow-hidden" style="max-width: 230px;">
+                            <span class="wh-supplier-name text-truncate" :title="lot.supplier_name">
+                              {{ lot.supplier_name || '-' }}
+                            </span>
+                            <div
+                              v-if="lot.fishery_name !== '-' || lot.origin_name !== '-'"
+                              class="wh-vessel-meta text-truncate d-flex align-center ga-1 text-caption"
+                              :title="[lot.fishery_name, lot.origin_name].filter(x => x && x !== '-').join(' • ')"
+                            >
+                              <v-icon size="12" color="#00897B" class="flex-shrink-0">mdi-ferry</v-icon>
+                              <span class="text-truncate">{{ [lot.fishery_name, lot.origin_name].filter(x => x && x !== '-').join(' • ') }}</span>
+                            </div>
+                            <div v-else class="wh-vessel-meta direct text-caption d-flex align-center ga-1">
+                              <v-icon size="11" color="grey" class="flex-shrink-0">mdi-truck-outline</v-icon>
+                              <span>{{ tLabel('direct_reception', 'Réception directe') }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 6. Chamber Location (Refined Cold Storage Pill) -->
+                      <template v-else-if="h.key === 'chamber'">
+                        <div class="d-flex flex-column align-center ga-1 py-1">
+                          <div class="wh-chamber-badge">
+                            <v-icon size="13" color="#a21ee5" class="mr-1.5">mdi-snowflake</v-icon>
+                            <span class="font-weight-bold">{{ lot.primary_warehouse }}</span>
+                          </div>
+                          <span
+                            v-if="lot.warehouses && lot.warehouses.length > 1"
+                            class="wh-multi-chambers-tag text-caption font-weight-medium"
+                            :title="lot.warehouses.join(', ')"
+                          >
+                            +{{ lot.warehouses.length - 1 }} {{ tLabel('other_chambers', 'autre(s)') }}
+                          </span>
+                        </div>
+                      </template>
+
+                      <!-- 7. Contained Species Preview (Clean Fish Tags with Tooltips) -->
+                      <template v-else-if="h.key === 'species'">
+                        <div class="wh-species-container d-flex align-center ga-1 flex-wrap py-1" style="max-width: 250px;">
+                          <div
+                            v-for="(sp, sidx) in (lot.species_list || []).slice(0, 3)"
+                            :key="sidx"
+                            class="wh-species-tag"
+                            :title="sp"
+                          >
+                            <v-icon size="11" color="#00897B" class="mr-1">mdi-fish</v-icon>
+                            <span class="text-truncate" style="max-width: 90px;">{{ sp }}</span>
+                          </div>
+                          <div
+                            v-if="(lot.species_list || []).length > 3"
+                            class="wh-species-overflow-tag"
+                            :title="(lot.species_list || []).slice(3).join(', ')"
+                          >
+                            +{{ lot.species_list.length - 3 }}
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 8. Remaining Stock Balance with Sleek Ratio Bar -->
+                      <template v-else-if="h.key === 'rem_weight'">
+                        <div class="wh-balance-cell d-flex flex-column align-end py-1">
+                          <div class="wh-remaining-weight font-weight-bold text-teal" style="font-size: 14.5px; line-height: 1.2;">
+                            {{ main.formatDisplayNumber(lot.remaining_weight) }} <span class="text-caption font-weight-bold">Kg</span>
+                          </div>
+                          <div class="wh-progress-wrap w-100 my-1.5" style="max-width: 140px;">
+                            <v-progress-linear
+                              :model-value="100 - lot.consumption_pct"
+                              :color="lot.status === 'in_stock' ? '#00897B' : (lot.status === 'partially_out' ? '#FB8C00' : '#9E9E9E')"
+                              height="5"
+                              rounded
+                              bg-opacity="0.15"
+                            />
+                          </div>
+                          <div class="wh-sub-weight-meta text-caption text-medium-emphasis font-weight-medium" style="font-size: 11px;">
+                            <span class="opacity-80">{{ tLabel('initial', 'Init.') }}:</span>
+                            <b>{{ main.formatDisplayNumber(lot.initial_weight) }}</b> Kg
+                            <span class="opacity-70 ml-1">({{ lot.consumption_pct }}% {{ tLabel('consumed', 'sorti') }})</span>
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 9. Packaging Boxes -->
+                      <template v-else-if="h.key === 'boxes'">
+                        <div class="wh-boxes-badge">
+                          <v-icon size="13" color="#6D4C41" class="mr-1">mdi-package-variant-closed</v-icon>
+                          <span class="font-weight-bold">{{ main.formatDisplayNumber(lot.remaining_boxes) }}</span>
+                        </div>
+                      </template>
+
+                      <!-- 10. Valuation & WAP -->
+                      <template v-else-if="h.key === 'valuation'">
+                        <div class="wh-valuation-cell d-flex flex-column align-end py-1">
+                          <div class="font-weight-bold text-deep-orange" style="font-size: 13.5px; line-height: 1.2;">
+                            {{ main.formatDisplayNumber(lot.total_valuation) }} <span class="text-caption font-weight-bold">{{ main.currency }}</span>
+                          </div>
+                          <div class="text-caption text-medium-emphasis mt-1" style="font-size: 11px;">
+                            <span>{{ tLabel('wap_short', 'PMP') }}:</span>
+                            <b style="color: #a21ee5; margin-left: 2px;">{{ lot.avg_unit_price > 0 ? main.formatDisplayNumber(lot.avg_unit_price) : '-' }}</b> /Kg
+                          </div>
+                        </div>
+                      </template>
+
+                      <!-- 11. Actions -->
+                      <template v-else-if="h.key === 'actions'">
+                        <div class="d-flex align-center justify-center ga-2">
+                          <v-btn
+                            icon
+                            variant="tonal"
+                            size="small"
+                            color="#a21ee5"
+                            @click.stop="openTraceability(lot)"
+                            :title="tLabel('lot_traceability', 'Fiche Traçabilité Complète du N° de Suivi de Réception')"
+                            class="wh-action-btn"
+                            style="width: 32px; height: 32px;"
+                          >
+                            <v-icon size="16">mdi-timeline-text-outline</v-icon>
+                          </v-btn>
+
+                          <v-btn
+                            icon
+                            variant="tonal"
+                            size="small"
+                            color="#00897B"
+                            @click.stop="switchToTraceabilityWithLot(lot)"
+                            :title="tLabel('view_traceability', 'Traçabilité Chronologique Plein Écran')"
+                            class="wh-action-btn"
+                            style="width: 32px; height: 32px;"
+                          >
+                            <v-icon size="16">mdi-timeline-clock-outline</v-icon>
+                          </v-btn>
+
+                          <v-btn
+                            v-if="lot.articles && lot.articles[0]"
+                            icon
+                            variant="tonal"
+                            size="small"
+                            color="#1565C0"
+                            @click.stop="goToSource(lot.articles[0])"
+                            :title="tLabel('view_source', 'Voir Document Réception')"
+                            class="wh-action-btn"
+                            style="width: 32px; height: 32px;"
+                          >
+                            <v-icon size="16">mdi-open-in-new</v-icon>
+                          </v-btn>
+                        </div>
+                      </template>
+                    </td>
+                  </tr>
+
+                  <!-- EXPANDED LOT BREAKDOWN PANEL (Spacious & Highly Detailed) -->
+                  <tr v-if="expandedLots[lot.lot_number]">
+                    <td :colspan="(headers?.length || 11) + 1" class="pa-0">
                     <div class="wh-lot-expanded-panel pa-4 pa-md-5">
                       <!-- Sub-panel Header -->
                       <div class="d-flex align-center justify-space-between mb-3 flex-wrap ga-2">
@@ -1145,13 +1369,15 @@
                   </td>
                 </tr>
               </template>
-            </tbody>
+            </template>
+          </tbody>
           </table>
         </div>
       </div>
+    </div>
 
-      <!-- Empty State -->
-      <div v-else class="text-center pa-12 wh-table-card rounded-2xl border bg-surface">
+    <!-- Empty State -->
+    <div v-if="!lotsLoading && !lots.length" class="text-center pa-12 wh-table-card rounded-2xl border bg-surface">
         <v-icon size="64" color="#a21ee5" style="opacity: 0.35;" class="mb-3">mdi-cube-off-outline</v-icon>
         <div class="text-h6 font-weight-bold">{{ tLabel('empty_lot_message', 'Aucun numéro de suivi de réception ne correspond aux critères de recherche') }}</div>
         <div class="text-caption text-medium-emphasis mt-1 mb-4">{{ tLabel('try_adjusting_filters', 'Essayez d\'ajuster vos critères de recherche ou filtres de statut') }}</div>
@@ -5053,5 +5279,160 @@ th.has-filter-active {
 :deep(.v-theme--dark) .wh-timeline-connector,
 .v-theme--dark .wh-timeline-connector {
   background: rgba(162, 30, 229, 0.35) !important;
+}
+
+/* Fullscreen Expanded Workspace Mode for Warehouse */
+.wh-fullscreen-mode {
+  position: fixed !important;
+  top: var(--v-layout-top, 64px) !important;
+  left: var(--v-layout-left, 64px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 1000 !important;
+  background: rgb(var(--v-theme-surface)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.wh-fullscreen-mode .wh-table-wrap {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: auto !important;
+}
+.wh-fullscreen-header {
+  background: rgba(var(--v-theme-surface), 0.98);
+  border: 1px solid rgba(162, 30, 229, 0.25) !important;
+  box-shadow: 0 2px 12px rgba(162, 30, 229, 0.08);
+  flex-shrink: 0;
+}
+
+/* Active Multi-Sorts Strip */
+.wh-active-sorts-strip {
+  background: rgba(162, 30, 229, 0.06);
+  border: 1px dashed rgba(162, 30, 229, 0.3);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Column Pinning & Sticky Positions */
+.wh-col-pin {
+  position: sticky !important;
+  z-index: 2 !important;
+  background: rgb(var(--v-theme-surface)) !important;
+}
+.wh-th-pin {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 6 !important;
+  background: rgb(var(--v-theme-surface)) !important;
+}
+:deep(.v-theme--light) .wh-col-pin,
+.v-theme--light .wh-col-pin {
+  background: #ffffff !important;
+}
+:deep(.v-theme--light) .wh-th-pin,
+.v-theme--light .wh-th-pin {
+  background: #f8fafc !important;
+}
+:deep(.v-theme--dark) .wh-col-pin,
+:deep(.v-theme--dark) .wh-th-pin,
+.v-theme--dark .wh-col-pin,
+.v-theme--dark .wh-th-pin {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+/* Column Resizing */
+.wh-col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 6;
+  background: transparent;
+  transition: background 0.15s;
+}
+.wh-col-resizer:hover,
+.wh-col-resizer-active {
+  background: #a21ee5 !important;
+  width: 3px !important;
+}
+
+/* Drag-and-drop & Headers styling */
+.wh-th {
+  position: relative;
+}
+.wh-th-dragover {
+  background: rgba(162, 30, 229, 0.15) !important;
+}
+.wh-th-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  width: 100%;
+}
+.wh-th-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a21ee5;
+  cursor: pointer;
+}
+.drag-handle {
+  cursor: grab;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.drag-handle:hover {
+  opacity: 1;
+}
+.sort-badge {
+  font-size: 9px;
+  background: #a21ee5;
+  color: #fff;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.wh-th-pin-btn {
+  opacity: 0.65;
+  transition: opacity 0.15s;
+}
+.wh-th-pin-btn:hover {
+  opacity: 1;
+}
+
+/* Additional Density: Dense mode */
+.wh-modern-table.density-dense th {
+  padding: 5px 6px !important;
+  font-size: 10px !important;
+}
+.wh-modern-table.density-dense td {
+  padding: 4px 6px !important;
+  font-size: 0.78rem !important;
+}
+.wh-modern-table.density-dense .v-chip {
+  height: 18px !important;
+  font-size: 10px !important;
+  padding: 0 4px !important;
+}
+.wh-modern-table.density-dense .wh-action-btn {
+  width: 24px !important;
+  height: 24px !important;
 }
 </style>

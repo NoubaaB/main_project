@@ -20,20 +20,35 @@ import {
   gqlGetLotTraceability,
   gqlGetWarehouses,
 } from '@/services/warehouseGraphql.js';
+import TableColumnManager from '@/components/common/TableColumnManager.vue';
+import tableConfigMixin from '@/utils/tableConfigMixin.js';
 
 export default {
   name: 'WarehouseStockParLotDashboard',
+  mixins: [tableConfigMixin],
   components: {
     SegmentedPillToggle,
     DatePicker,
     WarehousePrintDialog,
     TableColumnFilter,
+    TableColumnManager,
   },
   data() {
     const today = moment().toDate();
     const d30 = moment().subtract(30, 'days').toDate();
 
     return {
+      tableModuleKey: 'warehouse',
+      moduleColor: '#a21ee5',
+      selected: [],
+      columnOrder: null,
+      dragCol: null,
+      dragOverCol: null,
+      colWidths: {},
+      colSorts: [],
+      pinState: {},
+      expanded: {},
+
       // Print Layout Customizer Modal State
       printModalOpen: false,
       printModalTargetView: 'stock_par_lot',
@@ -93,7 +108,7 @@ export default {
       filterStockableType: null, // 'FishType', 'GuanoType', 'PackageType', null
       filterStockableTypes: [], // ['FishType', 'GuanoType', 'PackageType']
       sortBy: 'date', // 'date', 'lot', 'rem_weight', 'age', 'valuation'
-      sortDir: 'desc',
+      serverSortDir: 'desc',
 
       // Dedicated View 6: 3-Stage Traceability & Chronological History state
       traceabilityCurrentStage: 1, // 1: Search & Choose Voucher, 2: Select Articles, 3: Chronological Pedigree Timeline
@@ -475,8 +490,71 @@ export default {
       return count;
     },
 
+    allHeaders() {
+      return [
+        { title: '', key: 'expand', sortable: false, width: 40, fixed: true },
+        { title: this.tLabel('lot_number', 'N° Suivi Réception'), key: 'lot_number', align: 'left', sortable: true },
+        { title: this.tLabel('status', 'Statut'), key: 'status', align: 'center', sortable: true },
+        { title: this.tLabel('date', 'Réception & Âge'), key: 'date', align: 'center', sortable: true },
+        { title: (this.tLabel('suppliers', 'Fournisseur') + ' / ' + this.tLabel('boat_fishery', 'Bateau')), key: 'supplier', align: 'left', sortable: true },
+        { title: this.tLabel('chamber_location', 'Chambre Froide'), key: 'chamber', align: 'center', sortable: true },
+        { title: this.tLabel('contained_species', 'Espèces / Articles'), key: 'species', align: 'left', sortable: true },
+        { title: (this.tLabel('remaining', 'Solde en Stock') + ' (Kg)'), key: 'rem_weight', align: 'right', sortable: true },
+        { title: this.tLabel('package_count', 'Cartons'), key: 'boxes', align: 'center', sortable: true },
+        { title: (this.tLabel('total_price', 'Valeur') + ' & ' + this.tLabel('wap', 'PMP')), key: 'valuation', align: 'right', sortable: true },
+        { title: this.tLabel('actions', 'Actions'), key: 'actions', align: 'center', sortable: false, fixed: true },
+      ];
+    },
+
+    headers() {
+      const all = this.allHeaders || [];
+      const hiddenSet = new Set(this.hiddenColumns || []);
+      if (!this.columnOrder) {
+        return all.filter(h => h.fixed || !hiddenSet.has(h.key));
+      }
+      const map = Object.fromEntries(all.map(h => [h.key, h]));
+      const fixed = all.filter(h => h.fixed);
+      const ordered = this.columnOrder
+        .filter(k => map[k] && !map[k].fixed && !hiddenSet.has(k))
+        .map(k => map[k]);
+      const pinState = this.pinState || {};
+      return [
+        fixed[0],
+        ...ordered.filter(h => pinState[h.key] === 'left'),
+        ...ordered.filter(h => !pinState[h.key]),
+        ...ordered.filter(h => pinState[h.key] === 'right'),
+        fixed[fixed.length - 1],
+      ].filter(Boolean);
+    },
+
+    colFilteredItems() {
+      return this.filteredLots || [];
+    },
+
+    selectedSet() {
+      return new Set(this.selected || []);
+    },
+
+    selectAll: {
+      get() {
+        const total = this.filteredLots?.length || 0;
+        return total > 0 && (this.selected?.length || 0) === total;
+      },
+      set(val) {
+        if (val) {
+          this.selected = (this.filteredLots || []).map(l => l.lot_number);
+        } else {
+          this.selected = [];
+        }
+      }
+    },
+
     isAllLotsExpanded() {
       return this.lots.length > 0 && this.lots.every(l => this.expandedLots[l.lot_number]);
+    },
+
+    isAllExpanded() {
+      return this.isAllLotsExpanded;
     },
 
     expandedLotsCount() {
@@ -554,6 +632,35 @@ export default {
       if (f.valuation && f.valuation.length > 0) {
         const set = new Set(f.valuation);
         list = list.filter(l => set.has(this.getValuationTier(l.total_valuation)));
+      }
+
+      // Apply Multi-Sort if active
+      if (this.colSorts && this.colSorts.length > 0) {
+        list = [...list].sort((a, b) => {
+          for (const { key, dir } of this.colSorts) {
+            let va, vb;
+            if (key === 'lot_number') { va = a.lot_number; vb = b.lot_number; }
+            else if (key === 'status') { va = a.status; vb = b.status; }
+            else if (key === 'date') { va = a.first_date; vb = b.first_date; }
+            else if (key === 'supplier') { va = a.supplier_name; vb = b.supplier_name; }
+            else if (key === 'chamber') { va = a.primary_warehouse; vb = b.primary_warehouse; }
+            else if (key === 'species') { va = (a.species_list || []).join(', '); vb = (b.species_list || []).join(', '); }
+            else if (key === 'rem_weight') { va = Number(a.remaining_weight || 0); vb = Number(b.remaining_weight || 0); }
+            else if (key === 'boxes') { va = Number(a.remaining_boxes || 0); vb = Number(b.remaining_boxes || 0); }
+            else if (key === 'valuation') { va = Number(a.total_valuation || 0); vb = Number(b.total_valuation || 0); }
+            else { va = a[key]; vb = b[key]; }
+
+            if (va == null) va = '';
+            if (vb == null) vb = '';
+            if (typeof va === 'number' && typeof vb === 'number') {
+              if (va !== vb) return dir === 'asc' ? va - vb : vb - va;
+            } else {
+              const c = String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: 'base' });
+              if (c !== 0) return dir === 'asc' ? c : -c;
+            }
+          }
+          return 0;
+        });
       }
 
       return list;
@@ -1238,6 +1345,8 @@ export default {
   },
 
   mounted() {
+    this.columnOrder = this.allHeaders.filter(h => !h.fixed).map(h => h.key);
+    if (this.loadTableConfig) this.loadTableConfig();
     this.restoreCachedWarehouses();
     this.fetchAllWarehouses();
     mitt.on('model-changed', this.onModelChanged);
@@ -1590,7 +1699,7 @@ export default {
           page: this.lotsPagination.current_page,
           perPage: this.lotsPagination.per_page,
           sortBy: this.sortBy,
-          sortDir: this.sortDir,
+          sortDir: this.serverSortDir,
         });
 
         if (data && data.lots) {
@@ -1609,7 +1718,7 @@ export default {
           page: this.lotsPagination.current_page,
           per_page: this.lotsPagination.per_page,
           sort_by: this.sortBy,
-          sort_dir: this.sortDir,
+          sort_dir: this.serverSortDir,
         };
         const r = await axios.get('/api/warehouses/stock-par-lot', { params });
         this.lots = r.data.lots || [];
@@ -1626,7 +1735,7 @@ export default {
             page: this.lotsPagination.current_page,
             per_page: this.lotsPagination.per_page,
             sort_by: this.sortBy,
-            sort_dir: this.sortDir,
+            sort_dir: this.serverSortDir,
           };
           const r = await axios.get('/api/warehouses/stock-par-lot', { params });
           this.lots = r.data.lots || [];
@@ -1663,6 +1772,10 @@ export default {
       }
     },
 
+    toggleExpandAll() {
+      this.toggleExpandAllLots();
+    },
+
     async copyTrackingNumber(lotNumber) {
       if (!lotNumber || lotNumber === '-') return;
       try {
@@ -1694,7 +1807,7 @@ export default {
       this.filterStockableTypes = [];
       this.selectedWarehouseIds = [];
       this.sortBy = 'date';
-      this.sortDir = 'desc';
+      this.serverSortDir = 'desc';
       this.saveCachedWarehouses();
       this.fetchStockParLot(true);
       this.triggerSummarySnackbar({
@@ -1707,35 +1820,77 @@ export default {
 
     onSortColumn(colKey) {
       if (this.sortBy === colKey) {
-        this.sortDir = this.sortDir === 'desc' ? 'asc' : 'desc';
+        this.serverSortDir = this.serverSortDir === 'desc' ? 'asc' : 'desc';
       } else {
         this.sortBy = colKey;
-        this.sortDir = (colKey === 'lot' || colKey === 'supplier' || colKey === 'status') ? 'asc' : 'desc';
+        this.serverSortDir = (colKey === 'lot' || colKey === 'supplier' || colKey === 'status') ? 'asc' : 'desc';
       }
       this.fetchStockParLot(true);
     },
 
     getSortIcon(colKey) {
       if (this.sortBy !== colKey) return 'mdi-swap-vertical';
-      return this.sortDir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down';
+      return this.serverSortDir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down';
     },
 
     isSorted(colKey) {
       return this.sortBy === colKey;
     },
 
+    hasFilter(colKey) {
+      return ['lot_number', 'status', 'date', 'supplier', 'chamber', 'species', 'rem_weight', 'boxes', 'valuation'].includes(colKey);
+    },
+
+    toggleItemSelect(lotNumber) {
+      const idx = this.selected.indexOf(lotNumber);
+      if (idx > -1) {
+        this.selected.splice(idx, 1);
+      } else {
+        this.selected.push(lotNumber);
+      }
+    },
+
+    getSelectedItems() {
+      const sel = new Set(this.selected || []);
+      return (this.filteredLots || []).filter(l => sel.has(l.lot_number));
+    },
+
+    cellText(key, item) {
+      if (!item) return '-';
+      if (key === 'lot_number') return '#' + (item.lot_number || '');
+      if (key === 'status') return this.lotStatusLabel(item.status);
+      if (key === 'date') return item.first_date ? this.main.formateDate(item.first_date) : '-';
+      if (key === 'supplier') return [item.supplier_name, item.fishery_name, item.origin_name].filter(x => x && x !== '-').join(' - ') || (item.supplier_name || '-');
+      if (key === 'chamber') return item.primary_warehouse || '-';
+      if (key === 'species') return (item.species_list || []).join(', ');
+      if (key === 'rem_weight') return this.main.formatDisplayNumber(item.remaining_weight) + ' Kg';
+      if (key === 'boxes') return this.main.formatDisplayNumber(item.remaining_boxes);
+      if (key === 'valuation') return this.main.formatDisplayNumber(item.total_valuation) + ' ' + this.main.currency;
+      return item[key] != null ? String(item[key]) : '-';
+    },
+
+    clearAllFilters() {
+      this.resetAllFilters();
+      this.clearAllLotColFilters();
+    },
+
     toggleLotExpand(lotNumber) {
       this.expandedLots[lotNumber] = !this.expandedLots[lotNumber];
+      this.expandedLots = { ...this.expandedLots };
+      this.expanded[lotNumber] = this.expandedLots[lotNumber];
+      this.expanded = { ...this.expanded };
     },
 
     expandAllLots() {
       const exp = {};
-      this.lots.forEach(l => { exp[l.lot_number] = true; });
-      this.expandedLots = exp;
+      (this.filteredLots || this.lots || []).forEach(l => { exp[l.lot_number] = true; });
+      this.expandedLots = { ...exp };
+      this.expanded = { ...exp };
     },
 
     collapseAllLots() {
       this.expandedLots = {};
+      this.expanded = {};
     },
 
     toggleArticleExpand(articleId) {
