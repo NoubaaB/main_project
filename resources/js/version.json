@@ -1,11 +1,11 @@
 {
   "name": "Jupiter",
-  "version": "1.0.62",
+  "version": "1.0.63",
   "major": 1,
   "minor": 0,
-  "patch": 62,
-  "build": 63,
-  "build_time": "2026-11-14 12:02:53",
-  "commit": "fca7923",
+  "patch": 63,
+  "build": 64,
+  "build_time": "2026-11-14 12:21:14",
+  "commit": "91ea198",
   "env": "production"
 }

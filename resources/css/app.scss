@@ -166,8 +166,6 @@ input[type="datetime-local"]::placeholder {
 .v-main {
   transition: padding-left 0.28s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
   will-change: padding-left;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .fab_speed_dial {

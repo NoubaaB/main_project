@@ -1464,10 +1464,16 @@ export default {
   --ai-table-border: #e2e8f0;
 }
 
+/* ---------- Root & Stacking ---------- */
+.ai-assistant-root {
+  position: relative;
+  z-index: 100000;
+}
+
 /* ---------- FAB Button ---------- */
 .ai-fab-container {
   position: fixed;
-  z-index: 1045;
+  z-index: 99998 !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1580,7 +1586,7 @@ export default {
   right: 24px;
   width: min(460px, calc(100vw - 32px));
   height: min(620px, calc(100vh - 120px));
-  z-index: 1050;
+  z-index: 100000 !important;
   display: flex;
   flex-direction: column;
   border-radius: 22px;

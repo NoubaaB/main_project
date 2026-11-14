@@ -179,12 +179,14 @@ body.table-expanded-active {
   overflow: hidden !important;
 }
 
-body.table-expanded-active .ai-assistant-fab,
+/* Ensure AI Assistant & Chat Box are explicitly displayed on top of expanded data tables and all other elements */
+.ai-assistant-root,
+.ai-fab-container,
+.ai-chat-panel,
+body.table-expanded-active .ai-fab-container,
 body.table-expanded-active .ai-chat-panel {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  opacity: 0 !important;
+  z-index: 100000 !important;
+  pointer-events: auto !important;
 }
 </style>
 
