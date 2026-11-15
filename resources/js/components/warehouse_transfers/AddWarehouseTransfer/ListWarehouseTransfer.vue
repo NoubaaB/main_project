@@ -609,10 +609,14 @@
                     <template v-else-if="h.key==='_tracking'"><div class="d-flex flex-wrap ga-1 justify-center"><v-chip v-for="(tn,ti) in (item.transfer_tracking_number||[])" :key="ti" size="x-small" color="#F9A825" variant="tonal" class="fnm-currency-num">{{ tn }}</v-chip><span v-if="!(item.transfer_tracking_number||[]).length" class="text-grey">-</span></div></template>
                     <template v-else-if="h.key==='_details_count'"><v-chip size="x-small" color="#F9A825" variant="tonal" class="fnm-currency-num font-weight-bold">{{ item._details_count }}</v-chip></template>
                     <template v-else-if="h.key==='actions'">
-                      <div class="lwt-actions-wrapper">
-                        <v-btn v-if="auth.hasPermission('warehouse_transfers.edit')" icon variant="tonal" size="x-small" color="#F9A825" @click="$router.push({ name: 'edit_warehouse_transfer', params: { id: item.id } })"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-                        <v-btn v-if="auth.hasPermission('warehouse_transfers.delete')" icon variant="tonal" size="x-small" color="error" @click="confirmDelete(item.id)"><v-icon size="14">mdi-delete</v-icon></v-btn>
-                        <v-btn icon variant="tonal" size="x-small" color="blue-grey" @click="openAuditLog(item.id)"><v-icon size="14">mdi-history</v-icon><v-tooltip activator="parent" location="top">{{ $t('audit_log') }}</v-tooltip></v-btn>
+                      <div class="lwt-actions-wrapper d-flex align-center justify-center ga-1">
+                        <v-btn v-if="auth.hasPermission('warehouse_transfers.edit')" icon variant="tonal" size="x-small" color="#F9A825" @click="$router.push({ name: 'edit_warehouse_transfer', params: { id: item.id } })" :title="$t('edit')">
+                          <v-icon size="14">mdi-pencil</v-icon>
+                        </v-btn>
+                        <FileContextMenu
+                          :sections="getTransferMenuSections(item)"
+                          btn-color="#F9A825"
+                        />
                       </div>
                     </template>
                     <template v-else>{{ cellText(h.key, item) }}</template>
@@ -711,6 +715,86 @@ export default {
       this.auditLogRecordId = id;
       this.auditLogDialogOpen = true;
     },
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.main.add_snackbar({ show: true, message: this.$t('copy_success'), color: 'success' });
+        }).catch(() => {
+          this.main.add_snackbar({ show: true, message: String(text), color: 'info' });
+        });
+      } else {
+        this.main.add_snackbar({ show: true, message: String(text), color: 'info' });
+      }
+    },
+    getTransferMenuSections(item) {
+      if (!item) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const commonItems = [];
+      if (this.auth.hasPermission('warehouse_transfers.edit')) {
+        commonItems.push({
+          title: this.$t('edit'),
+          icon: 'mdi-pencil',
+          color: '#F9A825',
+          action: () => this.$router.push({ name: 'edit_warehouse_transfer', params: { id: item.id } })
+        });
+      }
+
+      const refText = (item.transfer_tracking_number && item.transfer_tracking_number.length)
+        ? item.transfer_tracking_number.join(', ')
+        : (item.reference || item.id);
+      if (refText) {
+        commonItems.push({
+          title: this.$t('copy_reference'),
+          icon: 'mdi-content-copy',
+          color: 'blue-grey',
+          action: () => this.copyToClipboard(refText)
+        });
+      }
+
+      sections.push({
+        key: 'common',
+        subheader: this.$t('common_actions'),
+        items: commonItems
+      });
+
+      // 2. Tracking & Audit
+      sections.push({
+        key: 'tracking',
+        subheader: this.$t('tracking_auditing'),
+        items: [
+          {
+            title: this.$t('audit_log'),
+            icon: 'mdi-history',
+            color: 'blue-grey',
+            shortcut: 'Alt + A',
+            action: () => this.openAuditLog(item.id)
+          }
+        ]
+      });
+
+      // 3. Danger Zone
+      if (this.auth.hasPermission('warehouse_transfers.delete')) {
+        sections.push({
+          key: 'danger',
+          subheader: this.$t('danger_zone'),
+          items: [
+            {
+              title: this.$t('delete'),
+              icon: 'mdi-delete-outline',
+              color: 'error',
+              destructive: true,
+              shortcut: 'DELETE',
+              action: () => this.confirmDelete(item.id)
+            }
+          ]
+        });
+      }
+
+      return sections;
+    },
   },
 };
 </script>
@@ -759,11 +843,11 @@ export default {
 .lwt-thead { position: sticky; top: 0; z-index: 4; background: rgb(var(--v-theme-surface)); }
 .lwt-thead th { position: sticky; top: 0; }
 .lwt-th { position: sticky; top: 0; padding: 8px 8px; text-align: center; white-space: nowrap; border-bottom: 2px solid rgba(var(--v-border-color), .12); background: rgb(var(--v-theme-surface)); transition: background .15s; overflow: hidden; box-sizing: border-box; }
-.lwt-th-actions { text-align: center !important; overflow: visible !important; width: 100px !important; min-width: 100px !important; }
+.lwt-th-actions { text-align: center !important; overflow: visible !important; width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
 .lwt-td { padding: 8px 10px; text-align: center; border-bottom: 1px solid rgba(var(--v-border-color), .06); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
-.lwt-td-actions { overflow: visible !important; text-overflow: clip !important; padding: 4px 3px !important; white-space: nowrap !important; width: 100px !important; min-width: 100px !important; }
-.lwt-actions-wrapper { display: inline-flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; flex-wrap: nowrap; }
-.lwt-actions-wrapper .v-btn { flex-shrink: 0 !important; width: 26px !important; height: 26px !important; min-width: 26px !important; min-height: 26px !important; }
+.lwt-td-actions { overflow: visible !important; text-overflow: clip !important; padding: 4px 6px !important; white-space: nowrap !important; width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
+.lwt-actions-wrapper { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; flex-wrap: nowrap; }
+.lwt-actions-wrapper .v-btn { flex-shrink: 0 !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; }
 .lwt-col-resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 6; background: transparent; transition: background .15s; }
 .lwt-col-resizer:hover, .lwt-col-resizer-active { background: #F9A825 !important; width: 3px !important; }
 .lwt-th-pin-btn { opacity: .65; transition: opacity .15s; } .lwt-th-pin-btn:hover { opacity: 1; }

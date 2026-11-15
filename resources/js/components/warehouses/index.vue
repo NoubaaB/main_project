@@ -1165,7 +1165,7 @@
 
                       <!-- 11. Actions -->
                       <template v-else-if="h.key === 'actions'">
-                        <div class="d-flex align-center justify-center ga-2">
+                        <div class="d-flex align-center justify-center ga-1">
                           <v-btn
                             icon
                             variant="tonal"
@@ -1174,9 +1174,9 @@
                             @click.stop="openTraceability(lot)"
                             :title="tLabel('lot_traceability', 'Fiche Traçabilité Complète du N° de Suivi de Réception')"
                             class="wh-action-btn"
-                            style="width: 32px; height: 32px;"
+                            style="width: 28px; height: 28px;"
                           >
-                            <v-icon size="16">mdi-timeline-text-outline</v-icon>
+                            <v-icon size="15">mdi-timeline-text-outline</v-icon>
                           </v-btn>
 
                           <v-btn
@@ -1187,24 +1187,17 @@
                             @click.stop="switchToTraceabilityWithLot(lot)"
                             :title="tLabel('view_traceability', 'Traçabilité Chronologique Plein Écran')"
                             class="wh-action-btn"
-                            style="width: 32px; height: 32px;"
+                            style="width: 28px; height: 28px;"
                           >
-                            <v-icon size="16">mdi-timeline-clock-outline</v-icon>
+                            <v-icon size="15">mdi-timeline-clock-outline</v-icon>
                           </v-btn>
 
-                          <v-btn
-                            v-if="lot.articles && lot.articles[0]"
-                            icon
-                            variant="tonal"
-                            size="small"
-                            color="#1565C0"
-                            @click.stop="goToSource(lot.articles[0])"
-                            :title="tLabel('view_source', 'Voir Document Réception')"
-                            class="wh-action-btn"
-                            style="width: 32px; height: 32px;"
-                          >
-                            <v-icon size="16">mdi-open-in-new</v-icon>
-                          </v-btn>
+                          <FileContextMenu
+                            :sections="getLotMenuSections(lot)"
+                            btn-color="#a21ee5"
+                            btn-size="small"
+                            :icon-size="15"
+                          />
                         </div>
                       </template>
                     </td>
@@ -1738,7 +1731,7 @@
                 </th>
 
                 <!-- 9. Actions -->
-                <th class="text-center" style="width: 100px;">
+                <th class="text-center" style="width: 120px; min-width: 120px;">
                   <span>{{ tLabel('actions', 'Actions') }}</span>
                 </th>
               </tr>
@@ -5415,6 +5408,23 @@ th.has-filter-active {
 }
 .wh-th-pin-btn:hover {
   opacity: 1;
+}
+
+.wh-th-actions {
+  text-align: center !important;
+  overflow: visible !important;
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+}
+.wh-td-actions {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  padding: 4px 6px !important;
+  white-space: nowrap !important;
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
 }
 
 /* Additional Density: Dense mode */

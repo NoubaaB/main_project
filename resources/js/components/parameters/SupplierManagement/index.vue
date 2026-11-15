@@ -194,10 +194,10 @@
 
         <!-- Actions -->
         <template v-slot:[`item.actions`]="{ item }">
-          <div class="param-actions-cell">
+          <div class="param-actions-cell d-flex align-center justify-center ga-1">
             <v-tooltip :text="$t('edit')" location="top">
               <template #activator="{ props }">
-                <v-btn v-bind="props" icon size="28" variant="tonal" color="#E65100" class="param-action-btn mr-1" @click="openDialog(item)">
+                <v-btn v-bind="props" icon size="28" variant="tonal" color="#E65100" class="param-action-btn" @click="openDialog(item)">
                   <v-icon size="15">mdi-pencil</v-icon>
                 </v-btn>
               </template>
@@ -209,6 +209,12 @@
                 </v-btn>
               </template>
             </v-tooltip>
+            <FileContextMenu
+              :sections="getSupplierMenuSections(item)"
+              btn-color="#E65100"
+              btn-size="28"
+              :icon-size="15"
+            />
           </div>
         </template>
       </v-data-table>
@@ -632,7 +638,7 @@ export default {
         { title: this.$t('city'), key: 'city', align: 'start' },
         { title: this.$t('debt_plafond'), key: 'plafond', align: 'center', sortable: false },
         { title: this.$t('status'), key: 'active_status', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '110px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
     plafondModeOptions() {
@@ -817,6 +823,76 @@ export default {
       this.deleteTarget = null;
       this.deleteDialog = false;
       this.deleting = false;
+    },
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.triggerSummarySnackbar(this.$t('copy_reference'), this.$t('copy_success'), '#E65100');
+        }).catch(() => {
+          this.triggerSummarySnackbar(this.$t('copy_reference'), String(text), '#E65100');
+        });
+      }
+    },
+    getSupplierMenuSections(item) {
+      if (!item) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const commonItems = [
+        {
+          title: this.$t('edit'),
+          icon: 'mdi-pencil',
+          color: '#E65100',
+          action: () => this.openDialog(item)
+        },
+        {
+          title: this.$t('copy_reference'),
+          icon: 'mdi-content-copy',
+          color: 'blue-grey',
+          action: () => this.copyToClipboard(item.name)
+        }
+      ];
+
+      sections.push({
+        key: 'common',
+        subheader: this.$t('common_actions'),
+        items: commonItems
+      });
+
+      // 2. Financial & Invoices
+      const financeItems = [
+        {
+          title: this.$t('invoices'),
+          icon: 'mdi-file-document-outline',
+          color: '#E65100',
+          action: () => this.$router.push({ name: 'list_supplier_invoice', query: { supplier_id: item.id } })
+        }
+      ];
+
+      sections.push({
+        key: 'workflows',
+        subheader: this.$t('workflows_quality'),
+        items: financeItems
+      });
+
+      // 3. Danger Zone
+      sections.push({
+        key: 'danger',
+        subheader: this.$t('danger_zone'),
+        items: [
+          {
+            title: this.$t('delete'),
+            icon: 'mdi-delete-outline',
+            color: 'error',
+            destructive: true,
+            shortcut: 'DELETE',
+            action: () => this.confirmDelete(item)
+          }
+        ]
+      });
+
+      return sections;
     },
   },
 };

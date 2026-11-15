@@ -1581,6 +1581,8 @@ export default {
           key: 'actions',
           align: 'end',
           sortable: false,
+          width: '120px',
+          minWidth: '120px',
         },
       ];
     },

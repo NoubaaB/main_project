@@ -502,7 +502,7 @@ export default {
         { title: (this.tLabel('remaining', 'Solde en Stock') + ' (Kg)'), key: 'rem_weight', align: 'right', sortable: true },
         { title: this.tLabel('package_count', 'Cartons'), key: 'boxes', align: 'center', sortable: true },
         { title: (this.tLabel('total_price', 'Valeur') + ' & ' + this.tLabel('wap', 'PMP')), key: 'valuation', align: 'right', sortable: true },
-        { title: this.tLabel('actions', 'Actions'), key: 'actions', align: 'center', sortable: false, fixed: true },
+        { title: this.tLabel('actions', 'Actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
       ];
     },
 
@@ -3117,6 +3117,135 @@ export default {
       if (val >= 50) return 'wap_50_100';
       if (val >= 20) return 'wap_20_50';
       return 'wap_lt_20';
+    },
+
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.triggerSummarySnackbar({
+            title: this.tLabel('copy_reference', 'Copier Référence'),
+            message: this.tLabel('copy_success', 'Copié dans le presse-papiers avec succès.'),
+            color: '#a21ee5',
+            icon: 'mdi-check-circle'
+          });
+        }).catch(() => {
+          this.triggerSummarySnackbar({
+            title: this.tLabel('copy_reference', 'Copier Référence'),
+            message: String(text),
+            color: 'blue-grey',
+            icon: 'mdi-content-copy'
+          });
+        });
+      } else {
+        this.triggerSummarySnackbar({
+          title: this.tLabel('copy_reference', 'Copier Référence'),
+          message: String(text),
+          color: 'blue-grey',
+          icon: 'mdi-content-copy'
+        });
+      }
+    },
+
+    getLotMenuSections(lot) {
+      if (!lot) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const commonItems = [
+        {
+          title: this.tLabel('lot_traceability', 'Fiche Traçabilité Complète'),
+          icon: 'mdi-timeline-text-outline',
+          color: '#a21ee5',
+          action: () => this.openTraceability(lot)
+        },
+        {
+          title: this.tLabel('view_traceability', 'Traçabilité Chronologique'),
+          icon: 'mdi-timeline-clock-outline',
+          color: '#00897B',
+          action: () => this.switchToTraceabilityWithLot(lot)
+        }
+      ];
+
+      const refText = lot.reception_tracking_number || lot.lot_number;
+      if (refText) {
+        commonItems.push({
+          title: this.tLabel('copy_reference', 'Copier N° de Suivi'),
+          icon: 'mdi-content-copy',
+          color: 'blue-grey',
+          action: () => this.copyToClipboard(refText)
+        });
+      }
+
+      sections.push({
+        key: 'common',
+        subheader: this.tLabel('common_actions', 'Actions Communes'),
+        items: commonItems
+      });
+
+      // 2. Workflows & Quality
+      const workflowItems = [];
+      if (lot.articles && lot.articles[0]) {
+        workflowItems.push({
+          title: this.tLabel('view_source', 'Voir Document Réception'),
+          icon: 'mdi-open-in-new',
+          color: '#1565C0',
+          action: () => this.goToSource(lot.articles[0])
+        });
+      }
+
+      if (workflowItems.length > 0) {
+        sections.push({
+          subheader: this.tLabel('workflows_quality', 'Flux & Documents'),
+          items: workflowItems
+        });
+      }
+
+      // 3. Tools & Export
+      sections.push({
+        subheader: this.tLabel('tracking_auditing', 'Outils & Données'),
+        items: [
+          {
+            title: this.tLabel('export_excel', 'Exporter ce N° de Suivi'),
+            icon: 'mdi-file-excel-outline',
+            color: '#2E7D32',
+            action: () => this.exportSingleLot(lot)
+          }
+        ]
+      });
+
+      return sections;
+    },
+
+    exportSingleLot(lot) {
+      if (!lot) return;
+      try {
+        const rows = (lot.articles || []).map(art => ({
+          'N° Suivi': lot.reception_tracking_number || lot.lot_number,
+          'Date Réception': lot.reception_date || '-',
+          'Chambre': lot.chamber || '-',
+          'Article': art.article_name || '-',
+          'Famille': art.family_name || '-',
+          'Poids Net (Kg)': art.net_weight || 0,
+          'Colis': art.package_count || 0,
+          'PMP': art.unit_price || 0,
+          'Statut': lot.status || '-'
+        }));
+        if (typeof XLSX !== 'undefined') {
+          const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'N° Suivi': lot.reception_tracking_number || lot.lot_number }]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Lot_' + (lot.reception_tracking_number || lot.lot_number));
+          XLSX.writeFile(wb, `Lot_${lot.reception_tracking_number || lot.lot_number}.xlsx`);
+          this.triggerSummarySnackbar({
+            title: this.tLabel('export_excel', 'Export Excel'),
+            message: `Lot ${lot.reception_tracking_number || lot.lot_number} exporté avec succès.`,
+            color: '#2E7D32',
+            icon: 'mdi-file-excel'
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
     },
   },
 };

@@ -659,14 +659,10 @@
                     <template v-else-if="h.key==='print_counter'"><v-chip size="small" :color="item.print_counter>0?'success':'grey'" variant="tonal"><v-icon size="14" class="mr-1">mdi-printer</v-icon>{{ item.print_counter }}</v-chip></template>
                     <template v-else-if="h.key==='actions'">
                       <div class="lc-actions-wrapper">
-                        <v-menu location="bottom end">
-                          <template v-slot:activator="{ props }"><v-btn icon="mdi-dots-vertical" size="x-small" variant="outlined" color="#00838F" v-bind="props"></v-btn></template>
-                          <v-list slim density="compact">
-                            <v-list-item prepend-icon="mdi-eye" @click="$router.push({name:'view_client_invoice',query:{ids:[item.id]}})"><v-list-item-title>{{$t('view_item')}}</v-list-item-title></v-list-item>
-                            <v-divider v-if="auth.hasPermission('client_invoices.delete')"></v-divider>
-                            <v-list-item v-if="auth.hasPermission('client_invoices.delete')" prepend-icon="mdi-delete" @click="confirmDelete(item.id)"><v-list-item-title>{{$t('delete_item')}}</v-list-item-title></v-list-item>
-                          </v-list>
-                        </v-menu>
+                        <FileContextMenu
+                          :sections="getClientInvoiceMenuSections(item)"
+                          btn-color="#00838F"
+                        />
                       </div>
                     </template>
                     <template v-else>{{ item[h.key] || '-' }}</template>
@@ -805,11 +801,11 @@ export default {
 .lc-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .lc-thead th{position:sticky;top:0}
 .lc-th{position:sticky;top:0;padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s;overflow:hidden;box-sizing:border-box}
-.lc-th-actions{text-align:center!important;overflow:visible!important;width:92px!important;min-width:92px!important}
+.lc-th-actions{text-align:center!important;overflow:visible!important;width:120px!important;min-width:120px!important;max-width:120px!important}
 .lc-td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
-.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 3px!important;white-space:nowrap!important;width:92px!important;min-width:92px!important}
-.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;flex-wrap:nowrap}
-.lc-actions-wrapper .v-btn{flex-shrink:0!important;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important}
+.lc-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 6px!important;white-space:nowrap!important;width:120px!important;min-width:120px!important;max-width:120px!important}
+.lc-actions-wrapper{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;flex-wrap:nowrap}
+.lc-actions-wrapper .v-btn{flex-shrink:0!important;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important}
 .lc-col-resizer{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none;z-index:6;background:transparent;transition:background .15s}
 .lc-col-resizer:hover,.lc-col-resizer-active{background:#00838F!important;width:3px!important}
 .lc-th-pin-btn{opacity:.65;transition:opacity .15s}.lc-th-pin-btn:hover{opacity:1}

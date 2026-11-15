@@ -50,7 +50,7 @@ export default {
         { title: this.$t('sejour_stockage'), key: 'sejour_amount', align: 'center' },
         { title: this.$t('total') + ' (MAD)', key: 'total_amount', align: 'center' },
         { title: this.$t('status'), key: 'status', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
       ];
     },
     headers() {
@@ -266,6 +266,63 @@ export default {
       this.summarySnackbar = { show: true, isError, title, warehouse, period, total };
       this.snackbarProgress = 100;
       this.snackbarTimer = setInterval(() => { this.snackbarProgress -= 1.25; if (this.snackbarProgress <= 0) clearInterval(this.snackbarTimer); }, 100);
+    },
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.showSnackbar(false, this.$t('copy_reference'), this.$t('copy_success'), '', '');
+        }).catch(() => {
+          this.showSnackbar(false, this.$t('copy_reference'), String(text), '', '');
+        });
+      }
+    },
+    getStorageInvoiceMenuSections(item) {
+      if (!item) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const commonItems = [
+        {
+          title: this.$t('print_document'),
+          icon: 'mdi-printer',
+          color: '#a21ee5',
+          action: () => this.loadPrintInvoice(item)
+        }
+      ];
+
+      if (item.invoice_number) {
+        commonItems.push({
+          title: this.$t('copy_reference'),
+          icon: 'mdi-content-copy',
+          color: 'blue-grey',
+          action: () => this.copyToClipboard(item.invoice_number)
+        });
+      }
+
+      sections.push({
+        key: 'common',
+        subheader: this.$t('common_actions'),
+        items: commonItems
+      });
+
+      // 2. Danger Zone
+      sections.push({
+        key: 'danger',
+        subheader: this.$t('danger_zone'),
+        items: [
+          {
+            title: this.$t('delete'),
+            icon: 'mdi-delete-outline',
+            color: 'error',
+            destructive: true,
+            shortcut: 'DELETE',
+            action: () => this.confirmDelete(item)
+          }
+        ]
+      });
+
+      return sections;
     },
   },
   watch: {

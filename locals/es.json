@@ -3530,5 +3530,17 @@
     "charges_total_weight_updated": "Ajuste del peso total",
     "charges_total_price_updated": "Ajuste del precio total",
     "no_charges_needed_recalculation": "Todos los cargos ya están perfectamente sincronizados con las líneas de detalle",
-    "duration": "Duración"
+    "duration": "Duración",
+    "more_actions": "Más acciones",
+    "copy_reference": "Copiar referencia",
+    "copy_success": "Copiado al portapapeles",
+    "qc_inspection": "Control de calidad",
+    "common_actions": "Acciones principales",
+    "workflows_quality": "Flujos y Calidad",
+    "tracking_auditing": "Seguimiento y Auditoría",
+    "danger_zone": "Zona de peligro",
+    "print_document": "Imprimir documento",
+    "client_profile": "Perfil del cliente",
+    "supplier_profile": "Perfil del proveedor",
+    "settlements_history": "Historial de liquidaciones"
 }

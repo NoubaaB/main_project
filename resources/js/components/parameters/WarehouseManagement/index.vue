@@ -67,7 +67,7 @@
             <template v-slot:[`item.operation_service_fee`]="{ item }"><span class="fnm-currency-num">{{ item.has_sejour ? item.operation_service_fee + ' DH' : '-' }}</span></template>
             <template v-slot:[`item.category`]="{ item }"><v-chip :color="categoryColor(item.category?.name)" size="small" variant="tonal">{{ item.category?.name || 'N/A' }}</v-chip></template>
             <template v-slot:[`item.actions`]="{ item }">
-              <div class="param-actions-cell">
+              <div class="param-actions-cell d-flex align-center justify-center ga-1">
                 <v-tooltip :text="$t('edit')" location="top">
                   <template #activator="{ props }">
                     <v-btn v-bind="props" icon size="28" variant="tonal" color="#a21ee5" class="param-action-btn" @click="openWarehouseDialog(item)">
@@ -82,6 +82,12 @@
                     </v-btn>
                   </template>
                 </v-tooltip>
+                <FileContextMenu
+                  :sections="getWarehouseMenuSections(item)"
+                  btn-color="#a21ee5"
+                  btn-size="28"
+                  :icon-size="15"
+                />
               </div>
             </template>
           </v-data-table>
@@ -787,6 +793,75 @@ export default {
       }
       this.deleteTarget = null;
       this.deleteEntityType = null;
+    },
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.showSnackbar(true, this.$t('copy_success'));
+        }).catch(() => {
+          this.showSnackbar(false, String(text));
+        });
+      }
+    },
+    getWarehouseMenuSections(item) {
+      if (!item) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const commonItems = [
+        {
+          title: this.$t('edit'),
+          icon: 'mdi-pencil-outline',
+          color: '#a21ee5',
+          action: () => this.openWarehouseDialog(item)
+        },
+        {
+          title: this.$t('copy_reference'),
+          icon: 'mdi-content-copy',
+          color: '#a21ee5',
+          action: () => this.copyToClipboard(item.name)
+        }
+      ];
+
+      sections.push({
+        key: 'common',
+        subheader: this.$t('common_actions'),
+        items: commonItems
+      });
+
+      // 2. Workflows & Stock
+      sections.push({
+        key: 'workflows',
+        subheader: this.$t('workflows_quality'),
+        items: [
+          {
+            title: this.$t('warehouses'),
+            icon: 'mdi-warehouse',
+            color: '#a21ee5',
+            shortcut: 'Alt + W',
+            action: () => this.$router.push({ path: '/warehouses' })
+          }
+        ]
+      });
+
+      // 3. Danger Zone
+      sections.push({
+        key: 'danger',
+        subheader: this.$t('danger_zone'),
+        items: [
+          {
+            title: this.$t('delete'),
+            icon: 'mdi-delete-outline',
+            color: 'error',
+            shortcut: 'DELETE',
+            destructive: true,
+            action: () => this.deleteWarehouse(item)
+          }
+        ]
+      });
+
+      return sections;
     },
     showSnackbar(success, message) {
       clearInterval(this.snackbarTimer);

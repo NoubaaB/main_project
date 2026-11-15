@@ -17,6 +17,7 @@ import { useMain } from '@/stores/Main';
 import { usePwa } from '@/stores/pwa';
 import { setupCalendar, DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
+import FileContextMenu from '@/components/schema/plugins/FileContextMenu.vue';
 
 import { setActivePinia } from 'pinia';
 import pinia from "@/stores";
@@ -27,6 +28,7 @@ export async function registerPlugins(app) {
         .use(pinia)
         .use(setupCalendar, {})
         .component('DatePicker', DatePicker)
+        .component('FileContextMenu', FileContextMenu)
         .use(i18n)
         .use(VueApexCharts)
         .use(SnackbarService)

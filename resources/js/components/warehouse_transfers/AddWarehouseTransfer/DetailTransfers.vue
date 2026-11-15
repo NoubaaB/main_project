@@ -528,7 +528,7 @@ export default {
       }
       if (cat.allow_package_type) h.push({ title: this.$t('package_type'), key: 'package', sortable: false, align: 'center' });
       if (cat.allow_nbr_box) h.push({ title: this.$t('nbr_boxes'), key: 'nbr_box', sortable: false, align: 'center' });
-      h.push({ title: this.$t('actions'), key: 'actions', sortable: false, width: 80, align: 'center' });
+      h.push({ title: this.$t('actions'), key: 'actions', sortable: false, width: 110, align: 'center' });
       return h;
     },
     _persistLocal() {

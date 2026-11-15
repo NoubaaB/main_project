@@ -153,7 +153,7 @@
           <v-chip color="#4643a0" size="small" variant="tonal" class="font-weight-bold">{{ item.shippings_count ?? item.sells_count ?? 0 }}</v-chip>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <div class="param-actions-cell">
+          <div class="param-actions-cell d-flex align-center justify-center ga-1">
             <v-tooltip :text="$t('edit')" location="top">
               <template #activator="{ props }">
                 <v-btn v-bind="props" icon size="28" variant="tonal" color="#4643a0" class="param-action-btn" @click="openDialog(item)">
@@ -168,6 +168,12 @@
                 </v-btn>
               </template>
             </v-tooltip>
+            <FileContextMenu
+              :sections="getCategoryMenuSections(item)"
+              btn-color="#4643a0"
+              btn-size="28"
+              :icon-size="15"
+            />
           </div>
         </template>
       </v-data-table>
@@ -466,6 +472,76 @@ export default {
       }
       this.deleting = false;
       this.deleteTarget = null;
+    },
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.triggerSummarySnackbar(this.$t('copy_reference'), this.$t('copy_success'), 'success');
+        }).catch(() => {
+          this.triggerSummarySnackbar(this.$t('copy_reference'), String(text), 'info');
+        });
+      }
+    },
+    getCategoryMenuSections(item) {
+      if (!item) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const name = item.name_fr || item.name || item.name_en || '';
+      const commonItems = [
+        {
+          title: this.$t('edit'),
+          icon: 'mdi-pencil-outline',
+          color: '#4643a0',
+          action: () => this.openDialog(item)
+        },
+        {
+          title: this.$t('copy_reference'),
+          icon: 'mdi-content-copy',
+          color: '#4643a0',
+          action: () => this.copyToClipboard(name)
+        }
+      ];
+
+      sections.push({
+        key: 'common',
+        subheader: this.$t('common_actions'),
+        items: commonItems
+      });
+
+      // 2. Workflows & Sub-categories
+      sections.push({
+        key: 'workflows',
+        subheader: this.$t('workflows_quality'),
+        items: [
+          {
+            title: this.$t('detail_shipping_categories'),
+            icon: 'mdi-format-list-bulleted-type',
+            color: '#4643a0',
+            shortcut: 'Alt + S',
+            action: () => this.$router.push({ name: 'detail_shipping_categories', query: { category_id: item.id } })
+          }
+        ]
+      });
+
+      // 3. Danger Zone
+      sections.push({
+        key: 'danger',
+        subheader: this.$t('danger_zone'),
+        items: [
+          {
+            title: this.$t('delete'),
+            icon: 'mdi-delete-outline',
+            color: 'error',
+            shortcut: 'DELETE',
+            destructive: true,
+            action: () => this.confirmDelete(item)
+          }
+        ]
+      });
+
+      return sections;
     },
   },
 };

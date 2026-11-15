@@ -3651,5 +3651,16 @@
     "export_all_filtered": "Exportar todos los filtrados ({count})",
     "export_selected_only": "Exportar la selección ({count})",
     "export_started": "Exportación iniciada...",
-    "visible_columns_count": "{visible} de {total} columnas visibles"
+    "visible_columns_count": "{visible} de {total} columnas visibles",
+    "copy_reference": "Copiar referencia",
+    "copy_success": "Copiado al portapapeles",
+    "qc_inspection": "Control de calidad",
+    "common_actions": "Acciones principales",
+    "workflows_quality": "Flujos y Calidad",
+    "tracking_auditing": "Seguimiento y Auditoría",
+    "danger_zone": "Zona de peligro",
+    "print_document": "Imprimir documento",
+    "client_profile": "Perfil del cliente",
+    "supplier_profile": "Perfil del proveedor",
+    "settlements_history": "Historial de liquidaciones"
 }

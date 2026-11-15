@@ -77,7 +77,7 @@ export default {
         { title: this.$t('total_weight'), key: 'total_weight', align: 'center' },
         { title: this.$t('total_price'), key: 'total_price', align: 'center' },
         { title: this.$t('details'), key: '_details_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
       ];
     },
     headers() {

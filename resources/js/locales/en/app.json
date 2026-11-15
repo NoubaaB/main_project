@@ -3651,5 +3651,16 @@
     "export_all_filtered": "Export All Filtered ({count})",
     "export_selected_only": "Export Selected ({count})",
     "export_started": "Export started...",
-    "visible_columns_count": "{visible} of {total} columns visible"
+    "visible_columns_count": "{visible} of {total} columns visible",
+    "copy_reference": "Copy reference",
+    "copy_success": "Copied to clipboard",
+    "qc_inspection": "Quality Control",
+    "common_actions": "Common Actions",
+    "workflows_quality": "Workflows & Quality",
+    "tracking_auditing": "Tracking & Audit",
+    "danger_zone": "Danger Zone",
+    "print_document": "Print document",
+    "client_profile": "Client Profile",
+    "supplier_profile": "Supplier Profile",
+    "settlements_history": "Settlements History"
 }

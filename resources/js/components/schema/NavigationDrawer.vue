@@ -494,11 +494,12 @@
                 </v-tooltip>
               </div>
 
-              <!-- Rail Mode Mini Sub-navs Column (Visible only in rail mode when group is expanded) -->
-              <div
-                v-show="main.sidebar_mini && isGroupExpanded(item.id)"
-                class="pro-rail-subnavs-col"
-              >
+              <!-- Rail Mode Mini Sub-navs Column (Visible only in rail mode with Vuetify v-scroll-y-transition) -->
+              <v-scroll-y-transition>
+                <div
+                  v-show="main.sidebar_mini && isGroupExpanded(item.id)"
+                  class="pro-rail-subnavs-col"
+                >
                 <div
                   v-for="(child, msIdx) in item.children"
                   :key="'rail-sub-' + msIdx"
@@ -569,6 +570,7 @@
                   </v-tooltip>
                 </div>
               </div>
+            </v-scroll-y-transition>
 
               <!-- Sub-items List (Smooth 60fps CSS Grid Accordion for Expanded Mode) -->
               <div
@@ -581,7 +583,7 @@
                     :key="'sub-' + cIdx"
                     class="pro-subnav-row cursor-pointer"
                     :class="{ 'is-active': isRouteActive(child[2]) }"
-                    :style="getChildAccentStyle(child, item)"
+                    :style="getChildAccentStyle(child, item, cIdx)"
                     @click.stop="navigateTo(child[2])"
                   >
                     <div class="pro-subnav-tree-line"></div>
@@ -1247,12 +1249,13 @@ export default {
       return child[4] || parentItem.color || '#42A5F5';
     },
 
-    getChildAccentStyle(child, parentItem) {
+    getChildAccentStyle(child, parentItem, index = 0) {
       const c = this.getChildColor(child, parentItem);
       return {
         '--child-color': c,
         '--child-bg-active': this.hexToRgba(c, 0.14),
         '--child-bg-hover': this.hexToRgba(c, 0.07),
+        '--subnav-idx': index,
       };
     },
 
@@ -1780,13 +1783,26 @@ export default {
   line-height: 1.2;
 }
 
+.pro-group-header {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.pro-group-header:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+
 .pro-group-chevron {
-  opacity: 0.45;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+  opacity: 0.5;
+  transform-origin: center center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 .chevron-rotated {
   transform: rotate(180deg);
-  opacity: 0.85;
+  opacity: 0.95;
 }
 
 /* Hover & Active States (Dark Theme) */
@@ -1861,22 +1877,50 @@ export default {
   line-height: 1.2;
 }
 
-/* ── 3C. Sub-items Accordion (Pure 60fps CSS Grid) ── */
+/* ── 3C. Sub-items Accordion (Vuetify scroll-y Smooth & Eased Transition) ── */
+/* Reference: https://vuetifyjs.com/en/styles/transitions/#scroll-y */
 .pro-subnav-accordion {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  contain: paint;
 }
 .pro-subnav-accordion.accordion-expanded {
   grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+.pro-subnav-accordion:not(.accordion-expanded) {
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .pro-subnav-inner {
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 0 0px 18px;
+  padding: 4px 0 3px 18px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+}
+/* When expanding: smooth scroll-y downwards into position */
+.pro-subnav-accordion.accordion-expanded .pro-subnav-inner {
+  opacity: 1;
+  transform: translateY(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* When closing: do the opposite! Smoothly scroll back up to -15px */
+.pro-subnav-accordion:not(.accordion-expanded) .pro-subnav-inner {
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pro-subnav-row {
@@ -1887,16 +1931,71 @@ export default {
   padding: 0 8px;
   gap: 8px;
   position: relative;
-  transition: background-color 0.15s ease;
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.15s ease,
+              box-shadow 0.15s ease;
+  will-change: transform, opacity;
+  user-select: none;
 }
+
+/* Staggered scroll-y cascading entrance when accordion expands */
+.pro-subnav-accordion.accordion-expanded .pro-subnav-row {
+  opacity: 1;
+  transform: translateY(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.15s ease,
+              box-shadow 0.15s ease;
+  transition-delay: calc(var(--subnav-idx, 0) * 32ms + 20ms);
+}
+
+/* When closing: do the opposite! Smoothly scroll back up to -15px */
+.pro-subnav-accordion:not(.accordion-expanded) .pro-subnav-row {
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0ms !important;
+}
+
+/* Interactive hover & press on subnav items */
+.pro-subnav-accordion.accordion-expanded .pro-subnav-row:hover {
+  transform: translateY(0) translateX(3px);
+  transition-delay: 0ms !important;
+}
+.pro-subnav-accordion.accordion-expanded .pro-subnav-row:active {
+  transform: translateY(0) translateX(2px) scale(0.985);
+  transition-duration: 0.08s;
+  transition-delay: 0ms !important;
+}
+
 .pro-subnav-tree-line {
   position: absolute;
   left: -8px;
   top: 0;
   bottom: 0;
   width: 1.5px;
-  background: rgba(var(--v-border-color), 0.12);
+  background: rgba(var(--v-border-color), 0.14);
+  transform-origin: top;
+  transform: scaleY(0);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+.pro-subnav-accordion.accordion-expanded .pro-subnav-tree-line {
+  transform: scaleY(1);
+  opacity: 1;
+}
+.pro-subnav-accordion:not(.accordion-expanded) .pro-subnav-tree-line {
+  transform: scaleY(0);
+  opacity: 0;
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .pro-subnav-icon-pill {
   width: 22px;
   height: 22px;
@@ -1905,7 +2004,13 @@ export default {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.15s ease;
 }
+.pro-subnav-row:hover .pro-subnav-icon-pill {
+  transform: scale(1.12);
+}
+
 .pro-subnav-title {
   font-size: 12px;
   font-weight: 500;
@@ -1913,6 +2018,7 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0.85;
+  transition: color 0.15s ease, opacity 0.15s ease;
 }
 
 .drawer-theme-dark .pro-subnav-row .pro-subnav-title {
@@ -1943,6 +2049,33 @@ export default {
   color: var(--child-color, #1565C0);
   font-weight: 700;
   opacity: 1;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .pro-subnav-accordion,
+  .pro-subnav-accordion:not(.accordion-expanded),
+  .pro-subnav-inner,
+  .pro-subnav-row,
+  .pro-subnav-tree-line,
+  .pro-group-chevron,
+  .pro-group-header,
+  .pro-subnav-icon-pill {
+    transition: none !important;
+    transform: none !important;
+    transition-delay: 0ms !important;
+  }
+  .pro-subnav-accordion.accordion-expanded .pro-subnav-inner,
+  .pro-subnav-accordion.accordion-expanded .pro-subnav-row {
+    opacity: 1 !important;
+  }
+  .pro-subnav-accordion:not(.accordion-expanded) .pro-subnav-inner,
+  .pro-subnav-accordion:not(.accordion-expanded) .pro-subnav-row {
+    opacity: 0 !important;
+  }
+  .chevron-rotated {
+    transform: rotate(180deg) !important;
+  }
 }
 
 /* =========================================================================
@@ -2121,7 +2254,7 @@ export default {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px dashed rgba(255, 255, 255, 0.12);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .drawer-theme-light .pro-rail-subnavs-col {
   background: rgba(0, 0, 0, 0.03);

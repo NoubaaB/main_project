@@ -839,7 +839,7 @@ export default {
         { title: this.$t('role'), key: 'role', align: 'center' },
         { title: this.$t('status'), key: 'is_active', align: 'center' },
         { title: this.$t('created_at'), key: 'created_at', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
 
@@ -849,7 +849,7 @@ export default {
         { title: this.$t('super_admin'), key: 'is_super_admin', align: 'center' },
         { title: this.$t('permissions'), key: 'permissions_count', align: 'center' },
         { title: this.$t('users_count'), key: 'users_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
       ];
     },
 

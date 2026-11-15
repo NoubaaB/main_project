@@ -734,7 +734,7 @@ export default {
         { title: this.$t('salary_statement'), key: 'salary_statement', align: 'center', minWidth: '130px' },
         { title: this.$t('fixed_daily_pay'), key: 'fixed_daily_pay', align: 'center', minWidth: '120px' },
         { title: this.$t('daily_price'), key: 'daily_price', align: 'center', minWidth: '110px' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, minWidth: '90px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px', minWidth: '120px' },
       ];
     },
 

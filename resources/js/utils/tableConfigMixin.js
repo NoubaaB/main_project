@@ -151,7 +151,7 @@ export default {
     },
     headerPinStyles() {
       const bg = 'var(--table-pin-bg, #ffffff)';
-      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 92;
+      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 120;
       const headers = this.headers || [];
       const pinState = this.pinState || {};
       const colWidths = this.colWidths || {};
@@ -248,7 +248,7 @@ export default {
     },
     thPinStyles() {
       const thBg = 'var(--table-pin-th-bg, #f8fafc)';
-      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 92;
+      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 120;
       const headers = this.headers || [];
       const pinState = this.pinState || {};
       const colWidths = this.colWidths || {};
@@ -595,8 +595,7 @@ export default {
       this.exportTableToCsv(null, items);
     },
     getActionsColWidth() {
-      if (this.tableModuleKey === 'warehouse') return 115;
-      return 92;
+      return 120;
     },
     getDefaultColWidth(key) {
       if (key === 'actions') return this.getActionsColWidth();

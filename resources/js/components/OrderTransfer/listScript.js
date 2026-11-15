@@ -70,7 +70,7 @@ export default {
         { title: this.$t('beneficiaries'), key: '_beneficiaries', align: 'center' },
         { title: this.$t('motif'), key: 'motif', align: 'center' },
         { title: this.$t('created_by'), key: '_created_by', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
       ];
     },
     headers() {
@@ -367,6 +367,73 @@ export default {
         this.snackbarProgress -= 1.25;
         if (this.snackbarProgress <= 0) clearInterval(this.snackbarTimer);
       }, 100);
+    },
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.showSnackbar(false, this.$t('copy_reference'), this.$t('copy_success'), '', '');
+        }).catch(() => {
+          this.showSnackbar(false, this.$t('copy_reference'), String(text), '', '');
+        });
+      }
+    },
+    getOrderTransferMenuSections(item) {
+      if (!item) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const commonItems = [];
+      if (this.auth.hasPermission('order_transfers.edit')) {
+        commonItems.push({
+          title: this.$t('edit'),
+          icon: 'mdi-pencil',
+          color: '#00897B',
+          action: () => this.editTransfer(item)
+        });
+      }
+
+      commonItems.push({
+        title: this.$t('print_document'),
+        icon: 'mdi-printer',
+        color: 'blue-grey',
+        action: () => this.loadPrintSingle(item)
+      });
+
+      if (item.transfer_number) {
+        commonItems.push({
+          title: this.$t('copy_reference'),
+          icon: 'mdi-content-copy',
+          color: 'blue-grey',
+          action: () => this.copyToClipboard(item.transfer_number)
+        });
+      }
+
+      sections.push({
+        key: 'common',
+        subheader: this.$t('common_actions'),
+        items: commonItems
+      });
+
+      // 2. Danger Zone
+      if (this.auth.hasPermission('order_transfers.delete')) {
+        sections.push({
+          key: 'danger',
+          subheader: this.$t('danger_zone'),
+          items: [
+            {
+              title: this.$t('delete'),
+              icon: 'mdi-delete-outline',
+              color: 'error',
+              destructive: true,
+              shortcut: 'DELETE',
+              action: () => this.confirmDelete(item.id)
+            }
+          ]
+        });
+      }
+
+      return sections;
     },
   },
 };

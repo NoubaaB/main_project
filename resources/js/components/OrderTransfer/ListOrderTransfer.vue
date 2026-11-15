@@ -587,10 +587,14 @@
                     <template v-else-if="h.key==='_beneficiaries'"><span class="text-caption">{{ item._beneficiaries }}</span></template>
                     <template v-else-if="h.key==='motif'"><span class="text-caption" style="max-width:200px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.motif || '-' }}</span></template>
                     <template v-else-if="h.key==='actions'">
-                      <div class="ot-actions-wrapper">
-                        <v-btn v-if="auth.hasPermission('order_transfers.edit')" icon size="x-small" variant="tonal" color="#00897B" class="mr-1" @click="editTransfer(item)"><v-icon size="14">mdi-pencil</v-icon></v-btn>
-                        <v-btn icon size="x-small" variant="tonal" color="#00897B" class="mr-1" @click="loadPrintSingle(item)"><v-icon size="14">mdi-printer</v-icon></v-btn>
-                        <v-btn v-if="auth.hasPermission('order_transfers.delete')" icon size="x-small" variant="tonal" color="error" @click="confirmDelete(item.id)"><v-icon size="14">mdi-delete</v-icon></v-btn>
+                      <div class="ot-actions-wrapper d-flex align-center justify-center ga-1">
+                        <v-btn v-if="auth.hasPermission('order_transfers.edit')" icon size="x-small" variant="tonal" color="#00897B" @click="editTransfer(item)" :title="$t('edit')">
+                          <v-icon size="14">mdi-pencil</v-icon>
+                        </v-btn>
+                        <FileContextMenu
+                          :sections="getOrderTransferMenuSections(item)"
+                          btn-color="#00897B"
+                        />
                       </div>
                     </template>
                     <template v-else>{{ item[h.key] || '-' }}</template>
@@ -749,11 +753,11 @@ export default {
 .ot-thead { position: sticky; top: 0; z-index: 4; background: rgb(var(--v-theme-surface)); }
 .ot-thead th { position: sticky; top: 0; }
 .ot-th { position: sticky; top: 0; padding: 8px 8px; text-align: center; white-space: nowrap; border-bottom: 2px solid rgba(var(--v-border-color), .12); background: rgb(var(--v-theme-surface)); transition: background .15s; overflow: hidden; box-sizing: border-box; }
-.ot-th-actions { text-align: center !important; overflow: visible !important; width: 100px !important; min-width: 100px !important; }
+.ot-th-actions { text-align: center !important; overflow: visible !important; width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
 .ot-td { padding: 8px 10px; text-align: center; border-bottom: 1px solid rgba(var(--v-border-color), .06); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
-.ot-td-actions { overflow: visible !important; text-overflow: clip !important; padding: 4px 3px !important; white-space: nowrap !important; width: 100px !important; min-width: 100px !important; }
-.ot-actions-wrapper { display: inline-flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; flex-wrap: nowrap; }
-.ot-actions-wrapper .v-btn { flex-shrink: 0 !important; width: 26px !important; height: 26px !important; min-width: 26px !important; min-height: 26px !important; }
+.ot-td-actions { overflow: visible !important; text-overflow: clip !important; padding: 4px 6px !important; white-space: nowrap !important; width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
+.ot-actions-wrapper { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; flex-wrap: nowrap; }
+.ot-actions-wrapper .v-btn { flex-shrink: 0 !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; }
 .ot-col-resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 6; background: transparent; transition: background .15s; }
 .ot-col-resizer:hover, .ot-col-resizer-active { background: #00897B !important; width: 3px !important; }
 .ot-th-pin-btn { opacity: .65; transition: opacity .15s; } .ot-th-pin-btn:hover { opacity: 1; }

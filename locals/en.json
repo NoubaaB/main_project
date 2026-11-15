@@ -3530,5 +3530,17 @@
     "charges_total_weight_updated": "Total Weight Adjustment",
     "charges_total_price_updated": "Total Price Adjustment",
     "no_charges_needed_recalculation": "All charges are already in sync with detail lines",
-    "duration": "Duration"
+    "duration": "Duration",
+    "more_actions": "More actions",
+    "copy_reference": "Copy reference",
+    "copy_success": "Copied to clipboard",
+    "qc_inspection": "Quality Control",
+    "common_actions": "Common Actions",
+    "workflows_quality": "Workflows & Quality",
+    "tracking_auditing": "Tracking & Audit",
+    "danger_zone": "Danger Zone",
+    "print_document": "Print document",
+    "client_profile": "Client Profile",
+    "supplier_profile": "Supplier Profile",
+    "settlements_history": "Settlements History"
 }

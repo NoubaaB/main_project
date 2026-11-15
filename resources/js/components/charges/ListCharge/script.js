@@ -187,7 +187,7 @@ export default {
         { title: this.$t('total_price'), key: 'total_price', align: 'center' },
         { title: this.$t('invoice_state'), key: '_invoice_state', align: 'center' },
         { title: this.$t('quality_control'), key: '_qc_status', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
       ]
     },
     headers() {
@@ -716,6 +716,137 @@ export default {
       const data = this.colFilteredItems.map(c => { const row = {}; this.headers.filter(h => h.key !== 'actions' && h.key !== 'expand').forEach(h => { row[h.title] = this.cellText(h.key, c) }); return row });
       const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Charges'); XLSX.writeFile(wb, `charges_${this.today}.xlsx`);
+    },
+    copyToClipboard(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(String(text)).then(() => {
+          this.main.add_snackbar({ show: true, message: this.$t('copy_success'), color: 'success' });
+        }).catch(() => {
+          this.main.add_snackbar({ show: true, message: String(text), color: 'info' });
+        });
+      } else {
+        this.main.add_snackbar({ show: true, message: String(text), color: 'info' });
+      }
+    },
+    getChargeMenuSections(item) {
+      if (!item) return [];
+      const sections = [];
+
+      // 1. Common Actions
+      const commonItems = [
+        {
+          title: this.$t('view'),
+          icon: 'mdi-eye-outline',
+          color: '#42A5F5',
+          action: () => this.$router.push({ name: 'view_charge', params: { id: item.id } })
+        }
+      ];
+
+      const refText = item.reference || (item.reception_tracking_number && item.reception_tracking_number.length ? item.reception_tracking_number.join(', ') : null) || item.id;
+      if (refText) {
+        commonItems.push({
+          title: this.$t('copy_reference'),
+          icon: 'mdi-content-copy',
+          color: 'blue-grey',
+          action: () => this.copyToClipboard(refText)
+        });
+      }
+
+      if (this.auth.hasPermission('charges.edit')) {
+        commonItems.push({
+          title: this.$t('edit'),
+          icon: 'mdi-pencil-outline',
+          color: 'warning',
+          disabled: !!item._is_invoiced,
+          action: () => this.$router.push({ name: 'edit_charge', params: { id: item.id } })
+        });
+      }
+
+      sections.push({
+        key: 'common',
+        subheader: this.$t('common_actions'),
+        items: commonItems
+      });
+
+      // 2. Workflows & Quality
+      const workflowItems = [];
+      if (this.catHasProduction(item)) {
+        if (!item.production) {
+          workflowItems.push({
+            title: this.$t('add_production'),
+            icon: 'mdi-factory',
+            color: 'purple',
+            action: () => this.$router.push({ name: 'add_production', query: { charge_id: item.id } })
+          });
+        } else {
+          workflowItems.push({
+            title: this.$t('view_production'),
+            icon: 'mdi-factory',
+            color: 'purple',
+            action: () => this.$router.push({ name: 'view_production', params: { id: item.production.id } })
+          });
+        }
+      }
+
+      workflowItems.push({
+        title: this.$t('qc_inspection'),
+        icon: 'mdi-clipboard-check-outline',
+        color: '#00838F',
+        action: () => this.openQcDialog(item)
+      });
+
+      sections.push({
+        key: 'workflows',
+        subheader: this.$t('workflows_quality'),
+        items: workflowItems
+      });
+
+      // 3. Tracking & Audit
+      const trackingItems = [
+        {
+          title: this.$t('audit_log'),
+          icon: 'mdi-history',
+          color: 'blue-grey',
+          shortcut: 'Alt + A',
+          action: () => this.openAuditLog(item.id)
+        },
+        {
+          title: this.$t('record_issues'),
+          icon: 'mdi-flag-outline',
+          color: (item._open_issues || 0) > 0 ? 'error' : 'blue-grey',
+          badge: (item._open_issues || 0) > 0 ? item._open_issues : null,
+          badgeColor: 'error',
+          action: () => this.openIssueDialog(item.id)
+        }
+      ];
+
+      sections.push({
+        key: 'tracking',
+        subheader: this.$t('tracking_auditing'),
+        items: trackingItems
+      });
+
+      // 4. Danger Zone
+      if (this.auth.hasPermission('charges.delete')) {
+        sections.push({
+          key: 'danger',
+          subheader: this.$t('danger_zone'),
+          items: [
+            {
+              title: this.$t('delete'),
+              icon: 'mdi-delete-outline',
+              color: 'error',
+              destructive: true,
+              shortcut: 'DELETE',
+              disabled: !!item._is_invoiced,
+              action: () => this.confirmDelete(item.id)
+            }
+          ]
+        });
+      }
+
+      return sections;
     },
   },
   watch: {
