@@ -1717,7 +1717,7 @@ export default {
   align-items: center;
   height: 38px;
   border-radius: 10px;
-  padding: 0 8px;
+  padding: 0 2px;
   gap: 10px;
   transition: background-color 0.15s ease, transform 0.15s ease;
   overflow: hidden;
@@ -2117,7 +2117,7 @@ export default {
   align-items: center;
   gap: 4px;
   padding: 6px 0;
-  margin: 4px 8px 6px;
+  margin: 4px 0 6px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px dashed rgba(255, 255, 255, 0.12);
