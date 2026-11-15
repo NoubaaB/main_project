@@ -1876,7 +1876,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 2px 0 4px 18px;
+  padding: 4px 0 0px 18px;
 }
 
 .pro-subnav-row {
