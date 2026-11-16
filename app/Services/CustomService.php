@@ -24,7 +24,8 @@ class CustomService
 
     public function __construct()
     {
-        $this->model = env('OLLAMA_MODEL', 'gpt-oss:120b-cloud');
+        // $this->model = env('OLLAMA_MODEL', 'gpt-oss:120b-cloud');
+        $this->model = "qwen3:14b";
     }
 
     /**
