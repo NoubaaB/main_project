@@ -278,7 +278,7 @@ export default {
         { title: this.$t('operation_type'), key: 'operation_type', align: 'center' },
         { title: this.$t('warehouse_type_label'), key: 'warehouse_type', align: 'center' },
         { title: this.$t('usage_count'), key: 'usage_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     productionRoleOptions() {

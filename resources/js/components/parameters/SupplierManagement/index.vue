@@ -638,7 +638,7 @@ export default {
         { title: this.$t('city'), key: 'city', align: 'start' },
         { title: this.$t('debt_plafond'), key: 'plafond', align: 'center', sortable: false },
         { title: this.$t('status'), key: 'active_status', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     plafondModeOptions() {

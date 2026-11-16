@@ -260,7 +260,7 @@ export default {
         { title: this.$t('allow_warehouse'), key: 'allow_warehouse', align: 'center' },
         { title: this.$t('warehouse_operation'), key: 'warehouse_operation', align: 'center' },
         { title: this.$t('include_in_invoice'), key: 'include_in_invoice', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
   },

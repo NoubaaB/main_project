@@ -356,7 +356,7 @@ export default {
         { title: this.$t('direction'), key: 'enable_direction', align: 'center' },
         { title: this.$t('enable_invoices'), key: 'enable_invoices', align: 'center' },
         { title: this.$t('shippings_count'), key: 'shippings_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     filteredItems() {

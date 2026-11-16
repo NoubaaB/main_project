@@ -244,7 +244,7 @@ export default {
       }));
     },
     hasActiveColumnFilters() { return Object.values(this.columnFilters).some(f => f && f.length > 0); },
-    headers() { return [ { title: this.$t('shipping_category'), key: 'shipping_category_name', align: 'center' }, { title: this.$t('name_fr'), key: 'name_fr', align: 'center' }, { title: this.$t('type_article'), key: 'article_type', align: 'center' }, { title: this.$t('fish_type_filter'), key: 'fish_type_filter', align: 'center' }, ...this.booleanKeys.map(k => ({ title: this.$t(k), key: k, align: 'center' })), { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' } ]; },
+    headers() { return [ { title: this.$t('shipping_category'), key: 'shipping_category_name', align: 'center' }, { title: this.$t('name_fr'), key: 'name_fr', align: 'center' }, { title: this.$t('type_article'), key: 'article_type', align: 'center' }, { title: this.$t('fish_type_filter'), key: 'fish_type_filter', align: 'center' }, ...this.booleanKeys.map(k => ({ title: this.$t(k), key: k, align: 'center' })), { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' } ]; },
   },
   mounted() {
     this.fetchItems();

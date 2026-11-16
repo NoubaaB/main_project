@@ -252,7 +252,7 @@ export default {
         { title: this.$t('allow_price'), key: 'allow_price', align: 'center' },
         { title: this.$t('allow_warehouse'), key: 'allow_warehouse', align: 'center' },
         { title: this.$t('warehouse_operation'), key: 'warehouse_operation', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
   },

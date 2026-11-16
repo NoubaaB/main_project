@@ -372,7 +372,7 @@ export default {
         { title: this.$t('enable_invoices'), key: 'enable_invoices', align: 'center' },
         { title: this.$t('enable_quality_control'), key: 'enable_quality_control', align: 'center' },
         { title: this.$t('productions_count'), key: 'productions_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     filteredItems() {

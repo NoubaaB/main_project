@@ -755,7 +755,7 @@ export default {
         { title: this.$t('chef_of_team'), key: 'corporal', align: 'start', minWidth: '220px' },
         { title: this.$t('associated_workforces'), key: 'workforces', align: 'center', minWidth: '180px' },
         { title: this.$t('description'), key: 'description', align: 'start', minWidth: '160px' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px', minWidth: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
 

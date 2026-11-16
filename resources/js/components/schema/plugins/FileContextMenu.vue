@@ -46,7 +46,7 @@
           :class="topCardActions.length >= 4 ? 'justify-space-between' : 'justify-space-around'"
         >
           <template v-for="(act, idx) in topCardActions" :key="'top-' + idx">
-            <v-tooltip :text="act.title" location="top" :disabled="!act.title">
+            <v-tooltip :text="translateText(act.title)" location="top" :disabled="!act.title">
               <template #activator="{ props: tipProps }">
                 <v-btn
                   v-bind="tipProps"
@@ -82,7 +82,7 @@
               v-if="showSubheaders && sec.subheader"
               class="file-context-subheader text-uppercase font-weight-bold"
             >
-              {{ sec.subheader }}
+              {{ translateText(sec.subheader) }}
             </v-list-subheader>
 
             <template v-for="(act, aIdx) in sec.items" :key="'act-' + sIdx + '-' + aIdx">
@@ -108,7 +108,7 @@
                 </template>
 
                 <v-list-item-title class="file-context-title text-caption font-weight-medium">
-                  {{ act.title }}
+                  {{ translateText(act.title) }}
                 </v-list-item-title>
 
                 <template #append>
@@ -268,6 +268,19 @@ export default {
       if (icon === 'mdi-delete') return 'mdi-delete-outline';
       if (icon === 'mdi-download') return 'mdi-download-outline';
       return icon;
+    },
+    translateText(text) {
+      if (!text) return '';
+      try {
+        if (this.$te && this.$te(text)) {
+          return this.$t(text);
+        }
+        const lowerKey = String(text).toLowerCase();
+        if (this.$te && this.$te(lowerKey)) {
+          return this.$t(lowerKey);
+        }
+      } catch (e) {}
+      return text;
     },
     handleActionClick(act) {
       if (act && typeof act.action === 'function' && !act.disabled) {

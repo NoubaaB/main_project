@@ -3662,5 +3662,15 @@
     "print_document": "Imprimer le document",
     "client_profile": "Fiche client",
     "supplier_profile": "Fiche fournisseur",
-    "settlements_history": "Historique des règlements"
+    "settlements_history": "Historique des règlements",
+    "select_destination_chamber": "Sélectionner la chambre de destination",
+    "enter_valid_weight": "Veuillez saisir un poids valide",
+    "view_hierarchical_stock": "Vue Stock Hiérarchique",
+    "transfer_success_msg": "Transfert effectué avec succès",
+    "age_fresh": "Frais (< 30j)",
+    "age_medium": "Moyen (30-90j)",
+    "age_mature": "Mature (90-180j)",
+    "age_aged": "Ancien (> 180j)",
+    "transfer_to_chamber": "Transférer en Chambre",
+    "lot_details_and_history": "Détails & Historique du Lot"
 }

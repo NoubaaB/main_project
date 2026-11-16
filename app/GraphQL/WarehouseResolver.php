@@ -13,6 +13,7 @@ class WarehouseResolver
     {
         return [
             // Queries
+            'hierarchicalStock' => fn($root, $args, $ctx) => self::resolveHierarchicalStock($root, $args, $ctx),
             'warehouses' => fn($root, $args, $ctx) => self::resolveWarehouses($root, $args, $ctx),
             'warehouse' => fn($root, $args, $ctx) => self::resolveWarehouse($root, $args, $ctx),
             'warehouseCategories' => fn($root, $args, $ctx) => self::resolveWarehouseCategories($root, $args, $ctx),
@@ -31,6 +32,14 @@ class WarehouseResolver
             'updateWarehouse' => fn($root, $args, $ctx) => self::resolveUpdateWarehouse($root, $args, $ctx),
             'deleteWarehouse' => fn($root, $args, $ctx) => self::resolveDeleteWarehouse($root, $args, $ctx),
         ];
+    }
+
+    public static function resolveHierarchicalStock($root, array $args, $context)
+    {
+        $controller = new \App\Http\Controllers\WarehouseController();
+        $request = new \Illuminate\Http\Request($args);
+        $response = $controller->hierarchicalStock($request);
+        return json_decode($response->getContent(), true);
     }
 
     public static function resolveWarehouses($root, array $args, $context)

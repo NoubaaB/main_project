@@ -222,7 +222,7 @@ export default {
         { title: this.$t('allow_nbr_box'), key: 'allow_nbr_box', align: 'center' },
         { title: this.$t('allow_warehouse'), key: 'allow_warehouse', align: 'center' },
         { title: this.$t('allow_trucks'), key: 'allow_trucks', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
   },

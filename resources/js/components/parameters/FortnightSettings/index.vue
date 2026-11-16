@@ -585,7 +585,7 @@ export default {
         { title: this.$t('q1_max_salary'), key: 'q1_max_salary', align: 'center' },
         { title: this.$t('q2_max_salary'), key: 'q2_max_salary', align: 'center' },
         { title: this.$t('month_max_salary'), key: 'month_max_salary', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     hasActiveColumnFilters() {

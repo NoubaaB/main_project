@@ -25,18 +25,38 @@
 
         <!-- Quick Hero KPI Badges (ListProduction style) -->
         <div class="d-flex align-center ga-3 flex-wrap">
-          <div class="wh-hero-kpi">
-            <span class="wh-hero-kpi-val">{{ lotsSummary.in_stock_lots }} / {{ lotsSummary.total_lots }}</span>
-            <span class="wh-hero-kpi-lbl">{{ tLabel('active_lots', 'N° Suivi en Stock') }}</span>
-          </div>
-          <div class="wh-hero-kpi">
-            <span class="wh-hero-kpi-val">{{ main.formatDisplayNumber(lotsSummary.total_remaining_weight) }} <small>Kg</small></span>
-            <span class="wh-hero-kpi-lbl">{{ tLabel('remaining_weight_label', 'Poids Restant') }}</span>
-          </div>
-          <div class="wh-hero-kpi">
-            <span class="wh-hero-kpi-val">{{ main.formatDisplayNumber(lotsSummary.total_valuation) }} <small>{{ main.currency }}</small></span>
-            <span class="wh-hero-kpi-lbl">{{ tLabel('total_stock_value', 'Valorisation Stock') }}</span>
-          </div>
+          <template v-if="activeViewMode === 'hierarchical_stock'">
+            <div class="wh-hero-kpi">
+              <span class="wh-hero-kpi-val">{{ hierarchicalSummary.chambers_count }} / {{ hierarchicalSummary.species_count }}</span>
+              <span class="wh-hero-kpi-lbl">{{ tLabel('warehouses', 'Chambres') }} / {{ tLabel('species', 'Espèces') }}</span>
+            </div>
+            <div class="wh-hero-kpi">
+              <span class="wh-hero-kpi-val">{{ main.formatDisplayNumber(hierarchicalSummary.total_boxes) }}</span>
+              <span class="wh-hero-kpi-lbl">{{ tLabel('boxes', 'Colis / Caisses') }}</span>
+            </div>
+            <div class="wh-hero-kpi">
+              <span class="wh-hero-kpi-val">{{ main.formatDisplayNumber(hierarchicalSummary.total_weight) }} <small>Kg</small></span>
+              <span class="wh-hero-kpi-lbl">{{ tLabel('remaining_weight_label', 'Poids Total') }}</span>
+            </div>
+            <div class="wh-hero-kpi">
+              <span class="wh-hero-kpi-val">{{ main.formatDisplayNumber(hierarchicalSummary.total_valuation) }} <small>{{ main.currency }}</small></span>
+              <span class="wh-hero-kpi-lbl">{{ tLabel('total_stock_value', 'Valorisation Stock') }}</span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="wh-hero-kpi">
+              <span class="wh-hero-kpi-val">{{ lotsSummary.in_stock_lots }} / {{ lotsSummary.total_lots }}</span>
+              <span class="wh-hero-kpi-lbl">{{ tLabel('active_lots', 'N° Suivi en Stock') }}</span>
+            </div>
+            <div class="wh-hero-kpi">
+              <span class="wh-hero-kpi-val">{{ main.formatDisplayNumber(lotsSummary.total_remaining_weight) }} <small>Kg</small></span>
+              <span class="wh-hero-kpi-lbl">{{ tLabel('remaining_weight_label', 'Poids Restant') }}</span>
+            </div>
+            <div class="wh-hero-kpi">
+              <span class="wh-hero-kpi-val">{{ main.formatDisplayNumber(lotsSummary.total_valuation) }} <small>{{ main.currency }}</small></span>
+              <span class="wh-hero-kpi-lbl">{{ tLabel('total_stock_value', 'Valorisation Stock') }}</span>
+            </div>
+          </template>
         </div>
 
         <!-- Hero Actions -->
@@ -93,7 +113,8 @@
             rounded
             size="small"
             prepend-icon="mdi-file-excel"
-            @click="exportToExcel"
+            @click="activeViewMode === 'hierarchical_stock' ? exportHierarchicalToExcel() : exportToExcel()"
+            :loading="hierarchicalExportLoading"
             class="font-weight-bold"
           >
             Excel
@@ -119,26 +140,43 @@
   <v-card-text class="pa-3 pa-md-4">
     <!-- Spacious & Practical KPI Cards Strip -->
     <v-row dense class="mb-3">
-      <!-- 1. Active Lots Card -->
+      <!-- 1. Active Lots / Chambers Card -->
       <v-col cols="12" sm="6" md="3">
         <div class="wh-spacious-kpi border">
           <div class="wh-spacious-kpi-icon" style="background: rgba(162, 30, 229, 0.12);">
-            <v-icon color="#a21ee5" size="22">mdi-cube-outline</v-icon>
+            <v-icon color="#a21ee5" size="22">{{ activeViewMode === 'hierarchical_stock' ? 'mdi-snowflake' : 'mdi-cube-outline' }}</v-icon>
           </div>
           <div class="wh-spacious-kpi-info">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <span class="wh-spacious-kpi-label">{{ tLabel('active_lots', 'N° de Suivi en Stock') }}</span>
-              <v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold px-2">
-                {{ lotsSummary.in_stock_lots }} / {{ lotsSummary.total_lots }}
-              </v-chip>
-            </div>
-            <div class="wh-spacious-kpi-val" style="color: #a21ee5;">
-              {{ lotsSummary.in_stock_lots }} <span class="wh-unit">{{ tLabel('lots', 'N° de Suivi') }}</span>
-            </div>
-            <div class="wh-spacious-kpi-sub mt-1">
-              <v-icon size="12" color="grey" class="mr-1">mdi-archive-arrow-down-outline</v-icon>
-              <span>{{ lotsSummary.depleted_lots }} {{ tLabel('depleted', 'épuisés') }}</span>
-            </div>
+            <template v-if="activeViewMode === 'hierarchical_stock'">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('warehouses', 'Chambres Froides') }}</span>
+                <v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold px-2">
+                  {{ hierarchicalSummary.species_count }} {{ tLabel('species', 'Espèces') }}
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val" style="color: #a21ee5;">
+                {{ hierarchicalSummary.chambers_count }} <span class="wh-unit">{{ tLabel('chambers', 'Chambres') }}</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="#a21ee5" class="mr-1">mdi-fish</v-icon>
+                <span>{{ hierarchicalSummary.species_count }} {{ tLabel('species_stored', 'espèces et calibres en stock') }}</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('active_lots', 'N° de Suivi en Stock') }}</span>
+                <v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold px-2">
+                  {{ lotsSummary.in_stock_lots }} / {{ lotsSummary.total_lots }}
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val" style="color: #a21ee5;">
+                {{ lotsSummary.in_stock_lots }} <span class="wh-unit">{{ tLabel('lots', 'N° de Suivi') }}</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="grey" class="mr-1">mdi-archive-arrow-down-outline</v-icon>
+                <span>{{ lotsSummary.depleted_lots }} {{ tLabel('depleted', 'épuisés') }}</span>
+              </div>
+            </template>
           </div>
         </div>
       </v-col>
@@ -150,19 +188,36 @@
             <v-icon color="#00897B" size="22">mdi-weight-kilogram</v-icon>
           </div>
           <div class="wh-spacious-kpi-info">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <span class="wh-spacious-kpi-label">{{ tLabel('remaining_weight_label', 'Poids en Stock') }}</span>
-              <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold px-2">
-                {{ lotsSummary.total_initial_weight > 0 ? Math.round((lotsSummary.total_remaining_weight / lotsSummary.total_initial_weight) * 100) : 0 }}%
-              </v-chip>
-            </div>
-            <div class="wh-spacious-kpi-val text-teal">
-              {{ main.formatDisplayNumber(lotsSummary.total_remaining_weight) }} <span class="wh-unit">Kg</span>
-            </div>
-            <div class="wh-spacious-kpi-sub mt-1">
-              <v-icon size="12" color="teal" class="mr-1">mdi-scale-balance</v-icon>
-              <span>{{ tLabel('initial', 'Init.') }}: {{ main.formatDisplayNumber(lotsSummary.total_initial_weight) }} Kg</span>
-            </div>
+            <template v-if="activeViewMode === 'hierarchical_stock'">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('remaining_weight_label', 'Poids Total en Stock') }}</span>
+                <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold px-2">
+                  {{ hierarchicalData.is_historical ? tLabel('inventory_villamar_date', 'Historique') : tLabel('live_today', 'En Direct') }}
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val text-teal">
+                {{ main.formatDisplayNumber(hierarchicalSummary.total_weight) }} <span class="wh-unit">Kg</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="teal" class="mr-1">mdi-calendar-check</v-icon>
+                <span>{{ hierarchicalData.date || main.formateDate(new Date()) }}</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('remaining_weight_label', 'Poids en Stock') }}</span>
+                <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-bold px-2">
+                  {{ lotsSummary.total_initial_weight > 0 ? Math.round((lotsSummary.total_remaining_weight / lotsSummary.total_initial_weight) * 100) : 0 }}%
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val text-teal">
+                {{ main.formatDisplayNumber(lotsSummary.total_remaining_weight) }} <span class="wh-unit">Kg</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="teal" class="mr-1">mdi-scale-balance</v-icon>
+                <span>{{ tLabel('initial', 'Init.') }}: {{ main.formatDisplayNumber(lotsSummary.total_initial_weight) }} Kg</span>
+              </div>
+            </template>
           </div>
         </div>
       </v-col>
@@ -174,19 +229,36 @@
             <v-icon color="#6D4C41" size="22">mdi-package-variant-closed</v-icon>
           </div>
           <div class="wh-spacious-kpi-info">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <span class="wh-spacious-kpi-label">{{ tLabel('caisses', 'Colis / Cartons') }}</span>
-              <v-chip size="x-small" color="#6D4C41" variant="tonal" class="font-weight-bold px-2">
-                {{ tLabel('boxes', 'Colis') }}
-              </v-chip>
-            </div>
-            <div class="wh-spacious-kpi-val" style="color: #6D4C41;">
-              {{ main.formatDisplayNumber(lotsSummary.total_initial_boxes) }} <span class="wh-unit">{{ tLabel('boxes', 'Cartons') }}</span>
-            </div>
-            <div class="wh-spacious-kpi-sub mt-1">
-              <v-icon size="12" color="#6D4C41" class="mr-1">mdi-package-variant</v-icon>
-              <span>{{ tLabel('packaging_and_boxes', 'Emballages & cartons enregistrés') }}</span>
-            </div>
+            <template v-if="activeViewMode === 'hierarchical_stock'">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('caisses', 'Colis / Caisses') }}</span>
+                <v-chip size="x-small" color="#6D4C41" variant="tonal" class="font-weight-bold px-2">
+                  {{ tLabel('boxes', 'Caisses') }}
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val" style="color: #6D4C41;">
+                {{ main.formatDisplayNumber(hierarchicalSummary.total_boxes) }} <span class="wh-unit">{{ tLabel('boxes', 'Caisses') }}</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="#6D4C41" class="mr-1">mdi-package-variant</v-icon>
+                <span>{{ tLabel('stock_emballages_title', 'Emballages & Conditionnements') }}</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('caisses', 'Colis / Cartons') }}</span>
+                <v-chip size="x-small" color="#6D4C41" variant="tonal" class="font-weight-bold px-2">
+                  {{ tLabel('boxes', 'Colis') }}
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val" style="color: #6D4C41;">
+                {{ main.formatDisplayNumber(lotsSummary.total_initial_boxes) }} <span class="wh-unit">{{ tLabel('boxes', 'Cartons') }}</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="#6D4C41" class="mr-1">mdi-package-variant</v-icon>
+                <span>{{ tLabel('packaging_and_boxes', 'Emballages & cartons enregistrés') }}</span>
+              </div>
+            </template>
           </div>
         </div>
       </v-col>
@@ -198,19 +270,36 @@
             <v-icon color="#FF9800" size="22">mdi-cash-multiple</v-icon>
           </div>
           <div class="wh-spacious-kpi-info">
-            <div class="d-flex align-center justify-space-between mb-1">
-              <span class="wh-spacious-kpi-label">{{ tLabel('total_stock_value', 'Valorisation Stock') }}</span>
-              <v-chip size="x-small" color="#FF9800" variant="tonal" class="font-weight-bold px-2">
-                WAP / PMP
-              </v-chip>
-            </div>
-            <div class="wh-spacious-kpi-val" style="color: #FF9800;">
-              {{ main.formatDisplayNumber(lotsSummary.total_valuation) }} <span class="wh-unit">{{ main.currency }}</span>
-            </div>
-            <div class="wh-spacious-kpi-sub mt-1">
-              <v-icon size="12" color="#FF9800" class="mr-1">mdi-snowflake</v-icon>
-              <span>{{ occupiedChambersCount }} {{ tLabel('occupied_chambers', 'chambres occupées') }}</span>
-            </div>
+            <template v-if="activeViewMode === 'hierarchical_stock'">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('total_stock_value', 'Valorisation Stock') }}</span>
+                <v-chip size="x-small" color="#FF9800" variant="tonal" class="font-weight-bold px-2">
+                  {{ main.currency }}
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val" style="color: #FF9800;">
+                {{ main.formatDisplayNumber(hierarchicalSummary.total_valuation) }} <span class="wh-unit">{{ main.currency }}</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="#FF9800" class="mr-1">mdi-scale-balance</v-icon>
+                <span>{{ hierarchicalSummary.total_weight > 0 ? (hierarchicalSummary.total_valuation / hierarchicalSummary.total_weight).toFixed(2) : '0.00' }} {{ main.currency }}/Kg (PMP)</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="d-flex align-center justify-space-between mb-1">
+                <span class="wh-spacious-kpi-label">{{ tLabel('total_stock_value', 'Valorisation Stock') }}</span>
+                <v-chip size="x-small" color="#FF9800" variant="tonal" class="font-weight-bold px-2">
+                  WAP / PMP
+                </v-chip>
+              </div>
+              <div class="wh-spacious-kpi-val" style="color: #FF9800;">
+                {{ main.formatDisplayNumber(lotsSummary.total_valuation) }} <span class="wh-unit">{{ main.currency }}</span>
+              </div>
+              <div class="wh-spacious-kpi-sub mt-1">
+                <v-icon size="12" color="#FF9800" class="mr-1">mdi-snowflake</v-icon>
+                <span>{{ occupiedChambersCount }} {{ tLabel('occupied_chambers', 'chambres occupées') }}</span>
+              </div>
+            </template>
           </div>
         </div>
       </v-col>
@@ -229,13 +318,1036 @@
       <div class="d-flex align-center ga-2 pr-2">
         <v-chip size="small" color="#a21ee5" variant="tonal" class="font-weight-bold">
           <v-icon size="14" class="mr-1">mdi-pound</v-icon>
-          <span v-if="activeViewMode === 'stock_par_lot'">{{ lotsPagination.total || lots.length }} {{ tLabel('lots', 'N° de Suivi') }}</span>
+          <span v-if="activeViewMode === 'hierarchical_stock'">{{ hierarchicalSummary.chambers_count }} {{ tLabel('warehouses', 'Chambres') }} • {{ hierarchicalSummary.species_count }} {{ tLabel('species', 'Espèces') }}</span>
+          <span v-else-if="activeViewMode === 'stock_par_lot'">{{ lotsPagination.total || lots.length }} {{ tLabel('lots', 'N° de Suivi') }}</span>
           <span v-else-if="activeViewMode === 'chambers'">{{ chambersList.length }} {{ tLabel('warehouses', 'Chambres') }}</span>
           <span v-else-if="activeViewMode === 'species'">{{ speciesList.length }} {{ tLabel('species', 'Espèces') }}</span>
           <span v-else-if="activeViewMode === 'journal'">{{ journalTotals.total_count || journalList.length }} {{ tLabel('movements', 'Mouvements') }}</span>
           <span v-else>{{ tLabel('analytics', 'Analytique') }}</span>
         </v-chip>
       </div>
+    </div>
+    <!-- ========================================================================= -->
+    <!-- VIEW 0: STOCK HIÉRARCHIQUE PAR CHAMBRE & ESPÈCE (VILLAMAR 3-LEVEL MATRIX) -->
+    <!-- ========================================================================= -->
+    <div v-if="activeViewMode === 'hierarchical_stock'" class="wh-view-container">
+      <!-- 1. Practical & Spacious Command & Filter Toolbar -->
+      <v-card class="wh-filter-toolbar pa-3 pa-md-4 mb-3 rounded-2xl border" elevation="0">
+        <!-- Row 1: Search, Stock Type, Date Navigator, Mode Switcher, Actions -->
+        <div class="d-flex align-center justify-space-between flex-wrap ga-3 mb-3">
+          <!-- Search input with AddCharge style: compact, outlined, rounded-lg, color=#a21ee5 -->
+          <v-text-field
+            v-model="hierarchicalSearch"
+            density="compact"
+            variant="outlined"
+            rounded="lg"
+            color="#a21ee5"
+            :placeholder="tLabel('search_chambers_species_lots', 'Rechercher chambre, espèce, calibre, N° BR ou fournisseur...')"
+            prepend-inner-icon="mdi-magnify"
+            clearable
+            hide-details
+            class="wh-search-input flex-grow-1"
+            style="min-width: 260px; max-width: 440px;"
+          ></v-text-field>
+
+          <!-- Stock Type Filter Segmented Toggle -->
+          <div class="d-flex align-center ga-1 border rounded-lg pa-1 bg-surface">
+            <v-btn
+              size="small"
+              :variant="hierarchicalStockType === 'all' ? 'flat' : 'text'"
+              :color="hierarchicalStockType === 'all' ? '#a21ee5' : 'default'"
+              rounded="md"
+              class="font-weight-medium text-caption"
+              @click="hierarchicalStockType = 'all'"
+            >
+              {{ tLabel('all_stocks', 'Tous') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              :variant="hierarchicalStockType === 'fish' ? 'flat' : 'text'"
+              :color="hierarchicalStockType === 'fish' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-fish"
+              class="font-weight-medium text-caption"
+              @click="hierarchicalStockType = 'fish'"
+            >
+              {{ tLabel('frozen_fish_stock', 'Poisson') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              :variant="hierarchicalStockType === 'guano' ? 'flat' : 'text'"
+              :color="hierarchicalStockType === 'guano' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-leaf"
+              class="font-weight-medium text-caption"
+              @click="hierarchicalStockType = 'guano'"
+            >
+              {{ tLabel('guano_stock', 'Guano') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              :variant="hierarchicalStockType === 'emballage' ? 'flat' : 'text'"
+              :color="hierarchicalStockType === 'emballage' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-package-variant"
+              class="font-weight-medium text-caption"
+              @click="hierarchicalStockType = 'emballage'"
+            >
+              {{ tLabel('packaging_stock', 'Emballage') }}
+            </v-btn>
+          </div>
+
+          <!-- Date Navigator Pill Switcher (Historical Stock Engine) -->
+          <div class="d-flex align-center ga-1 border rounded-lg pa-1 bg-surface">
+            <v-btn
+              size="small"
+              :variant="hierarchicalDatePreset === 'today' ? 'flat' : 'text'"
+              :color="hierarchicalDatePreset === 'today' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-radioactive"
+              class="font-weight-medium text-caption"
+              @click="onHierarchicalDatePreset('today')"
+            >
+              {{ tLabel('live_today', 'Aujourd\'hui') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              :variant="hierarchicalDatePreset === 'inventory_20261101' ? 'flat' : 'text'"
+              :color="hierarchicalDatePreset === 'inventory_20261101' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-history"
+              class="font-weight-medium text-caption"
+              @click="onHierarchicalDatePreset('inventory_20261101')"
+            >
+              {{ tLabel('inventory_villamar_date', '01/11/2026') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              :variant="hierarchicalDatePreset === 'custom' ? 'flat' : 'text'"
+              :color="hierarchicalDatePreset === 'custom' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-calendar-range"
+              class="font-weight-medium text-caption"
+              @click="onHierarchicalDatePreset('custom')"
+            >
+              {{ tLabel('custom_date', 'Personnalisée') }}
+            </v-btn>
+          </div>
+
+          <!-- Custom Date Input if 'custom' is active -->
+          <v-text-field
+            v-if="hierarchicalDatePreset === 'custom'"
+            v-model="hierarchicalCustomDate"
+            type="date"
+            density="compact"
+            variant="outlined"
+            rounded="lg"
+            color="#a21ee5"
+            hide-details
+            style="width: 170px;"
+            @change="onHierarchicalCustomDateChange(hierarchicalCustomDate)"
+          ></v-text-field>
+
+          <!-- Display Mode Toggle: Table vs 2D Floorplan -->
+          <div class="d-flex align-center ga-1 border rounded-lg pa-1 bg-surface">
+            <v-btn
+              size="small"
+              :variant="hierarchicalDisplayMode === 'table' ? 'flat' : 'text'"
+              :color="hierarchicalDisplayMode === 'table' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-table"
+              class="font-weight-medium text-caption"
+              @click="hierarchicalDisplayMode = 'table'"
+            >
+              {{ tLabel('view_mode_table', 'Tableau') }}
+            </v-btn>
+            <v-btn
+              size="small"
+              :variant="hierarchicalDisplayMode === 'floorplan' ? 'flat' : 'text'"
+              :color="hierarchicalDisplayMode === 'floorplan' ? '#a21ee5' : 'default'"
+              rounded="md"
+              prepend-icon="mdi-floor-plan"
+              class="font-weight-medium text-caption"
+              @click="hierarchicalDisplayMode = 'floorplan'"
+            >
+              {{ tLabel('view_mode_floorplan', 'Plan 2D') }}
+            </v-btn>
+          </div>
+
+          <!-- Right Action Buttons -->
+          <div class="d-flex align-center ga-2 ml-auto">
+            <!-- FEFO Priority Alert Toggle Button -->
+            <v-btn
+              size="small"
+              :variant="showFefoAlertDrawer ? 'flat' : 'tonal'"
+              color="error"
+              rounded="lg"
+              prepend-icon="mdi-alert-octagon-outline"
+              @click="showFefoAlertDrawer = !showFefoAlertDrawer"
+              class="font-weight-bold"
+            >
+              {{ tLabel('fefo_priority_feed', 'Alertes FEFO') }} ({{ (hierarchicalData?.fefo_alerts || []).length }})
+            </v-btn>
+
+            <!-- Toggle Emballage Strip Button -->
+            <v-btn
+              size="small"
+              :variant="showEmballageStrip ? 'tonal' : 'outlined'"
+              color="#6D4C41"
+              rounded="lg"
+              prepend-icon="mdi-package-variant-closed"
+              @click="showEmballageStrip = !showEmballageStrip"
+              class="font-weight-bold"
+            >
+              {{ tLabel('cartons', 'Emballages') }} (5)
+            </v-btn>
+
+            <!-- Expand / Collapse All Chambers -->
+            <v-btn
+              size="small"
+              variant="tonal"
+              color="#a21ee5"
+              rounded="lg"
+              :prepend-icon="allHierarchicalChambersExpanded ? 'mdi-collapse-all-outline' : 'mdi-expand-all-outline'"
+              @click="toggleExpandAllChambers"
+              class="font-weight-bold"
+            >
+              {{ allHierarchicalChambersExpanded ? tLabel('collapse_all_chambers', 'Replier Tout') : tLabel('expand_all_chambers', 'Déplier Tout') }}
+            </v-btn>
+
+            <!-- Excel Export Button -->
+            <v-btn
+              size="small"
+              variant="tonal"
+              color="#00897B"
+              rounded="lg"
+              prepend-icon="mdi-file-excel"
+              :loading="hierarchicalExportLoading"
+              @click="exportHierarchicalToExcel"
+              class="font-weight-bold"
+            >
+              Excel
+            </v-btn>
+
+            <!-- Refresh Button -->
+            <v-btn
+              size="small"
+              variant="outlined"
+              color="#a21ee5"
+              icon
+              :loading="hierarchicalLoading"
+              @click="fetchHierarchicalStock"
+              :title="tLabel('refresh', 'Actualiser')"
+            >
+              <v-icon size="16">mdi-refresh</v-icon>
+            </v-btn>
+          </div>
+        </div>
+
+        <!-- Row 2: Selected Chamber Filter Chips & FEFO Legend -->
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2 pt-2 border-t">
+          <!-- Chamber filter chips -->
+          <div class="d-flex align-center ga-1.5 flex-wrap">
+            <span class="text-caption font-weight-bold mr-1 text-medium-emphasis">
+              <v-icon size="14" class="mr-1">mdi-filter-variant</v-icon>{{ tLabel('chambers', 'Chambres') }}:
+            </span>
+            <v-chip
+              size="x-small"
+              :color="hierarchicalSelectedChamberId === null ? '#a21ee5' : 'default'"
+              :variant="hierarchicalSelectedChamberId === null ? 'flat' : 'outlined'"
+              class="cursor-pointer font-weight-bold"
+              @click="hierarchicalSelectedChamberId = null"
+            >
+              {{ tLabel('all_chambers', 'Toutes') }} ({{ (hierarchicalData?.chambers || []).length }})
+            </v-chip>
+            <v-chip
+              v-for="ch in (hierarchicalData?.chambers || [])"
+              :key="ch.id"
+              size="x-small"
+              :color="hierarchicalSelectedChamberId === ch.id ? '#a21ee5' : 'default'"
+              :variant="hierarchicalSelectedChamberId === ch.id ? 'flat' : 'outlined'"
+              class="cursor-pointer font-weight-medium"
+              @click="selectFloorplanChamber(ch)"
+            >
+              <v-icon size="12" class="mr-1" color="#a21ee5">mdi-snowflake</v-icon>
+              {{ ch.name }}
+              <span v-if="ch.target_temperature" class="ml-1 opacity-70">({{ ch.target_temperature }}°C)</span>
+            </v-chip>
+          </div>
+
+          <!-- FEFO Age Indicator Legend -->
+          <div class="d-flex align-center ga-2 flex-wrap">
+            <span class="text-caption font-weight-bold text-medium-emphasis">FEFO:</span>
+            <v-chip size="x-small" color="#00897B" variant="tonal" class="font-weight-medium">
+              <span class="wh-legend-dot mr-1" style="background: #00897B;"></span> &lt; 30j (Frais)
+            </v-chip>
+            <v-chip size="x-small" color="#1E88E5" variant="tonal" class="font-weight-medium">
+              <span class="wh-legend-dot mr-1" style="background: #1E88E5;"></span> 30-90j (Moyen)
+            </v-chip>
+            <v-chip size="x-small" color="#FB8C00" variant="tonal" class="font-weight-medium">
+              <span class="wh-legend-dot mr-1" style="background: #FB8C00;"></span> 90-180j (Mature)
+            </v-chip>
+            <v-chip size="x-small" color="#E53935" variant="tonal" class="font-weight-medium">
+              <span class="wh-legend-dot mr-1" style="background: #E53935;"></span> &gt; 180j (À Déstocker)
+            </v-chip>
+          </div>
+        </div>
+      </v-card>
+
+      <!-- 2. FEFO Priority Alerts Drawer / Banner -->
+      <v-expand-transition>
+        <div v-if="showFefoAlertDrawer && fefoAlertsList.length" class="mb-4">
+          <v-card class="pa-3 rounded-2xl border wh-fefo-alert-card" elevation="0">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <div class="d-flex align-center ga-2">
+                <v-icon size="20" color="error">mdi-alert-circle-outline</v-icon>
+                <span class="font-weight-bold text-subtitle-2 text-error text-uppercase">{{ tLabel('fefo_priority_feed', 'Alertes Déstockage FEFO & Risque de Dessiccation') }}</span>
+                <v-chip size="x-small" color="error" variant="flat" class="font-weight-bold">
+                  {{ fefoAlertsList.length }} {{ tLabel('fefo_alerts_count', 'lots prioritaires') }}
+                </v-chip>
+              </div>
+              <v-btn size="x-small" variant="text" icon @click="showFefoAlertDrawer = false">
+                <v-icon size="14">mdi-close</v-icon>
+              </v-btn>
+            </div>
+            <v-table density="compact" class="wh-fefo-table border rounded-xl">
+              <thead>
+                <tr>
+                  <th class="text-left font-weight-bold text-caption text-uppercase">N° Suivi (BR)</th>
+                  <th class="text-left font-weight-bold text-caption text-uppercase">Âge / FEFO</th>
+                  <th class="text-left font-weight-bold text-caption text-uppercase">Chambre</th>
+                  <th class="text-left font-weight-bold text-caption text-uppercase">Espèce & Article</th>
+                  <th class="text-left font-weight-bold text-caption text-uppercase">Fournisseur</th>
+                  <th class="text-right font-weight-bold text-caption text-uppercase">Caisses</th>
+                  <th class="text-right font-weight-bold text-caption text-uppercase">Poids Restant (Kg)</th>
+                  <th class="text-right font-weight-bold text-caption text-uppercase">Valeur (DH)</th>
+                  <th class="text-center font-weight-bold text-caption text-uppercase" style="width: 144px;">Action Rapide</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="alert in fefoAlertsList.slice(0, 10)" :key="alert.id" class="wh-fefo-row">
+                  <td class="font-weight-bold text-caption" style="color: #a21ee5;">{{ alert.reception_tracking_number }}</td>
+                  <td>
+                    <v-chip size="x-small" :color="alert.is_critical ? 'error' : 'warning'" variant="flat" class="font-weight-bold text-white">
+                      {{ alert.storage_age_days }}j • {{ alert.is_critical ? '> 180j (CRITIQUE)' : '90-180j' }}
+                    </v-chip>
+                  </td>
+                  <td class="font-weight-medium text-caption">{{ alert.chamber_name }}</td>
+                  <td class="font-weight-bold text-caption">{{ alert.species_name }}</td>
+                  <td class="text-caption text-medium-emphasis">{{ alert.supplier_name }}</td>
+                  <td class="text-right font-weight-bold text-caption">{{ main.formatDisplayNumber(alert.package_count) }}</td>
+                  <td class="text-right font-weight-bold text-caption text-teal">{{ main.formatDisplayNumber(alert.remaining_weight) }} Kg</td>
+                  <td class="text-right font-weight-bold text-caption" style="color: #FF9800;">{{ main.formatDisplayNumber(alert.total_price) }} DH</td>
+                  <td class="text-center">
+                    <v-btn
+                      size="x-small"
+                      variant="tonal"
+                      color="#a21ee5"
+                      prepend-icon="mdi-swap-horizontal"
+                      class="text-caption font-weight-bold"
+                      @click="openQuickTransfer(alert, { id: alert.chamber_id, name: alert.chamber_name }, { name: alert.species_name })"
+                    >
+                      Transférer
+                    </v-btn>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-card>
+        </div>
+      </v-expand-transition>
+
+      <!-- 3. Modern Interactive 2D Cold Storage Floorplan (SVG Visual Layout) -->
+      <v-expand-transition>
+        <div v-if="hierarchicalDisplayMode === 'floorplan'" class="mb-4">
+          <v-card class="pa-4 rounded-2xl border wh-floorplan-card" elevation="0">
+            <div class="d-flex align-center justify-space-between mb-3 flex-wrap ga-2">
+              <div class="d-flex align-center ga-2">
+                <v-icon size="22" color="#a21ee5">mdi-floor-plan</v-icon>
+                <div>
+                  <div class="font-weight-bold text-subtitle-1">{{ tLabel('view_mode_floorplan', 'Plan 2D & Zones Frigorifiques de l\'Usine') }}</div>
+                  <div class="text-caption text-medium-emphasis">Représentation spatiale des chambres froides, températures cibles et taux d'occupation</div>
+                </div>
+              </div>
+
+              <!-- Thermal Status Badges -->
+              <div class="d-flex align-center ga-2 flex-wrap">
+                <v-chip size="small" color="#00897B" variant="tonal" class="font-weight-bold">
+                  <v-icon size="14" class="mr-1">mdi-check-decagram</v-icon>
+                  Chaîne du froid 100% conforme
+                </v-chip>
+                <v-chip size="small" color="#1E88E5" variant="tonal" class="font-weight-bold">
+                  <v-icon size="14" class="mr-1">mdi-snowflake</v-icon>
+                  T° Moyenne: -22.4°C
+                </v-chip>
+              </div>
+            </div>
+
+            <!-- SVG 2D Vector Canvas -->
+            <div class="wh-svg-floorplan-wrapper border rounded-xl pa-3 bg-surface overflow-x-auto">
+              <svg viewBox="0 0 800 300" class="wh-svg-canvas" style="width: 100%; min-width: 760px; height: auto;">
+                <!-- Warehouse Outer Blueprint Perimeter -->
+                <rect x="10" y="10" width="780" height="280" rx="12" class="wh-outer-wall" />
+                
+                <!-- Inbound / Outbound Docks Banner -->
+                <line x1="240" y1="10" x2="560" y2="10" stroke="#a21ee5" stroke-width="4" stroke-dasharray="6,4" />
+                <text x="400" y="24" text-anchor="middle" font-size="10" font-weight="bold" fill="#a21ee5" letter-spacing="1.5">
+                  QUAIS DE CHARGEMENT &amp; SAS THERMIQUE D'EXPÉDITION
+                </text>
+
+                <!-- Cold Chambers Rendering -->
+                <g
+                  v-for="ch in (hierarchicalData?.chambers || [])"
+                  :key="'svg-ch-' + ch.id"
+                  :transform="`translate(${ch.floorplan_x || 30}, ${ch.floorplan_y || 30})`"
+                  class="wh-svg-room-group cursor-pointer"
+                  :class="{ 'wh-svg-room-active': hierarchicalSelectedChamberId === ch.id }"
+                  @click="selectFloorplanChamber(ch)"
+                >
+                  <!-- Room Outer Box -->
+                  <rect
+                    x="0"
+                    y="0"
+                    :width="ch.floorplan_width || 170"
+                    :height="ch.floorplan_height || 110"
+                    rx="10"
+                    class="wh-svg-room-box"
+                    :class="{ 'wh-svg-room-box-selected': hierarchicalSelectedChamberId === ch.id }"
+                  />
+
+                  <!-- Room Fill Level Bar at Bottom -->
+                  <rect
+                    x="4"
+                    :y="(ch.floorplan_height || 110) - 10"
+                    :width="Math.max(4, ((ch.floorplan_width || 170) - 8) * (ch.occupancy_percentage / 100))"
+                    height="6"
+                    rx="3"
+                    :fill="ch.occupancy_percentage > 85 ? '#FF9800' : '#a21ee5'"
+                  />
+
+                  <!-- Temperature Badge in Top Right -->
+                  <rect
+                    :x="(ch.floorplan_width || 170) - 62"
+                    y="6"
+                    width="56"
+                    height="18"
+                    rx="9"
+                    :fill="ch.target_temperature < -25 ? '#00695C' : '#1565C0'"
+                  />
+                  <text
+                    :x="(ch.floorplan_width || 170) - 34"
+                    y="18"
+                    text-anchor="middle"
+                    font-size="9"
+                    font-weight="bold"
+                    fill="#ffffff"
+                  >
+                    {{ ch.target_temperature ? ch.target_temperature + '°C' : '-22°C' }}
+                  </text>
+
+                  <!-- Chamber Name -->
+                  <text
+                    x="10"
+                    y="22"
+                    font-size="11"
+                    font-weight="bold"
+                    fill="currentColor"
+                    class="wh-svg-text-title"
+                  >
+                    {{ ch.name }}
+                  </text>
+
+                  <!-- Room Number & Zone Type -->
+                  <text
+                    x="10"
+                    y="40"
+                    font-size="9.5"
+                    font-weight="medium"
+                    fill="#a21ee5"
+                  >
+                    {{ ch.num_chambre || 'Chambre Froide' }} • {{ ch.zone_type === 'blast_freeze' ? 'Tunnel' : 'Négatif' }}
+                  </text>
+
+                  <!-- Species & Lots Count -->
+                  <text
+                    x="10"
+                    y="58"
+                    font-size="9"
+                    fill="#78909C"
+                  >
+                    {{ ch.species_count || 0 }} espèces • {{ ch.lots_count || 0 }} BRs
+                  </text>
+
+                  <!-- Weight Metrics -->
+                  <text
+                    x="10"
+                    y="76"
+                    font-size="11"
+                    font-weight="bold"
+                    fill="#00897B"
+                  >
+                    {{ main.formatDisplayNumber(ch.total_weight) }} Kg
+                  </text>
+
+                  <!-- Occupancy Percentage -->
+                  <text
+                    x="10"
+                    y="92"
+                    font-size="8.5"
+                    font-weight="bold"
+                    fill="#78909C"
+                  >
+                    Occupation: {{ ch.occupancy_percentage || 0 }}%
+                  </text>
+                </g>
+              </svg>
+            </div>
+
+            <!-- Floorplan Inspection Bar if Chamber Selected -->
+            <div v-if="selectedFloorplanChamberData" class="mt-3 pa-3 rounded-xl border bg-surface-variant-subtle d-flex align-center justify-space-between flex-wrap ga-3">
+              <div class="d-flex align-center ga-3">
+                <v-icon size="24" color="#a21ee5">mdi-snowflake</v-icon>
+                <div>
+                  <div class="font-weight-bold text-subtitle-2">{{ selectedFloorplanChamberData.name }} ({{ selectedFloorplanChamberData.target_temperature }}°C)</div>
+                  <div class="text-caption text-medium-emphasis">
+                    {{ selectedFloorplanChamberData.species_count }} espèces • {{ main.formatDisplayNumber(selectedFloorplanChamberData.total_boxes) }} caisses • {{ main.formatDisplayNumber(selectedFloorplanChamberData.total_weight) }} Kg
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <v-btn
+                  size="small"
+                  variant="flat"
+                  color="#a21ee5"
+                  @click="hierarchicalDisplayMode = 'table'"
+                >
+                  Voir dans le Tableau Détaillé
+                </v-btn>
+                <v-btn
+                  size="small"
+                  variant="outlined"
+                  color="#a21ee5"
+                  @click="selectedFloorplanChamberId = null; hierarchicalSelectedChamberId = null"
+                >
+                  Désélectionner
+                </v-btn>
+              </div>
+            </div>
+          </v-card>
+        </div>
+      </v-expand-transition>
+
+      <!-- 4. Packaging & Consumables Ribbon (Warehouse 993) -->
+      <v-expand-transition>
+        <div v-if="showEmballageStrip && filteredEmballages.length" class="mb-4">
+          <v-card class="pa-3 rounded-2xl border wh-emballage-strip" elevation="0">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <div class="d-flex align-center ga-2">
+                <v-icon size="18" color="#6D4C41">mdi-package-variant-closed</v-icon>
+                <span class="font-weight-bold text-subtitle-2 text-capitalize">{{ tLabel('stock_emballages_title', 'Stock Consommables d\'Emballage') }}</span>
+                <span class="text-caption text-medium-emphasis">({{ tLabel('stock_emballages_desc', 'Cartons, Plastiques, Feuillard, Cellophane, Palettes - Entrepôt 993') }})</span>
+              </div>
+              <v-btn size="x-small" variant="text" icon @click="showEmballageStrip = false">
+                <v-icon size="14">mdi-close</v-icon>
+              </v-btn>
+            </div>
+            <v-row dense>
+              <v-col
+                v-for="(emb, eIdx) in filteredEmballages"
+                :key="eIdx"
+                cols="12"
+                sm="6"
+                md="2"
+                lg="2"
+                class="flex-grow-1"
+              >
+                <div class="wh-emballage-card border rounded-xl pa-2.5 d-flex align-center ga-3">
+                  <div
+                    class="wh-emballage-icon-box rounded-lg d-flex align-center justify-center"
+                    :style="`background: ${getEmballageColor(emb.name)}18; color: ${getEmballageColor(emb.name)};`"
+                  >
+                    <v-icon size="22" :color="getEmballageColor(emb.name)">{{ getEmballageIcon(emb.name) }}</v-icon>
+                  </div>
+                  <div class="wh-emballage-info flex-grow-1 min-width-0">
+                    <div class="text-caption font-weight-bold text-truncate" :style="`color: ${getEmballageColor(emb.name)};`">
+                      {{ emb.name }}
+                    </div>
+                    <div class="wh-emballage-qty font-weight-bold text-subtitle-1">
+                      {{ main.formatDisplayNumber(emb.total_quantity) }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis text-truncate" style="font-size: 11px !important;">
+                      {{ emb.unit }}
+                    </div>
+                  </div>
+                </div>
+              </v-col>
+            </v-row>
+          </v-card>
+        </div>
+      </v-expand-transition>
+
+      <!-- 5. Loading State -->
+      <div v-if="hierarchicalLoading" class="text-center py-12">
+        <v-progress-circular indeterminate color="#a21ee5" size="48" width="4"></v-progress-circular>
+        <div class="mt-3 text-caption font-weight-medium text-medium-emphasis">
+          {{ tLabel('loading_stock_matrix', 'Chargement de la hiérarchie du stock frigorifique...') }}
+        </div>
+      </div>
+
+      <!-- 6. Empty State -->
+      <div v-else-if="!filteredHierarchicalChambers.length" class="text-center py-12 border rounded-2xl bg-surface">
+        <v-icon size="48" color="grey">mdi-snowflake-off</v-icon>
+        <div class="mt-2 font-weight-bold text-body-1">{{ tLabel('no_stock_data', 'Aucune chambre ou stock trouvé') }}</div>
+        <div class="text-caption text-medium-emphasis mt-1">{{ tLabel('try_adjusting_filters', 'Essayez d\'ajuster vos filtres de recherche ou de changer la date.') }}</div>
+      </div>
+
+      <!-- 7. Master 3-Level Hierarchical Accordion Matrix -->
+      <div v-else class="wh-hierarchical-matrix d-flex flex-column ga-3">
+        <!-- Level 1: Chamber Card -->
+        <div
+          v-for="chamber in filteredHierarchicalChambers"
+          :key="chamber.id"
+          class="wh-chamber-block border rounded-2xl overflow-hidden bg-surface transition-all"
+        >
+          <!-- Chamber Header Bar -->
+          <div
+            class="wh-chamber-header pa-3 d-flex align-center justify-space-between flex-wrap ga-2 cursor-pointer"
+            :class="{ 'wh-chamber-header-expanded': expandedChambers[chamber.id] }"
+            @click="toggleChamber(chamber.id)"
+          >
+            <!-- Left: Toggle Chevron, Icon, Chamber Name, Badges -->
+            <div class="d-flex align-center ga-2.5">
+              <v-btn
+                icon
+                size="x-small"
+                variant="text"
+                class="wh-chamber-chevron"
+                :style="`transform: rotate(${expandedChambers[chamber.id] ? 90 : 0}deg); transition: transform 0.2s ease;`"
+              >
+                <v-icon size="18">mdi-chevron-right</v-icon>
+              </v-btn>
+
+              <div class="wh-chamber-icon-box rounded-lg pa-1.5" style="background: rgba(162, 30, 229, 0.12);">
+                <v-icon color="#a21ee5" size="20">mdi-snowflake</v-icon>
+              </div>
+
+              <div>
+                <div class="d-flex align-center ga-2 flex-wrap">
+                  <span class="font-weight-bold text-subtitle-1 text-high-emphasis">{{ chamber.name }}</span>
+                  <v-chip v-if="chamber.num_chambre" size="x-small" color="#a21ee5" variant="outlined" class="font-weight-bold">
+                    {{ chamber.num_chambre }}
+                  </v-chip>
+                  <v-chip size="x-small" :color="chamber.target_temperature < -25 ? '#00695C' : '#1565C0'" variant="flat" class="font-weight-bold text-white">
+                    {{ chamber.target_temperature ? chamber.target_temperature + '°C' : '-22°C' }}
+                  </v-chip>
+                  <v-chip size="x-small" :color="chamber.stock_type === 'guano' ? '#388E3C' : '#1E88E5'" variant="tonal" class="font-weight-bold">
+                    {{ chamber.stock_type === 'guano' ? 'Farine / Guano' : (chamber.warehouse_type === 'packaging' ? 'Emballage' : 'Poisson Congelé') }}
+                  </v-chip>
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  {{ (chamber.species || []).length }} {{ tLabel('species', 'Espèces') }} • {{ chamber.lots_count || 0 }} {{ tLabel('lots', 'Bons de Réception (BRs)') }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Center/Right: Aggregated Metrics -->
+            <div class="d-flex align-center ga-4 flex-wrap ml-auto pr-2" @click.stop>
+              <!-- Boxes count -->
+              <div class="text-right">
+                <div class="text-caption text-medium-emphasis text-uppercase" style="font-size: 10px !important;">{{ tLabel('boxes', 'Caisses') }}</div>
+                <div class="font-weight-bold text-body-2 text-medium-emphasis">
+                  {{ main.formatDisplayNumber(chamber.total_boxes) }}
+                </div>
+              </div>
+
+              <!-- Total Net Weight -->
+              <div class="text-right">
+                <div class="text-caption text-medium-emphasis text-uppercase" style="font-size: 10px !important;">{{ tLabel('weight', 'Poids Total') }}</div>
+                <div class="font-weight-bold text-subtitle-2 text-teal">
+                  {{ main.formatDisplayNumber(chamber.total_weight) }} <small class="text-caption font-weight-regular">Kg</small>
+                </div>
+              </div>
+
+              <!-- Total Valuation -->
+              <div class="text-right">
+                <div class="text-caption text-medium-emphasis text-uppercase" style="font-size: 10px !important;">{{ tLabel('valuation', 'Valorisation') }}</div>
+                <div class="font-weight-bold text-subtitle-2" style="color: #FF9800;">
+                  {{ main.formatDisplayNumber(chamber.total_valuation) }} <small class="text-caption font-weight-regular">{{ main.currency }}</small>
+                </div>
+              </div>
+
+              <!-- Chamber Stock Share Progress Bar -->
+              <div class="d-flex flex-column align-end justify-center" style="min-width: 90px;">
+                <div class="d-flex align-center ga-1 text-caption font-weight-bold" style="color: #a21ee5;">
+                  <span>{{ hierarchicalSummary.total_weight > 0 ? ((chamber.total_weight / hierarchicalSummary.total_weight) * 100).toFixed(1) : 0 }}%</span>
+                  <span class="text-caption text-medium-emphasis font-weight-regular" style="font-size: 9px !important;">du total</span>
+                </div>
+                <v-progress-linear
+                  :model-value="hierarchicalSummary.total_weight > 0 ? (chamber.total_weight / hierarchicalSummary.total_weight) * 100 : 0"
+                  color="#a21ee5"
+                  rounded
+                  height="5"
+                  class="mt-1"
+                  style="width: 80px;"
+                ></v-progress-linear>
+              </div>
+
+              <!-- Quick action to expand all species in chamber -->
+              <v-btn
+                icon
+                size="x-small"
+                variant="tonal"
+                color="#a21ee5"
+                @click="toggleExpandAllSpeciesInChamber(chamber)"
+                :title="tLabel('expand_all_species', 'Déplier/Replier toutes les espèces')"
+              >
+                <v-icon size="14">mdi-unfold-more-horizontal</v-icon>
+              </v-btn>
+            </div>
+          </div>
+
+          <!-- Level 2: Species Table (Inside Chamber) -->
+          <v-expand-transition>
+            <div v-if="expandedChambers[chamber.id]" class="wh-chamber-body border-t pa-2 pa-md-3 bg-surface-variant-subtle">
+              <div v-if="!(chamber.species && chamber.species.length)" class="text-center py-4 text-caption text-medium-emphasis">
+                {{ tLabel('no_species_in_chamber', 'Aucune espèce actuellement stockée dans cette chambre.') }}
+              </div>
+
+              <div v-else class="wh-species-container d-flex flex-column ga-2">
+                <div
+                  v-for="spec in chamber.species"
+                  :key="`${chamber.id}_${spec.stockable_id}_${spec.package_type_id || 0}`"
+                  class="wh-species-block border rounded-xl overflow-hidden bg-surface"
+                >
+                  <!-- Level 2: Species Row / Header -->
+                  <div
+                    class="wh-species-header pa-2.5 px-3 d-flex align-center justify-space-between flex-wrap ga-2 cursor-pointer"
+                    :class="{ 'wh-species-header-expanded': expandedSpecies[`${chamber.id}_${spec.stockable_id}_${spec.package_type_id || 0}`] }"
+                    @click="toggleSpecies(`${chamber.id}_${spec.stockable_id}_${spec.package_type_id || 0}`)"
+                  >
+                    <!-- Left: Species Name, Family, Caisse Conditioning -->
+                    <div class="d-flex align-center ga-2">
+                      <v-btn
+                        icon
+                        size="x-small"
+                        variant="text"
+                        :style="`transform: rotate(${expandedSpecies[`${chamber.id}_${spec.stockable_id}_${spec.package_type_id || 0}`] ? 90 : 0}deg); transition: transform 0.2s ease;`"
+                      >
+                        <v-icon size="16">mdi-chevron-right</v-icon>
+                      </v-btn>
+
+                      <v-icon size="18" :color="spec.family_color || '#00897B'">mdi-fish</v-icon>
+
+                      <span class="font-weight-bold text-body-2">{{ spec.name }}</span>
+
+                      <v-chip
+                        v-if="spec.family_name"
+                        size="x-small"
+                        variant="tonal"
+                        :style="`background: ${spec.family_color || '#00897B'}18; color: ${spec.family_color || '#00897B'};`"
+                        class="font-weight-medium"
+                      >
+                        {{ spec.family_name }}
+                      </v-chip>
+
+                      <!-- Packaging Conditioning Badge (e.g. 20.00 Kg, 24.00 Kg) -->
+                      <v-chip size="x-small" color="#6D4C41" variant="outlined" class="font-weight-bold">
+                        <v-icon size="11" class="mr-1">mdi-package-variant-closed</v-icon>
+                        {{ spec.package_name || (spec.package_size ? `${spec.package_size} Kg` : 'Vrac') }}
+                      </v-chip>
+
+                      <v-chip size="x-small" color="grey" variant="tonal" class="font-weight-medium">
+                        {{ spec.lots_count }} {{ tLabel('lots', 'BRs') }}
+                      </v-chip>
+                    </div>
+
+                    <!-- Right: Species Stats (Boxes, Weight, Avg Price, Valuation, Chamber %) -->
+                    <div class="d-flex align-center ga-3 flex-wrap ml-auto" @click.stop>
+                      <!-- Boxes -->
+                      <div class="text-right" style="min-width: 70px;">
+                        <span class="text-caption text-medium-emphasis mr-1 font-weight-regular">Caisses:</span>
+                        <span class="font-weight-bold text-body-2">{{ main.formatDisplayNumber(spec.total_boxes) }}</span>
+                      </div>
+
+                      <!-- Net Weight -->
+                      <div class="text-right" style="min-width: 90px;">
+                        <span class="text-caption text-medium-emphasis mr-1 font-weight-regular">Poids:</span>
+                        <span class="font-weight-bold text-body-2 text-teal">{{ main.formatDisplayNumber(spec.total_weight) }} Kg</span>
+                      </div>
+
+                      <!-- Avg Unit Price (PMP) -->
+                      <div class="text-right" style="min-width: 80px;">
+                        <span class="text-caption text-medium-emphasis mr-1 font-weight-regular">PMP:</span>
+                        <span class="font-weight-medium text-body-2">{{ Number(spec.avg_unit_price).toFixed(2) }} {{ main.currency }}/Kg</span>
+                      </div>
+
+                      <!-- Total Valuation -->
+                      <div class="text-right" style="min-width: 90px;">
+                        <span class="text-caption text-medium-emphasis mr-1 font-weight-regular">Val.:</span>
+                        <span class="font-weight-bold text-body-2" style="color: #FF9800;">{{ main.formatDisplayNumber(spec.total_valuation) }} {{ main.currency }}</span>
+                      </div>
+
+                      <!-- Percentage of Chamber -->
+                      <div class="d-flex align-center ga-1" style="min-width: 75px;">
+                        <v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold">
+                          {{ spec.chamber_percentage }}%
+                        </v-chip>
+                      </div>
+
+                      <!-- Toggle Details Button -->
+                      <v-btn
+                        size="x-small"
+                        variant="tonal"
+                        color="#a21ee5"
+                        class="text-caption font-weight-medium"
+                        @click="toggleSpecies(`${chamber.id}_${spec.stockable_id}_${spec.package_type_id || 0}`)"
+                      >
+                        {{ expandedSpecies[`${chamber.id}_${spec.stockable_id}_${spec.package_type_id || 0}`] ? tLabel('hide_lots', 'Masquer BRs') : tLabel('show_lots', 'Détails BRs') }}
+                      </v-btn>
+                    </div>
+                  </div>
+
+                  <!-- Level 3: Traceability Lots / Reception Vouchers (BR) Table -->
+                  <v-expand-transition>
+                    <div
+                      v-if="expandedSpecies[`${chamber.id}_${spec.stockable_id}_${spec.package_type_id || 0}`]"
+                      class="wh-lots-table-wrapper border-t pa-2 bg-surface-variant-subtle"
+                    >
+                      <v-table density="compact" class="wh-lots-nested-table rounded-lg border">
+                        <thead>
+                          <tr class="wh-lots-table-header">
+                            <th class="text-left font-weight-bold text-caption text-uppercase">{{ tLabel('reception_tracking_number', 'N° Suivi Réception (BR)') }}</th>
+                            <th class="text-left font-weight-bold text-caption text-uppercase">{{ tLabel('date_entry_and_age', 'Date Réception & Âge Stockage (FEFO)') }}</th>
+                            <th class="text-left font-weight-bold text-caption text-uppercase">{{ tLabel('supplier_boat_origin', 'Fournisseur / Origine / Bateau') }}</th>
+                            <th class="text-right font-weight-bold text-caption text-uppercase">{{ tLabel('boxes', 'Caisses') }}</th>
+                            <th class="text-right font-weight-bold text-caption text-uppercase">{{ tLabel('remaining_weight_label', 'Poids Restant (Kg)') }}</th>
+                            <th class="text-right font-weight-bold text-caption text-uppercase">{{ tLabel('unit_price', 'Prix Unit.') }}</th>
+                            <th class="text-right font-weight-bold text-caption text-uppercase">{{ tLabel('valuation', 'Valorisation') }}</th>
+                            <th class="text-center font-weight-bold text-caption text-uppercase" style="width: 144px; min-width: 144px;">{{ tLabel('actions', 'Actions') }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr
+                            v-for="lot in spec.lots"
+                            :key="lot.id"
+                            class="wh-lot-row hover-bg"
+                          >
+                            <!-- N° Suivi Réception -->
+                            <td>
+                              <div class="d-flex align-center ga-1.5">
+                                <v-chip size="x-small" color="#a21ee5" variant="tonal" class="font-weight-bold">
+                                  {{ lot.reception_tracking_number }}
+                                </v-chip>
+                              </div>
+                            </td>
+
+                            <!-- Date Réception & Âge Stockage (FEFO) -->
+                            <td>
+                              <div class="d-flex align-center ga-2">
+                                <span class="text-caption font-weight-medium">{{ lot.date }}</span>
+                                <v-chip
+                                  size="x-small"
+                                  :color="getAgeCategoryColor(lot.age_category)"
+                                  variant="flat"
+                                  class="font-weight-bold text-white px-1.5"
+                                >
+                                  {{ lot.storage_age_days }}j • {{ getAgeCategoryLabel(lot.age_category) }}
+                                </v-chip>
+                              </div>
+                            </td>
+
+                            <!-- Fournisseur / Bateau / Origine -->
+                            <td>
+                              <div class="text-caption">
+                                <div class="font-weight-medium text-truncate" style="max-width: 250px;">
+                                  {{ lot.supplier_name || '-' }}
+                                </div>
+                                <div class="text-medium-emphasis text-truncate" style="font-size: 11px !important; max-width: 250px;">
+                                  {{ [lot.origin_name, lot.fishery_name].filter(x => x && x !== '-').join(' • ') || '-' }}
+                                </div>
+                              </div>
+                            </td>
+
+                            <!-- Caisses -->
+                            <td class="text-right font-weight-bold text-body-2">
+                              {{ main.formatDisplayNumber(lot.package_count) }}
+                            </td>
+
+                            <!-- Poids Restant -->
+                            <td class="text-right font-weight-bold text-body-2 text-teal">
+                              {{ main.formatDisplayNumber(lot.remaining_weight) }} <small class="text-caption">Kg</small>
+                            </td>
+
+                            <!-- Prix Unitaire -->
+                            <td class="text-right text-caption font-weight-medium">
+                              {{ Number(lot.unit_price).toFixed(2) }} {{ main.currency }}
+                            </td>
+
+                            <!-- Valorisation -->
+                            <td class="text-right font-weight-bold text-body-2" style="color: #FF9800;">
+                              {{ main.formatDisplayNumber(lot.total_price) }} {{ main.currency }}
+                            </td>
+
+                            <!-- Actions: 3 buttons with FileContextMenu, 144px width per user rule & images -->
+                            <td class="text-center" style="width: 144px; min-width: 144px;">
+                              <div class="d-flex align-center justify-center ga-1.5">
+                                <!-- Quick View Icon Button -->
+                                <v-btn
+                                  icon
+                                  size="x-small"
+                                  variant="tonal"
+                                  color="#1E88E5"
+                                  :title="tLabel('view_details', 'Consulter')"
+                                  @click="openLotTraceabilityDrawer(lot.reception_tracking_number)"
+                                >
+                                  <v-icon size="14">mdi-eye-outline</v-icon>
+                                </v-btn>
+
+                                <!-- In-Page Quick Inter-Chamber Transfer Button -->
+                                <v-btn
+                                  icon
+                                  size="x-small"
+                                  variant="tonal"
+                                  color="#a21ee5"
+                                  :title="tLabel('transfer_to_chamber', 'Transférer Chambre')"
+                                  @click="openQuickTransfer(lot, chamber, spec)"
+                                >
+                                  <v-icon size="14">mdi-swap-horizontal</v-icon>
+                                </v-btn>
+
+                                <!-- File Context Menu with 2 cards layout -->
+                                <FileContextMenu
+                                  :sections="getLotActionSections(lot, chamber, spec)"
+                                  location="bottom end"
+                                  btn-color="blue-grey"
+                                  btn-variant="tonal"
+                                  btn-size="x-small"
+                                  icon-size="14"
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </v-table>
+                    </div>
+                  </v-expand-transition>
+                </div>
+              </div>
+            </div>
+          </v-expand-transition>
+        </div>
+      </div>
+
+      <!-- In-Page Quick Inter-Chamber Transfer Dialog (Modal) -->
+      <v-dialog v-model="quickTransferDialog" max-width="540" persistent>
+        <v-card class="rounded-2xl border pa-1" elevation="8">
+          <v-card-title class="d-flex align-center justify-space-between pa-4 pb-2">
+            <div class="d-flex align-center ga-2">
+              <div class="wh-quick-icon-box rounded-lg pa-1.5" style="background: rgba(162, 30, 229, 0.12);">
+                <v-icon color="#a21ee5" size="22">mdi-swap-horizontal</v-icon>
+              </div>
+              <div>
+                <div class="font-weight-bold text-subtitle-1">{{ tLabel('quick_transfer_title', 'Transfert Inter-Chambres Rapide') }}</div>
+                <div class="text-caption text-medium-emphasis">{{ quickTransferForm.species_name }} • {{ quickTransferForm.tracking_number }}</div>
+              </div>
+            </div>
+            <v-btn icon size="small" variant="text" @click="quickTransferDialog = false">
+              <v-icon size="18">mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+
+          <v-card-text class="pa-4 pt-2">
+            <v-alert density="compact" color="#a21ee5" variant="tonal" rounded="lg" class="mb-3 text-caption">
+              <strong>Source:</strong> {{ quickTransferForm.from_warehouse_name }} • 
+              <strong>Disponible:</strong> {{ main.formatDisplayNumber(quickTransferForm.max_weight) }} Kg ({{ main.formatDisplayNumber(quickTransferForm.max_boxes) }} caisses)
+            </v-alert>
+
+            <v-row dense>
+              <!-- Destination Chamber Selector -->
+              <v-col cols="12">
+                <v-select
+                  v-model="quickTransferForm.to_warehouse_id"
+                  :items="(allWarehouses || []).filter(w => w.id !== quickTransferForm.from_warehouse_id)"
+                  item-title="name"
+                  item-value="id"
+                  :label="tLabel('destination_chamber', 'Chambre de Destination')"
+                  density="compact"
+                  variant="outlined"
+                  rounded="lg"
+                  color="#a21ee5"
+                  prepend-inner-icon="mdi-snowflake"
+                ></v-select>
+              </v-col>
+
+              <!-- Transfer Date -->
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="quickTransferForm.date"
+                  type="date"
+                  :label="tLabel('date', 'Date Transfert')"
+                  density="compact"
+                  variant="outlined"
+                  rounded="lg"
+                  color="#a21ee5"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Boxes to Move -->
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model.number="quickTransferForm.nbr_box"
+                  type="number"
+                  :label="tLabel('boxes_to_transfer', 'Caisses à Déplacer')"
+                  density="compact"
+                  variant="outlined"
+                  rounded="lg"
+                  color="#a21ee5"
+                  min="0"
+                  :max="quickTransferForm.max_boxes"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Net Weight to Move -->
+              <v-col cols="12">
+                <v-text-field
+                  v-model.number="quickTransferForm.weight"
+                  type="number"
+                  step="0.01"
+                  :label="tLabel('weight_to_transfer', 'Poids Net à Déplacer (Kg)')"
+                  density="compact"
+                  variant="outlined"
+                  rounded="lg"
+                  color="#a21ee5"
+                  min="0.01"
+                  :max="quickTransferForm.max_weight"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+          </v-card-text>
+
+          <v-card-actions class="pa-4 pt-0 d-flex justify-end ga-2">
+            <v-btn
+              variant="tonal"
+              color="grey"
+              rounded="lg"
+              @click="quickTransferDialog = false"
+            >
+              {{ tLabel('cancel', 'Annuler') }}
+            </v-btn>
+            <v-btn
+              variant="flat"
+              color="#a21ee5"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-check"
+              :loading="quickTransferForm.loading"
+              @click="submitQuickTransfer"
+            >
+              {{ tLabel('confirm_transfer', 'Exécuter le Transfert') }}
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </div>
 
     <!-- ========================================================================= -->
@@ -5413,18 +6525,182 @@ th.has-filter-active {
 .wh-th-actions {
   text-align: center !important;
   overflow: visible !important;
-  width: 120px !important;
-  min-width: 120px !important;
-  max-width: 120px !important;
+  width: 144px !important;
+  min-width: 144px !important;
+  max-width: 144px !important;
 }
 .wh-td-actions {
   overflow: visible !important;
   text-overflow: clip !important;
   padding: 4px 6px !important;
   white-space: nowrap !important;
-  width: 120px !important;
-  min-width: 120px !important;
-  max-width: 120px !important;
+  width: 144px !important;
+  min-width: 144px !important;
+  max-width: 144px !important;
+}
+
+/* ========================================================================= */
+/* VIEW 0: HIERARCHICAL MATRIX, 2D FLOORPLAN & FEFO STYLES                  */
+/* ========================================================================= */
+.wh-outer-wall {
+  fill: rgba(162, 30, 229, 0.02);
+  stroke: rgba(162, 30, 229, 0.35);
+  stroke-width: 2;
+  stroke-dasharray: 8 4;
+}
+.wh-svg-canvas {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.04));
+}
+.wh-svg-room-group {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.wh-svg-room-group:hover {
+  transform: translateY(-2px);
+}
+.wh-svg-room-box {
+  fill: #ffffff;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+  transition: all 0.2s ease;
+}
+.wh-svg-room-group:hover .wh-svg-room-box {
+  stroke: #a21ee5;
+  stroke-width: 2;
+  filter: drop-shadow(0 4px 10px rgba(162, 30, 229, 0.15));
+}
+.wh-svg-room-box-selected {
+  stroke: #a21ee5 !important;
+  stroke-width: 2.5 !important;
+  fill: rgba(162, 30, 229, 0.04) !important;
+  filter: drop-shadow(0 0 10px rgba(162, 30, 229, 0.35)) !important;
+}
+.wh-svg-text-title {
+  fill: #1e293b;
+}
+
+/* FEFO Alert Card & Table */
+.wh-fefo-alert-card {
+  background: rgba(229, 57, 53, 0.03);
+  border-color: rgba(229, 57, 53, 0.3) !important;
+}
+.wh-fefo-table {
+  background: rgb(var(--v-theme-surface)) !important;
+}
+.wh-fefo-table th {
+  background: rgba(229, 57, 53, 0.06) !important;
+  color: #d32f2f !important;
+  font-size: 11px !important;
+}
+.wh-fefo-row:hover {
+  background: rgba(229, 57, 53, 0.05) !important;
+}
+.wh-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Packaging Ribbon WH 993 */
+.wh-emballage-strip {
+  background: rgba(109, 76, 65, 0.03);
+  border-color: rgba(109, 76, 65, 0.25) !important;
+}
+.wh-emballage-card {
+  background: rgb(var(--v-theme-surface));
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.wh-emballage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(109, 76, 65, 0.12);
+}
+.wh-emballage-icon-box {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+/* Master 3-Level Hierarchical Matrix */
+.wh-chamber-block {
+  transition: all 0.2s ease;
+}
+.wh-chamber-header {
+  background: rgb(var(--v-theme-surface));
+  border-left: 4px solid #a21ee5;
+  transition: background 0.15s ease;
+}
+.wh-chamber-header:hover {
+  background: rgba(162, 30, 229, 0.04);
+}
+.wh-chamber-header-expanded {
+  background: rgba(162, 30, 229, 0.03);
+}
+.wh-chamber-icon-box {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wh-species-block {
+  border: 1px solid rgba(var(--v-border-color), 0.15);
+  transition: all 0.15s ease;
+}
+.wh-species-header {
+  background: rgb(var(--v-theme-surface));
+  transition: background 0.15s ease;
+}
+.wh-species-header:hover {
+  background: rgba(162, 30, 229, 0.03);
+}
+.wh-species-header-expanded {
+  background: rgba(162, 30, 229, 0.02);
+}
+.wh-lots-nested-table {
+  background: rgb(var(--v-theme-surface)) !important;
+}
+.wh-lots-table-header th {
+  font-size: 11px !important;
+  background: rgba(162, 30, 229, 0.05) !important;
+  color: #a21ee5 !important;
+  font-weight: 700 !important;
+}
+.wh-lot-row:hover {
+  background: rgba(162, 30, 229, 0.04) !important;
+}
+
+/* Dark Mode Overrides for Hierarchical Views */
+.wh-dark .wh-outer-wall,
+:deep(.v-theme--dark) .wh-outer-wall {
+  fill: rgba(162, 30, 229, 0.06);
+  stroke: rgba(162, 30, 229, 0.5);
+}
+.wh-dark .wh-svg-room-box,
+:deep(.v-theme--dark) .wh-svg-room-box {
+  fill: #1e293b;
+  stroke: rgba(255, 255, 255, 0.12);
+}
+.wh-dark .wh-svg-room-group:hover .wh-svg-room-box,
+:deep(.v-theme--dark) .wh-svg-room-group:hover .wh-svg-room-box {
+  stroke: #ce70ff;
+  fill: #243248;
+}
+.wh-dark .wh-svg-room-box-selected,
+:deep(.v-theme--dark) .wh-svg-room-box-selected {
+  stroke: #ce70ff !important;
+  fill: rgba(162, 30, 229, 0.15) !important;
+}
+.wh-dark .wh-svg-text-title,
+:deep(.v-theme--dark) .wh-svg-text-title {
+  fill: #f8fafc;
+}
+.wh-dark .wh-chamber-header,
+:deep(.v-theme--dark) .wh-chamber-header {
+  background: rgba(30, 41, 59, 0.85) !important;
+}
+.wh-dark .wh-species-header,
+:deep(.v-theme--dark) .wh-species-header {
+  background: rgba(30, 41, 59, 0.95) !important;
 }
 
 /* Additional Density: Dense mode */

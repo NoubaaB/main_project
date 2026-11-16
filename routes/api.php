@@ -170,6 +170,7 @@ Route::middleware(["auth:sanctum"])->group(
         Route::get("warehouses/recalculate/inventory-days", [WarehouseController::class, "inventoryDays"])->middleware('check.permission:warehouses.view');
         Route::post("warehouses/recalculate/preview", [WarehouseController::class, "previewRecalculation"])->middleware('check.permission:warehouses.view');
         Route::post("warehouses/recalculate", [WarehouseController::class, "executeRecalculation"])->middleware('check.permission:warehouses.edit');
+        Route::get("warehouses/hierarchical-stock", [WarehouseController::class, "hierarchicalStock"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/dashboard-data", [WarehouseController::class, "dashboardData"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/stock-par-lot", [WarehouseController::class, "stockParLot"])->middleware('check.permission:warehouses.view');
         Route::get("warehouses/lot-traceability/{lotNumber}", [WarehouseController::class, "lotTraceability"])->middleware('check.permission:warehouses.view');

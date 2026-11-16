@@ -11,6 +11,12 @@ class WarehouseSchema
     {
         return <<<GQL
 type Query {
+    hierarchicalStock(
+        date: String,
+        warehouse_ids: [Int],
+        stock_type: String,
+        search: String
+    ): HierarchicalStockResponse
     warehouses: [Warehouse]
     warehouse(id: ID!): Warehouse
     warehouseCategories: [WarehouseCategory]
@@ -461,6 +467,105 @@ type LotPedigreeResponse {
     articles: [TraceabilityArticle]
     timeline: [TraceabilityTimelineEvent]
     summary: TraceabilityTimelineSummary
+}
+
+type HierarchicalStockResponse {
+    date: String
+    is_historical: Boolean
+    summary: HierarchicalStockSummary
+    fefo_alerts: [HierarchicalFefoAlert]
+    chambers: [HierarchicalChamber]
+    emballages: [EmballageStockItem]
+}
+
+type HierarchicalStockSummary {
+    total_weight: Float
+    total_boxes: Float
+    total_valuation: Float
+    chambers_count: Int
+    species_count: Int
+    aged_lots_count: Int
+}
+
+type HierarchicalFefoAlert {
+    id: ID
+    date: String
+    storage_age_days: Int
+    age_category: String
+    reception_tracking_number: String
+    supplier_name: String
+    chamber_name: String
+    chamber_id: Int
+    species_name: String
+    package_count: Float
+    remaining_weight: Float
+    total_price: Float
+    is_critical: Boolean
+}
+
+type HierarchicalChamber {
+    id: ID
+    name: String
+    num_chambre: String
+    warehouse_type: String
+    stock_type: String
+    target_temperature: Float
+    temperature_status: String
+    zone_type: String
+    max_capacity_kg: Float
+    occupancy_percentage: Float
+    floorplan_x: Float
+    floorplan_y: Float
+    floorplan_width: Float
+    floorplan_height: Float
+    total_weight: Float
+    total_boxes: Float
+    total_valuation: Float
+    species_count: Int
+    lots_count: Int
+    species: [HierarchicalSpecies]
+}
+
+type HierarchicalSpecies {
+    stockable_id: ID
+    stockable_type: String
+    name: String
+    family_name: String
+    family_color: String
+    package_type_id: Int
+    package_name: String
+    package_size: Float
+    total_weight: Float
+    total_boxes: Float
+    total_valuation: Float
+    avg_unit_price: Float
+    chamber_percentage: Float
+    lots_count: Int
+    lots: [HierarchicalLot]
+}
+
+type HierarchicalLot {
+    id: ID
+    date: String
+    storage_age_days: Int
+    age_category: String
+    reception_tracking_number: String
+    supplier_name: String
+    origin_name: String
+    fishery_name: String
+    package_type_name: String
+    package_count: Float
+    initial_weight: Float
+    remaining_weight: Float
+    unit_price: Float
+    total_price: Float
+}
+
+type EmballageStockItem {
+    type: String
+    name: String
+    total_quantity: Float
+    unit: String
 }
 GQL;
     }

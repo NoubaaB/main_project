@@ -151,7 +151,7 @@ export default {
     },
     headerPinStyles() {
       const bg = 'var(--table-pin-bg, #ffffff)';
-      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 120;
+      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 144;
       const headers = this.headers || [];
       const pinState = this.pinState || {};
       const colWidths = this.colWidths || {};
@@ -248,7 +248,7 @@ export default {
     },
     thPinStyles() {
       const thBg = 'var(--table-pin-th-bg, #f8fafc)';
-      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 120;
+      const actionsW = this.getActionsColWidth ? this.getActionsColWidth() : 144;
       const headers = this.headers || [];
       const pinState = this.pinState || {};
       const colWidths = this.colWidths || {};
@@ -595,7 +595,7 @@ export default {
       this.exportTableToCsv(null, items);
     },
     getActionsColWidth() {
-      return 120;
+      return 144;
     },
     getDefaultColWidth(key) {
       if (key === 'actions') return this.getActionsColWidth();

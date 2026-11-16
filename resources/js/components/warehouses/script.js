@@ -9,6 +9,7 @@ import SegmentedPillToggle from '@/components/common/SegmentedPillToggle.vue';
 import WarehousePrintDialog from './WarehousePrintDialog.vue';
 import TableColumnFilter from '@/components/common/TableColumnFilter.vue';
 import {
+  gqlGetHierarchicalStock,
   gqlGetChambersOverview,
   gqlGetSpeciesOverview,
   gqlGetStockParLot,
@@ -98,9 +99,58 @@ export default {
       fetchLoading: false,
       _refreshTimer: null,
 
-      // View Mode: 'stock_par_lot' (default), 'chambers', 'species', 'journal', 'analytics'
-      activeViewMode: 'stock_par_lot',
+      // View Mode: 'hierarchical_stock' (default), 'stock_par_lot', 'chambers', 'species', 'journal', 'analytics', 'traceability'
+      activeViewMode: 'hierarchical_stock',
       tableDensity: localStorage.getItem('wh_table_density') || 'spacious',
+
+      // View 0: Hierarchical Stock Matrix & Modern Cold Storage WMS (Villamar)
+      hierarchicalLoading: false,
+      hierarchicalData: {
+        date: '',
+        is_historical: false,
+        summary: {
+          total_weight: 0,
+          total_boxes: 0,
+          total_valuation: 0,
+          chambers_count: 0,
+          species_count: 0,
+          aged_lots_count: 0,
+        },
+        fefo_alerts: [],
+        chambers: [],
+        emballages: [],
+      },
+      hierarchicalDisplayMode: 'table', // 'table' or 'floorplan'
+      selectedFloorplanChamberId: null,
+      showFefoAlertDrawer: false,
+      hierarchicalDatePreset: 'today', // 'today', 'inventory_20261101', 'custom'
+      hierarchicalCustomDate: '',
+      hierarchicalSearch: '',
+      hierarchicalStockType: 'all', // 'all', 'fish', 'guano', 'emballage'
+      hierarchicalSelectedChamberId: null,
+      expandedChambers: {},
+      expandedSpecies: {},
+      showEmballageStrip: true,
+      hierarchicalExportLoading: false,
+
+      // In-Page Quick Inter-Chamber Transfer Modal
+      quickTransferDialog: false,
+      quickTransferForm: {
+        from_warehouse_id: null,
+        from_warehouse_name: '',
+        to_warehouse_id: null,
+        date: moment().format('YYYY-MM-DD'),
+        tracking_number: '',
+        species_name: '',
+        max_weight: 0,
+        max_boxes: 0,
+        weight: 0,
+        nbr_box: 0,
+        stockable_id: null,
+        stockable_type: 'FishType',
+        package_type_id: null,
+        loading: false,
+      },
 
       // Search & Filters for Stock Par Lot
       searchQuery: '',
@@ -295,6 +345,12 @@ export default {
     viewModeOptions() {
       return [
         {
+          value: 'hierarchical_stock',
+          label: this.tLabel('view_hierarchical_stock', 'Stock par Chambre & Espèce (Villamar)'),
+          icon: 'mdi-file-tree-outline',
+          badge: this.hierarchicalData?.summary?.chambers_count || null,
+        },
+        {
           value: 'stock_par_lot',
           label: this.tLabel('view_stock_par_lot', 'N° de Suivi de Réception'),
           icon: 'mdi-cube-outline',
@@ -331,6 +387,84 @@ export default {
           badge: this.traceabilityLotsList.length || null,
         },
       ];
+    },
+
+    hierarchicalSummary() {
+      return this.hierarchicalData?.summary || {
+        total_weight: 0,
+        total_boxes: 0,
+        total_valuation: 0,
+        chambers_count: 0,
+        species_count: 0,
+        aged_lots_count: 0,
+      };
+    },
+
+    fefoAlertsList() {
+      return this.hierarchicalData?.fefo_alerts || [];
+    },
+
+    selectedFloorplanChamberData() {
+      if (!this.selectedFloorplanChamberId) return null;
+      return (this.hierarchicalData?.chambers || []).find(c => c.id === this.selectedFloorplanChamberId) || null;
+    },
+
+    allHierarchicalChambersExpanded() {
+      const chambers = this.filteredHierarchicalChambers || [];
+      if (!chambers.length) return false;
+      return chambers.every(c => Boolean(this.expandedChambers[c.id]));
+    },
+
+    filteredHierarchicalChambers() {
+      let chambers = (this.hierarchicalData?.chambers || []);
+
+      // Filter by selected chamber if specified
+      if (this.hierarchicalSelectedChamberId) {
+        chambers = chambers.filter(c => c.id === this.hierarchicalSelectedChamberId);
+      }
+
+      // Filter by stock type if specified
+      if (this.hierarchicalStockType === 'fish') {
+        chambers = chambers.filter(c => c.stock_type === 'fish' || !c.stock_type);
+      } else if (this.hierarchicalStockType === 'guano') {
+        chambers = chambers.filter(c => c.stock_type === 'guano');
+      } else if (this.hierarchicalStockType === 'emballage') {
+        chambers = chambers.filter(c => c.warehouse_type === 'packaging' || c.stock_type === 'packaging');
+      }
+
+      // Filter by search query
+      if (this.hierarchicalSearch && this.hierarchicalSearch.trim()) {
+        const q = this.hierarchicalSearch.trim().toLowerCase();
+        chambers = chambers.map(c => {
+          const matchChamber = (c.name || '').toLowerCase().includes(q) || (c.num_chambre || '').toLowerCase().includes(q);
+          const filteredSpecies = (c.species || []).filter(s => {
+            const matchSpecies = (s.name || '').toLowerCase().includes(q) || (s.family_name || '').toLowerCase().includes(q) || (s.package_name || '').toLowerCase().includes(q);
+            const matchLots = (s.lots || []).some(l =>
+              (l.reception_tracking_number || '').toLowerCase().includes(q) ||
+              (l.supplier_name || '').toLowerCase().includes(q) ||
+              (l.origin_name || '').toLowerCase().includes(q) ||
+              (l.fishery_name || '').toLowerCase().includes(q)
+            );
+            return matchSpecies || matchLots;
+          });
+
+          if (matchChamber) {
+            return c;
+          } else if (filteredSpecies.length > 0) {
+            return {
+              ...c,
+              species: filteredSpecies,
+            };
+          }
+          return null;
+        }).filter(Boolean);
+      }
+
+      return chambers;
+    },
+
+    filteredEmballages() {
+      return this.hierarchicalData?.emballages || [];
     },
 
     statusToggleOptions() {
@@ -1535,7 +1669,9 @@ export default {
     },
 
     refreshActiveView() {
-      if (this.activeViewMode === 'stock_par_lot') {
+      if (this.activeViewMode === 'hierarchical_stock') {
+        this.fetchHierarchicalStock();
+      } else if (this.activeViewMode === 'stock_par_lot') {
         this.fetchStockParLot();
       } else if (this.activeViewMode === 'chambers') {
         this.fetchChambers();
@@ -1553,6 +1689,362 @@ export default {
         } else if (this.traceabilityCurrentStage === 3 && this.selectedTraceabilityArticleIds.length) {
           this.generateTraceabilityTimeline();
         }
+      }
+    },
+
+    // Hierarchical Stock View (Chamber -> Species/Conditioning -> Lot/BR)
+    async fetchHierarchicalStock() {
+      this.hierarchicalLoading = true;
+      try {
+        let targetDate = null;
+        if (this.hierarchicalDatePreset === 'inventory_20261101') {
+          targetDate = '2026-11-01';
+        } else if (this.hierarchicalDatePreset === 'custom' && this.hierarchicalCustomDate) {
+          targetDate = moment(this.hierarchicalCustomDate).format('YYYY-MM-DD');
+        }
+
+        const data = await gqlGetHierarchicalStock({
+          date: targetDate,
+          warehouse_ids: this.selectedWarehouseIds.length ? this.selectedWarehouseIds : null,
+          stock_type: this.hierarchicalStockType,
+          search: this.hierarchicalSearch,
+        });
+
+        if (data) {
+          this.hierarchicalData = data;
+          // Auto-expand first 3 chambers by default if not previously set
+          if (Object.keys(this.expandedChambers).length === 0 && data.chambers && data.chambers.length) {
+            const initialMap = {};
+            data.chambers.slice(0, 3).forEach(c => {
+              initialMap[c.id] = true;
+            });
+            this.expandedChambers = initialMap;
+          }
+        }
+      } catch (err) {
+        console.error('fetchHierarchicalStock error:', err);
+      } finally {
+        this.hierarchicalLoading = false;
+      }
+    },
+
+    onHierarchicalDatePreset(preset) {
+      this.hierarchicalDatePreset = preset;
+      if (preset === 'today') {
+        this.hierarchicalCustomDate = '';
+        this.fetchHierarchicalStock();
+      } else if (preset === 'inventory_20261101') {
+        this.fetchHierarchicalStock();
+      }
+    },
+
+    onHierarchicalCustomDateChange(val) {
+      this.hierarchicalCustomDate = val;
+      if (this.hierarchicalDatePreset === 'custom') {
+        this.fetchHierarchicalStock();
+      }
+    },
+
+    toggleChamber(chamberId) {
+      this.expandedChambers = {
+        ...this.expandedChambers,
+        [chamberId]: !this.expandedChambers[chamberId],
+      };
+    },
+
+    toggleSpecies(speciesKey) {
+      this.expandedSpecies = {
+        ...this.expandedSpecies,
+        [speciesKey]: !this.expandedSpecies[speciesKey],
+      };
+    },
+
+    toggleExpandAllChambers() {
+      const allExpanded = this.allHierarchicalChambersExpanded;
+      const newExpanded = {};
+      if (!allExpanded) {
+        (this.filteredHierarchicalChambers || []).forEach(c => {
+          newExpanded[c.id] = true;
+        });
+      }
+      this.expandedChambers = newExpanded;
+    },
+
+    toggleExpandAllSpeciesInChamber(chamber) {
+      if (!chamber || !chamber.species) return;
+      const anyClosed = chamber.species.some(s => !this.expandedSpecies[`${chamber.id}_${s.stockable_id}_${s.package_type_id || 0}`]);
+      const newMap = { ...this.expandedSpecies };
+      chamber.species.forEach(s => {
+        newMap[`${chamber.id}_${s.stockable_id}_${s.package_type_id || 0}`] = anyClosed;
+      });
+      this.expandedSpecies = newMap;
+    },
+
+    selectFloorplanChamber(chamber) {
+      if (this.selectedFloorplanChamberId === chamber.id) {
+        this.selectedFloorplanChamberId = null;
+        this.hierarchicalSelectedChamberId = null;
+      } else {
+        this.selectedFloorplanChamberId = chamber.id;
+        this.hierarchicalSelectedChamberId = chamber.id;
+        this.expandedChambers = { ...this.expandedChambers, [chamber.id]: true };
+      }
+    },
+
+    openQuickTransfer(lot, chamber, spec) {
+      this.quickTransferForm = {
+        from_warehouse_id: chamber?.id || null,
+        from_warehouse_name: chamber?.name || '',
+        to_warehouse_id: null,
+        date: moment().format('YYYY-MM-DD'),
+        tracking_number: lot?.reception_tracking_number || '',
+        species_name: spec?.name || '',
+        max_weight: lot?.remaining_weight || 0,
+        max_boxes: lot?.package_count || 0,
+        weight: lot?.remaining_weight || 0,
+        nbr_box: lot?.package_count || 0,
+        stockable_id: spec?.stockable_id || null,
+        stockable_type: spec?.stockable_type || 'FishType',
+        package_type_id: spec?.package_type_id || null,
+        loading: false,
+      };
+      this.quickTransferDialog = true;
+    },
+
+    async submitQuickTransfer() {
+      if (!this.quickTransferForm.to_warehouse_id) {
+        alert(this.tLabel('select_destination_chamber', 'Veuillez sélectionner la chambre de destination.'));
+        return;
+      }
+      if (this.quickTransferForm.weight <= 0) {
+        alert(this.tLabel('enter_valid_weight', 'Veuillez saisir un poids valide supérieur à zéro.'));
+        return;
+      }
+
+      this.quickTransferForm.loading = true;
+      try {
+        const payload = {
+          date: this.quickTransferForm.date || moment().format('YYYY-MM-DD'),
+          description: `Transfert rapide depuis /warehouses: ${this.quickTransferForm.tracking_number} (${this.quickTransferForm.species_name})`,
+          details: [
+            {
+              stockable_type: this.quickTransferForm.stockable_type,
+              stockable_id: this.quickTransferForm.stockable_id,
+              weight: Number(this.quickTransferForm.weight),
+              nbr_box: Number(this.quickTransferForm.nbr_box || 0),
+              source_warehouse_id: this.quickTransferForm.from_warehouse_id,
+              source_tracking_number: this.quickTransferForm.tracking_number,
+              destination_warehouse_id: this.quickTransferForm.to_warehouse_id,
+              package_type_id: this.quickTransferForm.package_type_id,
+            }
+          ]
+        };
+
+        const res = await axios.post('/api/warehouse-transfers', payload);
+        this.quickTransferDialog = false;
+
+        // Rule 5: Summary Snackbar with countdown progress bar
+        const destWh = (this.allWarehouses || []).find(w => w.id === this.quickTransferForm.to_warehouse_id);
+        this.triggerSummarySnackbar({
+          title: this.tLabel('transfer_success_msg', 'Transfert inter-chambres effectué avec succès'),
+          message: `${this.quickTransferForm.species_name} • ${this.quickTransferForm.weight} Kg (${this.quickTransferForm.nbr_box} caisses) ➔ ${destWh ? destWh.name : 'Chambre #' + this.quickTransferForm.to_warehouse_id}`,
+          color: '#a21ee5',
+          icon: 'mdi-swap-horizontal',
+        });
+
+        // Live refresh
+        this.fetchHierarchicalStock();
+      } catch (err) {
+        console.error('submitQuickTransfer error:', err);
+        const errMsg = err?.response?.data?.message || err.message || 'Erreur lors du transfert';
+        this.triggerSummarySnackbar({
+          title: this.tLabel('error', 'Erreur'),
+          message: errMsg,
+          color: 'error',
+          icon: 'mdi-alert-circle',
+        });
+      } finally {
+        this.quickTransferForm.loading = false;
+      }
+    },
+
+    getAgeCategoryColor(category) {
+      switch (category) {
+        case 'fresh': return '#00897B'; // Teal <30d
+        case 'medium': return '#1E88E5'; // Blue 30-90d
+        case 'mature': return '#FB8C00'; // Amber 90-180d
+        case 'aged': return '#E53935'; // Red >180d
+        default: return '#78909C';
+      }
+    },
+
+    getAgeCategoryLabel(category) {
+      switch (category) {
+        case 'fresh': return this.tLabel('age_fresh', '< 30j');
+        case 'medium': return this.tLabel('age_medium', '30-90j');
+        case 'mature': return this.tLabel('age_mature', '90-180j');
+        case 'aged': return this.tLabel('age_aged', '> 180j');
+        default: return category || '-';
+      }
+    },
+
+    getEmballageIcon(type) {
+      switch (type) {
+        case 'Cartons': return 'mdi-package-variant-closed';
+        case 'Plastiques': return 'mdi-bag-personal-outline';
+        case 'Feuillard': return 'mdi-tape-measure';
+        case 'Cellophane': return 'mdi-filmstrip';
+        case 'Palettes': return 'mdi-pallet';
+        default: return 'mdi-package-variant';
+      }
+    },
+
+    getEmballageColor(type) {
+      switch (type) {
+        case 'Cartons': return '#795548';
+        case 'Plastiques': return '#0288D1';
+        case 'Feuillard': return '#E65100';
+        case 'Cellophane': return '#00897B';
+        case 'Palettes': return '#6D4C41';
+        default: return '#546E7A';
+      }
+    },
+
+    getLotActionSections(lot, chamber, spec) {
+      return [
+        {
+          key: 'common',
+          subheader: this.tLabel('common_actions', 'Actions Principales'),
+          items: [
+            {
+              title: this.tLabel('view_details', 'Consulter'),
+              icon: 'mdi-eye-outline',
+              color: '#1E88E5',
+              action: () => {
+                if (lot.reception_tracking_number) {
+                  this.openLotTraceabilityDrawer(lot.reception_tracking_number);
+                }
+              },
+            },
+            {
+              title: this.tLabel('copy_reference', 'Copier N° Réception'),
+              icon: 'mdi-content-copy',
+              action: () => {
+                navigator.clipboard?.writeText(lot.reception_tracking_number || '');
+                this.triggerSummarySnackbar({
+                  title: this.tLabel('copy_success', 'Copié dans le presse-papier'),
+                  message: lot.reception_tracking_number,
+                  color: '#00897B',
+                  icon: 'mdi-clipboard-check',
+                });
+              },
+            },
+            {
+              title: this.tLabel('transfer_to_chamber', 'Transférer Chambre'),
+              icon: 'mdi-swap-horizontal',
+              color: '#a21ee5',
+              action: () => {
+                this.openQuickTransfer(lot, chamber, spec);
+              },
+            },
+          ],
+        },
+        {
+          key: 'tracking',
+          subheader: this.tLabel('tracking_auditing', 'Traçabilité & Qualité'),
+          items: [
+            {
+              title: this.tLabel('lot_details_and_history', 'Chronologie Complète'),
+              icon: 'mdi-timeline-text-outline',
+              color: '#00897B',
+              action: () => {
+                this.activeViewMode = 'traceability';
+                this.traceabilityTrackingSearchInput = lot.reception_tracking_number;
+                this.traceabilityTrackingNumbers = [lot.reception_tracking_number];
+                this.fetchTraceabilityVouchers();
+              },
+            },
+            {
+              title: this.tLabel('supplier_profile', 'Fiche Fournisseur'),
+              icon: 'mdi-account-tie-outline',
+              show: Boolean(lot.supplier_name && lot.supplier_name !== '-'),
+              action: () => {
+                this.searchQuery = lot.supplier_name;
+              },
+            },
+          ],
+        },
+      ];
+    },
+
+    exportHierarchicalToExcel() {
+      this.hierarchicalExportLoading = true;
+      try {
+        const dateStr = this.hierarchicalData?.date || moment().format('YYYY-MM-DD');
+        const headers = [
+          'Chambre Froide',
+          'N° Chambre',
+          'Température Cible',
+          'Espèce / Article',
+          'Conditionnement / Caisse (Kg)',
+          'N° Suivi Réception (BR)',
+          'Date Entrée',
+          'Âge (Jours)',
+          'Catégorie FEFO',
+          'Fournisseur / Origine / Bateau',
+          'Nombre Caisses',
+          'Poids Restant (Kg)',
+          'Prix Unitaire (DH/Kg)',
+          'Valorisation Totale (DH)',
+        ];
+
+        const rows = [];
+        const chambers = this.filteredHierarchicalChambers || [];
+
+        chambers.forEach(c => {
+          (c.species || []).forEach(s => {
+            (s.lots || []).forEach(l => {
+              const partnerInfo = [l.supplier_name, l.origin_name, l.fishery_name].filter(x => x && x !== '-').join(' - ') || '-';
+              rows.push([
+                `"${(c.name || '').replace(/"/g, '""')}"`,
+                `"${(c.num_chambre || '').replace(/"/g, '""')}"`,
+                `"${c.target_temperature ? c.target_temperature + '°C' : '-'}"`,
+                `"${(s.name || '').replace(/"/g, '""')}"`,
+                `"${(s.package_name || s.package_size || '').replace(/"/g, '""')}"`,
+                `"${(l.reception_tracking_number || '').replace(/"/g, '""')}"`,
+                l.date || '',
+                l.storage_age_days ?? '',
+                l.age_category ?? '',
+                `"${partnerInfo.replace(/"/g, '""')}"`,
+                l.package_count ?? '',
+                l.remaining_weight ?? '',
+                l.unit_price ?? '',
+                l.total_price ?? '',
+              ]);
+            });
+          });
+        });
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Stock_Hierarchique_Villamar_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        this.triggerSummarySnackbar({
+          title: this.tLabel('export_success', 'Export CSV Généré'),
+          message: `${rows.length} lignes de stock hiérarchique exportées avec succès.`,
+          color: '#00897B',
+          icon: 'mdi-file-excel',
+        });
+      } catch (err) {
+        console.error('exportHierarchicalToExcel error:', err);
+      } finally {
+        this.hierarchicalExportLoading = false;
       }
     },
 

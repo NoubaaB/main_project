@@ -731,7 +731,7 @@ export default {
         { title: this.$t('date_start'), key: 'date_start', align: 'start' },
         { title: this.$t('date_end'), key: 'date_end', align: 'start' },
         { title: this.$t('status'), key: 'is_active', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     hasActiveColumnFilters() {

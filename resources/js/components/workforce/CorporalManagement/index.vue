@@ -627,7 +627,7 @@ export default {
         { title: this.$t('is_quinzaine'), key: 'is_quinzaine', align: 'center', minWidth: '120px' },
         { title: this.$t('sections'), key: 'sections', align: 'center', minWidth: '220px' },
         { title: this.$t('daily_price'), key: 'daily_price', align: 'center', minWidth: '120px' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px', minWidth: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
 

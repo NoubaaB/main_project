@@ -585,7 +585,7 @@ export default {
         { title: this.$t('daily_price'), key: 'daily_price', align: 'center', minWidth: '130px' },
         { title: this.$t('is_price_modifiable'), key: 'is_price_modifiable', align: 'center', minWidth: '140px' },
         { title: this.$t('corporals'), key: 'corporals', align: 'center', minWidth: '220px' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px', minWidth: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
 

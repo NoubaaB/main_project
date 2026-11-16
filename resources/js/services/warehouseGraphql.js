@@ -32,6 +32,113 @@ export async function graphqlRequest(query, variables = {}, operationName = null
 }
 
 /**
+ * 0. Fetch Hierarchical Stock Matrix (Chambers -> Species -> Lots)
+ * Modeled on Congélation Villamar stock/list/local with modern Vuetify 3 matrix & FEFO/FIFO tracking.
+ */
+export async function gqlGetHierarchicalStock({ date = null, warehouse_ids = null, stock_type = 'all', search = '' } = {}) {
+  const query = `
+    query GetHierarchicalStock($date: String, $warehouse_ids: [Int], $stock_type: String, $search: String) {
+      hierarchicalStock(date: $date, warehouse_ids: $warehouse_ids, stock_type: $stock_type, search: $search) {
+        date
+        is_historical
+        summary {
+          total_weight
+          total_boxes
+          total_valuation
+          chambers_count
+          species_count
+          aged_lots_count
+        }
+        fefo_alerts {
+          id
+          date
+          storage_age_days
+          age_category
+          reception_tracking_number
+          supplier_name
+          chamber_name
+          chamber_id
+          species_name
+          package_count
+          remaining_weight
+          total_price
+          is_critical
+        }
+        emballages {
+          type
+          name
+          total_quantity
+          unit
+        }
+        chambers {
+          id
+          name
+          num_chambre
+          warehouse_type
+          stock_type
+          target_temperature
+          temperature_status
+          zone_type
+          max_capacity_kg
+          occupancy_percentage
+          floorplan_x
+          floorplan_y
+          floorplan_width
+          floorplan_height
+          total_weight
+          total_boxes
+          total_valuation
+          species_count
+          lots_count
+          species {
+            stockable_id
+            stockable_type
+            name
+            family_name
+            family_color
+            package_type_id
+            package_name
+            package_size
+            total_weight
+            total_boxes
+            total_valuation
+            avg_unit_price
+            chamber_percentage
+            lots_count
+            lots {
+              id
+              date
+              storage_age_days
+              age_category
+              reception_tracking_number
+              supplier_name
+              origin_name
+              fishery_name
+              package_type_name
+              package_count
+              initial_weight
+              remaining_weight
+              unit_price
+              total_price
+            }
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { date, warehouse_ids, stock_type, search });
+    return data?.hierarchicalStock || null;
+  } catch (e) {
+    console.warn('[GraphQL] Falling back to REST for hierarchicalStock:', e);
+    const resp = await axios.get('/api/warehouses/hierarchical-stock', {
+      params: { date, warehouse_ids, stock_type, search }
+    });
+    return resp.data;
+  }
+}
+
+/**
  * 1. Fetch Chambers Overview
  */
 export async function gqlGetChambersOverview() {

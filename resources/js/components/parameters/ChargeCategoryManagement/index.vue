@@ -335,7 +335,7 @@ export default {
         { title: this.$t('is_production'), key: 'is_production', align: 'center' },
         { title: this.$t('enable_invoices'), key: 'enable_invoices', align: 'center' },
         { title: this.$t('charges_count'), key: 'charges_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     filteredItems() {

@@ -514,7 +514,7 @@ export default {
         { title: this.$t('has_sejour'), key: 'has_sejour', align: 'center' },
         { title: this.$t('allow_production_effect'), key: 'allow_production_effect', align: 'center' },
         { title: this.$t('operation_service_fee'), key: 'operation_service_fee', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     categoryHeaders() {
@@ -522,7 +522,7 @@ export default {
         { title: this.$t('name'), key: 'name', align: 'center' },
         { title: this.$t('description'), key: 'description', align: 'center' },
         { title: this.$t('warehouses'), key: 'warehouse_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     rateHeaders() {
@@ -532,7 +532,7 @@ export default {
         { title: this.$t('weight_unit'), key: 'weight_unit', align: 'center' },
         { title: this.$t('sejour_unit_price'), key: 'daily_rate_per_kg', align: 'center' },
         { title: this.$t('service_unit_price'), key: 'service_unit_price', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     sejourWarehouses() {

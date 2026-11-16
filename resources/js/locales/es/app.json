@@ -3662,5 +3662,15 @@
     "print_document": "Imprimir documento",
     "client_profile": "Perfil del cliente",
     "supplier_profile": "Perfil del proveedor",
-    "settlements_history": "Historial de liquidaciones"
+    "settlements_history": "Historial de liquidaciones",
+    "select_destination_chamber": "Seleccionar cámara de destino",
+    "enter_valid_weight": "Por favor ingrese un peso válido",
+    "view_hierarchical_stock": "Vista Jerárquica de Stock",
+    "transfer_success_msg": "Transferencia realizada con éxito",
+    "age_fresh": "Fresco (< 30d)",
+    "age_medium": "Medio (30-90d)",
+    "age_mature": "Maduro (90-180d)",
+    "age_aged": "Antiguo (> 180d)",
+    "transfer_to_chamber": "Transferir a Cámara",
+    "lot_details_and_history": "Detalles e Historial del Lote"
 }

@@ -3662,5 +3662,15 @@
     "print_document": "Print document",
     "client_profile": "Client Profile",
     "supplier_profile": "Supplier Profile",
-    "settlements_history": "Settlements History"
+    "settlements_history": "Settlements History",
+    "select_destination_chamber": "Select destination chamber",
+    "enter_valid_weight": "Please enter a valid weight",
+    "view_hierarchical_stock": "Hierarchical Stock View",
+    "transfer_success_msg": "Transfer executed successfully",
+    "age_fresh": "Fresh (< 30d)",
+    "age_medium": "Medium (30-90d)",
+    "age_mature": "Mature (90-180d)",
+    "age_aged": "Aged (> 180d)",
+    "transfer_to_chamber": "Transfer to Chamber",
+    "lot_details_and_history": "Lot Details & History"
 }

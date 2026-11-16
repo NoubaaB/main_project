@@ -11,6 +11,8 @@ use App\Models\DetailInventory;
 use App\Models\DetailWarehouseTransfer;
 use App\Models\Charge;
 use App\Models\Production;
+use App\Models\FishType;
+use App\Models\PackageType;
 use App\Models\FishTypeWap;
 use App\Traits\BroadcastsModelChanges;
 use Illuminate\Http\Request;
@@ -2386,5 +2388,305 @@ class WarehouseController extends Controller
             ],
             'discrepancies' => $discrepancies,
         ];
+    }
+
+    /**
+     * Hierarchical Cold Storage & Traceability Stock Matrix (Modeled on Congélation Villamar stock/list/local)
+     * Provides 3-level tree: Chamber -> Species & Caisse Packaging -> Individual Lots & BRs.
+     * Includes FEFO/FIFO storage aging, cold room thermal/slotting metadata, 2D floorplan coordinates,
+     * packaging consumables (WH 993), and FEFO critical alerts feed.
+     */
+    public function hierarchicalStock(Request $request)
+    {
+        $targetDate = $request->input('date');
+        $isHistorical = !empty($targetDate) && $targetDate !== Carbon::now()->format('Y-m-d');
+
+        $whIds = $request->input('warehouse_ids');
+        if (is_string($whIds)) {
+            $whIds = array_filter(explode(',', $whIds));
+        }
+
+        $stockTypeFilter = $request->input('stock_type', 'all');
+        $search = trim($request->input('search', ''));
+
+        // Query active stock_in balances
+        $query = WarehouseBalance::with([
+            'stockable' => function ($m) {
+                $m->morphWith([
+                    FishType::class => ['fish_family', 'fish_process_type']
+                ]);
+            },
+            'packageType',
+            'warehouse'
+        ])
+        ->where('warehouse_operation', 'stock_in')
+        ->where('remaining_weight', '>', 0);
+
+        if ($targetDate) {
+            $query->where('date', '<=', $targetDate);
+        }
+
+        if (!empty($whIds)) {
+            $query->whereIn('warehouse_id', $whIds);
+        }
+
+        $balances = $query->orderBy('warehouse_id')->orderBy('date', 'desc')->get();
+        $coldChambers = Warehouse::all()->keyBy('id');
+        $packageTypes = PackageType::all()->keyBy('id');
+
+        // Thermal, capacity and 2D floorplan layout metadata for freezing facilities
+        $chamberMetadata = [
+            1 => ['temp' => -22, 'type' => 'deep_freeze', 'max_weight' => 2500000, 'x' => 30, 'y' => 30, 'width' => 170, 'height' => 110, 'num' => 'CH 1'],
+            2 => ['temp' => -24, 'type' => 'deep_freeze', 'max_weight' => 1500000, 'x' => 220, 'y' => 30, 'width' => 170, 'height' => 110, 'num' => 'CH 2'],
+            3 => ['temp' => -20, 'type' => 'deep_freeze', 'max_weight' => 1200000, 'x' => 410, 'y' => 30, 'width' => 170, 'height' => 110, 'num' => 'CH 3'],
+            4 => ['temp' => -28, 'type' => 'blast_freeze', 'max_weight' => 800000, 'x' => 600, 'y' => 30, 'width' => 170, 'height' => 110, 'num' => 'CH 4 (Tunnel)'],
+            5 => ['temp' => -22, 'type' => 'deep_freeze', 'max_weight' => 1000000, 'x' => 30, 'y' => 160, 'width' => 170, 'height' => 110, 'num' => 'CH 5'],
+            6 => ['temp' => -22, 'type' => 'deep_freeze', 'max_weight' => 1000000, 'x' => 220, 'y' => 160, 'width' => 170, 'height' => 110, 'num' => 'CH 6'],
+            7 => ['temp' => -22, 'type' => 'deep_freeze', 'max_weight' => 1200000, 'x' => 410, 'y' => 160, 'width' => 170, 'height' => 110, 'num' => 'CH 7'],
+            8 => ['temp' => -20, 'type' => 'deep_freeze', 'max_weight' => 1000000, 'x' => 600, 'y' => 160, 'width' => 170, 'height' => 110, 'num' => 'CH 8'],
+            993 => ['temp' => 18, 'type' => 'packaging', 'max_weight' => 5000000, 'x' => 30, 'y' => 290, 'width' => 360, 'height' => 90, 'num' => 'EMB 993'],
+        ];
+
+        $chambersTree = [];
+        $grandTotalWeight = 0;
+        $grandTotalBoxes = 0;
+        $grandTotalValuation = 0;
+        $allSpeciesSet = [];
+        $fefoAlertLots = [];
+
+        foreach ($balances as $b) {
+            $whId = $b->warehouse_id;
+            $wh = $coldChambers->get($whId);
+            if (!$wh) continue;
+
+            // Skip emballage warehouse 993 from fish chambers list (it is handled separately in the ribbon)
+            if ($whId == 993) continue;
+
+            $meta = $chamberMetadata[$whId] ?? [
+                'temp' => -22,
+                'type' => 'deep_freeze',
+                'max_weight' => 1000000,
+                'x' => 30 + (($whId % 4) * 190),
+                'y' => 30 + (floor($whId / 4) * 130),
+                'width' => 170,
+                'height' => 110,
+                'num' => "CH {$wh->id}"
+            ];
+
+            if (!isset($chambersTree[$whId])) {
+                $chambersTree[$whId] = [
+                    'id' => $wh->id,
+                    'name' => $wh->name,
+                    'num_chambre' => $meta['num'],
+                    'warehouse_type' => $wh->warehouse_type ?? 'Chambre Froide',
+                    'stock_type' => $wh->stock_type ?? 'fish',
+                    'target_temperature' => $meta['temp'],
+                    'temperature_status' => 'optimal',
+                    'zone_type' => $meta['type'],
+                    'max_capacity_kg' => $meta['max_weight'],
+                    'occupancy_percentage' => 0,
+                    'floorplan_x' => $meta['x'],
+                    'floorplan_y' => $meta['y'],
+                    'floorplan_width' => $meta['width'],
+                    'floorplan_height' => $meta['height'],
+                    'total_weight' => 0,
+                    'total_boxes' => 0,
+                    'total_valuation' => 0,
+                    'species_count' => 0,
+                    'lots_count' => 0,
+                    '_species_map' => [],
+                ];
+            }
+
+            $stockableId = $b->stockable_id;
+            $stockableType = $b->clean_stockable_type ?? 'FishType';
+            $packageId = $b->package_type_id ?? 1;
+            $pkgKey = "{$stockableId}_{$packageId}";
+
+            $stockable = $b->stockable;
+            $fishName = $stockable ? ($stockable->name ?? $stockable->name_fr ?? "Article #$stockableId") : ($b->article_name ?? "Article #$stockableId");
+            $family = ($stockable && isset($stockable->fish_family)) ? $stockable->fish_family : null;
+            $familyName = $family ? ($family->name_fr ?? $family->name) : 'Pelagique';
+            $familyColor = ($family && !empty($family->color)) ? $family->color : '#00897B';
+
+            $pkg = $b->packageType ?? $packageTypes->get($packageId);
+            $pkgName = $pkg ? ($pkg->name ?? "Caisse $packageId") : "Caisse $packageId";
+            $pkgSize = $pkg ? (float)$pkg->size : 20.0;
+
+            $remWeight = (float)$b->remaining_weight;
+            $boxes = (float)$b->package_count;
+            if ($boxes <= 0 && $pkgSize > 0) {
+                $boxes = round($remWeight / $pkgSize, 2);
+            }
+            $price = (float)$b->total_price;
+            $unitPrice = (float)$b->unit_price;
+
+            if (!isset($chambersTree[$whId]['_species_map'][$pkgKey])) {
+                $chambersTree[$whId]['_species_map'][$pkgKey] = [
+                    'stockable_id' => $stockableId,
+                    'stockable_type' => $stockableType,
+                    'name' => $fishName,
+                    'family_name' => $familyName,
+                    'family_color' => $familyColor,
+                    'package_type_id' => $packageId,
+                    'package_name' => $pkgName,
+                    'package_size' => $pkgSize,
+                    'total_weight' => 0,
+                    'total_boxes' => 0,
+                    'total_valuation' => 0,
+                    'avg_unit_price' => 0,
+                    'chamber_percentage' => 0,
+                    'lots_count' => 0,
+                    'lots' => [],
+                ];
+                $allSpeciesSet[$stockableId] = true;
+            }
+
+            // Storage age calculation (FEFO)
+            $refDate = Carbon::parse($targetDate ?: now());
+            $entryDate = $b->date ? Carbon::parse($b->date) : Carbon::now();
+            $ageDays = max(0, $entryDate->diffInDays($refDate));
+            $ageCategory = $ageDays < 30 ? 'fresh' : ($ageDays < 90 ? 'medium' : ($ageDays < 180 ? 'mature' : 'aged'));
+
+            $trackingNum = $b->lot_number ?? $b->reception_tracking_number ?? '-';
+
+            $lotRow = [
+                'id' => $b->id,
+                'date' => $b->date ? (is_string($b->date) ? substr($b->date, 0, 10) : $b->date->format('Y-m-d')) : null,
+                'storage_age_days' => $ageDays,
+                'age_category' => $ageCategory,
+                'reception_tracking_number' => $trackingNum,
+                'supplier_name' => $b->supplier_name ?: 'DIVERS',
+                'origin_name' => $b->origin_name ?: 'DAKHLA',
+                'fishery_name' => $b->fishery_name ?: '-',
+                'package_type_name' => $pkgName,
+                'package_count' => $boxes,
+                'initial_weight' => (float)$b->total_weight,
+                'remaining_weight' => $remWeight,
+                'unit_price' => $unitPrice,
+                'total_price' => $price,
+            ];
+
+            // If lot is aged or mature, flag it for the FEFO alert feed
+            if ($ageDays >= 90) {
+                $fefoAlertLots[] = array_merge($lotRow, [
+                    'chamber_name' => $wh->name,
+                    'chamber_id' => $wh->id,
+                    'species_name' => $fishName,
+                    'is_critical' => $ageDays >= 180,
+                ]);
+            }
+
+            $chambersTree[$whId]['_species_map'][$pkgKey]['lots'][] = $lotRow;
+            $chambersTree[$whId]['_species_map'][$pkgKey]['total_weight'] += $remWeight;
+            $chambersTree[$whId]['_species_map'][$pkgKey]['total_boxes'] += $boxes;
+            $chambersTree[$whId]['_species_map'][$pkgKey]['total_valuation'] += $price;
+            $chambersTree[$whId]['_species_map'][$pkgKey]['lots_count']++;
+
+            $chambersTree[$whId]['total_weight'] += $remWeight;
+            $chambersTree[$whId]['total_boxes'] += $boxes;
+            $chambersTree[$whId]['total_valuation'] += $price;
+            $chambersTree[$whId]['lots_count']++;
+
+            $grandTotalWeight += $remWeight;
+            $grandTotalBoxes += $boxes;
+            $grandTotalValuation += $price;
+        }
+
+        // Format species list & calculate chamber shares
+        $formattedChambers = [];
+        foreach ($chambersTree as $whId => $whData) {
+            $speciesList = array_values($whData['_species_map']);
+            foreach ($speciesList as &$sp) {
+                $sp['total_weight'] = round($sp['total_weight'], 2);
+                $sp['total_boxes'] = round($sp['total_boxes'], 2);
+                $sp['total_valuation'] = round($sp['total_valuation'], 2);
+                $sp['avg_unit_price'] = $sp['total_weight'] > 0 ? round($sp['total_valuation'] / $sp['total_weight'], 2) : 0;
+                $sp['chamber_percentage'] = $whData['total_weight'] > 0 ? round(($sp['total_weight'] / $whData['total_weight']) * 100, 1) : 0;
+            }
+            unset($sp);
+
+            usort($speciesList, fn($a, $b) => $b['total_weight'] <=> $a['total_weight']);
+
+            $whData['total_weight'] = round($whData['total_weight'], 2);
+            $whData['total_boxes'] = round($whData['total_boxes'], 2);
+            $whData['total_valuation'] = round($whData['total_valuation'], 2);
+            $whData['species_count'] = count($speciesList);
+            $whData['occupancy_percentage'] = $whData['max_capacity_kg'] > 0 ? min(100, round(($whData['total_weight'] / $whData['max_capacity_kg']) * 100, 1)) : 0;
+            $whData['species'] = $speciesList;
+            unset($whData['_species_map']);
+
+            if ($whData['total_weight'] > 0) {
+                $formattedChambers[] = $whData;
+            }
+        }
+
+        usort($formattedChambers, fn($a, $b) => $b['total_weight'] <=> $a['total_weight']);
+
+        // Sort FEFO alerts by oldest first
+        usort($fefoAlertLots, fn($a, $b) => $b['storage_age_days'] <=> $a['storage_age_days']);
+        $topFefoAlerts = array_slice($fefoAlertLots, 0, 25);
+
+        // Fetch Emballage Consumables from Warehouse 993
+        $emballages = [];
+        $emballageWarehouse = Warehouse::find(993);
+        if ($emballageWarehouse) {
+            $embQuery = WarehouseBalance::where('warehouse_id', 993)
+                ->where('warehouse_operation', 'stock_in')
+                ->where('remaining_weight', '>', 0);
+
+            if ($targetDate) {
+                $embQuery->where('date', '<=', $targetDate);
+            }
+
+            $embBalances = $embQuery->get();
+            $embMap = [
+                'Cartons' => ['name' => 'Cartons', 'qty' => 0, 'unit' => 'Unités'],
+                'Plastiques' => ['name' => 'Plastiques', 'qty' => 0, 'unit' => 'Unités'],
+                'Feuillard' => ['name' => 'Feuillard', 'qty' => 0, 'unit' => 'Rouleaux'],
+                'Cellophane' => ['name' => 'Cellophane', 'qty' => 0, 'unit' => 'Rouleaux'],
+                'Palettes' => ['name' => 'Palettes', 'qty' => 0, 'unit' => 'Unités'],
+            ];
+
+            foreach ($embBalances as $eb) {
+                $pkg = $packageTypes->get($eb->stockable_id);
+                $name = $pkg ? $pkg->name : ($eb->article_name ?? 'Autre');
+                $matchedKey = null;
+                foreach (array_keys($embMap) as $k) {
+                    if (stripos($name, $k) !== false) {
+                        $matchedKey = $k;
+                        break;
+                    }
+                }
+                if ($matchedKey) {
+                    $embMap[$matchedKey]['qty'] += (float)$eb->remaining_weight;
+                }
+            }
+
+            foreach ($embMap as $type => $data) {
+                $emballages[] = [
+                    'type' => $type,
+                    'name' => $data['name'],
+                    'total_quantity' => round($data['qty'], 2),
+                    'unit' => $data['unit'],
+                ];
+            }
+        }
+
+        return response()->json([
+            'date' => $targetDate ?: Carbon::now()->format('Y-m-d'),
+            'is_historical' => $isHistorical,
+            'summary' => [
+                'total_weight' => round($grandTotalWeight, 2),
+                'total_boxes' => round($grandTotalBoxes, 2),
+                'total_valuation' => round($grandTotalValuation, 2),
+                'chambers_count' => count($formattedChambers),
+                'species_count' => count($allSpeciesSet),
+                'aged_lots_count' => count($fefoAlertLots),
+            ],
+            'fefo_alerts' => $topFefoAlerts,
+            'chambers' => $formattedChambers,
+            'emballages' => $emballages,
+        ]);
     }
 }

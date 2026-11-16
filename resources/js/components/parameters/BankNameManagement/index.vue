@@ -283,7 +283,7 @@ export default {
       return [
         { title: this.$t('name'), key: 'name', align: 'start' },
         { title: this.$t('created'), key: 'created_at', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     hasActiveColumnFilters() {

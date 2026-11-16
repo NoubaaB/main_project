@@ -203,7 +203,7 @@ export default {
         { title: this.$t('name_es'), key: 'name_es', align: 'center' },
         { title: this.$t('name_in_invoice'), key: 'name_in_invoice', align: 'center' },
         { title: this.$t('image'), key: 'image', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     filteredItems() {
