@@ -25,12 +25,21 @@ class UserManagementController extends Controller
                 'email' => $user->email,
                 'role_id' => $user->role_id,
                 'role' => $user->role,
+                'can_select_ai_model' => $user->can_select_ai_model,
+                'can_select_ai_model_computed' => $user->can_select_ai_model_computed,
+                'allowed_ai_models' => $user->allowed_ai_models,
+                'effective_allowed_ai_models' => $user->effective_allowed_ai_models,
+                'default_ai_model' => $user->default_ai_model,
+                'effective_default_ai_model' => $user->effective_default_ai_model,
                 'is_active' => $user->is_active,
                 'created_at' => $user->created_at,
             ];
         });
 
-        return response()->json(['users' => $users]);
+        return response()->json([
+            'users' => $users,
+            'all_ai_models' => User::ALL_AI_MODELS_DETAILS,
+        ]);
     }
 
     /**
@@ -43,6 +52,10 @@ class UserManagementController extends Controller
             'email' => 'required|string|email|unique:users,email|max:100',
             'password' => 'required|string|min:6|max:250',
             'role_id' => 'required|exists:roles,id',
+            'can_select_ai_model' => 'nullable|boolean',
+            'allowed_ai_models' => 'nullable|array',
+            'allowed_ai_models.*' => 'string',
+            'default_ai_model' => 'nullable|string|max:100',
         ]);
 
         $data['password'] = Hash::make($data['password']);
@@ -57,6 +70,12 @@ class UserManagementController extends Controller
             'email' => $user->email,
             'role_id' => $user->role_id,
             'role' => $user->role,
+            'can_select_ai_model' => $user->can_select_ai_model,
+            'can_select_ai_model_computed' => $user->can_select_ai_model_computed,
+            'allowed_ai_models' => $user->allowed_ai_models,
+            'effective_allowed_ai_models' => $user->effective_allowed_ai_models,
+            'default_ai_model' => $user->default_ai_model,
+            'effective_default_ai_model' => $user->effective_default_ai_model,
             'is_active' => $user->is_active,
         ]);
 
@@ -64,7 +83,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Update user details (role, name, email, optionally password).
+     * Update user details (role, name, email, optionally password, AI model permissions).
      */
     public function update(Request $request, User $user): JsonResponse
     {
@@ -73,6 +92,10 @@ class UserManagementController extends Controller
             'email' => 'required|email|max:100|unique:users,email,' . $user->id,
             'role_id' => 'required|exists:roles,id',
             'password' => 'nullable|string|min:6|max:250',
+            'can_select_ai_model' => 'nullable|boolean',
+            'allowed_ai_models' => 'nullable|array',
+            'allowed_ai_models.*' => 'string',
+            'default_ai_model' => 'nullable|string|max:100',
         ]);
 
         // Prevent changing own role if it would remove super admin access
@@ -95,6 +118,9 @@ class UserManagementController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'role_id' => $data['role_id'],
+            'can_select_ai_model' => array_key_exists('can_select_ai_model', $data) ? $data['can_select_ai_model'] : $user->can_select_ai_model,
+            'allowed_ai_models' => array_key_exists('allowed_ai_models', $data) ? $data['allowed_ai_models'] : $user->allowed_ai_models,
+            'default_ai_model' => $data['default_ai_model'] ?? $user->default_ai_model ?? 'gemini-4-carbon',
         ];
 
         if (!empty($data['password'])) {
@@ -110,6 +136,12 @@ class UserManagementController extends Controller
             'email' => $user->email,
             'role_id' => $user->role_id,
             'role' => $user->role,
+            'can_select_ai_model' => $user->can_select_ai_model,
+            'can_select_ai_model_computed' => $user->can_select_ai_model_computed,
+            'allowed_ai_models' => $user->allowed_ai_models,
+            'effective_allowed_ai_models' => $user->effective_allowed_ai_models,
+            'default_ai_model' => $user->default_ai_model,
+            'effective_default_ai_model' => $user->effective_default_ai_model,
             'is_active' => $user->is_active,
         ]);
 

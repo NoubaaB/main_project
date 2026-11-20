@@ -25,37 +25,191 @@ export const useAIPrompt = defineStore("ai_prompt", {
             query_next_before_id: null,
             query_history_loaded: false,
             thinking_level: useStorage('ai_thinking_level', 'low'),
+            selected_model: useStorage('ai_selected_model', 'gemini-4-carbon'),
+            available_models: [
+                {
+                    id: 'gemini-4-carbon',
+                    name: 'Gemini 4 Carbon',
+                    tag: 'Carbon Core',
+                    icon: 'mdi-atom',
+                    color: '#00E5FF',
+                    desc: 'Google Gemini 4 Generation • Carbon Architecture • Deepest Analytical Reasoning',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-4-argon',
+                    name: 'Gemini 4 Argon',
+                    tag: 'Ultra Fast',
+                    icon: 'mdi-shield-star',
+                    color: '#76FF03',
+                    desc: 'Gemini 4 Generation • High Efficiency & Real-Time Enterprise Synthesis',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-4-neon',
+                    name: 'Gemini 4 Neon',
+                    tag: 'Visual Analytics',
+                    icon: 'mdi-chart-timeline-variant-shimmer',
+                    color: '#FF007F',
+                    desc: 'Gemini 4 Generation • Advanced Dashboard & ApexCharts Synthesis',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-4-hydrogen',
+                    name: 'Gemini 4 Hydrogen',
+                    tag: 'Deep Reasoning',
+                    icon: 'mdi-molecule',
+                    color: '#00B0FF',
+                    desc: 'Gemini 4 Generation • Advanced Statistical Analysis & Auditing',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-3.5-flash-lite',
+                    name: 'Gemini 3.5 Flash-Lite',
+                    tag: 'Recommended',
+                    icon: 'mdi-lightning-bolt',
+                    color: '#42A5F5',
+                    desc: 'Google Next-Gen • 1M Context • Ultra Fast (~1s)',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-3.8-flash',
+                    name: 'Gemini 3.8 Flash',
+                    tag: 'High Performance',
+                    icon: 'mdi-flash-alert',
+                    color: '#FFAB00',
+                    desc: 'Gemini 3.8 Generation • Peak Throughput & Multimodal Speed',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-3.7-flash',
+                    name: 'Gemini 3.7 Flash',
+                    tag: 'Hybrid Thinking',
+                    icon: 'mdi-brain-cog',
+                    color: '#FF5252',
+                    desc: 'Gemini 3.7 Generation • Adaptive CoT Hybrid Reasoning',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-3.1-flash-lite',
+                    name: 'Gemini 3.1 Flash-Lite',
+                    tag: 'Low Latency',
+                    icon: 'mdi-flash',
+                    color: '#00BFA5',
+                    desc: 'Optimized Low Latency • High Accuracy SQL Synthesis',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-flash-lite-latest',
+                    name: 'Gemini Flash-Lite Latest',
+                    tag: 'Stable',
+                    icon: 'mdi-auto-fix',
+                    color: '#7C4DFF',
+                    desc: 'Google Stable Release Channel • High Availability',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemini-3.1-pro-preview',
+                    name: 'Gemini 3.1 Pro',
+                    tag: 'Complex Logic',
+                    icon: 'mdi-crown',
+                    color: '#D500F9',
+                    desc: 'Pro Tier • Advanced Multi-Step Schema Reasoning',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gemma-4-31b-it',
+                    name: 'Gemma 4 31B IT',
+                    tag: 'Open Weights',
+                    icon: 'mdi-creation',
+                    color: '#00C853',
+                    desc: 'Google Gemma 4 Open Architecture • Deep Instruction Tuning',
+                    provider: 'gemini',
+                },
+                {
+                    id: 'gpt-oss:120b-cloud',
+                    name: 'GPT-OSS 120B Cloud',
+                    tag: 'Deep Reasoning',
+                    icon: 'mdi-brain',
+                    color: '#FF9100',
+                    desc: 'Ollama Cloud Engine • Deep Analytical Rigor',
+                    provider: 'ollama',
+                },
+                {
+                    id: 'qwen3:14b',
+                    name: 'Qwen 3 14B',
+                    tag: 'Local',
+                    icon: 'mdi-server-network',
+                    color: '#E91E63',
+                    desc: 'On-Premise Dedicated Local Engine',
+                    provider: 'ollama',
+                },
+            ],
         };
     },
     actions: {
-        sendMessage: async function (message) {
-            let messages = JSON.stringify((this.messages || []).filter(e => e.sender != 'AI').map(e => {
-                return {
-                    role: e.sender,
-                    text: e.text
+        getModelObj(modelId) {
+            const authorized = this.authorizedModels;
+            if (authorized && authorized.length > 0) {
+                const isSelectedAuthorized = authorized.some(m => m.id === this.selected_model);
+                if (!isSelectedAuthorized) {
+                    this.selected_model = authorized[0].id;
                 }
+            }
+            const id = modelId || this.selected_model;
+            return this.available_models.find(m => m.id === id) || this.available_models[0];
+        },
+        sendMessage: async function (message) {
+            const rawMsgs = (this.messages || []).filter(e => e.sender != 'AI' && e.role != 'agent');
+            const structuredMessages = rawMsgs.map(e => ({
+                role: 'user',
+                content: e.text || e.content || '',
+                text: e.text || e.content || '',
             }));
+            let messagesStr = JSON.stringify(structuredMessages);
+
             this.messages.push({
                 text: message,
-                sender: this.auth.user.name,
+                content: message,
+                role: 'user',
+                sender: this.auth?.user?.name || 'User',
                 ts: Date.now()
             });
             let id = this.messages.length;
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
+            let locale = localStorage.getItem('locale') || localStorage.getItem('lang') || 'en';
             return await axios.post(`/api/ask-db`, {
                 message,
+                content: message,
                 id,
                 theme,
-                messages,
+                locale,
+                model: this.selected_model,
+                messages: structuredMessages,
+                messages_str: messagesStr,
                 thinking_level: this.thinking_level
             }).then(response => {
+                const answerText = response.data?.message?.content || response.data?.answer;
+                const reasoning = response.data?.message?.reasoning || response.data?.reasoning || null;
+                const thinkingTime = response.data?.thinking_time || reasoning?.thinking_time || null;
+                const modelUsed = response.data?.model || this.selected_model;
+
                 this.messages.push({
-                    text: response.data.answer,
+                    text: answerText,
+                    content: answerText,
                     sender: "AI",
+                    role: "agent",
+                    model: modelUsed,
+                    reasoning: reasoning,
+                    thinking_time: thinkingTime,
                     ts: Date.now()
                 });
                 return {
-                    answer: response.data.answer,
+                    answer: answerText,
+                    message: response.data?.message,
+                    reasoning: reasoning,
+                    thinking_time: thinkingTime,
+                    model: modelUsed,
                     id: id
                 };
             }).catch(error => { this.error() });
@@ -63,30 +217,54 @@ export const useAIPrompt = defineStore("ai_prompt", {
         sendMessageWithExcel: async function (message, excelFiles) {
             this.messages.push({
                 text: message,
-                sender: this.auth.user.name,
+                content: message,
+                role: 'user',
+                sender: this.auth?.user?.name || 'User',
                 ts: Date.now()
             });
             let id = this.messages.length;
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
-            let messages = JSON.stringify(this.messages.filter(e => e.sender != 'AI').map(e => ({
-                role: e.sender,
-                text: e.text
-            })));
+            let locale = localStorage.getItem('locale') || localStorage.getItem('lang') || 'en';
+            const structuredMessages = this.messages.filter(e => e.sender != 'AI' && e.role != 'agent').map(e => ({
+                role: 'user',
+                content: e.text || e.content || '',
+                text: e.text || e.content || '',
+            }));
+            let messagesStr = JSON.stringify(structuredMessages);
+
             return await axios.post(`/api/ask-db`, {
                 message,
+                content: message,
                 id,
                 theme,
-                messages,
+                locale,
+                model: this.selected_model,
+                messages: structuredMessages,
+                messages_str: messagesStr,
                 excel_files: excelFiles,
                 thinking_level: this.thinking_level
             }).then(response => {
+                const answerText = response.data?.message?.content || response.data?.answer;
+                const reasoning = response.data?.message?.reasoning || response.data?.reasoning || null;
+                const thinkingTime = response.data?.thinking_time || reasoning?.thinking_time || null;
+                const modelUsed = response.data?.model || this.selected_model;
+
                 this.messages.push({
-                    text: response.data.answer,
+                    text: answerText,
+                    content: answerText,
                     sender: "AI",
+                    role: "agent",
+                    model: modelUsed,
+                    reasoning: reasoning,
+                    thinking_time: thinkingTime,
                     ts: Date.now()
                 });
                 return {
-                    answer: response.data.answer,
+                    answer: answerText,
+                    message: response.data?.message,
+                    reasoning: reasoning,
+                    thinking_time: thinkingTime,
+                    model: modelUsed,
                     id: id
                 };
             }).catch(error => { this.error() });
@@ -114,6 +292,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                     text: m.text,
                     sender: m.role === 'agent' ? 'AI' : 'user',
                     role: m.role,
+                    reasoning: m.reasoning || null,
                     ts: m.ts,
                     reaction: m.reaction || null,
                     persisted: true,
@@ -142,6 +321,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                     text: m.text,
                     sender: m.role === 'agent' ? 'AI' : 'user',
                     role: m.role,
+                    reasoning: m.reasoning || null,
                     ts: m.ts,
                     reaction: m.reaction || null,
                     persisted: true,
@@ -198,16 +378,23 @@ export const useAIPrompt = defineStore("ai_prompt", {
             }));
             let id = this.assistant_messages.length + 1;
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
+            let locale = localStorage.getItem('locale') || localStorage.getItem('lang') || 'en';
             return await axios.post(`/api/ai-assistant`, {
                 message,
                 messages,
                 theme,
+                locale,
+                model: this.selected_model,
                 thinking_level: this.thinking_level
             }).then(response => {
                 const reply = {
                     id,
                     role: 'agent',
-                    text: response.data.answer,
+                    text: response.data.answer || response.data.message?.content,
+                    content: response.data.answer || response.data.message?.content,
+                    reasoning: response.data.reasoning || response.data.message?.reasoning || null,
+                    model: response.data.model || this.selected_model,
+                    thinking_time: response.data.thinking_time || null,
                     ts: Date.now(),
                     pending_action: response.data.pending_action || null,
                 };
@@ -236,15 +423,18 @@ export const useAIPrompt = defineStore("ai_prompt", {
         },
         executeAction: async function (actionPlan, message) {
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
+            let locale = localStorage.getItem('locale') || localStorage.getItem('lang') || 'en';
             return await axios.post(`/api/ai-assistant/execute`, {
                 action_plan: actionPlan,
                 message: message || 'Confirmed action',
                 theme,
+                locale,
             }).then(response => {
                 const reply = {
                     id: Date.now() + Math.random(),
                     role: 'agent',
                     text: response.data.answer,
+                    content: response.data.answer,
                     ts: Date.now(),
                 };
                 this.add_assistant_messages(reply);
@@ -268,10 +458,12 @@ export const useAIPrompt = defineStore("ai_prompt", {
         },
         askWithExcel: async function (message, excelData, file) {
             let theme = this.main?.is_dark ? "dark" : (localStorage.getItem("theme") || "light");
+            let locale = localStorage.getItem('locale') || localStorage.getItem('lang') || 'en';
             const formData = new FormData();
             formData.append('message', message);
             formData.append('excel_data', JSON.stringify(excelData));
             formData.append('theme', theme);
+            formData.append('locale', locale);
             formData.append('thinking_level', this.thinking_level);
             if (file) {
                 formData.append('file', file);
@@ -283,6 +475,7 @@ export const useAIPrompt = defineStore("ai_prompt", {
                     id: Date.now() + Math.random(),
                     role: 'agent',
                     text: response.data.answer,
+                    content: response.data.answer,
                     ts: Date.now(),
                     pending_action: response.data.pending_action || null,
                 };
@@ -400,6 +593,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
                     id: m.id,
                     role: m.role,
                     text: m.text,
+                    content: m.text,
+                    reasoning: m.reasoning || null,
                     ts: m.ts,
                     reaction: m.reaction || null,
                     file_url: m.file_url || null,
@@ -433,6 +628,8 @@ export const useAIPrompt = defineStore("ai_prompt", {
                     id: m.id,
                     role: m.role,
                     text: m.text,
+                    content: m.text,
+                    reasoning: m.reasoning || null,
                     ts: m.ts,
                     reaction: m.reaction || null,
                     file_url: m.file_url || null,
@@ -477,7 +674,32 @@ export const useAIPrompt = defineStore("ai_prompt", {
         },
     },
     getters: {
-        getList: state => state.list
+        getList: state => state.list,
+        canSelectModel: (state) => {
+            const auth = useAuth();
+            if (auth.isSuperAdmin) return true;
+            return auth.canSelectAIModel;
+        },
+        authorizedModels: (state) => {
+            const auth = useAuth();
+            // Super Admin has all models by default
+            if (auth.isSuperAdmin) {
+                return state.available_models;
+            }
+            // If user cannot select models, locked to default model
+            if (!auth.canSelectAIModel) {
+                const def = auth.defaultAIModel || 'gemini-4-carbon';
+                const found = state.available_models.find(m => m.id === def);
+                return found ? [found] : [state.available_models[0]];
+            }
+            // If user or role has specific allowed models list
+            const allowed = auth.allowedAIModels;
+            if (allowed && Array.isArray(allowed) && allowed.length > 0) {
+                const filtered = state.available_models.filter(m => allowed.includes(m.id));
+                return filtered.length > 0 ? filtered : state.available_models;
+            }
+            return state.available_models;
+        },
     }
 });
 

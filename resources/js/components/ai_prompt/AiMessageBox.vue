@@ -40,12 +40,68 @@
     </div>
 
     <!-- Rendered AI content -->
-    <div
-      v-else
-      :id="`_ai_message_${index}`"
-      class="aimb-content"
-      ref="contentBox"
-    ></div>
+    <div v-else class="aimb-body-wrapper">
+      <!-- Reasoning / Thought Process Accordion -->
+      <div v-if="hasReasoning" class="aimb-reasoning-container">
+        <div
+          class="aimb-reasoning-header"
+          :class="{ 'is-open': showReasoning }"
+          @click="toggleReasoning"
+          role="button"
+          tabindex="0"
+          :title="showReasoning ? ($t('hide_thought_process') || 'Hide thought process') : ($t('view_thought_process') || 'View thought process')"
+        >
+          <div class="aimb-reasoning-header-left">
+            <div class="aimb-reasoning-brain-icon">
+              <v-icon size="15" color="#42A5F5">mdi-brain</v-icon>
+            </div>
+            <span class="aimb-reasoning-title font-weight-medium">
+              {{ reasoningTitle }}
+            </span>
+            <span class="aimb-reasoning-badge">{{ modelDisplayName }}</span>
+          </div>
+          <div class="aimb-reasoning-header-right">
+            <span class="aimb-reasoning-toggle-hint">{{ showReasoning ? ($t('hide') || 'Hide') : ($t('view') || 'View') }}</span>
+            <v-icon size="16" class="aimb-reasoning-chevron ms-1">{{ showReasoning ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+          </div>
+        </div>
+
+        <!-- Reasoning Content (Expandable) -->
+        <transition name="aimb-reasoning-slide">
+          <div v-if="showReasoning" class="aimb-reasoning-body">
+            <div v-for="(step, sIdx) in reasoningSteps" :key="sIdx" class="aimb-reasoning-step">
+              <div class="aimb-step-indicator">
+                <div class="aimb-step-dot"></div>
+                <div v-if="sIdx < reasoningSteps.length - 1" class="aimb-step-line"></div>
+              </div>
+              <div class="aimb-step-main">
+                <div class="aimb-step-title">{{ step.title }}</div>
+                <div class="aimb-step-detail">
+                  <!-- If SQL step, show syntax box with copy button -->
+                  <div v-if="step.is_sql && step.detail" class="aimb-sql-box">
+                    <div class="aimb-sql-box-header">
+                      <span>{{ $t('sql_executed') || 'SQL Executed' }}</span>
+                      <button class="aimb-sql-copy-btn" @click.stop="copySQL(step.detail)">
+                        <v-icon size="12" class="me-1">{{ sqlCopied ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
+                        {{ sqlCopied ? ($t('copied') || 'Copied') : ($t('copy') || 'Copy') }}
+                      </button>
+                    </div>
+                    <pre class="aimb-sql-code"><code>{{ step.detail }}</code></pre>
+                  </div>
+                  <div v-else class="aimb-step-text">{{ step.detail }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
+      </div>
+
+      <div
+        :id="`_ai_message_${index}`"
+        class="aimb-content"
+        ref="contentBox"
+      ></div>
+    </div>
 
     <!-- Action bar (Copy + Export Excel + Expand Visualization) -->
     <div v-if="!isLoading" class="aimb-export-bar">
@@ -84,6 +140,8 @@ export default {
       hasVisualization: false,
       copied: false,
       localExpanded: false,
+      showReasoning: false,
+      sqlCopied: false,
     };
   },
   computed: {
@@ -100,11 +158,52 @@ export default {
       const d = new Date();
       return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     },
+    modelDisplayName() {
+      const modelId = this.msg?.model || this.msg?.message?.model || this.ai_prompt?.selected_model;
+      const found = this.ai_prompt?.getModelObj ? this.ai_prompt.getModelObj(modelId) : null;
+      return found?.name || 'Gemini 4 Carbon';
+    },
+    parsedReasoning() {
+      if (!this.msg?.reasoning) return null;
+      if (typeof this.msg.reasoning === 'string') {
+        try {
+          return JSON.parse(this.msg.reasoning);
+        } catch (e) {
+          return { steps: [{ title: this.$t('thought_process') || 'Thought Process', detail: this.msg.reasoning }] };
+        }
+      }
+      return this.msg.reasoning;
+    },
+    hasReasoning() {
+      return Boolean(this.parsedReasoning);
+    },
+    reasoningTitle() {
+      const r = this.parsedReasoning;
+      if (r && r.thinking_time) {
+        return this.$t('thought_for_seconds', { s: r.thinking_time }) || `Thought for ${r.thinking_time}s`;
+      }
+      return this.$t('thought_process') || 'Thought Process';
+    },
+    reasoningSteps() {
+      const r = this.parsedReasoning;
+      if (!r) return [];
+      if (Array.isArray(r.steps)) return r.steps;
+      return [];
+    },
   },
   watch: {
     'main.is_dark': {
       handler(isDark) {
         this.updateChartsTheme(isDark);
+      }
+    },
+    'msg.text': {
+      handler(newVal) {
+        if (newVal) {
+          this.$nextTick(() => {
+            loadExternalContent(newVal, `_ai_message_${this.index}`);
+          });
+        }
       }
     },
     isExpandedMode: {
@@ -143,6 +242,17 @@ export default {
     }
   },
   methods: {
+    toggleReasoning() {
+      this.showReasoning = !this.showReasoning;
+    },
+    async copySQL(sql) {
+      if (!sql) return;
+      try {
+        await navigator.clipboard.writeText(sql);
+        this.sqlCopied = true;
+        setTimeout(() => { this.sqlCopied = false; }, 2000);
+      } catch (e) {}
+    },
     toggleCardExpand() {
       this.localExpanded = !this.localExpanded;
       this.$nextTick(() => {
@@ -152,6 +262,11 @@ export default {
     },
     onContentRendered(e) {
       if (e.detail?.containerId === `_ai_message_${this.index}`) {
+        const container = this.$refs.contentBox;
+        if (container) {
+          this.hasTable = container.querySelector('table') !== null;
+          this.hasVisualization = container.querySelector('.apexcharts-canvas, svg, canvas, .ai-analytics-card, [id^="aichart_"]') !== null;
+        }
         this.updateChartsTheme(this.main.is_dark);
       }
     },
@@ -229,15 +344,49 @@ export default {
       const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
       XLSX.writeFile(wb, `ai_export_${timestamp}.xlsx`);
     },
+    normalizeAiRoute(route) {
+      if (!route) return '/main-dashboard';
+      const clean = String(route).trim();
+      const aliasMap = {
+        '/fortnight': '/workforce/fortnight',
+        '/fortnights': '/workforce/fortnight',
+        '/workforce': '/workforce/management',
+        '/workforces': '/workforce/management',
+        '/dashboard': '/main-dashboard',
+        '/dashboards': '/main-dashboard',
+        '/supplier_invoice': '/supplier_invoice/list_supplier_invoice',
+        '/supplier-invoices': '/supplier_invoice/list_supplier_invoice',
+        '/client_invoice': '/client_invoice/list_client_invoice',
+        '/client-invoices': '/client_invoice/list_client_invoice',
+        '/warehouse-transfers': '/warehouse-transfers/list',
+        '/warehouse_transfer': '/warehouse-transfers/list',
+        '/warehouse_transfers': '/warehouse-transfers/list',
+        '/charge_category': '/parameters/charge-management',
+        '/shipping_category': '/parameters/shipping-management',
+        '/production_category': '/parameters/production-management',
+        '/production/add_production': '/production/add',
+        '/clients': '/parameters/client-management',
+        '/suppliers': '/parameters/supplier-management',
+        '/parameters': '/parameters/company-settings',
+        '/parameters/trucks': '/charges',
+        '/parameters/ships': '/charges',
+      };
+      return aliasMap[clean] || clean;
+    },
     handleContentClick(e) {
       // Handle .ai-nav-btn navigation buttons
       const navBtn = e.target.closest('.ai-nav-btn');
       if (navBtn) {
-        const route = navBtn.getAttribute('data-route');
-        if (route) {
+        const rawRoute = navBtn.getAttribute('data-route');
+        if (rawRoute) {
           e.preventDefault();
           e.stopPropagation();
-          this.$router.push(route);
+          const route = this.normalizeAiRoute(rawRoute);
+          this.$router.push(route).catch(err => {
+            if (err?.name !== 'NavigationDuplicated') {
+              console.warn('AI nav button navigation warning:', err);
+            }
+          });
           return;
         }
       }
@@ -270,12 +419,13 @@ export default {
       try {
         const url = new URL(href, window.location.origin);
         if (url.origin === window.location.origin) {
-          this.$router.push(url.pathname + url.search + url.hash);
+          const target = this.normalizeAiRoute(url.pathname + url.search + url.hash);
+          this.$router.push(target);
         } else {
           window.open(href, '_blank', 'noopener');
         }
       } catch {
-        this.$router.push(href);
+        this.$router.push(this.normalizeAiRoute(href));
       }
     }
   }
@@ -1143,5 +1293,249 @@ export default {
   line-height: 1 !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* ==========================================================================
+   Reasoning & Thought Process Accordion Styles
+   ========================================================================== */
+.aimb-reasoning-container {
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(66, 165, 245, 0.22);
+  background: rgba(66, 165, 245, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.aimb-dark .aimb-reasoning-container {
+  border-color: rgba(66, 165, 245, 0.22);
+  background: rgba(21, 101, 192, 0.08);
+}
+
+.aimb-light .aimb-reasoning-container {
+  border-color: rgba(25, 118, 210, 0.18);
+  background: rgba(25, 118, 210, 0.03);
+}
+
+.aimb-reasoning-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.aimb-reasoning-header:hover {
+  background: rgba(66, 165, 245, 0.09);
+}
+
+.aimb-reasoning-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aimb-reasoning-brain-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(66, 165, 245, 0.15);
+}
+
+.aimb-reasoning-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #42A5F5;
+  letter-spacing: 0.2px;
+}
+
+.aimb-light .aimb-reasoning-title {
+  color: #1976D2;
+}
+
+.aimb-reasoning-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(66, 165, 245, 0.15);
+  color: #42A5F5;
+  letter-spacing: 0.3px;
+}
+
+.aimb-light .aimb-reasoning-badge {
+  background: rgba(25, 118, 210, 0.12);
+  color: #1976D2;
+}
+
+.aimb-reasoning-header-right {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.aimb-reasoning-toggle-hint {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.aimb-reasoning-chevron {
+  transition: transform 0.2s ease;
+  color: #94a3b8;
+}
+
+.aimb-reasoning-header.is-open .aimb-reasoning-chevron {
+  color: #42A5F5;
+}
+
+.aimb-reasoning-body {
+  padding: 14px 16px 12px 16px;
+  border-top: 1px solid rgba(66, 165, 245, 0.12);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.aimb-light .aimb-reasoning-body {
+  background: rgba(255, 255, 255, 0.6);
+  border-top-color: rgba(25, 118, 210, 0.1);
+}
+
+.aimb-reasoning-step {
+  display: flex;
+  position: relative;
+  padding-bottom: 14px;
+}
+
+.aimb-reasoning-step:last-child {
+  padding-bottom: 0;
+}
+
+.aimb-step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 12px;
+  position: relative;
+  width: 14px;
+}
+
+.aimb-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #42A5F5;
+  box-shadow: 0 0 6px rgba(66, 165, 245, 0.6);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.aimb-step-line {
+  width: 2px;
+  flex-grow: 1;
+  background: rgba(66, 165, 245, 0.25);
+  margin-top: 4px;
+  min-height: 18px;
+}
+
+.aimb-step-main {
+  flex-grow: 1;
+}
+
+.aimb-step-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 3px;
+}
+
+.aimb-light .aimb-step-title {
+  color: #334155;
+}
+
+.aimb-step-text {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.aimb-light .aimb-step-text {
+  color: #64748b;
+}
+
+.aimb-sql-box {
+  margin-top: 6px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aimb-light .aimb-sql-box {
+  background: #1e293b;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.aimb-sql-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aimb-sql-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.aimb-sql-copy-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.aimb-sql-code {
+  padding: 8px 10px;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #38bdf8;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Accordion Transition */
+.aimb-reasoning-slide-enter-active,
+.aimb-reasoning-slide-leave-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 600px;
+  overflow: hidden;
+}
+
+.aimb-reasoning-slide-enter-from,
+.aimb-reasoning-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 </style>

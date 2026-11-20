@@ -181,5 +181,28 @@ export const useAuth = defineStore("Auth", {
       }
       return perms.includes(key);
     },
+    canSelectAIModel: (state) => {
+      if (!state.user) return false;
+      if (state.user.role?.is_super_admin === true) return true;
+      if (state.user.can_select_ai_model !== null && state.user.can_select_ai_model !== undefined) {
+        return Boolean(state.user.can_select_ai_model);
+      }
+      const perms = state.user.role?.permissions || [];
+      return perms.includes('ai.select_model');
+    },
+    allowedAIModels: (state) => {
+      if (!state.user) return null;
+      if (state.user.role?.is_super_admin === true) return null; // all models
+      if (state.user.allowed_ai_models && Array.isArray(state.user.allowed_ai_models) && state.user.allowed_ai_models.length > 0) {
+        return state.user.allowed_ai_models;
+      }
+      if (state.user.role?.allowed_ai_models && Array.isArray(state.user.role.allowed_ai_models) && state.user.role.allowed_ai_models.length > 0) {
+        return state.user.role.allowed_ai_models;
+      }
+      return null;
+    },
+    defaultAIModel: (state) => {
+      return state.user?.default_ai_model || state.user?.role?.default_ai_model || 'gemini-4-carbon';
+    },
   }
 });

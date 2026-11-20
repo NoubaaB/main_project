@@ -50,7 +50,7 @@ export default {
         { title: this.$t('sejour_stockage'), key: 'sejour_amount', align: 'center' },
         { title: this.$t('total') + ' (MAD)', key: 'total_amount', align: 'center' },
         { title: this.$t('status'), key: 'status', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 144 },
       ];
     },
     headers() {
@@ -281,7 +281,7 @@ export default {
       if (!item) return [];
       const sections = [];
 
-      // 1. Common Actions
+      // 1. Common Actions (Top horizontal card in FileContextMenu)
       const commonItems = [
         {
           title: this.$t('print_document'),
@@ -290,6 +290,15 @@ export default {
           action: () => this.loadPrintInvoice(item)
         }
       ];
+
+      if (typeof this.exportTableToExcel === 'function') {
+        commonItems.push({
+          title: this.$t('export'),
+          icon: 'mdi-download-outline',
+          color: 'blue-grey',
+          action: () => this.exportTableToExcel(`storage_invoice_${item.invoice_number || item.id}`, [item])
+        });
+      }
 
       if (item.invoice_number) {
         commonItems.push({

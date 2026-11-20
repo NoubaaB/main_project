@@ -40,6 +40,7 @@ class ChatMessageController extends Controller
                 'id'        => $m->id,
                 'role'      => $m->role,
                 'text'      => $m->text,
+                'reasoning' => $m->reasoning ? (is_array(json_decode($m->reasoning, true)) ? json_decode($m->reasoning, true) : $m->reasoning) : null,
                 'ts'        => (int) ($m->created_at->timestamp * 1000),
                 'reaction'  => $m->reaction,
                 'file_url'  => $m->file_path ? asset('storage/' . $m->file_path) : null,

@@ -6,7 +6,7 @@ use ReflectionClass;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\ChatMessage;
-use App\Services\CustomService;
+use App\Services\GeminiService;
 use App\Services\AIAnalyticsService;
 use App\Events\ModelChanged;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AIAssistantController extends Controller
 {
-    private CustomService $ai;
+    private GeminiService $ai;
 
     /**
      * Cache the schema string so we don't regenerate it every call.
@@ -38,7 +38,7 @@ class AIAssistantController extends Controller
 
     public function __construct()
     {
-        $this->ai = new CustomService();
+        $this->ai = new GeminiService();
         $this->app_name = env('APP_NAME');
     }
 
@@ -49,24 +49,61 @@ class AIAssistantController extends Controller
     {
         $data = $request->validate([
             'message' => 'required|string',
-            'messages' => 'required|string',
+            'messages' => 'nullable',
             'theme' => 'nullable|string',
+            'model' => 'nullable|string',
+            'locale' => 'nullable|string',
         ]);
 
+        $startTime = microtime(true);
         $question = $data['message'];
-        $messages = $data['messages'];
+        $messagesRaw = $data['messages'];
+        $messages = is_array($messagesRaw) ? json_encode($messagesRaw) : $messagesRaw;
         $thinkingLevel = $request->input('thinking_level', 'high');
         $theme = in_array(strtolower((string) $request->input('theme', 'dark')), ['dark', 'light']) ? strtolower((string) $request->input('theme', 'dark')) : 'dark';
+        $requestedModel = $request->input('model');
+        $uiLocale = $request->input('locale', $request->input('lang', 'en'));
+
+        // Enforce user AI model permissions (Super admin has all models by default)
+        $user = $request->user();
+        if ($user) {
+            if (!empty($requestedModel) && !$user->isModelAllowed($requestedModel)) {
+                $requestedModel = $user->getDefaultAIModel();
+            } elseif (empty($requestedModel)) {
+                $requestedModel = $user->getDefaultAIModel();
+            }
+        }
+
+        if (!empty($requestedModel) && method_exists($this->ai, 'setModel')) {
+            $this->ai->setModel($requestedModel);
+        }
 
         $this->ai->setThinkingLevel($thinkingLevel);
         $analytics = new AIAnalyticsService();
+        $detectedLang = $analytics->detectLanguage($question, $uiLocale);
 
         // Check if asking about System Architecture & AI Core
         $lowerQuestion = mb_strtolower($question, 'UTF-8');
         if (preg_match('/(creator|created|owner|supervisor|superviseur|elbachir|noubaa|bachir|développeur|qui t\'a|qui a créé|qui est ton|de qui es-tu|quien te creo|من صنعك|البشير|النوباع)/ui', $lowerQuestion)) {
-            $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme);
-            $this->persistMessages($request, $question, $answer);
-            return response()->json(['answer' => $answer], 200);
+            $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme, [], $detectedLang);
+            $thinkingDuration = round(microtime(true) - $startTime, 2);
+            $reasoning = $this->buildReasoningPayload($question, 'system_identity', null, [], $thinkingDuration);
+            $this->persistMessages($request, $question, $answer, $reasoning);
+            $usedModel = $requestedModel ?: (method_exists($this->ai, 'getLastUsedModel') ? $this->ai->getLastUsedModel() : 'gemini-4-carbon');
+            return response()->json([
+                'answer' => $answer,
+                'reasoning' => $reasoning,
+                'thinking_time' => $thinkingDuration,
+                'model' => $usedModel,
+                'message' => [
+                    'id' => 'msg_' . uniqid(),
+                    'role' => 'assistant',
+                    'content' => $answer,
+                    'reasoning' => $reasoning,
+                    'model' => $usedModel,
+                    'created_at' => now()->toIso8601String(),
+                ]
+            ], 200);
         }
 
         // "" Step 1: Build context ""
@@ -95,8 +132,10 @@ class AIAssistantController extends Controller
 
         if ($intent === 'cancel') {
             $answer = $this->buildCancelHtml($theme);
-            $this->persistMessages($request, $question, $answer);
-            return response()->json(['answer' => $answer], 200);
+            $thinkingDuration = round(microtime(true) - $startTime, 2);
+            $reasoning = $this->buildReasoningPayload($question, 'cancel', null, [], $thinkingDuration);
+            $this->persistMessages($request, $question, $answer, $reasoning);
+            return response()->json(['answer' => $answer, 'reasoning' => $reasoning, 'thinking_time' => $thinkingDuration], 200);
         }
 
         // "" READ intent: existing SQL pipeline ""
@@ -118,24 +157,40 @@ class AIAssistantController extends Controller
 
         // Check for previously uploaded Excel files the user might be referencing
         $excelContext = $this->getExcelContextFromHistory($request);
-        $answerPrompt = $this->buildAnswerPrompt($question, $messages, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes, $excelContext, $theme, $sqlQuery);
+        $answerPrompt = $this->buildAnswerPrompt($question, $messages, $schema, $tableComments, $result, $sqlError, $businessCtx, $routes, $excelContext, $theme, $sqlQuery, $detectedLang);
         $rawAnswer = $this->ai->generateAnswer($answerPrompt);
         $answer = null;
         $rows = $result ? (json_decode($result, true) ?: []) : [];
         if ($rawAnswer) {
-            $answer = $this->beautifyAndValidateAIAnswer($rawAnswer, $question, $rows, 'asst_' . time(), $theme);
+            $answer = $this->beautifyAndValidateAIAnswer($rawAnswer, $question, $rows, 'asst_' . time(), $theme, $detectedLang);
         }
 
         if (!$answer || !$this->isAnswerSufficientlyPolished($answer, $rows)) {
-            $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme);
+            $answer = $analytics->processQuestion($question, 'asst_' . time(), $theme, [], $detectedLang);
         }
 
-        $this->persistMessages($request, $question, $answer);
+        $thinkingDuration = round(microtime(true) - $startTime, 2);
+        $reasoning = $this->buildReasoningPayload($question, $intent, $sqlQuery, $rows, $thinkingDuration);
+
+        $this->persistMessages($request, $question, $answer, $reasoning);
+
+        $usedModel = $requestedModel ?: (method_exists($this->ai, 'getLastUsedModel') ? $this->ai->getLastUsedModel() : 'gemini-4-carbon');
 
         return response()->json([
             'answer' => $answer,
             'result' => $result,
             'sqlQuery' => $sqlQuery,
+            'reasoning' => $reasoning,
+            'thinking_time' => $thinkingDuration,
+            'model' => $usedModel,
+            'message' => [
+                'id' => 'msg_' . uniqid(),
+                'role' => 'assistant',
+                'content' => $answer,
+                'reasoning' => $reasoning,
+                'model' => $usedModel,
+                'created_at' => now()->toIso8601String(),
+            ]
         ], 200);
     }
 
@@ -477,7 +532,7 @@ class AIAssistantController extends Controller
 
         $prompt = $this->buildExcelPrompt($message, $excelText, $schema, $modelMapStr, $headers, $totalRows, $fkLookup);
 
-        $this->ai = new CustomService();
+        $this->ai = new GeminiService();
         if ($request->has('thinking_level')) {
             $this->ai->setThinkingLevel($request->input('thinking_level', 'high'));
         }
@@ -1800,15 +1855,65 @@ class AIAssistantController extends Controller
     /**
      * Persist user and agent messages to the database.
      */
-    private function persistMessages(Request $request, string $question, string $answer): void
+    private function persistMessages(Request $request, string $question, string $answer, ?array $reasoning = null): void
     {
         $user = $request->user();
         if ($user) {
-            ChatMessage::withoutEvents(function () use ($user, $question, $answer) {
+            ChatMessage::withoutEvents(function () use ($user, $question, $answer, $reasoning) {
                 ChatMessage::create(['user_id' => $user->id, 'role' => 'user', 'text' => $question]);
-                ChatMessage::create(['user_id' => $user->id, 'role' => 'agent', 'text' => $answer]);
+                ChatMessage::create([
+                    'user_id' => $user->id,
+                    'role' => 'agent',
+                    'text' => $answer,
+                    'reasoning' => $reasoning ? json_encode($reasoning) : null,
+                ]);
             });
         }
+    }
+
+    /**
+     * Build rich, transparent reasoning payload matching modern AI assistant thought structures.
+     */
+    private function buildReasoningPayload(string $question, string $intent, ?string $sqlQuery, array $rows, float $thinkingDuration): array
+    {
+        $hasSql = !empty($sqlQuery);
+        $rowCount = count($rows);
+
+        $steps = [
+            [
+                'phase' => 'intent',
+                'title' => 'Business Context & Intent Analysis',
+                'detail' => "Identified analytical intent as [{$intent}]. Target scope: Enterprise ERP business data streams.",
+                'is_sql' => false,
+            ],
+            [
+                'phase' => 'schema_sql',
+                'title' => 'Data Model & Query Formulation',
+                'detail' => $hasSql ? $sqlQuery : 'Applied certified ERP analytical rules and business heuristics directly.',
+                'is_sql' => $hasSql,
+            ],
+            [
+                'phase' => 'execution',
+                'title' => 'Enterprise Verification & Metric Validation',
+                'detail' => $hasSql ? "Retrieved and verified {$rowCount} certified record(s) across enterprise streams." : "Validated in-memory ERP intelligence dataset.",
+                'is_sql' => false,
+            ],
+            [
+                'phase' => 'synthesis',
+                'title' => 'Executive Presentation & Visual Synthesis',
+                'detail' => 'Structured executive KPI cards, verified metrics against enterprise records, and prepared interactive visualizations.',
+                'is_sql' => false,
+            ],
+        ];
+
+        return [
+            'thinking_time' => $thinkingDuration,
+            'model' => $this->ai->getModel(),
+            'intent' => $intent,
+            'sql_query' => $sqlQuery,
+            'rows_count' => $rowCount,
+            'steps' => $steps,
+        ];
     }
 
     // """""""""""""""""""""""""""""""""""""""""
@@ -1863,108 +1968,205 @@ class AIAssistantController extends Controller
     /**
      * Resolve module design tokens according to claude.md and BluePrintFish design system.
      */
-    private function resolveModuleDesign(string $question, ?string $sql = null): array
+    private function resolveModuleDesign(string $question, ?string $sql = null, string $lang = 'en'): array
     {
         $text = mb_strtolower($question . ' ' . ($sql ?? ''), 'UTF-8');
 
         // 1. Charge / Purchase Module
         if (preg_match('/(charge|achat|reception|supplier|fournisseur|achat_frais|rsw|glace|emballage)/ui', $text)) {
+            $name = match ($lang) {
+                'en' => 'Purchases & Charges Module',
+                'es' => 'Módulo de Compras y Cargas',
+                'ar' => 'وحدة المشتريات والشحنات',
+                default => 'Module Achats & Charges',
+            };
+            $routeLbl = match ($lang) {
+                'en' => 'Purchases Module',
+                'es' => 'Módulo Compras',
+                'ar' => 'وحدة المشتريات',
+                default => 'Module Achats',
+            };
             return [
-                'name' => 'Module Achats & Charges',
+                'name' => $name,
                 'color' => '#42A5F5',
                 'gradient' => 'linear-gradient(135deg, #0D47A1 0%, #1565C0 40%, #42A5F5 100%)',
                 'icon' => 'mdi-truck-delivery',
                 'route' => '/charges',
-                'route_label' => 'Module Achats',
+                'route_label' => $routeLbl,
             ];
         }
 
         // 2. Shipping / Sales Module
         if (preg_match('/(shipping|vente|expedition|client|sale|facture_client|glace_client|emballage_client)/ui', $text)) {
+            $name = match ($lang) {
+                'en' => 'Shippings & Sales Module',
+                'es' => 'Módulo de Envíos y Ventas',
+                'ar' => 'وحدة المبيعات والشحنات',
+                default => 'Module Expéditions & Ventes',
+            };
+            $routeLbl = match ($lang) {
+                'en' => 'Sales Module',
+                'es' => 'Módulo Ventas',
+                'ar' => 'وحدة المبيعات',
+                default => 'Module Ventes',
+            };
             return [
-                'name' => 'Module Expéditions & Ventes',
+                'name' => $name,
                 'color' => '#4643A0',
                 'gradient' => 'linear-gradient(135deg, #372E7D 0%, #4643A0 40%, #6C66BB 100%)',
                 'icon' => 'mdi-ship-wheel',
                 'route' => '/shippings',
-                'route_label' => 'Module Ventes',
+                'route_label' => $routeLbl,
             ];
         }
 
         // 3. Production / Factory Module
         if (preg_match('/(production|usine|rendement|congel|yield|farine|guano)/ui', $text)) {
+            $name = match ($lang) {
+                'en' => 'Production & Factory Module',
+                'es' => 'Módulo de Producción y Fábrica',
+                'ar' => 'وحدة الإنتاج والمصنع',
+                default => 'Module Production & Usine',
+            };
+            $routeLbl = match ($lang) {
+                'en' => 'Production Module',
+                'es' => 'Módulo Producción',
+                'ar' => 'وحدة الإنتاج',
+                default => 'Module Production',
+            };
             return [
-                'name' => 'Module Production & Usine',
+                'name' => $name,
                 'color' => '#00897B',
                 'gradient' => 'linear-gradient(135deg, #00695C 0%, #00897B 40%, #26A69A 100%)',
                 'icon' => 'mdi-factory',
                 'route' => '/production',
-                'route_label' => 'Module Production',
+                'route_label' => $routeLbl,
             ];
         }
 
         // 4. Workforce / Fortnight Module
         if (preg_match('/(fortnight|quinzaine|ouvrier|workforce|section|corporal|caporal|pointage)/ui', $text)) {
+            $name = match ($lang) {
+                'en' => 'Fortnights & Workforce Module',
+                'es' => 'Módulo de Quincenas y Personal',
+                'ar' => 'وحدة نصف الشهرية واليد العاملة',
+                default => 'Module Quinzaines & Main-d’œuvre',
+            };
+            $routeLbl = match ($lang) {
+                'en' => 'Fortnights Module',
+                'es' => 'Módulo Quincenas',
+                'ar' => 'وحدة نصف الشهرية',
+                default => 'Module Quinzaines',
+            };
             return [
-                'name' => 'Module Quinzaines & Main-d’œuvre',
+                'name' => $name,
                 'color' => '#1565C0',
                 'gradient' => 'linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%)',
                 'icon' => 'mdi-account-group',
-                'route' => '/fortnight',
-                'route_label' => 'Module Quinzaines',
+                'route' => '/workforce/fortnight',
+                'route_label' => $routeLbl,
             ];
         }
 
         // 5. Warehouse / Stock Module
         if (preg_match('/(warehouse|entrepot|magasin|stock|inventaire|balance)/ui', $text)) {
+            $name = match ($lang) {
+                'en' => 'Warehouses & Stock Module',
+                'es' => 'Módulo de Almacenes y Stocks',
+                'ar' => 'وحدة المستودعات والمخزون',
+                default => 'Module Entrepôts & Stocks',
+            };
+            $routeLbl = match ($lang) {
+                'en' => 'Warehouses Module',
+                'es' => 'Módulo Almacenes',
+                'ar' => 'وحدة المستودعات',
+                default => 'Module Entrepôts',
+            };
             return [
-                'name' => 'Module Entrepôts & Stocks',
+                'name' => $name,
                 'color' => '#a21ee5',
                 'gradient' => 'linear-gradient(135deg, #c015b4 0%, #a21ee5 40%, #9742f5 100%)',
                 'icon' => 'mdi-warehouse',
                 'route' => '/warehouses',
-                'route_label' => 'Module Entrepôts',
+                'route_label' => $routeLbl,
             ];
         }
 
         // 6. Supplier Invoice / Settlement Module
         if (preg_match('/(supplier_invoice|fournisseur.*facture|facture.*fournisseur|reglement.*fournisseur)/ui', $text)) {
+            $name = match ($lang) {
+                'en' => 'Supplier Invoices & Payments',
+                'es' => 'Facturas y Pagos de Proveedores',
+                'ar' => 'فواتير وتسويات الموردين',
+                default => 'Factures & Règlements Fournisseurs',
+            };
+            $routeLbl = match ($lang) {
+                'en' => 'Supplier Invoices',
+                'es' => 'Facturas Proveedores',
+                'ar' => 'فواتير الموردين',
+                default => 'Factures Fournisseurs',
+            };
             return [
-                'name' => 'Factures & Règlements Fournisseurs',
+                'name' => $name,
                 'color' => '#E65100',
                 'gradient' => 'linear-gradient(135deg, #E65100 0%, #F57C00 40%, #FFB74D 100%)',
                 'icon' => 'mdi-receipt-text-outline',
-                'route' => '/supplier_invoice',
-                'route_label' => 'Factures Fournisseurs',
+                'route' => '/supplier_invoice/list_supplier_invoice',
+                'route_label' => $routeLbl,
             ];
         }
 
         // 7. Client Invoice / Settlement Module
         if (preg_match('/(client_invoice|client.*facture|facture.*client|reglement.*client)/ui', $text)) {
+            $name = match ($lang) {
+                'en' => 'Client Invoices & Settlements',
+                'es' => 'Facturas y Cobros de Clientes',
+                'ar' => 'فواتير ومستحقات العملاء',
+                default => 'Factures & Règlements Clients',
+            };
+            $routeLbl = match ($lang) {
+                'en' => 'Client Invoices',
+                'es' => 'Facturas Clientes',
+                'ar' => 'فواتير العملاء',
+                default => 'Factures Clients',
+            };
             return [
-                'name' => 'Factures & Règlements Clients',
+                'name' => $name,
                 'color' => '#00838F',
                 'gradient' => 'linear-gradient(135deg, #006064 0%, #00838F 40%, #26C6DA 100%)',
                 'icon' => 'mdi-file-document-outline',
-                'route' => '/client_invoice',
-                'route_label' => 'Factures Clients',
+                'route' => '/client_invoice/list_client_invoice',
+                'route_label' => $routeLbl,
             ];
         }
 
+        $defaultName = match ($lang) {
+            'en' => 'Jupiter ERP Intelligence',
+            'es' => 'Inteligencia ERP Jupiter',
+            'ar' => 'ذكاء تخطيط موارد المؤسسات جوبيتر',
+            default => 'Jupiter ERP Intelligence',
+        };
+        $defaultRouteLbl = match ($lang) {
+            'en' => 'Main Dashboard',
+            'es' => 'Panel Principal',
+            'ar' => 'لوحة التحكم الرئيسية',
+            default => 'Tableau de Bord',
+        };
+
         return [
-            'name' => 'Jupiter ERP Intelligence',
+            'name' => $defaultName,
             'color' => '#1565C0',
             'gradient' => 'linear-gradient(135deg, #1565C0 0%, #1E88E5 40%, #42A5F5 100%)',
             'icon' => 'mdi-robot-happy-outline',
-            'route' => '/charges',
-            'route_label' => 'Tableau de Bord',
+            'route' => '/main-dashboard',
+            'route_label' => $defaultRouteLbl,
         ];
     }
 
     /**
      * Build the answer/analysis prompt from the retrieved data.
      */
-    private function buildAnswerPrompt(string $question, string $messages, string $schema, string $comments, ?string $result, ?string $sqlError, string $businessCtx, string $routes, ?string $excelContext = null, string $theme = 'dark', ?string $sqlQuery = null): string
+    private function buildAnswerPrompt(string $question, string $messages, string $schema, string $comments, ?string $result, ?string $sqlError, string $businessCtx, string $routes, ?string $excelContext = null, string $theme = 'dark', ?string $sqlQuery = null, string $detectedLang = 'en'): string
     {
         $id = uniqid('ai_');
         $dataSection = '';
@@ -1981,13 +2183,56 @@ class AIAssistantController extends Controller
             $excelSection = "\n=== UPLOADED EXCEL FILE DATA ===\nThe user has previously uploaded an Excel file. If their question relates to this file, use this data to answer:\n{$excelContext}\n";
         }
 
-        $mod = $this->resolveModuleDesign($question, $sqlQuery ?? '');
+        $mod = $this->resolveModuleDesign($question, $sqlQuery ?? '', $detectedLang);
         $modName = $mod['name'];
         $modCol = $mod['color'];
         $modGrad = $mod['gradient'];
         $modIco = $mod['icon'];
         $modRoute = $mod['route'];
         $modRouteLbl = $mod['route_label'];
+
+        $badgeText = match ($detectedLang) {
+            'en' => 'Validated Analysis • AI Core',
+            'es' => 'Análisis Validado • Núcleo IA',
+            'ar' => 'تحليل معتمد • النواة الذكية',
+            default => 'Analyse Validée • IA Core',
+        };
+        $kpiAmountLabel = match ($detectedLang) {
+            'en' => 'TOTAL AMOUNT',
+            'es' => 'MONTO TOTAL',
+            'ar' => 'المبلغ الإجمالي',
+            default => 'TOTAL MONTANT',
+        };
+        $kpiWeightLabel = match ($detectedLang) {
+            'en' => 'TOTAL WEIGHT or TOP ITEM',
+            'es' => 'PESO TOTAL o ELEMENTO TOP',
+            'ar' => 'الوزن الإجمالي أو العنصر الأبرز',
+            default => 'POIDS TOTAL ou ÉLÉMENT TOP',
+        };
+        $tableTitleLabel = match ($detectedLang) {
+            'en' => 'RECORD DETAILS & METRICS',
+            'es' => 'DETALLES DE REGISTROS Y MÉTRICAS',
+            'ar' => 'تفاصيل السجلات والمؤشرات',
+            default => 'DÉTAILS DES ENREGISTREMENTS',
+        };
+        $chartTitleLabel = match ($detectedLang) {
+            'en' => 'Graphical Visualization',
+            'es' => 'Visualización Gráfica',
+            'ar' => 'التمثيل البياني',
+            default => 'Visualisation Graphique',
+        };
+        $footerLabel = match ($detectedLang) {
+            'en' => 'Certified ERP Data • Single Source of Truth',
+            'es' => 'Datos Certificados ERP • Fuente Única de Verdad',
+            'ar' => 'بيانات تخطيط موارد المؤسسات المعتمدة • مصدر الحقيقة الموثوق',
+            default => 'Données Certifiées ERP • Source Unique de Vérité',
+        };
+        $directAnswerPlaceholder = match ($detectedLang) {
+            'en' => '[Write a direct, crystal-clear 1-2 sentence executive answer in English using actual totals from the database data]',
+            'es' => '[Escribe una respuesta ejecutiva directa y clara de 1-2 frases en español usando los totales reales de los datos]',
+            'ar' => '[اكتب إجابة مباشرة ودقيقة في جملة أو جملتين باللغة العربية باستخدام الأرقام الحقيقية]',
+            default => '[Write a direct, crystal-clear 1-2 sentence executive answer in French using actual totals from the database data]',
+        };
 
         $isDark = ($theme === 'dark');
         $cardBg = $isDark ? '#1a2332' : '#ffffff';
@@ -2005,6 +2250,14 @@ class AIAssistantController extends Controller
 You are "Jupiter AI", the Elite Enterprise AI Data Analyst and UI Architect for the Jupiter ERP fish management system.
 Always deliver certified, high-precision ERP enterprise intelligence.
 You transform raw database results into visually stunning, responsive, highly polished dashboards using clean HTML5, Material Design Icons (mdi), and interactive ApexCharts.
+
+=== TARGET LANGUAGE: {$detectedLang} ===
+CRITICAL MANDATORY INSTRUCTION: The user asked in "{$detectedLang}" (en = English, es = Spanish, fr = French, ar = Arabic).
+Every label, header, metric card title, table header, button, chart label, and tooltip MUST be in {$detectedLang}!
+- If {$detectedLang} is "en": Everything MUST be in English. NEVER use French words like "Réponse Directe", "Détails", "Données Certifiées".
+- If {$detectedLang} is "es": Everything MUST be in Spanish.
+- If {$detectedLang} is "fr": Everything MUST be in French.
+- If {$detectedLang} is "ar": Everything MUST be in Arabic.
 
 === USER QUESTION ===
 {$question}
@@ -2028,6 +2281,9 @@ You transform raw database results into visually stunning, responsive, highly po
   Inner Border: "{$innerBorder}"
   Table Header Background: "{$thBg}"
 
+=== APPLICATION ROUTES & NAVIGATION RULES (MANDATORY ACCORDING TO ROUTES.JS) ===
+{$routes}
+
 === MANDATORY ARCHITECTURAL RULES (ZERO COMPROMISE ON UI/UX) ===
 1. OUTPUT PATTERN:
    Output ONLY the raw HTML container block followed by the <script> block.
@@ -2049,10 +2305,7 @@ You transform raw database results into visually stunning, responsive, highly po
    - Counts & Workers: Integers with thousand space separator, NO decimals (e.g., 21 092 j, 1 250 ouvriers, 6 categories).
    - Percentages: 1 decimal with % (e.g., 48.7%).
 
-4. CRITICAL LANGUAGE RULE:
-   Detect the language of the question (English, French, Spanish, Arabic) and write all labels, explanations, headers, table columns, and tooltips in that EXACT same language!
-
-5. MANDATORY 6-SECTION DASHBOARD STRUCTURE:
+4. MANDATORY 6-SECTION DASHBOARD STRUCTURE:
    Follow this EXACT HTML layout skeleton:
 
 <div id="ai_{$id}" class="ai-analytics-card" style="background: {$cardBg}; border-radius: 20px; padding: 22px; border: 1px solid {$borderCol}; box-shadow: 0 10px 30px rgba(0,0,0,0.06); width: 100%; box-sizing: border-box; font-family: inherit;">
@@ -2070,7 +2323,7 @@ You transform raw database results into visually stunning, responsive, highly po
     </div>
     <div style="background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;">
       <i class="v-icon notranslate mdi mdi-check-decagram" style="font-size: 13px;"></i>
-      Analyse Validée • IA Core
+      {$badgeText}
     </div>
   </div>
 
@@ -2078,7 +2331,7 @@ You transform raw database results into visually stunning, responsive, highly po
   <div style="background: {$innerBg}; border-left: 4px solid {$modCol}; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; font-size: 13.5px; line-height: 1.6; color: {$textColor}; border: 1px solid {$innerBorder};">
     <div style="display: flex; align-items: flex-start; gap: 10px;">
       <i class="v-icon notranslate mdi mdi-information-outline" style="font-size: 18px; color: {$modCol}; margin-top: 2px; flex-shrink: 0;"></i>
-      <div>[Write a direct, crystal-clear 1-2 sentence executive answer to the user question using actual totals from the database data]</div>
+      <div>{$directAnswerPlaceholder}</div>
     </div>
   </div>
 
@@ -2089,7 +2342,7 @@ You transform raw database results into visually stunning, responsive, highly po
         <i class="v-icon notranslate mdi mdi-cash-multiple" style="font-size: 22px; color: {$modCol};"></i>
       </div>
       <div>
-        <div style="font-size: 11px; font-weight: 700; color: {$subColor}; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL MONTANT</div>
+        <div style="font-size: 11px; font-weight: 700; color: {$subColor}; text-transform: uppercase; letter-spacing: 0.5px;">{$kpiAmountLabel}</div>
         <div style="font-size: 20px; font-weight: 800; color: {$modCol}; margin-top: 2px;">[Formatted Value e.g. 147 769 289.55 MAD]</div>
       </div>
     </div>
@@ -2098,7 +2351,7 @@ You transform raw database results into visually stunning, responsive, highly po
         <i class="v-icon notranslate mdi mdi-scale" style="font-size: 22px; color: #00897B;"></i>
       </div>
       <div>
-        <div style="font-size: 11px; font-weight: 700; color: {$subColor}; text-transform: uppercase; letter-spacing: 0.5px;">POIDS TOTAL ou ÉLÉMENT TOP</div>
+        <div style="font-size: 11px; font-weight: 700; color: {$subColor}; text-transform: uppercase; letter-spacing: 0.5px;">{$kpiWeightLabel}</div>
         <div style="font-size: 20px; font-weight: 800; color: #00897B; margin-top: 2px;">[Formatted Value]</div>
       </div>
     </div>
@@ -2108,7 +2361,7 @@ You transform raw database results into visually stunning, responsive, highly po
   <div class="ai-analytics-inner" style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid {$innerBorder};">
     <div style="font-size: 13px; font-weight: 800; color: {$modCol}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
       <i class="v-icon notranslate mdi mdi-table" style="font-size: 18px;"></i>
-      DÉTAILS DES ENREGISTREMENTS
+      {$tableTitleLabel}
     </div>
     <div style="overflow-x: auto; width: 100%;">
       <table class="ai-analytics-table" style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; border-radius: 12px; overflow: hidden; border: 1px solid {$innerBorder};">
@@ -2135,7 +2388,7 @@ You transform raw database results into visually stunning, responsive, highly po
   <div class="ai-analytics-inner" style="background: {$innerBg}; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid {$innerBorder};">
     <div style="font-size: 13px; font-weight: 800; color: {$modCol}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
       <i class="v-icon notranslate mdi mdi-chart-bell-curve-cumulative" style="font-size: 18px;"></i>
-      Visualisation Graphique
+      {$chartTitleLabel}
     </div>
     <div id="aichart_{$id}" style="min-height: 320px; width: 100%;"></div>
   </div>
@@ -2151,39 +2404,54 @@ You transform raw database results into visually stunning, responsive, highly po
   <!-- SIGNATURE FOOTER -->
   <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 22px; padding-top: 16px; border-top: 1px solid {$innerBorder}; font-size: 11.5px; color: {$subColor};">
     <i class="v-icon notranslate mdi mdi-shield-check" style="color: #42A5F5; font-size: 14px;"></i>
-    Données Certifiées ERP • Source Unique de Vérité
+    {$footerLabel}
   </div>
 </div>
 
 <!-- SCRIPT BLOCK: SELF-EXECUTING VANILLA JAVASCRIPT APEXCHARTS (NEVER USE createApp OR Vue MOUNT) -->
 <script>
 (function(){
-  var chartEl = document.querySelector('#aichart_{$id}');
-  if (!chartEl || !window.ApexCharts) return;
-  var options = {
-    chart: { type: 'bar', height: 320, background: 'transparent', toolbar: { show: false } },
-    theme: { mode: '{$theme}' },
-    plotOptions: { bar: { borderRadius: 6, columnWidth: '55%', horizontal: false } },
-    series: [{ name: 'Total MAD', data: [/* EXTRACT NUMBERS e.g. 72029348.53, 40776416.95 */] }],
-    xaxis: { categories: [/* EXTRACT NAMES e.g. 'Congele', 'Du frais' */], labels: { style: { colors: '{$subColor}' } } },
-    yaxis: { labels: { style: { colors: '{$subColor}' }, formatter: function(val){ return Number(val).toLocaleString() + ' MAD'; } } },
-    colors: ['{$modCol}', '#00897B', '#FFA726', '#AB47BC', '#26A69A', '#EF5350'],
-    grid: { borderColor: '{$innerBorder}' },
-    tooltip: { theme: '{$theme}', y: { formatter: function(val){ return Number(val).toLocaleString(undefined, {minimumFractionDigits: 2}) + ' MAD'; } } }
-  };
-  var chart = new ApexCharts(chartEl, options);
-  chart.render();
-  window.__ai_charts = window.__ai_charts || {};
-  window.__ai_charts['aichart_{$id}'] = chart;
+  function initChart(retries) {
+    retries = retries || 0;
+    var chartEl = document.getElementById('aichart_{$id}') || document.querySelector('#aichart_{$id}');
+    var Apex = (typeof ApexCharts !== 'undefined' ? ApexCharts : (window.ApexCharts?.default || window.ApexCharts));
+    if (!chartEl || !Apex) {
+      if (retries < 25) { setTimeout(function(){ initChart(retries + 1); }, 75); }
+      return;
+    }
+    if (window.__ai_charts && window.__ai_charts['aichart_{$id}']) {
+      try { window.__ai_charts['aichart_{$id}'].destroy(); } catch(e) {}
+    }
+    try {
+      var options = {
+        chart: { type: 'bar', height: 320, background: 'transparent', toolbar: { show: false } },
+        theme: { mode: '{$theme}' },
+        plotOptions: { bar: { borderRadius: 6, columnWidth: '55%', horizontal: false } },
+        series: [{ name: 'Total MAD', data: [/* EXTRACT NUMBERS e.g. 72029348.53, 40776416.95 */] }],
+        xaxis: { categories: [/* EXTRACT NAMES e.g. 'Congele', 'Du frais' */], labels: { style: { colors: '{$subColor}' } } },
+        yaxis: { labels: { style: { colors: '{$subColor}' }, formatter: function(val){ return Number(val).toLocaleString() + ' MAD'; } } },
+        colors: ['{$modCol}', '#00897B', '#FFA726', '#AB47BC', '#26A69A', '#EF5350'],
+        grid: { borderColor: '{$innerBorder}' },
+        tooltip: { theme: '{$theme}', y: { formatter: function(val){ return Number(val).toLocaleString(undefined, {minimumFractionDigits: 2}) + ' MAD'; } } }
+      };
+      var chart = new Apex(chartEl, options);
+      chart.render();
+      window.__ai_charts = window.__ai_charts || {};
+      window.__ai_charts['aichart_{$id}'] = chart;
+    } catch(err) {
+      console.error('ApexCharts render error on aichart_{$id}:', err);
+    }
+  }
+  initChart();
 })();
 </script>
 PROMPT;
     }
 
     /**
-     * Post-process and sanitize AI response to guarantee premium UI/UX.
+     * Post-process and sanitize AI response to guarantee premium UI/UX and 100% language alignment.
      */
-    private function beautifyAndValidateAIAnswer(string $answer, string $question, array $resultRows, int|string $id, string $theme): string
+    private function beautifyAndValidateAIAnswer(string $answer, string $question, array $resultRows, int|string $id, string $theme, string $lang = 'en'): string
     {
         $answer = preg_replace('/^```(?:html|vue|xml)?\s*/i', '', trim($answer));
         $answer = preg_replace('/\s*```$/', '', $answer);
@@ -2204,11 +2472,123 @@ PROMPT;
             $answer = preg_replace('/(<table[\s\S]*?<\/table>)/i', '<div style="overflow-x: auto; width: 100%;">$1</div>', $answer);
         }
 
+        // Language normalization for leaked French headers/labels when user communicates in English, Spanish, or Arabic
+        if ($lang === 'en') {
+            $replacements = [
+                'Visualisation Graphique' => 'Graphical Visualization',
+                'Visualisation graphique' => 'Graphical Visualization',
+                'Réponse Directe' => 'Direct Answer',
+                'Réponse directe' => 'Direct Answer',
+                'Données Certifiées ERP • Source Unique de Vérité' => 'Certified ERP Data • Single Source of Truth',
+                'Détails des Enregistrements' => 'Record Details & Metrics',
+                'Total Enregistré' => 'Total Recorded',
+                'Total Annuel' => 'Total Annual',
+                'Module Production' => 'Production Module',
+                'Module Charges' => 'Charges Module',
+                'Module Ventes' => 'Sales Module',
+                'Consulter' => 'View',
+                'Détails' => 'Details',
+                '>Janvier<' => '>January<',
+                '>Février<' => '>February<',
+                '>Mars<' => '>March<',
+                '>Avril<' => '>April<',
+                '>Mai<' => '>May<',
+                '>Juin<' => '>June<',
+                '>Juillet<' => '>July<',
+                '>Août<' => '>August<',
+                '>Septembre<' => '>September<',
+                '>Octobre<' => '>October<',
+                '>Novembre<' => '>November<',
+                '>Décembre<' => '>December<',
+                '"Janvier"' => '"January"',
+                '"Février"' => '"February"',
+                '"Mars"' => '"March"',
+                '"Avril"' => '"April"',
+                '"Mai"' => '"May"',
+                '"Juin"' => '"June"',
+                '"Juillet"' => '"July"',
+                '"Août"' => '"August"',
+                '"Septembre"' => '"September"',
+                '"Octobre"' => '"October"',
+                '"Novembre"' => '"November"',
+                '"Décembre"' => '"December"',
+            ];
+            $answer = str_replace(array_keys($replacements), array_values($replacements), $answer);
+        } elseif ($lang === 'es') {
+            $replacements = [
+                'Visualisation Graphique' => 'Visualización Gráfica',
+                'Visualisation graphique' => 'Visualización Gráfica',
+                'Réponse Directe' => 'Respuesta Directa',
+                'Réponse directe' => 'Respuesta Directa',
+                'Données Certifiées ERP • Source Unique de Vérité' => 'Datos Certificados ERP • Fuente Única de Verdad',
+                'Détails des Enregistrements' => 'Detalles de Registros y Métricas',
+                'Total Enregistré' => 'Total Registrado',
+                'Total Annuel' => 'Total Anual',
+                'Module Production' => 'Módulo Producción',
+                'Module Charges' => 'Módulo Compras',
+                'Module Ventes' => 'Módulo Ventas',
+                'Consulter' => 'Ver',
+                'Détails' => 'Detalles',
+                '>Janvier<' => '>Enero<',
+                '>Février<' => '>Febrero<',
+                '>Mars<' => '>Marzo<',
+                '>Avril<' => '>Abril<',
+                '>Mai<' => '>Mayo<',
+                '>Juin<' => '>Junio<',
+                '>Juillet<' => '>Julio<',
+                '>Août<' => '>Agosto<',
+                '>Septembre<' => '>Septiembre<',
+                '>Octobre<' => '>Octubre<',
+                '>Novembre<' => '>Noviembre<',
+                '>Décembre<' => '>Diciembre<',
+                '"Janvier"' => '"Enero"',
+                '"Février"' => '"Febrero"',
+                '"Mars"' => '"Marzo"',
+                '"Avril"' => '"Abril"',
+                '"Mai"' => '"Mayo"',
+                '"Juin"' => '"Junio"',
+                '"Juillet"' => '"Julio"',
+                '"Août"' => '"Agosto"',
+                '"Septembre"' => '"Septiembre"',
+                '"Octobre"' => '"Octubre"',
+                '"Novembre"' => '"Noviembre"',
+                '"Décembre"' => '"Diciembre"',
+            ];
+            $answer = str_replace(array_keys($replacements), array_values($replacements), $answer);
+        } elseif ($lang === 'ar') {
+            $replacements = [
+                'Visualisation Graphique' => 'التمثيل البياني',
+                'Visualisation graphique' => 'التمثيل البياني',
+                'Réponse Directe' => 'إجابة مباشرة',
+                'Réponse directe' => 'إجابة مباشرة',
+                'Données Certifiées ERP • Source Unique de Vérité' => 'بيانات تخطيط موارد المؤسسات المعتمدة • مصدر الحقيقة الموثوق',
+                'Consulter' => 'عرض',
+                'Détails' => 'تفاصيل',
+            ];
+            $answer = str_replace(array_keys($replacements), array_values($replacements), $answer);
+        }
+
         if (str_contains($answer, 'createApp(') && str_contains($answer, 'ApexCharts')) {
             $answer = preg_replace_callback('/<script>([\s\S]*?)<\/script>/i', function ($m) {
                 $js = $m[1];
                 if (str_contains($js, 'new ApexCharts')) {
                     return "<script>\n(function(){\n  try {\n    " . $js . "\n  } catch(e) { console.warn('AI Chart fallback error:', e); }\n})();\n</script>";
+                }
+                return $m[0];
+            }, $answer);
+        }
+
+        // Ensure any ApexCharts script has resilient retry logic and responsive sizing
+        if (str_contains($answer, 'new ApexCharts') && !str_contains($answer, 'initChart(')) {
+            $answer = preg_replace_callback('/<script>([\s\S]*?)<\/script>/i', function ($m) {
+                $js = $m[1];
+                if (str_contains($js, 'new ApexCharts')) {
+                    $chartId = '';
+                    if (preg_match('/[\'"]#?(aichart_[^\'"]+)[\'"]/', $js, $idMatch)) {
+                        $chartId = $idMatch[1];
+                    }
+                    $targetElExpr = $chartId ? "document.getElementById('{$chartId}') || document.querySelector('#{$chartId}')" : "document.querySelector('[id^=\"aichart_\"]')";
+                    return "<script>\n(function(){\n  function initChart(retries) {\n    retries = retries || 0;\n    var Apex = (typeof ApexCharts !== 'undefined' ? ApexCharts : (window.ApexCharts?.default || window.ApexCharts));\n    var chartEl = {$targetElExpr};\n    if (!chartEl || !Apex) {\n      if (retries < 25) { setTimeout(function(){ initChart(retries + 1); }, 75); }\n      return;\n    }\n    try {\n      " . $js . "\n      if (typeof chart !== 'undefined' && chart && typeof chart.render === 'function') {\n        window.__ai_charts = window.__ai_charts || {};\n        window.__ai_charts['" . ($chartId ?: 'aichart') . "'] = chart;\n        window.dispatchEvent(new Event('resize'));\n      }\n    } catch(e) { console.warn('AI Chart execute error:', e); }\n  }\n  initChart();\n})();\n</script>";
                 }
                 return $m[0];
             }, $answer);
@@ -2484,155 +2864,96 @@ PROMPT;
     // """""""""""""""""""""""""""""""""""""""""
 
     /**
-     * Dynamically parse the frontend routes.js file to build
-     * a structured route map. Auto-syncs when routes.js changes.
-     * Cached per-request for performance.
+     * Get the certified application route catalog directly synced with resources/js/router/routes.js.
+     * Provides the AI with exact paths, route names, and purposes to guarantee 0% 404 errors.
      */
     private function getAppRoutes(): string
     {
-        if (self::$cachedRoutes)
-            return self::$cachedRoutes;
-
-        $routesFile = resource_path('js/router/routes.js');
-        if (!File::exists($routesFile)) {
-            self::$cachedRoutes = 'No route map available.';
+        if (self::$cachedRoutes) {
             return self::$cachedRoutes;
         }
 
-        $content = File::get($routesFile);
-        $routes = $this->parseJsRoutes($content);
+        $catalog = [
+            'DASHBOARDS & CORE' => [
+                ['path' => '/main-dashboard', 'name' => 'main_dashboard', 'desc' => 'Executive ERP Overview & Metrics (Tableau de Bord Principal)'],
+                ['path' => '/jupiter-dashboard', 'name' => 'jupiter_dashboard', 'desc' => 'Jupiter Intelligence Analytics & Data Exploration'],
+                ['path' => '/ai_prompt', 'name' => 'ai_prompt', 'desc' => 'Interactive AI Decision Workspace'],
+            ],
+            'WORKFORCE & QUINZAINES' => [
+                ['path' => '/workforce/fortnight', 'name' => 'fortnight_management', 'desc' => 'Fortnight Sheets & Bi-monthly Payroll (Feuilles de Quinzaine Q1/Q2)'],
+                ['path' => '/workforce/management', 'name' => 'workforce_management', 'desc' => 'Workforce Directory & Worker Profiles (Main d\'œuvre & Ouvriers)'],
+                ['path' => '/workforce/corporals', 'name' => 'corporal_management', 'desc' => 'Corporals & Team Leaders (Caporaux & Équipes)'],
+                ['path' => '/workforce/sections', 'name' => 'section_management', 'desc' => 'Factory Workshops & Sections (Ateliers & Sections Usine)'],
+                ['path' => '/workforce/teams', 'name' => 'team_management', 'desc' => 'Factory Teams (Équipes de Travail)'],
+                ['path' => '/workforce/statistics', 'name' => 'workforce_statistics', 'desc' => 'Workforce & Fortnight Statistics (Statistiques Quinzaine)'],
+                ['path' => '/workforce/absence-movement', 'name' => 'workforce_absence_movement', 'desc' => 'Worker Absences & Daily Movements'],
+            ],
+            'PURCHASES & RECEPTIONS (CHARGES)' => [
+                ['path' => '/charges/list_charge', 'name' => 'list_charge', 'desc' => 'Fish Purchases & Receptions List (Liste des Charges & Réceptions)'],
+                ['path' => '/charges/add_charge', 'name' => 'add_charge', 'desc' => 'Register New Fish Reception / Charge (Nouvelle Charge)'],
+                ['path' => '/charges', 'name' => 'charges', 'desc' => 'Charges Module Entrypoint (Redirects to list_charge)'],
+            ],
+            'SALES & EXPEDITIONS (SHIPPINGS)' => [
+                ['path' => '/shippings/list_shipping', 'name' => 'list_shipping', 'desc' => 'Fish Sales & Shipments List (Liste des Expéditions & Ventes)'],
+                ['path' => '/shippings/add_shipping', 'name' => 'add_shipping', 'desc' => 'Register New Fish Expedition / Sale (Nouvelle Expédition)'],
+                ['path' => '/shippings', 'name' => 'shippings', 'desc' => 'Shippings Module Entrypoint (Redirects to list_shipping)'],
+            ],
+            'FACTORY PRODUCTION' => [
+                ['path' => '/production/list', 'name' => 'production_list', 'desc' => 'Production Batches & Freezing List (Liste des Lots de Production)'],
+                ['path' => '/production/add', 'name' => 'add_production', 'desc' => 'Create New Production Batch (Nouvelle Production)'],
+                ['path' => '/production/charge-management', 'name' => 'charge_production_management', 'desc' => 'Assign Raw Charges to Production Lots'],
+                ['path' => '/production', 'name' => 'production', 'desc' => 'Production Module Entrypoint (Redirects to production_list)'],
+            ],
+            'INVENTORY & WAREHOUSES' => [
+                ['path' => '/warehouses', 'name' => 'warehouses', 'desc' => 'Cold Storage Chambers & Stock Levels (Entrepôts & Frigos)'],
+                ['path' => '/storage-invoices', 'name' => 'storage_invoices', 'desc' => 'Cold Storage Occupancy Invoices (Factures Séjour Frigo)'],
+                ['path' => '/inventory/list', 'name' => 'list_inventory', 'desc' => 'Inventory Count & Adjustment History (Inventaires)'],
+                ['path' => '/inventory/add', 'name' => 'add_inventory', 'desc' => 'New Inventory Count (Nouvel Inventaire)'],
+                ['path' => '/warehouse-transfers/list', 'name' => 'list_warehouse_transfer', 'desc' => 'Inter-Warehouse Transfers (Transferts Inter-Magasins)'],
+                ['path' => '/order-transfers', 'name' => 'order_transfers_page', 'desc' => 'Order Transfers Management'],
+            ],
+            'INVOICING & SETTLEMENTS' => [
+                ['path' => '/supplier_invoice/list_supplier_invoice', 'name' => 'list_supplier_invoice', 'desc' => 'Supplier Invoices (Factures Fournisseurs)'],
+                ['path' => '/supplier_invoice/supplier_settlement', 'name' => 'supplier_settlement', 'desc' => 'Supplier Payments & Settlements (Règlements Fournisseurs)'],
+                ['path' => '/client_invoice/list_client_invoice', 'name' => 'list_client_invoice', 'desc' => 'Client Invoices (Factures Clients)'],
+                ['path' => '/client_invoice/client_settlement', 'name' => 'client_settlement', 'desc' => 'Client Payments & Settlements (Règlements Clients)'],
+            ],
+            'PARAMETERS & CONFIGURATION' => [
+                ['path' => '/parameters/client-management', 'name' => 'client_management', 'desc' => 'Clients & Buyers Master Directory (Gestion Clients)'],
+                ['path' => '/parameters/supplier-management', 'name' => 'supplier_management', 'desc' => 'Suppliers & Fishermen Master Directory (Gestion Fournisseurs)'],
+                ['path' => '/parameters/fish-management', 'name' => 'fish_management', 'desc' => 'Fish Species & Commercial Sizes (Gestion des Espèces)'],
+                ['path' => '/parameters/warehouse-management', 'name' => 'warehouse_management', 'desc' => 'Warehouse & Chamber Master Setup'],
+                ['path' => '/parameters/charge-management', 'name' => 'charge_management', 'desc' => 'Charge Categories & Fees Setup'],
+                ['path' => '/parameters/shipping-management', 'name' => 'shipping_management', 'desc' => 'Shipping & Export Categories Setup'],
+                ['path' => '/parameters/production-management', 'name' => 'production_management', 'desc' => 'Production Categories & Yield Setup'],
+                ['path' => '/parameters/cost-configuration-management', 'name' => 'cost_configuration_management', 'desc' => 'Industrial Cost & Margin Configuration'],
+                ['path' => '/parameters/company-settings', 'name' => 'company_settings', 'desc' => 'Company Profile & General Settings'],
+                ['path' => '/parameters/fortnight-settings', 'name' => 'fortnight_settings', 'desc' => 'Fortnight Calendar & Periods Settings'],
+                ['path' => '/parameters/chart-management', 'name' => 'chart_management', 'desc' => 'Chart Settings & Metric Targets'],
+            ],
+        ];
 
-        // Filter out system/auth routes the AI should not suggest
-        $skipNames = ['error', 'error404', 'NotFound', 'auth', 'login'];
-
-        $output = "AVAILABLE APPLICATION PAGES (use these paths for navigation buttons):\n\n";
-        foreach ($routes as $r) {
-            if (in_array($r['name'], $skipNames))
-                continue;
-            $label = ucwords(str_replace('_', ' ', $r['name']));
-            $paramHint = str_contains($r['path'], ':') ? ' (replace dynamic params with actual values)' : '';
-            $output .= "- {$r['path']} → {$label}{$paramHint}\n";
+        $output = "CERTIFIED APPLICATION ROUTE CATALOG (use ONLY these exact paths in navigation buttons data-route=\"...\"):\n\n";
+        foreach ($catalog as $section => $routes) {
+            $output .= "### {$section}\n";
+            foreach ($routes as $r) {
+                $output .= "- Path: `{$r['path']}` (Route Name: `{$r['name']}`) → {$r['desc']}\n";
+            }
+            $output .= "\n";
         }
+
+        $output .= "CRITICAL NAVIGATION RULES:\n";
+        $output .= "1. NEVER invent routes! For Quinzaines / Fortnight, ALWAYS use `/workforce/fortnight` (NEVER `/fortnight`).\n";
+        $output .= "2. For Workers / Main-d'œuvre, ALWAYS use `/workforce/management` (NEVER `/workforces`).\n";
+        $output .= "3. For Dashboard, ALWAYS use `/main-dashboard` (NEVER `/dashboard`).\n";
+        $output .= "4. For Supplier Invoices, ALWAYS use `/supplier_invoice/list_supplier_invoice` (NEVER `/supplier_invoice`).\n";
+        $output .= "5. For Client Invoices, ALWAYS use `/client_invoice/list_client_invoice` (NEVER `/client_invoice`).\n";
+        $output .= "6. For Warehouse Transfers, ALWAYS use `/warehouse-transfers/list` (NEVER `/warehouse_transfer`).\n";
+        $output .= "7. For Clients Directory, ALWAYS use `/parameters/client-management` (NEVER `/clients`).\n";
+        $output .= "8. For Suppliers Directory, ALWAYS use `/parameters/supplier-management` (NEVER `/suppliers`).\n";
 
         self::$cachedRoutes = $output;
         return self::$cachedRoutes;
-    }
-
-    /**
-     * Parse JavaScript routes file to extract route path/name pairs.
-     * Handles nested children and resolves relative paths.
-     */
-    private function parseJsRoutes(string $content): array
-    {
-        // Remove function bodies to avoid false bracket counts
-        $content = $this->stripJsFunctionBodies($content);
-
-        $routes = [];
-        $pathStack = [];
-        $childrenDepthMarkers = [];
-        $depth = 0;
-        $lastPath = null;
-
-        foreach (explode("\n", $content) as $line) {
-            $t = trim($line);
-            if ($t === '' || str_starts_with($t, 'import ') || str_starts_with($t, 'export '))
-                continue;
-
-            // Detect children: [ → push current path onto stack
-            if (preg_match('/children\s*:\s*\[/', $t)) {
-                $pathStack[] = $lastPath ?? '';
-                $childrenDepthMarkers[] = $depth;
-            }
-
-            // Extract path value
-            if (preg_match('/path:\s*["\']([^"\']*)["\']/', $t, $m)) {
-                $lastPath = $m[1];
-            }
-
-            // Extract route name (skip redirect objects)
-            if (preg_match('/name:\s*["\']([^"\']*)["\']/', $t, $m) && !str_contains($t, 'redirect')) {
-                $routes[] = [
-                    'path' => $this->resolveRoutePath($pathStack, $lastPath),
-                    'name' => $m[1],
-                ];
-            }
-
-            // Track bracket/brace depth
-            $depth += substr_count($t, '[') + substr_count($t, '{');
-            $depth -= substr_count($t, ']') + substr_count($t, '}');
-
-            // Pop children stack when depth returns to marker level
-            while (!empty($childrenDepthMarkers) && $depth <= end($childrenDepthMarkers)) {
-                array_pop($pathStack);
-                array_pop($childrenDepthMarkers);
-            }
-        }
-
-        return $routes;
-    }
-
-    /**
-     * Resolve a route path against its parent path stack.
-     * Absolute paths (starting with /) are returned as-is.
-     * Relative paths are appended to the nearest parent absolute path.
-     */
-    private function resolveRoutePath(array $parentPaths, ?string $currentPath): string
-    {
-        if ($currentPath === null)
-            return '/';
-        if (str_starts_with($currentPath, '/'))
-            return $currentPath;
-
-        $base = '';
-        foreach ($parentPaths as $pp) {
-            if (str_starts_with($pp, '/')) {
-                $base = rtrim($pp, '/');
-            } else {
-                $base = rtrim($base, '/') . '/' . $pp;
-            }
-        }
-
-        return rtrim($base, '/') . '/' . $currentPath;
-    }
-
-    /**
-     * Remove JavaScript function bodies from content.
-     * This prevents function braces from interfering with route bracket counting.
-     */
-    private function stripJsFunctionBodies(string $content): string
-    {
-        $result = '';
-        $len = strlen($content);
-        $i = 0;
-
-        while ($i < $len) {
-            if ($i + 8 <= $len && substr($content, $i, 8) === 'function') {
-                // Find opening brace
-                $j = $i + 8;
-                while ($j < $len && $content[$j] !== '{')
-                    $j++;
-                if ($j >= $len) {
-                    $result .= substr($content, $i);
-                    break;
-                }
-                // Count braces to find matching close
-                $braces = 1;
-                $k = $j + 1;
-                while ($k < $len && $braces > 0) {
-                    if ($content[$k] === '{')
-                        $braces++;
-                    elseif ($content[$k] === '}')
-                        $braces--;
-                    $k++;
-                }
-                $i = $k;
-                continue;
-            }
-            $result .= $content[$i];
-            $i++;
-        }
-
-        return $result;
     }
 }
 

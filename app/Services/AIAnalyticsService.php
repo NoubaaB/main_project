@@ -20,11 +20,11 @@ class AIAnalyticsService
      * Main entry point to process a question and generate a rich, accurate response
      * tailored precisely to what the user asked.
      */
-    public function processQuestion(string $question, int|string $id, string $theme = 'dark', array $excelFiles = []): string
+    public function processQuestion(string $question, int|string $id, string $theme = 'dark', array $excelFiles = [], ?string $explicitLang = null): string
     {
         $uniqueId = 'ai_' . $id . '_' . substr(md5($question . microtime()), 0, 6);
         $chartId = 'aichart_' . $id . '_' . substr(md5($question . microtime()), 0, 6);
-        $lang = $this->detectLanguage($question);
+        $lang = $this->detectLanguage($question, $explicitLang);
 
         // 1. Check if user is asking about the creator, supervisor, owner, or system identity
         if ($this->isCreatorOrIdentityQuestion($question)) {
@@ -94,26 +94,57 @@ class AIAnalyticsService
     /**
      * Detect user's language: 'fr', 'es', 'ar', or 'en'.
      */
-    public function detectLanguage(string $text): string
+    /**
+     * Detect user's language: 'fr', 'es', 'ar', or 'en' using multi-token score weighting.
+     */
+    public function detectLanguage(string $text, ?string $fallbackLocale = 'en'): string
     {
         $lower = mb_strtolower($text, 'UTF-8');
 
-        // Arabic check
+        // Arabic Unicode block
         if (preg_match('/[\x{0600}-\x{06FF}]/u', $lower)) {
             return 'ar';
         }
 
-        // French signals
-        if (preg_match('/\b(qui|est|sont|les|des|du|dans|pour|avec|donne|moi|affiche|combien|achats?|charges?|ventes?|expéditions?|productions?|stocks?|magasins?|entrepôts?|main|oeuvre|ouvriers?|factures?|règlements?|créances?|dettes?|résumés?|global|aujourd|hier|mois|année|rendement|poissons?|especes?|espèces?|fournisseurs?|clients?|prix|totals?|poids|derniers?|dernières?|camions?|navires?|bateaux?|liste|tableau|meilleurs?|cherche|montre|évolution|quinzaines?|caporaux|sections?)\b/ui', $lower)) {
+        $enScore = 0;
+        $esScore = 0;
+        $frScore = 0;
+
+        $enPatterns = [
+            '/\b(give|show|what|how|much|many|weight|price|each|month|months|year|during|between|previous|next|growth|with|display|line|and|for|from|to|all|summary|list|breakdown|per|average|count|sum|trend|who|which|when|where|please|tell|find|get|the)\b/i' => 2,
+            '/\b(is|are|was|were|in|of|at|by|on|do|does|did|have|has|had)\b/i' => 1,
+        ];
+        $esPatterns = [
+            '/\b(dame|muestra|muéstrame|que|qué|cuanto|cuánto|cuantos|cuántos|cada|mes|meses|año|ano|durante|entre|anterior|siguiente|crecimiento|con|linea|línea|para|todos|todas|resumen|desglose|promedio|recuento|quien|quién|donde|dónde|cuando|cuándo|puedes|dime|encuentra|obtener|los|las|un|una|unos|unas|del)\b/i' => 2,
+            '/\b(es|son|fue|fueron|en|de|por|y|al|el|la)\b/i' => 1,
+        ];
+        $frPatterns = [
+            '/\b(donne|donne-moi|affiche|montre|montrez|quel|quelle|quels|quelles|combien|chaque|mois|annee|année|durant|pendant|entre|precedent|précédent|suivant|prochain|croissance|avec|afficher|ligne|pour|tous|toutes|resume|résumé|tableau|details|détails|moyenne|qui|quand|peux-tu|svp|trouve|obtenir|achats?|expéditions?|ventes?|ouvriers?|factures?|règlements?|créances?|dettes?|rendement|poissons?|fournisseurs?)\b/i' => 2,
+            '/\b(est|sont|dans|du|des|les|le|la|de|et|au|aux|un|une)\b/i' => 1,
+        ];
+
+        foreach ($enPatterns as $pattern => $w) {
+            if (preg_match_all($pattern, $lower, $m)) $enScore += count($m[0]) * $w;
+        }
+        foreach ($esPatterns as $pattern => $w) {
+            if (preg_match_all($pattern, $lower, $m)) $esScore += count($m[0]) * $w;
+        }
+        foreach ($frPatterns as $pattern => $w) {
+            if (preg_match_all($pattern, $lower, $m)) $frScore += count($m[0]) * $w;
+        }
+
+        if ($enScore > $esScore && $enScore > $frScore) {
+            return 'en';
+        }
+        if ($esScore > $enScore && $esScore > $frScore) {
+            return 'es';
+        }
+        if ($frScore > $enScore && $frScore > $esScore) {
             return 'fr';
         }
 
-        // Spanish signals
-        if (preg_match('/\b(quien|es|son|los|las|para|con|dame|muestra|cuanto|compras|ventas|produccion|almacen|pescado|proveedor|cliente|factura|total|peso|precio|este|mes|ano|hoy|ayer|camiones|barcos|ultimos|ultimas|lista|tabla)\b/ui', $lower)) {
-            return 'es';
-        }
-
-        return 'en';
+        $fallback = in_array($fallbackLocale, ['en', 'es', 'fr', 'ar']) ? $fallbackLocale : 'en';
+        return $fallback;
     }
 
     /**
@@ -328,6 +359,27 @@ class AIAnalyticsService
             default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
         };
 
+        $dayUnit = match ($lang) {
+            'en' => 'd',
+            'es' => 'd',
+            'ar' => 'ي',
+            default => 'j',
+        };
+
+        $consultLabel = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Consulter',
+        };
+
+        $detailsLabel = match ($lang) {
+            'en' => 'Details',
+            'es' => 'Detalles',
+            'ar' => 'تفاصيل',
+            default => 'Détails',
+        };
+
         $chartLabels = [];
         $q1SeriesData = [];
         $q2SeriesData = [];
@@ -377,14 +429,14 @@ class AIAnalyticsService
                 </span>
               </td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #42A5F5;">{$q1PriceFmt} MAD</td>
-              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$q1DaysFmt} j</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$q1DaysFmt} {$dayUnit}</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #FFB74D;">{$q2PriceFmt} MAD</td>
-              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$q2DaysFmt} j</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$q2DaysFmt} {$dayUnit}</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$mPriceFmt} MAD</td>
-              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$mDaysFmt} j</td>
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$mDaysFmt} {$dayUnit}</td>
               <td style="padding: 10px 12px; text-align: center;">
-                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
-                  Consulter
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/workforce/fortnight">
+                  {$consultLabel}
                 </button>
               </td>
             </tr>
@@ -413,14 +465,14 @@ TR;
             {$totLabel}
           </td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #42A5F5; font-size: 13px;">{$totQ1PriceFmt} MAD</td>
-          <td style="padding: 12px; text-align: right; font-weight: 800; font-size: 12.5px;">{$totQ1DaysFmt} j</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800; font-size: 12.5px;">{$totQ1DaysFmt} {$dayUnit}</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #FFB74D; font-size: 13px;">{$totQ2PriceFmt} MAD</td>
-          <td style="padding: 12px; text-align: right; font-weight: 800; font-size: 12.5px;">{$totQ2DaysFmt} j</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800; font-size: 12.5px;">{$totQ2DaysFmt} {$dayUnit}</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$grandTotPriceFmt} MAD</td>
-          <td style="padding: 12px; text-align: right; font-weight: 900; font-size: 13px;">{$grandTotDaysFmt} j</td>
+          <td style="padding: 12px; text-align: right; font-weight: 900; font-size: 13px;">{$grandTotDaysFmt} {$dayUnit}</td>
           <td style="padding: 12px; text-align: center;">
-            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
-              Détails
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/workforce/fortnight">
+              {$detailsLabel}
             </button>
           </td>
         </tr>
@@ -485,37 +537,100 @@ TR;
         };
 
         $seriesNameQ1 = match ($lang) {
-            'en' => "Quinzaine 1 (Q1)",
+            'en' => "Fortnight 1 (Q1)",
             'es' => "Quincena 1 (Q1)",
             'ar' => "الشطر 1 (Q1)",
             default => "Quinzaine 1 (Q1)",
         };
 
         $seriesNameQ2 = match ($lang) {
-            'en' => "Quinzaine 2 (Q2)",
+            'en' => "Fortnight 2 (Q2)",
             'es' => "Quincena 2 (Q2)",
             'ar' => "الشطر 2 (Q2)",
             default => "Quinzaine 2 (Q2)",
+        };
+
+        $modTitle = match ($lang) {
+            'en' => "Fortnight & Workforce Module — Year {$year}",
+            'es' => "Módulo Quincenas y Mano de Obra — Año {$year}",
+            'ar' => "وحدة الأجور النصف شهرية والعمالة — سنة {$year}",
+            default => "Module Quinzaine & Main d'œuvre — Année {$year}",
+        };
+
+        $badgeText = match ($lang) {
+            'en' => "Monthly Fortnight Breakdown {$year}",
+            'es' => "Desglose Mensual de Quincenas {$year}",
+            'ar' => "التوزيع الشهري للأنصبة {$year}",
+            default => "Matrice Mensuelle Quinzaines {$year}",
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => "Total Year {$year}", 'value' => $grandTotPriceFmt . ' MAD', 'color' => '#00C853', 'icon' => 'mdi-cash'],
+                ['label' => 'Total Fortnight 1 (Q1)', 'value' => $totQ1PriceFmt . ' MAD', 'color' => '#1565C0', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'Total Fortnight 2 (Q2)', 'value' => $totQ2PriceFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-clock'],
+                ['label' => 'Total Working Days', 'value' => $grandTotDaysFmt . ' d', 'color' => '#00897B', 'icon' => 'mdi-account-clock'],
+            ],
+            'es' => [
+                ['label' => "Total Año {$year}", 'value' => $grandTotPriceFmt . ' MAD', 'color' => '#00C853', 'icon' => 'mdi-cash'],
+                ['label' => 'Total Quincena 1 (Q1)', 'value' => $totQ1PriceFmt . ' MAD', 'color' => '#1565C0', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'Total Quincena 2 (Q2)', 'value' => $totQ2PriceFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-clock'],
+                ['label' => 'Total Días de Trabajo', 'value' => $grandTotDaysFmt . ' d', 'color' => '#00897B', 'icon' => 'mdi-account-clock'],
+            ],
+            'ar' => [
+                ['label' => "إجمالي سنة {$year}", 'value' => $grandTotPriceFmt . ' درهم', 'color' => '#00C853', 'icon' => 'mdi-cash'],
+                ['label' => 'إجمالي الشطر الأول (Q1)', 'value' => $totQ1PriceFmt . ' درهم', 'color' => '#1565C0', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'إجمالي الشطر الثاني (Q2)', 'value' => $totQ2PriceFmt . ' درهم', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-clock'],
+                ['label' => 'إجمالي أيام العمل', 'value' => $grandTotDaysFmt . ' يوم', 'color' => '#00897B', 'icon' => 'mdi-account-clock'],
+            ],
+            default => [
+                ['label' => "Total Annuel {$year}", 'value' => $grandTotPriceFmt . ' MAD', 'color' => '#00C853', 'icon' => 'mdi-cash'],
+                ['label' => 'Total Quinzaine 1 (Q1)', 'value' => $totQ1PriceFmt . ' MAD', 'color' => '#1565C0', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'Total Quinzaine 2 (Q2)', 'value' => $totQ2PriceFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-clock'],
+                ['label' => 'Journées Travaillées', 'value' => $grandTotDaysFmt . ' j', 'color' => '#00897B', 'icon' => 'mdi-account-clock'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Fortnight Breakdown by Month — Year {$year}",
+            'es' => "Desglose de Quincenas por Mes — Año {$year}",
+            'ar' => "تفصيل الأشطر النصف شهرية حسب الشهر — سنة {$year}",
+            default => "Tableau Détaillé des Quinzaines par Mois — {$year}",
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Fortnight Sheets', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Workforce Directory', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            'es' => [
+                ['label' => 'Hojas de Quincena', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Directorio de Personal', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            'ar' => [
+                ['label' => 'بيانات الأجور النصف شهرية', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'سجل العمال والموظفين', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            default => [
+                ['label' => 'Feuilles de Quinzaine', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Main d\'œuvre & Ouvriers', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
         };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => ($lang === 'en' ? "Fortnight & Workforce Module - Year {$year}" : "Module Quinzaine & Main d'œuvre - Année {$year}"),
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
             'moduleColor' => '#1565C0',
             'moduleIcon' => 'mdi-calendar-month',
-            'badgeText' => ($lang === 'en' ? "Monthly Fortnight Breakdown {$year}" : "Matrice Mensuelle Quinzaines {$year}"),
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => ($lang === 'en' ? "Total Year {$year}" : "Total Annuel {$year}"), 'value' => $grandTotPriceFmt . ' MAD', 'color' => '#00C853', 'icon' => 'mdi-cash'],
-                ['label' => ($lang === 'en' ? 'Total Fortnight 1 (Q1)' : 'Total Quinzaine 1 (Q1)'), 'value' => $totQ1PriceFmt . ' MAD', 'color' => '#1565C0', 'icon' => 'mdi-calendar-check'],
-                ['label' => ($lang === 'en' ? 'Total Fortnight 2 (Q2)' : 'Total Quinzaine 2 (Q2)'), 'value' => $totQ2PriceFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-clock'],
-                ['label' => ($lang === 'en' ? 'Total Working Days' : 'Journées Travaillées'), 'value' => $grandTotDaysFmt . ' j', 'color' => '#00897B', 'icon' => 'mdi-account-clock'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => ($lang === 'en' ? "Fortnight Breakdown by Month - Year {$year}" : "Tableau Détaillé des Quinzaines par Mois - {$year}"),
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
@@ -533,10 +648,7 @@ TR;
                 'yUnit' => 'MAD',
                 'height' => 320,
             ] : null,
-            'navButtons' => [
-                ['label' => ($lang === 'en' ? 'Fortnight Sheets' : 'Feuilles de Quinzaine'), 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
-                ['label' => ($lang === 'en' ? 'Workforce Directory' : 'Main d\'œuvre & Ouvriers'), 'route' => '/workforces', 'icon' => 'mdi-account-group'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -575,6 +687,13 @@ TR;
         $topCatName = $categories->first()?->name ?? 'N/A';
         $topCatPrice = (float) ($categories->first()?->total_price ?? 0);
 
+        $viewBtnText = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Voir',
+        };
+
         foreach ($categories as $cat) {
             $cName = $cat->name;
             $cP = (float) $cat->total_price;
@@ -606,7 +725,7 @@ TR;
               </td>
               <td style="padding: 12px 14px; text-align: center;">
                 <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/charges">
-                  Voir
+                  {$viewBtnText}
                 </button>
               </td>
             </tr>
@@ -616,9 +735,16 @@ TR;
         // Total row
         $totPFmt = $this->formatNumber($totPrice, 2);
         $totWFmt = $this->formatNumber($totWeight, 2);
+        $grandTotalLabel = match ($lang) {
+            'en' => 'GRAND TOTAL',
+            'es' => 'GRAN TOTAL',
+            'ar' => 'الإجمالي العام',
+            default => 'TOTAL GÉNÉRAL',
+        };
+
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(66, 165, 245, 0.08); font-weight: 800; border-top: 2px solid rgba(66, 165, 245, 0.3);">
-          <td style="padding: 12px 14px; color: #42A5F5;">TOTAL GÉNÉRAL</td>
+          <td style="padding: 12px 14px; color: #42A5F5;">{$grandTotalLabel}</td>
           <td style="padding: 12px 14px; text-align: right;">{$totCount}</td>
           <td style="padding: 12px 14px; text-align: right;">{$totWFmt} KG</td>
           <td style="padding: 12px 14px; text-align: right; color: #42A5F5; font-size: 14px;">{$totPFmt} MAD</td>
@@ -634,48 +760,150 @@ TR;
             default => "Le montant cumulé des charges s'élève à {$totPFmt} MAD ({$totWFmt} KG) réparties sur {$catCount} catégories. La catégorie dominante est « {$topCatName} » avec " . $this->formatNumber($topCatPrice, 2) . " MAD.",
         };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Charges & Achats — Répartition par Catégorie',
-            'moduleColor' => '#42A5F5',
-            'moduleIcon' => 'mdi-truck-delivery',
-            'badgeText' => 'Catégories d\'Achats',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $modTitle = match ($lang) {
+            'en' => 'Purchases & Charges — Category Breakdown',
+            'es' => 'Compras y Gastos — Desglose por Categoría',
+            'ar' => 'المشتريات والمصاريف — التوزيع حسب الفئة',
+            default => 'Charges & Achats — Répartition par Catégorie',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Purchase Categories',
+            'es' => 'Categorías de Compras',
+            'ar' => 'فئات المشتريات',
+            default => 'Catégories d\'Achats',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Purchases', 'value' => $totPFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Received Weight', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'Leading Category', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'Categories Count', 'value' => $catCount . ' categories', 'color' => '#AB47BC', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'es' => [
+                ['label' => 'Total Compras', 'value' => $totPFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Peso Recibido', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'Categoría Principal', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'Total Categorías', 'value' => $catCount . ' categorías', 'color' => '#AB47BC', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي المشتريات', 'value' => $totPFmt . ' درهم', 'color' => '#42A5F5', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'الوزن المستلم', 'value' => $totWFmt . ' كغ', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'الفئة الأكبر', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'عدد الفئات', 'value' => $catCount . ' فئة', 'color' => '#AB47BC', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            default => [
                 ['label' => 'Total Charges', 'value' => $totPFmt . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-multiple'],
                 ['label' => 'Poids Réceptionné', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
                 ['label' => 'Catégorie Dominante', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
                 ['label' => 'Nombre de Catégories', 'value' => $catCount . ' catégories', 'color' => '#AB47BC', 'icon' => 'mdi-format-list-bulleted-type'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => 'Purchases Details by Category',
+            'es' => 'Detalle de Compras por Categoría',
+            'ar' => 'تفاصيل المشتريات حسب الفئة',
+            default => 'Détails des Charges par Catégorie',
+        };
+
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Category', 'align' => 'left'],
+                ['title' => 'Receptions', 'align' => 'right'],
+                ['title' => 'Weight (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Share (%)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Categoría', 'align' => 'left'],
+                ['title' => 'Recepciones', 'align' => 'right'],
+                ['title' => 'Peso (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Cuota (%)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'الفئة', 'align' => 'left'],
+                ['title' => 'الاستلامات', 'align' => 'right'],
+                ['title' => 'الوزن (كغ)', 'align' => 'right'],
+                ['title' => 'المجموع (درهم)', 'align' => 'right'],
+                ['title' => 'النسبة (%)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Catégorie', 'align' => 'left'],
+                ['title' => 'Réceptions', 'align' => 'right'],
+                ['title' => 'Poids (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Part (%)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Graphical Breakdown of Purchases by Category (MAD)',
+            'es' => 'Desglose Gráfico de Compras por Categoría (MAD)',
+            'ar' => 'التمثيل البياني للمشتريات حسب الفئة (درهم)',
+            default => 'Répartition Graphique des Charges par Catégorie (MAD)',
+        };
+
+        $seriesName = match ($lang) {
+            'en' => 'Amount (MAD)',
+            'es' => 'Monto (MAD)',
+            'ar' => 'المبلغ (درهم)',
+            default => 'Montant (MAD)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Purchases Module', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Category Management', 'route' => '/parameters/charge-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            'es' => [
+                ['label' => 'Módulo Compras', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Gestión de Categorías', 'route' => '/parameters/charge-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            'ar' => [
+                ['label' => 'وحدة المشتريات', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'إدارة الفئات', 'route' => '/parameters/charge-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            default => [
+                ['label' => 'Module Achats', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Gestion Catégories', 'route' => '/parameters/charge-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-truck-delivery',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => 'Détails des Charges par Catégorie',
-                'headers' => [
-                    ['title' => 'Catégorie', 'align' => 'left'],
-                    ['title' => 'Réceptions', 'align' => 'right'],
-                    ['title' => 'Poids (KG)', 'align' => 'right'],
-                    ['title' => 'Total (MAD)', 'align' => 'right'],
-                    ['title' => 'Part (%)', 'align' => 'right'],
-                    ['title' => 'Action', 'align' => 'center'],
-                ],
+                'title' => $tableTitle,
+                'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => [
                 'id' => $chartId,
-                'title' => 'Répartition Graphique des Charges par Catégorie (MAD)',
+                'title' => $chartTitle,
                 'labels' => $chartLabels,
                 'data' => $chartData,
-                'seriesName' => 'Montant (MAD)',
+                'seriesName' => $seriesName,
                 'type' => 'bar',
                 'color' => '#42A5F5',
                 'height' => 320,
             ],
-            'navButtons' => [
-                ['label' => 'Module Achats', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
-                ['label' => 'Gestion Catégories', 'route' => '/charge_category', 'icon' => 'mdi-tag-multiple'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -714,6 +942,13 @@ TR;
         $topCatName = $categories->first()?->name ?? 'N/A';
         $topCatPrice = (float) ($categories->first()?->total_price ?? 0);
 
+        $viewBtnText = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Voir',
+        };
+
         foreach ($categories as $cat) {
             $cName = $cat->name;
             $cP = (float) $cat->total_price;
@@ -745,7 +980,7 @@ TR;
               </td>
               <td style="padding: 12px 14px; text-align: center;">
                 <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #4643a0; font-size: 11px; cursor: pointer; border: none;" data-route="/shippings">
-                  Voir
+                  {$viewBtnText}
                 </button>
               </td>
             </tr>
@@ -754,9 +989,16 @@ TR;
 
         $totPFmt = $this->formatNumber($totPrice, 2);
         $totWFmt = $this->formatNumber($totWeight, 2);
+        $grandTotalLabel = match ($lang) {
+            'en' => 'GRAND TOTAL',
+            'es' => 'GRAN TOTAL',
+            'ar' => 'الإجمالي العام',
+            default => 'TOTAL GÉNÉRAL',
+        };
+
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(70, 67, 160, 0.08); font-weight: 800; border-top: 2px solid rgba(70, 67, 160, 0.3);">
-          <td style="padding: 12px 14px; color: #4643a0;">TOTAL GÉNÉRAL</td>
+          <td style="padding: 12px 14px; color: #4643a0;">{$grandTotalLabel}</td>
           <td style="padding: 12px 14px; text-align: right;">{$totCount}</td>
           <td style="padding: 12px 14px; text-align: right;">{$totWFmt} KG</td>
           <td style="padding: 12px 14px; text-align: right; color: #4643a0; font-size: 14px;">{$totPFmt} MAD</td>
@@ -772,48 +1014,150 @@ TR;
             default => "Le chiffre d'affaires cumulé des expéditions s'élève à {$totPFmt} MAD ({$totWFmt} KG) réparties sur {$catCount} catégories. La catégorie dominante est « {$topCatName} » avec " . $this->formatNumber($topCatPrice, 2) . " MAD.",
         };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Expéditions & Ventes — Répartition par Catégorie',
-            'moduleColor' => '#4643a0',
-            'moduleIcon' => 'mdi-ship-wheel',
-            'badgeText' => 'Catégories de Ventes',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $modTitle = match ($lang) {
+            'en' => 'Shipments & Sales — Category Breakdown',
+            'es' => 'Expediciones y Ventas — Desglose por Categoría',
+            'ar' => 'الشحنات والمبيعات — التوزيع حسب الفئة',
+            default => 'Expéditions & Ventes — Répartition par Catégorie',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Sales Categories',
+            'es' => 'Categorías de Ventas',
+            'ar' => 'فئات المبيعات',
+            default => 'Catégories de Ventes',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Sales', 'value' => $totPFmt . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Shipped Weight', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'Leading Category', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'Categories Count', 'value' => $catCount . ' categories', 'color' => '#b39ddb', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'es' => [
+                ['label' => 'Total Ventas', 'value' => $totPFmt . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Peso Expedido', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'Categoría Líder', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'Total Categorías', 'value' => $catCount . ' categorías', 'color' => '#b39ddb', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي المبيعات', 'value' => $totPFmt . ' درهم', 'color' => '#4643a0', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'الوزن المشحون', 'value' => $totWFmt . ' كغ', 'color' => '#00897B', 'icon' => 'mdi-scale'],
+                ['label' => 'الفئة الرائدة', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
+                ['label' => 'عدد الفئات', 'value' => $catCount . ' فئة', 'color' => '#b39ddb', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            default => [
                 ['label' => 'Total Ventes', 'value' => $totPFmt . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-multiple'],
                 ['label' => 'Poids Expédié', 'value' => $totWFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-scale'],
                 ['label' => 'Catégorie Leader', 'value' => $topCatName, 'color' => '#FFA726', 'icon' => 'mdi-trophy-outline'],
                 ['label' => 'Nombre de Catégories', 'value' => $catCount . ' catégories', 'color' => '#b39ddb', 'icon' => 'mdi-format-list-bulleted-type'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => 'Sales Details by Category',
+            'es' => 'Detalle de Ventas por Categoría',
+            'ar' => 'تفاصيل المبيعات حسب الفئة',
+            default => 'Détails des Ventes par Catégorie',
+        };
+
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Category', 'align' => 'left'],
+                ['title' => 'Shipments', 'align' => 'right'],
+                ['title' => 'Weight (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Share (%)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Categoría', 'align' => 'left'],
+                ['title' => 'Expediciones', 'align' => 'right'],
+                ['title' => 'Peso (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Cuota (%)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'الفئة', 'align' => 'left'],
+                ['title' => 'الشحنات', 'align' => 'right'],
+                ['title' => 'الوزن (كغ)', 'align' => 'right'],
+                ['title' => 'المجموع (درهم)', 'align' => 'right'],
+                ['title' => 'النسبة (%)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Catégorie', 'align' => 'left'],
+                ['title' => 'Expéditions', 'align' => 'right'],
+                ['title' => 'Poids (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Part (%)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Graphical Breakdown of Sales by Category (MAD)',
+            'es' => 'Desglose Gráfico de Ventas por Categoría (MAD)',
+            'ar' => 'التمثيل البياني للمبيعات حسب الفئة (درهم)',
+            default => 'Répartition Graphique des Ventes par Catégorie (MAD)',
+        };
+
+        $seriesName = match ($lang) {
+            'en' => 'Amount (MAD)',
+            'es' => 'Monto (MAD)',
+            'ar' => 'المبلغ (درهم)',
+            default => 'Montant (MAD)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Sales Module', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Category Management', 'route' => '/parameters/shipping-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            'es' => [
+                ['label' => 'Módulo Ventas', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Gestión de Categorías', 'route' => '/parameters/shipping-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            'ar' => [
+                ['label' => 'وحدة المبيعات', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'إدارة الفئات', 'route' => '/parameters/shipping-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            default => [
+                ['label' => 'Module Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Gestion Catégories', 'route' => '/parameters/shipping-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
+            'moduleColor' => '#4643a0',
+            'moduleIcon' => 'mdi-ship-wheel',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => 'Détails des Ventes par Catégorie',
-                'headers' => [
-                    ['title' => 'Catégorie', 'align' => 'left'],
-                    ['title' => 'Expéditions', 'align' => 'right'],
-                    ['title' => 'Poids (KG)', 'align' => 'right'],
-                    ['title' => 'Total (MAD)', 'align' => 'right'],
-                    ['title' => 'Part (%)', 'align' => 'right'],
-                    ['title' => 'Action', 'align' => 'center'],
-                ],
+                'title' => $tableTitle,
+                'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => [
                 'id' => $chartId,
-                'title' => 'Répartition Graphique des Ventes par Catégorie (MAD)',
+                'title' => $chartTitle,
                 'labels' => $chartLabels,
                 'data' => $chartData,
-                'seriesName' => 'Montant (MAD)',
+                'seriesName' => $seriesName,
                 'type' => 'bar',
                 'color' => '#4643a0',
                 'height' => 320,
             ],
-            'navButtons' => [
-                ['label' => 'Module Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
-                ['label' => 'Gestion Catégories', 'route' => '/shipping_category', 'icon' => 'mdi-tag-multiple'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -852,6 +1196,13 @@ TR;
         $topCatName = $categories->first()?->name ?? 'N/A';
         $topCatFrozen = (float) ($categories->first()?->frozen_weight ?? 0);
 
+        $viewBtnText = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Voir',
+        };
+
         foreach ($categories as $cat) {
             $cName = $cat->name;
             $cFr = (float) $cat->fresh_weight;
@@ -883,7 +1234,7 @@ TR;
               </td>
               <td style="padding: 12px 14px; text-align: center;">
                 <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #00897B; font-size: 11px; cursor: pointer; border: none;" data-route="/production">
-                  Voir
+                  {$viewBtnText}
                 </button>
               </td>
             </tr>
@@ -893,10 +1244,16 @@ TR;
         $totFrFmt = $this->formatNumber($totFresh, 2);
         $totFzFmt = $this->formatNumber($totFrozen, 2);
         $globalYield = $totFresh > 0 ? round(($totFrozen / $totFresh) * 100, 1) : 0;
+        $grandTotalLabel = match ($lang) {
+            'en' => 'GRAND TOTAL',
+            'es' => 'GRAN TOTAL',
+            'ar' => 'الإجمالي العام',
+            default => 'TOTAL GÉNÉRAL',
+        };
 
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(0, 137, 123, 0.08); font-weight: 800; border-top: 2px solid rgba(0, 137, 123, 0.3);">
-          <td style="padding: 12px 14px; color: #00897B;">TOTAL GÉNÉRAL</td>
+          <td style="padding: 12px 14px; color: #00897B;">{$grandTotalLabel}</td>
           <td style="padding: 12px 14px; text-align: right;">{$totCount}</td>
           <td style="padding: 12px 14px; text-align: right;">{$totFrFmt} KG</td>
           <td style="padding: 12px 14px; text-align: right; color: #00897B; font-size: 14px;">{$totFzFmt} KG</td>
@@ -912,48 +1269,150 @@ TR;
             default => "La production congelée totale s'élève à {$totFzFmt} KG issue de {$totFrFmt} KG de poisson frais (Rendement global: {$globalYield}%). Catégorie dominante: « {$topCatName} » avec " . $this->formatNumber($topCatFrozen, 2) . " KG.",
         };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Production & Usine — Répartition par Catégorie',
-            'moduleColor' => '#00897B',
-            'moduleIcon' => 'mdi-factory',
-            'badgeText' => 'Catégories de Production',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $modTitle = match ($lang) {
+            'en' => 'Production & Factory — Category Breakdown',
+            'es' => 'Producción y Fábrica — Desglose por Categoría',
+            'ar' => 'الإنتاج والمصنع — التوزيع حسب الفئة',
+            default => 'Production & Usine — Répartition par Catégorie',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Production Categories',
+            'es' => 'Categorías de Producción',
+            'ar' => 'فئات الإنتاج',
+            default => 'Catégories de Production',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Frozen Production', 'value' => $totFzFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Fresh Fish Processed', 'value' => $totFrFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-scale'],
+                ['label' => 'Average Yield', 'value' => $globalYield . ' %', 'color' => '#FFA726', 'icon' => 'mdi-percent'],
+                ['label' => 'Categories Count', 'value' => $catCount . ' categories', 'color' => '#26A69A', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'es' => [
+                ['label' => 'Producción Congelada', 'value' => $totFzFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Pescado Fresco Procesado', 'value' => $totFrFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-scale'],
+                ['label' => 'Rendimiento Promedio', 'value' => $globalYield . ' %', 'color' => '#FFA726', 'icon' => 'mdi-percent'],
+                ['label' => 'Total Categorías', 'value' => $catCount . ' categorías', 'color' => '#26A69A', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            'ar' => [
+                ['label' => 'الإنتاج المجمد', 'value' => $totFzFmt . ' كغ', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'السمك الطازج المعالج', 'value' => $totFrFmt . ' كغ', 'color' => '#42A5F5', 'icon' => 'mdi-scale'],
+                ['label' => 'متوسط المردود', 'value' => $globalYield . ' %', 'color' => '#FFA726', 'icon' => 'mdi-percent'],
+                ['label' => 'عدد الفئات', 'value' => $catCount . ' فئة', 'color' => '#26A69A', 'icon' => 'mdi-format-list-bulleted-type'],
+            ],
+            default => [
                 ['label' => 'Production Congelée', 'value' => $totFzFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
                 ['label' => 'Poisson Frais Traité', 'value' => $totFrFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-scale'],
                 ['label' => 'Rendement Moyen', 'value' => $globalYield . ' %', 'color' => '#FFA726', 'icon' => 'mdi-percent'],
                 ['label' => 'Nombre de Catégories', 'value' => $catCount . ' catégories', 'color' => '#26A69A', 'icon' => 'mdi-format-list-bulleted-type'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => 'Production Details by Category',
+            'es' => 'Detalle de Producción por Categoría',
+            'ar' => 'تفاصيل الإنتاج حسب الفئة',
+            default => 'Détails de Production par Catégorie',
+        };
+
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Category', 'align' => 'left'],
+                ['title' => 'Batches', 'align' => 'right'],
+                ['title' => 'Fresh (KG)', 'align' => 'right'],
+                ['title' => 'Frozen (KG)', 'align' => 'right'],
+                ['title' => 'Yield', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Categoría', 'align' => 'left'],
+                ['title' => 'Lotes', 'align' => 'right'],
+                ['title' => 'Fresco (KG)', 'align' => 'right'],
+                ['title' => 'Congelado (KG)', 'align' => 'right'],
+                ['title' => 'Rendimiento', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'الفئة', 'align' => 'left'],
+                ['title' => 'الدفعات', 'align' => 'right'],
+                ['title' => 'طازج (كغ)', 'align' => 'right'],
+                ['title' => 'مجمد (كغ)', 'align' => 'right'],
+                ['title' => 'المردود', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Catégorie', 'align' => 'left'],
+                ['title' => 'Lots', 'align' => 'right'],
+                ['title' => 'Frais (KG)', 'align' => 'right'],
+                ['title' => 'Congelé (KG)', 'align' => 'right'],
+                ['title' => 'Rendement', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Frozen Production by Category (KG)',
+            'es' => 'Producción Congelada por Categoría (KG)',
+            'ar' => 'الإنتاج المجمد حسب الفئة (كغ)',
+            default => 'Production Congelée par Catégorie (KG)',
+        };
+
+        $seriesName = match ($lang) {
+            'en' => 'Frozen Weight (KG)',
+            'es' => 'Peso Congelado (KG)',
+            'ar' => 'الوزن المجمد (كغ)',
+            default => 'Poids Congelé (KG)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Production Module', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Category Management', 'route' => '/parameters/production-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            'es' => [
+                ['label' => 'Módulo Producción', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Gestión de Categorías', 'route' => '/parameters/production-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            'ar' => [
+                ['label' => 'وحدة الإنتاج', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'إدارة الفئات', 'route' => '/parameters/production-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+            default => [
+                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Gestion Catégories', 'route' => '/parameters/production-management', 'icon' => 'mdi-tag-multiple'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
+            'moduleColor' => '#00897B',
+            'moduleIcon' => 'mdi-factory',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => 'Détails de Production par Catégorie',
-                'headers' => [
-                    ['title' => 'Catégorie', 'align' => 'left'],
-                    ['title' => 'Lots', 'align' => 'right'],
-                    ['title' => 'Frais (KG)', 'align' => 'right'],
-                    ['title' => 'Congelé (KG)', 'align' => 'right'],
-                    ['title' => 'Rendement', 'align' => 'right'],
-                    ['title' => 'Action', 'align' => 'center'],
-                ],
+                'title' => $tableTitle,
+                'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => [
                 'id' => $chartId,
-                'title' => 'Production Congelée par Catégorie (KG)',
+                'title' => $chartTitle,
                 'labels' => $chartLabels,
                 'data' => $chartData,
-                'seriesName' => 'Poids Congelé (KG)',
+                'seriesName' => $seriesName,
                 'type' => 'bar',
                 'color' => '#00897B',
                 'height' => 320,
             ],
-            'navButtons' => [
-                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
-                ['label' => 'Gestion Catégories', 'route' => '/production_category', 'icon' => 'mdi-tag-multiple'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -964,6 +1423,7 @@ TR;
     {
         $lang = $p['lang'];
         $year = $p['year'] ?: 2026;
+        $wantsGrowth = (bool) preg_match('/(growth|croissance|crecimiento|évolution|evolution|trend|line)/i', $p['question']);
 
         $rows = DB::table('charges')
             ->whereYear('date', $year)
@@ -985,11 +1445,42 @@ TR;
             default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
         };
 
+        $dayUnit = match ($lang) {
+            'en' => 'd',
+            'es' => 'd',
+            'ar' => 'ي',
+            default => 'j',
+        };
+
+        $consultLabel = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Consulter',
+        };
+
+        $detailsLabel = match ($lang) {
+            'en' => 'Details',
+            'es' => 'Detalles',
+            'ar' => 'تفاصيل',
+            default => 'Détails',
+        };
+
         $chartLabels = [];
         $amountsData = [];
+        $weightsData = [];
+        $growthData = [];
+        $prevAmount = null;
         $totWeight = 0;
         $totPrice = 0;
         $totCount = 0;
+
+        $viewBtnText = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Voir',
+        };
 
         $tableRowsHtml = '';
         foreach ($rows as $r) {
@@ -1002,7 +1493,15 @@ TR;
             $cnt = (int)$r->count;
             $avg = $w > 0 ? ($pVal / $w) : 0;
 
+            $growthPct = 0;
+            if ($prevAmount !== null && $prevAmount > 0) {
+                $growthPct = round((($pVal - $prevAmount) / $prevAmount) * 100, 1);
+            }
+            $prevAmount = $pVal;
+
             $amountsData[] = round($pVal, 2);
+            $weightsData[] = round($w, 2);
+            $growthData[] = $growthPct;
 
             $totWeight += $w;
             $totPrice += $pVal;
@@ -1011,6 +1510,17 @@ TR;
             $wFmt = $this->formatNumber($w, 2);
             $pFmt = $this->formatNumber($pVal, 2);
             $avgFmt = $this->formatNumber($avg, 2);
+
+            $growthBadge = '';
+            if ($growthPct > 0) {
+                $growthBadge = "<span style=\"color: #00E676; font-weight: 700;\">+{$growthPct}% <i class=\"v-icon notranslate mdi mdi-trending-up\" style=\"font-size: 14px;\"></i></span>";
+            } elseif ($growthPct < 0) {
+                $growthBadge = "<span style=\"color: #EF5350; font-weight: 700;\">{$growthPct}% <i class=\"v-icon notranslate mdi mdi-trending-down\" style=\"font-size: 14px;\"></i></span>";
+            } else {
+                $growthBadge = "<span style=\"color: #94A3B8; font-weight: 600;\">0.0%</span>";
+            }
+
+            $growthColHtml = $wantsGrowth ? "<td style=\"padding: 10px 12px; text-align: center;\">{$growthBadge}</td>" : "";
 
             $tableRowsHtml .= <<<TR
             <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
@@ -1022,9 +1532,10 @@ TR;
               <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$wFmt} KG</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$pFmt} MAD</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$avgFmt} MAD/KG</td>
+              {$growthColHtml}
               <td style="padding: 10px 12px; text-align: center;">
                 <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/charges">
-                  Voir
+                  {$viewBtnText}
                 </button>
               </td>
             </tr>
@@ -1037,67 +1548,228 @@ TR;
         $totPFmt = $this->formatNumber($totPrice, 2);
         $totAvgFmt = $this->formatNumber($totAvg, 2);
 
+        $totGrowthColHtml = $wantsGrowth ? "<td style=\"padding: 12px; text-align: center; color: #42A5F5; font-weight: 800;\">—</td>" : "";
+
+        $totalBadgeLabel = match ($lang) {
+            'en' => "TOTAL {$year}",
+            'es' => "TOTAL {$year}",
+            'ar' => "المجموع {$year}",
+            default => "TOTAL {$year}",
+        };
+
+        $chargesBtnText = match ($lang) {
+            'en' => 'Purchases',
+            'es' => 'Compras',
+            'ar' => 'المشتريات',
+            default => 'Achats',
+        };
+
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(66, 165, 245, 0.12); font-weight: 800; border-top: 2px solid #42A5F5; border-bottom: 2px solid #42A5F5;">
           <td style="padding: 12px; font-weight: 900; color: #42A5F5; font-size: 13px; text-transform: uppercase;">
             <i class="v-icon notranslate mdi mdi-sigma text-blue" style="font-size: 18px; margin-right: 4px;"></i>
-            TOTAL {$year}
+            {$totalBadgeLabel}
           </td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">{$totCount}</td>
           <td style="padding: 12px; text-align: right; font-weight: 900;">{$totWFmt} KG</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPFmt} MAD</td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">{$totAvgFmt} MAD/KG</td>
+          {$totGrowthColHtml}
           <td style="padding: 12px; text-align: center;">
             <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/charges">
-              Achats
+              {$chargesBtnText}
             </button>
           </td>
         </tr>
 TR;
 
-        $headers = [
-            ['title' => 'Mois / Month', 'align' => 'left'],
-            ['title' => 'Réceptions', 'align' => 'right'],
-            ['title' => 'Volume Total (KG)', 'align' => 'right'],
-            ['title' => 'Montant Total (MAD)', 'align' => 'right'],
-            ['title' => 'Prix Moyen', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => array_filter([
+                ['title' => 'Month', 'align' => 'left'],
+                ['title' => 'Receptions', 'align' => 'right'],
+                ['title' => 'Total Volume (KG)', 'align' => 'right'],
+                ['title' => 'Total Amount (MAD)', 'align' => 'right'],
+                ['title' => 'Avg Price', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'Growth MoM', 'align' => 'center'] : null,
+                ['title' => 'Action', 'align' => 'center'],
+            ]),
+            'es' => array_filter([
+                ['title' => 'Mes', 'align' => 'left'],
+                ['title' => 'Recepciones', 'align' => 'right'],
+                ['title' => 'Volumen Total (KG)', 'align' => 'right'],
+                ['title' => 'Monto Total (MAD)', 'align' => 'right'],
+                ['title' => 'Precio Medio', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'Crecimiento', 'align' => 'center'] : null,
+                ['title' => 'Acción', 'align' => 'center'],
+            ]),
+            'ar' => array_filter([
+                ['title' => 'الشهر', 'align' => 'left'],
+                ['title' => 'الاستلامات', 'align' => 'right'],
+                ['title' => 'الحجم الإجمالي (كغ)', 'align' => 'right'],
+                ['title' => 'المبلغ الإجمالي (درهم)', 'align' => 'right'],
+                ['title' => 'متوسط السعر', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'نسبة النمو', 'align' => 'center'] : null,
+                ['title' => 'إجراء', 'align' => 'center'],
+            ]),
+            default => array_filter([
+                ['title' => 'Mois / Month', 'align' => 'left'],
+                ['title' => 'Réceptions', 'align' => 'right'],
+                ['title' => 'Volume Total (KG)', 'align' => 'right'],
+                ['title' => 'Montant Total (MAD)', 'align' => 'right'],
+                ['title' => 'Prix Moyen', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'Croissance', 'align' => 'center'] : null,
+                ['title' => 'Action', 'align' => 'center'],
+            ]),
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => "Achats & Charges - Récapitulatif Mensuel {$year}",
-            'moduleColor' => '#42A5F5',
-            'moduleIcon' => 'mdi-truck-delivery',
-            'badgeText' => "Achats Mensuels {$year}",
-            'userQuestion' => $p['question'],
-            'answerText' => "Voici le bilan mensuel des achats et charges pour l'année {$year} : {$totCount} réceptions enregistrées pour un volume global de {$totWFmt} KG et un montant total de {$totPFmt} MAD (Prix moyen global : {$totAvgFmt} MAD/KG).",
-            'kpis' => [
+        $modTitle = match ($lang) {
+            'en' => "Purchases & Charges — Monthly Summary {$year}",
+            'es' => "Compras y Cargas — Resumen Mensual {$year}",
+            'ar' => "المشتريات والشحنات — ملخص شهري {$year}",
+            default => "Achats & Charges — Récapitulatif Mensuel {$year}",
+        };
+
+        $badgeText = match ($lang) {
+            'en' => "Monthly Purchases {$year}",
+            'es' => "Compras Mensuales {$year}",
+            'ar' => "مشتريات شهرية {$year}",
+            default => "Achats Mensuels {$year}",
+        };
+
+        $answerText = match ($lang) {
+            'en' => "Here is the monthly breakdown of purchases and charges for the year {$year}: {$totCount} receptions recorded for a total volume of {$totWFmt} KG and a total amount of {$totPFmt} MAD (Overall average price: {$totAvgFmt} MAD/KG).",
+            'es' => "Aquí está el balance mensual de compras y cargas para el año {$year}: {$totCount} recepciones registradas para un volumen total de {$totWFmt} KG y un monto total de {$totPFmt} MAD (Precio medio general: {$totAvgFmt} MAD/KG).",
+            'ar' => "إليك التقرير الشهري للمشتريات والشحنات لسنة {$year}: تم تسجيل {$totCount} عملية استلام بحجم إجمالي {$totWFmt} كغ ومبلغ إجمالي قدره {$totPFmt} درهم (متوسط السعر: {$totAvgFmt} درهم/كغ).",
+            default => "Voici le bilan mensuel des achats et charges pour l'année {$year} : {$totCount} réceptions enregistrées pour un volume global de {$totWFmt} KG et un montant total de {$totPFmt} MAD (Prix moyen global : {$totAvgFmt} MAD/KG).",
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => "Total Purchases {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-minus'],
+                ['label' => "Total Volume", 'value' => $totWFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "Average Price", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#29B6F6', 'icon' => 'mdi-tag-outline'],
+                ['label' => "Total Receptions", 'value' => (string)$totCount, 'color' => '#26A69A', 'icon' => 'mdi-truck-check'],
+            ],
+            'es' => [
+                ['label' => "Total Compras {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-minus'],
+                ['label' => "Volumen Total", 'value' => $totWFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "Precio Medio", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#29B6F6', 'icon' => 'mdi-tag-outline'],
+                ['label' => "Total Recepciones", 'value' => (string)$totCount, 'color' => '#26A69A', 'icon' => 'mdi-truck-check'],
+            ],
+            'ar' => [
+                ['label' => "إجمالي المشتريات {$year}", 'value' => $totPFmt . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash-minus'],
+                ['label' => "الحجم الإجمالي", 'value' => $totWFmt . ' كغ', 'color' => '#42A5F5', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "متوسط السعر", 'value' => $totAvgFmt . ' درهم/كغ', 'color' => '#29B6F6', 'icon' => 'mdi-tag-outline'],
+                ['label' => "إجمالي الاستلامات", 'value' => (string)$totCount, 'color' => '#26A69A', 'icon' => 'mdi-truck-check'],
+            ],
+            default => [
                 ['label' => "Total Achats {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-minus'],
                 ['label' => "Volume Total", 'value' => $totWFmt . ' KG', 'color' => '#42A5F5', 'icon' => 'mdi-weight-kilogram'],
                 ['label' => "Prix Moyen", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#29B6F6', 'icon' => 'mdi-tag-outline'],
                 ['label' => "Total Réceptions", 'value' => (string)$totCount, 'color' => '#26A69A', 'icon' => 'mdi-truck-check'],
             ],
-            'table' => [
-                'title' => "Bilan Mensuel des Achats - Année {$year}",
-                'headers' => $headers,
-                'rowsHtml' => $tableRowsHtml,
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Monthly Purchases Breakdown — Year {$year}",
+            'es' => "Desglose Mensual de Compras — Año {$year}",
+            'ar' => "التوزيع الشهري للمشتريات — سنة {$year}",
+            default => "Bilan Mensuel des Achats — Année {$year}",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => "Monthly Evolution & Growth — Year {$year}",
+            'es' => "Evolución y Crecimiento Mensual — Año {$year}",
+            'ar' => "التطور الشهري ونسبة النمو — سنة {$year}",
+            default => "Évolution et Croissance Mensuelle — Année {$year}",
+        };
+
+        $chartConfig = null;
+        if (count($rows)) {
+            if ($wantsGrowth) {
+                $seriesAmountName = match ($lang) {
+                    'en' => 'Amount (MAD)',
+                    'es' => 'Monto (MAD)',
+                    'ar' => 'المبلغ (درهم)',
+                    default => 'Montant (MAD)',
+                };
+                $seriesGrowthName = match ($lang) {
+                    'en' => 'Growth MoM (%)',
+                    'es' => 'Crecimiento (%)',
+                    'ar' => 'نسبة النمو (%)',
+                    default => 'Croissance (%)',
+                };
+                $chartConfig = [
+                    'id' => $chartId,
+                    'title' => $chartTitle,
+                    'labels' => $chartLabels,
+                    'multi_series' => true,
+                    'series' => [
+                        ['name' => $seriesAmountName, 'type' => 'column', 'data' => $amountsData],
+                        ['name' => $seriesGrowthName, 'type' => 'line', 'data' => $growthData],
+                    ],
+                    'colors' => ['#42A5F5', '#00E676'],
+                    'type' => 'line',
+                    'height' => 320,
+                    'yUnit' => 'MAD',
+                ];
+            } else {
+                $seriesName = match ($lang) {
+                    'en' => 'Amount (MAD)',
+                    'es' => 'Monto (MAD)',
+                    'ar' => 'المبلغ (درهم)',
+                    default => 'Montant (MAD)',
+                };
+                $chartConfig = [
+                    'id' => $chartId,
+                    'title' => $chartTitle,
+                    'labels' => $chartLabels,
+                    'data' => $amountsData,
+                    'seriesName' => $seriesName,
+                    'type' => 'bar',
+                    'color' => '#42A5F5',
+                ];
+            }
+        }
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'View Charges', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'New Reception', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
             ],
-            'chart' => count($rows) ? [
-                'id' => $chartId,
-                'title' => "Évolution Mensuelle des Achats - {$year} (MAD)",
-                'labels' => $chartLabels,
-                'data' => $amountsData,
-                'seriesName' => 'Montant (MAD)',
-                'type' => 'bar',
-                'color' => '#42A5F5',
-            ] : null,
-            'navButtons' => [
+            'es' => [
+                ['label' => 'Ver Cargas', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Nueva Recepción', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+            'ar' => [
+                ['label' => 'عرض الشحنات', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'استلام جديد', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+            default => [
                 ['label' => 'Consulter les Charges', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
                 ['label' => 'Nouvelle Réception', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
             ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-truck-delivery',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
+            'table' => [
+                'title' => $tableTitle,
+                'headers' => array_values($headers),
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => $chartConfig,
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -1108,6 +1780,7 @@ TR;
     {
         $lang = $p['lang'];
         $year = $p['year'] ?: 2026;
+        $wantsGrowth = (bool) preg_match('/(growth|croissance|crecimiento|évolution|evolution|trend|line)/i', $p['question']);
 
         $rows = DB::table('shippings')
             ->whereYear('date', $year)
@@ -1129,11 +1802,41 @@ TR;
             default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
         };
 
+        $dayUnit = match ($lang) {
+            'en' => 'd',
+            'es' => 'd',
+            'ar' => 'ي',
+            default => 'j',
+        };
+
+        $consultLabel = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Consulter',
+        };
+
+        $detailsLabel = match ($lang) {
+            'en' => 'Details',
+            'es' => 'Detalles',
+            'ar' => 'تفاصيل',
+            default => 'Détails',
+        };
+
         $chartLabels = [];
         $amountsData = [];
+        $growthData = [];
+        $prevAmount = null;
         $totWeight = 0;
         $totPrice = 0;
         $totCount = 0;
+
+        $viewBtnText = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Voir',
+        };
 
         $tableRowsHtml = '';
         foreach ($rows as $r) {
@@ -1146,7 +1849,14 @@ TR;
             $cnt = (int)$r->count;
             $avg = $w > 0 ? ($pVal / $w) : 0;
 
+            $growthPct = 0;
+            if ($prevAmount !== null && $prevAmount > 0) {
+                $growthPct = round((($pVal - $prevAmount) / $prevAmount) * 100, 1);
+            }
+            $prevAmount = $pVal;
+
             $amountsData[] = round($pVal, 2);
+            $growthData[] = $growthPct;
 
             $totWeight += $w;
             $totPrice += $pVal;
@@ -1155,6 +1865,17 @@ TR;
             $wFmt = $this->formatNumber($w, 2);
             $pFmt = $this->formatNumber($pVal, 2);
             $avgFmt = $this->formatNumber($avg, 2);
+
+            $growthBadge = '';
+            if ($growthPct > 0) {
+                $growthBadge = "<span style=\"color: #00E676; font-weight: 700;\">+{$growthPct}% <i class=\"v-icon notranslate mdi mdi-trending-up\" style=\"font-size: 14px;\"></i></span>";
+            } elseif ($growthPct < 0) {
+                $growthBadge = "<span style=\"color: #EF5350; font-weight: 700;\">{$growthPct}% <i class=\"v-icon notranslate mdi mdi-trending-down\" style=\"font-size: 14px;\"></i></span>";
+            } else {
+                $growthBadge = "<span style=\"color: #94A3B8; font-weight: 600;\">0.0%</span>";
+            }
+
+            $growthColHtml = $wantsGrowth ? "<td style=\"padding: 10px 12px; text-align: center;\">{$growthBadge}</td>" : "";
 
             $tableRowsHtml .= <<<TR
             <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
@@ -1166,9 +1887,10 @@ TR;
               <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$wFmt} KG</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$pFmt} MAD</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$avgFmt} MAD/KG</td>
+              {$growthColHtml}
               <td style="padding: 10px 12px; text-align: center;">
                 <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #4643a0; font-size: 11px; cursor: pointer; border: none;" data-route="/shippings">
-                  Voir
+                  {$viewBtnText}
                 </button>
               </td>
             </tr>
@@ -1181,67 +1903,228 @@ TR;
         $totPFmt = $this->formatNumber($totPrice, 2);
         $totAvgFmt = $this->formatNumber($totAvg, 2);
 
+        $totGrowthColHtml = $wantsGrowth ? "<td style=\"padding: 12px; text-align: center; color: #4643a0; font-weight: 800;\">—</td>" : "";
+
+        $totalBadgeLabel = match ($lang) {
+            'en' => "TOTAL {$year}",
+            'es' => "TOTAL {$year}",
+            'ar' => "المجموع {$year}",
+            default => "TOTAL {$year}",
+        };
+
+        $salesBtnText = match ($lang) {
+            'en' => 'Sales',
+            'es' => 'Ventas',
+            'ar' => 'المبيعات',
+            default => 'Ventes',
+        };
+
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(70, 67, 160, 0.12); font-weight: 800; border-top: 2px solid #4643a0; border-bottom: 2px solid #4643a0;">
           <td style="padding: 12px; font-weight: 900; color: #4643a0; font-size: 13px; text-transform: uppercase;">
             <i class="v-icon notranslate mdi mdi-sigma" style="font-size: 18px; margin-right: 4px; color: #4643a0;"></i>
-            TOTAL {$year}
+            {$totalBadgeLabel}
           </td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">{$totCount}</td>
           <td style="padding: 12px; text-align: right; font-weight: 900;">{$totWFmt} KG</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPFmt} MAD</td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">{$totAvgFmt} MAD/KG</td>
+          {$totGrowthColHtml}
           <td style="padding: 12px; text-align: center;">
             <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #372e7d; font-size: 11px; cursor: pointer; border: none;" data-route="/shippings">
-              Ventes
+              {$salesBtnText}
             </button>
           </td>
         </tr>
 TR;
 
-        $headers = [
-            ['title' => 'Mois / Month', 'align' => 'left'],
-            ['title' => 'Expéditions', 'align' => 'right'],
-            ['title' => 'Volume Total (KG)', 'align' => 'right'],
-            ['title' => 'Chiffre d\'Affaires (MAD)', 'align' => 'right'],
-            ['title' => 'Prix Moyen', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => array_filter([
+                ['title' => 'Month', 'align' => 'left'],
+                ['title' => 'Shipments', 'align' => 'right'],
+                ['title' => 'Total Volume (KG)', 'align' => 'right'],
+                ['title' => 'Revenue (MAD)', 'align' => 'right'],
+                ['title' => 'Avg Price', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'Growth MoM', 'align' => 'center'] : null,
+                ['title' => 'Action', 'align' => 'center'],
+            ]),
+            'es' => array_filter([
+                ['title' => 'Mes', 'align' => 'left'],
+                ['title' => 'Envíos', 'align' => 'right'],
+                ['title' => 'Volumen Total (KG)', 'align' => 'right'],
+                ['title' => 'Facturación (MAD)', 'align' => 'right'],
+                ['title' => 'Precio Medio', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'Crecimiento', 'align' => 'center'] : null,
+                ['title' => 'Acción', 'align' => 'center'],
+            ]),
+            'ar' => array_filter([
+                ['title' => 'الشهر', 'align' => 'left'],
+                ['title' => 'الشحنات', 'align' => 'right'],
+                ['title' => 'الحجم الإجمالي (كغ)', 'align' => 'right'],
+                ['title' => 'رقم المعاملات (درهم)', 'align' => 'right'],
+                ['title' => 'متوسط السعر', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'نسبة النمو', 'align' => 'center'] : null,
+                ['title' => 'إجراء', 'align' => 'center'],
+            ]),
+            default => array_filter([
+                ['title' => 'Mois / Month', 'align' => 'left'],
+                ['title' => 'Expéditions', 'align' => 'right'],
+                ['title' => 'Volume Total (KG)', 'align' => 'right'],
+                ['title' => 'Chiffre d\'Affaires (MAD)', 'align' => 'right'],
+                ['title' => 'Prix Moyen', 'align' => 'right'],
+                $wantsGrowth ? ['title' => 'Croissance', 'align' => 'center'] : null,
+                ['title' => 'Action', 'align' => 'center'],
+            ]),
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => "Ventes & Expéditions - Récapitulatif Mensuel {$year}",
-            'moduleColor' => '#4643a0',
-            'moduleIcon' => 'mdi-ship-wheel',
-            'badgeText' => "Ventes Mensuelles {$year}",
-            'userQuestion' => $p['question'],
-            'answerText' => "Voici le bilan mensuel des ventes et expéditions pour l'année {$year} : {$totCount} expéditions enregistrées pour un volume global vendu de {$totWFmt} KG et un chiffre d'affaires de {$totPFmt} MAD (Prix moyen global : {$totAvgFmt} MAD/KG).",
-            'kpis' => [
+        $modTitle = match ($lang) {
+            'en' => "Sales & Shippings — Monthly Summary {$year}",
+            'es' => "Ventas y Envíos — Resumen Mensual {$year}",
+            'ar' => "المبيعات والشحنات — ملخص شهري {$year}",
+            default => "Ventes & Expéditions — Récapitulatif Mensuel {$year}",
+        };
+
+        $badgeText = match ($lang) {
+            'en' => "Monthly Sales {$year}",
+            'es' => "Ventas Mensuales {$year}",
+            'ar' => "مبيعات شهرية {$year}",
+            default => "Ventes Mensuelles {$year}",
+        };
+
+        $answerText = match ($lang) {
+            'en' => "Here is the monthly breakdown of sales and shipments for the year {$year}: {$totCount} shipments recorded for a total volume sold of {$totWFmt} KG and total revenue of {$totPFmt} MAD (Overall average price: {$totAvgFmt} MAD/KG).",
+            'es' => "Aquí está el balance mensual de ventas y envíos para el año {$year}: {$totCount} envíos registrados para un volumen total vendido de {$totWFmt} KG y una facturación de {$totPFmt} MAD (Precio medio general: {$totAvgFmt} MAD/KG).",
+            'ar' => "إليك التقرير الشهري للمبيعات والشحنات لسنة {$year}: تم تسجيل {$totCount} شحنة بحجم إجمالي مباع {$totWFmt} كغ ورقم معاملات {$totPFmt} درهم (متوسط السعر: {$totAvgFmt} درهم/كغ).",
+            default => "Voici le bilan mensuel des ventes et expéditions pour l'année {$year} : {$totCount} expéditions enregistrées pour un volume global vendu de {$totWFmt} KG et un chiffre d'affaires de {$totPFmt} MAD (Prix moyen global : {$totAvgFmt} MAD/KG).",
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => "Total Sales {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => "Total Volume Sold", 'value' => $totWFmt . ' KG', 'color' => '#4643a0', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "Average Selling Price", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#b39ddb', 'icon' => 'mdi-tag-outline'],
+                ['label' => "Total Shipments", 'value' => (string)$totCount, 'color' => '#6c66bb', 'icon' => 'mdi-ferry'],
+            ],
+            'es' => [
+                ['label' => "Total Ventas {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => "Volumen Total Vendido", 'value' => $totWFmt . ' KG', 'color' => '#4643a0', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "Precio Medio Venta", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#b39ddb', 'icon' => 'mdi-tag-outline'],
+                ['label' => "Total Envíos", 'value' => (string)$totCount, 'color' => '#6c66bb', 'icon' => 'mdi-ferry'],
+            ],
+            'ar' => [
+                ['label' => "إجمالي المبيعات {$year}", 'value' => $totPFmt . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => "الحجم الإجمالي المباع", 'value' => $totWFmt . ' كغ', 'color' => '#4643a0', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => "متوسط سعر البيع", 'value' => $totAvgFmt . ' درهم/كغ', 'color' => '#b39ddb', 'icon' => 'mdi-tag-outline'],
+                ['label' => "إجمالي الشحنات", 'value' => (string)$totCount, 'color' => '#6c66bb', 'icon' => 'mdi-ferry'],
+            ],
+            default => [
                 ['label' => "Total Ventes {$year}", 'value' => $totPFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
                 ['label' => "Volume Total Vendu", 'value' => $totWFmt . ' KG', 'color' => '#4643a0', 'icon' => 'mdi-weight-kilogram'],
                 ['label' => "Prix Moyen Vente", 'value' => $totAvgFmt . ' MAD/KG', 'color' => '#b39ddb', 'icon' => 'mdi-tag-outline'],
                 ['label' => "Total Expéditions", 'value' => (string)$totCount, 'color' => '#6c66bb', 'icon' => 'mdi-ferry'],
             ],
-            'table' => [
-                'title' => "Bilan Mensuel des Ventes - Année {$year}",
-                'headers' => $headers,
-                'rowsHtml' => $tableRowsHtml,
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Monthly Sales Breakdown — Year {$year}",
+            'es' => "Desglose Mensual de Ventas — Año {$year}",
+            'ar' => "التوزيع الشهري للمبيعات — سنة {$year}",
+            default => "Bilan Mensuel des Ventes — Année {$year}",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => "Monthly Sales Evolution & Growth — {$year}",
+            'es' => "Evolución y Crecimiento Mensual de Ventas — {$year}",
+            'ar' => "التطور الشهري ونسبة النمو للمبيعات — {$year}",
+            default => "Évolution et Croissance Mensuelle des Ventes — {$year}",
+        };
+
+        $chartConfig = null;
+        if (count($rows)) {
+            if ($wantsGrowth) {
+                $seriesAmountName = match ($lang) {
+                    'en' => 'Revenue (MAD)',
+                    'es' => 'Facturación (MAD)',
+                    'ar' => 'رقم المعاملات (درهم)',
+                    default => 'Chiffre d\'Affaires (MAD)',
+                };
+                $seriesGrowthName = match ($lang) {
+                    'en' => 'Growth MoM (%)',
+                    'es' => 'Crecimiento (%)',
+                    'ar' => 'نسبة النمو (%)',
+                    default => 'Croissance (%)',
+                };
+                $chartConfig = [
+                    'id' => $chartId,
+                    'title' => $chartTitle,
+                    'labels' => $chartLabels,
+                    'multi_series' => true,
+                    'series' => [
+                        ['name' => $seriesAmountName, 'type' => 'column', 'data' => $amountsData],
+                        ['name' => $seriesGrowthName, 'type' => 'line', 'data' => $growthData],
+                    ],
+                    'colors' => ['#4643a0', '#00E676'],
+                    'type' => 'line',
+                    'height' => 320,
+                    'yUnit' => 'MAD',
+                ];
+            } else {
+                $seriesName = match ($lang) {
+                    'en' => 'Revenue (MAD)',
+                    'es' => 'Facturación (MAD)',
+                    'ar' => 'رقم المعاملات (درهم)',
+                    default => 'Chiffre d\'Affaires (MAD)',
+                };
+                $chartConfig = [
+                    'id' => $chartId,
+                    'title' => $chartTitle,
+                    'labels' => $chartLabels,
+                    'data' => $amountsData,
+                    'seriesName' => $seriesName,
+                    'type' => 'bar',
+                    'color' => '#4643a0',
+                ];
+            }
+        }
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'View Sales', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'New Shipment', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
             ],
-            'chart' => count($rows) ? [
-                'id' => $chartId,
-                'title' => "Évolution Mensuelle des Ventes - {$year} (MAD)",
-                'labels' => $chartLabels,
-                'data' => $amountsData,
-                'seriesName' => 'Chiffre d\'Affaires (MAD)',
-                'type' => 'bar',
-                'color' => '#4643a0',
-            ] : null,
-            'navButtons' => [
+            'es' => [
+                ['label' => 'Ver Ventas', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Nueva Expedición', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+            'ar' => [
+                ['label' => 'عرض المبيعات', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'شحنة جديدة', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+            default => [
                 ['label' => 'Consulter les Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
                 ['label' => 'Nouvelle Expédition', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
             ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
+            'moduleColor' => '#4643a0',
+            'moduleIcon' => 'mdi-ship-wheel',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
+            'table' => [
+                'title' => $tableTitle,
+                'headers' => array_values($headers),
+                'rowsHtml' => $tableRowsHtml,
+            ],
+            'chart' => $chartConfig,
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -1275,6 +2158,27 @@ TR;
             default => [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'],
         };
 
+        $dayUnit = match ($lang) {
+            'en' => 'd',
+            'es' => 'd',
+            'ar' => 'ي',
+            default => 'j',
+        };
+
+        $consultLabel = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Consulter',
+        };
+
+        $detailsLabel = match ($lang) {
+            'en' => 'Details',
+            'es' => 'Detalles',
+            'ar' => 'تفاصيل',
+            default => 'Détails',
+        };
+
         $chartLabels = [];
         $frozenData = [];
         $guanoData = [];
@@ -1285,6 +2189,13 @@ TR;
         $totCount = 0;
 
         $tableRowsHtml = '';
+        $viewBtnText = match ($lang) {
+            'en' => 'View',
+            'es' => 'Ver',
+            'ar' => 'عرض',
+            default => 'Voir',
+        };
+
         foreach ($rows as $r) {
             $mNum = (int)$r->month_num;
             $mName = $monthNames[$mNum] ?? "Month {$mNum}";
@@ -1323,7 +2234,7 @@ TR;
               <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$eqFmt}</td>
               <td style="padding: 10px 12px; text-align: center;">
                 <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #00897B; font-size: 11px; cursor: pointer; border: none;" data-route="/production">
-                  Voir
+                  {$viewBtnText}
                 </button>
               </td>
             </tr>
@@ -1335,74 +2246,205 @@ TR;
         $totGnFmt = $this->formatNumber($totGuano, 2);
         $totFrFmt = $this->formatNumber($totFresh, 2);
 
+        $totLabel = match ($lang) {
+            'en' => "TOTAL {$year}",
+            'es' => "TOTAL {$year}",
+            'ar' => "المجموع {$year}",
+            default => "TOTAL {$year}",
+        };
+
+        $prodBtnText = match ($lang) {
+            'en' => 'Production',
+            'es' => 'Producción',
+            'ar' => 'الإنتاج',
+            default => 'Production',
+        };
+
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(0, 137, 123, 0.12); font-weight: 800; border-top: 2px solid #00897B; border-bottom: 2px solid #00897B;">
           <td style="padding: 12px; font-weight: 900; color: #00897B; font-size: 13px; text-transform: uppercase;">
             <i class="v-icon notranslate mdi mdi-sigma" style="font-size: 18px; margin-right: 4px; color: #00897B;"></i>
-            TOTAL {$year}
+            {$totLabel}
           </td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">{$totCount}</td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">{$totFrFmt} KG</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #26A69A; font-size: 13.5px;">{$totFzFmt} KG</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #66BB6A; font-size: 13.5px;">{$totGnFmt} KG</td>
-          <td style="padding: 12px; text-align: right; font-weight: 800;">-</td>
+          <td style="padding: 12px; text-align: right; font-weight: 800;">—</td>
           <td style="padding: 12px; text-align: center;">
             <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #00695C; font-size: 11px; cursor: pointer; border: none;" data-route="/production">
-              Production
+              {$prodBtnText}
             </button>
           </td>
         </tr>
 TR;
 
-        $headers = [
-            ['title' => 'Mois / Month', 'align' => 'left'],
-            ['title' => 'Séries', 'align' => 'right'],
-            ['title' => 'Frais Traité (KG)', 'align' => 'right'],
-            ['title' => 'Poisson Congelé (KG)', 'align' => 'right'],
-            ['title' => 'Guano & Farine (KG)', 'align' => 'right'],
-            ['title' => 'Équilibre Moyen', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $answerText = match ($lang) {
+            'en' => "Monthly factory production breakdown for the year {$year}: {$totCount} production series logged, yielding {$totFzFmt} KG of frozen fish and {$totGnFmt} KG of flour/guano from {$totFrFmt} KG of fresh fish reception.",
+            'es' => "Resumen mensual de producción de fábrica para el año {$year}: {$totCount} series de producción registradas, totalizando {$totFzFmt} KG de pescado congelado y {$totGnFmt} KG de harina/guano obtenidos de {$totFrFmt} KG de pescado fresco.",
+            'ar' => "ملخص الإنتاج الشهري للمصنع لسنة {$year}: تم تسجيل {$totCount} دفعة إنتاجية بإجمالي {$totFzFmt} كغ من السمك المجمد و {$totGnFmt} كغ من الدقيق/الغوانو من أصل {$totFrFmt} كغ من السمك الطازج.",
+            default => "Voici le récapitulatif mensuel de production usine pour l'année {$year} : {$totCount} séries de production enregistrées, totalisant {$totFzFmt} KG de poisson congelé produit et {$totGnFmt} KG de farine/guano obtenus à partir de {$totFrFmt} KG de matière fraîche.",
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => "Production & Rendement Usine - Récapitulatif Mensuel {$year}",
-            'moduleColor' => '#00897B',
-            'moduleIcon' => 'mdi-factory',
-            'badgeText' => "Production Mensuelle {$year}",
-            'userQuestion' => $p['question'],
-            'answerText' => "Voici le récapitulatif mensuel de production usine pour l'année {$year} : {$totCount} séries de production enregistrées, totalisant {$totFzFmt} KG de poisson congelé produit et {$totGnFmt} KG de farine/guano obtenus à partir de {$totFrFmt} KG de matière fraîche.",
-            'kpis' => [
+        $modTitle = match ($lang) {
+            'en' => "Factory Production & Yield — Monthly Summary {$year}",
+            'es' => "Producción de Fábrica y Rendimiento — Resumen Mensual {$year}",
+            'ar' => "إنتاج ومردودية المصنع — الملخص الشهري {$year}",
+            default => "Production & Rendement Usine — Récapitulatif Mensuel {$year}",
+        };
+
+        $badgeText = match ($lang) {
+            'en' => "Monthly Production {$year}",
+            'es' => "Producción Mensual {$year}",
+            'ar' => "الإنتاج الشهري {$year}",
+            default => "Production Mensuelle {$year}",
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => "Total Frozen {$year}", 'value' => $totFzFmt . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => "Total Flour/Guano", 'value' => $totGnFmt . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => "Fresh Processed", 'value' => $totFrFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-fish'],
+                ['label' => "Logged Series", 'value' => (string)$totCount, 'color' => '#80cbc4', 'icon' => 'mdi-cog-sync'],
+            ],
+            'es' => [
+                ['label' => "Total Congelado {$year}", 'value' => $totFzFmt . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => "Total Harina/Guano", 'value' => $totGnFmt . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => "Fresco Procesado", 'value' => $totFrFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-fish'],
+                ['label' => "Series Operadas", 'value' => (string)$totCount, 'color' => '#80cbc4', 'icon' => 'mdi-cog-sync'],
+            ],
+            'ar' => [
+                ['label' => "إجمالي المجمد {$year}", 'value' => $totFzFmt . ' كغ', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => "إجمالي الدقيق/الغوانو", 'value' => $totGnFmt . ' كغ', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => "الطازج المعالج", 'value' => $totFrFmt . ' كغ', 'color' => '#00897B', 'icon' => 'mdi-fish'],
+                ['label' => "الدفعات المنجزة", 'value' => (string)$totCount, 'color' => '#80cbc4', 'icon' => 'mdi-cog-sync'],
+            ],
+            default => [
                 ['label' => "Total Congelé {$year}", 'value' => $totFzFmt . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
                 ['label' => "Total Farine/Guano", 'value' => $totGnFmt . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
                 ['label' => "Frais Traité", 'value' => $totFrFmt . ' KG', 'color' => '#00897B', 'icon' => 'mdi-fish'],
                 ['label' => "Séries Opérées", 'value' => (string)$totCount, 'color' => '#80cbc4', 'icon' => 'mdi-cog-sync'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Monthly Production Balance — Year {$year}",
+            'es' => "Balance Mensual de Producción — Año {$year}",
+            'ar' => "الميزان الشهري للإنتاج — سنة {$year}",
+            default => "Bilan Mensuel de Production — Année {$year}",
+        };
+
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Month', 'align' => 'left'],
+                ['title' => 'Batches', 'align' => 'right'],
+                ['title' => 'Fresh Processed (KG)', 'align' => 'right'],
+                ['title' => 'Frozen Fish (KG)', 'align' => 'right'],
+                ['title' => 'Guano & Flour (KG)', 'align' => 'right'],
+                ['title' => 'Avg Equilibrium', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Mes', 'align' => 'left'],
+                ['title' => 'Lotes', 'align' => 'right'],
+                ['title' => 'Fresco Procesado (KG)', 'align' => 'right'],
+                ['title' => 'Pescado Congelado (KG)', 'align' => 'right'],
+                ['title' => 'Guano y Harina (KG)', 'align' => 'right'],
+                ['title' => 'Equilibrio Medio', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'الشهر', 'align' => 'left'],
+                ['title' => 'الدفعات', 'align' => 'right'],
+                ['title' => 'الطازج المعالج (كغ)', 'align' => 'right'],
+                ['title' => 'السمك المجمد (كغ)', 'align' => 'right'],
+                ['title' => 'الغوانو والدقيق (كغ)', 'align' => 'right'],
+                ['title' => 'متوسط التوازن', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Mois', 'align' => 'left'],
+                ['title' => 'Séries', 'align' => 'right'],
+                ['title' => 'Frais Traité (KG)', 'align' => 'right'],
+                ['title' => 'Poisson Congelé (KG)', 'align' => 'right'],
+                ['title' => 'Guano & Farine (KG)', 'align' => 'right'],
+                ['title' => 'Équilibre Moyen', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => "Monthly Production: Frozen vs Flour — {$year} (Tons)",
+            'es' => "Producción Mensual: Congelado vs Harina — {$year} (Toneladas)",
+            'ar' => "الإنتاج الشهري: المجمد مقابل الدقيق — {$year} (أطنان)",
+            default => "Production Mensuelle Congelé vs Farine — {$year} (Tonnes)",
+        };
+
+        $seriesFrozen = match ($lang) {
+            'en' => 'Frozen Fish (T)',
+            'es' => 'Pescado Congelado (T)',
+            'ar' => 'السمك المجمد (طن)',
+            default => 'Poisson Congelé (T)',
+        };
+
+        $seriesGuano = match ($lang) {
+            'en' => 'Flour / Guano (T)',
+            'es' => 'Harina / Guano (T)',
+            'ar' => 'الدقيق / الغوانو (طن)',
+            default => 'Farine / Guano (T)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Production Module', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'New Production Batch', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
+            ],
+            'es' => [
+                ['label' => 'Módulo Producción', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Nueva Producción', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
+            ],
+            'ar' => [
+                ['label' => 'وحدة الإنتاج', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'دفعة إنتاج جديدة', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
+            ],
+            default => [
+                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Nouvelle Production', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
+            'moduleColor' => '#00897B',
+            'moduleIcon' => 'mdi-factory',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Bilan Mensuel de Production - Année {$year}",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($rows) ? [
                 'id' => $chartId,
-                'title' => "Production Mensuelle Congelé vs Farine - {$year} (Tonnes)",
+                'title' => $chartTitle,
                 'labels' => $chartLabels,
                 'multi_series' => true,
                 'series' => [
-                    ['name' => 'Poisson Congelé (T)', 'data' => $frozenData],
-                    ['name' => 'Farine / Guano (T)', 'data' => $guanoData],
+                    ['name' => $seriesFrozen, 'data' => $frozenData],
+                    ['name' => $seriesGuano, 'data' => $guanoData],
                 ],
                 'colors' => ['#00897B', '#66BB6A'],
                 'type' => 'bar',
-                'yUnit' => 'Tonnes',
+                'yUnit' => ($lang === 'en' ? 'Tons' : 'Tonnes'),
                 'height' => 320,
             ] : null,
-            'navButtons' => [
-                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
-                ['label' => 'Nouvelle Production', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -1464,7 +2506,7 @@ TR;
               <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$cntFmt} j</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$priceFmt} MAD</td>
               <td style="padding: 10px 12px; text-align: center;">
-                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/workforce/fortnight">
                   Activités
                 </button>
               </td>
@@ -1475,64 +2517,165 @@ TR;
         $totPriceFmt = $this->formatNumber($totPrice, 2);
         $totActsFmt = $this->formatNumber($totActs, 0);
 
+        $totLabel = match ($lang) {
+            'en' => "TOTAL SECTIONS {$year}",
+            'es' => "TOTAL SECCIONES {$year}",
+            'ar' => "إجمالي الأقسام {$year}",
+            default => "TOTAL SECTIONS {$year}",
+        };
+
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(66, 165, 245, 0.12); font-weight: 800; border-top: 2px solid #42A5F5; border-bottom: 2px solid #42A5F5;">
           <td style="padding: 12px; font-weight: 900; color: #42A5F5; font-size: 13px; text-transform: uppercase;">
             <i class="v-icon notranslate mdi mdi-sigma text-blue" style="font-size: 18px; margin-right: 4px;"></i>
-            TOTAL SECTIONS {$year}
+            {$totLabel}
           </td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">-</td>
           <td style="padding: 12px; text-align: right; font-weight: 900;">{$totActsFmt} j</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPriceFmt} MAD</td>
           <td style="padding: 12px; text-align: center;">
-            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/workforce/fortnight">
               Feuilles
             </button>
           </td>
         </tr>
 TR;
 
-        $headers = [
-            ['title' => 'Section Usine', 'align' => 'left'],
-            ['title' => 'Ouvriers Actifs', 'align' => 'right'],
-            ['title' => 'Journées Travaillées', 'align' => 'right'],
-            ['title' => 'Masse Salariale (MAD)', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Factory Section', 'align' => 'left'],
+                ['title' => 'Active Workers', 'align' => 'right'],
+                ['title' => 'Days Worked', 'align' => 'right'],
+                ['title' => 'Payroll (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Sección Fábrica', 'align' => 'left'],
+                ['title' => 'Obreros Activos', 'align' => 'right'],
+                ['title' => 'Jornadas Trabajadas', 'align' => 'right'],
+                ['title' => 'Masa Salarial (MAD)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'قسم المصنع', 'align' => 'left'],
+                ['title' => 'العمال النشطون', 'align' => 'right'],
+                ['title' => 'أيام العمل', 'align' => 'right'],
+                ['title' => 'كتلة الأجور (درهم)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Section Usine', 'align' => 'left'],
+                ['title' => 'Ouvriers Actifs', 'align' => 'right'],
+                ['title' => 'Journées Travaillées', 'align' => 'right'],
+                ['title' => 'Masse Salariale (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => "Workforce by Factory Section - Year {$year}",
+            'es' => "Mano de Obra por Sección Fábrica - Año {$year}",
+            'ar' => "اليد العاملة حسب أقسام المصنع - سنة {$year}",
+            default => "Main d'œuvre par Section Usine - Année {$year}",
+        };
+
+        $badgeText = match ($lang) {
+            'en' => "Factory Sections {$year}",
+            'es' => "Secciones Fábrica {$year}",
+            'ar' => "أقسام المصنع {$year}",
+            default => "Sections Usine {$year}",
+        };
+
+        $answerText = match ($lang) {
+            'en' => "Here is the breakdown of activities and payroll by factory section for year {$year}: a total of {$totActsFmt} worked days and an aggregate payroll of {$totPriceFmt} MAD across " . count($sections) . " active sections.",
+            'es' => "Aquí está el desglose de actividades y masa salarial por sección de fábrica para el año {$year}: un total de {$totActsFmt} jornadas de trabajo y una masa salarial global de {$totPriceFmt} MAD distribuida en " . count($sections) . " secciones activas.",
+            'ar' => "إليك تفصيل أنشطة وكتلة أجور اليد العاملة حسب أقسام المصنع لسنة {$year}: إجمالي {$totActsFmt} يوم عمل بكتلة أجور تبلغ {$totPriceFmt} درهم موزعة على " . count($sections) . " قسماً نشطاً.",
+            default => "Voici la ventilation des activités et de la masse salariale par section usine pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($sections) . " sections actives.",
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => "Sections Payroll", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Days Worked", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Active Sections", 'value' => (string)count($sections), 'color' => '#26A69A', 'icon' => 'mdi-domain'],
+            ],
+            'es' => [
+                ['label' => "Masa Salarial Secciones", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Jornadas Trabajadas", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Secciones Activas", 'value' => (string)count($sections), 'color' => '#26A69A', 'icon' => 'mdi-domain'],
+            ],
+            'ar' => [
+                ['label' => "أجور الأقسام", 'value' => $totPriceFmt . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "أيام العمل", 'value' => $totActsFmt . ' يوم', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "الأقسام النشطة", 'value' => (string)count($sections), 'color' => '#26A69A', 'icon' => 'mdi-domain'],
+            ],
+            default => [
+                ['label' => "Masse Salariale Sections", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Journées Travaillées", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Nombre de Sections", 'value' => (string)count($sections), 'color' => '#26A69A', 'icon' => 'mdi-domain'],
+            ],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => "Payroll by Factory Section - {$year} (MAD)",
+            'es' => "Masa Salarial por Sección Fábrica - {$year} (MAD)",
+            'ar' => "كتلة الأجور حسب أقسام المصنع - {$year} (درهم)",
+            default => "Masse Salariale par Section Usine - {$year} (MAD)",
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Factory Section Details ({$year})",
+            'es' => "Detalle por Sección Fábrica ({$year})",
+            'ar' => "تفاصيل أقسام المصنع ({$year})",
+            default => "Détail par Section Usine ({$year})",
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Fortnight Sheets', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Worker Management', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            'es' => [
+                ['label' => 'Hojas de Quincena', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Gestión de Obreros', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            'ar' => [
+                ['label' => 'جداول النصف-شهرية', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'إدارة العمال', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            default => [
+                ['label' => 'Feuilles de Quinzaine', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Gestion des Ouvriers', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => "Main d'œuvre par Section Usine - Année {$year}",
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#42A5F5',
             'moduleIcon' => 'mdi-domain',
-            'badgeText' => "Sections Usine {$year}",
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
-            'answerText' => "Voici la ventilation des activités et de la masse salariale par section usine pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($sections) . " sections actives.",
-            'kpis' => [
-                ['label' => "Masse Salariale Sections", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
-                ['label' => "Journées Travaillées", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
-                ['label' => "Nombre de Sections", 'value' => (string)count($sections), 'color' => '#26A69A', 'icon' => 'mdi-domain'],
-            ],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Détail par Section Usine ({$year})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($sections) ? [
                 'id' => $chartId,
-                'title' => "Masse Salariale par Section Usine - {$year} (MAD)",
+                'title' => $chartTitle,
                 'labels' => array_slice($chartLabels, 0, 7),
                 'data' => array_slice($chartData, 0, 7),
-                'seriesName' => 'Montant (MAD)',
+                'seriesName' => ($lang === 'en' ? 'Amount (MAD)' : 'Montant (MAD)'),
                 'type' => 'bar',
                 'color' => '#42A5F5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Feuilles de Quinzaine', 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
-                ['label' => 'Gestion des Ouvriers', 'route' => '/workforces', 'icon' => 'mdi-account-group'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -1594,7 +2737,7 @@ TR;
               <td style="padding: 10px 12px; text-align: right; font-weight: 700;">{$cntFmt} j</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #00E676;">{$priceFmt} MAD</td>
               <td style="padding: 10px 12px; text-align: center;">
-                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/workforce/fortnight">
                   Équipe
                 </button>
               </td>
@@ -1605,64 +2748,165 @@ TR;
         $totPriceFmt = $this->formatNumber($totPrice, 2);
         $totActsFmt = $this->formatNumber($totActs, 0);
 
+        $totLabel = match ($lang) {
+            'en' => "TOTAL CORPORALS {$year}",
+            'es' => "TOTAL CAPORALES {$year}",
+            'ar' => "إجمالي المشرفين {$year}",
+            default => "TOTAL CAPORAUX {$year}",
+        };
+
         $tableRowsHtml .= <<<TR
         <tr style="background: rgba(66, 165, 245, 0.12); font-weight: 800; border-top: 2px solid #42A5F5; border-bottom: 2px solid #42A5F5;">
           <td style="padding: 12px; font-weight: 900; color: #42A5F5; font-size: 13px; text-transform: uppercase;">
             <i class="v-icon notranslate mdi mdi-sigma text-blue" style="font-size: 18px; margin-right: 4px;"></i>
-            TOTAL CAPORAUX {$year}
+            {$totLabel}
           </td>
           <td style="padding: 12px; text-align: right; font-weight: 800;">-</td>
           <td style="padding: 12px; text-align: right; font-weight: 900;">{$totActsFmt} j</td>
           <td style="padding: 12px; text-align: right; font-weight: 900; color: #00E676; font-size: 14px;">{$totPriceFmt} MAD</td>
           <td style="padding: 12px; text-align: center;">
-            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/fortnight">
+            <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #1565C0; font-size: 11px; cursor: pointer; border: none;" data-route="/workforce/fortnight">
               Feuilles
             </button>
           </td>
         </tr>
 TR;
 
-        $headers = [
-            ['title' => 'Caporal / Équipe', 'align' => 'left'],
-            ['title' => 'Ouvriers Actifs', 'align' => 'right'],
-            ['title' => 'Journées Travaillées', 'align' => 'right'],
-            ['title' => 'Masse Salariale (MAD)', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Corporal / Team Lead', 'align' => 'left'],
+                ['title' => 'Active Workers', 'align' => 'right'],
+                ['title' => 'Days Worked', 'align' => 'right'],
+                ['title' => 'Payroll (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Caporal / Equipo', 'align' => 'left'],
+                ['title' => 'Obreros Activos', 'align' => 'right'],
+                ['title' => 'Jornadas Trabajadas', 'align' => 'right'],
+                ['title' => 'Masa Salarial (MAD)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'المشرف / الفريق', 'align' => 'left'],
+                ['title' => 'العمال النشطون', 'align' => 'right'],
+                ['title' => 'أيام العمل', 'align' => 'right'],
+                ['title' => 'كتلة الأجور (درهم)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Caporal / Équipe', 'align' => 'left'],
+                ['title' => 'Ouvriers Actifs', 'align' => 'right'],
+                ['title' => 'Journées Travaillées', 'align' => 'right'],
+                ['title' => 'Masse Salariale (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => "Workforce by Corporal / Team - Year {$year}",
+            'es' => "Mano de Obra por Caporal - Año {$year}",
+            'ar' => "اليد العاملة حسب المشرف والفريق - سنة {$year}",
+            default => "Main d'œuvre par Caporal - Année {$year}",
+        };
+
+        $badgeText = match ($lang) {
+            'en' => "Corporals & Teams {$year}",
+            'es' => "Caporales y Equipos {$year}",
+            'ar' => "المشرفون والفرق {$year}",
+            default => "Caporaux & Équipes {$year}",
+        };
+
+        $answerText = match ($lang) {
+            'en' => "Here is the breakdown of activities and payroll by corporal for year {$year}: a total of {$totActsFmt} worked days and an aggregate payroll of {$totPriceFmt} MAD across " . count($corporals) . " active teams.",
+            'es' => "Aquí está el desglose de actividades y masa salarial por caporal para el año {$year}: un total de {$totActsFmt} jornadas de trabajo y una masa salarial global de {$totPriceFmt} MAD distribuida en " . count($corporals) . " equipos activos.",
+            'ar' => "إليك تفصيل أنشطة وكتلة أجور اليد العاملة حسب المشرف لسنة {$year}: إجمالي {$totActsFmt} يوم عمل بكتلة أجور تبلغ {$totPriceFmt} درهم موزعة على " . count($corporals) . " فريقاً نشطاً.",
+            default => "Voici la ventilation des activités et de la masse salariale par caporal pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($corporals) . " équipes actives.",
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => "Corporals Payroll", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Days Worked", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Active Teams", 'value' => (string)count($corporals), 'color' => '#26A69A', 'icon' => 'mdi-account-tie'],
+            ],
+            'es' => [
+                ['label' => "Masa Salarial Caporales", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Jornadas Trabajadas", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Equipos Activos", 'value' => (string)count($corporals), 'color' => '#26A69A', 'icon' => 'mdi-account-tie'],
+            ],
+            'ar' => [
+                ['label' => "أجور المشرفين", 'value' => $totPriceFmt . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "أيام العمل", 'value' => $totActsFmt . ' يوم', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "الفرق النشطة", 'value' => (string)count($corporals), 'color' => '#26A69A', 'icon' => 'mdi-account-tie'],
+            ],
+            default => [
+                ['label' => "Masse Salariale Caporaux", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+                ['label' => "Journées Travaillées", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
+                ['label' => "Nombre d'Équipes", 'value' => (string)count($corporals), 'color' => '#26A69A', 'icon' => 'mdi-account-tie'],
+            ],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => "Payroll by Corporal - {$year} (MAD)",
+            'es' => "Masa Salarial por Caporal - {$year} (MAD)",
+            'ar' => "كتلة الأجور حسب المشرف - {$year} (درهم)",
+            default => "Masse Salariale par Caporal - {$year} (MAD)",
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Detail by Corporal ({$year})",
+            'es' => "Detalle por Caporal ({$year})",
+            'ar' => "تفاصيل المشرفين ({$year})",
+            default => "Détail par Caporal ({$year})",
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Fortnight Sheets', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Worker Management', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            'es' => [
+                ['label' => 'Hojas de Quincena', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Gestión de Obreros', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            'ar' => [
+                ['label' => 'جداول النصف-شهرية', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'إدارة العمال', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+            default => [
+                ['label' => 'Feuilles de Quinzaine', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+                ['label' => 'Gestion des Ouvriers', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => "Main d'œuvre par Caporal - Année {$year}",
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#42A5F5',
             'moduleIcon' => 'mdi-account-tie',
-            'badgeText' => "Caporaux & Équipes {$year}",
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
-            'answerText' => "Voici la ventilation des activités et de la masse salariale par caporal pour l'année {$year} : un total de {$totActsFmt} journées de travail pour une masse salariale globale de {$totPriceFmt} MAD répartie sur " . count($corporals) . " équipes actives.",
-            'kpis' => [
-                ['label' => "Masse Salariale Caporaux", 'value' => $totPriceFmt . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
-                ['label' => "Journées Travaillées", 'value' => $totActsFmt . ' j', 'color' => '#42A5F5', 'icon' => 'mdi-calendar-check'],
-                ['label' => "Nombre d'Équipes", 'value' => (string)count($corporals), 'color' => '#26A69A', 'icon' => 'mdi-account-tie'],
-            ],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Détail par Caporal ({$year})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($corporals) ? [
                 'id' => $chartId,
-                'title' => "Masse Salariale par Caporal - {$year} (MAD)",
+                'title' => $chartTitle,
                 'labels' => array_slice($chartLabels, 0, 7),
                 'data' => array_slice($chartData, 0, 7),
-                'seriesName' => 'Montant (MAD)',
+                'seriesName' => ($lang === 'en' ? 'Amount (MAD)' : 'Montant (MAD)'),
                 'type' => 'bar',
                 'color' => '#42A5F5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Feuilles de Quinzaine', 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
-                ['label' => 'Gestion des Ouvriers', 'route' => '/workforces', 'icon' => 'mdi-account-group'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -1671,6 +2915,7 @@ TR;
      */
     private function handleChargesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $q = DB::table('charges as c')
             ->leftJoin('suppliers as s', 'c.supplier_id', '=', 's.id')
             ->whereNull('c.deleted_at');
@@ -1717,7 +2962,7 @@ TR;
         }
 
         // Build localized textual answer
-        $answerText = match ($p['lang']) {
+        $answerText = match ($lang) {
             'ar' => "إليك تفاصيل المشتريات والاستلامات: تم تسجيل {$this->formatNumber($totalCount, 0)} استلام بإجمالي وزن {$this->formatNumber($totalWeight, 2)} كغ وبقيمة إجمالية {$this->formatNumber($totalPrice, 2)} درهم.",
             'es' => "Aquí está el análisis de compras y recepciones: se registraron {$this->formatNumber($totalCount, 0)} recepciones con un peso total de {$this->formatNumber($totalWeight, 2)} KG y un importe de {$this->formatNumber($totalPrice, 2)} MAD.",
             'en' => "Here is the purchases and receptions analysis: {$this->formatNumber($totalCount, 0)} receptions recorded with a total weight of {$this->formatNumber($totalWeight, 2)} KG and a total value of {$this->formatNumber($totalPrice, 2)} MAD.",
@@ -1746,49 +2991,142 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'N° Réception', 'align' => 'left'],
-            ['title' => 'Date', 'align' => 'left'],
-            ['title' => 'Fournisseur', 'align' => 'left'],
-            ['title' => 'Poids (KG)', 'align' => 'right'],
-            ['title' => 'Montant (MAD)', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Reception No.', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Supplier', 'align' => 'left'],
+                ['title' => 'Weight (KG)', 'align' => 'right'],
+                ['title' => 'Total Amount (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'N° Recepción', 'align' => 'left'],
+                ['title' => 'Fecha', 'align' => 'left'],
+                ['title' => 'Proveedor', 'align' => 'left'],
+                ['title' => 'Peso (KG)', 'align' => 'right'],
+                ['title' => 'Importe (MAD)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'رقم الاستلام', 'align' => 'left'],
+                ['title' => 'التاريخ', 'align' => 'left'],
+                ['title' => 'المورد', 'align' => 'left'],
+                ['title' => 'الوزن (كغ)', 'align' => 'right'],
+                ['title' => 'المبلغ (درهم)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'N° Réception', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Fournisseur', 'align' => 'left'],
+                ['title' => 'Poids (KG)', 'align' => 'right'],
+                ['title' => 'Montant (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Module Achats & Réceptions (Charges)',
-            'moduleColor' => '#42A5F5',
-            'moduleIcon' => 'mdi-truck-delivery',
-            'badgeText' => $p['timeFrame'] === 'all' ? 'Toutes Périodes' : ucfirst($p['timeFrame']),
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $moduleTitle = match ($lang) {
+            'en' => 'Purchases & Receptions Module (Charges)',
+            'es' => 'Módulo de Compras y Recepciones (Cargas)',
+            'ar' => 'وحدة المشتريات والاستلامات (الشحنات)',
+            default => 'Module Achats & Réceptions (Charges)',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => ($p['timeFrame'] === 'all' ? 'All Periods' : ucfirst($p['timeFrame'])),
+            'es' => ($p['timeFrame'] === 'all' ? 'Todos los Períodos' : ucfirst($p['timeFrame'])),
+            'ar' => ($p['timeFrame'] === 'all' ? 'جميع الفترات' : ucfirst($p['timeFrame'])),
+            default => ($p['timeFrame'] === 'all' ? 'Toutes Périodes' : ucfirst($p['timeFrame'])),
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Receptions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-counter'],
+                ['label' => 'Total Weight', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'Total Amount', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Average Price / KG', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#FFA726', 'icon' => 'mdi-scale-balance'],
+            ],
+            'es' => [
+                ['label' => 'Total Recepciones', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-counter'],
+                ['label' => 'Peso Total', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'Importe Global', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Precio Medio / KG', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#FFA726', 'icon' => 'mdi-scale-balance'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي الاستلامات', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-counter'],
+                ['label' => 'إجمالي الوزن', 'value' => $this->formatNumber($totalWeight, 2) . ' كغ', 'color' => '#29B6F6', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'المبلغ الإجمالي', 'value' => $this->formatNumber($totalPrice, 2) . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'متوسط السعر / كغ', 'value' => $this->formatNumber($avgPrice, 2) . ' درهم', 'color' => '#FFA726', 'icon' => 'mdi-scale-balance'],
+            ],
+            default => [
                 ['label' => 'Total Réceptions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-counter'],
                 ['label' => 'Poids Total', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-weight-kilogram'],
                 ['label' => 'Montant Global', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
                 ['label' => 'Prix Moyen / KG', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#FFA726', 'icon' => 'mdi-scale-balance'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Latest Purchases & Receptions (Top {$limit})",
+            'es' => "Últimas Compras y Recepciones (Top {$limit})",
+            'ar' => "آخر المشتريات والاستلامات (أفضل {$limit})",
+            default => "Dernières Charges & Réceptions (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Top 5 Suppliers by Volume (Tons)',
+            'es' => 'Top 5 Proveedores por Volumen (Toneladas)',
+            'ar' => 'أفضل 5 موردين حسب الحجم (أطنان)',
+            default => 'Top 5 Fournisseurs par Volume (Tonnes)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'View Charges', 'route' => '/charges', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'New Charge', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+            'es' => [
+                ['label' => 'Consultar Cargas', 'route' => '/charges', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nueva Carga', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+            'ar' => [
+                ['label' => 'الاطلاع على الشحنات', 'route' => '/charges', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'شحنة جديدة', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+            default => [
+                ['label' => 'Consulter les Charges', 'route' => '/charges', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nouvelle Charge', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-truck-delivery',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Dernières Charges & Réceptions (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($chartLabels) ? [
                 'id' => $chartId,
-                'title' => 'Top 5 Fournisseurs par Volume (Tonnes)',
+                'title' => $chartTitle,
                 'labels' => $chartLabels,
                 'data' => $chartData,
-                'seriesName' => 'Volume (Tonnes)',
+                'seriesName' => ($lang === 'en' ? 'Volume (Tons)' : 'Volume (Tonnes)'),
                 'type' => 'bar',
                 'color' => '#42A5F5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Consulter les Charges', 'route' => '/charges', 'icon' => 'mdi-format-list-bulleted'],
-                ['label' => 'Nouvelle Charge', 'route' => '/charges/add_charge', 'icon' => 'mdi-plus-circle'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -1797,6 +3135,7 @@ TR;
      */
     private function handleShippingsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $q = DB::table('shippings as s')
             ->leftJoin('clients as c', 's.client_id', '=', 'c.id')
             ->whereNull('s.deleted_at');
@@ -1841,7 +3180,7 @@ TR;
             $chartData[] = round(((float)$tc->price) / 1000, 2); // k MAD
         }
 
-        $answerText = match ($p['lang']) {
+        $answerText = match ($lang) {
             'ar' => "إليك تحليل المبيعات والشحنات: تم تسجيل {$this->formatNumber($totalCount, 0)} شحنة بقيمة إجمالية قدرها {$this->formatNumber($totalPrice, 2)} درهم وبإجمالي وزن {$this->formatNumber($totalWeight, 2)} كغ.",
             'es' => "Aquí está el análisis de ventas y expediciones: se registraron {$this->formatNumber($totalCount, 0)} expediciones por un valor de {$this->formatNumber($totalPrice, 2)} MAD y un peso de {$this->formatNumber($totalWeight, 2)} KG.",
             'en' => "Here is the sales and shipping analysis: {$this->formatNumber($totalCount, 0)} shipments recorded for a total revenue of {$this->formatNumber($totalPrice, 2)} MAD and {$this->formatNumber($totalWeight, 2)} KG.",
@@ -1872,50 +3211,146 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'N° Expédition', 'align' => 'left'],
-            ['title' => 'Date', 'align' => 'left'],
-            ['title' => 'Client', 'align' => 'left'],
-            ['title' => 'Direction', 'align' => 'left'],
-            ['title' => 'Poids (KG)', 'align' => 'right'],
-            ['title' => 'Montant (MAD)', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Shipment No.', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Client', 'align' => 'left'],
+                ['title' => 'Destination', 'align' => 'left'],
+                ['title' => 'Weight (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'N° Envío', 'align' => 'left'],
+                ['title' => 'Fecha', 'align' => 'left'],
+                ['title' => 'Cliente', 'align' => 'left'],
+                ['title' => 'Destino', 'align' => 'left'],
+                ['title' => 'Peso (KG)', 'align' => 'right'],
+                ['title' => 'Total (MAD)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'رقم الشحنة', 'align' => 'left'],
+                ['title' => 'التاريخ', 'align' => 'left'],
+                ['title' => 'العميل', 'align' => 'left'],
+                ['title' => 'الوجهة', 'align' => 'left'],
+                ['title' => 'الوزن (كغ)', 'align' => 'right'],
+                ['title' => 'المجموع (درهم)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'N° Expédition', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Client', 'align' => 'left'],
+                ['title' => 'Direction', 'align' => 'left'],
+                ['title' => 'Poids (KG)', 'align' => 'right'],
+                ['title' => 'Montant (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Module Ventes & Expéditions (Shippings)',
-            'moduleColor' => '#4643a0',
-            'moduleIcon' => 'mdi-ship-wheel',
-            'badgeText' => 'Expéditions Clients',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $moduleTitle = match ($lang) {
+            'en' => 'Sales & Shippings Module',
+            'es' => 'Módulo de Ventas y Envíos',
+            'ar' => 'وحدة المبيعات والشحنات',
+            default => 'Module Ventes & Expéditions (Shippings)',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Client Shipments',
+            'es' => 'Envíos a Clientes',
+            'ar' => 'شحنات العملاء',
+            default => 'Expéditions Clients',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Shipments', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#b39ddb', 'icon' => 'mdi-send-check'],
+                ['label' => 'Volume Shipped', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#9575cd', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'Turnover', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Average Selling Price', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#ffb74d', 'icon' => 'mdi-chart-line'],
+            ],
+            'es' => [
+                ['label' => 'Total Envíos', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#b39ddb', 'icon' => 'mdi-send-check'],
+                ['label' => 'Volumen Enviado', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#9575cd', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'Facturación', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'Precio Medio Venta', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#ffb74d', 'icon' => 'mdi-chart-line'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي الشحنات', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#b39ddb', 'icon' => 'mdi-send-check'],
+                ['label' => 'الحجم المشحون', 'value' => $this->formatNumber($totalWeight, 2) . ' كغ', 'color' => '#9575cd', 'icon' => 'mdi-weight-kilogram'],
+                ['label' => 'رقم المعاملات', 'value' => $this->formatNumber($totalPrice, 2) . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                ['label' => 'متوسط سعر البيع', 'value' => $this->formatNumber($avgPrice, 2) . ' درهم', 'color' => '#ffb74d', 'icon' => 'mdi-chart-line'],
+            ],
+            default => [
                 ['label' => 'Total Expéditions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#b39ddb', 'icon' => 'mdi-send-check'],
                 ['label' => 'Volume Expédié', 'value' => $this->formatNumber($totalWeight, 2) . ' KG', 'color' => '#9575cd', 'icon' => 'mdi-weight-kilogram'],
                 ['label' => 'Chiffre d\'Affaires', 'value' => $this->formatNumber($totalPrice, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
                 ['label' => 'Prix Moyen Vente', 'value' => $this->formatNumber($avgPrice, 2) . ' MAD', 'color' => '#ffb74d', 'icon' => 'mdi-chart-line'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Latest Client Shipments (Top {$limit})",
+            'es' => "Últimos Envíos a Clientes (Top {$limit})",
+            'ar' => "آخر شحنات العملاء (أفضل {$limit})",
+            default => "Dernières Expéditions Clients (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Top 5 Clients by Revenue (k MAD)',
+            'es' => 'Top 5 Clientes por Facturación (k MAD)',
+            'ar' => 'أفضل 5 عملاء حسب الإيرادات (ألف درهم)',
+            default => 'Top 5 Clients par Chiffre d\'Affaires (k MAD)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'View Sales', 'route' => '/shippings', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'New Shipment', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+            'es' => [
+                ['label' => 'Consultar Ventas', 'route' => '/shippings', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nuevo Envío', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+            'ar' => [
+                ['label' => 'الاطلاع على المبيعات', 'route' => '/shippings', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'شحنة جديدة', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+            default => [
+                ['label' => 'Consulter les Ventes', 'route' => '/shippings', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nouvelle Vente', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
+            'moduleColor' => '#4643a0',
+            'moduleIcon' => 'mdi-ship-wheel',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Dernières Expéditions Clients (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($chartLabels) ? [
                 'id' => $chartId,
-                'title' => 'Top 5 Clients par Chiffre d\'Affaires (k MAD)',
+                'title' => $chartTitle,
                 'labels' => $chartLabels,
                 'data' => $chartData,
-                'seriesName' => 'Montant (k MAD)',
+                'seriesName' => ($lang === 'en' ? 'Amount (k MAD)' : 'Montant (k MAD)'),
                 'type' => 'bar',
                 'color' => '#4643a0',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Consulter les Ventes', 'route' => '/shippings', 'icon' => 'mdi-format-list-bulleted'],
-                ['label' => 'Nouvelle Vente', 'route' => '/shippings/add_shipping', 'icon' => 'mdi-plus-circle'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -1924,6 +3359,7 @@ TR;
      */
     private function handleProductionsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $q = DB::table('productions')->whereNull('deleted_at');
         $this->applyTimeFilter($q, 'date', $p['timeFrame']);
 
@@ -1941,7 +3377,12 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici le récapitulatif de production usine : {$this->formatNumber($totalCount, 0)} opérations de production enregistrées, avec un total de {$this->formatNumber($frozenWeight, 2)} KG de poisson congelé, {$this->formatNumber($guanoWeight, 2)} KG de farine/guano et {$this->formatNumber($freshWeight, 2)} KG de réception poisson frais.";
+        $answerText = match ($lang) {
+            'en' => "Here is the factory production summary: {$this->formatNumber($totalCount, 0)} production operations recorded, with a total of {$this->formatNumber($frozenWeight, 2)} KG of frozen fish, {$this->formatNumber($guanoWeight, 2)} KG of fishmeal/guano, and {$this->formatNumber($freshWeight, 2)} KG of fresh fish reception.",
+            'es' => "Aquí está el resumen de producción de fábrica: {$this->formatNumber($totalCount, 0)} operaciones de producción registradas, con un total de {$this->formatNumber($frozenWeight, 2)} KG de pescado congelado, {$this->formatNumber($guanoWeight, 2)} KG de harina/guano y {$this->formatNumber($freshWeight, 2)} KG de recepción de pescado fresco.",
+            'ar' => "إليك ملخص إنتاج المصنع: تم تسجيل {$this->formatNumber($totalCount, 0)} عملية إنتاج بإجمالي {$this->formatNumber($frozenWeight, 2)} كغ من الأسماك المجمدة، و {$this->formatNumber($guanoWeight, 2)} كغ من الدقيق/الغوانو، و {$this->formatNumber($freshWeight, 2)} كغ من استلام الأسماك الطازجة.",
+            default => "Voici le récapitulatif de production usine : {$this->formatNumber($totalCount, 0)} opérations de production enregistrées, avec un total de {$this->formatNumber($frozenWeight, 2)} KG de poisson congelé, {$this->formatNumber($guanoWeight, 2)} KG de farine/guano et {$this->formatNumber($freshWeight, 2)} KG de réception poisson frais.",
+        };
 
         $tableRowsHtml = '';
         foreach ($records as $r) {
@@ -1966,50 +3407,153 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'ID', 'align' => 'left'],
-            ['title' => 'Date', 'align' => 'left'],
-            ['title' => 'Frais (KG)', 'align' => 'right'],
-            ['title' => 'Congelé (KG)', 'align' => 'right'],
-            ['title' => 'Guano/Farine (KG)', 'align' => 'right'],
-            ['title' => 'Équilibre', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'ID', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Fresh (KG)', 'align' => 'right'],
+                ['title' => 'Frozen (KG)', 'align' => 'right'],
+                ['title' => 'Guano/Meal (KG)', 'align' => 'right'],
+                ['title' => 'Equilibrium', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'ID', 'align' => 'left'],
+                ['title' => 'Fecha', 'align' => 'left'],
+                ['title' => 'Fresco (KG)', 'align' => 'right'],
+                ['title' => 'Congelado (KG)', 'align' => 'right'],
+                ['title' => 'Guano/Harina (KG)', 'align' => 'right'],
+                ['title' => 'Equilibrio', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'المعرف', 'align' => 'left'],
+                ['title' => 'التاريخ', 'align' => 'left'],
+                ['title' => 'طازج (كغ)', 'align' => 'right'],
+                ['title' => 'مجمد (كغ)', 'align' => 'right'],
+                ['title' => 'غوانو/دقيق (كغ)', 'align' => 'right'],
+                ['title' => 'التوازن', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'ID', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Frais (KG)', 'align' => 'right'],
+                ['title' => 'Congelé (KG)', 'align' => 'right'],
+                ['title' => 'Guano/Farine (KG)', 'align' => 'right'],
+                ['title' => 'Équilibre', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Module Production & Rendement Usine',
-            'moduleColor' => '#00897B',
-            'moduleIcon' => 'mdi-factory',
-            'badgeText' => 'Usine & Transformation',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $moduleTitle = match ($lang) {
+            'en' => 'Factory Production & Yield Module',
+            'es' => 'Módulo de Producción y Rendimiento de Fábrica',
+            'ar' => 'وحدة الإنتاج ومردودية المصنع',
+            default => 'Module Production & Rendement Usine',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Factory & Processing',
+            'es' => 'Fábrica y Transformación',
+            'ar' => 'المصنع والتحويل',
+            default => 'Usine & Transformation',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Productions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#00897B', 'icon' => 'mdi-cog-sync'],
+                ['label' => 'Frozen Fish', 'value' => $this->formatNumber($frozenWeight, 2) . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Guano Production', 'value' => $this->formatNumber($guanoWeight, 2) . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => 'Fresh Processed', 'value' => $this->formatNumber($freshWeight, 2) . ' KG', 'color' => '#80cbc4', 'icon' => 'mdi-fish'],
+            ],
+            'es' => [
+                ['label' => 'Total Producciones', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#00897B', 'icon' => 'mdi-cog-sync'],
+                ['label' => 'Pescado Congelado', 'value' => $this->formatNumber($frozenWeight, 2) . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Producción Guano', 'value' => $this->formatNumber($guanoWeight, 2) . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => 'Fresco Procesado', 'value' => $this->formatNumber($freshWeight, 2) . ' KG', 'color' => '#80cbc4', 'icon' => 'mdi-fish'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي العمليات', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#00897B', 'icon' => 'mdi-cog-sync'],
+                ['label' => 'سمك مجمد', 'value' => $this->formatNumber($frozenWeight, 2) . ' كغ', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
+                ['label' => 'إنتاج الغوانو', 'value' => $this->formatNumber($guanoWeight, 2) . ' كغ', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
+                ['label' => 'طازج معالج', 'value' => $this->formatNumber($freshWeight, 2) . ' كغ', 'color' => '#80cbc4', 'icon' => 'mdi-fish'],
+            ],
+            default => [
                 ['label' => 'Total Productions', 'value' => $this->formatNumber($totalCount, 0), 'color' => '#00897B', 'icon' => 'mdi-cog-sync'],
                 ['label' => 'Poisson Congelé', 'value' => $this->formatNumber($frozenWeight, 2) . ' KG', 'color' => '#26A69A', 'icon' => 'mdi-snowflake'],
                 ['label' => 'Production Guano', 'value' => $this->formatNumber($guanoWeight, 2) . ' KG', 'color' => '#66BB6A', 'icon' => 'mdi-leaf'],
                 ['label' => 'Frais Traité', 'value' => $this->formatNumber($freshWeight, 2) . ' KG', 'color' => '#80cbc4', 'icon' => 'mdi-fish'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Latest Production Runs (Top {$limit})",
+            'es' => "Últimas Series de Producción (Top {$limit})",
+            'ar' => "آخر دفعات الإنتاج (أفضل {$limit})",
+            default => "Dernières Séries de Production (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Production Distribution by Type (Tons)',
+            'es' => 'Distribución de la Producción por Tipo (Toneladas)',
+            'ar' => 'توزيع الإنتاج حسب الصنف (أطنان)',
+            default => 'Répartition de la Production par Type (Tonnes)',
+        };
+
+        $chartLabels = match ($lang) {
+            'en' => ['Frozen Fish', 'Guano & Meal', 'Fresh Fish'],
+            'es' => ['Pescado Congelado', 'Guano y Harina', 'Pescado Fresco'],
+            'ar' => ['سمك مجمد', 'غوانو ودقيق', 'سمك طازج'],
+            default => ['Poisson Congelé', 'Guano & Farine', 'Poisson Frais'],
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'View Production', 'route' => '/production', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'New Production', 'route' => '/production/add', 'icon' => 'mdi-plus-circle'],
+            ],
+            'es' => [
+                ['label' => 'Consultar Producción', 'route' => '/production', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nueva Producción', 'route' => '/production/add', 'icon' => 'mdi-plus-circle'],
+            ],
+            'ar' => [
+                ['label' => 'الاطلاع على الإنتاج', 'route' => '/production', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'إنتاج جديد', 'route' => '/production/add', 'icon' => 'mdi-plus-circle'],
+            ],
+            default => [
+                ['label' => 'Consulter la Production', 'route' => '/production', 'icon' => 'mdi-format-list-bulleted'],
+                ['label' => 'Nouvelle Production', 'route' => '/production/add', 'icon' => 'mdi-plus-circle'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
+            'moduleColor' => '#00897B',
+            'moduleIcon' => 'mdi-factory',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Dernières Séries de Production (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => [
                 'id' => $chartId,
-                'title' => 'Répartition de la Production par Type (Tonnes)',
-                'labels' => ['Poisson Congelé', 'Guano & Farine', 'Poisson Frais'],
+                'title' => $chartTitle,
+                'labels' => $chartLabels,
                 'data' => [round($frozenWeight / 1000, 2), round($guanoWeight / 1000, 2), round($freshWeight / 1000, 2)],
-                'seriesName' => 'Volume (Tonnes)',
+                'seriesName' => ($lang === 'en' ? 'Volume (Tons)' : 'Volume (Tonnes)'),
                 'type' => 'pie',
                 'color' => '#00897B',
             ],
-            'navButtons' => [
-                ['label' => 'Consulter la Production', 'route' => '/production', 'icon' => 'mdi-format-list-bulleted'],
-                ['label' => 'Nouvelle Production', 'route' => '/production/add_production', 'icon' => 'mdi-plus-circle'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2018,6 +3562,7 @@ TR;
      */
     private function handleWarehousesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $keyword = $p['keyword'];
 
         if ($keyword) {
@@ -2041,7 +3586,12 @@ TR;
             $totalSpeciesStock = (float) $stockRows->sum('stock_kg');
             $totalSpeciesVal = (float) $stockRows->sum('stock_val');
 
-            $answerText = "Voici la situation des stocks pour l'espèce « " . ucfirst($keyword) . " » : un stock total disponible de {$this->formatNumber($totalSpeciesStock, 2)} KG valorisé à {$this->formatNumber($totalSpeciesVal, 2)} MAD réparti sur " . count($stockRows) . " magasin(s).";
+            $answerText = match ($lang) {
+                'en' => "Here is the stock status for the species « " . ucfirst($keyword) . " »: total available stock of {$this->formatNumber($totalSpeciesStock, 2)} KG valued at {$this->formatNumber($totalSpeciesVal, 2)} MAD across " . count($stockRows) . " warehouse(s).",
+                'es' => "Aquí está la situación de existencias para la especie « " . ucfirst($keyword) . " »: stock total disponible de {$this->formatNumber($totalSpeciesStock, 2)} KG valorado en {$this->formatNumber($totalSpeciesVal, 2)} MAD distribuido en " . count($stockRows) . " almacén(es).",
+                'ar' => "إليك وضع المخزون لصنف « " . ucfirst($keyword) . " »: إجمالي مخزون متوفر قدره {$this->formatNumber($totalSpeciesStock, 2)} كغ بقيمة {$this->formatNumber($totalSpeciesVal, 2)} درهم موزع على " . count($stockRows) . " مستودع(ات).",
+                default => "Voici la situation des stocks pour l'espèce « " . ucfirst($keyword) . " » : un stock total disponible de {$this->formatNumber($totalSpeciesStock, 2)} KG valorisé à {$this->formatNumber($totalSpeciesVal, 2)} MAD réparti sur " . count($stockRows) . " magasin(s).",
+            };
 
             $tableRowsHtml = '';
             foreach ($stockRows as $sr) {
@@ -2062,47 +3612,106 @@ TR;
 TR;
             }
 
-            $headers = [
-                ['title' => 'Espèce / Produit', 'align' => 'left'],
-                ['title' => 'Entrepôt / Magasin', 'align' => 'left'],
-                ['title' => 'Stock Disponible (KG)', 'align' => 'right'],
-                ['title' => 'Valeur Estimée (MAD)', 'align' => 'right'],
-                ['title' => 'Action', 'align' => 'center'],
-            ];
+            $headers = match ($lang) {
+                'en' => [
+                    ['title' => 'Species / Product', 'align' => 'left'],
+                    ['title' => 'Warehouse', 'align' => 'left'],
+                    ['title' => 'Available Stock (KG)', 'align' => 'right'],
+                    ['title' => 'Estimated Value (MAD)', 'align' => 'right'],
+                    ['title' => 'Action', 'align' => 'center'],
+                ],
+                'es' => [
+                    ['title' => 'Especie / Producto', 'align' => 'left'],
+                    ['title' => 'Almacén', 'align' => 'left'],
+                    ['title' => 'Stock Disponible (KG)', 'align' => 'right'],
+                    ['title' => 'Valor Estimado (MAD)', 'align' => 'right'],
+                    ['title' => 'Acción', 'align' => 'center'],
+                ],
+                'ar' => [
+                    ['title' => 'الصنف / المنتج', 'align' => 'left'],
+                    ['title' => 'المستودع', 'align' => 'left'],
+                    ['title' => 'المخزون المتوفر (كغ)', 'align' => 'right'],
+                    ['title' => 'القيمة التقديرية (درهم)', 'align' => 'right'],
+                    ['title' => 'إجراء', 'align' => 'center'],
+                ],
+                default => [
+                    ['title' => 'Espèce / Produit', 'align' => 'left'],
+                    ['title' => 'Entrepôt / Magasin', 'align' => 'left'],
+                    ['title' => 'Stock Disponible (KG)', 'align' => 'right'],
+                    ['title' => 'Valeur Estimée (MAD)', 'align' => 'right'],
+                    ['title' => 'Action', 'align' => 'center'],
+                ],
+            };
+
+            $kpis = match ($lang) {
+                'en' => [
+                    ['label' => 'Available Stock', 'value' => $this->formatNumber($totalSpeciesStock, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-weight-kilogram'],
+                    ['label' => 'Estimated Value', 'value' => $this->formatNumber($totalSpeciesVal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                    ['label' => 'Warehouses Count', 'value' => (string)count($stockRows), 'color' => '#9742f5', 'icon' => 'mdi-warehouse'],
+                ],
+                'es' => [
+                    ['label' => 'Stock Disponible', 'value' => $this->formatNumber($totalSpeciesStock, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-weight-kilogram'],
+                    ['label' => 'Valor Estimado', 'value' => $this->formatNumber($totalSpeciesVal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                    ['label' => 'Número de Almacenes', 'value' => (string)count($stockRows), 'color' => '#9742f5', 'icon' => 'mdi-warehouse'],
+                ],
+                'ar' => [
+                    ['label' => 'المخزون المتوفر', 'value' => $this->formatNumber($totalSpeciesStock, 2) . ' كغ', 'color' => '#a21ee5', 'icon' => 'mdi-weight-kilogram'],
+                    ['label' => 'القيمة التقديرية', 'value' => $this->formatNumber($totalSpeciesVal, 2) . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                    ['label' => 'عدد المستودعات', 'value' => (string)count($stockRows), 'color' => '#9742f5', 'icon' => 'mdi-warehouse'],
+                ],
+                default => [
+                    ['label' => 'Stock Disponible', 'value' => $this->formatNumber($totalSpeciesStock, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-weight-kilogram'],
+                    ['label' => 'Valeur Estimée', 'value' => $this->formatNumber($totalSpeciesVal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
+                    ['label' => 'Nombre d\'Entrepôts', 'value' => (string)count($stockRows), 'color' => '#9742f5', 'icon' => 'mdi-warehouse'],
+                ],
+            };
+
+            $navBtns = match ($lang) {
+                'en' => [
+                    ['label' => 'Warehouse Management', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                    ['label' => 'Species Catalog', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+                ],
+                'es' => [
+                    ['label' => 'Gestión de Almacenes', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                    ['label' => 'Catálogo de Especies', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+                ],
+                'ar' => [
+                    ['label' => 'إدارة المستودعات', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                    ['label' => 'دليل الأصناف', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+                ],
+                default => [
+                    ['label' => 'Gestion des Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                    ['label' => 'Fiche Espèces', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+                ],
+            };
 
             return $this->renderStandardCard([
                 'uniqueId' => $uniqueId,
                 'chartId' => $chartId,
                 'theme' => $theme,
-                'moduleTitle' => 'Stock Espèce: ' . ucfirst($keyword),
+                'lang' => $lang,
+                'moduleTitle' => ($lang === 'en' ? 'Species Stock: ' : ($lang === 'es' ? 'Stock Especie: ' : 'Stock Espèce: ')) . ucfirst($keyword),
                 'moduleColor' => '#a21ee5',
                 'moduleIcon' => 'mdi-warehouse',
-                'badgeText' => 'Stock Espèce Filtré',
+                'badgeText' => ($lang === 'en' ? 'Filtered Species Stock' : ($lang === 'es' ? 'Stock Especie Filtrado' : 'Stock Espèce Filtré')),
                 'userQuestion' => $p['question'],
                 'answerText' => $answerText,
-                'kpis' => [
-                    ['label' => 'Stock Disponible', 'value' => $this->formatNumber($totalSpeciesStock, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-weight-kilogram'],
-                    ['label' => 'Valeur Estimée', 'value' => $this->formatNumber($totalSpeciesVal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-multiple'],
-                    ['label' => 'Nombre d\'Entrepôts', 'value' => (string)count($stockRows), 'color' => '#9742f5', 'icon' => 'mdi-warehouse'],
-                ],
+                'kpis' => $kpis,
                 'table' => [
-                    'title' => "Détail du Stock « {$keyword} » par Entrepôt",
+                    'title' => ($lang === 'en' ? "Stock Details for « {$keyword} » by Warehouse" : "Détail du Stock « {$keyword} » par Entrepôt"),
                     'headers' => $headers,
                     'rowsHtml' => $tableRowsHtml,
                 ],
                 'chart' => count($stockRows) ? [
                     'id' => $chartId,
-                    'title' => "Répartition du Stock {$keyword} par Entrepôt (KG)",
+                    'title' => ($lang === 'en' ? "Distribution of {$keyword} Stock by Warehouse (KG)" : "Répartition du Stock {$keyword} par Entrepôt (KG)"),
                     'labels' => $stockRows->pluck('warehouse_name')->toArray(),
                     'data' => $stockRows->map(fn($r) => round((float)$r->stock_kg, 2))->toArray(),
-                    'seriesName' => 'Stock (KG)',
+                    'seriesName' => ($lang === 'en' ? 'Stock (KG)' : 'Stock (KG)'),
                     'type' => 'pie',
                     'color' => '#a21ee5',
                 ] : null,
-                'navButtons' => [
-                    ['label' => 'Gestion des Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
-                    ['label' => 'Fiche Espèces', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
-                ],
+                'navButtons' => $navBtns,
             ]);
         }
 
@@ -2116,7 +3725,12 @@ TR;
         $totalStockKg = (float) $warehouses->sum('total_weight');
         $warehousesCount = count($warehouses);
 
-        $answerText = "Voici la situation globale des entrepôts et stocks : le réseau compte {$warehousesCount} magasins avec un stock global cumulé de {$this->formatNumber($totalStockKg, 2)} KG.";
+        $answerText = match ($lang) {
+            'en' => "Here is the global warehouse and stock overview: the network has {$warehousesCount} warehouses with a total combined stock of {$this->formatNumber($totalStockKg, 2)} KG.",
+            'es' => "Aquí está la situación global de almacenes y existencias: la red cuenta con {$warehousesCount} almacenes con un stock global acumulado de {$this->formatNumber($totalStockKg, 2)} KG.",
+            'ar' => "إليك الوضع العام للمستودعات والمخزون: تضم الشبكة {$warehousesCount} مستودعاً بإجمالي مخزون تراكمي قدره {$this->formatNumber($totalStockKg, 2)} كغ.",
+            default => "Voici la situation globale des entrepôts et stocks : le réseau compte {$warehousesCount} magasins avec un stock global cumulé de {$this->formatNumber($totalStockKg, 2)} KG.",
+        };
 
         $tableRowsHtml = '';
         foreach ($warehouses as $wh) {
@@ -2138,46 +3752,130 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'Entrepôt', 'align' => 'left'],
-            ['title' => 'Type Magasin', 'align' => 'left'],
-            ['title' => 'Catégorie Stock', 'align' => 'left'],
-            ['title' => 'Poids Total (KG)', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Warehouse', 'align' => 'left'],
+                ['title' => 'Storage Type', 'align' => 'left'],
+                ['title' => 'Stock Category', 'align' => 'left'],
+                ['title' => 'Total Weight (KG)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Almacén', 'align' => 'left'],
+                ['title' => 'Tipo de Almacén', 'align' => 'left'],
+                ['title' => 'Categoría Stock', 'align' => 'left'],
+                ['title' => 'Peso Total (KG)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'المستودع', 'align' => 'left'],
+                ['title' => 'نوع المخزن', 'align' => 'left'],
+                ['title' => 'فئة المخزون', 'align' => 'left'],
+                ['title' => 'إجمالي الوزن (كغ)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Entrepôt', 'align' => 'left'],
+                ['title' => 'Type Magasin', 'align' => 'left'],
+                ['title' => 'Catégorie Stock', 'align' => 'left'],
+                ['title' => 'Poids Total (KG)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => 'Warehouses & Inventory Module',
+            'es' => 'Módulo de Almacenes e Inventario',
+            'ar' => 'وحدة المستودعات والمخزون',
+            default => 'Module Entrepôts & Stocks (Warehouses)',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Stock Status',
+            'es' => 'Estado de Existencias',
+            'ar' => 'وضعية المخزون',
+            default => 'Situation des Stocks',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Warehouses', 'value' => (string)$warehousesCount, 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Global Stock', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#00E676', 'icon' => 'mdi-weight-kilogram'],
+            ],
+            'es' => [
+                ['label' => 'Total Almacenes', 'value' => (string)$warehousesCount, 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Stock Global', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#00E676', 'icon' => 'mdi-weight-kilogram'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي المستودعات', 'value' => (string)$warehousesCount, 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+                ['label' => 'المخزون الإجمالي', 'value' => $this->formatNumber($totalStockKg, 2) . ' كغ', 'color' => '#00E676', 'icon' => 'mdi-weight-kilogram'],
+            ],
+            default => [
+                ['label' => 'Total Magasins', 'value' => (string)$warehousesCount, 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Stock Global', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#00E676', 'icon' => 'mdi-weight-kilogram'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => 'Warehouses & Cold Storage Status',
+            'es' => 'Estado de Almacenes y Cámaras Frigoríficas',
+            'ar' => 'وضعية المستودعات وغرف التبريد',
+            default => 'Situation des Magasins & Chambres Froides',
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Top Warehouses by Volume (KG)',
+            'es' => 'Top Almacenes por Volumen (KG)',
+            'ar' => 'أفضل المستودعات حسب الحجم (كغ)',
+            default => 'Top Magasins par Volume (KG)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Warehouse Management', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Inter-Warehouse Transfers', 'route' => '/warehouse-transfers/list', 'icon' => 'mdi-swap-horizontal'],
+            ],
+            'es' => [
+                ['label' => 'Gestión de Almacenes', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Transferencias entre Almacenes', 'route' => '/warehouse-transfers/list', 'icon' => 'mdi-swap-horizontal'],
+            ],
+            'ar' => [
+                ['label' => 'إدارة المستودعات', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                ['label' => 'تحويلات بين المستودعات', 'route' => '/warehouse-transfers/list', 'icon' => 'mdi-swap-horizontal'],
+            ],
+            default => [
+                ['label' => 'Gestion des Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+                ['label' => 'Transferts Inter-Magasins', 'route' => '/warehouse-transfers/list', 'icon' => 'mdi-swap-horizontal'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => 'Module Entrepôts & Stocks (Warehouses)',
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#a21ee5',
             'moduleIcon' => 'mdi-warehouse',
-            'badgeText' => 'Situation des Stocks',
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => 'Total Magasins', 'value' => (string)$warehousesCount, 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
-                ['label' => 'Stock Global', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#00E676', 'icon' => 'mdi-weight-kilogram'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Situation des Magasins & Chambres Froides",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($warehouses) ? [
                 'id' => $chartId,
-                'title' => 'Top Magasins par Volume (KG)',
+                'title' => $chartTitle,
                 'labels' => $warehouses->take(6)->pluck('name')->toArray(),
                 'data' => $warehouses->take(6)->map(fn($w) => round((float)$w->total_weight, 2))->toArray(),
-                'seriesName' => 'Poids (KG)',
+                'seriesName' => ($lang === 'en' ? 'Weight (KG)' : 'Poids (KG)'),
                 'type' => 'bar',
                 'color' => '#a21ee5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Gestion des Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
-                ['label' => 'Transferts Inter-Magasins', 'route' => '/warehouse_transfer', 'icon' => 'mdi-swap-horizontal'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2186,6 +3884,7 @@ TR;
      */
     private function handleInvoicesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $clientInvoicesCount = DB::table('client_invoices')->whereNull('deleted_at')->count();
         $clientInvoicesTotal = (float) DB::table('client_invoices')->whereNull('deleted_at')->sum('total_price');
 
@@ -2201,7 +3900,12 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici la situation de la facturation : {$this->formatNumber($clientInvoicesCount, 0)} factures clients émises ({$this->formatNumber($clientInvoicesTotal, 2)} MAD) et {$this->formatNumber($supplierInvoicesCount, 0)} factures fournisseurs enregistrées ({$this->formatNumber($supplierInvoicesTotal, 2)} MAD).";
+        $answerText = match ($lang) {
+            'en' => "Here is the invoicing overview: {$this->formatNumber($clientInvoicesCount, 0)} client invoices issued ({$this->formatNumber($clientInvoicesTotal, 2)} MAD) and {$this->formatNumber($supplierInvoicesCount, 0)} supplier invoices recorded ({$this->formatNumber($supplierInvoicesTotal, 2)} MAD).",
+            'es' => "Aquí está el estado de facturación: {$this->formatNumber($clientInvoicesCount, 0)} facturas a clientes emitidas ({$this->formatNumber($clientInvoicesTotal, 2)} MAD) y {$this->formatNumber($supplierInvoicesCount, 0)} facturas de proveedores registradas ({$this->formatNumber($supplierInvoicesTotal, 2)} MAD).",
+            'ar' => "إليك ملخص الفوترة: تم إصدار {$this->formatNumber($clientInvoicesCount, 0)} فاتورة عملاء ({$this->formatNumber($clientInvoicesTotal, 2)} درهم) وتسجيل {$this->formatNumber($supplierInvoicesCount, 0)} فاتورة موردين ({$this->formatNumber($supplierInvoicesTotal, 2)} درهم).",
+            default => "Voici la situation de la facturation : {$this->formatNumber($clientInvoicesCount, 0)} factures clients émises ({$this->formatNumber($clientInvoicesTotal, 2)} MAD) et {$this->formatNumber($supplierInvoicesCount, 0)} factures fournisseurs enregistrées ({$this->formatNumber($supplierInvoicesTotal, 2)} MAD).",
+        };
 
         $tableRowsHtml = '';
         foreach ($invoices as $inv) {
@@ -2216,7 +3920,7 @@ TR;
               <td style="padding: 10px 12px; text-align: right; font-weight: 600;">{$weight} KG</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$price} MAD</td>
               <td style="padding: 10px 12px; text-align: center;">
-                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #E65100; font-size: 11px; cursor: pointer; border: none;" data-route="/client_invoice">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #E65100; font-size: 11px; cursor: pointer; border: none;" data-route="/client_invoice/list_client_invoice">
                   Voir
                 </button>
               </td>
@@ -2224,49 +3928,149 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'N° Facture', 'align' => 'left'],
-            ['title' => 'Date', 'align' => 'left'],
-            ['title' => 'Client', 'align' => 'left'],
-            ['title' => 'Poids (KG)', 'align' => 'right'],
-            ['title' => 'Montant (MAD)', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Invoice No.', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Client', 'align' => 'left'],
+                ['title' => 'Weight (KG)', 'align' => 'right'],
+                ['title' => 'Amount (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'N° Factura', 'align' => 'left'],
+                ['title' => 'Fecha', 'align' => 'left'],
+                ['title' => 'Cliente', 'align' => 'left'],
+                ['title' => 'Peso (KG)', 'align' => 'right'],
+                ['title' => 'Importe (MAD)', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'رقم الفاتورة', 'align' => 'left'],
+                ['title' => 'التاريخ', 'align' => 'left'],
+                ['title' => 'العميل', 'align' => 'left'],
+                ['title' => 'الوزن (كغ)', 'align' => 'right'],
+                ['title' => 'المبلغ (درهم)', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'N° Facture', 'align' => 'left'],
+                ['title' => 'Date', 'align' => 'left'],
+                ['title' => 'Client', 'align' => 'left'],
+                ['title' => 'Poids (KG)', 'align' => 'right'],
+                ['title' => 'Montant (MAD)', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Module Facturation & Finances',
-            'moduleColor' => '#E65100',
-            'moduleIcon' => 'mdi-file-document-outline',
-            'badgeText' => 'Factures & Règlements',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $moduleTitle = match ($lang) {
+            'en' => 'Invoicing & Finances Module',
+            'es' => 'Módulo de Facturación y Finanzas',
+            'ar' => 'وحدة الفوترة والمالية',
+            default => 'Module Facturation & Finances',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Invoices & Settlements',
+            'es' => 'Facturas y Liquidaciones',
+            'ar' => 'الفواتير والتحصيلات',
+            default => 'Factures & Règlements',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Client Invoices', 'value' => $this->formatNumber($clientInvoicesCount, 0), 'color' => '#E65100', 'icon' => 'mdi-receipt-text'],
+                ['label' => 'Total Invoiced Clients', 'value' => $this->formatNumber($clientInvoicesTotal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'Supplier Invoices', 'value' => $this->formatNumber($supplierInvoicesCount, 0), 'color' => '#F57C00', 'icon' => 'mdi-receipt-text-outline'],
+                ['label' => 'Total Invoiced Suppliers', 'value' => $this->formatNumber($supplierInvoicesTotal, 2) . ' MAD', 'color' => '#FF7043', 'icon' => 'mdi-cash-minus'],
+            ],
+            'es' => [
+                ['label' => 'Facturas Clientes', 'value' => $this->formatNumber($clientInvoicesCount, 0), 'color' => '#E65100', 'icon' => 'mdi-receipt-text'],
+                ['label' => 'Total Facturado Clientes', 'value' => $this->formatNumber($clientInvoicesTotal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'Facturas Proveedores', 'value' => $this->formatNumber($supplierInvoicesCount, 0), 'color' => '#F57C00', 'icon' => 'mdi-receipt-text-outline'],
+                ['label' => 'Total Facturado Proveedores', 'value' => $this->formatNumber($supplierInvoicesTotal, 2) . ' MAD', 'color' => '#FF7043', 'icon' => 'mdi-cash-minus'],
+            ],
+            'ar' => [
+                ['label' => 'فواتير العملاء', 'value' => $this->formatNumber($clientInvoicesCount, 0), 'color' => '#E65100', 'icon' => 'mdi-receipt-text'],
+                ['label' => 'مجموع فواتير العملاء', 'value' => $this->formatNumber($clientInvoicesTotal, 2) . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'فواتير الموردين', 'value' => $this->formatNumber($supplierInvoicesCount, 0), 'color' => '#F57C00', 'icon' => 'mdi-receipt-text-outline'],
+                ['label' => 'مجموع فواتير الموردين', 'value' => $this->formatNumber($supplierInvoicesTotal, 2) . ' درهم', 'color' => '#FF7043', 'icon' => 'mdi-cash-minus'],
+            ],
+            default => [
                 ['label' => 'Factures Clients', 'value' => $this->formatNumber($clientInvoicesCount, 0), 'color' => '#E65100', 'icon' => 'mdi-receipt-text'],
                 ['label' => 'Total Facturé Clients', 'value' => $this->formatNumber($clientInvoicesTotal, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash-plus'],
                 ['label' => 'Factures Fournisseurs', 'value' => $this->formatNumber($supplierInvoicesCount, 0), 'color' => '#F57C00', 'icon' => 'mdi-receipt-text-outline'],
                 ['label' => 'Total Facturé Fournisseurs', 'value' => $this->formatNumber($supplierInvoicesTotal, 2) . ' MAD', 'color' => '#FF7043', 'icon' => 'mdi-cash-minus'],
             ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Latest Invoices Issued (Top {$limit})",
+            'es' => "Últimas Facturas Emitidas (Top {$limit})",
+            'ar' => "آخر الفواتير الصادرة (أفضل {$limit})",
+            default => "Dernières Factures Émises (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Invoiced Financial Volume (MAD)',
+            'es' => 'Volumen Financiero Facturado (MAD)',
+            'ar' => 'الحجم المالي للفوترة (درهم)',
+            default => 'Volume Financier Facturé (MAD)',
+        };
+
+        $chartLabels = match ($lang) {
+            'en' => ['Client Invoices (Sales)', 'Supplier Invoices (Purchases)'],
+            'es' => ['Facturas Clientes (Ventas)', 'Facturas Proveedores (Compras)'],
+            'ar' => ['فواتير العملاء (مبيعات)', 'فواتير الموردين (مشتريات)'],
+            default => ['Factures Clients (Ventes)', 'Factures Fournisseurs (Achats)'],
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Client Invoices', 'route' => '/client_invoice/list_client_invoice', 'icon' => 'mdi-receipt'],
+                ['label' => 'Supplier Invoices', 'route' => '/supplier_invoice/list_supplier_invoice', 'icon' => 'mdi-receipt-text'],
+            ],
+            'es' => [
+                ['label' => 'Facturas Clientes', 'route' => '/client_invoice/list_client_invoice', 'icon' => 'mdi-receipt'],
+                ['label' => 'Facturas Proveedores', 'route' => '/supplier_invoice/list_supplier_invoice', 'icon' => 'mdi-receipt-text'],
+            ],
+            'ar' => [
+                ['label' => 'فواتير العملاء', 'route' => '/client_invoice/list_client_invoice', 'icon' => 'mdi-receipt'],
+                ['label' => 'فواتير الموردين', 'route' => '/supplier_invoice/list_supplier_invoice', 'icon' => 'mdi-receipt-text'],
+            ],
+            default => [
+                ['label' => 'Factures Clients', 'route' => '/client_invoice/list_client_invoice', 'icon' => 'mdi-receipt'],
+                ['label' => 'Factures Fournisseurs', 'route' => '/supplier_invoice/list_supplier_invoice', 'icon' => 'mdi-receipt-text'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
+            'moduleColor' => '#E65100',
+            'moduleIcon' => 'mdi-file-document-outline',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Dernières Factures Émises (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => [
                 'id' => $chartId,
-                'title' => 'Volume Financier Facturé (MAD)',
-                'labels' => ['Factures Clients (Ventes)', 'Factures Fournisseurs (Achats)'],
+                'title' => $chartTitle,
+                'labels' => $chartLabels,
                 'data' => [round($clientInvoicesTotal, 2), round($supplierInvoicesTotal, 2)],
-                'seriesName' => 'Montant (MAD)',
+                'seriesName' => ($lang === 'en' ? 'Amount (MAD)' : 'Montant (MAD)'),
                 'type' => 'pie',
                 'color' => '#E65100',
             ],
-            'navButtons' => [
-                ['label' => 'Factures Clients', 'route' => '/client_invoice', 'icon' => 'mdi-receipt'],
-                ['label' => 'Factures Fournisseurs', 'route' => '/supplier_invoice', 'icon' => 'mdi-receipt-text'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2275,6 +4079,7 @@ TR;
      */
     private function handleWorkforceQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $workersCount = DB::table('workforces')->whereNull('deleted_at')->count();
         $activitiesCount = DB::table('fortnight_activities')->whereNull('deleted_at')->count();
         $totalPaid = (float) DB::table('fortnight_activities')->whereNull('deleted_at')->sum('price');
@@ -2295,7 +4100,12 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici la situation de la main d'œuvre : {$this->formatNumber($workersCount, 0)} ouvriers enregistrés, avec un historique de {$this->formatNumber($activitiesCount, 0)} journées de travail réparties sur les quinzaines pour une masse salariale traitée de {$this->formatNumber($totalPaid, 2)} MAD.";
+        $answerText = match ($lang) {
+            'en' => "Here is the workforce status: {$this->formatNumber($workersCount, 0)} workers registered, with a track record of {$this->formatNumber($activitiesCount, 0)} worked days across fortnights for a processed payroll of {$this->formatNumber($totalPaid, 2)} MAD.",
+            'es' => "Aquí está la situación de mano de obra: {$this->formatNumber($workersCount, 0)} obreros registrados, con un historial de {$this->formatNumber($activitiesCount, 0)} jornadas de trabajo en quincenas para una masa salarial de {$this->formatNumber($totalPaid, 2)} MAD.",
+            'ar' => "إليك وضع اليد العاملة: تم تسجيل {$this->formatNumber($workersCount, 0)} عاملاً، بسجل عمل يبلغ {$this->formatNumber($activitiesCount, 0)} يوم عمل عبر فترات النصف-شهرية بكتلة أجور معالجة تبلغ {$this->formatNumber($totalPaid, 2)} درهم.",
+            default => "Voici la situation de la main d'œuvre : {$this->formatNumber($workersCount, 0)} ouvriers enregistrés, avec un historique de {$this->formatNumber($activitiesCount, 0)} journées de travail réparties sur les quinzaines pour une masse salariale traitée de {$this->formatNumber($totalPaid, 2)} MAD.",
+        };
 
         $tableRowsHtml = '';
         foreach ($workers as $w) {
@@ -2309,7 +4119,7 @@ TR;
               <td style="padding: 10px 12px;">{$w->nationality}</td>
               <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #00E676;">{$wage} MAD/J</td>
               <td style="padding: 10px 12px; text-align: center;">
-                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/workforces">
+                <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-3 py-1 text-white" style="background: #42A5F5; font-size: 11px; cursor: pointer; border: none;" data-route="/workforce/management">
                   Fiche
                 </button>
               </td>
@@ -2317,47 +4127,134 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'Matricule', 'align' => 'left'],
-            ['title' => 'Nom Complet', 'align' => 'left'],
-            ['title' => 'Nationalité', 'align' => 'left'],
-            ['title' => 'Salaire Journalier', 'align' => 'right'],
-            ['title' => 'Action', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Matricule', 'align' => 'left'],
+                ['title' => 'Full Name', 'align' => 'left'],
+                ['title' => 'Nationality', 'align' => 'left'],
+                ['title' => 'Daily Wage', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Matrícula', 'align' => 'left'],
+                ['title' => 'Nombre Completo', 'align' => 'left'],
+                ['title' => 'Nacionalidad', 'align' => 'left'],
+                ['title' => 'Salario Diario', 'align' => 'right'],
+                ['title' => 'Acción', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'رقم التسجيل', 'align' => 'left'],
+                ['title' => 'الاسم الكامل', 'align' => 'left'],
+                ['title' => 'الجنسية', 'align' => 'left'],
+                ['title' => 'الأجر اليومي', 'align' => 'right'],
+                ['title' => 'إجراء', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Matricule', 'align' => 'left'],
+                ['title' => 'Nom Complet', 'align' => 'left'],
+                ['title' => 'Nationalité', 'align' => 'left'],
+                ['title' => 'Salaire Journalier', 'align' => 'right'],
+                ['title' => 'Action', 'align' => 'center'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => 'Workforce & Fortnight Module',
+            'es' => 'Módulo de Mano de Obra y Quincenas',
+            'ar' => 'وحدة اليد العاملة والنتائج النصف-شهرية',
+            default => 'Module Main d\'œuvre & Quinzaine',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Staff & Fortnight',
+            'es' => 'Personal y Quincenas',
+            'ar' => 'المستخدمون والنتائج',
+            default => 'Personnel & Quinzaine',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Workers', 'value' => $this->formatNumber($workersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-multiple'],
+                ['label' => 'Total Days / Activities', 'value' => $this->formatNumber($activitiesCount, 0), 'color' => '#29B6F6', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'Payroll Processed', 'value' => $this->formatNumber($totalPaid, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+            ],
+            'es' => [
+                ['label' => 'Total Obreros', 'value' => $this->formatNumber($workersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-multiple'],
+                ['label' => 'Total Jornadas / Actividades', 'value' => $this->formatNumber($activitiesCount, 0), 'color' => '#29B6F6', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'Masa Salarial', 'value' => $this->formatNumber($totalPaid, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي العمال', 'value' => $this->formatNumber($workersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-multiple'],
+                ['label' => 'إجمالي أيام العمل / الأنشطة', 'value' => $this->formatNumber($activitiesCount, 0), 'color' => '#29B6F6', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'كتلة الأجور المصروفة', 'value' => $this->formatNumber($totalPaid, 2) . ' درهم', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+            ],
+            default => [
+                ['label' => 'Total Ouvriers', 'value' => $this->formatNumber($workersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-multiple'],
+                ['label' => 'Total Journées / Activités', 'value' => $this->formatNumber($activitiesCount, 0), 'color' => '#29B6F6', 'icon' => 'mdi-calendar-check'],
+                ['label' => 'Masse Salariale', 'value' => $this->formatNumber($totalPaid, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Recent Workers List (Top {$limit})",
+            'es' => "Lista de Obreros Recientes (Top {$limit})",
+            'ar' => "قائمة العمال المسجلين (أفضل {$limit})",
+            default => "Liste des Ouvriers Récents (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Activities by Factory Section',
+            'es' => 'Actividades por Sección de Fábrica',
+            'ar' => 'الأنشطة حسب قسم المصنع',
+            default => 'Activités par Section Usine',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Workforce Management', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+                ['label' => 'Fortnight Sheets', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+            ],
+            'es' => [
+                ['label' => 'Gestión de Mano de Obra', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+                ['label' => 'Hojas de Quincena', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+            ],
+            'ar' => [
+                ['label' => 'إدارة اليد العاملة', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+                ['label' => 'جداول النصف-شهرية', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+            ],
+            default => [
+                ['label' => 'Gestion de la Main d\'œuvre', 'route' => '/workforce/management', 'icon' => 'mdi-account-group'],
+                ['label' => 'Feuilles de Quinzaine', 'route' => '/workforce/fortnight', 'icon' => 'mdi-calendar-month'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => 'Module Main d\'œuvre & Quinzaine',
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#42A5F5',
             'moduleIcon' => 'mdi-account-group',
-            'badgeText' => 'Personnel & Quinzaine',
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => 'Total Ouvriers', 'value' => $this->formatNumber($workersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-multiple'],
-                ['label' => 'Total Journées / Activités', 'value' => $this->formatNumber($activitiesCount, 0), 'color' => '#29B6F6', 'icon' => 'mdi-calendar-check'],
-                ['label' => 'Masse Salariale', 'value' => $this->formatNumber($totalPaid, 2) . ' MAD', 'color' => '#00E676', 'icon' => 'mdi-cash'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Liste des Ouvriers Récents (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($sections) ? [
                 'id' => $chartId,
-                'title' => 'Activités par Section Usine',
+                'title' => $chartTitle,
                 'labels' => $sections->take(5)->pluck('name')->toArray(),
                 'data' => $sections->take(5)->pluck('activities_count')->toArray(),
-                'seriesName' => 'Activités',
+                'seriesName' => ($lang === 'en' ? 'Activities' : 'Activités'),
                 'type' => 'bar',
                 'color' => '#42A5F5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Gestion de la Main d\'œuvre', 'route' => '/workforces', 'icon' => 'mdi-account-group'],
-                ['label' => 'Feuilles de Quinzaine', 'route' => '/fortnight', 'icon' => 'mdi-calendar-month'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2366,6 +4263,7 @@ TR;
      */
     private function handleTrucksQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $trucksCount = DB::table('trucks')->whereNull('deleted_at')->count();
         $limit = $p['limit'] ?: 10;
 
@@ -2384,58 +4282,139 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici la situation de la flotte de camions : {$this->formatNumber($trucksCount, 0)} camions répertoriés dans la base de données.";
+        $answerText = match ($lang) {
+            'en' => "Here is the truck fleet overview: {$this->formatNumber($trucksCount, 0)} vehicles registered in the database.",
+            'es' => "Aquí está el estado de la flota de camiones: {$this->formatNumber($trucksCount, 0)} camiones registrados en la base de datos.",
+            'ar' => "إليك وضع أسطول الشاحنات: تم تسجيل {$this->formatNumber($trucksCount, 0)} شاحنة في قاعدة البيانات.",
+            default => "Voici la situation de la flotte de camions : {$this->formatNumber($trucksCount, 0)} camions répertoriés dans la base de données.",
+        };
 
         $tableRowsHtml = '';
         foreach ($trucks as $t) {
             $plate = htmlspecialchars($t->registration_plate ?: 'Camion #' . $t->id);
+            $totalMissions = $t->charge_trips + $t->shipping_trips;
             $tableRowsHtml .= <<<TR
             <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
               <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$plate}</td>
               <td style="padding: 10px 12px; text-align: center; font-weight: 600;">{$t->charge_trips}</td>
               <td style="padding: 10px 12px; text-align: center; font-weight: 600;">{$t->shipping_trips}</td>
-              <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: #00E676;">" . ($t->charge_trips + $t->shipping_trips) . "</td>
+              <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: #00E676;">{$totalMissions}</td>
             </tr>
 TR;
         }
 
-        $headers = [
-            ['title' => 'Matricule Camion', 'align' => 'left'],
-            ['title' => 'Voyages Réceptions', 'align' => 'center'],
-            ['title' => 'Voyages Expéditions', 'align' => 'center'],
-            ['title' => 'Total Missions', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'License Plate', 'align' => 'left'],
+                ['title' => 'Reception Trips', 'align' => 'center'],
+                ['title' => 'Shipping Trips', 'align' => 'center'],
+                ['title' => 'Total Missions', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Matrícula Camión', 'align' => 'left'],
+                ['title' => 'Viajes Recepciones', 'align' => 'center'],
+                ['title' => 'Viajes Envíos', 'align' => 'center'],
+                ['title' => 'Total Misiones', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'رقم التسجيل', 'align' => 'left'],
+                ['title' => 'رحلات الاستلام', 'align' => 'center'],
+                ['title' => 'رحلات الشحن', 'align' => 'center'],
+                ['title' => 'إجمالي الرحلات', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Matricule Camion', 'align' => 'left'],
+                ['title' => 'Voyages Réceptions', 'align' => 'center'],
+                ['title' => 'Voyages Expéditions', 'align' => 'center'],
+                ['title' => 'Total Missions', 'align' => 'center'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => 'Truck Fleet & Logistics',
+            'es' => 'Flota de Camiones y Transporte',
+            'ar' => 'أسطول الشاحنات والنقل',
+            default => 'Flotte Camions & Transport',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Logistics & Transport',
+            'es' => 'Logística y Transporte',
+            'ar' => 'اللوجستيات والنقل',
+            default => 'Logistique & Transport',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Trucks', 'value' => $this->formatNumber($trucksCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-truck'],
+            ],
+            'es' => [
+                ['label' => 'Total Camiones', 'value' => $this->formatNumber($trucksCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-truck'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي الشاحنات', 'value' => $this->formatNumber($trucksCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-truck'],
+            ],
+            default => [
+                ['label' => 'Total Camions', 'value' => $this->formatNumber($trucksCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-truck'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Most Active Trucks (Top {$limit})",
+            'es' => "Camiones más Activos (Top {$limit})",
+            'ar' => "الشاحنات الأكثر نشاطاً (أفضل {$limit})",
+            default => "Camions les Plus Actifs (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Top Trucks by Number of Missions',
+            'es' => 'Top Camiones por Número de Misiones',
+            'ar' => 'أفضل الشاحنات حسب عدد المهام',
+            default => 'Top Camions par Nombre de Missions',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Receptions & Trucks', 'route' => '/charges', 'icon' => 'mdi-truck'],
+            ],
+            'es' => [
+                ['label' => 'Recepciones y Camiones', 'route' => '/charges', 'icon' => 'mdi-truck'],
+            ],
+            'ar' => [
+                ['label' => 'الاستلامات والشاحنات', 'route' => '/charges', 'icon' => 'mdi-truck'],
+            ],
+            default => [
+                ['label' => 'Réceptions & Camions', 'route' => '/charges', 'icon' => 'mdi-truck'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => 'Flotte Camions & Transport',
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#42A5F5',
             'moduleIcon' => 'mdi-truck',
-            'badgeText' => 'Logistique & Transport',
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => 'Total Camions', 'value' => $this->formatNumber($trucksCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-truck'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Camions les Plus Actifs (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($trucks) ? [
                 'id' => $chartId,
-                'title' => 'Top Camions par Nombre de Missions',
+                'title' => $chartTitle,
                 'labels' => $trucks->take(5)->pluck('registration_plate')->toArray(),
                 'data' => $trucks->take(5)->map(fn($t) => $t->charge_trips + $t->shipping_trips)->toArray(),
-                'seriesName' => 'Missions',
+                'seriesName' => ($lang === 'en' ? 'Missions' : 'Missions'),
                 'type' => 'bar',
                 'color' => '#42A5F5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Gestion Camions', 'route' => '/parameters/trucks', 'icon' => 'mdi-truck'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2444,6 +4423,7 @@ TR;
      */
     private function handleShipsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $shipsCount = DB::table('ships')->whereNull('deleted_at')->count();
         $limit = $p['limit'] ?: 10;
 
@@ -2456,7 +4436,12 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici la flotte maritime : {$this->formatNumber($shipsCount, 0)} navires et bateaux de pêche répertoriés.";
+        $answerText = match ($lang) {
+            'en' => "Here is the maritime fleet overview: {$this->formatNumber($shipsCount, 0)} vessels and fishing boats registered.",
+            'es' => "Aquí está la flota marítima: {$this->formatNumber($shipsCount, 0)} buques y barcos de pesca registrados.",
+            'ar' => "إليك أسطول الملاحة البحرية: تم تسجيل {$this->formatNumber($shipsCount, 0)} سفينة وقارب صيد.",
+            default => "Voici la flotte maritime : {$this->formatNumber($shipsCount, 0)} navires et bateaux de pêche répertoriés.",
+        };
 
         $tableRowsHtml = '';
         foreach ($ships as $s) {
@@ -2473,43 +4458,118 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'Nom du Navire', 'align' => 'left'],
-            ['title' => 'N° IMO / Immatriculation', 'align' => 'left'],
-            ['title' => 'Débarquements', 'align' => 'center'],
-            ['title' => 'Poids Total Débarqué (KG)', 'align' => 'right'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Vessel Name', 'align' => 'left'],
+                ['title' => 'IMO No. / Registration', 'align' => 'left'],
+                ['title' => 'Landings', 'align' => 'center'],
+                ['title' => 'Total Weight Landed (KG)', 'align' => 'right'],
+            ],
+            'es' => [
+                ['title' => 'Nombre del Buque', 'align' => 'left'],
+                ['title' => 'N° IMO / Matrícula', 'align' => 'left'],
+                ['title' => 'Desembarques', 'align' => 'center'],
+                ['title' => 'Peso Total Desembarcado (KG)', 'align' => 'right'],
+            ],
+            'ar' => [
+                ['title' => 'اسم السفينة', 'align' => 'left'],
+                ['title' => 'رقم IMO / التسجيل', 'align' => 'left'],
+                ['title' => 'عمليات الإنزال', 'align' => 'center'],
+                ['title' => 'إجمالي الوزن المفرغ (كغ)', 'align' => 'right'],
+            ],
+            default => [
+                ['title' => 'Nom du Navire', 'align' => 'left'],
+                ['title' => 'N° IMO / Immatriculation', 'align' => 'left'],
+                ['title' => 'Débarquements', 'align' => 'center'],
+                ['title' => 'Poids Total Débarqué (KG)', 'align' => 'right'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => 'Maritime Fleet & Vessels',
+            'es' => 'Flota Marítima y Buques',
+            'ar' => 'الأسطول البحري والسفن',
+            default => 'Flotte Maritime & Navires',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Vessels & Landings',
+            'es' => 'Barcos y Desembarques',
+            'ar' => 'السفن وعمليات الإنزال',
+            default => 'Bateaux & Débarquements',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Vessels', 'value' => $this->formatNumber($shipsCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-ferry'],
+            ],
+            'es' => [
+                ['label' => 'Total Buques', 'value' => $this->formatNumber($shipsCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-ferry'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي السفن', 'value' => $this->formatNumber($shipsCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-ferry'],
+            ],
+            default => [
+                ['label' => 'Total Navires', 'value' => $this->formatNumber($shipsCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-ferry'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Most Active Vessels (Top {$limit})",
+            'es' => "Buques más Activos (Top {$limit})",
+            'ar' => "السفن الأكثر نشاطاً (أفضل {$limit})",
+            default => "Navires les Plus Actifs (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Top Vessels by Landings Count',
+            'es' => 'Top Buques por Número de Desembarques',
+            'ar' => 'أفضل السفن حسب عدد عمليات الإنزال',
+            default => 'Top Navires par Nombre de Débarquements',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Landings & Fishing', 'route' => '/charges', 'icon' => 'mdi-ferry'],
+            ],
+            'es' => [
+                ['label' => 'Desembarques y Pesca', 'route' => '/charges', 'icon' => 'mdi-ferry'],
+            ],
+            'ar' => [
+                ['label' => 'الإنزال والصيد البحري', 'route' => '/charges', 'icon' => 'mdi-ferry'],
+            ],
+            default => [
+                ['label' => 'Débarquements & Pêche', 'route' => '/charges', 'icon' => 'mdi-ferry'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => 'Flotte Maritime & Navires',
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#42A5F5',
             'moduleIcon' => 'mdi-ferry',
-            'badgeText' => 'Bateaux & Débarquements',
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => 'Total Navires', 'value' => $this->formatNumber($shipsCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-ferry'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Navires les Plus Actifs (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($ships) ? [
                 'id' => $chartId,
-                'title' => 'Top Navires par Nombre de Débarquements',
+                'title' => $chartTitle,
                 'labels' => $ships->take(5)->pluck('name')->toArray(),
                 'data' => $ships->take(5)->pluck('landings_count')->toArray(),
-                'seriesName' => 'Débarquements',
+                'seriesName' => ($lang === 'en' ? 'Landings' : 'Débarquements'),
                 'type' => 'bar',
                 'color' => '#42A5F5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Gestion Navires', 'route' => '/parameters/ships', 'icon' => 'mdi-ferry'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2518,6 +4578,7 @@ TR;
      */
     private function handleFishTypesQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $typesCount = DB::table('fish_types')->whereNull('deleted_at')->count();
         $limit = $p['limit'] ?: 10;
 
@@ -2528,7 +4589,12 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici la nomenclature des espèces de poissons : {$this->formatNumber($typesCount, 0)} types de poissons et conditionnements configurés dans le système.";
+        $answerText = match ($lang) {
+            'en' => "Here is the fish species nomenclature: {$this->formatNumber($typesCount, 0)} fish types and packages configured in the system.",
+            'es' => "Aquí está la nomenclatura de especies de pescados: {$this->formatNumber($typesCount, 0)} tipos de pescados y formatos configurados en el sistema.",
+            'ar' => "إليك دليل أصناف الأسماك: تم ضبط {$this->formatNumber($typesCount, 0)} صنفاً ونوع تعبئة في المنظومة.",
+            default => "Voici la nomenclature des espèces de poissons : {$this->formatNumber($typesCount, 0)} types de poissons et conditionnements configurés dans le système.",
+        };
 
         $tableRowsHtml = '';
         foreach ($types as $t) {
@@ -2536,7 +4602,8 @@ TR;
             $en = htmlspecialchars($t->name_en ?: '-');
             $es = htmlspecialchars($t->name_es ?: '-');
             $sci = htmlspecialchars($t->scientific_name ?: '-');
-            $typeBadge = $t->type === 'fresh' ? '<span style="background: rgba(0,137,123,0.15); color: #00897B; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Frais</span>' : '<span style="background: rgba(33,150,243,0.15); color: #42A5F5; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Congelé</span>';
+            $typeLabel = $t->type === 'fresh' ? ($lang === 'en' ? 'Fresh' : ($lang === 'es' ? 'Fresco' : 'Frais')) : ($lang === 'en' ? 'Frozen' : ($lang === 'es' ? 'Congelado' : 'Congelé'));
+            $typeBadge = $t->type === 'fresh' ? "<span style=\"background: rgba(0,137,123,0.15); color: #00897B; padding: 2px 8px; border-radius: 12px; font-size: 11px;\">{$typeLabel}</span>" : "<span style=\"background: rgba(33,150,243,0.15); color: #42A5F5; padding: 2px 8px; border-radius: 12px; font-size: 11px;\">{$typeLabel}</span>";
             $tableRowsHtml .= <<<TR
             <tr style="border-bottom: 1px solid var(--ai-border, rgba(255,255,255,0.06));">
               <td style="padding: 10px 12px; font-weight: 700; color: #42A5F5;">{$fr}</td>
@@ -2548,35 +4615,106 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'Nom (Français)', 'align' => 'left'],
-            ['title' => 'Nom (Anglais)', 'align' => 'left'],
-            ['title' => 'Nom (Espagnol)', 'align' => 'left'],
-            ['title' => 'Nom Scientifique', 'align' => 'left'],
-            ['title' => 'Type', 'align' => 'center'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Name (French)', 'align' => 'left'],
+                ['title' => 'Name (English)', 'align' => 'left'],
+                ['title' => 'Name (Spanish)', 'align' => 'left'],
+                ['title' => 'Scientific Name', 'align' => 'left'],
+                ['title' => 'Type', 'align' => 'center'],
+            ],
+            'es' => [
+                ['title' => 'Nombre (Francés)', 'align' => 'left'],
+                ['title' => 'Nombre (Inglés)', 'align' => 'left'],
+                ['title' => 'Nombre (Español)', 'align' => 'left'],
+                ['title' => 'Nombre Científico', 'align' => 'left'],
+                ['title' => 'Tipo', 'align' => 'center'],
+            ],
+            'ar' => [
+                ['title' => 'الاسم (فرنسي)', 'align' => 'left'],
+                ['title' => 'الاسم (إنجليزي)', 'align' => 'left'],
+                ['title' => 'الاسم (إسباني)', 'align' => 'left'],
+                ['title' => 'الاسم العلمي', 'align' => 'left'],
+                ['title' => 'الصنف', 'align' => 'center'],
+            ],
+            default => [
+                ['title' => 'Nom (Français)', 'align' => 'left'],
+                ['title' => 'Nom (Anglais)', 'align' => 'left'],
+                ['title' => 'Nom (Espagnol)', 'align' => 'left'],
+                ['title' => 'Nom Scientifique', 'align' => 'left'],
+                ['title' => 'Type', 'align' => 'center'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => 'Fish Species Nomenclature',
+            'es' => 'Nomenclatura de Especies de Pescados',
+            'ar' => 'دليل أصناف الأسماك',
+            default => 'Nomenclature des Espèces de Poissons',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Fish Taxonomy',
+            'es' => 'Taxonomía Pescados',
+            'ar' => 'تصنيف الأسماك',
+            default => 'Taxonomie Poissons',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Species & Items', 'value' => $this->formatNumber($typesCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-fish'],
+            ],
+            'es' => [
+                ['label' => 'Total Especies y Artículos', 'value' => $this->formatNumber($typesCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-fish'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي الأصناف', 'value' => $this->formatNumber($typesCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-fish'],
+            ],
+            default => [
+                ['label' => 'Total Espèces & Articles', 'value' => $this->formatNumber($typesCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-fish'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Registered Species (Top {$limit})",
+            'es' => "Especies Registradas (Top {$limit})",
+            'ar' => "الأصناف المسجلة (أفضل {$limit})",
+            default => "Espèces Répertoriées (Top {$limit})",
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Species Management', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+            ],
+            'es' => [
+                ['label' => 'Gestión de Especies', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+            ],
+            'ar' => [
+                ['label' => 'إدارة الأصناف', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+            ],
+            default => [
+                ['label' => 'Gestion des Espèces', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => 'Nomenclature des Espèces de Poissons',
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#42A5F5',
             'moduleIcon' => 'mdi-fish',
-            'badgeText' => 'Taxonomie Poissons',
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => 'Total Espèces & Articles', 'value' => $this->formatNumber($typesCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-fish'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Espèces Répertoriées (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
-            'navButtons' => [
-                ['label' => 'Gestion des Espèces', 'route' => '/parameters/fish-management', 'icon' => 'mdi-fish'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2585,6 +4723,7 @@ TR;
      */
     private function handleSuppliersQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $suppliersCount = DB::table('suppliers')->whereNull('deleted_at')->count();
         $limit = $p['limit'] ?: 10;
 
@@ -2597,7 +4736,12 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici la liste des fournisseurs de poissons : {$this->formatNumber($suppliersCount, 0)} fournisseurs actifs répertoriés.";
+        $answerText = match ($lang) {
+            'en' => "Here is the fish suppliers directory: {$this->formatNumber($suppliersCount, 0)} active suppliers registered.",
+            'es' => "Aquí está el directorio de proveedores de pescado: {$this->formatNumber($suppliersCount, 0)} proveedores activos registrados.",
+            'ar' => "إليك دليل موردي الأسماك: تم تسجيل {$this->formatNumber($suppliersCount, 0)} مورداً نشطاً.",
+            default => "Voici la liste des fournisseurs de poissons : {$this->formatNumber($suppliersCount, 0)} fournisseurs actifs répertoriés.",
+        };
 
         $tableRowsHtml = '';
         foreach ($topSuppliers as $s) {
@@ -2616,44 +4760,122 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'Fournisseur', 'align' => 'left'],
-            ['title' => 'Ville', 'align' => 'left'],
-            ['title' => 'Réceptions', 'align' => 'center'],
-            ['title' => 'Poids Total (KG)', 'align' => 'right'],
-            ['title' => 'Montant Total (MAD)', 'align' => 'right'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Supplier', 'align' => 'left'],
+                ['title' => 'City', 'align' => 'left'],
+                ['title' => 'Receptions', 'align' => 'center'],
+                ['title' => 'Total Weight (KG)', 'align' => 'right'],
+                ['title' => 'Total Amount (MAD)', 'align' => 'right'],
+            ],
+            'es' => [
+                ['title' => 'Proveedor', 'align' => 'left'],
+                ['title' => 'Ciudad', 'align' => 'left'],
+                ['title' => 'Recepciones', 'align' => 'center'],
+                ['title' => 'Peso Total (KG)', 'align' => 'right'],
+                ['title' => 'Importe Total (MAD)', 'align' => 'right'],
+            ],
+            'ar' => [
+                ['title' => 'المورد', 'align' => 'left'],
+                ['title' => 'المدينة', 'align' => 'left'],
+                ['title' => 'الاستلامات', 'align' => 'center'],
+                ['title' => 'إجمالي الوزن (كغ)', 'align' => 'right'],
+                ['title' => 'المبلغ الإجمالي (درهم)', 'align' => 'right'],
+            ],
+            default => [
+                ['title' => 'Fournisseur', 'align' => 'left'],
+                ['title' => 'Ville', 'align' => 'left'],
+                ['title' => 'Réceptions', 'align' => 'center'],
+                ['title' => 'Poids Total (KG)', 'align' => 'right'],
+                ['title' => 'Montant Total (MAD)', 'align' => 'right'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => 'Suppliers Directory',
+            'es' => 'Directorio de Proveedores',
+            'ar' => 'دليل الموردين',
+            default => 'Répertoire des Fournisseurs',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Suppliers',
+            'es' => 'Proveedores',
+            'ar' => 'الموردون',
+            default => 'Fournisseurs',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Suppliers', 'value' => $this->formatNumber($suppliersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-tie'],
+            ],
+            'es' => [
+                ['label' => 'Total Proveedores', 'value' => $this->formatNumber($suppliersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-tie'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي الموردين', 'value' => $this->formatNumber($suppliersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-tie'],
+            ],
+            default => [
+                ['label' => 'Total Fournisseurs', 'value' => $this->formatNumber($suppliersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-tie'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Top Suppliers by Volume (Top {$limit})",
+            'es' => "Top Proveedores por Volumen (Top {$limit})",
+            'ar' => "أفضل الموردين حسب الحجم (أفضل {$limit})",
+            default => "Top Fournisseurs par Volume (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Top 5 Suppliers by Volume (Tons)',
+            'es' => 'Top 5 Proveedores por Volumen (Toneladas)',
+            'ar' => 'أفضل 5 موردين حسب الحجم (أطنان)',
+            default => 'Top 5 Fournisseurs par Volume (Tonnes)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Supplier Management', 'route' => '/parameters/supplier-management', 'icon' => 'mdi-account-tie'],
+            ],
+            'es' => [
+                ['label' => 'Gestión de Proveedores', 'route' => '/parameters/supplier-management', 'icon' => 'mdi-account-tie'],
+            ],
+            'ar' => [
+                ['label' => 'إدارة الموردين', 'route' => '/parameters/supplier-management', 'icon' => 'mdi-account-tie'],
+            ],
+            default => [
+                ['label' => 'Gestion Fournisseurs', 'route' => '/parameters/supplier-management', 'icon' => 'mdi-account-tie'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => 'Répertoire des Fournisseurs',
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#42A5F5',
             'moduleIcon' => 'mdi-account-tie',
-            'badgeText' => 'Fournisseurs',
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => 'Total Fournisseurs', 'value' => $this->formatNumber($suppliersCount, 0), 'color' => '#42A5F5', 'icon' => 'mdi-account-tie'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Top Fournisseurs par Volume (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($topSuppliers) ? [
                 'id' => $chartId,
-                'title' => 'Top 5 Fournisseurs par Volume (Tonnes)',
+                'title' => $chartTitle,
                 'labels' => $topSuppliers->take(5)->pluck('name')->toArray(),
                 'data' => $topSuppliers->take(5)->map(fn($s) => round((float)$s->total_weight / 1000, 2))->toArray(),
-                'seriesName' => 'Volume (Tonnes)',
+                'seriesName' => ($lang === 'en' ? 'Volume (Tons)' : 'Volume (Tonnes)'),
                 'type' => 'bar',
                 'color' => '#42A5F5',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Gestion Fournisseurs', 'route' => '/suppliers', 'icon' => 'mdi-account-tie'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2662,6 +4884,7 @@ TR;
      */
     private function handleClientsQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $clientsCount = DB::table('clients')->whereNull('deleted_at')->count();
         $limit = $p['limit'] ?: 10;
 
@@ -2674,7 +4897,12 @@ TR;
             ->limit($limit)
             ->get();
 
-        $answerText = "Voici la liste des clients et partenaires : {$this->formatNumber($clientsCount, 0)} clients enregistrés.";
+        $answerText = match ($lang) {
+            'en' => "Here is the clients and partners directory: {$this->formatNumber($clientsCount, 0)} clients registered.",
+            'es' => "Aquí está el directorio de clientes y socios: {$this->formatNumber($clientsCount, 0)} clientes registrados.",
+            'ar' => "إليك دليل العملاء والشركاء: تم تسجيل {$this->formatNumber($clientsCount, 0)} عميلاً.",
+            default => "Voici la liste des clients et partenaires : {$this->formatNumber($clientsCount, 0)} clients enregistrés.",
+        };
 
         $tableRowsHtml = '';
         foreach ($topClients as $c) {
@@ -2693,44 +4921,122 @@ TR;
 TR;
         }
 
-        $headers = [
-            ['title' => 'Client', 'align' => 'left'],
-            ['title' => 'Ville', 'align' => 'left'],
-            ['title' => 'Expéditions', 'align' => 'center'],
-            ['title' => 'Volume Acheté (KG)', 'align' => 'right'],
-            ['title' => 'Chiffre d\'Affaires (MAD)', 'align' => 'right'],
-        ];
+        $headers = match ($lang) {
+            'en' => [
+                ['title' => 'Client', 'align' => 'left'],
+                ['title' => 'City', 'align' => 'left'],
+                ['title' => 'Shipments', 'align' => 'center'],
+                ['title' => 'Volume Purchased (KG)', 'align' => 'right'],
+                ['title' => 'Turnover (MAD)', 'align' => 'right'],
+            ],
+            'es' => [
+                ['title' => 'Cliente', 'align' => 'left'],
+                ['title' => 'Ciudad', 'align' => 'left'],
+                ['title' => 'Envíos', 'align' => 'center'],
+                ['title' => 'Volumen Comprado (KG)', 'align' => 'right'],
+                ['title' => 'Facturación (MAD)', 'align' => 'right'],
+            ],
+            'ar' => [
+                ['title' => 'العميل', 'align' => 'left'],
+                ['title' => 'المدينة', 'align' => 'left'],
+                ['title' => 'الشحنات', 'align' => 'center'],
+                ['title' => 'الحجم المشترى (كغ)', 'align' => 'right'],
+                ['title' => 'رقم المعاملات (درهم)', 'align' => 'right'],
+            ],
+            default => [
+                ['title' => 'Client', 'align' => 'left'],
+                ['title' => 'Ville', 'align' => 'left'],
+                ['title' => 'Expéditions', 'align' => 'center'],
+                ['title' => 'Volume Acheté (KG)', 'align' => 'right'],
+                ['title' => 'Chiffre d\'Affaires (MAD)', 'align' => 'right'],
+            ],
+        };
+
+        $moduleTitle = match ($lang) {
+            'en' => 'Clients Directory',
+            'es' => 'Directorio de Clientes',
+            'ar' => 'دليل العملاء',
+            default => 'Répertoire des Clients',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Clients & Buyers',
+            'es' => 'Clientes y Compradores',
+            'ar' => 'العملاء والمشترون',
+            default => 'Clients & Acheteurs',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Clients', 'value' => $this->formatNumber($clientsCount, 0), 'color' => '#4643a0', 'icon' => 'mdi-account-star'],
+            ],
+            'es' => [
+                ['label' => 'Total Clientes', 'value' => $this->formatNumber($clientsCount, 0), 'color' => '#4643a0', 'icon' => 'mdi-account-star'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي العملاء', 'value' => $this->formatNumber($clientsCount, 0), 'color' => '#4643a0', 'icon' => 'mdi-account-star'],
+            ],
+            default => [
+                ['label' => 'Total Clients', 'value' => $this->formatNumber($clientsCount, 0), 'color' => '#4643a0', 'icon' => 'mdi-account-star'],
+            ],
+        };
+
+        $tableTitle = match ($lang) {
+            'en' => "Top Clients by Revenue (Top {$limit})",
+            'es' => "Top Clientes por Facturación (Top {$limit})",
+            'ar' => "أفضل العملاء حسب رقم المعاملات (أفضل {$limit})",
+            default => "Top Clients par Chiffre d'Affaires (Top {$limit})",
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Top 5 Clients by Revenue (k MAD)',
+            'es' => 'Top 5 Clientes por Facturación (k MAD)',
+            'ar' => 'أفضل 5 عملاء حسب الإيرادات (ألف درهم)',
+            default => 'Top 5 Clients par Chiffre d\'Affaires (k MAD)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Client Management', 'route' => '/parameters/client-management', 'icon' => 'mdi-account-star'],
+            ],
+            'es' => [
+                ['label' => 'Gestión de Clientes', 'route' => '/parameters/client-management', 'icon' => 'mdi-account-star'],
+            ],
+            'ar' => [
+                ['label' => 'إدارة العملاء', 'route' => '/parameters/client-management', 'icon' => 'mdi-account-star'],
+            ],
+            default => [
+                ['label' => 'Gestion Clients', 'route' => '/parameters/client-management', 'icon' => 'mdi-account-star'],
+            ],
+        };
 
         return $this->renderStandardCard([
             'uniqueId' => $uniqueId,
             'chartId' => $chartId,
             'theme' => $theme,
-            'moduleTitle' => 'Répertoire des Clients',
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
             'moduleColor' => '#4643a0',
             'moduleIcon' => 'mdi-account-star',
-            'badgeText' => 'Clients & Acheteurs',
+            'badgeText' => $badgeText,
             'userQuestion' => $p['question'],
             'answerText' => $answerText,
-            'kpis' => [
-                ['label' => 'Total Clients', 'value' => $this->formatNumber($clientsCount, 0), 'color' => '#4643a0', 'icon' => 'mdi-account-star'],
-            ],
+            'kpis' => $kpis,
             'table' => [
-                'title' => "Top Clients par Chiffre d'Affaires (Top {$limit})",
+                'title' => $tableTitle,
                 'headers' => $headers,
                 'rowsHtml' => $tableRowsHtml,
             ],
             'chart' => count($topClients) ? [
                 'id' => $chartId,
-                'title' => 'Top 5 Clients par Chiffre d\'Affaires (k MAD)',
+                'title' => $chartTitle,
                 'labels' => $topClients->take(5)->pluck('name')->toArray(),
                 'data' => $topClients->take(5)->map(fn($c) => round((float)$c->total_price / 1000, 2))->toArray(),
-                'seriesName' => 'Montant (k MAD)',
+                'seriesName' => ($lang === 'en' ? 'Amount (k MAD)' : 'Montant (k MAD)'),
                 'type' => 'bar',
                 'color' => '#4643a0',
             ] : null,
-            'navButtons' => [
-                ['label' => 'Gestion Clients', 'route' => '/clients', 'icon' => 'mdi-account-star'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2739,6 +5045,7 @@ TR;
      */
     private function handleComparisonQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $chargesWeight = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_weight');
         $chargesPrice = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_price');
 
@@ -2747,37 +5054,109 @@ TR;
 
         $margin = $shippingsPrice - $chargesPrice;
 
-        $answerText = "Voici le bilan comparatif Achats vs Ventes : Volume acheté : {$this->formatNumber($chargesWeight, 2)} KG ({$this->formatNumber($chargesPrice, 2)} MAD) | Volume vendu : {$this->formatNumber($shippingsWeight, 2)} KG ({$this->formatNumber($shippingsPrice, 2)} MAD). Marge brute d'activité : {$this->formatNumber($margin, 2)} MAD.";
+        $answerText = match ($lang) {
+            'en' => "Here is the Purchases vs Sales comparison: Purchased volume: {$this->formatNumber($chargesWeight, 2)} KG ({$this->formatNumber($chargesPrice, 2)} MAD) | Sold volume: {$this->formatNumber($shippingsWeight, 2)} KG ({$this->formatNumber($shippingsPrice, 2)} MAD). Gross operating margin: {$this->formatNumber($margin, 2)} MAD.",
+            'es' => "Aquí está la comparativa Compras vs Ventas: Volumen comprado: {$this->formatNumber($chargesWeight, 2)} KG ({$this->formatNumber($chargesPrice, 2)} MAD) | Volumen vendido: {$this->formatNumber($shippingsWeight, 2)} KG ({$this->formatNumber($shippingsPrice, 2)} MAD). Margen bruto operativo: {$this->formatNumber($margin, 2)} MAD.",
+            'ar' => "إليك مقارنة المشتريات مقابل المبيعات: حجم المشتريات: {$this->formatNumber($chargesWeight, 2)} كغ ({$this->formatNumber($chargesPrice, 2)} درهم) | حجم المبيعات: {$this->formatNumber($shippingsWeight, 2)} كغ ({$this->formatNumber($shippingsPrice, 2)} درهم). هامش الربح الإجمالي: {$this->formatNumber($margin, 2)} درهم.",
+            default => "Voici le bilan comparatif Achats vs Ventes : Volume acheté : {$this->formatNumber($chargesWeight, 2)} KG ({$this->formatNumber($chargesPrice, 2)} MAD) | Volume vendu : {$this->formatNumber($shippingsWeight, 2)} KG ({$this->formatNumber($shippingsPrice, 2)} MAD). Marge brute d'activité : {$this->formatNumber($margin, 2)} MAD.",
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Comparatif Achats (Charges) vs Ventes (Expéditions)',
-            'moduleColor' => '#42A5F5',
-            'moduleIcon' => 'mdi-scale-balance',
-            'badgeText' => 'Bilan & Rentabilité',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $moduleTitle = match ($lang) {
+            'en' => 'Comparison: Purchases (Charges) vs Sales (Shippings)',
+            'es' => 'Comparativa: Compras (Cargas) vs Ventas (Envíos)',
+            'ar' => 'مقارنة: المشتريات (الشحنات) مقابل المبيعات (التصدير)',
+            default => 'Comparatif Achats (Charges) vs Ventes (Expéditions)',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'Financial Balance & Profitability',
+            'es' => 'Balance y Rentabilidad',
+            'ar' => 'الحصيلة والربحية',
+            default => 'Bilan & Rentabilité',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Purchases (Charges)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-minus'],
+                ['label' => 'Sales (Shippings)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'Purchased Volume', 'value' => $this->formatNumber($chargesWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Sold Volume', 'value' => $this->formatNumber($shippingsWeight, 2) . ' KG', 'color' => '#b39ddb', 'icon' => 'mdi-ship-wheel'],
+            ],
+            'es' => [
+                ['label' => 'Compras (Cargas)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-minus'],
+                ['label' => 'Ventas (Envíos)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'Volumen Comprado', 'value' => $this->formatNumber($chargesWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Volumen Vendido', 'value' => $this->formatNumber($shippingsWeight, 2) . ' KG', 'color' => '#b39ddb', 'icon' => 'mdi-ship-wheel'],
+            ],
+            'ar' => [
+                ['label' => 'المشتريات (الشحنات)', 'value' => $this->formatNumber($chargesPrice, 2) . ' درهم', 'color' => '#42A5F5', 'icon' => 'mdi-cash-minus'],
+                ['label' => 'المبيعات (التصدير)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' درهم', 'color' => '#4643a0', 'icon' => 'mdi-cash-plus'],
+                ['label' => 'الحجم المشترى', 'value' => $this->formatNumber($chargesWeight, 2) . ' كغ', 'color' => '#29B6F6', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'الحجم المباع', 'value' => $this->formatNumber($shippingsWeight, 2) . ' كغ', 'color' => '#b39ddb', 'icon' => 'mdi-ship-wheel'],
+            ],
+            default => [
                 ['label' => 'Achats (Charges)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-cash-minus'],
                 ['label' => 'Ventes (Shippings)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-cash-plus'],
                 ['label' => 'Volume Acheté', 'value' => $this->formatNumber($chargesWeight, 2) . ' KG', 'color' => '#29B6F6', 'icon' => 'mdi-truck-delivery'],
                 ['label' => 'Volume Vendu', 'value' => $this->formatNumber($shippingsWeight, 2) . ' KG', 'color' => '#b39ddb', 'icon' => 'mdi-ship-wheel'],
             ],
-            'chart' => [
-                'id' => $chartId,
-                'title' => 'Comparaison Achats vs Ventes (Millions MAD)',
-                'labels' => ['Achats (Charges)', 'Ventes (Expéditions)'],
-                'data' => [round($chargesPrice / 1000000, 2), round($shippingsPrice / 1000000, 2)],
-                'seriesName' => 'Montant (M MAD)',
-                'type' => 'bar',
-                'color' => '#42A5F5',
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Purchases vs Sales Comparison (Millions MAD)',
+            'es' => 'Comparación Compras vs Ventas (Millones MAD)',
+            'ar' => 'مقارنة المشتريات مقابل المبيعات (ملايين الدراهم)',
+            default => 'Comparaison Achats vs Ventes (Millions MAD)',
+        };
+
+        $chartLabels = match ($lang) {
+            'en' => ['Purchases (Charges)', 'Sales (Shippings)'],
+            'es' => ['Compras (Cargas)', 'Ventas (Envíos)'],
+            'ar' => ['المشتريات (الشحنات)', 'المبيعات (التصدير)'],
+            default => ['Achats (Charges)', 'Ventes (Expéditions)'],
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'View Charges', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'View Sales', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
             ],
-            'navButtons' => [
+            'es' => [
+                ['label' => 'Consultar Cargas', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Consultar Ventas', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+            ],
+            'ar' => [
+                ['label' => 'الاطلاع على الشحنات', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'الاطلاع على المبيعات', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+            ],
+            default => [
                 ['label' => 'Consulter les Charges', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
                 ['label' => 'Consulter les Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
             ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $moduleTitle,
+            'moduleColor' => '#42A5F5',
+            'moduleIcon' => 'mdi-scale-balance',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
+            'chart' => [
+                'id' => $chartId,
+                'title' => $chartTitle,
+                'labels' => $chartLabels,
+                'data' => [round($chargesPrice / 1000000, 2), round($shippingsPrice / 1000000, 2)],
+                'seriesName' => ($lang === 'en' ? 'Amount (M MAD)' : 'Montant (M MAD)'),
+                'type' => 'bar',
+                'color' => '#42A5F5',
+            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2795,6 +5174,7 @@ TR;
      */
     private function handleOverviewQuery(string $uniqueId, string $chartId, array $p, string $theme): string
     {
+        $lang = $p['lang'];
         $chargesCount = DB::table('charges')->whereNull('deleted_at')->count();
         $chargesWeight = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_weight');
         $chargesPrice = (float) DB::table('charges')->whereNull('deleted_at')->sum('total_price');
@@ -2806,44 +5186,129 @@ TR;
         $prodFrozenWeight = (float) DB::table('productions')->whereNull('deleted_at')->sum('frozen_production_weight');
         $totalStockKg = (float) DB::table('warehouses')->whereNull('deleted_at')->sum('total_weight');
 
-        $answerText = "Voici la synthèse globale du système ERP : {$this->formatNumber($chargesCount, 0)} réceptions d'achats ({$this->formatNumber($chargesWeight, 2)} KG), {$this->formatNumber($shippingsCount, 0)} expéditions de ventes ({$this->formatNumber($shippingsWeight, 2)} KG), {$this->formatNumber($prodFrozenWeight, 2)} KG congelés produits, et un stock actuel en magasin de {$this->formatNumber($totalStockKg, 2)} KG.";
+        $answerText = match ($lang) {
+            'en' => "Here is the executive overview of the ERP system: {$this->formatNumber($chargesCount, 0)} purchase receptions ({$this->formatNumber($chargesWeight, 2)} KG), {$this->formatNumber($shippingsCount, 0)} sales shipments ({$this->formatNumber($shippingsWeight, 2)} KG), {$this->formatNumber($prodFrozenWeight, 2)} KG frozen production, and current warehouse stock of {$this->formatNumber($totalStockKg, 2)} KG.",
+            'es' => "Aquí está el resumen ejecutivo del sistema ERP: {$this->formatNumber($chargesCount, 0)} recepciones de compras ({$this->formatNumber($chargesWeight, 2)} KG), {$this->formatNumber($shippingsCount, 0)} envíos de ventas ({$this->formatNumber($shippingsWeight, 2)} KG), {$this->formatNumber($prodFrozenWeight, 2)} KG de producción congelada, y un stock actual en almacenes de {$this->formatNumber($totalStockKg, 2)} KG.",
+            'ar' => "إليك الملخص التنفيذي لمنظومة تخطيط الموارد: تم تسجيل {$this->formatNumber($chargesCount, 0)} عملية شراء ({$this->formatNumber($chargesWeight, 2)} كغ)، {$this->formatNumber($shippingsCount, 0)} عملية بيع وشحن ({$this->formatNumber($shippingsWeight, 2)} كغ)، {$this->formatNumber($prodFrozenWeight, 2)} كغ إنتاج مجمد، ومخزون حالي في المستودعات قدره {$this->formatNumber($totalStockKg, 2)} كغ.",
+            default => "Voici la synthèse globale du système ERP : {$this->formatNumber($chargesCount, 0)} réceptions d'achats ({$this->formatNumber($chargesWeight, 2)} KG), {$this->formatNumber($shippingsCount, 0)} expéditions de ventes ({$this->formatNumber($shippingsWeight, 2)} KG), {$this->formatNumber($prodFrozenWeight, 2)} KG congelés produits, et un stock actuel en magasin de {$this->formatNumber($totalStockKg, 2)} KG.",
+        };
 
-        return $this->renderStandardCard([
-            'uniqueId' => $uniqueId,
-            'chartId' => $chartId,
-            'theme' => $theme,
-            'moduleTitle' => 'Tableau de Bord Exécutif & Indicateurs Clés',
-            'moduleColor' => '#1565C0',
-            'moduleIcon' => 'mdi-view-dashboard-outline',
-            'badgeText' => 'Vue d\'Ensemble ERP',
-            'userQuestion' => $p['question'],
-            'answerText' => $answerText,
-            'kpis' => [
+        $modTitle = match ($lang) {
+            'en' => 'Executive Dashboard & Key Metrics',
+            'es' => 'Panel Ejecutivo y Métricas Clave',
+            'ar' => 'لوحة التحكم التنفيذية والمؤشرات الرئيسية',
+            default => 'Tableau de Bord Exécutif & Indicateurs Clés',
+        };
+
+        $badgeText = match ($lang) {
+            'en' => 'ERP Global Overview',
+            'es' => 'Visión General ERP',
+            'ar' => 'نظرة عامة على المنظومة',
+            default => 'Vue d\'Ensemble ERP',
+        };
+
+        $kpis = match ($lang) {
+            'en' => [
+                ['label' => 'Total Purchases (Charges)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Total Sales (Shippings)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Frozen Production', 'value' => $this->formatNumber($prodFrozenWeight, 2) . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Warehouse Stock', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+            ],
+            'es' => [
+                ['label' => 'Total Compras (Cargas)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Total Ventas (Envíos)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Producción Congelada', 'value' => $this->formatNumber($prodFrozenWeight, 2) . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'Stock en Almacenes', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+            ],
+            'ar' => [
+                ['label' => 'إجمالي المشتريات (الشحنات)', 'value' => $this->formatNumber($chargesPrice, 2) . ' درهم', 'color' => '#42A5F5', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'إجمالي المبيعات (الشحنات)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' درهم', 'color' => '#4643a0', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'الإنتاج المجمد', 'value' => $this->formatNumber($prodFrozenWeight, 2) . ' كغ', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
+                ['label' => 'المخزون في المستودعات', 'value' => $this->formatNumber($totalStockKg, 2) . ' كغ', 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
+            ],
+            default => [
                 ['label' => 'Total Achats (Charges)', 'value' => $this->formatNumber($chargesPrice, 2) . ' MAD', 'color' => '#42A5F5', 'icon' => 'mdi-truck-delivery'],
                 ['label' => 'Total Ventes (Shippings)', 'value' => $this->formatNumber($shippingsPrice, 2) . ' MAD', 'color' => '#4643a0', 'icon' => 'mdi-ship-wheel'],
                 ['label' => 'Production Congelée', 'value' => $this->formatNumber($prodFrozenWeight, 2) . ' KG', 'color' => '#00897B', 'icon' => 'mdi-snowflake'],
                 ['label' => 'Stock en Magasins', 'value' => $this->formatNumber($totalStockKg, 2) . ' KG', 'color' => '#a21ee5', 'icon' => 'mdi-warehouse'],
             ],
+        };
+
+        $chartLabels = match ($lang) {
+            'en' => ['Purchases Received', 'Sales Shipped', 'Frozen Production', 'Warehouse Stock'],
+            'es' => ['Compras Recibidas', 'Ventas Enviadas', 'Producción Congelada', 'Stock en Almacenes'],
+            'ar' => ['المشتريات المستلمة', 'المبيعات المشحونة', 'الإنتاج المجمد', 'المخزون في المستودعات'],
+            default => ['Achats Réceptionnés', 'Ventes Expédiées', 'Production Congelée', 'Stock en Entrepôts'],
+        };
+
+        $chartTitle = match ($lang) {
+            'en' => 'Key System Volumes (Tonnes)',
+            'es' => 'Volúmenes Clave del Sistema (Toneladas)',
+            'ar' => 'الأحجام الرئيسية للمنظومة (طن)',
+            default => 'Volumes Clés du Système (Tonnes)',
+        };
+
+        $seriesName = match ($lang) {
+            'en' => 'Volume (Tonnes)',
+            'es' => 'Volumen (Toneladas)',
+            'ar' => 'الحجم (طن)',
+            default => 'Volume (Tonnes)',
+        };
+
+        $navBtns = match ($lang) {
+            'en' => [
+                ['label' => 'Purchases Module', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Sales Module', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Production Module', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Warehouses Module', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+            ],
+            'es' => [
+                ['label' => 'Módulo Compras', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Módulo Ventas', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Módulo Producción', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Módulo Almacenes', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+            ],
+            'ar' => [
+                ['label' => 'وحدة المشتريات', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'وحدة المبيعات', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'وحدة الإنتاج', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'وحدة المستودعات', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+            ],
+            default => [
+                ['label' => 'Module Achats', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
+                ['label' => 'Module Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
+                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
+                ['label' => 'Module Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
+            ],
+        };
+
+        return $this->renderStandardCard([
+            'uniqueId' => $uniqueId,
+            'chartId' => $chartId,
+            'theme' => $theme,
+            'lang' => $lang,
+            'moduleTitle' => $modTitle,
+            'moduleColor' => '#1565C0',
+            'moduleIcon' => 'mdi-view-dashboard-outline',
+            'badgeText' => $badgeText,
+            'userQuestion' => $p['question'],
+            'answerText' => $answerText,
+            'kpis' => $kpis,
             'chart' => [
                 'id' => $chartId,
-                'title' => 'Volumes Clés du Système (Tonnes)',
-                'labels' => ['Achats Réceptionnés', 'Ventes Expédiées', 'Production Congelée', 'Stock en Entrepôts'],
+                'title' => $chartTitle,
+                'labels' => $chartLabels,
                 'data' => [
                     round($chargesWeight / 1000, 2),
                     round($shippingsWeight / 1000, 2),
                     round($prodFrozenWeight / 1000, 2),
                     round($totalStockKg / 1000, 2),
                 ],
-                'seriesName' => 'Volume (Tonnes)',
+                'seriesName' => $seriesName,
                 'type' => 'bar',
                 'color' => '#1565C0',
             ],
-            'navButtons' => [
-                ['label' => 'Module Achats', 'route' => '/charges', 'icon' => 'mdi-truck-delivery'],
-                ['label' => 'Module Ventes', 'route' => '/shippings', 'icon' => 'mdi-ship-wheel'],
-                ['label' => 'Module Production', 'route' => '/production', 'icon' => 'mdi-factory'],
-                ['label' => 'Module Entrepôts', 'route' => '/warehouses', 'icon' => 'mdi-warehouse'],
-            ],
+            'navButtons' => $navBtns,
         ]);
     }
 
@@ -2879,7 +5344,45 @@ TR;
         $modColor = $cfg['moduleColor'] ?? '#42A5F5';
         $modTitle = htmlspecialchars($cfg['moduleTitle'] ?? 'Jupiter AI Engine');
         $modIcon = $normalizeIcon($cfg['moduleIcon'] ?? 'mdi-robot');
-        $badgeText = htmlspecialchars($cfg['badgeText'] ?? 'Analyse Précise');
+
+        $lang = $cfg['lang'] ?? $this->detectLanguage($cfg['userQuestion'] ?? '');
+
+        $directAnswerLabel = match ($lang) {
+            'en' => 'Direct Answer',
+            'es' => 'Respuesta Directa',
+            'ar' => 'إجابة مباشرة',
+            default => 'Réponse Directe',
+        };
+        $certifiedLabel = match ($lang) {
+            'en' => 'Certified ERP Data • Single Source of Truth',
+            'es' => 'Datos Certificados ERP • Fuente Única de Verdad',
+            'ar' => 'بيانات تخطيط موارد المؤسسات المعتمدة • مصدر الحقيقة الموثوق',
+            default => 'Données Certifiées ERP • Source Unique de Vérité',
+        };
+        $defaultTableTitle = match ($lang) {
+            'en' => 'Record Details & Metrics',
+            'es' => 'Detalles de Registros y Métricas',
+            'ar' => 'تفاصيل السجلات والمؤشرات',
+            default => 'Détails des Enregistrements',
+        };
+        $defaultChartTitle = match ($lang) {
+            'en' => 'Graphical Visualization',
+            'es' => 'Visualización Gráfica',
+            'ar' => 'التمثيل البياني',
+            default => 'Visualisation Graphique',
+        };
+        $defaultBadgeText = match ($lang) {
+            'en' => 'Verified Analysis',
+            'es' => 'Análisis Verificado',
+            'ar' => 'تحليل معتمد',
+            default => 'Analyse Précise',
+        };
+        $questionLabel = match ($lang) {
+            'ar' => 'السؤال:',
+            default => 'Question:',
+        };
+
+        $badgeText = htmlspecialchars($cfg['badgeText'] ?? $defaultBadgeText);
         $userQuestion = htmlspecialchars($cfg['userQuestion'] ?? '');
         $answerText = htmlspecialchars($cfg['answerText'] ?? '');
 
@@ -2911,7 +5414,7 @@ KPI;
         // 2. Table HTML
         $tableHtml = '';
         if (!empty($cfg['table'])) {
-            $tTitle = htmlspecialchars($cfg['table']['title'] ?? 'Détails des Enregistrements');
+            $tTitle = htmlspecialchars($cfg['table']['title'] ?? $defaultTableTitle);
             $tHeaders = '';
             foreach ($cfg['table']['headers'] as $h) {
                 $align = $h['align'] ?? 'left';
@@ -2947,7 +5450,7 @@ TBL;
         $chartJs = '';
         if (!empty($cfg['chart'])) {
             $c = $cfg['chart'];
-            $cTitle = htmlspecialchars($c['title'] ?? 'Visualisation Graphique');
+            $cTitle = htmlspecialchars($c['title'] ?? $defaultChartTitle);
             $chartHeight = $c['height'] ?? 280;
             $chartContainerHtml = <<<CHART
             <div class="ai-analytics-inner" style="background: var(--ai-inner-bg, {$innerBg}); border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--ai-border, {$innerBorder});">
@@ -2968,22 +5471,39 @@ CHART;
             if ($cType === 'pie' || $cType === 'donut') {
                 $chartJs = <<<JS
 (function(){
-  var chartEl = document.querySelector('#{$c['id']}');
-  if (!chartEl || !window.ApexCharts) return;
-  var options = {
-    chart: { type: '{$cType}', height: {$chartHeight}, id: '{$c['id']}', background: 'transparent' },
-    theme: { mode: '{$theme}' },
-    series: {$dataJson},
-    labels: {$labelsJson},
-    colors: ['#42A5F5', '#00897B', '#b39ddb', '#FFA726', '#EF5350', '#26A69A'],
-    legend: { position: 'bottom', labels: { colors: '{$subColor}' } },
-    dataLabels: { enabled: true },
-    tooltip: { theme: '{$theme}' }
-  };
-  var chart = new ApexCharts(chartEl, options);
-  chart.render();
-  window.__ai_charts = window.__ai_charts || {};
-  window.__ai_charts['{$c['id']}'] = chart;
+  function initChart(retries) {
+    retries = retries || 0;
+    var chartEl = document.getElementById('{$c['id']}') || document.querySelector('#{$c['id']}');
+    var Apex = (typeof ApexCharts !== 'undefined' ? ApexCharts : (window.ApexCharts?.default || window.ApexCharts));
+    if (!chartEl || !Apex) {
+      if (retries < 25) {
+        setTimeout(function(){ initChart(retries + 1); }, 75);
+      }
+      return;
+    }
+    if (window.__ai_charts && window.__ai_charts['{$c['id']}']) {
+      try { window.__ai_charts['{$c['id']}'].destroy(); } catch(e) {}
+    }
+    try {
+      var options = {
+        chart: { type: '{$cType}', height: {$chartHeight}, width: '100%', id: '{$c['id']}', background: 'transparent' },
+        theme: { mode: '{$theme}' },
+        series: {$dataJson},
+        labels: {$labelsJson},
+        colors: ['#42A5F5', '#00897B', '#b39ddb', '#FFA726', '#EF5350', '#26A69A'],
+        legend: { position: 'bottom', labels: { colors: '{$subColor}' } },
+        dataLabels: { enabled: true },
+        tooltip: { theme: '{$theme}' }
+      };
+      var chart = new Apex(chartEl, options);
+      chart.render();
+      window.__ai_charts = window.__ai_charts || {};
+      window.__ai_charts['{$c['id']}'] = chart;
+    } catch(err) {
+      console.error('ApexCharts render error on {$c['id']}:', err);
+    }
+  }
+  initChart();
 })();
 JS;
             } elseif (!empty($c['multi_series'])) {
@@ -2992,88 +5512,123 @@ JS;
                 $yFormatterUnit = addslashes($c['yUnit'] ?? 'MAD');
                 $chartJs = <<<JS
 (function(){
-  var chartEl = document.querySelector('#{$c['id']}');
-  if (!chartEl || !window.ApexCharts) return;
-  var options = {
-    chart: { 
-      type: '{$cType}', 
-      height: {$chartHeight}, 
-      id: '{$c['id']}', 
-      background: 'transparent',
-      toolbar: { show: true, tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false } }
-    },
-    theme: { mode: '{$theme}' },
-    series: {$seriesJson},
-    xaxis: { 
-      categories: {$labelsJson}, 
-      labels: { style: { colors: '{$subColor}', fontSize: '11px', fontWeight: 600 } } 
-    },
-    yaxis: { 
-      labels: { 
-        style: { colors: '{$subColor}', fontSize: '11px' },
-        formatter: function(val) {
-          if (val >= 1000000) return (val / 1000000).toFixed(1) + ' M';
-          if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
-          return val;
-        }
-      } 
-    },
-    colors: {$colorsJson},
-    plotOptions: { 
-      bar: { 
-        borderRadius: 6, 
-        horizontal: false, 
-        columnWidth: '55%' 
-      } 
-    },
-    legend: { 
-      show: true, 
-      position: 'top', 
-      horizontalAlign: 'right', 
-      labels: { colors: '{$textColor}' },
-      markers: { radius: 12 }
-    },
-    grid: { 
-      borderColor: '{$innerBorder}',
-      strokeDashArray: 4
-    },
-    dataLabels: { enabled: false },
-    tooltip: { 
-      theme: '{$theme}',
-      y: {
-        formatter: function(val) {
-          return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' {$yFormatterUnit}';
-        }
+  function initChart(retries) {
+    retries = retries || 0;
+    var chartEl = document.getElementById('{$c['id']}') || document.querySelector('#{$c['id']}');
+    var Apex = (typeof ApexCharts !== 'undefined' ? ApexCharts : (window.ApexCharts?.default || window.ApexCharts));
+    if (!chartEl || !Apex) {
+      if (retries < 25) {
+        setTimeout(function(){ initChart(retries + 1); }, 75);
       }
+      return;
     }
-  };
-  var chart = new ApexCharts(chartEl, options);
-  chart.render();
-  window.__ai_charts = window.__ai_charts || {};
-  window.__ai_charts['{$c['id']}'] = chart;
+    if (window.__ai_charts && window.__ai_charts['{$c['id']}']) {
+      try { window.__ai_charts['{$c['id']}'].destroy(); } catch(e) {}
+    }
+    try {
+      var options = {
+        chart: { 
+          type: '{$cType}', 
+          height: {$chartHeight}, 
+          width: '100%',
+          id: '{$c['id']}', 
+          background: 'transparent',
+          toolbar: { show: true, tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false } }
+        },
+        theme: { mode: '{$theme}' },
+        series: {$seriesJson},
+        xaxis: { 
+          categories: {$labelsJson}, 
+          labels: { style: { colors: '{$subColor}', fontSize: '11px', fontWeight: 600 } } 
+        },
+        yaxis: { 
+          labels: { 
+            style: { colors: '{$subColor}', fontSize: '11px' },
+            formatter: function(val) {
+              if (val >= 1000000) return (val / 1000000).toFixed(1) + ' M';
+              if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
+              return val;
+            }
+          } 
+        },
+        colors: {$colorsJson},
+        plotOptions: { 
+          bar: { 
+            borderRadius: 6, 
+            horizontal: false, 
+            columnWidth: '55%' 
+          } 
+        },
+        legend: { 
+          show: true, 
+          position: 'top', 
+          horizontalAlign: 'right', 
+          labels: { colors: '{$textColor}' },
+          markers: { radius: 12 }
+        },
+        grid: { 
+          borderColor: '{$innerBorder}',
+          strokeDashArray: 4
+        },
+        dataLabels: { enabled: false },
+        tooltip: { 
+          theme: '{$theme}',
+          y: {
+            formatter: function(val) {
+              return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' {$yFormatterUnit}';
+            }
+          }
+        }
+      };
+      var chart = new Apex(chartEl, options);
+      chart.render();
+      window.__ai_charts = window.__ai_charts || {};
+      window.__ai_charts['{$c['id']}'] = chart;
+    } catch(err) {
+      console.error('ApexCharts render error on {$c['id']}:', err);
+    }
+  }
+  initChart();
 })();
 JS;
             } else {
                 $chartJs = <<<JS
 (function(){
-  var chartEl = document.querySelector('#{$c['id']}');
-  if (!chartEl || !window.ApexCharts) return;
-  var options = {
-    chart: { type: 'bar', height: {$chartHeight}, id: '{$c['id']}', background: 'transparent', toolbar: { show: false } },
-    theme: { mode: '{$theme}' },
-    series: [{ name: '{$sName}', data: {$dataJson} }],
-    xaxis: { categories: {$labelsJson}, labels: { style: { colors: '{$subColor}', fontSize: '11px' } } },
-    yaxis: { labels: { style: { colors: '{$subColor}', fontSize: '11px' } } },
-    colors: ['{$cCol}'],
-    plotOptions: { bar: { borderRadius: 6, horizontal: false, columnWidth: '45%' } },
-    grid: { borderColor: '{$innerBorder}' },
-    dataLabels: { enabled: false },
-    tooltip: { theme: '{$theme}' }
-  };
-  var chart = new ApexCharts(chartEl, options);
-  chart.render();
-  window.__ai_charts = window.__ai_charts || {};
-  window.__ai_charts['{$c['id']}'] = chart;
+  function initChart(retries) {
+    retries = retries || 0;
+    var chartEl = document.getElementById('{$c['id']}') || document.querySelector('#{$c['id']}');
+    var Apex = (typeof ApexCharts !== 'undefined' ? ApexCharts : (window.ApexCharts?.default || window.ApexCharts));
+    if (!chartEl || !Apex) {
+      if (retries < 25) {
+        setTimeout(function(){ initChart(retries + 1); }, 75);
+      }
+      return;
+    }
+    if (window.__ai_charts && window.__ai_charts['{$c['id']}']) {
+      try { window.__ai_charts['{$c['id']}'].destroy(); } catch(e) {}
+    }
+    try {
+      var options = {
+        chart: { type: 'bar', height: {$chartHeight}, width: '100%', id: '{$c['id']}', background: 'transparent', toolbar: { show: false } },
+        theme: { mode: '{$theme}' },
+        series: [{ name: '{$sName}', data: {$dataJson} }],
+        xaxis: { categories: {$labelsJson}, labels: { style: { colors: '{$subColor}', fontSize: '11px' } } },
+        yaxis: { labels: { style: { colors: '{$subColor}', fontSize: '11px' } } },
+        colors: ['{$cCol}'],
+        plotOptions: { bar: { borderRadius: 6, horizontal: false, columnWidth: '45%' } },
+        grid: { borderColor: '{$innerBorder}' },
+        dataLabels: { enabled: false },
+        tooltip: { theme: '{$theme}' }
+      };
+      var chart = new Apex(chartEl, options);
+      chart.render();
+      window.__ai_charts = window.__ai_charts || {};
+      window.__ai_charts['{$c['id']}'] = chart;
+    } catch(err) {
+      console.error('ApexCharts render error on {$c['id']}:', err);
+    }
+  }
+  initChart();
 })();
 JS;
             }
@@ -3106,7 +5661,7 @@ BTN;
         </div>
         <div>
           <div style="font-size: 17px; font-weight: 800; color: {$modColor};">{$modTitle}</div>
-          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">Question: <strong style="color: var(--ai-text-color, {$textColor});">« {$userQuestion} »</strong></div>
+          <div style="font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); font-weight: 600;">{$questionLabel} <strong style="color: var(--ai-text-color, {$textColor});">« {$userQuestion} »</strong></div>
         </div>
       </div>
       <span style="background: {$modColor}18; color: {$modColor}; border: 1px solid {$modColor}40; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; display: inline-flex; align-items: center; gap: 5px;">
@@ -3119,7 +5674,7 @@ BTN;
     <div style="font-size: 14px; line-height: 1.7; color: var(--ai-text-color, {$textColor}); background: {$modColor}12; padding: 14px 18px; border-radius: 12px; border-left: 4px solid {$modColor}; margin-bottom: 20px; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
       <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: {$modColor}; letter-spacing: 0.8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
         <i class="mdi mdi-checkbox-marked-circle-outline" style="font-size: 14px;"></i>
-        Réponse Directe
+        {$directAnswerLabel}
       </div>
       {$answerText}
     </div>
@@ -3132,7 +5687,7 @@ BTN;
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--ai-sub-color, {$subColor}); border-top: 1px solid var(--ai-border, {$innerBorder}); padding-top: 16px; margin-top: 4px;">
       <div style="display: flex; align-items: center; gap: 6px;">
         <i class="mdi mdi-shield-check" style="font-size: 16px; color: {$modColor};"></i>
-        <span>Données Certifiées ERP • Source Unique de Vérité</span>
+        <span>{$certifiedLabel}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         {$navBtnsHtml}
@@ -3229,7 +5784,7 @@ HTML;
         <i class="v-icon notranslate mdi mdi-check-decagram" style="font-size: 16px; color: #42A5F5;"></i>
         <span>Données Certifiées ERP • Source Unique de Vérité</span>
       </div>
-      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: linear-gradient(135deg, #1565C0, #42A5F5); color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/dashboard">
+      <button class="ai-nav-btn v-btn v-btn--variant-elevated v-btn--size-small rounded-pill px-4 py-1" style="background: linear-gradient(135deg, #1565C0, #42A5F5); color: white; font-weight: 700; border: none; cursor: pointer;" data-route="/main-dashboard">
         <i class="v-icon notranslate mdi mdi-view-dashboard" style="font-size: 14px; margin-right: 6px;"></i>
         Tableau de Bord
       </button>

@@ -980,7 +980,7 @@ export default {
       if (cat.allow_weight) h.push({ title: this.$t('total_weight_invoice'), key: 'weight_invoice', sortable: false });
       if (cat.allow_unit_price) h.push({ title: this.$t('unit_price'), key: 'unit_price', sortable: false });
       if (cat.allow_price) h.push({ title: this.$t('total_price'), key: 'total_price', sortable: false });
-      h.push({ title: this.$t('actions'), key: 'actions', sortable: false, width: 110 });
+      h.push({ title: this.$t('actions'), key: 'actions', sortable: false, width: 144 });
       return h;
     },
     getFilterableColumns(cat) {

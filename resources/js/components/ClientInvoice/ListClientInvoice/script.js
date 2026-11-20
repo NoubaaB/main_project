@@ -76,7 +76,7 @@ export default {
         { title: this.$t('total_weight'), key: 'total_weight', align: 'center' },
         { title: this.$t('price_dh', { currency: this.main.currency }), key: 'total_price', align: 'center' },
         { title: this.$t('print_counter'), key: 'print_counter', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 144 },
       ];
     },
     headers() {
@@ -355,21 +355,31 @@ export default {
       if (!item) return [];
       const sections = [];
 
-      // 1. Common Actions
+      // 1. Common Actions (Top horizontal card in FileContextMenu)
       const commonItems = [
         {
           title: this.$t('view_item'),
           icon: 'mdi-eye-outline',
           color: '#00838F',
           action: () => this.$router.push({ name: 'view_client_invoice', query: { ids: [item.id] } })
-        },
-        {
-          title: this.$t('print_document'),
-          icon: 'mdi-printer',
-          color: 'blue-grey',
-          action: () => this.$router.push({ name: 'view_client_invoice', query: { ids: [item.id], autoPrint: 1 } })
         }
       ];
+
+      if (typeof this.exportTableToExcel === 'function') {
+        commonItems.push({
+          title: this.$t('export'),
+          icon: 'mdi-download-outline',
+          color: 'blue-grey',
+          action: () => this.exportTableToExcel(`client_invoice_${item.reference || item.id}`, [item])
+        });
+      }
+
+      commonItems.push({
+        title: this.$t('print_document'),
+        icon: 'mdi-printer',
+        color: 'blue-grey',
+        action: () => this.$router.push({ name: 'view_client_invoice', query: { ids: [item.id], autoPrint: 1 } })
+      });
 
       const refText = (item.tracking_numbers && item.tracking_numbers.length)
         ? item.tracking_numbers.join(', ')

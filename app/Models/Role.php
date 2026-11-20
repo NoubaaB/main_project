@@ -12,11 +12,12 @@ class Role extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'is_super_admin', 'permissions'];
+    protected $fillable = ['name', 'is_super_admin', 'permissions', 'allowed_ai_models', 'default_ai_model'];
 
     protected $casts = [
         'is_super_admin' => 'boolean',
         'permissions' => 'array',
+        'allowed_ai_models' => 'array',
     ];
 
     /**
@@ -54,6 +55,7 @@ class Role extends Model
             'dashboard.view',
             'user_statistics.view',
             'ai_prompt.view',
+            'ai.select_model',
 
             // User & Role Management
             'users.manage',
@@ -168,7 +170,7 @@ class Role extends Model
         return [
             'dashboard' => ['dashboard.view'],
             'user_statistics' => ['user_statistics.view'],
-            'ai_prompt' => ['ai_prompt.view'],
+            'ai_prompt' => ['ai_prompt.view', 'ai.select_model'],
             'user_management' => ['users.manage', 'users.roles'],
             'charges' => [
                 'charges.view',

@@ -5,6 +5,7 @@
     :close-on-content-click="closeOnContentClick"
     offset="8"
     transition="scroll-y-transition"
+    content-class="file-context-menu-overlay"
   >
     <template #activator="{ props: menuProps }">
       <slot name="activator" :props="menuProps" :isOpen="isOpen">
@@ -172,7 +173,7 @@ export default {
     },
     minWidth: {
       type: [Number, String],
-      default: 210
+      default: 220
     },
     maxWidth: {
       type: [Number, String],
@@ -209,7 +210,12 @@ export default {
   computed: {
     commonSection() {
       if (!Array.isArray(this.sections) || this.sections.length === 0) return null;
-      return this.sections.find(s => s && (s.key === 'common' || s.key === 'quick' || s.isQuick || s.subheader === this.$t('common_actions'))) || null;
+      return this.sections.find(s => {
+        if (!s) return false;
+        if (s.key === 'common' || s.key === 'quick' || s.isQuick) return true;
+        const sub = String(s.subheader || '').toLowerCase();
+        return sub === 'common_actions' || sub === 'common actions' || sub === 'actions principales' || sub === 'acciones principales';
+      }) || null;
     },
     topCardActions() {
       // 1. If quickActions prop was explicitly provided
@@ -267,6 +273,8 @@ export default {
       if (icon === 'mdi-pencil') return 'mdi-pencil-outline';
       if (icon === 'mdi-delete') return 'mdi-delete-outline';
       if (icon === 'mdi-download') return 'mdi-download-outline';
+      if (icon === 'mdi-share') return 'mdi-share-variant';
+      if (icon === 'mdi-information') return 'mdi-information-outline';
       return icon;
     },
     translateText(text) {
@@ -278,6 +286,10 @@ export default {
         const lowerKey = String(text).toLowerCase();
         if (this.$te && this.$te(lowerKey)) {
           return this.$t(lowerKey);
+        }
+        const upperKey = String(text).toUpperCase();
+        if (this.$te && this.$te(upperKey)) {
+          return this.$t(upperKey);
         }
       } catch (e) {}
       return text;
@@ -318,7 +330,8 @@ export default {
 }
 
 :deep(.v-theme--dark) .file-context-card,
-.v-theme--dark .file-context-card {
+.v-theme--dark .file-context-card,
+[data-theme='dark'] .file-context-card {
   background: #1e1e1e !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5) !important;
@@ -341,12 +354,14 @@ export default {
 }
 
 :deep(.v-theme--dark) .file-context-icon-btn,
-.v-theme--dark .file-context-icon-btn {
+.v-theme--dark .file-context-icon-btn,
+[data-theme='dark'] .file-context-icon-btn {
   color: rgba(255, 255, 255, 0.85) !important;
 }
 
 :deep(.v-theme--dark) .file-context-icon-btn:hover,
-.v-theme--dark .file-context-icon-btn:hover {
+.v-theme--dark .file-context-icon-btn:hover,
+[data-theme='dark'] .file-context-icon-btn:hover {
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
@@ -369,7 +384,8 @@ export default {
 }
 
 :deep(.v-theme--dark) .file-context-item:hover,
-.v-theme--dark .file-context-item:hover {
+.v-theme--dark .file-context-item:hover,
+[data-theme='dark'] .file-context-item:hover {
   background: rgba(255, 255, 255, 0.07) !important;
 }
 
@@ -404,7 +420,8 @@ export default {
 }
 
 :deep(.v-theme--dark) .file-context-shortcut,
-.v-theme--dark .file-context-shortcut {
+.v-theme--dark .file-context-shortcut,
+[data-theme='dark'] .file-context-shortcut {
   color: rgba(255, 255, 255, 0.45);
 }
 
@@ -430,7 +447,25 @@ export default {
 }
 
 :deep(.v-theme--dark) .file-context-divider,
-.v-theme--dark .file-context-divider {
+.v-theme--dark .file-context-divider,
+[data-theme='dark'] .file-context-divider {
   border-color: rgba(255, 255, 255, 0.08) !important;
+}
+</style>
+
+<!-- Unscoped Global Style to ensure perfect appearance in teleported v-menu overlay -->
+<style>
+.file-context-menu-overlay .file-context-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.12) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.v-theme--dark .file-context-menu-overlay .file-context-card,
+.file-context-menu-overlay.v-theme--dark .file-context-card,
+[data-theme='dark'] .file-context-menu-overlay .file-context-card {
+  background: #1e1e1e !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6) !important;
 }
 </style>

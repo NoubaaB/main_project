@@ -35,11 +35,12 @@ class AiQueryMessageController extends Controller
 
         return response()->json([
             'messages' => $messages->map(fn($m) => [
-                'id'       => $m->id,
-                'role'     => $m->role,
-                'text'     => $m->text,
-                'ts'       => (int) ($m->created_at->timestamp * 1000),
-                'reaction' => $m->reaction,
+                'id'        => $m->id,
+                'role'      => $m->role,
+                'text'      => $m->text,
+                'reasoning' => $m->reasoning ? (is_array(json_decode($m->reasoning, true)) ? json_decode($m->reasoning, true) : $m->reasoning) : null,
+                'ts'        => (int) ($m->created_at->timestamp * 1000),
+                'reaction'  => $m->reaction,
             ])->values(),
             'has_more'       => $hasMore,
             'next_before_id' => $nextBeforeId,

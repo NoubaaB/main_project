@@ -739,6 +739,7 @@
                 <ul class="components-list">
                     <li class="component-item"><i data-lucide="brain-circuit"></i> AIQueryController.php</li>
                     <li class="component-item"><i data-lucide="briefcase"></i> ChargeController.php</li>
+                    <li class="component-item"><i data-lucide="sparkles"></i> GeminiService.php</li>
                     <li class="component-item"><i data-lucide="wrench"></i> CustomService.php</li>
                 </ul>
             </div>

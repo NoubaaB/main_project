@@ -200,6 +200,9 @@
             <div v-else-if="col.key === 'role'" class="d-flex align-center">
               <div class="skel-bone" style="width: 90px; height: 24px; border-radius: 999px;"></div>
             </div>
+            <div v-else-if="col.key === 'ai_model_access'" class="d-flex align-center justify-center">
+              <div class="skel-bone" style="width: 110px; height: 24px; border-radius: 999px;"></div>
+            </div>
             <div v-else-if="col.key === 'actions'" class="d-flex align-center justify-center ga-1">
               <div class="skel-bone" style="width: 28px; height: 28px; border-radius: 6px;"></div>
               <div class="skel-bone" style="width: 28px; height: 28px; border-radius: 6px;"></div>
@@ -225,6 +228,41 @@
           <v-icon v-else size="14" class="mr-1">mdi-shield-outline</v-icon>
           {{ item.role?.name || '-' }}
         </v-chip>
+      </template>
+
+      <template v-slot:[`item.ai_model_access`]="{ item }">
+        <div class="d-flex align-center justify-center">
+          <v-chip
+            v-if="item.role?.is_super_admin"
+            size="small"
+            color="#AD1457"
+            variant="tonal"
+            class="font-weight-medium"
+          >
+            <v-icon start size="13">mdi-crown</v-icon>
+            {{ $t('all_models_super_admin') }}
+          </v-chip>
+          <v-chip
+            v-else-if="item.can_select_ai_model_computed"
+            size="small"
+            color="#1565C0"
+            variant="tonal"
+            class="font-weight-medium"
+          >
+            <v-icon start size="13">mdi-tune-vertical</v-icon>
+            {{ (item.effective_allowed_ai_models && item.effective_allowed_ai_models.length < allAiModels.length) ? item.effective_allowed_ai_models.length + ' ' + $t('models_allowed') : $t('all_models') }}
+          </v-chip>
+          <v-chip
+            v-else
+            size="small"
+            color="blue-grey"
+            variant="tonal"
+            class="font-weight-medium"
+          >
+            <v-icon start size="13">mdi-lock-outline</v-icon>
+            {{ getModelName(item.effective_default_ai_model) }}
+          </v-chip>
+        </div>
       </template>
 
       <template v-slot:[`item.is_active`]="{ item }">
@@ -418,6 +456,95 @@
             </template>
           </v-select>
         </v-col>
+
+        <!-- AI Model Access Control Section -->
+        <v-col cols="12" class="mt-2">
+          <div class="pa-3 rounded-lg border" style="background: rgba(var(--v-theme-surface), 0.6); border-color: rgba(173, 20, 87, 0.25) !important;">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <div class="d-flex align-center ga-2">
+                <v-icon color="#AD1457" size="18">mdi-robot-outline</v-icon>
+                <span class="text-caption font-weight-bold" style="color: #AD1457;">{{ $t('ai_model_access_control') }}</span>
+              </div>
+              <v-chip v-if="selectedUserRole?.is_super_admin" size="x-small" color="#AD1457" variant="flat" class="font-weight-bold">
+                <v-icon start size="12">mdi-crown</v-icon>
+                {{ $t('super_admin_all_models') }}
+              </v-chip>
+            </div>
+
+            <!-- Super Admin Notice -->
+            <div v-if="selectedUserRole?.is_super_admin" class="text-caption text-medium-emphasis py-1 d-flex align-center ga-1">
+              <v-icon size="14" color="#AD1457">mdi-information-outline</v-icon>
+              <span>{{ $t('super_admin_model_access_notice') }}</span>
+            </div>
+
+            <!-- Non-Super Admin Configuration -->
+            <div v-else class="d-flex flex-column ga-2">
+              <v-switch
+                v-model="userForm.can_select_ai_model"
+                :label="$t('allow_ai_model_selection')"
+                color="#AD1457"
+                density="compact"
+                inset
+                hide-details
+              ></v-switch>
+              <div class="text-caption text-medium-emphasis" style="font-size: 11px !important; margin-top: -6px;">
+                {{ userForm.can_select_ai_model ? $t('allow_ai_model_selection_desc') : $t('ai_model_locked_desc') }}
+              </div>
+
+              <!-- Default or Locked AI Model -->
+              <v-select
+                v-model="userForm.default_ai_model"
+                :items="allAiModels"
+                item-title="name"
+                item-value="id"
+                :label="userForm.can_select_ai_model ? $t('default_ai_model') : $t('assigned_locked_model')"
+                variant="outlined"
+                density="compact"
+                rounded
+                color="#AD1457"
+                class="text-urm mt-1"
+                prepend-inner-icon="mdi-brain"
+                hide-details
+              >
+                <template #item="{ item, props: p }">
+                  <v-list-item v-bind="p">
+                    <template #append>
+                      <v-chip size="x-small" color="#AD1457" variant="tonal">{{ item.raw.tag }}</v-chip>
+                    </template>
+                  </v-list-item>
+                </template>
+              </v-select>
+
+              <!-- Allowed AI Models List (Active only if model selection is allowed) -->
+              <div v-if="userForm.can_select_ai_model" class="mt-1">
+                <v-select
+                  v-model="userForm.allowed_ai_models"
+                  :items="allAiModels"
+                  item-title="name"
+                  item-value="id"
+                  :label="$t('authorized_ai_models')"
+                  multiple
+                  chips
+                  closable-chips
+                  variant="outlined"
+                  density="compact"
+                  rounded
+                  color="#AD1457"
+                  class="text-urm"
+                  prepend-inner-icon="mdi-format-list-checks"
+                  :hint="$t('leave_empty_for_all')"
+                  persistent-hint
+                >
+                  <template #chip="{ item, props: p }">
+                    <v-chip v-bind="p" size="small" color="#AD1457" variant="tonal" class="font-weight-medium">
+                      {{ item.raw.name }}
+                    </v-chip>
+                  </template>
+                </v-select>
+              </div>
+            </div>
+          </div>
+        </v-col>
       </v-row>
     </v-card-text>
     <v-card-actions class="pa-5 pt-0">
@@ -480,6 +607,58 @@
 
       <!-- Granular Permission Matrix -->
       <div v-else>
+        <!-- Role AI Model Configuration -->
+        <div class="pa-3 rounded-lg border mb-3" style="background: rgba(var(--v-theme-surface), 0.6); border-color: rgba(173, 20, 87, 0.25) !important;">
+          <div class="d-flex align-center ga-2 mb-2">
+            <v-icon color="#AD1457" size="18">mdi-robot-outline</v-icon>
+            <span class="text-caption font-weight-bold" style="color: #AD1457;">{{ $t('role_ai_model_defaults') }}</span>
+          </div>
+          <v-row dense>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="roleForm.default_ai_model"
+                :items="allAiModels"
+                item-title="name"
+                item-value="id"
+                :label="$t('default_ai_model')"
+                variant="outlined"
+                density="compact"
+                rounded
+                color="#AD1457"
+                class="text-urm"
+                prepend-inner-icon="mdi-brain"
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="roleForm.allowed_ai_models"
+                :items="allAiModels"
+                item-title="name"
+                item-value="id"
+                :label="$t('authorized_ai_models')"
+                multiple
+                chips
+                closable-chips
+                variant="outlined"
+                density="compact"
+                rounded
+                color="#AD1457"
+                class="text-urm"
+                prepend-inner-icon="mdi-format-list-checks"
+                :hint="$t('leave_empty_for_all')"
+                persistent-hint
+              >
+                <template #chip="{ item, props: p }">
+                  <v-chip v-bind="p" size="small" color="#AD1457" variant="tonal" class="font-weight-medium">
+                    {{ item.raw.name }}
+                  </v-chip>
+                </template>
+              </v-select>
+            </v-col>
+          </v-row>
+        </div>
+
         <!-- Permissions Toolbar -->
         <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-3 pa-2 rounded-lg" style="background: rgba(var(--v-theme-surface), 0.7); border: 1px solid rgba(var(--v-theme-on-surface), 0.08);">
           <div class="d-flex align-center ga-2">
@@ -686,6 +865,11 @@
       <span class="text-medium-emphasis">{{ $t('role') }}:</span>
       <strong class="text-urm">{{ summarySnackbar.details.role }}</strong>
     </div>
+    <div v-if="summarySnackbar.details.aiModelAccess">
+      <v-icon size="14" color="#AD1457" class="mr-1">mdi-robot-outline</v-icon>
+      <span class="text-medium-emphasis">{{ $t('ai_model_access') }}:</span>
+      <strong>{{ summarySnackbar.details.aiModelAccess }}</strong>
+    </div>
   </div>
 
   <!-- Role Details -->
@@ -699,6 +883,11 @@
       <v-icon size="14" color="#AD1457" class="mr-1">mdi-key-chain</v-icon>
       <span class="text-medium-emphasis">{{ $t('permissions') }}:</span>
       <strong>{{ summarySnackbar.details.permissionsCount }}</strong>
+    </div>
+    <div v-if="summarySnackbar.details.defaultModel">
+      <v-icon size="14" color="#AD1457" class="mr-1">mdi-brain</v-icon>
+      <span class="text-medium-emphasis">{{ $t('default_ai_model') }}:</span>
+      <strong>{{ summarySnackbar.details.defaultModel }}</strong>
     </div>
   </div>
 
@@ -729,12 +918,36 @@ export default {
       searchQuery: '',
       userStatusFilter: 'all', // 'all', 'active', 'disabled'
       roleFilter: 'all', // 'all', 'super_admin'
+      // AI Models
+      allAiModels: [
+        { id: 'gemini-4-carbon', name: 'Gemini 4 Carbon', tag: 'Carbon Core' },
+        { id: 'gemini-4-argon', name: 'Gemini 4 Argon', tag: 'Ultra Fast' },
+        { id: 'gemini-4-neon', name: 'Gemini 4 Neon', tag: 'Visual Analytics' },
+        { id: 'gemini-4-hydrogen', name: 'Gemini 4 Hydrogen', tag: 'Deep Reasoning' },
+        { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', tag: 'Recommended' },
+        { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', tag: 'High Performance' },
+        { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', tag: 'Hybrid Thinking' },
+        { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', tag: 'Low Latency' },
+        { id: 'gemini-flash-lite-latest', name: 'Gemini Flash-Lite Latest', tag: 'Stable' },
+        { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', tag: 'Complex Logic' },
+        { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', tag: 'Open Weights' },
+        { id: 'gpt-oss:120b-cloud', name: 'GPT-OSS 120B Cloud', tag: 'Deep Reasoning' },
+        { id: 'qwen3:14b', name: 'Qwen 3 14B', tag: 'Local' },
+      ],
       // Users
       users: [],
       loadingUsers: false,
       userDialog: false,
       editingUser: null,
-      userForm: { name: '', email: '', password: '', role_id: null },
+      userForm: {
+        name: '',
+        email: '',
+        password: '',
+        role_id: null,
+        can_select_ai_model: true,
+        allowed_ai_models: [],
+        default_ai_model: 'gemini-4-carbon',
+      },
       savingUser: false,
       togglingUserId: null,
       // Roles
@@ -742,7 +955,13 @@ export default {
       loadingRoles: false,
       roleDialog: false,
       editingRole: null,
-      roleForm: { name: '', is_super_admin: false, permissions: [] },
+      roleForm: {
+        name: '',
+        is_super_admin: false,
+        permissions: [],
+        default_ai_model: 'gemini-4-carbon',
+        allowed_ai_models: [],
+      },
       savingRole: false,
       deleteRoleDialog: false,
       deleteRoleId: null,
@@ -832,14 +1051,20 @@ export default {
       return list;
     },
 
+    selectedUserRole() {
+      if (!this.userForm.role_id) return null;
+      return (this.roles || []).find(r => r.id === this.userForm.role_id);
+    },
+
     userHeaders() {
       return [
         { title: this.$t('name'), key: 'name', align: 'start' },
         { title: this.$t('email'), key: 'email', align: 'start' },
         { title: this.$t('role'), key: 'role', align: 'center' },
+        { title: this.$t('ai_model_access'), key: 'ai_model_access', align: 'center' },
         { title: this.$t('status'), key: 'is_active', align: 'center' },
         { title: this.$t('created_at'), key: 'created_at', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px' },
       ];
     },
 
@@ -849,7 +1074,7 @@ export default {
         { title: this.$t('super_admin'), key: 'is_super_admin', align: 'center' },
         { title: this.$t('permissions'), key: 'permissions_count', align: 'center' },
         { title: this.$t('users_count'), key: 'users_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '120px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px' },
       ];
     },
 
@@ -898,6 +1123,12 @@ export default {
     mitt.off('model-changed', this._onMC);
   },
   methods: {
+    getModelName(modelId) {
+      if (!modelId) return '-';
+      const m = this.allAiModels.find(item => item.id === modelId);
+      return m ? m.name : modelId;
+    },
+
     _onMC(d) {
       if (d.model === 'User') {
         this.fetchUsers();
@@ -913,6 +1144,7 @@ export default {
               name: d.data.user.name,
               email: d.data.user.email,
               role: d.data.user.role?.name,
+              aiModelAccess: d.data.user.can_select_ai_model_computed ? (d.data.user.effective_allowed_ai_models?.length ? d.data.user.effective_allowed_ai_models.length + ' ' + this.$t('models_allowed') : this.$t('all_models')) : (this.$t('assigned_locked_model') + ': ' + this.getModelName(d.data.user.effective_default_ai_model)),
             }
           });
         }
@@ -930,6 +1162,7 @@ export default {
             details: {
               name: d.data.role.name,
               permissionsCount: d.data.role.is_super_admin ? this.$t('all_permissions') : (d.data.role.permissions?.length || 0),
+              defaultModel: this.getModelName(d.data.role.default_ai_model),
             }
           });
         }
@@ -942,6 +1175,9 @@ export default {
       try {
         const r = await axios.get('/api/admin/users');
         this.users = r.data.users;
+        if (r.data.all_ai_models && Array.isArray(r.data.all_ai_models)) {
+          this.allAiModels = r.data.all_ai_models;
+        }
       } catch (e) { console.error(e); }
       this.loadingUsers = false;
     },
@@ -949,9 +1185,25 @@ export default {
     openUserDialog(user) {
       this.editingUser = user;
       if (user) {
-        this.userForm = { name: user.name, email: user.email, password: '', role_id: user.role_id };
+        this.userForm = {
+          name: user.name,
+          email: user.email,
+          password: '',
+          role_id: user.role_id,
+          can_select_ai_model: user.can_select_ai_model !== null ? !!user.can_select_ai_model : !!user.can_select_ai_model_computed,
+          allowed_ai_models: Array.isArray(user.allowed_ai_models) ? [...user.allowed_ai_models] : (Array.isArray(user.effective_allowed_ai_models) ? [...user.effective_allowed_ai_models] : []),
+          default_ai_model: user.default_ai_model || user.effective_default_ai_model || 'gemini-4-carbon',
+        };
       } else {
-        this.userForm = { name: '', email: '', password: '', role_id: null };
+        this.userForm = {
+          name: '',
+          email: '',
+          password: '',
+          role_id: this.roles.length ? this.roles[0].id : null,
+          can_select_ai_model: true,
+          allowed_ai_models: [],
+          default_ai_model: 'gemini-4-carbon',
+        };
       }
       this.userDialog = true;
     },
@@ -959,8 +1211,17 @@ export default {
     async saveUser() {
       this.savingUser = true;
       try {
-        const payload = { ...this.userForm };
-        if (this.editingUser && !payload.password) delete payload.password;
+        const payload = {
+          name: this.userForm.name,
+          email: this.userForm.email,
+          role_id: this.userForm.role_id,
+          can_select_ai_model: this.userForm.can_select_ai_model,
+          allowed_ai_models: this.userForm.allowed_ai_models && this.userForm.allowed_ai_models.length ? this.userForm.allowed_ai_models : null,
+          default_ai_model: this.userForm.default_ai_model || 'gemini-4-carbon',
+        };
+        if (this.userForm.password) {
+          payload.password = this.userForm.password;
+        }
         let response;
         if (this.editingUser) {
           response = await axios.put(`/api/admin/users/${this.editingUser.id}`, payload);
@@ -975,6 +1236,7 @@ export default {
               name: updated.name,
               email: updated.email,
               role: updated.role?.name,
+              aiModelAccess: updated.can_select_ai_model_computed ? (updated.effective_allowed_ai_models?.length ? updated.effective_allowed_ai_models.length + ' ' + this.$t('models_allowed') : this.$t('all_models')) : (this.$t('assigned_locked_model') + ': ' + this.getModelName(updated.effective_default_ai_model)),
             }
           });
         } else {
@@ -990,6 +1252,7 @@ export default {
               name: created.name,
               email: created.email,
               role: created.role?.name,
+              aiModelAccess: created.can_select_ai_model_computed ? (created.effective_allowed_ai_models?.length ? created.effective_allowed_ai_models.length + ' ' + this.$t('models_allowed') : this.$t('all_models')) : (this.$t('assigned_locked_model') + ': ' + this.getModelName(created.effective_default_ai_model)),
             }
           });
         }
@@ -1046,6 +1309,9 @@ export default {
         const r = await axios.get('/api/admin/roles');
         this.roles = r.data.roles;
         this.permissionGroups = r.data.permission_groups || {};
+        if (r.data.all_ai_models && Array.isArray(r.data.all_ai_models)) {
+          this.allAiModels = r.data.all_ai_models;
+        }
       } catch (e) { console.error(e); }
       this.loadingRoles = false;
     },
@@ -1063,9 +1329,21 @@ export default {
             subPerms.forEach(p => { if (!perms.includes(p)) perms.push(p); });
           }
         });
-        this.roleForm = { name: role.name, is_super_admin: !!role.is_super_admin, permissions: perms };
+        this.roleForm = {
+          name: role.name,
+          is_super_admin: !!role.is_super_admin,
+          permissions: perms,
+          default_ai_model: role.default_ai_model || 'gemini-4-carbon',
+          allowed_ai_models: Array.isArray(role.allowed_ai_models) ? [...role.allowed_ai_models] : [],
+        };
       } else {
-        this.roleForm = { name: '', is_super_admin: false, permissions: [] };
+        this.roleForm = {
+          name: '',
+          is_super_admin: false,
+          permissions: [],
+          default_ai_model: 'gemini-4-carbon',
+          allowed_ai_models: [],
+        };
       }
       this.roleDialog = true;
     },
@@ -1073,7 +1351,13 @@ export default {
     async saveRole() {
       this.savingRole = true;
       try {
-        const payload = { ...this.roleForm };
+        const payload = {
+          name: this.roleForm.name,
+          is_super_admin: this.roleForm.is_super_admin,
+          permissions: [...this.roleForm.permissions],
+          default_ai_model: this.roleForm.default_ai_model || 'gemini-4-carbon',
+          allowed_ai_models: this.roleForm.allowed_ai_models?.length ? this.roleForm.allowed_ai_models : null,
+        };
         // If a master key is checked, strip individual sub-permissions to keep DB clean
         const masterModules = ['settings', 'workforce', 'supplier_invoices', 'client_invoices', 'quality_control', 'users'];
         masterModules.forEach(mod => {
@@ -1096,6 +1380,7 @@ export default {
             details: {
               name: updated.name,
               permissionsCount: updated.is_super_admin ? this.$t('all_permissions') : (updated.permissions?.length || 0),
+              defaultModel: this.getModelName(updated.default_ai_model),
             }
           });
         } else {
@@ -1110,6 +1395,7 @@ export default {
             details: {
               name: created.name,
               permissionsCount: created.is_super_admin ? this.$t('all_permissions') : (created.permissions?.length || 0),
+              defaultModel: this.getModelName(created.default_ai_model),
             }
           });
         }

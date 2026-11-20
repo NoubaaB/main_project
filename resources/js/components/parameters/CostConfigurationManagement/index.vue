@@ -803,7 +803,7 @@ export default {
         { title: this.$t('formula'), key: 'formula', align: 'center' },
         { title: this.$t('status'), key: 'enabled', align: 'center' },
         { title: this.$t('chart'), key: 'show_in_chart', align: 'center', sortable: false },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '130px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px' },
       ];
     },
 

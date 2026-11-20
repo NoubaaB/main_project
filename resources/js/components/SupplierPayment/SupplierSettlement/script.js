@@ -272,7 +272,7 @@ export default {
         { title: this.$t('payment_reference'), key: 'reference' },
         { title: this.$t('bank_name'), key: 'bank_name' },
         { title: this.$t('due_date'), key: 'due_date' },
-        { title: this.$t('actions'), key: 'actions', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: 144 },
       ];
     },
     mappedPayments() {

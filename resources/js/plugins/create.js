@@ -6,7 +6,9 @@ import ApexCharts from "apexcharts";
 import VueApexCharts from "vue3-apexcharts";
 
 if (typeof window !== 'undefined') {
-    window.ApexCharts = ApexCharts;
+    const resolvedApex = (ApexCharts && ApexCharts.default) ? ApexCharts.default : ApexCharts;
+    window.ApexCharts = resolvedApex;
+    window.__ai_charts = window.__ai_charts || {};
 }
 import { SnackbarService, Vue3Snackbar } from "vue3-snackbar";
 import "vue3-snackbar/styles";

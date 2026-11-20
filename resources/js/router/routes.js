@@ -280,6 +280,7 @@ const routes = [
                     {
                         path: '/warehouse-transfers',
                         name: 'warehouse_transfers',
+                        redirect: { name: 'list_warehouse_transfer' },
                         children: [
                             {
                                 path: 'list',
@@ -302,6 +303,7 @@ const routes = [
                         path: "/supplier_invoice",
                         keeplive: true,
                         name: "supplier_invoice",
+                        redirect: { name: "list_supplier_invoice" },
                         children: [
                             {
                                 path: "view_supplier_invoice",
@@ -330,6 +332,7 @@ const routes = [
                         path: "/client_invoice",
                         keeplive: true,
                         name: "client_invoice",
+                        redirect: { name: "list_client_invoice" },
                         children: [
                             {
                                 path: "view_client_invoice",
@@ -384,6 +387,7 @@ const routes = [
                     {
                         path: "/parameters",
                         name: "parameters",
+                        redirect: { name: "company_settings" },
                         children: [
                             {
                                 path: "warehouse-management",
@@ -506,6 +510,7 @@ const routes = [
                     {
                         path: '/workforce',
                         name: 'workforce',
+                        redirect: { name: 'workforce_management' },
                         children: [
                             {
                                 path: 'management',
@@ -575,6 +580,65 @@ const routes = [
                     {
                         path: '/workforce_absence_movement',
                         redirect: '/workforce/absence-movement',
+                    },
+                    // =======================================
+                    //  AI & COMMON NAVIGATION ALIAS REDIRECTS
+                    // =======================================
+                    {
+                        path: '/fortnight',
+                        redirect: '/workforce/fortnight',
+                    },
+                    {
+                        path: '/fortnights',
+                        redirect: '/workforce/fortnight',
+                    },
+                    {
+                        path: '/workforce/fortnights',
+                        redirect: '/workforce/fortnight',
+                    },
+                    {
+                        path: '/workforces',
+                        redirect: '/workforce/management',
+                    },
+                    {
+                        path: '/dashboard',
+                        redirect: '/main-dashboard',
+                    },
+                    {
+                        path: '/dashboards',
+                        redirect: '/main-dashboard',
+                    },
+                    {
+                        path: '/clients',
+                        redirect: '/parameters/client-management',
+                    },
+                    {
+                        path: '/suppliers',
+                        redirect: '/parameters/supplier-management',
+                    },
+                    {
+                        path: '/warehouse_transfer',
+                        redirect: '/warehouse-transfers/list',
+                    },
+                    {
+                        path: '/warehouse_transfers',
+                        redirect: '/warehouse-transfers/list',
+                    },
+                    {
+                        path: '/charge_category',
+                        redirect: '/parameters/charge-management',
+                    },
+                    {
+                        path: '/shipping_category',
+                        redirect: '/parameters/shipping-management',
+                    },
+                    {
+                        path: '/production_category',
+                        redirect: '/parameters/production-management',
+                    },
+                    {
+                        path: '/production/add_production',
+                        redirect: '/production/add',
                     },
                 ]
             },

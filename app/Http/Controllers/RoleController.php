@@ -21,6 +21,7 @@ class RoleController extends Controller
             'roles' => $roles,
             'permission_groups' => Role::permissionGroups(),
             'all_permissions' => Role::allPermissionKeys(),
+            'all_ai_models' => \App\Models\User::ALL_AI_MODELS_DETAILS,
         ]);
     }
 
@@ -34,6 +35,9 @@ class RoleController extends Controller
             'is_super_admin' => 'boolean',
             'permissions' => 'array',
             'permissions.*' => 'string',
+            'allowed_ai_models' => 'nullable|array',
+            'allowed_ai_models.*' => 'string',
+            'default_ai_model' => 'nullable|string|max:100',
         ]);
 
         // Only super admins can create other super admin roles
@@ -45,6 +49,8 @@ class RoleController extends Controller
             'name' => $data['name'],
             'is_super_admin' => $data['is_super_admin'] ?? false,
             'permissions' => $data['permissions'] ?? [],
+            'allowed_ai_models' => $data['allowed_ai_models'] ?? null,
+            'default_ai_model' => $data['default_ai_model'] ?? 'gemini-4-carbon',
         ]);
 
         $role->loadCount('users');
@@ -63,6 +69,9 @@ class RoleController extends Controller
             'is_super_admin' => 'boolean',
             'permissions' => 'array',
             'permissions.*' => 'string',
+            'allowed_ai_models' => 'nullable|array',
+            'allowed_ai_models.*' => 'string',
+            'default_ai_model' => 'nullable|string|max:100',
         ]);
 
         // Prevent removing super_admin from own role
@@ -78,6 +87,8 @@ class RoleController extends Controller
             'name' => $data['name'],
             'is_super_admin' => $data['is_super_admin'] ?? false,
             'permissions' => $data['permissions'] ?? [],
+            'allowed_ai_models' => array_key_exists('allowed_ai_models', $data) ? $data['allowed_ai_models'] : $role->allowed_ai_models,
+            'default_ai_model' => $data['default_ai_model'] ?? $role->default_ai_model ?? 'gemini-4-carbon',
         ]);
 
         $role->loadCount('users');

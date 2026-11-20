@@ -802,7 +802,7 @@ export default {
         { title: this.$t('size'), key: 'size', align: 'center', width: '90px' },
         { title: this.$t('packaging_type'), key: 'type_emballage', align: 'center' },
         { title: this.$t('linked_packages'), key: 'components', align: 'center', sortable: false },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '135px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px' },
       ];
     },
     targetPackageOptions() {
@@ -820,7 +820,7 @@ export default {
         { title: this.$t('end_date'), key: 'date_end', align: 'center' },
         { title: this.$t('secondary_packaging'), key: 'breakdown', align: 'center' },
         { title: this.$t('unit_cost_per_package'), key: 'unit_cost', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '100px' },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px' },
       ];
     },
     secondaryStartDateDisplay() {

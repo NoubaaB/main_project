@@ -70,7 +70,7 @@ export default {
         { title: this.$t('beneficiaries'), key: '_beneficiaries', align: 'center' },
         { title: this.$t('motif'), key: 'motif', align: 'center' },
         { title: this.$t('created_by'), key: '_created_by', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 144 },
       ];
     },
     headers() {
@@ -382,14 +382,23 @@ export default {
       if (!item) return [];
       const sections = [];
 
-      // 1. Common Actions
+      // 1. Common Actions (Top horizontal card in FileContextMenu)
       const commonItems = [];
       if (this.auth.hasPermission('order_transfers.edit')) {
         commonItems.push({
           title: this.$t('edit'),
-          icon: 'mdi-pencil',
+          icon: 'mdi-pencil-outline',
           color: '#00897B',
           action: () => this.editTransfer(item)
+        });
+      }
+
+      if (typeof this.exportTableToExcel === 'function') {
+        commonItems.push({
+          title: this.$t('export'),
+          icon: 'mdi-download-outline',
+          color: 'blue-grey',
+          action: () => this.exportTableToExcel(`order_transfer_${item.transfer_number || item.id}`, [item])
         });
       }
 

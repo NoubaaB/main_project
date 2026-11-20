@@ -636,7 +636,7 @@ export default {
         { title: (this.tLabel('remaining', 'Solde en Stock') + ' (Kg)'), key: 'rem_weight', align: 'right', sortable: true },
         { title: this.tLabel('package_count', 'Cartons'), key: 'boxes', align: 'center', sortable: true },
         { title: (this.tLabel('total_price', 'Valeur') + ' & ' + this.tLabel('wap', 'PMP')), key: 'valuation', align: 'right', sortable: true },
-        { title: this.tLabel('actions', 'Actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
+        { title: this.tLabel('actions', 'Actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 144 },
       ];
     },
 
@@ -3707,6 +3707,10 @@ export default {
       });
 
       return sections;
+    },
+
+    getLotActionSections(lot, chamber, spec) {
+      return this.getLotMenuSections(lot);
     },
 
     exportSingleLot(lot) {

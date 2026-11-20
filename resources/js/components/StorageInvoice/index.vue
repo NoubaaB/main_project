@@ -263,9 +263,9 @@ export default {
 .si-table{width:100%;border-collapse:collapse;font-size:13px}
 .si-thead{position:sticky;top:0;z-index:4;background:rgb(var(--v-theme-surface))}
 .si-th{padding:10px 12px;text-align:center;white-space:nowrap;border-bottom:2px solid rgba(var(--v-border-color),.12);background:rgb(var(--v-theme-surface));transition:background .15s}
-.si-th-actions{text-align:center!important;overflow:visible!important;width:120px!important;min-width:120px!important;max-width:120px!important}
+.si-th-actions{text-align:center!important;overflow:visible!important;width:144px!important;min-width:144px!important;max-width:144px!important}
 .si-td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(var(--v-border-color),.06);white-space:nowrap}
-.si-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 6px!important;white-space:nowrap!important;width:120px!important;min-width:120px!important;max-width:120px!important}
+.si-td-actions{overflow:visible!important;text-overflow:clip!important;padding:4px 6px!important;white-space:nowrap!important;width:144px!important;min-width:144px!important;max-width:144px!important}
 .si-col-pin{position:sticky!important;z-index:2!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
 .si-th-pin{position:sticky!important;z-index:5!important;background:#F5F5F5!important;box-shadow:2px 0 4px -2px rgba(0,0,0,.1)}
 :deep(.v-theme--dark) .si-col-pin,

@@ -187,7 +187,7 @@ export default {
         { title: this.$t('total_price'), key: 'total_price', align: 'center' },
         { title: this.$t('invoice_state'), key: '_invoice_state', align: 'center' },
         { title: this.$t('quality_control'), key: '_qc_status', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 120 },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, fixed: true, width: 144 },
       ]
     },
     headers() {
@@ -733,7 +733,7 @@ export default {
       if (!item) return [];
       const sections = [];
 
-      // 1. Common Actions
+      // 1. Common Actions (Top horizontal card in FileContextMenu)
       const commonItems = [
         {
           title: this.$t('view'),
@@ -742,6 +742,15 @@ export default {
           action: () => this.$router.push({ name: 'view_charge', params: { id: item.id } })
         }
       ];
+
+      if (typeof this.exportTableToExcel === 'function') {
+        commonItems.push({
+          title: this.$t('export'),
+          icon: 'mdi-download-outline',
+          color: 'blue-grey',
+          action: () => this.exportTableToExcel(`charge_${item.reference || item.id}`, [item])
+        });
+      }
 
       const refText = item.reference || (item.reception_tracking_number && item.reception_tracking_number.length ? item.reception_tracking_number.join(', ') : null) || item.id;
       if (refText) {
@@ -793,6 +802,7 @@ export default {
         title: this.$t('qc_inspection'),
         icon: 'mdi-clipboard-check-outline',
         color: '#00838F',
+        shortcut: 'Alt + Q',
         action: () => this.openQcDialog(item)
       });
 

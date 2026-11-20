@@ -844,7 +844,7 @@ export default {
         { title: this.$t('name_en'), key: 'name_en', align: 'center' },
         { title: this.$t('name_es'), key: 'name_es', align: 'center' },
         { title: this.$t('fish_types_count'), key: 'fish_types_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     typeHeaders() {
@@ -856,7 +856,7 @@ export default {
         { title: this.$t('image'), key: 'image', align: 'center' },
         { title: this.$t('productivity_type'), key: 'fish_process_type', align: 'center' },
         { title: this.$t('productivity_color'), key: 'productivity_color', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     processHeaders() {
@@ -864,7 +864,7 @@ export default {
         { title: this.$t('name'), key: 'name', align: 'center' },
         { title: this.$t('description'), key: 'description', align: 'center' },
         { title: this.$t('fish_types_count'), key: 'fish_types_count', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     wapHeaders() {
@@ -873,7 +873,7 @@ export default {
         { title: this.$t('date_start'), key: 'date_start', align: 'center' },
         { title: this.$t('date_end'), key: 'date_end', align: 'center' },
         { title: this.$t('wap'), key: 'wap', align: 'center' },
-        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false },
+        { title: this.$t('actions'), key: 'actions', align: 'center', sortable: false, width: '144px', minWidth: '144px' },
       ];
     },
     wapStartDateDisplay() {

@@ -27,6 +27,69 @@
         </div>
         <v-spacer></v-spacer>
         <div class="d-flex align-center ga-2">
+          <!-- AI Model Selector Pill -->
+          <v-menu
+            v-if="canSelectModel"
+            class="aiq-model-menu"
+            :z-index="999999"
+            location="bottom end"
+            :close-on-content-click="true"
+            :offset="8"
+          >
+            <template v-slot:activator="{ props }">
+              <button
+                v-bind="props"
+                class="aiq-thinking-badge aiq-model-badge"
+                :title="$t('choose_ai_model')"
+              >
+                <v-icon size="14" class="me-1" :color="currentModelObj.color">{{ currentModelObj.icon }}</v-icon>
+                <span>{{ currentModelObj.name }}</span>
+                <v-icon size="12" class="ms-1 opacity-70">mdi-chevron-down</v-icon>
+              </button>
+            </template>
+            <v-list density="compact" nav class="rounded-xl aiq-menu-list" min-width="280" max-height="400" style="overflow-y: auto;">
+              <div class="px-3 py-1.5 text-caption font-weight-bold text-uppercase opacity-60">
+                {{ $t('choose_ai_model') }}
+              </div>
+              <v-list-item
+                v-for="model in authorizedModels"
+                :key="model.id"
+                rounded="lg"
+                @click="ai_prompt.selected_model = model.id"
+                :active="ai_prompt.selected_model === model.id"
+                class="aiq-model-menu-item"
+              >
+                <template v-slot:prepend>
+                  <v-icon size="16" :color="model.color" class="mr-2">{{ model.icon }}</v-icon>
+                </template>
+                <v-list-item-title class="text-caption font-weight-bold d-flex align-center justify-space-between">
+                  <span>{{ model.name }}</span>
+                  <v-chip size="x-small" :color="model.color" variant="tonal" class="ms-2 font-weight-bold">
+                    {{ $t('model_' + model.tag.toLowerCase().replace(/ /g, '_')) || model.tag }}
+                  </v-chip>
+                </v-list-item-title>
+                <v-list-item-subtitle class="text-caption opacity-70" style="font-size: 10px !important;">
+                  {{ model.desc }}
+                </v-list-item-subtitle>
+                <template v-slot:append>
+                  <v-icon v-if="ai_prompt.selected_model === model.id" size="14" color="primary">mdi-check</v-icon>
+                </template>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+
+          <!-- Locked Model Pill (when user cannot select model) -->
+          <div
+            v-else
+            class="aiq-thinking-badge aiq-model-badge"
+            style="cursor: default; opacity: 0.9;"
+            :title="$t('ai_model_locked_hint') || 'AI Model managed by administrator'"
+          >
+            <v-icon size="13" class="me-1" color="#FFA726">mdi-lock-outline</v-icon>
+            <v-icon size="14" class="me-1" :color="currentModelObj.color">{{ currentModelObj.icon }}</v-icon>
+            <span>{{ currentModelObj.name }}</span>
+          </div>
+
           <!-- Thinking Mode Header Pill -->
           <v-menu
             class="aiq-thinking-menu"
@@ -299,19 +362,60 @@
           </template>
         </div>
 
-        <!-- Typing indicator -->
+        <!-- Active Reasoning & Typing indicator -->
         <div v-if="loading" id="aiq-typing-row" class="aiq-msg-row aiq-msg-ai">
-          <div class="aiq-typing-card">
-            <div class="aiq-typing-header">
-              <div class="aiq-typing-avatar">
-                <v-icon size="14" color="white">mdi-robot-happy-outline</v-icon>
+          <div class="aiq-typing-card aiq-reasoning-active-card">
+            <div class="aiq-reasoning-live-header">
+              <div class="aiq-reasoning-brain-pulse">
+                <v-icon size="16" color="#42A5F5">mdi-brain</v-icon>
               </div>
-              <span class="aiq-typing-label">{{ $t('app_name_ai') }}</span>
+              <div class="d-flex align-center ga-2 flex-grow-1">
+                <span class="aiq-reasoning-live-title font-weight-medium">{{ $t('reasoning_in_progress') || 'Thinking...' }}</span>
+                <span class="aiq-reasoning-live-timer font-mono text-caption">({{ liveThinkingSeconds }}s)</span>
+                <span class="aiq-reasoning-live-model ms-1">{{ currentModelObj.name }}</span>
+              </div>
+              <div class="aiq-typing-dots">
+                <span class="aiq-dot"></span>
+                <span class="aiq-dot"></span>
+                <span class="aiq-dot"></span>
+              </div>
             </div>
-            <div class="aiq-typing-dots">
-              <span class="aiq-dot"></span>
-              <span class="aiq-dot"></span>
-              <span class="aiq-dot"></span>
+
+            <!-- Active Step with subtle progress track -->
+            <div class="aiq-reasoning-stage-container">
+              <div class="aiq-reasoning-stage-badge">
+                <v-icon size="13" color="#42A5F5" class="aiq-spin-slow me-1">mdi-progress-helper</v-icon>
+                <span class="aiq-reasoning-stage-label">{{ currentReasoningStageText }}</span>
+              </div>
+              <div class="aiq-reasoning-progress-track">
+                <div class="aiq-reasoning-progress-bar" :style="{ width: liveThinkingProgress + '%' }"></div>
+              </div>
+            </div>
+
+            <!-- Live Thoughts Stream: ChatGPT / DeepSeek style thought transparency -->
+            <div class="aiq-reasoning-live-stream mt-2 pt-1">
+              <div
+                v-for="(th, sIdx) in liveThoughts"
+                :key="sIdx"
+                class="aiq-live-thought-item d-flex align-center py-0.5"
+                :class="{
+                  'aiq-thought-active': sIdx === reasoningStageIndex,
+                  'aiq-thought-done': sIdx < reasoningStageIndex,
+                  'aiq-thought-pending': sIdx > reasoningStageIndex
+                }"
+              >
+                <v-icon
+                  size="12"
+                  :color="sIdx < reasoningStageIndex ? '#00BFA5' : (sIdx === reasoningStageIndex ? '#42A5F5' : 'grey')"
+                  class="me-1.5 flex-shrink-0"
+                  :class="{ 'aiq-spin-slow': sIdx === reasoningStageIndex }"
+                >
+                  {{ sIdx < reasoningStageIndex ? 'mdi-check-circle' : (sIdx === reasoningStageIndex ? 'mdi-loading' : 'mdi-circle-outline') }}
+                </v-icon>
+                <span class="font-mono text-caption" :style="{ fontSize: '11px', opacity: sIdx > reasoningStageIndex ? 0.45 : (sIdx === reasoningStageIndex ? 1 : 0.8) }">
+                  {{ th }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -491,11 +595,48 @@ export default {
         { text: "Daily revenue last 7 days", icon: "mdi-chart-line" },
         { text: "Stock by warehouse", icon: "mdi-warehouse" },
       ],
+      liveThinkingSeconds: 0,
+      liveThinkingTimer: null,
+      reasoningStageIndex: 0,
     };
   },
   computed: {
     ai_prompt() { return useAIPrompt(); },
     main() { return useMain(); },
+    canSelectModel() {
+      return this.ai_prompt?.canSelectModel ?? true;
+    },
+    authorizedModels() {
+      return this.ai_prompt?.authorizedModels ?? (this.ai_prompt?.available_models || []);
+    },
+    currentModelObj() {
+      return this.ai_prompt?.getModelObj ? this.ai_prompt.getModelObj() : { name: 'Gemini 3.5 Flash-Lite', color: '#00BFA5', icon: 'mdi-lightning-bolt', tag: 'Recommended' };
+    },
+    liveThoughts() {
+      return [
+        this.$t('thought_step_intent') || 'Analyzing question intent & requirements...',
+        this.$t('thought_step_schema') || 'Exploring enterprise records & domain relationships...',
+        this.$t('thought_step_sql') || 'Formulating analytical metrics & calculation models...',
+        this.$t('thought_step_db') || 'Retrieving certified enterprise transaction records...',
+        this.$t('thought_step_synthesis') || 'Synthesizing executive KPIs & interactive visualizations...',
+      ];
+    },
+    currentReasoningStageText() {
+      const stages = [
+        this.$t('reasoning_step_intent') || 'Analyzing user request & business context...',
+        this.$t('reasoning_step_schema') || 'Mapping business metrics & formulating query model...',
+        this.$t('reasoning_step_db') || 'Accessing verified ERP data streams...',
+        this.$t('reasoning_step_synthesis') || 'Synthesizing executive insights & interactive visualizations...',
+      ];
+      return stages[this.reasoningStageIndex] || stages[0];
+    },
+    liveThinkingProgress() {
+      const sec = parseFloat(this.liveThinkingSeconds) || 0;
+      if (sec <= 1.5) return Math.min(25, (sec / 1.5) * 25);
+      if (sec <= 3.5) return 25 + Math.min(30, ((sec - 1.5) / 2.0) * 30);
+      if (sec <= 6.0) return 55 + Math.min(30, ((sec - 3.5) / 2.5) * 30);
+      return Math.min(95, 85 + (sec - 6.0) * 1.5);
+    },
     promptCards() {
       return [
         {
@@ -561,8 +702,11 @@ export default {
     },
     loading(val) {
       if (val) {
+        this.startReasoningTimer();
         this.scrollToLatestMessage(true);
         setTimeout(() => this.scrollToLatestMessage(true), 60);
+      } else {
+        this.stopReasoningTimer();
       }
     }
   },
@@ -602,8 +746,34 @@ export default {
         document.documentElement.classList.remove('aiq-html-fullscreen');
       }
     }
+    this.stopReasoningTimer();
   },
   methods: {
+    startReasoningTimer() {
+      this.liveThinkingSeconds = 0;
+      this.reasoningStageIndex = 0;
+      const startTime = Date.now();
+      if (this.liveThinkingTimer) clearInterval(this.liveThinkingTimer);
+      this.liveThinkingTimer = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        this.liveThinkingSeconds = elapsed.toFixed(1);
+        if (elapsed < 1.5) {
+          this.reasoningStageIndex = 0;
+        } else if (elapsed < 3.5) {
+          this.reasoningStageIndex = 1;
+        } else if (elapsed < 6.0) {
+          this.reasoningStageIndex = 2;
+        } else {
+          this.reasoningStageIndex = 3;
+        }
+      }, 100);
+    },
+    stopReasoningTimer() {
+      if (this.liveThinkingTimer) {
+        clearInterval(this.liveThinkingTimer);
+        this.liveThinkingTimer = null;
+      }
+    },
     toggleExpand() {
       this.isExpanded = !this.isExpanded;
       localStorage.setItem('aiq_is_expanded', this.isExpanded);
@@ -1514,6 +1684,100 @@ export default {
   display: flex;
   gap: 5px;
   padding: 2px 0;
+}
+
+/* -- Active Reasoning Card -- */
+.aiq-reasoning-active-card {
+  min-width: 280px;
+  max-width: 440px;
+  background: var(--aiq-card-bg);
+  border: 1px solid rgba(66, 165, 245, 0.28);
+  box-shadow: 0 4px 20px rgba(66, 165, 245, 0.12);
+  padding: 14px 18px;
+}
+
+.aiq-reasoning-live-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.aiq-reasoning-brain-pulse {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(66, 165, 245, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: aiq-brain-glow 2s infinite ease-in-out;
+}
+
+@keyframes aiq-brain-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(66, 165, 245, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(66, 165, 245, 0); }
+}
+
+.aiq-reasoning-live-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #42A5F5;
+}
+
+.aiq-reasoning-live-timer {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.aiq-reasoning-live-model {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(66, 165, 245, 0.15);
+  color: #42A5F5;
+}
+
+.aiq-reasoning-stage-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aiq-reasoning-stage-badge {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.aiq-light .aiq-reasoning-stage-badge {
+  color: #64748b;
+}
+
+.aiq-spin-slow {
+  animation: aiq-spin 2s linear infinite;
+}
+
+@keyframes aiq-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.aiq-reasoning-progress-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(66, 165, 245, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.aiq-reasoning-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #1565C0, #42A5F5);
+  border-radius: 999px;
+  transition: width 0.3s ease;
 }
 
 .aiq-dot {

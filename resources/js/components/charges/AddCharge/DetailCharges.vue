@@ -784,7 +784,7 @@ export default {
       if (category.allow_unit_price) h.push({ title: this.$t('unit_price'), key: 'unit_price', sortable: false });
       if (category.allow_price) h.push({ title: this.$t('total_price'), key: 'total_price', sortable: false });
       if (category.allow_detail_truck_id) h.push({ title: this.$t('truck'), key: 'truck', sortable: false });
-      h.push({ title: this.$t('actions'), key: 'actions', sortable: false, width: 110 });
+      h.push({ title: this.$t('actions'), key: 'actions', sortable: false, width: 144 });
       return h;
     },
     getFilterableColumns(category) {

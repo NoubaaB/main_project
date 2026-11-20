@@ -50,10 +50,72 @@
               <div class="ai-header-status">
                 <span class="ai-status-dot"></span>
                 <span>{{ $t('online') }}</span>
+                <span class="ai-header-model ai-header-model-text ms-1 opacity-70" style="font-size: 11px;">• {{ currentModelObj.name }}</span>
               </div>
             </div>
           </div>
           <div class="ai-header-actions">
+            <!-- Model selector pill in header -->
+            <v-menu
+              v-if="canSelectModel"
+              overlay-class="ai-model-menu"
+              content-class="ai-model-menu"
+              :z-index="999999"
+              location="bottom end"
+              :close-on-content-click="true"
+              :offset="8"
+            >
+              <template v-slot:activator="{ props }">
+                <button
+                  v-bind="props"
+                  class="ai-header-thinking-badge ai-header-model-badge"
+                  :title="$t('choose_ai_model')"
+                >
+                  <v-icon size="13" class="me-1" :color="currentModelObj.color">{{ currentModelObj.icon }}</v-icon>
+                  <span class="ai-thinking-badge-text">{{ currentModelObj.name }}</span>
+                  <v-icon size="11" class="ms-1 opacity-70">mdi-chevron-down</v-icon>
+                </button>
+              </template>
+              <v-list density="compact" nav class="rounded-xl ai-thinking-menu-list" min-width="280" max-height="400" style="overflow-y: auto;">
+                <div class="px-3 py-1.5 text-caption font-weight-bold text-uppercase opacity-60">
+                  {{ $t('choose_ai_model') }}
+                </div>
+                <v-list-item
+                  v-for="model in authorizedModels"
+                  :key="model.id"
+                  rounded="lg"
+                  @click="ai_prompt.selected_model = model.id"
+                  :active="ai_prompt.selected_model === model.id"
+                >
+                  <template v-slot:prepend>
+                    <v-icon size="16" :color="model.color" class="mr-2">{{ model.icon }}</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption font-weight-bold d-flex align-center justify-space-between">
+                    <span>{{ model.name }}</span>
+                    <v-chip size="x-small" :color="model.color" variant="tonal" class="ms-2 font-weight-bold">
+                      {{ $t('model_' + model.tag.toLowerCase().replace(/ /g, '_')) || model.tag }}
+                    </v-chip>
+                  </v-list-item-title>
+                  <v-list-item-subtitle class="text-caption opacity-70" style="font-size: 10px !important;">
+                    {{ model.desc }}
+                  </v-list-item-subtitle>
+                  <template v-slot:append>
+                    <v-icon v-if="ai_prompt.selected_model === model.id" size="14" color="primary">mdi-check</v-icon>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+            <!-- Locked Model Pill when selection is restricted -->
+            <div
+              v-else
+              class="ai-header-thinking-badge ai-header-model-badge ai-header-model-locked"
+              :title="$t('ai_model_locked_hint') || 'AI Model managed by administrator'"
+            >
+              <v-icon size="13" class="me-1" :color="currentModelObj.color">{{ currentModelObj.icon }}</v-icon>
+              <span class="ai-thinking-badge-text">{{ currentModelObj.name }}</span>
+              <v-icon size="10" class="ms-1 opacity-60">mdi-lock-outline</v-icon>
+            </div>
+
             <!-- Thinking level pill in header -->
             <v-menu
               overlay-class="ai-thinking-level-menu"
@@ -113,7 +175,7 @@
               :title="isExpanded ? ($t('shrink_chat') || 'Shrink') : ($t('expand_chat') || 'Expand')"
               class="ai-header-btn"
             >
-              <v-icon size="18" color="rgba(255,255,255,0.9)">
+              <v-icon size="17" color="#ffffff">
                 {{ isExpanded ? 'mdi-arrow-collapse' : 'mdi-arrow-expand-all' }}
               </v-icon>
             </v-btn>
@@ -125,7 +187,7 @@
               :title="$t('export_chat_history')"
               class="ai-header-btn"
             >
-              <v-icon size="18" color="rgba(255,255,255,0.9)">mdi-tray-arrow-down</v-icon>
+              <v-icon size="17" color="#ffffff">mdi-tray-arrow-down</v-icon>
             </v-btn>
             <v-btn
               icon
@@ -135,7 +197,7 @@
               :title="$t('clear_messages')"
               class="ai-header-btn"
             >
-              <v-icon size="18" color="rgba(255,255,255,0.9)">mdi-broom</v-icon>
+              <v-icon size="17" color="#ffffff">mdi-broom</v-icon>
             </v-btn>
             <v-btn
               icon
@@ -145,7 +207,7 @@
               :title="$t('minimize_chat')"
               class="ai-header-btn"
             >
-              <v-icon size="18" color="rgba(255,255,255,0.9)">mdi-chevron-down</v-icon>
+              <v-icon size="17" color="#ffffff">mdi-chevron-down</v-icon>
             </v-btn>
           </div>
         </header>
@@ -205,7 +267,8 @@
               :key="m.id || i"
               :class="[
                 'ai-msg-row',
-                m.role === 'agent' ? 'ai-msg-agent' : 'ai-msg-user'
+                m.role === 'agent' ? 'ai-msg-agent' : 'ai-msg-user',
+                hasAnalyticsCard(m) ? 'ai-msg-row-analytics' : ''
               ]"
               @click="handleBubbleClick($event)"
             >
@@ -219,33 +282,110 @@
                   'ai-msg-bubble',
                   m.role === 'agent' ? 'ai-bubble-agent' : 'ai-bubble-user',
                   m.typing ? 'ai-bubble-typing' : '',
-                  isChartMessage(m) ? 'ai-bubble-chart' : ''
+                  hasAnalyticsCard(m) ? 'ai-bubble-analytics' : ''
                 ]"
               >
-                <!-- Typing indicator -->
+                <!-- Typing / Active Reasoning indicator -->
                 <template v-if="m.typing">
-                  <div class="ai-typing-indicator" aria-hidden="true">
-                    <span class="ai-typing-dot"></span>
-                    <span class="ai-typing-dot"></span>
-                    <span class="ai-typing-dot"></span>
-                  </div>
-                </template>
-
-                <!-- Chart content -->
-                <template v-else-if="isChartMessage(m)">
-                  <div class="ai-chart-container">
-                    <div class="ai-chart-header">
-                      <v-icon size="16" color="#2196F3">mdi-chart-box-outline</v-icon>
-                      <span class="ai-chart-label">Chart View</span>
+                  <div class="ai-typing-reasoning-card">
+                    <div class="d-flex align-center ga-2 mb-1">
+                      <div class="ai-brain-glow">
+                        <v-icon size="14" color="#42A5F5">mdi-brain</v-icon>
+                      </div>
+                      <span class="ai-typing-reasoning-title font-weight-medium">{{ $t('reasoning_in_progress') || 'Thinking...' }}</span>
+                      <span class="ai-typing-timer font-mono text-caption">({{ liveThinkingSeconds }}s)</span>
+                      <span class="ai-typing-model-pill">{{ currentModelObj.name }}</span>
+                      <div class="ai-typing-indicator ms-auto" aria-hidden="true">
+                        <span class="ai-typing-dot"></span>
+                        <span class="ai-typing-dot"></span>
+                        <span class="ai-typing-dot"></span>
+                      </div>
                     </div>
-                    <div class="ai-chart-content" :id="'ai-dynamic-' + (m.id || i)"></div>
+                    <div class="ai-typing-stage-row">
+                      <v-icon size="12" color="#42A5F5" class="me-1 ai-spin-slow">mdi-progress-helper</v-icon>
+                      <span class="ai-typing-stage-text">{{ currentReasoningStageText }}</span>
+                    </div>
+                    <div class="ai-reasoning-progress-track">
+                      <div class="ai-reasoning-progress-bar" :style="{ width: liveThinkingProgress + '%' }"></div>
+                    </div>
+                    <!-- Live Progressive Thought Reflections -->
+                    <div class="ai-live-thought-stream mt-2 pt-1">
+                      <div
+                        v-for="(th, sIdx) in liveThoughts"
+                        :key="sIdx"
+                        class="d-flex align-center py-0.5 ai-live-thought-step"
+                        :class="{
+                          'ai-step-active': sIdx === reasoningStageIndex,
+                          'ai-step-done': sIdx < reasoningStageIndex,
+                          'ai-step-pending': sIdx > reasoningStageIndex
+                        }"
+                      >
+                        <v-icon
+                          size="11"
+                          :color="sIdx < reasoningStageIndex ? '#00BFA5' : (sIdx === reasoningStageIndex ? '#42A5F5' : 'grey')"
+                          class="me-1 flex-shrink-0"
+                          :class="{ 'ai-spin-slow': sIdx === reasoningStageIndex }"
+                        >
+                          {{ sIdx < reasoningStageIndex ? 'mdi-check-circle' : (sIdx === reasoningStageIndex ? 'mdi-loading' : 'mdi-circle-outline') }}
+                        </v-icon>
+                        <span class="font-mono" :style="{ fontSize: '10px', opacity: sIdx > reasoningStageIndex ? 0.45 : (sIdx === reasoningStageIndex ? 1 : 0.75) }">
+                          {{ th }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </template>
 
-                <!-- Normal message -->
+                <!-- Completed message (Agent or User) -->
                 <template v-else>
-                  <div v-if="m.role === 'agent'" class="ai-msg-text" :id="'ai-dynamic-' + (m.id || i)"></div>
-                  <div v-else class="ai-msg-text" v-html="m.text"></div>
+                  <!-- Collapsible Thought Accordion (always rendered for agent messages with reasoning) -->
+                  <div v-if="m.role === 'agent' && hasThought(m)" class="ai-thought-box">
+                    <div
+                      class="ai-thought-toggle"
+                      :class="{ 'is-open': isThoughtOpen(m.id || i) }"
+                      @click.stop="toggleThought(m.id || i)"
+                      role="button"
+                      tabindex="0"
+                    >
+                      <div class="d-flex align-center ga-2 flex-grow-1">
+                        <v-icon size="14" color="#42A5F5">mdi-brain</v-icon>
+                        <span class="ai-thought-title">{{ formatThoughtHeader(m) }}</span>
+                        <span class="ai-thought-model">{{ getModelDisplay(m) }}</span>
+                      </div>
+                      <span class="ai-thought-action-hint">{{ isThoughtOpen(m.id || i) ? ($t('hide') || 'Hide') : ($t('view') || 'View') }}</span>
+                      <v-icon size="14" class="ai-thought-arrow ms-1">{{ isThoughtOpen(m.id || i) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                    </div>
+                    <transition name="ai-thought-expand">
+                      <div v-if="isThoughtOpen(m.id || i)" class="ai-thought-details">
+                        <div v-for="(step, sIdx) in getThoughtSteps(m)" :key="sIdx" class="ai-thought-step-item">
+                          <div class="ai-thought-step-head">
+                            <v-icon size="12" color="#42A5F5" class="me-1">mdi-circle-small</v-icon>
+                            <span class="ai-thought-step-name font-weight-medium">{{ step.title }}</span>
+                          </div>
+                          <div v-if="step.is_sql && step.detail" class="ai-thought-sql-snippet">
+                            <div class="d-flex align-center justify-space-between mb-1">
+                              <span class="text-caption opacity-70">SQL</span>
+                              <button class="ai-thought-copy-btn" @click.stop="copySqlSnippet(step.detail)">
+                                <v-icon size="11" class="me-1">{{ copiedSqlKey === step.detail ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
+                                {{ copiedSqlKey === step.detail ? ($t('copied') || 'Copied') : ($t('copy') || 'Copy') }}
+                              </button>
+                            </div>
+                            <code>{{ step.detail }}</code>
+                          </div>
+                          <div v-else class="ai-thought-step-body">{{ step.detail }}</div>
+                        </div>
+                      </div>
+                    </transition>
+                  </div>
+
+                  <!-- Agent message content container -->
+                  <div
+                    v-if="m.role === 'agent'"
+                    class="ai-msg-text ai-agent-content-area"
+                    :id="'ai-dynamic-' + (m.id || i)"
+                  ></div>
+                  <!-- User message content container -->
+                  <div v-else class="ai-msg-text" v-html="m.text || m.content || ''"></div>
                   <!-- Excel file download badge -->
                   <a
                     v-if="m.file_url && m.role === 'user'"
@@ -545,11 +685,44 @@ export default {
       customWidth: null,
       customHeight: null,
       replyingTo: null,
+      liveThinkingSeconds: 0,
+      liveThinkingTimer: null,
+      reasoningStageIndex: 0,
+      openThoughts: {},
+      copiedSqlKey: null,
     };
   },
   computed: {
     ai_prompt: () => useAIPrompt(),
     main: () => useMain(),
+    currentModelObj() {
+      return this.ai_prompt?.getModelObj ? this.ai_prompt.getModelObj() : { name: 'Gemini 4 Carbon', color: '#00E5FF', icon: 'mdi-atom', tag: 'Carbon Core' };
+    },
+    liveThoughts() {
+      return [
+        this.$t('thought_step_intent') || 'Analyzing question intent & requirements...',
+        this.$t('thought_step_schema') || 'Exploring enterprise records & domain relationships...',
+        this.$t('thought_step_sql') || 'Formulating analytical metrics & calculation models...',
+        this.$t('thought_step_db') || 'Retrieving certified enterprise transaction records...',
+        this.$t('thought_step_synthesis') || 'Synthesizing executive KPIs & interactive visualizations...',
+      ];
+    },
+    currentReasoningStageText() {
+      const stages = [
+        this.$t('reasoning_step_intent') || 'Analyzing user request & business context...',
+        this.$t('reasoning_step_schema') || 'Mapping business metrics & formulating query model...',
+        this.$t('reasoning_step_db') || 'Accessing verified ERP data streams...',
+        this.$t('reasoning_step_synthesis') || 'Synthesizing executive insights & interactive visualizations...',
+      ];
+      return stages[this.reasoningStageIndex] || stages[0];
+    },
+    liveThinkingProgress() {
+      const sec = parseFloat(this.liveThinkingSeconds) || 0;
+      if (sec <= 1.5) return Math.min(25, (sec / 1.5) * 25);
+      if (sec <= 3.5) return 25 + Math.min(30, ((sec - 1.5) / 2.0) * 30);
+      if (sec <= 6.0) return 55 + Math.min(30, ((sec - 3.5) / 2.5) * 30);
+      return Math.min(95, 85 + (sec - 6.0) * 1.5);
+    },
     isDark() {
       return this.main.is_dark;
     },
@@ -587,9 +760,90 @@ export default {
       handler(newVal) {
         this.updateAllChartsTheme(newVal);
       }
+    },
+    loading(val) {
+      if (val) {
+        this.startReasoningTimer();
+      } else {
+        this.stopReasoningTimer();
+      }
     }
   },
   methods: {
+    startReasoningTimer() {
+      this.liveThinkingSeconds = 0;
+      this.reasoningStageIndex = 0;
+      const startTime = Date.now();
+      if (this.liveThinkingTimer) clearInterval(this.liveThinkingTimer);
+      this.liveThinkingTimer = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        this.liveThinkingSeconds = elapsed.toFixed(1);
+        if (elapsed < 1.5) {
+          this.reasoningStageIndex = 0;
+        } else if (elapsed < 3.5) {
+          this.reasoningStageIndex = 1;
+        } else if (elapsed < 6.0) {
+          this.reasoningStageIndex = 2;
+        } else {
+          this.reasoningStageIndex = 3;
+        }
+      }, 100);
+    },
+    stopReasoningTimer() {
+      if (this.liveThinkingTimer) {
+        clearInterval(this.liveThinkingTimer);
+        this.liveThinkingTimer = null;
+      }
+    },
+    hasThought(m) {
+      return Boolean(m && m.reasoning);
+    },
+    isThoughtOpen(key) {
+      return Boolean(this.openThoughts[key]);
+    },
+    toggleThought(key) {
+      this.openThoughts = {
+        ...this.openThoughts,
+        [key]: !this.openThoughts[key]
+      };
+    },
+    parseReasoningObj(m) {
+      if (!m || !m.reasoning) return null;
+      if (typeof m.reasoning === 'string') {
+        try {
+          return JSON.parse(m.reasoning);
+        } catch (e) {
+          return { steps: [{ title: this.$t('thought_process') || 'Thought Process', detail: m.reasoning }] };
+        }
+      }
+      return m.reasoning;
+    },
+    formatThoughtHeader(m) {
+      const r = this.parseReasoningObj(m);
+      if (r && r.thinking_time) {
+        return this.$t('thought_for_seconds', { s: r.thinking_time }) || `Thought for ${r.thinking_time}s`;
+      }
+      return this.$t('thought_process') || 'Thought Process';
+    },
+    getModelDisplay(m) {
+      const modelId = m?.model || m?.message?.model || this.ai_prompt.selected_model;
+      const found = this.ai_prompt.getModelObj ? this.ai_prompt.getModelObj(modelId) : null;
+      return found?.name || 'Gemini 4 Carbon';
+    },
+    getThoughtSteps(m) {
+      const r = this.parseReasoningObj(m);
+      if (!r) return [];
+      if (Array.isArray(r.steps)) return r.steps;
+      return [];
+    },
+    async copySqlSnippet(sql) {
+      if (!sql) return;
+      try {
+        await navigator.clipboard.writeText(sql);
+        this.copiedSqlKey = sql;
+        setTimeout(() => { this.copiedSqlKey = null; }, 2000);
+      } catch (e) {}
+    },
     updateAllChartsTheme(isDark) {
       this.$nextTick(() => {
         const container = this.$refs.messagesContainer;
@@ -660,11 +914,10 @@ export default {
     },
     toggleExpand() {
       this.isExpanded = !this.isExpanded;
-      if (this.isExpanded) {
-        this.$nextTick(() => {
-          this.scrollToBottom(true);
-        });
-      }
+      this.$nextTick(() => {
+        window.dispatchEvent(new Event('resize'));
+        this.scrollToBottom(true);
+      });
     },
     toggleAssistant() {
       // Snap to bottom-right when opening
@@ -679,6 +932,10 @@ export default {
         this.$nextTick(() => {
           this.renderAllDynamicContent();
           this.scrollToBottom(true);
+          setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+            this.updateAllChartsTheme(this.isDark);
+          }, 360);
         });
       }
     },
@@ -796,7 +1053,7 @@ export default {
       
       if (this.resizeDir === 'left' || this.resizeDir === 'top-left') {
         let newWidth = this.resizeStartWidth - dx;
-        newWidth = Math.max(400, Math.min(newWidth, window.innerWidth * 0.95));
+        newWidth = Math.max(500, Math.min(newWidth, window.innerWidth * 0.95));
         this.customWidth = newWidth;
       }
       
@@ -812,6 +1069,7 @@ export default {
       window.removeEventListener('pointermove', this.onResizeMove);
       window.removeEventListener('pointerup', this.onResizeEnd);
       document.body.style.userSelect = '';
+      window.dispatchEvent(new Event('resize'));
     },
     async clearAssistantMessage() {
       await this.ai_prompt.clearHistory();
@@ -884,13 +1142,28 @@ export default {
       return text.length > len ? text.substring(0, len) + '...' : text;
     },
     isChartMessage(m) {
-      if (!m.text || m.typing) return false;
-      const t = m.text.toLowerCase();
-      return t.includes('apexchart') || t.includes('aichart') || t.includes('new apexcharts');
+      return false;
     },
     isTableMessage(m) {
-      if (!m.text || m.typing) return false;
-      return m.text.includes('<table') || m.text.includes('&lt;table');
+      const t = m?.text || m?.content || '';
+      if (!t || m.typing) return false;
+      return t.includes('<table') || t.includes('&lt;table');
+    },
+    hasAnalyticsCard(m) {
+      if (!m || m.typing) return false;
+      const t = m.text || m.content || '';
+      if (!t || typeof t !== 'string') return false;
+      return (
+        t.includes('ai-analytics-card') ||
+        t.includes('aichart_') ||
+        t.includes('apexcharts') ||
+        t.includes('ApexCharts') ||
+        t.includes('<table') ||
+        t.includes('ai-kpi-card') ||
+        t.includes('VISUALISATION') ||
+        t.includes('Visualisation') ||
+        t.includes('CHART VIEW')
+      );
     },
     /**
      * Render all agent messages using the dynamic loader.
@@ -902,19 +1175,16 @@ export default {
       const msgs = this.messages;
       for (let i = 0; i < msgs.length; i++) {
         const m = msgs[i];
-        if (m.role !== 'agent' || m.typing || !m.text) continue;
+        const msgText = m.text || m.content || '';
+        if (m.role !== 'agent' || m.typing || !msgText) continue;
         const key = m.id || i;
-        if (this._renderedIds.has(key)) continue;
         const containerId = `ai-dynamic-${key}`;
         const el = document.getElementById(containerId);
         if (!el) continue;
-        // For messages with scripts (charts, Vue apps), use the full dynamic loader
-        if (m.text.includes('<script') || m.text.includes('ApexCharts') || m.text.includes('createApp')) {
-          loadExternalContent(m.text, containerId);
-        } else {
-          // Plain HTML — just set innerHTML directly (faster)
-          el.innerHTML = m.text;
-        }
+        // If already rendered and DOM content is still intact, skip
+        if (this._renderedIds.has(key) && el.innerHTML.trim() !== '') continue;
+        // Use full dynamic loader for agent messages to safely handle scripts, charts & Vue components
+        loadExternalContent(msgText, containerId);
         this._renderedIds.add(key);
       }
       this.updateAllChartsTheme(this.isDark);
@@ -1109,15 +1379,49 @@ export default {
         });
       }
     },
+    normalizeAiRoute(route) {
+      if (!route) return '/main-dashboard';
+      const clean = String(route).trim();
+      const aliasMap = {
+        '/fortnight': '/workforce/fortnight',
+        '/fortnights': '/workforce/fortnight',
+        '/workforce': '/workforce/management',
+        '/workforces': '/workforce/management',
+        '/dashboard': '/main-dashboard',
+        '/dashboards': '/main-dashboard',
+        '/supplier_invoice': '/supplier_invoice/list_supplier_invoice',
+        '/supplier-invoices': '/supplier_invoice/list_supplier_invoice',
+        '/client_invoice': '/client_invoice/list_client_invoice',
+        '/client-invoices': '/client_invoice/list_client_invoice',
+        '/warehouse-transfers': '/warehouse-transfers/list',
+        '/warehouse_transfer': '/warehouse-transfers/list',
+        '/warehouse_transfers': '/warehouse-transfers/list',
+        '/charge_category': '/parameters/charge-management',
+        '/shipping_category': '/parameters/shipping-management',
+        '/production_category': '/parameters/production-management',
+        '/production/add_production': '/production/add',
+        '/clients': '/parameters/client-management',
+        '/suppliers': '/parameters/supplier-management',
+        '/parameters': '/parameters/company-settings',
+        '/parameters/trucks': '/charges',
+        '/parameters/ships': '/charges',
+      };
+      return aliasMap[clean] || clean;
+    },
     handleBubbleClick(event) {
       // Handle .ai-nav-btn buttons (from AI backend)
       const navBtn = event.target.closest('.ai-nav-btn');
       if (navBtn) {
-        const route = navBtn.getAttribute('data-route');
-        if (route) {
+        const rawRoute = navBtn.getAttribute('data-route');
+        if (rawRoute) {
           event.preventDefault();
           event.stopPropagation();
-          this.$router.push(route);
+          const route = this.normalizeAiRoute(rawRoute);
+          this.$router.push(route).catch(err => {
+            if (err?.name !== 'NavigationDuplicated') {
+              console.warn('AI nav button navigation warning:', err);
+            }
+          });
           return;
         }
       }
@@ -1131,12 +1435,13 @@ export default {
       try {
         const url = new URL(href, window.location.origin);
         if (url.origin === window.location.origin) {
-          this.$router.push(url.pathname + url.search + url.hash);
+          const target = this.normalizeAiRoute(url.pathname + url.search + url.hash);
+          this.$router.push(target);
         } else {
           window.open(href, '_blank', 'noopener');
         }
       } catch {
-        this.$router.push(href);
+        this.$router.push(this.normalizeAiRoute(href));
       }
     },
     deleteMessage(msgId) {
@@ -1347,7 +1652,13 @@ export default {
       });
     }
   },
+  updated() {
+    this.$nextTick(() => {
+      this.renderAllDynamicContent();
+    });
+  },
   beforeUnmount() {
+    this.stopReasoningTimer();
     window.removeEventListener('ai:content-rendered', this.onContentRendered);
     window.removeEventListener('resize', this._onResize);
     document.removeEventListener('pointermove', this._onFabPointerMove);
@@ -1584,8 +1895,8 @@ export default {
   position: fixed;
   bottom: 92px;
   right: 24px;
-  width: min(460px, calc(100vw - 32px));
-  height: min(620px, calc(100vh - 120px));
+  width: min(580px, calc(100vw - 32px));
+  height: min(690px, calc(100vh - 120px));
   z-index: 100000 !important;
   display: flex;
   flex-direction: column;
@@ -1600,8 +1911,8 @@ export default {
 }
 
 .ai-chat-panel.ai-expanded {
-  width: min(880px, 94vw);
-  height: min(820px, 88vh);
+  width: min(980px, 95vw);
+  height: min(860px, 88vh);
   bottom: max(20px, 4vh);
 }
 
@@ -1642,20 +1953,22 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 18px;
+  gap: 10px;
+  padding: 12px 16px;
   background: var(--ai-header-bg);
   border-bottom: 1px solid var(--ai-header-border);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 16px rgba(21, 101, 192, 0.25);
   position: relative;
   z-index: 2;
+  box-sizing: border-box;
 }
 
 .ai-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
 }
 
 .ai-avatar-ring {
@@ -1823,16 +2136,20 @@ export default {
 .ai-header-actions {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .ai-header-thinking-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.12) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.42);
   color: #ffffff;
   font-size: 11px;
   font-weight: 600;
@@ -1840,15 +2157,16 @@ export default {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  margin-right: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .ai-header-thinking-badge:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.2) 100%);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.36);
+  border-color: rgba(255, 255, 255, 0.65);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .ai-header-thinking-badge:active {
@@ -1856,25 +2174,61 @@ export default {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
+.ai-header-model-badge {
+  max-width: 175px;
+  flex-shrink: 1;
+}
+
+.ai-header-model-badge .ai-thinking-badge-text {
+  max-width: 105px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ai-thinking-badge-text {
-  max-width: 65px;
+  max-width: 70px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ai-header-btn {
-  border-radius: 10px !important;
-  transition: all 0.2s ease !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ai-header-btn :deep(.v-icon),
+.ai-header-btn .v-icon {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  font-size: 16px !important;
 }
 
 .ai-header-btn:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.38) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
 }
 
 .ai-header-btn:active {
-  transform: translateY(1px) scale(0.95);
+  transform: translateY(1px) scale(0.94);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* ---------- Suggested Prompts in Widget ---------- */
@@ -2121,6 +2475,252 @@ export default {
   border: 1px solid var(--ai-typing-border);
   padding: 13px 18px;
   border-bottom-left-radius: 4px;
+}
+
+.ai-msg-row-analytics {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.ai-bubble-analytics {
+  max-width: 98% !important;
+  width: 98% !important;
+  padding: 10px 14px !important;
+}
+
+.ai-bubble-analytics .ai-agent-content-area {
+  width: 100% !important;
+}
+
+.ai-msg-bubble :deep(.apexcharts-canvas) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.ai-msg-bubble :deep(.apexcharts-canvas svg) {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+/* ---------- Live Reasoning Typing Card ---------- */
+.ai-typing-reasoning-card {
+  min-width: 250px;
+  max-width: 380px;
+}
+
+.ai-brain-glow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(66, 165, 245, 0.15);
+  animation: ai-brain-pulse 2s infinite ease-in-out;
+}
+
+@keyframes ai-brain-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(66, 165, 245, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(66, 165, 245, 0); }
+}
+
+.ai-typing-reasoning-title {
+  font-size: 12px;
+  color: #42A5F5;
+  font-weight: 600;
+}
+
+.ai-typing-timer {
+  font-size: 11px;
+  color: var(--ai-text-muted);
+}
+
+.ai-typing-model-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(66, 165, 245, 0.15);
+  color: #42A5F5;
+}
+
+.ai-typing-stage-row {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: var(--ai-text-muted);
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+.ai-typing-stage-text {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-spin-slow {
+  animation: ai-spin 2s linear infinite;
+}
+
+@keyframes ai-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ai-reasoning-progress-track {
+  width: 100%;
+  height: 2.5px;
+  background: rgba(66, 165, 245, 0.15);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ai-reasoning-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #1565C0, #42A5F5);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* ---------- Reasoning Accordion in Assistant ---------- */
+.ai-thought-box {
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(66, 165, 245, 0.22);
+  background: rgba(66, 165, 245, 0.05);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.ai-thought-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.ai-thought-toggle:hover {
+  background: rgba(66, 165, 245, 0.1);
+}
+
+.ai-thought-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #42A5F5;
+}
+
+.ai-thought-model {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(66, 165, 245, 0.15);
+  color: #42A5F5;
+}
+
+.ai-thought-action-hint {
+  font-size: 10px;
+  color: var(--ai-text-muted);
+}
+
+.ai-thought-arrow {
+  color: var(--ai-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.ai-thought-toggle.is-open .ai-thought-arrow {
+  color: #42A5F5;
+}
+
+.ai-thought-details {
+  padding: 8px 10px;
+  border-top: 1px solid rgba(66, 165, 245, 0.12);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.ai-theme-light .ai-thought-details {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.ai-thought-step-item {
+  margin-bottom: 8px;
+}
+
+.ai-thought-step-item:last-child {
+  margin-bottom: 0;
+}
+
+.ai-thought-step-head {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 2px;
+}
+
+.ai-theme-light .ai-thought-step-head {
+  color: #334155;
+}
+
+.ai-thought-step-body {
+  font-size: 11px;
+  color: var(--ai-text-muted);
+  line-height: 1.4;
+  padding-left: 12px;
+}
+
+.ai-thought-sql-snippet {
+  margin-left: 12px;
+  margin-top: 4px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.ai-thought-sql-snippet code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  color: #38bdf8;
+  word-break: break-all;
+  white-space: pre-wrap;
+  display: block;
+}
+
+.ai-thought-copy-btn {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.ai-thought-copy-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.ai-thought-expand-enter-active,
+.ai-thought-expand-leave-active {
+  transition: all 0.2s ease;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+.ai-thought-expand-enter-from,
+.ai-thought-expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* ---------- Chart ---------- */
@@ -2816,13 +3416,65 @@ export default {
 }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .ai-chat-panel {
-    right: 10px;
-    left: 10px;
-    width: auto;
-    bottom: 90px;
-    height: 70vh;
+    right: 12px;
+    left: 12px;
+    width: auto !important;
+    bottom: 84px;
+    height: 75vh;
+    border-radius: 20px;
+  }
+  .ai-header-model-text {
+    display: none !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .ai-chat-panel {
+    right: 8px;
+    left: 8px;
+    width: auto !important;
+    bottom: 80px;
+    height: 80vh;
+    border-radius: 16px;
+  }
+  .ai-chat-header {
+    padding: 10px 12px !important;
+    gap: 6px !important;
+  }
+  .ai-header-left {
+    gap: 8px !important;
+  }
+  .ai-avatar-ring {
+    width: 32px !important;
+    height: 32px !important;
+    flex: 0 0 32px !important;
+  }
+  .ai-header-title {
+    font-size: 13.5px !important;
+  }
+  .ai-header-actions {
+    gap: 2px !important;
+  }
+  .ai-header-model-badge {
+    padding: 3px 6px !important;
+    max-width: 115px !important;
+  }
+  .ai-header-model-badge .ai-thinking-badge-text {
+    max-width: 65px !important;
+    font-size: 10.5px !important;
+  }
+  .ai-header-thinking-badge {
+    padding: 3px 6px !important;
+  }
+  .ai-header-thinking-badge .ai-thinking-badge-text {
+    display: none !important;
+  }
+  .ai-header-btn {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
   }
   .ai-fab-container {
     right: 14px;
