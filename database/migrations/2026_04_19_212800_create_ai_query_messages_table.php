@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade')->comment('FK to users - message author');
             $table->string('role')->comment('Message sender: user or agent');
             $table->longText('text')->comment('Message content (Vue/HTML for agent responses)');
+            $table->longText('reasoning')->nullable()->comment('AI Agent reasoning & thought process JSON');
             $table->string('reaction')->nullable()->comment('User reaction: like, dislike, or null');
             $table->timestamps();
             $table->softDeletes();

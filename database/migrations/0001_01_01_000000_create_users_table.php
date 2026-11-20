@@ -32,6 +32,12 @@ return new class extends Migration
                     'Ship' => ['create', 'read', 'update', 'delete'],
                 ])
             );
+            $table->boolean('can_select_ai_model')->nullable()->default(null)
+                ->comment('Nullable boolean: null=inherit from role permission, true=allowed, false=forbidden');
+            $table->json('allowed_ai_models')->nullable()
+                ->comment('JSON array of allowed model IDs or null for all');
+            $table->string('default_ai_model', 100)->nullable()->default('gemini-4-carbon')
+                ->comment('Default AI model assigned to this user');
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();

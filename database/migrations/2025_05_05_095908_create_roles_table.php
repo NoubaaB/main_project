@@ -14,6 +14,10 @@ return new class extends Migration
             $table->string("name", 50)->comment('Role name (e.g., admin, manager, operator)');
             $table->boolean('is_super_admin')->default(false);
             $table->json('permissions')->default('[]');
+            $table->json('allowed_ai_models')->nullable()
+                ->comment('JSON array of allowed model IDs for this role or null for all');
+            $table->string('default_ai_model', 100)->nullable()->default('gemini-4-carbon')
+                ->comment('Default AI model assigned to this role');
 
             $table->timestamps();
             $table->softDeletes();
